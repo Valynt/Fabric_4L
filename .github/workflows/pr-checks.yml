@@ -691,7 +691,8 @@ jobs:
         run: pnpm test -- --reporter=junit --outputFile=frontend-junit.xml --reporter=default --coverage
 
       - name: Critical frontend coverage thresholds
-        run: pnpm run test:coverage:critical
+        working-directory: ${{ github.workspace }}
+        run: pnpm --dir apps/web run test:coverage:critical
 
       - name: Upload test results
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
