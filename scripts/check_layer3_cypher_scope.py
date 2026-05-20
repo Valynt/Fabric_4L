@@ -120,11 +120,7 @@ MATCH_LABEL_PATTERN = re.compile(
     re.IGNORECASE | re.DOTALL,
 )
 RUN_CALL_PATTERN = re.compile(r"\.run\s*\(")
-<<<<<<< HEAD
 DIRECT_NEO4J_RUN_NAMES = {"session", "raw_session", "tx", "transaction"}
-=======
-DIRECT_SESSION_RUN_PATTERN = re.compile(r"\bsession\.run\s*\(")
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 CYPHER_KEYWORDS = re.compile(
     r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE|DELETE|DETACH\s+DELETE|CALL\s+gds|CALL\s+db\.index)\b",
     re.IGNORECASE,
@@ -213,7 +209,6 @@ def _is_high_risk_layer3_runtime(rel: str) -> bool:
     ))
 
 
-<<<<<<< HEAD
 def _run_owner_name(node: ast.AST) -> str | None:
     if isinstance(node, ast.Name):
         return node.id
@@ -241,8 +236,6 @@ def _iter_direct_neo4j_run_calls(path: Path) -> list[tuple[int, int]]:
     return calls
 
 
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 def scan_file(path: Path, root: Path) -> list[Finding]:
     rel = str(path.relative_to(root))
     if any(fragment in rel for fragment in ALLOWED_PATH_FRAGMENTS):
@@ -269,39 +262,23 @@ def scan_file(path: Path, root: Path) -> list[Finding]:
             )
         )
 
-<<<<<<< HEAD
     direct_neo4j_run_lines: set[int] = set()
     if _is_high_risk_layer3_runtime(rel):
         for line, _col in _iter_direct_neo4j_run_calls(path):
             direct_neo4j_run_lines.add(line)
-=======
-    direct_session_run_lines: set[int] = set()
-    if _is_high_risk_layer3_runtime(rel):
-        for match in DIRECT_SESSION_RUN_PATTERN.finditer(text):
-            line = _line_for_offset(text, match.start())
-            direct_session_run_lines.add(line)
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
             findings.append(
                 Finding(
                     path=path,
                     line=line,
                     severity="ERROR",
-<<<<<<< HEAD
                     message="direct Neo4j run call is forbidden in high-risk Layer 3 runtime modules; use run_scoped_query or run_validated_query",
-=======
-                    message="direct session.run is forbidden in high-risk Layer 3 runtime modules; use run_scoped_query or run_validated_query",
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
                     snippet=text.splitlines()[line - 1].strip()[:240],
                 )
             )
 
     for match in RUN_CALL_PATTERN.finditer(text):
         line = _line_for_offset(text, match.start())
-<<<<<<< HEAD
         if line in direct_neo4j_run_lines:
-=======
-        if line in direct_session_run_lines:
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
             continue
         if _is_reviewed_system_scope("", text, line) or _is_tenant_scoped("", text, line):
             continue

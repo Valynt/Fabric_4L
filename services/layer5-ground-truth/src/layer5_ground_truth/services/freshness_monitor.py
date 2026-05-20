@@ -17,41 +17,11 @@ from uuid import UUID
 from sqlalchemy import and_, case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-<<<<<<< HEAD
-=======
-from pydantic import BaseModel
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 from ..config import get_settings
 from ..models.truth_object import ClaimType, TruthObject, ValidationEvent
 from .freshness_contracts import FreshnessCheckResponse, FreshnessSummaryResponse
 
 
-<<<<<<< HEAD
-=======
-class FreshnessCounts(BaseModel):
-    stale: int
-    fresh: int
-    expiring_soon: int
-    total: int
-
-
-class FreshnessCheckResponse(TypedDictModel):
-    checked: int
-    marked_stale: int
-    dry_run: bool
-    timestamp: str
-
-
-class FreshnessSummaryResponse(TypedDictModel):
-    tenant_id: str
-    timestamp: str
-    summary: FreshnessCounts
-    warning_threshold_days: int
-
-
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 logger = logging.getLogger(__name__)
 
 

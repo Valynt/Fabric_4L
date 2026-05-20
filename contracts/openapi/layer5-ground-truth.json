@@ -2682,12 +2682,8 @@
           "dry_run",
           "timestamp"
         ],
-<<<<<<< HEAD
         "title": "FreshnessCheckResponse",
         "description": "Result envelope returned after a freshness reconciliation run."
-=======
-        "title": "FreshnessCheckResponse"
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
       },
       "FreshnessCounts": {
         "properties": {
@@ -2715,12 +2711,8 @@
           "expiring_soon",
           "total"
         ],
-<<<<<<< HEAD
         "title": "FreshnessCounts",
         "description": "Aggregated TruthObject freshness counts for a tenant."
-=======
-        "title": "FreshnessCounts"
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
       },
       "FreshnessSummaryResponse": {
         "properties": {
@@ -2748,12 +2740,8 @@
           "summary",
           "warning_threshold_days"
         ],
-<<<<<<< HEAD
         "title": "FreshnessSummaryResponse",
         "description": "Tenant-scoped summary of TruthObject freshness state."
-=======
-        "title": "FreshnessSummaryResponse"
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
       },
       "HTTPValidationError": {
         "type": "object",

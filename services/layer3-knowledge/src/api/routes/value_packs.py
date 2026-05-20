@@ -36,14 +36,6 @@ from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key
 from ...db.driver import get_driver
 from ...db.query_execution import run_validated_query
-<<<<<<< HEAD
-=======
-from ...utils.cypher_security import (
-    ALLOWED_REL_TYPES,
-    ALLOWED_TARGET_LABELS,
-    validate_cypher_identifier,
-)
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 class _build_fork_paramsResult(TypedDictModel):

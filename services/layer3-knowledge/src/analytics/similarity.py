@@ -8,15 +8,9 @@ from value_fabric.shared.identity.context import require_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-<<<<<<< HEAD
 from config import Settings, get_settings
 from retrieval.vector_store import VectorStore
 from db.query_execution import run_validated_query
-=======
-from ..config import Settings, get_settings
-from ..retrieval.vector_store import VectorStore
-from ..db.query_execution import run_validated_query
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 class SimilarityAnalyzer_compare_entitiesResult(TypedDictModel):

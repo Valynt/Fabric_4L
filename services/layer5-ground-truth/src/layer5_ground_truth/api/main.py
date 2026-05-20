@@ -481,12 +481,6 @@ def create_app() -> FastAPI:
     )
     add_security_middleware(app, config=_security_config_l5)
 
-<<<<<<< HEAD
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
@@ -543,8 +537,6 @@ def create_app() -> FastAPI:
             },
         )
 
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     class _AppStateRateLimiterProxy:
         def __init__(self, application: FastAPI):
             self._application = application
@@ -565,10 +557,6 @@ def create_app() -> FastAPI:
     # handler calls `await redis_client.ping()` to verify connectivity before
     # accepting traffic.
     redis_rate_limiter = _AppStateRateLimiterProxy(app)
-<<<<<<< HEAD
->>>>>>> theirs
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
     try:
         from value_fabric.shared.identity.middleware import GovernanceMiddleware
@@ -700,7 +688,6 @@ def create_app() -> FastAPI:
 
 # JWT Secret validation denylist — known weak/placeholder values (exact match,
 # case-insensitive).  Defined at module level so the set is constructed once.
-<<<<<<< HEAD
 JWT_SECRET_DENYLIST: frozenset[str] = frozenset(
     {
         "changeme-in-production",
@@ -726,10 +713,6 @@ JWT_SECRET_DENYLIST: frozenset[str] = frozenset(
 # that pass the length check but are still predictable.  Defined at module
 # level so the tuple is constructed once, not on every validation call.
 _JWT_WEAK_PREFIXES: tuple[str, ...] = (
-=======
-JWT_SECRET_DENYLIST: frozenset[str] = frozenset({
-    "changeme-in-production",
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     "changeme",
     "password",
     "secret",
@@ -739,27 +722,10 @@ JWT_SECRET_DENYLIST: frozenset[str] = frozenset({
     "123456",
     "qwerty",
     "abc123",
-<<<<<<< HEAD
 )
 
 # Compiled pattern for common weak-secret stems followed by digits.
 _JWT_WEAK_PATTERN = re.compile(r"^(changeme|password|secret|admin|test|default)[0-9]*$")
-=======
-})
-
-# Weak prefix patterns — catches padded placeholders like "changemexxxxxxxx"
-# that pass the length check but are still predictable.  Defined at module
-# level so the tuple is constructed once, not on every validation call.
-_JWT_WEAK_PREFIXES: tuple[str, ...] = (
-    "changeme", "password", "secret", "admin", "test", "default",
-    "123456", "qwerty", "abc123",
-)
-
-# Compiled pattern for common weak-secret stems followed by digits.
-_JWT_WEAK_PATTERN = re.compile(
-    r'^(changeme|password|secret|admin|test|default)[0-9]*$'
-)
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 def _validate_jwt_secret(secret: str) -> None:

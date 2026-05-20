@@ -12,23 +12,11 @@
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
-<<<<<<< HEAD
-<<<<<<< ours
-<<<<<<< ours
 	harness-task harness-guard harness-check
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 	check-layer3-legacy-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
 	harness-task harness-guard harness-check \
 	docs-harness
-<<<<<<< HEAD
->>>>>>> theirs
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 # Strict shell settings for production safety
@@ -55,19 +43,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-<<<<<<< HEAD
-<<<<<<< ours
-<<<<<<< ours
 verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-layer3-tenant-dependency-imports lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
-=======
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
->>>>>>> theirs
-=======
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
->>>>>>> theirs
-=======
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -116,24 +92,12 @@ check-pytest-skip-governance: ## Enforce pytest skip governance from collection 
 	 python scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
-<<<<<<< HEAD
-<<<<<<< ours
-<<<<<<< ours
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
 	@python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
 
 check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register keys (path_pattern + marker + reason_pattern)
 	@python scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
-<<<<<<< HEAD
->>>>>>> theirs
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
 	@python3 scripts/ci/check_reports_evidence_policy.py
 check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories)

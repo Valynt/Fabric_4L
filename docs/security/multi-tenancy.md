@@ -160,7 +160,6 @@ async def get_all_tenants(
     ...
 ```
 
-<<<<<<< HEAD
 ## Layer 3 route import inventory (as of 2026-05-19)
 
 Static inventory command:
@@ -171,8 +170,6 @@ rg "dependencies_tenant(_secured)?" services/layer3-knowledge/src/api/routes -n
 
 Current state: all Layer 3 route modules import the secured wrapper, and no route modules import the legacy compatibility shim.
 
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 ## Layer 3 Neo4j Tenant Dependency
 
 Layer 3 Neo4j route access has one approved dependency module (single canonical
@@ -188,7 +185,6 @@ compatibility shim only. It logs a deprecation warning on import and is schedule
 for hard removal on **2026-09-30**. New imports of that legacy module are blocked
 by `python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py` in CI.
 
-<<<<<<< HEAD
 Approved Layer 3 route import footprint (secured-only):
 
 - `services/layer3-knowledge/src/api/routes/benchmarks.py`
@@ -201,8 +197,6 @@ Approved Layer 3 route import footprint (secured-only):
 - `services/layer3-knowledge/src/api/routes/signals.py`
 - `services/layer3-knowledge/src/api/routes/variables.py`
 
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 ## Isolation Tiers
 
 ### Current: Shared Tier

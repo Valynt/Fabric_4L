@@ -14,22 +14,10 @@ from value_fabric.shared.fastapi_framework.app import (
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.security.config import validate_production_safety
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
 from value_fabric.shared.security.middleware import (
     SecurityConfig,
     add_security_middleware,
 )
-=======
-from value_fabric.shared.security.middleware import SecurityConfig, add_security_middleware
->>>>>>> theirs
-=======
-from value_fabric.shared.security.middleware import SecurityConfig, add_security_middleware
->>>>>>> theirs
-=======
-from value_fabric.shared.security.middleware import SecurityConfig, add_security_middleware
->>>>>>> theirs
 
 create_fabric_app = cast(Callable[..., Any], create_fabric_app)
 install_metrics_middleware = cast(Callable[..., Any], install_metrics_middleware)

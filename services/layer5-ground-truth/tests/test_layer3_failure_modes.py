@@ -5,8 +5,6 @@ from unittest.mock import AsyncMock
 
 import httpx
 import pytest
-<<<<<<< ours
-<<<<<<< ours
 from httpx import ASGITransport, AsyncClient
 
 from layer5_ground_truth.api.main import create_app
@@ -197,9 +195,6 @@ async def test_main_returns_explicit_response_for_layer3_security_failures() -> 
     assert payload["code"] == ERR_LAYER3_POLICY_DENIED
     assert payload["trace_id"] == "req-layer3-policy-test"
     assert payload["details"]["tenant_id"] == str(TEST_ORG_ID)
-=======
-=======
->>>>>>> theirs
 from fastapi import HTTPException
 
 from layer5_ground_truth.api.main import create_app
@@ -277,7 +272,3 @@ def test_security_http_exception_uses_explicit_security_error_payload() -> None:
     assert response.status_code == 403
     assert response.json()["error"] == "security_error"
     assert response.json()["error_code"] == "INSUFFICIENT_SCOPE"
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs

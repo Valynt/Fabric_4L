@@ -13,11 +13,11 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -30,7 +30,7 @@ from ..common.errors import raise_normalized_with_log
 from ..schemas.workflow_progress import WorkflowProgressSchema, normalize_workflow_progress
 
 
-JsonObject = dict[str, JsonValue]
+JsonObject = dict[str, Any]
 
 
 WorkflowStatusValue = Literal["pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"]
@@ -38,16 +38,10 @@ WorkflowStatusValue = Literal["pending", "running", "paused", "interrupted", "co
 WorkflowErrorValue = str | JsonObject
 
 
-<<<<<<< HEAD
-class WorkflowResultResponse(BaseModel):
-    workflow_id: str
-    status: WorkflowStatusValue
-    output: JsonObject | None = None
-=======
 class WorkflowOutput(BaseModel):
     """Structured workflow output envelope for completed workflow results."""
 
-    data: JsonValue = Field(default_factory=dict)
+    data: Any = Field(default_factory=dict)
     summary: str | None = None
     artifacts: list[JsonObject] = Field(default_factory=list)
     metrics: JsonObject = Field(default_factory=dict)
@@ -58,7 +52,6 @@ class WorkflowResultResponse(BaseModel):
     workflow_id: str
     status: WorkflowStatusValue
     output: WorkflowOutput | None = None
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     errors: list[WorkflowErrorValue] = Field(default_factory=list)
     completed_at: str | None = None
 

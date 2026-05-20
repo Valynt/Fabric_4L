@@ -3,11 +3,8 @@
 from __future__ import annotations
 
 import ast
-<<<<<<< HEAD
 import subprocess
 import sys
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 from pathlib import Path
 
 import pytest
@@ -22,19 +19,12 @@ HIGH_RISK_RUNTIME_ROOTS = (
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "agents",
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "analytics",
 )
-<<<<<<< HEAD
-<<<<<<< ours
 SCANNER = REPO_ROOT / "scripts" / "check_layer3_cypher_scope.py"
-=======
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 ALLOWED_SYSTEM_SCOPED_PATH_FRAGMENTS = (
     "services/layer3-knowledge/src/schema/",
     "services/layer3-knowledge/src/migrations/",
     "services/layer3-knowledge/src/bootstrap/",
 )
-<<<<<<< HEAD
->>>>>>> theirs
 
 
 class _DirectNeo4jRunVisitor(ast.NodeVisitor):
@@ -58,35 +48,8 @@ class _DirectNeo4jRunVisitor(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-<<<<<<< ours
 def test_high_risk_runtime_modules_do_not_call_neo4j_run_directly() -> None:
     """Runtime modules must enter Neo4j through approved execution wrappers."""
-=======
-def test_high_risk_runtime_modules_use_approved_execution_boundary() -> None:
-    """High-risk runtime modules must use approved wrappers (system scopes allowlisted)."""
->>>>>>> theirs
-=======
-
-
-class _DirectSessionRunVisitor(ast.NodeVisitor):
-    def __init__(self) -> None:
-        self.violations: list[tuple[int, int]] = []
-
-    def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast visitor hook
-        func = node.func
-        if (
-            isinstance(func, ast.Attribute)
-            and func.attr == "run"
-            and isinstance(func.value, ast.Name)
-            and func.value.id == "session"
-        ):
-            self.violations.append((node.lineno, node.col_offset))
-        self.generic_visit(node)
-
-
-def test_high_risk_runtime_modules_use_approved_execution_boundary() -> None:
-    """High-risk runtime modules must use approved wrappers (system scopes allowlisted)."""
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
     violations: list[str] = []
     for root in HIGH_RISK_RUNTIME_ROOTS:
@@ -95,17 +58,11 @@ def test_high_risk_runtime_modules_use_approved_execution_boundary() -> None:
             if any(rel.startswith(fragment) for fragment in ALLOWED_SYSTEM_SCOPED_PATH_FRAGMENTS):
                 continue
             tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-<<<<<<< HEAD
             visitor = _DirectNeo4jRunVisitor()
-=======
-            visitor = _DirectSessionRunVisitor()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
             visitor.visit(tree)
             for line, col in visitor.violations:
                 violations.append(f"{rel}:{line}:{col}")
 
-<<<<<<< HEAD
-<<<<<<< ours
     assert not violations, "direct Neo4j run calls found:\n" + "\n".join(violations)
 
 
@@ -133,12 +90,6 @@ def test_layer3_scanner_blocks_direct_session_run_in_high_risk_runtime() -> None
     )
 
     assert result.returncode == 0, result.stdout + "\n" + result.stderr
-=======
-    assert not violations, "direct session.run calls found in high-risk runtime modules:\n" + "\n".join(violations)
->>>>>>> theirs
-=======
-    assert not violations, "direct session.run calls found in high-risk runtime modules:\n" + "\n".join(violations)
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 @pytest.mark.asyncio
@@ -148,10 +99,7 @@ def test_layer3_scanner_blocks_direct_session_run_in_high_risk_runtime() -> None
         "MATCH (e:Entity) RETURN e",
         "MATCH (p:Product {id: $id}) RETURN p",
         "MATCH (e:Evidence)-[:SUPPORTS]->(d:ValueDriver {tenant_id: $tenant_id}) RETURN e, d",
-<<<<<<< HEAD
         "CREATE (e:Evidence {id: $id}) RETURN e",
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     ],
 )
 async def test_tenant_owned_label_queries_fail_closed_without_tenant_predicates(query: str) -> None:
@@ -166,7 +114,6 @@ async def test_tenant_owned_label_queries_fail_closed_without_tenant_predicates(
 
 
 @pytest.mark.asyncio
-<<<<<<< HEAD
 async def test_tenant_owned_label_queries_fail_closed_without_tenant_context() -> None:
     """Tenant predicates alone are insufficient without an execution tenant."""
 
@@ -183,8 +130,6 @@ async def test_tenant_owned_label_queries_fail_closed_without_tenant_context() -
 
 
 @pytest.mark.asyncio
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 async def test_tenant_owned_label_query_executes_when_every_label_is_scoped() -> None:
     """Scoped tenant-owned label queries are delegated with forced tenant params."""
 

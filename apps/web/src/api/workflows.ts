@@ -111,11 +111,7 @@ export interface WorkflowOutput {
 export interface WorkflowResultResponse {
   workflow_id: string;
   status: WorkflowStatus;
-<<<<<<< HEAD
-  output: Record<string, unknown> | null;
-=======
   output: WorkflowOutput | null;
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
   errors: (string | Record<string, unknown>)[];
   completed_at: string | null;
 }

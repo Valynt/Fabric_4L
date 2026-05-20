@@ -5,7 +5,6 @@ Runtime code in ``services/layer3-knowledge/src`` must not call
 non-migration execution should enter Neo4j through one of these wrappers:
 
 * ``run_scoped_query(session, scoped_query)`` for queries produced by
-<<<<<<< HEAD
   ``TenantScopedCypher`` / ``SystemCypher``. Tenant scoped queries require a
   tenant id on the ``ScopedQuery`` and force it into both ``tenant_id`` and
   ``_tenant_id`` parameters before execution.
@@ -13,26 +12,12 @@ non-migration execution should enter Neo4j through one of these wrappers:
   modules that are still migrating to strict ``ScopedQuery`` builders. This
   wrapper performs fail-closed structural validation for tenant-owned labels and
   force-assigns the provided execution tenant over caller-supplied parameters.
-=======
-  ``TenantScopedCypher`` / ``SystemCypher``. Tenant scoped queries force the
-  authenticated tenant into both ``tenant_id`` and ``_tenant_id`` parameters
-  before execution.
-* ``run_validated_query(session, query, parameters, tenant_id=...)`` for legacy
-  modules that are still migrating to strict ``ScopedQuery`` builders. This
-  wrapper performs fail-closed structural validation for tenant-owned labels and
-  also lets context tenant IDs override caller-supplied tenant parameters.
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 Only schema, bootstrap, and migration code paths may remain explicit
 system-scoped allowlist entries; this execution module is the wrapper boundary.
 High-risk runtime folders (``api/routes``, ``services``, ``agents``, and
-<<<<<<< HEAD
 ``analytics``) are statically guarded so direct Neo4j ``run(...)`` calls fail CI
 unless they are moved behind this boundary.
-=======
-``analytics``) are statically guarded so direct ``session.run(...)`` calls fail
-CI unless they are moved behind this boundary.
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 """
 
 from __future__ import annotations
@@ -43,33 +28,14 @@ from typing import Any, Mapping
 
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
-<<<<<<< HEAD
 SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
 
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 class TenantQueryValidationError(ValueError):
     """Raised when Cypher execution violates tenant isolation requirements."""
 
 
-<<<<<<< HEAD
 _FALLBACK_TENANT_OWNED_LABELS = {
-=======
-_MATCH_PATTERN = re.compile(r"\bMATCH\b", re.IGNORECASE)
-_CLAUSE_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|CALL\s*\{|UNION(?:\s+ALL)?|WITH)\b", re.IGNORECASE)
-_MATCH_CLAUSE_PATTERN = re.compile(
-    r"(?is)\b(?:OPTIONAL\s+MATCH|MATCH)\b\s+"
-    r"(.*?)(?=\bOPTIONAL\s+MATCH\b|\bMATCH\b|\bWITH\b|\bRETURN\b|\bUNWIND\b|\bCALL\b|\bORDER\s+BY\b|\bLIMIT\b|\bSKIP\b|$)"
-)
-_NODE_PATTERN = re.compile(
-    r"\(\s*([A-Za-z_][A-Za-z0-9_]*)?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*(\{[^}]*\})?"
-)
-_TENANT_PREDICATE_PATTERN = re.compile(
-    r"(?i)\b(?P<alias>[A-Za-z_][A-Za-z0-9_]*)\.tenant_id\s*(?:=|IN)\s*[$A-Za-z_]"
-)
-_TENANT_OWNED_LABELS = {
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     "Account",
     "Battlecard",
     "Benchmark",
@@ -112,15 +78,8 @@ _TENANT_OWNED_LABELS = {
     "ValueLever",
     "ValueModel",
     "ValuePack",
-<<<<<<< HEAD
     "ValueTree",
     "Variable",
-=======
-    "ValueSignal",
-    "ValueTree",
-    "Variable",
-    "Workflow",
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 }
 
 
@@ -208,10 +167,6 @@ class TenantQueryExecutor:
     ) -> Any:
         params = dict(parameters or {})
         if context.tenant_id:
-<<<<<<< HEAD
-=======
-            # Force-assign: context tenant_id always wins over caller-supplied value.
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
             params["tenant_id"] = context.tenant_id
             params["_tenant_id"] = context.tenant_id
 
@@ -222,7 +177,6 @@ class TenantQueryExecutor:
     def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:
         if context.is_bypass:
             return
-<<<<<<< HEAD
 
         touches_tenant_data = _touches_tenant_owned_label(query)
         if touches_tenant_data and not context.tenant_id and not context.allow_system_query:
@@ -236,20 +190,6 @@ class TenantQueryExecutor:
             )
 
         if _CLAUSE_KEYWORD_PATTERN.search(query):
-=======
-
-        structural_errors = _structural_tenant_scope_errors(query) if _MATCH_PATTERN.search(query) else []
-        if structural_errors and not context.allow_system_query:
-            details = ", ".join(structural_errors)
-            raise TenantQueryValidationError(
-                f"Denied Cypher query due to missing tenant scoping in MATCH path: {details}"
-            )
-
-        if not context.tenant_id and structural_errors and not context.allow_system_query:
-            raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
-
-        if _MATCH_PATTERN.search(query):
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
             clause_tokens = [m.group(1).upper() for m in _CLAUSE_PATTERN.finditer(query)]
             ambiguous = (
                 clause_tokens.count("MATCH") + clause_tokens.count("OPTIONAL MATCH") > 1
@@ -290,12 +230,9 @@ async def run_scoped_query(
     system, schema, migration, backup, and health scopes may execute without a
     tenant only when their ``QueryScope`` explicitly declares that intent.
     """
-<<<<<<< HEAD
 
     if scoped_query.scope == QueryScope.TENANT and not scoped_query.tenant_id and not is_bypass:
         raise TenantQueryValidationError("Tenant context is required for tenant-scoped Cypher execution")
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
     allow_system_query = scoped_query.scope != QueryScope.TENANT
     context = TenantExecutionContext(
@@ -326,11 +263,7 @@ async def run_validated_query(
 
     This compatibility wrapper is the approved temporary surface for migrated
     high-risk runtime modules that still hold raw Cypher strings. It merges
-<<<<<<< HEAD
     positional and keyword parameters, derives the tenant from the explicit
-=======
-    positional and keyword parameters, derives the tenant from the authenticated
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     ``tenant_id`` argument or existing ``tenant_id`` / ``_tenant_id`` parameters,
     and rejects any tenant-owned label query missing explicit tenant predicates
     before delegating to the Neo4j session.
@@ -350,7 +283,6 @@ async def run_validated_query(
     except TenantQueryValidationError as exc:
         name = f" '{query_name}'" if query_name else ""
         raise TenantQueryValidationError(f"Denied Cypher query{name}: {exc}") from exc
-<<<<<<< HEAD
 
 
 async def run_tenant_query(
@@ -398,5 +330,3 @@ async def run_system_query(
         query_name=query_name,
         **kwargs,
     )
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee

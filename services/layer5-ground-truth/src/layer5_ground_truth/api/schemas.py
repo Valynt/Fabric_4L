@@ -59,12 +59,9 @@ __all__ = [
     "TruthObjectSummary",
     "TruthObjectListResponse",
     "StaleTruthsResponse",
-<<<<<<< HEAD
     "FreshnessCheckResponse",
     "FreshnessCounts",
     "FreshnessSummaryResponse",
-=======
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
     "SyncToKgResponse",
     "ValidateResponse",
     "HealthResponse",
