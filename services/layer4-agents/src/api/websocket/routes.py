@@ -1,10 +1,16 @@
 """WebSocket routes for real-time workflow streaming.
 
-Authentication transport (canonical):
-    Sec-WebSocket-Protocol: base64url.bearer.authorization, <jwt>
+Provides a WebSocket endpoint for subscribing to workflow events with
+automatic reconnection support and event replay.
 
-Legacy query-parameter auth is accepted with a deprecation warning and
-will be removed in v2.0 (SEC-L3-012).
+Authentication transport (SEC-L3-012 — Sprint 3 cutover):
+    The ONLY accepted authentication vector is the Sec-WebSocket-Protocol
+    header in canonical bearer format:
+        Sec-WebSocket-Protocol: base64url.bearer.authorization, <jwt>
+
+    Query-parameter authentication (?token=) has been removed. Any connection
+    that omits or malforms the header is rejected immediately with close
+    code 1008 (Policy Violation).
 
 Reconnection:
     Pass ``last_event_id`` query parameter to replay missed events.
@@ -21,7 +27,6 @@ from .auth import (
     WebSocketAuthError,
     decode_ws_token,
     extract_token_from_protocol_header,
-    extract_token_from_query_param,
 )
 from .manager import get_ws_manager
 
@@ -79,26 +84,19 @@ async def workflow_websocket(
     last_event_id: str | None = Query(
         None, description="Last seen event ID for replay on reconnect"
     ),
-    # DEPRECATED (v2.0 removal: SEC-L3-012): use Sec-WebSocket-Protocol header.
-    token: str | None = Query(
-        None,
-        include_in_schema=False,
-        description="DEPRECATED: use Sec-WebSocket-Protocol header",
-    ),
 ) -> None:
     """WebSocket endpoint for real-time workflow streaming.
 
     **Authentication**
 
-    Preferred (canonical):
+    Pass the JWT bearer token via the ``Sec-WebSocket-Protocol`` header:
+
     ```
     Sec-WebSocket-Protocol: base64url.bearer.authorization, <jwt>
     ```
 
-    Legacy (deprecated, removed in v2.0):
-    ```
-    ws://host/v1/ws/workflows/<id>?token=<jwt>
-    ```
+    Connections that omit the header are rejected immediately with close
+    code 1008. Query-parameter auth was removed in SEC-L3-012.
 
     **Event Types**
     - `connection_established`: Initial confirmation with replay count
@@ -120,19 +118,13 @@ async def workflow_websocket(
     `last_event_id` to receive all missed events.
     """
     # OBS-L4-004: Resolve correlation ID at the HTTP upgrade stage.
-    # Inherits X-Request-ID / X-Correlation-ID from the client if present,
-    # otherwise generates a new one so all log calls in this session are traceable.
     trace_ctx = resolve_trace_context(websocket.headers)
     correlation_id = trace_ctx.trace_id
     _log: dict = {"workflow_id": workflow_id, "correlation_id": correlation_id}
 
-    # --- Token extraction (canonical header first, legacy fallback) ----------
+    # --- Token extraction (canonical header only — SEC-L3-012) ---------------
     protocol_header = websocket.headers.get("sec-websocket-protocol", "")
     ws_token = extract_token_from_protocol_header(protocol_header)
-
-    if ws_token is None and token:
-        # Legacy path: query-parameter token.  Emits DEPRECATION [SEC-L3-012] warning.
-        ws_token = extract_token_from_query_param(token, correlation_id=correlation_id)
 
     # --- Authentication (fail-closed) ----------------------------------------
     try:

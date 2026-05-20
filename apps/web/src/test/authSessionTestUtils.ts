@@ -96,6 +96,14 @@ export const authFixtures = {
     };
   },
 
+  /** Returns a well-formed SessionMeta for tests that seed localStorage. */
+  validSession(overrides: Partial<SessionMeta> = {}): SessionMeta {
+    return {
+      user: overrides.user ?? baseUser,
+      tenantId: overrides.tenantId ?? baseUser.tenantId,
+    };
+  },
+
   malformedUserPayload(): string {
     return 'invalid-json{';
   },

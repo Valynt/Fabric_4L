@@ -7,13 +7,92 @@
  * URL base for l1: /api/v1/ingest  (VITE_API_VERSION_PREFIX=/api/v1, l1 prefix=/ingest)
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { screen, waitFor, within } from '@testing-library/react';
+import React from 'react';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { screen, waitFor, within, cleanup, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../test/mocks/server';
 import { renderWithRouter } from '../test-utils';
 import TargetsAdmin from './TargetsAdmin';
+
+// vi.mock factories are hoisted before ES imports, so the `React` binding is
+// not yet initialised when the factory runs. Use require() inside the factory
+// to get React at call time (after module graph is resolved).
+
+vi.mock('@/components/ui/fabric/SidePanel', () => {
+  const R = require('react');
+  return {
+    SidePanel: ({ open, children, title }: any) =>
+      open ? R.createElement('div', { 'data-testid': 'side-panel', 'aria-label': title }, children) : null,
+  };
+});
+
+// Mock Radix DropdownMenu — all items always rendered so role="menuitem"
+// queries work without triggering Radix body-lock in jsdom.
+vi.mock('@/components/ui/dropdown-menu', () => {
+  const R = require('react');
+  return {
+    DropdownMenu: ({ children }: any) =>
+      R.createElement('div', { 'data-testid': 'dropdown-menu' }, children),
+    // asChild=true: pass through to child element to avoid double-wrapping
+    DropdownMenuTrigger: ({ children, asChild }: any) =>
+      asChild ? children : R.createElement('button', { 'aria-label': 'Target actions' }, children),
+    DropdownMenuContent: ({ children }: any) =>
+      R.createElement('div', { role: 'menu' }, children),
+    DropdownMenuItem: ({ children, onClick, disabled }: any) =>
+      R.createElement('div', { role: 'menuitem', onClick, 'aria-disabled': disabled }, children),
+    DropdownMenuSeparator: () => R.createElement('hr', null),
+  };
+});
+
+// Mock Radix Select — SelectTrigger uses role="combobox", SelectItem uses
+// role="option", so tests can query them with standard ARIA roles.
+vi.mock('@/components/ui/select', () => {
+  const R = require('react');
+  // Carry onValueChange via React context so SelectItem can call it.
+  const Ctx = R.createContext<((v: string) => void) | undefined>(undefined);
+  return {
+    Select: ({ value, onValueChange, children }: any) =>
+      R.createElement(Ctx.Provider, { value: onValueChange },
+        R.createElement('div', { 'data-testid': 'select', 'data-value': value }, children),
+      ),
+    SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: any) =>
+      R.createElement('button', { role: 'combobox', className, 'aria-label': ariaLabel }, children),
+    SelectValue: ({ placeholder }: any) => R.createElement('span', null, placeholder),
+    SelectContent: ({ children }: any) => R.createElement('div', null, children),
+    SelectItem: ({ value, children }: any) => {
+      const onChange = R.useContext(Ctx);
+      return R.createElement('div', { role: 'option', 'data-value': value, onClick: () => onChange?.(value) }, children);
+    },
+  };
+});
+
+vi.mock('@/components/ui/alert-dialog', () => {
+  const R = require('react');
+  // Context carries the onOpenChange callback so AlertDialogCancel can close
+  // the dialog without needing an explicit onClick prop (matching Radix behaviour).
+  const CloseCtx = R.createContext<(() => void) | undefined>(undefined);
+  return {
+    AlertDialog: ({ open, onOpenChange, children }: any) =>
+      open
+        ? R.createElement(CloseCtx.Provider, { value: () => onOpenChange?.(false) },
+            R.createElement('div', { role: 'alertdialog' }, children),
+          )
+        : null,
+    AlertDialogContent: ({ children }: any) => R.createElement('div', null, children),
+    AlertDialogHeader: ({ children }: any) => R.createElement('div', null, children),
+    AlertDialogTitle: ({ children }: any) => R.createElement('h2', null, children),
+    AlertDialogDescription: ({ children }: any) => R.createElement('p', null, children),
+    AlertDialogFooter: ({ children }: any) => R.createElement('div', null, children),
+    AlertDialogAction: ({ children, onClick }: any) => R.createElement('button', { onClick }, children),
+    // Cancel reads the close callback from context (no explicit onClick needed).
+    AlertDialogCancel: ({ children, onClick }: any) => {
+      const close = R.useContext(CloseCtx);
+      return R.createElement('button', { onClick: onClick ?? close }, children);
+    },
+  };
+});
 
 // ── Canonical URL prefix ──────────────────────────────────────────────────────
 // Matches client.ts: API_VERSION_PREFIX=/api/v1, l1 LAYER_PREFIX=/ingest
@@ -176,7 +255,8 @@ describe('TargetsAdmin integration — multiple targets', () => {
     await screen.findByText('Acme Corp');
     // 'Active' may appear in both the status badge and filter options
     expect(screen.getAllByText('Active').length).toBeGreaterThan(0);
-    expect(screen.getByText('Paused')).toBeInTheDocument();
+    // 'Paused' may appear in both the status badge and the always-rendered dropdown menu item
+    expect(screen.getAllByText('Paused').length).toBeGreaterThan(0);
     // 'Error' may appear in both the status badge and error state text
     expect(screen.getAllByText('Error').length).toBeGreaterThan(0);
   });
@@ -196,6 +276,14 @@ describe('TargetsAdmin integration — multiple targets', () => {
 });
 
 describe('TargetsAdmin integration — row click opens detail panel', () => {
+  afterEach(async () => {
+    await act(async () => { cleanup(); });
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    document.querySelectorAll('[data-radix-focus-guard]').forEach((el) => el.remove());
+    document.querySelectorAll('[data-radix-popper-content-wrapper]').forEach((el) => el.remove());
+  });
   beforeEach(() => {
     const target = makeApiSummary({ id: 'tgt-001', name: 'Acme Corp' });
     const detail = makeApiDetail({ id: 'tgt-001', name: 'Acme Corp' });
@@ -227,6 +315,14 @@ describe('TargetsAdmin integration — row click opens detail panel', () => {
 });
 
 describe('TargetsAdmin integration — New Target button opens form panel', () => {
+  afterEach(async () => {
+    await act(async () => { cleanup(); });
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    document.querySelectorAll('[data-radix-focus-guard]').forEach((el) => el.remove());
+    document.querySelectorAll('[data-radix-popper-content-wrapper]').forEach((el) => el.remove());
+  });
   beforeEach(() => {
     registerBaseHandlers();
   });
@@ -249,6 +345,17 @@ describe('TargetsAdmin integration — New Target button opens form panel', () =
 describe('TargetsAdmin integration — status transitions via row actions', () => {
   const target = makeApiSummary({ id: 'tgt-001', name: 'Acme Corp', status: 'ACTIVE' });
 
+  afterEach(() => {
+    cleanup();
+    // @radix-ui/react-remove-scroll sets data-scroll-locked and pointer-events
+    // on <body> as a side effect. These persist after React tree unmount because
+    // the effect teardown is async. Reset them here so the next test is clean.
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    document.querySelectorAll('[data-radix-focus-guard]').forEach((el) => el.remove());
+    document.querySelectorAll('[data-radix-popper-content-wrapper]').forEach((el) => el.remove());
+  });
   beforeEach(() => {
     server.use(
       http.get(`${L1}/targets`, () => HttpResponse.json(makeListResponse([target]))),
@@ -258,16 +365,21 @@ describe('TargetsAdmin integration — status transitions via row actions', () =
 
   it('calls PATCH /targets/:id/status when Pause is clicked', async () => {
     let patchBody: unknown = null;
+    let getCallCount = 0;
 
+    // Register the PATCH handler and a GET handler that returns PAUSED only
+    // after the first (initial) fetch — so the initial render sees ACTIVE and
+    // shows the Pause menu item, while the post-mutation refetch sees PAUSED.
     server.use(
       http.patch(`${L1}/targets/tgt-001/status`, async ({ request }) => {
         patchBody = await request.json();
         return HttpResponse.json(makeApiDetail({ id: 'tgt-001', status: 'PAUSED' }));
       }),
-      // After mutation, list is refetched
-      http.get(`${L1}/targets`, () =>
-        HttpResponse.json(makeListResponse([{ ...target, status: 'PAUSED' }])),
-      ),
+      http.get(`${L1}/targets`, () => {
+        getCallCount++;
+        const status = getCallCount > 1 ? 'PAUSED' : 'ACTIVE';
+        return HttpResponse.json(makeListResponse([{ ...target, status }]));
+      }),
     );
 
     renderWithRouter(<TargetsAdmin />);
@@ -275,11 +387,10 @@ describe('TargetsAdmin integration — status transitions via row actions', () =
 
     await screen.findByText('Acme Corp');
 
-    const actionBtn = screen.getByRole('button', { name: /target actions/i });
+    // Menu items are always rendered (mock has no open/close state).
+    const actionBtn = await screen.findByRole('button', { name: /target actions/i });
     await user.click(actionBtn);
-
-    // Click Pause
-    const pauseItem = await screen.findByRole('menuitem', { name: /pause/i });
+    const pauseItem = await screen.findByRole('menuitem', { name: /pause/i }, { timeout: 3000 });
     await user.click(pauseItem);
 
     await waitFor(() => {
@@ -320,6 +431,14 @@ describe('TargetsAdmin integration — status transitions via row actions', () =
 describe('TargetsAdmin integration — archive confirmation dialog', () => {
   const target = makeApiSummary({ id: 'tgt-001', name: 'Acme Corp', status: 'ACTIVE' });
 
+  afterEach(() => {
+    cleanup();
+    document.body.removeAttribute('data-scroll-locked');
+    document.body.style.removeProperty('pointer-events');
+    document.documentElement.removeAttribute('data-scroll-locked');
+    document.querySelectorAll('[data-radix-focus-guard]').forEach((el) => el.remove());
+    document.querySelectorAll('[data-radix-popper-content-wrapper]').forEach((el) => el.remove());
+  });
   beforeEach(() => {
     server.use(
       http.get(`${L1}/targets`, () => HttpResponse.json(makeListResponse([target]))),
@@ -346,15 +465,20 @@ describe('TargetsAdmin integration — archive confirmation dialog', () => {
 
   it('calls PATCH status=ARCHIVED when dialog is confirmed', async () => {
     let patchBody: unknown = null;
+    let getCallCount = 0;
 
+    // Return ACTIVE on the first fetch so the Archive menu item renders,
+    // then ARCHIVED on subsequent fetches (post-mutation refetch).
     server.use(
       http.patch(`${L1}/targets/tgt-001/status`, async ({ request }) => {
         patchBody = await request.json();
         return HttpResponse.json(makeApiDetail({ id: 'tgt-001', status: 'ARCHIVED' }));
       }),
-      http.get(`${L1}/targets`, () =>
-        HttpResponse.json(makeListResponse([{ ...target, status: 'ARCHIVED' }])),
-      ),
+      http.get(`${L1}/targets`, () => {
+        getCallCount++;
+        const status = getCallCount > 1 ? 'ARCHIVED' : 'ACTIVE';
+        return HttpResponse.json(makeListResponse([{ ...target, status }]));
+      }),
     );
 
     renderWithRouter(<TargetsAdmin />);
@@ -362,9 +486,11 @@ describe('TargetsAdmin integration — archive confirmation dialog', () => {
 
     await screen.findByText('Acme Corp');
 
-    // Open actions → Archive
-    await user.click(screen.getByRole('button', { name: /target actions/i }));
-    await user.click(await screen.findByRole('menuitem', { name: /archive/i }));
+    // Menu items are always rendered (mock has no open/close state).
+    const archiveActionBtn = await screen.findByRole('button', { name: /target actions/i });
+    await user.click(archiveActionBtn);
+    const archiveItem = await screen.findByRole('menuitem', { name: /archive/i }, { timeout: 3000 });
+    await user.click(archiveItem);
 
     // Confirm in dialog
     const dialog = await screen.findByRole('alertdialog');

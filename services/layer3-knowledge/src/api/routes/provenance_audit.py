@@ -1,9 +1,4 @@
-"""Allowed service-local exception for Layer 3 service wrapper.
-
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Provenance and audit read-only route group extracted from app_monolith.
-"""
+"""Provenance and audit read-only route group."""
 
 import logging
 import uuid

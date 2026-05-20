@@ -41,6 +41,158 @@ function metadataBoolean(metadata: Record<string, unknown> | undefined, keys: st
   return keys.some((key) => metadata?.[key] === true);
 }
 
+// ── Validation helpers ────────────────────────────────────────────────────────
+
+type ValidationState = "validated" | "pending" | "failed" | "partial";
+
+function deriveOverallValidationState(
+  summary: Record<string, unknown> | undefined,
+): ValidationState | null {
+  if (!summary) return null;
+  const total = Number(summary["total"] ?? 0);
+  if (total === 0) return null;
+  const validated = Number(summary["validated"] ?? 0);
+  const failed = Number(summary["failed"] ?? 0);
+  if (failed > 0) return "failed";
+  if (validated === total) return "validated";
+  if (validated > 0) return "partial";
+  return "pending";
+}
+
+function validationBadgeClass(state: ValidationState): string {
+  return {
+    validated: "border-green-300 bg-green-50 text-green-700",
+    pending: "border-yellow-300 bg-yellow-50 text-yellow-700",
+    failed: "border-red-300 bg-red-50 text-red-700",
+    partial: "border-blue-300 bg-blue-50 text-blue-700",
+  }[state];
+}
+
+function validationBadgeLabel(state: ValidationState): string {
+  return {
+    validated: "Validated",
+    pending: "Pending",
+    failed: "Failed",
+    partial: "Partial",
+  }[state];
+}
+
+/**
+ * Returns the validation state for a single claim by index.
+ * `claim_validations` may be an array of state strings or an object keyed by index.
+ */
+function claimValidationState(
+  claimValidations: unknown,
+  idx: number,
+): ValidationState | null {
+  if (!claimValidations) return null;
+  let raw: unknown;
+  if (Array.isArray(claimValidations)) {
+    raw = claimValidations[idx];
+  } else if (typeof claimValidations === "object" && claimValidations !== null) {
+    raw = (claimValidations as Record<string, unknown>)[String(idx)];
+  }
+  if (raw === "validated" || raw === "pending" || raw === "failed" || raw === "partial") {
+    return raw as ValidationState;
+  }
+  return null;
+}
+
+// ── Trust state ───────────────────────────────────────────────────────────────
+
+export type BusinessCaseTrustState =
+  | "degraded"
+  | "pending_review"
+  | "validated"
+  | "export_blocked"
+  | "export_ready";
+
+/**
+ * Derives the trust state for a business case.
+ *
+ * Priority order:
+ * 1. degraded  — customer_facing_allowed is false OR degraded_reason is set
+ * 2. export_blocked — status is failed or rejected
+ * 3. pending_review — status is pending, needs_review, or draft
+ * 4. export_ready  — approved/completed AND document_url present
+ * 5. validated     — approved/completed but no document_url
+ */
+export function deriveTrustState(bc: import("@/hooks/useDocuments").BusinessCase): BusinessCaseTrustState {
+  const meta = bc.case_metadata as Record<string, unknown> | undefined;
+
+  // Degraded takes highest priority
+  if (meta?.["customer_facing_allowed"] === false) return "degraded";
+  if (typeof meta?.["degraded_reason"] === "string" && (meta["degraded_reason"] as string).length > 0) return "degraded";
+
+  const status = bc.status?.toLowerCase() ?? "";
+
+  if (status === "failed" || status === "rejected") return "export_blocked";
+  if (status === "pending" || status === "needs_review" || status === "draft") return "pending_review";
+
+  // approved / active / completed
+  if (bc.document_url) return "export_ready";
+  return "validated";
+}
+
+// ── Trust status row component ────────────────────────────────────────────────
+
+const TRUST_CONFIG: Record<
+  BusinessCaseTrustState,
+  { label: string; badgeClass: string; showDraftBadge: boolean; tooltip: string }
+> = {
+  degraded: {
+    label: "Degraded",
+    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    showDraftBadge: true,
+    tooltip: "LLM, validation, or evidence enrichment was incomplete. Human review required.",
+  },
+  pending_review: {
+    label: "Pending Review",
+    badgeClass: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    showDraftBadge: true,
+    tooltip: "Claims require validation or human approval before export.",
+  },
+  validated: {
+    label: "Validated",
+    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    showDraftBadge: false,
+    tooltip: "Business case has been validated. Generate a document to enable export.",
+  },
+  export_blocked: {
+    label: "Export Blocked",
+    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    showDraftBadge: false,
+    tooltip: "Export is blocked due to a failed or rejected status.",
+  },
+  export_ready: {
+    label: "Export Ready",
+    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    showDraftBadge: false,
+    tooltip: "Business case is validated and a document is ready for export.",
+  },
+};
+
+function TrustStatusRow({ trustState }: { trustState: BusinessCaseTrustState }) {
+  const config = TRUST_CONFIG[trustState];
+  return (
+    <div className="flex items-center gap-2 py-1.5" title={config.tooltip}>
+      <span
+        className={cn(
+          "inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium",
+          config.badgeClass,
+        )}
+      >
+        {config.label}
+      </span>
+      {config.showDraftBadge && (
+        <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+          Internal draft only
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function BusinessCase() {
   const { caseId } = useParams<{ caseId: string }>();
   const [searchParams] = useSearchParams();
@@ -227,7 +379,7 @@ export default function BusinessCase() {
       {accountRouteId && <GateStatusBanner accountId={accountRouteId} />}
 
       {/* Trust status row */}
-      <BusinessCaseTrustRow trustState={trustState} degradedReason={degradedReason} />
+      <TrustStatusRow trustState={trustState} />
 
       {/* Export error */}
       {exportMutation.error && (

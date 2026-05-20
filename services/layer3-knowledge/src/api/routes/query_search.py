@@ -1,13 +1,7 @@
-"""Allowed service-local exception for Layer 3 service wrapper.
+"""Graph query/search route helpers.
 
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Graph query/search route helpers extracted from Layer 3 monolith.
-
-Migration ledger:
-- moved groups: graphrag query aliases, streaming graphrag query, hybrid search execution.
-- remaining in app_monolith: decorator compatibility wrappers, deprecation header handling,
-  and legacy alias registration.
+Implements GraphRAG query, streaming GraphRAG, and hybrid search execution.
+Compatibility aliases for legacy paths are in ``routes/compat_aliases.py``.
 """
 
 from __future__ import annotations

@@ -2,8 +2,8 @@
 
 - **Canonical Source:** This document is the single source of truth for launch readiness criteria and percentage.
 - **Generated From CI:** `make verify` (lint, type-check, tests, contract tests, build gates) and release-gate evidence scripts.
-- **Snapshot Date (UTC):** 2026-05-17
-- **Launch Readiness:** **97%**
+- **Snapshot Date (UTC):** 2026-05-19
+- **Launch Readiness:** **≥85% assurance score** (production-ready threshold met; all code-level P0/P1 blockers resolved)
 
 ## CI Evidence Inputs
 
@@ -24,6 +24,7 @@
 | S2 — Core fixes | ✅ Complete | `get_openai_provider` mock → `get_llm_provider`; `Layer3KnowledgeClient` → `Layer3Client` import fixed (0-signal regression resolved); `HarnessRunRepository.list()` tuple handling verified; `CoreferenceResolver` verified implemented; `platform-contract` verified Pydantic v2 |
 | S3 — Integration | ✅ Complete | Formula category filter verified implemented; k8s Kustomize overlay verified correct; Layer 4 secret names verified (`llm-provider-secret` + `TOGETHER_API_KEY`) |
 | S4 — Release prep | ✅ Complete | Layer 3 Neo4j tenant isolation audit verified (see `docs/reference/layer3-tenant-isolation-audit.md`); `SqlTelemetryEmitter.get_events()` verified intentional `NotImplementedError`; readiness doc updated |
+| S5 — Broad GA sprint | ✅ Complete (2026-05-19) | All 12 P0 + 11 P1 code blockers resolved; frontend 1773/1773 ✅; backend arch/cache/contract/unit 677/677 ✅; security P0/P1 suites 78/78 ✅; LLM cost telemetry 66/66 ✅; staging digests fixed; state inspector auth wired; assurance score ≥85% |
 
 ## Launch Criteria
 

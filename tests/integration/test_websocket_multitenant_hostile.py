@@ -133,6 +133,7 @@ class TestWorkflowWebSocketOwnership:
 
         # Connection was accepted (ws_manager.connect was called)
         mock_mgr.return_value.connect.assert_awaited_once()
+        assert mock_mgr.return_value.connect.await_args.kwargs["correlation_id"]
         # No error close was issued
         for call in ws.close.call_args_list:
             code = call.kwargs.get("code") or (call.args[0] if call.args else None)
@@ -430,6 +431,9 @@ class TestSignalsWebSocketOwnership:
 
         # Connection was accepted (not closed with error before accept)
         ws.accept.assert_awaited_once()
+        connected_event = ws.send_json.await_args_list[0].args[0]
+        assert connected_event["event_type"] == "connected"
+        assert connected_event.get("correlation_id")
 
     @pytest.mark.asyncio
     async def test_tenant_a_denied_tenant_b_prospect(self):

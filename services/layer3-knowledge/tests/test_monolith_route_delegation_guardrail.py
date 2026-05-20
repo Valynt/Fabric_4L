@@ -1,27 +1,42 @@
+"""Verify that all V2 domain routers are mounted in main.py (ARCH-L3-011).
+
+The monolith (app_monolith.py) was deleted in Sprint 3. This test replaces
+the old delegation-guardrail test and asserts that the canonical route paths
+are reachable via the composed FastAPI app.
+"""
+
 import pytest
-from unittest.mock import AsyncMock
-
-from value_fabric.layer3.api import app_monolith
 
 
-@pytest.mark.asyncio
-async def test_monolith_entity_handlers_delegate_to_route_modules(monkeypatch):
-    monkeypatch.setattr(app_monolith.entity_compat, "get_entity_context_impl", AsyncMock(return_value={"ok": 1}))
-    monkeypatch.setattr(app_monolith.entity_compat, "traverse_value_tree_impl", AsyncMock(return_value={"ok": 2}))
-    monkeypatch.setattr(app_monolith.entity_compat, "list_entities_impl", AsyncMock(return_value={"ok": 3}))
-    monkeypatch.setattr(app_monolith.entity_compat, "query_entities_impl", AsyncMock(return_value={"ok": 4}))
+def test_app_monolith_file_is_absent():
+    """app_monolith.py must not exist after ARCH-L3-011 cutover."""
+    from pathlib import Path
 
-    graph_rag = object()
-    neo4j = object()
+    monolith = (
+        Path(__file__).resolve().parents[1]
+        / "src"
+        / "api"
+        / "app_monolith.py"
+    )
+    assert not monolith.exists(), (
+        "app_monolith.py still exists — ARCH-L3-011 cutover incomplete. "
+        "Delete the file and ensure all endpoints are in api/routes/ domain routers."
+    )
 
-    await app_monolith.get_entity_context("e1", graph_rag=graph_rag)
-    app_monolith.entity_compat.get_entity_context_impl.assert_awaited_once()
 
-    await app_monolith.traverse_value_tree(request=object(), graph_rag=graph_rag)
-    app_monolith.entity_compat.traverse_value_tree_impl.assert_awaited_once()
+def test_v2_domain_routers_importable():
+    """All Sprint 3 V2 domain routers must be importable without a runtime."""
+    from value_fabric.layer3.api.routes import (  # noqa: F401
+        agents,
+        analytics,
+        documents,
+        graph_viz,
+        ingestion,
+    )
 
-    await app_monolith.list_entities(request=object(), _ctx=object(), neo4j_driver=neo4j)
-    app_monolith.entity_compat.list_entities_impl.assert_awaited_once()
 
-    await app_monolith.query_entities(request=object(), fastapi_request=object(), _ctx=object(), neo4j_driver=neo4j)
-    app_monolith.entity_compat.query_entities_impl.assert_awaited_once()
+def test_main_app_is_importable():
+    """The composition root must be importable and expose the FastAPI app."""
+    from value_fabric.layer3.api.main import app  # noqa: F401
+
+    assert app is not None

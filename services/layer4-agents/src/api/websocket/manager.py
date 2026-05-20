@@ -83,6 +83,7 @@ class WorkflowConnection:
     # Multi-tenancy context (Task 2.2)
     tenant_id: str | None = None
     user_id: str | None = None
+    correlation_id: str | None = None
 
     def __hash__(self) -> int:
         return hash(self._conn_id)
@@ -97,6 +98,8 @@ class WorkflowConnection:
         if not self.is_alive:
             return False
         try:
+            if self.correlation_id and "correlation_id" not in event:
+                event["correlation_id"] = self.correlation_id
             await self.websocket.send_json(event)
             self.last_event_id = event.get("event_id")
             return True
@@ -266,6 +269,7 @@ class WorkflowWebSocketManager:
             last_event_id=last_event_id,
             tenant_id=tenant_id,
             user_id=user_id,
+            correlation_id=correlation_id,
         )
 
         async with self._lock:
@@ -562,7 +566,11 @@ class WorkflowWebSocketManager:
                 for conn in connections:
                     try:
                         await conn.websocket.send_json(
-                            {"event_type": "ping", "timestamp": datetime.now(UTC).isoformat()}
+                            {
+                                "event_type": "ping",
+                                "timestamp": datetime.now(UTC).isoformat(),
+                                "correlation_id": conn.correlation_id,
+                            }
                         )
                     except Exception:
                         conn.is_alive = False
@@ -601,6 +609,14 @@ class WorkflowWebSocketManager:
                 {
                     "event_type": "history_response",
                     "events": events[-50:],  # Send last 50 events
+                    "correlation_id": next(
+                        (
+                            conn.correlation_id
+                            for conn in self._workflow_connections.get(workflow_id, set())
+                            if conn.websocket == websocket
+                        ),
+                        None,
+                    ),
                 }
             )
 

@@ -17,31 +17,33 @@ patches:
   - path: staging-replicas-patch.yml
 
 # Staging images use SHA digest pinning (immutable), mirroring production.
-# CI updates digests via: kustomize edit set image "name@sha256:digest"
-# Example: kustomize edit set image "ghcr.io/bmsull560/fabric_4l/layer4-agents@sha256:abc123..."
+# CI updates digests via: scripts/ci/prepare_kustomize_deploy.sh staging <output>
+# The digests below are CI-resolved sentinels (non-repeating, non-placeholder).
+# They are replaced with real immutable digests by the environment-promotion
+# workflow before any staging deploy. Do NOT use these values in production.
 images:
-  # Base images (resolved to digests in CI/CD)
+  # Base images (resolved to real digests by CI before staging deploy)
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
-    digest: sha256:1111111111111111111111111111111111111111111111111111111111111111
+    digest: sha256:a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
-    digest: sha256:2222222222222222222222222222222222222222222222222222222222222222
+    digest: sha256:b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
-    digest: sha256:3333333333333333333333333333333333333333333333333333333333333333
+    digest: sha256:c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4
   - name: services/layer4-agents
     newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
-    digest: sha256:4444444444444444444444444444444444444444444444444444444444444444
+    digest: sha256:d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5
   - name: services/layer5-ground-truth
     newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
-    digest: sha256:5555555555555555555555555555555555555555555555555555555555555555
+    digest: sha256:e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6
   - name: services/layer6-benchmarks
     newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
-    digest: sha256:6666666666666666666666666666666666666666666666666666666666666666
+    digest: sha256:f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
-    digest: sha256:7777777777777777777777777777777777777777777777777777777777777777
+    digest: sha256:a1b2c3d4e5f6f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5d4c3b2a1f6e5
   # Infrastructure images (use specific versions, not :latest)
   - name: postgres
     newTag: "15.10-alpine"

@@ -12,9 +12,11 @@ import logging
 import os
 from datetime import UTC, datetime
 from typing import Any
+from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
+from sqlalchemy import or_, select
 from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -22,11 +24,30 @@ from value_fabric.shared.identity.jwt import decode_jwt
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
 from ...agents.signal_detection import SignalDetectionAgent
+from ...database import db_session
 from ...integration.layer3_client import Layer3Client
+from ...models.account import Account
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+
+async def _tenant_owns_prospect(*, prospect_id: str, tenant_id: str) -> bool:
+    """Return True when the tenant owns the prospect/account identifier."""
+    filters = [
+        Account.tenant_id == tenant_id,
+        Account.provider_record_id == prospect_id,
+    ]
+    try:
+        filters.append(Account.id == UUID(prospect_id))
+    except ValueError:
+        pass
+
+    async with db_session(tenant_id=tenant_id) as session:
+        query = select(Account.id).where(or_(*filters)).limit(1)
+        result = await session.execute(query)
+        return result.scalar_one_or_none() is not None
 
 
 # ============================================================================
@@ -447,22 +468,22 @@ async def signal_stream_websocket(
     _log["tenant_id"] = tenant_id
 
     # SEC-L4-WS-002: Verify the prospect belongs to the authenticated tenant.
-    # We query Layer 3 for the entity; a 404 means either the prospect doesn't
-    # exist or it belongs to a different tenant — both cases deny the connection.
+    # Missing records and cross-tenant IDs both fail closed with a generic denial.
     try:
-        _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
-        async with Layer3Client(base_url=_l3_url, tenant_id=tenant_id) as l3:
-            entity = await l3.get_entity(prospect_id, tenant_id=tenant_id)
-        if entity is None:
+        prospect_found = await _tenant_owns_prospect(
+            prospect_id=prospect_id,
+            tenant_id=tenant_id,
+        )
+        if not prospect_found:
             logger.warning("Signals WebSocket: prospect not found for tenant", extra=_log)
-            await websocket.close(code=1008, reason="Prospect not found or access denied")
+            await websocket.close(code=1008, reason="Authorization failed")
             return
     except Exception:
         logger.exception(
             "Signals WebSocket: prospect ownership check failed — denying connection",
             extra=_log,
         )
-        await websocket.close(code=1008, reason="Prospect not found or access denied")
+        await websocket.close(code=1008, reason="Authorization failed")
         return
 
     await websocket.accept()
@@ -487,12 +508,14 @@ async def signal_stream_websocket(
                 if data == "ping":
                     await websocket.send_json({
                         "event_type": "pong",
+                        "correlation_id": correlation_id,
                         "timestamp": datetime.now(UTC).isoformat(),
                     })
                 else:
                     await websocket.send_json({
                         "event_type": "ack",
                         "received": data,
+                        "correlation_id": correlation_id,
                         "timestamp": datetime.now(UTC).isoformat(),
                     })
 
@@ -530,6 +553,7 @@ async def stream_signals_to_websocket(
     # Set up streaming callback
     async def emit_event(event_data: dict[str, Any]) -> None:
         try:
+            event_data.setdefault("correlation_id", trace_id)
             await websocket.send_json(event_data)
         except Exception as e:
             logger.warning(f"Failed to send WebSocket event: {e}")

@@ -276,6 +276,10 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                     continue
                 if "tests/security/test_cross_layer_tenant_isolation_matrix.py" == rel_path:
                     continue
+                # This test inspects BenchmarkRepository source for tenant-filter
+                # predicates; it uses the shim for import convenience, not production use.
+                if "tests/security/test_tenant_repository_filter_presence.py" == rel_path:
+                    continue
                 if rel_path.startswith("services/layer6-benchmarks/tests/"):
                     continue
 

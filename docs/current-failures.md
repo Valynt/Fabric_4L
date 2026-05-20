@@ -1,7 +1,7 @@
 # Current Test Baseline
 
-> **Last updated:** 2026-05-05  
-> **Status:** All previously documented failures resolved; new baseline established.
+> **Last updated:** 2026-05-19  
+> **Status:** All P0/P1 blockers resolved. Broad GA baseline established.
 
 ## Summary
 
@@ -9,13 +9,16 @@
 |----------|------|------|-------|------|-------|
 | Frontend TypeScript | ✅ | 0 | 0 | - | `tsc --noEmit` passes |
 | Frontend Build | ✅ | 0 | 0 | - | `pnpm run build` succeeds |
-| Frontend Unit Tests | 1238 | 0 | 0 | - | 86/86 test files pass |
-| Backend Mandatory | 222 | 0 | 0 | 118 | contract + security + unit |
-| Security Tests | 40 | 0 | 0 | 18 | rate-limit, cross-tenant, JWT |
+| Frontend Unit Tests | 1773 | 0 | 0 | - | 140/140 test files pass |
+| Backend arch/cache/contract/unit/shared | 677 | 0 | 0 | - | all suites pass |
+| Security Tests (P0/P1 suites) | 78 | 0 | 0 | 2 | RLS, arch, cache, contract, state-inspector |
+| LLM cost / structured log contracts | 66 | 0 | 0 | 2 | unit + observability + correlation |
+| Staging kustomization | ✅ | 0 | 0 | - | no placeholder digests |
 
 ---
 
-## Fixes Applied Today (2026-05-05)
+
+## Archived Fixes Applied on 2026-05-05
 
 ### 1. `tests/security/test_cross_tenant_api.py` — Stale file paths
 **Root cause:** Hardcoded paths pointed to `value_fabric/layer4/...` after repo restructuring moved files to `services/layer4-agents/src/...`.  

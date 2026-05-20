@@ -160,7 +160,7 @@ function HypothesisCard({
 
 export default function HypothesesTab() {
   const queryClient = useQueryClient();
-  const { navigateTo } = useNavigation();
+  const { navigateTo, navigate } = useNavigation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
   const { accountId } = useParams<{ accountId: string }>();
   const { data: account, isLoading: accountLoading, error: accountError, refetch: refetchAccount } = useAccount(accountId ?? null);
@@ -173,6 +173,7 @@ export default function HypothesesTab() {
   const generateHypotheses = useGenerateHypotheses();
   const validateHypothesis = useValidateHypothesis();
   const convertHypothesisToTree = useConvertHypothesisToTree();
+  const persistWorkspaceTab = usePersistWorkspaceTab();
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -412,7 +413,39 @@ export default function HypothesesTab() {
                 isSelected={selectedId === h.id}
                 onSelect={() => setSelectedId(h.id)}
                 onStatusChange={(status) => {
-                  validateHypothesis.mutate({ hypothesisId: h.id, data: { new_status: status, feedback: `Marked as ${status}` } });
+                  validateHypothesis.mutate(
+                    { hypothesisId: h.id, data: { new_status: status, feedback: `Marked as ${status}` } },
+                    {
+                      onSuccess: (result) => {
+                        // If validation promoted drivers, persist the tab state and
+                        // deep-link to the driver evidence view with provenance context.
+                        const drivers = result?.promoted_artifacts?.drivers ?? [];
+                        const linkages = result?.promoted_artifacts?.linkages ?? [];
+                        if (drivers.length > 0 && accountId) {
+                          persistWorkspaceTab.mutate({
+                            accountId,
+                            tab: "drivers",
+                            context: { hypothesisId: h.id },
+                          });
+                          const query = new URLSearchParams();
+                          query.set("driver_id", drivers[0].id);
+                          if (linkages[0]?.linkage_id) {
+                            query.set("linkage_id", linkages[0].linkage_id);
+                          }
+                          const qs = query.toString();
+                          const path = `/drivers/${accountId}/evidence${qs ? `?${qs}` : ""}`;
+                          navigateTo(path, {
+                            state: {
+                              hypothesisId: h.id,
+                              accountId,
+                              driverId: drivers[0].id,
+                              linkageId: linkages[0]?.linkage_id ?? null,
+                            },
+                          });
+                        }
+                      },
+                    },
+                  );
                 }}
                 onConvert={() => {
                   convertHypothesisToTree.mutate(

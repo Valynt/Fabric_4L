@@ -1,4 +1,4 @@
-"""Targeted tests for API exception handlers logging behavior."""
+"""Targeted tests for API exception handler logging behaviour."""
 
 from unittest.mock import MagicMock, patch
 
@@ -6,7 +6,10 @@ import pytest
 from starlette.requests import Request
 
 from value_fabric.layer3.api.exceptions import ValueFabricException
-from value_fabric.layer3.api.app_monolith import global_exception_handler, value_fabric_exception_handler
+from value_fabric.layer3.api.main import (
+    global_exception_handler,
+    value_fabric_exception_handler,
+)
 
 
 def _make_request() -> Request:
@@ -32,9 +35,7 @@ async def test_value_fabric_exception_handler_logs_with_explicit_exc_info_tuple(
     request = _make_request()
     exc = ValueFabricException("boom", error_code="INTERNAL_ERROR")
 
-    with patch("value_fabric.layer3.api.app_monolith.SHARED_ERROR_HANDLING_AVAILABLE", False), \
-         patch("src.api.app_monolith.SHARED_ERROR_HANDLING_AVAILABLE", False), \
-         patch("value_fabric.layer3.api.app_monolith.logger.error") as mock_error:
+    with patch("value_fabric.layer3.api.main.logger.error") as mock_error:
         response = await value_fabric_exception_handler(request, exc)
 
     assert response.status_code == 500
@@ -53,7 +54,7 @@ async def test_global_exception_handler_logs_with_explicit_exc_info_tuple():
     request = _make_request()
     exc = RuntimeError("unexpected")
 
-    with patch("value_fabric.layer3.api.app_monolith.logger.error") as mock_error:
+    with patch("value_fabric.layer3.api.main.logger.error") as mock_error:
         response = await global_exception_handler(request, exc)
 
     assert response.status_code == 500
@@ -65,4 +66,3 @@ async def test_global_exception_handler_logs_with_explicit_exc_info_tuple():
     assert len(exc_info) == 3
     assert exc_info[0] is RuntimeError
     assert exc_info[1] is exc
-

@@ -107,10 +107,13 @@ export function getEntityColors(type: string): EntityColorScheme {
  */
 export function EntityBadge({ 
   type, 
+  label,
   children,
   className,
 }: { 
-  type: string; 
+  type: string;
+  /** Optional display label. Falls back to children, then to the type string. */
+  label?: string;
   children?: React.ReactNode;
   className?: string;
 }) {
@@ -118,7 +121,7 @@ export function EntityBadge({
   return (
     <span className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[11px] font-medium ${colors.bg} ${colors.text} ${className || ""}`}>
       <span className={`h-1.5 w-1.5 rounded-full ${colors.dot}`} />
-      {children ?? type}
+      {label ?? children ?? type}
     </span>
   );
 }

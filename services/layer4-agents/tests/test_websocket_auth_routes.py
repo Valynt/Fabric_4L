@@ -1,13 +1,15 @@
-"""Security-focused tests for WebSocket auth (ARCH-L4-008).
+"""Security-focused tests for WebSocket authentication (SEC-L3-012 / ARCH-L4-008).
 
 Covers:
 - Canonical Sec-WebSocket-Protocol bearer format
-- Legacy query-parameter deprecation path
+- Legacy query-parameter path is absent (SEC-L3-012 removal)
 - Fail-closed behaviour on all auth error codes
+- Success path: ws_manager.connect receives correct claims
 """
 
 from __future__ import annotations
 
+import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -17,7 +19,6 @@ from value_fabric.layer4.api.websocket.auth import (
     WebSocketAuthError,
     decode_ws_token,
     extract_token_from_protocol_header,
-    extract_token_from_query_param,
 )
 from value_fabric.layer4.api.websocket.routes import workflow_websocket
 
@@ -44,34 +45,10 @@ def test_canonical_header_missing_returns_none():
     assert extract_token_from_protocol_header("some-other-protocol") is None
 
 
-def test_canonical_header_wrong_subprotocol_returns_none():
-    # Old "token,<jwt>" format is not the canonical format
-    assert extract_token_from_protocol_header("token, myjwt") is None
-
-
-# ---------------------------------------------------------------------------
-# extract_token_from_query_param (legacy / deprecation path)
-# ---------------------------------------------------------------------------
-
-
-def test_legacy_query_param_emits_deprecation_warning(caplog):
-    import logging
-
-    with caplog.at_level(logging.WARNING):
-        token = extract_token_from_query_param("legacy.jwt.token", correlation_id="cid-123")
-
-    assert token == "legacy.jwt.token"
-    assert "DEPRECATION" in caplog.text
-    assert "SEC-L3-012" in caplog.text
-    assert "cid-123" in caplog.text
-    # Token value must NOT appear in logs
-    assert "legacy.jwt.token" not in caplog.text
-
-
-def test_legacy_query_param_none_returns_none():
-    assert extract_token_from_query_param(None) is None
-    assert extract_token_from_query_param("") is None
-    assert extract_token_from_query_param("   ") is None
+def test_canonical_header_single_part_returns_none():
+    # A bare subprotocol name must not be treated as a token (SEC-L3-012).
+    assert extract_token_from_protocol_header("graphql-ws") is None
+    assert extract_token_from_protocol_header("token") is None
 
 
 # ---------------------------------------------------------------------------
@@ -140,85 +117,59 @@ def test_decode_ws_token_success(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# workflow_websocket route — integration-level
+# SEC-L3-012: query-parameter auth is absent from the endpoint signature
 # ---------------------------------------------------------------------------
 
 
-def _make_websocket(protocol_header: str = "", request_id: str | None = None) -> MagicMock:
+def test_workflow_websocket_has_no_token_query_param():
+    """The 'token' query parameter must not exist on workflow_websocket (SEC-L3-012)."""
+    sig = inspect.signature(workflow_websocket)
+    assert "token" not in sig.parameters, (
+        "Legacy 'token' query parameter still present. SEC-L3-012 requires its removal."
+    )
+
+
+def test_workflow_websocket_has_no_auth_query_param():
+    """The 'auth' query parameter must not exist on workflow_websocket."""
+    sig = inspect.signature(workflow_websocket)
+    assert "auth" not in sig.parameters
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_websocket(protocol_header: str = "") -> MagicMock:
     ws = MagicMock()
     headers: dict[str, str] = {}
     if protocol_header:
         headers["sec-websocket-protocol"] = protocol_header
-    if request_id:
-        headers["x-request-id"] = request_id
     ws.headers = headers
     ws.close = AsyncMock()
     return ws
 
 
+# ---------------------------------------------------------------------------
+# Route-level: rejection paths
+# ---------------------------------------------------------------------------
+
+
 @pytest.mark.asyncio
 async def test_route_rejects_missing_token(caplog):
     ws = _make_websocket()
-    await workflow_websocket(websocket=ws, workflow_id="wf-1", token=None)
+    await workflow_websocket(websocket=ws, workflow_id="wf-1")
     ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
     assert "AUTH_TOKEN_MISSING" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_route_accepts_canonical_header(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
-    monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
-        lambda _t: {"tenant_id": "t-1", "sub": "u-1"},
-    )
-
-    ws = _make_websocket("base64url.bearer.authorization, valid.jwt.token")
-    mock_manager = MagicMock()
-    mock_manager.connect = AsyncMock()
-    mock_manager.disconnect = AsyncMock()
-    ws.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
-
-    with patch("value_fabric.layer4.api.websocket.routes.get_ws_manager", return_value=mock_manager), \
-         patch("value_fabric.layer4.api.websocket.routes._verify_workflow_ownership", return_value=True):
-        await workflow_websocket(websocket=ws, workflow_id="wf-2", token=None)
-
-    mock_manager.connect.assert_awaited_once()
-    call_kwargs = mock_manager.connect.call_args
-    assert call_kwargs.kwargs["tenant_id"] == "t-1"
-    assert call_kwargs.kwargs["user_id"] == "u-1"
-    ws.close.assert_not_awaited()
-
-
-@pytest.mark.asyncio
-async def test_route_legacy_query_param_emits_deprecation_and_connects(monkeypatch, caplog):
-    import logging
-
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
-    monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
-        lambda _t: {"tenant_id": "t-2", "sub": "u-2"},
-    )
-
-    ws = _make_websocket()
-    mock_manager = MagicMock()
-    mock_manager.connect = AsyncMock()
-    mock_manager.disconnect = AsyncMock()
-    ws.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
-
-    with caplog.at_level(logging.WARNING):
-        with patch(
-            "value_fabric.layer4.api.websocket.routes.get_ws_manager",
-            return_value=mock_manager,
-        ), patch(
-            "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
-            return_value=True,
-        ):
-            await workflow_websocket(websocket=ws, workflow_id="wf-3", token="legacy.jwt")
-
-    assert "DEPRECATION" in caplog.text
-    assert "SEC-L3-012" in caplog.text
-    mock_manager.connect.assert_awaited_once()
-    ws.close.assert_not_awaited()
+async def test_route_rejects_bare_subprotocol_name(caplog):
+    """A bare subprotocol name (no canonical prefix) must be rejected with 1008."""
+    ws = _make_websocket("graphql-ws")
+    await workflow_websocket(websocket=ws, workflow_id="wf-bare")
+    ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
+    assert "AUTH_TOKEN_MISSING" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -233,8 +184,77 @@ async def test_route_does_not_leak_token_in_logs(caplog):
             "value_fabric.layer4.api.websocket.routes.decode_ws_token",
             side_effect=WebSocketAuthError("AUTH_TOKEN_DECODE_FAILED"),
         ):
-            await workflow_websocket(websocket=ws, workflow_id="wf-4", token=None)
+            await workflow_websocket(websocket=ws, workflow_id="wf-leak")
 
     assert "super.secret.jwt" not in caplog.text
     assert "AUTH_TOKEN_DECODE_FAILED" in caplog.text
     ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
+
+
+# ---------------------------------------------------------------------------
+# Route-level: success path — ws_manager.connect receives correct claims
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
+    monkeypatch,
+):
+    """Valid canonical header → ws_manager.connect called with tenant_id and user_id."""
+    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr(
+        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        lambda _t: {"tenant_id": "tenant-abc", "sub": "user-xyz"},
+    )
+
+    ws = _make_websocket("base64url.bearer.authorization, valid.jwt.token")
+    mock_manager = MagicMock()
+    mock_manager.connect = AsyncMock()
+    mock_manager.disconnect = AsyncMock()
+    ws.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
+
+    with patch(
+        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        return_value=mock_manager,
+    ), patch(
+        "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+        return_value=True,
+    ):
+        await workflow_websocket(
+            websocket=ws, workflow_id="wf-success", last_event_id="evt-001"
+        )
+
+    ws.close.assert_not_awaited()
+    mock_manager.connect.assert_awaited_once()
+    call_kwargs = mock_manager.connect.call_args
+    assert call_kwargs.kwargs["tenant_id"] == "tenant-abc"
+    assert call_kwargs.kwargs["user_id"] == "user-xyz"
+    mock_manager.disconnect.assert_awaited_once()
+
+
+@pytest.mark.asyncio
+async def test_route_rejects_when_workflow_not_owned_by_tenant(monkeypatch):
+    """Ownership check failure → 1008, connection not established."""
+    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr(
+        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        lambda _t: {"tenant_id": "tenant-a", "sub": "user-1"},
+    )
+
+    ws = _make_websocket("base64url.bearer.authorization, valid.jwt.token")
+    mock_manager = MagicMock()
+    mock_manager.connect = AsyncMock()
+
+    with patch(
+        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        return_value=mock_manager,
+    ), patch(
+        "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+        return_value=False,
+    ):
+        await workflow_websocket(websocket=ws, workflow_id="wf-other-tenant")
+
+    ws.close.assert_awaited_once_with(
+        code=1008, reason="Workflow not found or access denied"
+    )
+    mock_manager.connect.assert_not_awaited()

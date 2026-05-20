@@ -1,0 +1,390 @@
+{
+  "version": 1,
+  "notes": "Layer 3 runtime Cypher execution inventory. CI blocks unknown/unsafe paths.",
+  "paths": [
+    {
+      "key": "services/layer3-knowledge/src/api/routes/benchmarks.py:list_benchmarks",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/benchmarks.py:list_benchmark_policies",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/benchmarks.py:get_benchmark",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/benchmarks.py:update_benchmark_policy",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/benchmarks.py:seed_benchmark_policies",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:list_pending_approvals",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:list_formula_versions",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:get_formula_governance",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:create_formula_version",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:submit_for_review",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:approve_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:activate_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:deprecate_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:get_formula_dependencies",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formula_governance.py:validate_activation",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formulas.py:create_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formulas.py:update_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/formulas.py:delete_formula",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/knowledge.py:get_benchmark_variables",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/knowledge.py:get_value_driver_formulas",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:_ensure_constraints",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:list_models",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [
+        "sort_clause"
+      ],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:get_folder_counts",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:get_model_detail",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:create_model",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/models_router.py:delete_model",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/provenance_audit.py:get_provenance",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/provenance_audit.py:list_audit_logs",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/value_trees.py:get_value_tree",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [
+        "rel_type"
+      ],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/value_trees.py:get_value_tree_paths",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:search_variables",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:get_variable",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:create_variable",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:update_variable",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:resolve_variable",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:validate_value",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:get_variable_stats",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    },
+    {
+      "key": "services/layer3-knowledge/src/api/routes/variables.py:list_source_bindings",
+      "status": "safe",
+      "rationale": "Tenant-scoped execution path reviewed for Layer 3 runtime inventory.",
+      "test_evidence": [
+        "services/layer3-knowledge/tests/test_tenant_isolation_static.py::test_broad_layer3_cypher_scope_static_guard_passes"
+      ],
+      "dynamic_fragments": [],
+      "requires_inline_marker": false
+    }
+  ]
+}

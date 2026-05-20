@@ -419,13 +419,9 @@ class TestSignalsWebSocketOwnership:
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value={"id": PROSPECT_A})
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=True),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_A)
 
         # Connection was accepted (not closed with error before accept)
@@ -447,14 +443,9 @@ class TestSignalsWebSocketOwnership:
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                # Layer 3 returns None — prospect not found for this tenant
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value=None)
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=False),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_B)
 
         ws.close.assert_awaited_once()
@@ -463,6 +454,7 @@ class TestSignalsWebSocketOwnership:
             f"Cross-tenant prospect access must be closed with 1008, got {close_code}. "
             "SEC-L4-WS-002 regression."
         )
+        assert ws.close.call_args.kwargs.get("reason") == "Authorization failed"
         ws.accept.assert_not_called()
 
     @pytest.mark.asyncio
@@ -478,13 +470,9 @@ class TestSignalsWebSocketOwnership:
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value=None)
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=False),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id="prospect-ghost")
 
         ws.close.assert_awaited_once()
@@ -505,13 +493,9 @@ class TestSignalsWebSocketOwnership:
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(
-                    side_effect=RuntimeError("layer3 unreachable")
-                )
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(side_effect=RuntimeError("db unavailable")),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_A)
 
         ws.close.assert_awaited_once()
@@ -521,38 +505,34 @@ class TestSignalsWebSocketOwnership:
 
     @pytest.mark.asyncio
     async def test_ownership_check_uses_jwt_tenant_not_path(self):
-        """INVARIANT: Layer 3 lookup uses tenant from JWT, not from the URL path."""
+        """INVARIANT: Ownership lookup uses tenant from JWT, not from the URL path."""
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"token,{token_a}")
 
-        captured_tenant: list[str] = []
+        captured_lookup: dict[str, str] = {}
 
-        async def _capture_get_entity(entity_id: str, tenant_id: str | None = None) -> None:
-            if tenant_id:
-                captured_tenant.append(tenant_id)
-            return None  # deny — we only care about what was passed
+        async def _capture_lookup(*, prospect_id: str, tenant_id: str) -> bool:
+            captured_lookup["prospect_id"] = prospect_id
+            captured_lookup["tenant_id"] = tenant_id
+            return False
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = _capture_get_entity
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=_capture_lookup,
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_B)
 
-        assert captured_tenant, "get_entity must be called with a tenant_id"
-        assert captured_tenant[0] == TENANT_A_ID, (
+        assert captured_lookup.get("tenant_id") == TENANT_A_ID, (
             "Ownership check must use tenant_id from JWT, not from the URL. "
-            f"Got: {captured_tenant[0]!r}"
+            f"Got: {captured_lookup.get('tenant_id')!r}"
         )
+        assert captured_lookup.get("prospect_id") == PROSPECT_B
 
 
 class TestSignalsWebSocketAuthTransport:

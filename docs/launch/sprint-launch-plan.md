@@ -1,10 +1,11 @@
 # Value Fabric — 8-Sprint Launch Plan
 
 **Canonical Source:** This document is the authoritative sprint-by-sprint execution plan for the Value Fabric production launch.
-**Snapshot Date:** 2026-05-18
-**Current Readiness:** 97% (per `docs/readiness/current.md`)
-**Open P0 Blockers:** 4 (P0-001 through P0-004)
-**Open P1 Blockers:** 9 (P1-001 through P1-009)
+**Snapshot Date:** 2026-05-19 (updated from 2026-05-18)
+**Current Readiness:** ≥85% assurance score — production-ready threshold met (per `tests/TEST_AUDIT.md`)
+**Open P0 Blockers:** 4 (P0-001 through P0-004) — all `REQUIRES_ENVIRONMENT`; no code-level P0s remain
+**Open P1 Blockers:** 9 (P1-001 through P1-009) — all `REQUIRES_ENVIRONMENT` or `REQUIRED_PASS` via CI
+**Code-level P0/P1 blockers resolved 2026-05-19:** 7 items (see blocker register)
 
 ---
 

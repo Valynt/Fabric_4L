@@ -12,8 +12,17 @@ all consumers are updated.
 from __future__ import annotations
 
 from value_fabric.layer3.utils.cypher_security import (  # noqa: F401
+    ALLOWED_REL_TYPES,
+    ALLOWED_TARGET_LABELS,
     TENANT_OWNED_LABELS,
+    validate_cypher_identifier,
     validate_tenant_scoped_cypher,
 )
 
-__all__ = ["TENANT_OWNED_LABELS", "validate_tenant_scoped_cypher"]
+__all__ = [
+    "ALLOWED_REL_TYPES",
+    "ALLOWED_TARGET_LABELS",
+    "TENANT_OWNED_LABELS",
+    "validate_cypher_identifier",
+    "validate_tenant_scoped_cypher",
+]

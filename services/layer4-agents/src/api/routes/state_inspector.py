@@ -153,7 +153,9 @@ class StateHistoryResponse(BaseModel):
     tags=["state-inspector"],
 )
 async def get_state_schema(
-    workflow_id: str, executor: OrchestrationController = Depends(get_executor)
+    workflow_id: str,
+    executor: OrchestrationController = Depends(get_executor),
+    _ctx: RequestContext = Depends(require_authenticated),
 ) -> StateSchemaResponse:
     """Get the schema of a workflow's state.
 
@@ -227,6 +229,7 @@ async def get_state_values(
     include_nulls: bool = Query(True, description="Include null-valued fields"),
     max_string_length: int = Query(500, description="Truncate strings longer than this"),
     executor: OrchestrationController = Depends(get_executor),
+    _ctx: RequestContext = Depends(require_authenticated),
 ) -> StateValueResponse:
     """Get full state values with field-by-field breakdown.
 
@@ -279,6 +282,7 @@ async def inspect_output_data(
     workflow_id: str,
     max_depth: int = Query(3, description="Maximum recursion depth for nested objects"),
     executor: OrchestrationController = Depends(get_executor),
+    _ctx: RequestContext = Depends(require_authenticated),
 ) -> OutputDataInspectorResponse:
     """Deep inspection of output_data field.
 
@@ -398,7 +402,9 @@ async def analyze_errors(
     tags=["state-inspector"],
 )
 async def get_performance_metrics(
-    workflow_id: str, executor: OrchestrationController = Depends(get_executor)
+    workflow_id: str,
+    executor: OrchestrationController = Depends(get_executor),
+    _ctx: RequestContext = Depends(require_authenticated),
 ) -> PerformanceMetricsResponse:
     """Get performance metrics for workflow execution.
 
@@ -503,6 +509,7 @@ async def get_state_history(
     workflow_id: str,
     limit: int = Query(50, ge=1, le=100),
     executor: OrchestrationController = Depends(get_executor),
+    _ctx: RequestContext = Depends(require_authenticated),
 ) -> StateHistoryResponse:
     """Get history of state changes over time.
 

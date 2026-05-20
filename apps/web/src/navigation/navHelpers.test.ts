@@ -41,4 +41,10 @@ describe("isRouteActive", () => {
   it("returns true for root path exact match", () => {
     expect(isRouteActive("/", "/")).toBe(true);
   });
+
+  it("strips /* suffix from pattern before matching", () => {
+    expect(isRouteActive("/foo/bar", "/foo/*")).toBe(true);
+    expect(isRouteActive("/foo", "/foo/*")).toBe(true);
+    expect(isRouteActive("/other", "/foo/*")).toBe(false);
+  });
 });
