@@ -165,6 +165,17 @@ async def test_route_rejects_missing_token(caplog):
 
 
 @pytest.mark.asyncio
+async def test_route_auth_failure_log_has_trace_metadata(caplog):
+    ws = _make_websocket()
+    ws.headers["x-request-id"] = "req-auth-001"
+
+    await workflow_websocket(websocket=ws, workflow_id="wf-1")
+
+    record = next(r for r in caplog.records if "WebSocket authentication failed" in r.message)
+    assert record.trace_id == "req-auth-001"
+    assert record.correlation_id == "req-auth-001"
+    assert record.request_id == "req-auth-001"
+
 async def test_route_rejects_bare_subprotocol_name(caplog):
     """A bare subprotocol name (no canonical prefix) must be rejected with 1008."""
     ws = _make_websocket("graphql-ws")
@@ -233,6 +244,8 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
     assert call_kwargs.kwargs["user_id"] == "user-xyz"
     assert call_kwargs.kwargs["trace_id"] == "req-123"
     assert call_kwargs.kwargs["correlation_id"] == "req-123"
+    assert call_kwargs.kwargs["x_request_id"] == "req-123"
+    assert call_kwargs.kwargs["request_id"] == "req-123"
     mock_manager.disconnect.assert_awaited_once()
 
 

@@ -269,14 +269,18 @@ class TestConnectionManagement:
         assert "trace_id" in first_call
         assert "correlation_id" in first_call
         assert "request_id" in first_call
+        assert "x_request_id" in first_call
+        assert "connection_trace_id" in first_call
 
     @pytest.mark.asyncio
     async def test_connect_includes_trace_metadata_when_provided(
         self, started_manager, mock_websocket
     ):
-        await started_manager.connect(mock_websocket, "wf-1", trace_id="req-999")
+        await started_manager.connect(mock_websocket, "wf-1", x_request_id="req-999")
         first_call = mock_websocket.send_json.call_args_list[0][0][0]
         assert first_call["trace_id"] == "req-999"
+        assert first_call["x_request_id"] == "req-999"
+        assert first_call["connection_trace_id"] == "req-999"
         assert first_call["correlation_id"] == "req-999"
         assert first_call["request_id"] == "req-999"
     
@@ -578,14 +582,22 @@ class TestClientMessageHandling:
     async def test_handle_ack_logs_debug(self, started_manager, mock_websocket):
         """Ack message should log debug information."""
         # Arrange
-        await started_manager.connect(mock_websocket, "wf-1")
-        
+        await started_manager.connect(mock_websocket, "wf-1", trace_id="trace-ack-1")
+
         # Act & Assert (no error)
         with patch("src.api.websocket.manager.logger") as mock_logger:
             await started_manager.handle_client_message(
-                mock_websocket, "wf-1", {"type": "ack", "event_id": "evt-123"}
+                mock_websocket,
+                "wf-1",
+                {"type": "ack", "event_id": "evt-123"},
+                trace_id="trace-ack-1",
             )
             mock_logger.debug.assert_called_once()
+            extra = mock_logger.debug.call_args.kwargs["extra"]
+            assert extra["trace_id"] == "trace-ack-1"
+            assert extra["correlation_id"] == "trace-ack-1"
+            assert extra["request_id"] == "trace-ack-1"
+            assert extra["x_request_id"] == "trace-ack-1"
     
     @pytest.mark.asyncio
     async def test_handle_subscribe_history_sends_events(
