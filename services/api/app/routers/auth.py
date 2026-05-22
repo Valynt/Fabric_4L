@@ -2,19 +2,24 @@
 
 from __future__ import annotations
 
+import hashlib
 import uuid
 
+from datetime import UTC, datetime
 from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 
 from app.core.config import get_settings
 from app.core.database import db
 from value_fabric.shared.database.tenant_validation import SYSTEM_TENANT_ID
 from app.core.security import (
+    TokenPayload,
     create_access_token,
     get_current_user,
+    require_authenticated,
+    revoke_token,
     hash_password,
     is_account_locked,
     record_failed_login,
@@ -299,18 +304,26 @@ async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(
+    request: Request,
+    auth: TokenPayload = Depends(require_authenticated),
     _user: User = Depends(get_current_user),
 ) -> None:
-    """Invalidate the current session.
-
-    For stateless JWTs the token continues to be cryptographically valid until
-    its exp claim, but the client must discard it. A full server-side blocklist
-    (Redis-backed) is tracked as a follow-up (F-09 TODO).
-    The endpoint exists so clients have a canonical logout path and the session
-    cookie can be cleared server-side in cookie-based flows.
-    """
-    # TODO(F-09): add jti claim to tokens and maintain a Redis blocklist so
-    # that logout immediately invalidates the token server-side.
+    """Invalidate the current session via token blocklist until token expiry."""
+    header = request.headers.get("Authorization", "")
+    if not header.startswith("Bearer "):
+        return None
+    raw_token = header.removeprefix("Bearer ").strip()
+    if not raw_token:
+        return None
+    fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    exp_dt = auth.exp
+    expires_at_ts = int(exp_dt.timestamp()) if isinstance(exp_dt, datetime) else int(datetime.now(UTC).timestamp())
+    revoke_token(
+        tenant_id=auth.tenant_id,
+        jti=auth.jti,
+        fingerprint_hash=fingerprint_hash,
+        expires_at_ts=expires_at_ts,
+    )
     return None
 
 
