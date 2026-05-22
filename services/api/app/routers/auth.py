@@ -411,13 +411,15 @@ async def start_impersonation(
 
 @router.post("/impersonation/stop", status_code=status.HTTP_204_NO_CONTENT)
 async def stop_impersonation(
+    request: Request,
     auth: TokenPayload = Depends(require_authenticated),
 ) -> None:
     if not auth.impersonation_session_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
     session = _IMPERSONATION_SESSIONS.pop(auth.impersonation_session_id, None)
-    db.audit_logs.insert(str(uuid.uuid4()), AuditLogEvent(
-        id=str(uuid.uuid4()),
+    stop_event_id = str(uuid.uuid4())
+    db.audit_logs.insert(stop_event_id, AuditLogEvent(
+        id=stop_event_id,
         tenant_id=auth.tenant_id,
         actor_type="user",
         actor_id=auth.sub,
@@ -429,7 +431,7 @@ async def stop_impersonation(
             "impersonated_user_id": session["target_user_id"] if session else auth.sub,
             "impersonated_tenant_id": auth.tenant_id,
             "impersonated_by": auth.impersonated_by,
-            "correlation_id": None,
+            "correlation_id": request.headers.get("X-Request-ID"),
             "timestamp": datetime.now(UTC).isoformat(),
             "action_code": "impersonation.stop",
             "reason": session["reason"] if session else auth.impersonation_reason,
