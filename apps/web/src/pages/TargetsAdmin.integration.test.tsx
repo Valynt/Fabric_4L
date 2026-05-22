@@ -16,6 +16,17 @@ import { server } from '../test/mocks/server';
 import { renderWithRouter } from '../test-utils';
 import TargetsAdmin from './TargetsAdmin';
 
+type WithChildren = { children?: React.ReactNode };
+type SidePanelProps = WithChildren & { open?: boolean; title?: string };
+type DropdownMenuTriggerProps = WithChildren & { asChild?: boolean };
+type DropdownMenuItemProps = WithChildren & { onClick?: () => void; disabled?: boolean };
+type SelectProps = WithChildren & { value?: string; onValueChange?: (value: string) => void };
+type SelectTriggerProps = WithChildren & { className?: string; 'aria-label'?: string };
+type SelectValueProps = { placeholder?: string };
+type SelectItemProps = WithChildren & { value: string };
+type AlertDialogProps = WithChildren & { open?: boolean; onOpenChange?: (open: boolean) => void };
+type ClickableProps = WithChildren & { onClick?: () => void };
+
 // vi.mock factories are hoisted before ES imports, so the `React` binding is
 // not yet initialised when the factory runs. Use require() inside the factory
 // to get React at call time (after module graph is resolved).
@@ -23,7 +34,7 @@ import TargetsAdmin from './TargetsAdmin';
 vi.mock('@/components/ui/fabric/SidePanel', () => {
   const R = require('react');
   return {
-    SidePanel: ({ open, children, title }: any) =>
+    SidePanel: ({ open, children, title }: SidePanelProps) =>
       open ? R.createElement('div', { 'data-testid': 'side-panel', 'aria-label': title }, children) : null,
   };
 });
@@ -33,14 +44,14 @@ vi.mock('@/components/ui/fabric/SidePanel', () => {
 vi.mock('@/components/ui/dropdown-menu', () => {
   const R = require('react');
   return {
-    DropdownMenu: ({ children }: any) =>
+    DropdownMenu: ({ children }: WithChildren) =>
       R.createElement('div', { 'data-testid': 'dropdown-menu' }, children),
     // asChild=true: pass through to child element to avoid double-wrapping
-    DropdownMenuTrigger: ({ children, asChild }: any) =>
+    DropdownMenuTrigger: ({ children, asChild }: DropdownMenuTriggerProps) =>
       asChild ? children : R.createElement('button', { 'aria-label': 'Target actions' }, children),
-    DropdownMenuContent: ({ children }: any) =>
+    DropdownMenuContent: ({ children }: WithChildren) =>
       R.createElement('div', { role: 'menu' }, children),
-    DropdownMenuItem: ({ children, onClick, disabled }: any) =>
+    DropdownMenuItem: ({ children, onClick, disabled }: DropdownMenuItemProps) =>
       R.createElement('div', { role: 'menuitem', onClick, 'aria-disabled': disabled }, children),
     DropdownMenuSeparator: () => R.createElement('hr', null),
   };
@@ -53,15 +64,15 @@ vi.mock('@/components/ui/select', () => {
   // Carry onValueChange via React context so SelectItem can call it.
   const Ctx = R.createContext<((v: string) => void) | undefined>(undefined);
   return {
-    Select: ({ value, onValueChange, children }: any) =>
+    Select: ({ value, onValueChange, children }: SelectProps) =>
       R.createElement(Ctx.Provider, { value: onValueChange },
         R.createElement('div', { 'data-testid': 'select', 'data-value': value }, children),
       ),
-    SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: any) =>
+    SelectTrigger: ({ children, className, 'aria-label': ariaLabel }: SelectTriggerProps) =>
       R.createElement('button', { role: 'combobox', className, 'aria-label': ariaLabel }, children),
-    SelectValue: ({ placeholder }: any) => R.createElement('span', null, placeholder),
-    SelectContent: ({ children }: any) => R.createElement('div', null, children),
-    SelectItem: ({ value, children }: any) => {
+    SelectValue: ({ placeholder }: SelectValueProps) => R.createElement('span', null, placeholder),
+    SelectContent: ({ children }: WithChildren) => R.createElement('div', null, children),
+    SelectItem: ({ value, children }: SelectItemProps) => {
       const onChange = R.useContext(Ctx);
       return R.createElement('div', { role: 'option', 'data-value': value, onClick: () => onChange?.(value) }, children);
     },
@@ -74,20 +85,20 @@ vi.mock('@/components/ui/alert-dialog', () => {
   // the dialog without needing an explicit onClick prop (matching Radix behaviour).
   const CloseCtx = R.createContext<(() => void) | undefined>(undefined);
   return {
-    AlertDialog: ({ open, onOpenChange, children }: any) =>
+    AlertDialog: ({ open, onOpenChange, children }: AlertDialogProps) =>
       open
         ? R.createElement(CloseCtx.Provider, { value: () => onOpenChange?.(false) },
             R.createElement('div', { role: 'alertdialog' }, children),
           )
         : null,
-    AlertDialogContent: ({ children }: any) => R.createElement('div', null, children),
-    AlertDialogHeader: ({ children }: any) => R.createElement('div', null, children),
-    AlertDialogTitle: ({ children }: any) => R.createElement('h2', null, children),
-    AlertDialogDescription: ({ children }: any) => R.createElement('p', null, children),
-    AlertDialogFooter: ({ children }: any) => R.createElement('div', null, children),
-    AlertDialogAction: ({ children, onClick }: any) => R.createElement('button', { onClick }, children),
+    AlertDialogContent: ({ children }: WithChildren) => R.createElement('div', null, children),
+    AlertDialogHeader: ({ children }: WithChildren) => R.createElement('div', null, children),
+    AlertDialogTitle: ({ children }: WithChildren) => R.createElement('h2', null, children),
+    AlertDialogDescription: ({ children }: WithChildren) => R.createElement('p', null, children),
+    AlertDialogFooter: ({ children }: WithChildren) => R.createElement('div', null, children),
+    AlertDialogAction: ({ children, onClick }: ClickableProps) => R.createElement('button', { onClick }, children),
     // Cancel reads the close callback from context (no explicit onClick needed).
-    AlertDialogCancel: ({ children, onClick }: any) => {
+    AlertDialogCancel: ({ children, onClick }: ClickableProps) => {
       const close = R.useContext(CloseCtx);
       return R.createElement('button', { onClick: onClick ?? close }, children);
     },
