@@ -72,6 +72,9 @@ class BillingCustomer(Base):
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # App user_id
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, primary_key=True, index=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    stripe_sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
+    stripe_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stripe_sync_attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
