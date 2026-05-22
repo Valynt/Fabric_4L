@@ -92,7 +92,7 @@ Value Fabric implements **PostgreSQL Row-Level Security (RLS)** for multi-tenanc
 - Same `id` allowed across different tenants
 - Community Edition compatible (no enterprise-only features required)
 
-See [ADR-003](docs/explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) for detailed design.
+See [ADR-010](docs/explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) for detailed design.
 
 ---
 
