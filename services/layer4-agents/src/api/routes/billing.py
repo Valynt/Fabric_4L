@@ -564,7 +564,7 @@ async def stripe_webhook(
     # Read raw body for signature verification
     body = await request.body()
 
-    service = BillingService(db, **_service_actor_kwargs(context))
+    service = BillingService(db)
 
     try:
         await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
