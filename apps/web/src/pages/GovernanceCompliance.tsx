@@ -72,17 +72,23 @@ export default function GovernanceCompliance() {
         <SectionCard title="Maturity Ladder Coverage" noPad>
           <DataTable
             columns={[
-              { key: "level", header: "Level" },
+              {
+                key: "level",
+                header: "Level",
+                render: (value) => (
+                  <span className="font-semibold">L{value}</span>
+                ),
+              },
               { key: "name", header: "Name" },
               { key: "status", header: "Required Status" },
               { key: "count", header: "Count" },
             ]}
             data={(maturityLadder?.levels ?? []).map(level => ({
               key: `maturity-${level.level}`,
-              level: <span className="font-semibold">L{level.level}</span>,
-              name: <span>{level.name}</span>,
-              status: <span>{level.required_status}</span>,
-              count: <span>{maturityCounts[level.level] ?? 0}</span>,
+              level: level.level,
+              name: level.name,
+              status: level.required_status,
+              count: maturityCounts[level.level] ?? 0,
             }))}
             keyExtractor={(item) => String(item.key)}
             emptyMessage="No maturity ladder definition returned"
