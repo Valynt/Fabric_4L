@@ -544,9 +544,16 @@ class InvoiceService:
 
         query = select(BillingCharge).where(BillingCharge.tenant_id == self.tenant_id)
 
-        if customer_id:
-            self.authorize_customer_access(customer_id)
-            query = query.where(BillingCharge.customer_id == customer_id)
+        effective_customer_id = customer_id
+        if effective_customer_id:
+            self.authorize_customer_access(effective_customer_id)
+        else:
+            actor_customer_id = getattr(self, "actor_customer_id", None)
+            if actor_customer_id:
+                effective_customer_id = actor_customer_id
+
+        if effective_customer_id:
+            query = query.where(BillingCharge.customer_id == effective_customer_id)
         if invoice_id:
             query = query.where(BillingCharge.invoice_id == invoice_id)
         if status:
