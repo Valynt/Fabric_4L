@@ -51,6 +51,14 @@ class PlanId(str, PyEnum):
     ENTERPRISE = "enterprise"
 
 
+class CustomerSyncStatus(str, PyEnum):
+    """Stripe sync status for local billing customers."""
+
+    PENDING = "pending"
+    SYNCED = "synced"
+    FAILED = "failed"
+
+
 class UsageEventStatus(str, PyEnum):
     """Status of a usage event."""
 
@@ -71,6 +79,10 @@ class BillingCustomer(Base):
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # App user_id
     tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    stripe_sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default=CustomerSyncStatus.PENDING)
+    stripe_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_sync_attempt_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    free_plan_source: Mapped[str] = mapped_column(String(40), nullable=False, default="fallback_entitlement")
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))

@@ -24,6 +24,7 @@ from ..models.billing import (
     BillingCustomer,
     BillingSubscription,
     BillingWebhookEvent,
+    CustomerSyncStatus,
     SubscriptionStatus,
 )
 from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, get_stripe
@@ -52,6 +53,38 @@ class BillingService:
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+
+    async def _sync_customer_to_stripe(self, customer: BillingCustomer) -> bool:
+        """Attempt Stripe sync for an existing local customer."""
+        customer.last_sync_attempt_at = datetime.now(UTC)
+        try:
+            stripe = _get_stripe()
+            stripe_customer = stripe.Customer.create(
+                email=customer.email,
+                name=customer.name or customer.email,
+                metadata={"app_customer_id": customer.id},
+            )
+            customer.stripe_customer_id = stripe_customer.id
+            customer.stripe_sync_status = CustomerSyncStatus.SYNCED
+            customer.stripe_sync_error = None
+            logger.info(
+                "billing.customer_sync_succeeded",
+                extra={"customer_id": customer.id, "tenant_id": customer.tenant_id},
+            )
+            return True
+        except (StripeError, StripeNotConfiguredError) as e:
+            customer.stripe_sync_status = CustomerSyncStatus.FAILED
+            customer.stripe_sync_error = str(e)
+            logger.warning(
+                "billing.customer_sync_failed",
+                extra={
+                    "customer_id": customer.id,
+                    "tenant_id": customer.tenant_id,
+                    "sync_status": customer.stripe_sync_status,
+                    "error": str(e),
+                },
+            )
+            return False
 
     async def get_or_create_customer(
         self,
@@ -92,33 +125,28 @@ class BillingService:
                         await self.db.flush()
                     return customer
 
-                # Create Stripe customer first (idempotent operation)
-                stripe_customer_id = None
-                try:
-                    stripe = _get_stripe()
-                    stripe_customer = stripe.Customer.create(
-                        email=email,
-                        name=name or email,
-                        metadata={"app_customer_id": customer_id},
-                    )
-                    stripe_customer_id = stripe_customer.id
-                except StripeNotConfiguredError as e:
-                    # Log but continue - we can retry Stripe sync later
-                    logger.warning(f"Stripe customer creation failed: {e}")
-
-                # Create local customer record within transaction
+                # Create local customer record first; Stripe sync status tracked explicitly.
                 customer = BillingCustomer(
                     id=customer_id,
                     tenant_id=tenant_id,
-                    stripe_customer_id=stripe_customer_id,
+                    stripe_customer_id=None,
+                    stripe_sync_status=CustomerSyncStatus.PENDING,
+                    last_sync_attempt_at=None,
+                    free_plan_source="fallback_entitlement",
                     email=email,
                     name=name,
                 )
                 self.db.add(customer)
                 await self.db.flush()
 
-                # Create default free subscription with tenant_id
+                # Create default free subscription as fallback entitlement until Stripe is synced.
                 await self._create_free_subscription(customer_id, tenant_id)
+                sync_ok = await self._sync_customer_to_stripe(customer)
+                if not sync_ok:
+                    logger.info(
+                        "billing.customer_requires_reconciliation",
+                        extra={"customer_id": customer.id, "tenant_id": customer.tenant_id},
+                    )
                 # Note: Caller (billing.py) handles transaction commit
 
                 return customer
@@ -136,18 +164,6 @@ class BillingService:
             except SQLAlchemyError as e:
                 await self.db.rollback()
                 logger.error("Billing customer creation failed", extra={"customer_id": customer_id, "tenant_id": tenant_id, "error_type": type(e).__name__}, exc_info=True)
-                # Compensation: Log potential Stripe orphan for cleanup
-                # If stripe_customer_id was created but DB failed, we have an orphan
-                if stripe_customer_id:
-                    logger.warning(
-                        "POTENTIAL_STRIPE_ORPHAN",
-                        extra={
-                            "stripe_customer_id": stripe_customer_id,
-                            "customer_id": customer_id,
-                            "error": str(e),
-                            "action_required": "Reconcile Stripe customer or delete if unused",
-                        }
-                    )
                 raise
 
         # Should never reach here
@@ -173,6 +189,58 @@ class BillingService:
         self.db.add(subscription)
         await self.db.flush()
         return subscription
+
+    async def reconcile_customer_sync(self, *, limit: int = 100) -> dict[str, int]:
+        """Retry failed/pending Stripe sync and report backlog/orphan metrics."""
+        backlog_result = await self.db.execute(
+            select(BillingCustomer).where(
+                BillingCustomer.stripe_customer_id.is_(None),
+                BillingCustomer.stripe_sync_status.in_(
+                    [CustomerSyncStatus.PENDING, CustomerSyncStatus.FAILED]
+                ),
+            ).limit(limit)
+        )
+        backlog = list(backlog_result.scalars().all())
+        orphan_count = 0
+        synced_count = 0
+        failed_count = 0
+        for customer in backlog:
+            try:
+                synced = await self._sync_customer_to_stripe(customer)
+                if synced:
+                    synced_count += 1
+                else:
+                    failed_count += 1
+            except Exception:
+                failed_count += 1
+
+        # Remote orphan heuristic: stripe_customer_id exists but no active subscription attached.
+        orphan_result = await self.db.execute(
+            select(BillingCustomer).where(
+                BillingCustomer.stripe_customer_id.is_not(None),
+                BillingCustomer.stripe_sync_status == CustomerSyncStatus.SYNCED,
+            )
+        )
+        for customer in orphan_result.scalars().all():
+            sub = await self.get_active_subscription(customer.id)
+            if sub is None:
+                orphan_count += 1
+
+        logger.info(
+            "billing.reconciliation_metrics",
+            extra={
+                "reconciliation_backlog": len(backlog),
+                "reconciliation_synced": synced_count,
+                "reconciliation_failed": failed_count,
+                "orphan_customer_count": orphan_count,
+            },
+        )
+        return {
+            "reconciliation_backlog": len(backlog),
+            "reconciliation_synced": synced_count,
+            "reconciliation_failed": failed_count,
+            "orphan_customer_count": orphan_count,
+        }
 
     async def get_active_subscription(self, customer_id: str) -> BillingSubscription | None:
         """Get the active subscription for a customer."""
