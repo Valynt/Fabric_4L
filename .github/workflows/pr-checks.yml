@@ -121,6 +121,10 @@ jobs:
           python scripts/ci/check_shared_imports.py --strict --scope runtime --json | tee artifacts/shared-imports-runtime.json
           exit ${PIPESTATUS[0]}
 
+      - name: Enforce shared identity canonical imports
+        run: |
+          python scripts/ci/check_shared_identity_canonical_imports.py
+
       - name: Deprecated namespace import gate
         run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
 
