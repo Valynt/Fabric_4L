@@ -10,7 +10,7 @@ import { useRef } from "react";
  * @param fn - The function to persist across renders
  * @returns A stable function reference with the same signature
  */
-export function usePersistFn<T extends (...args: unknown[]) => unknown>(fn: T) {
+export function usePersistFn<T extends (...args: any[]) => any>(fn: T) { // eslint-disable-line @typescript-eslint/no-explicit-any
   type PersistedFunction = (...args: Parameters<T>) => ReturnType<T>;
 
   const fnRef = useRef<T>(fn);
