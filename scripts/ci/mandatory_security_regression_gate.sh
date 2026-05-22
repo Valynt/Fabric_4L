@@ -83,6 +83,12 @@ LAYER5_FAIL_CLOSED_TESTS=(
   services/layer5-ground-truth/tests/test_production_fail_closed_i02.py
 )
 
+HOSTILE_API_KEY_RESOLVER_TESTS=(
+  tests/shared/identity/test_api_key_resolver_hostile_suite.py
+  services/layer1-ingestion/tests/test_api_key_resolver_hostile_cases.py
+  services/layer2-extraction/tests/test_api_key_resolver_hostile_cases.py
+)
+
 FRONTEND_CONTRACT_TEST_DIR="apps/web/src/api/__tests__/contract"
 FRONTEND_PLACEHOLDER_GUARD="apps/web/scripts/security/assert-no-placeholder-contract-tests.mjs"
 FRONTEND_CRITICAL_E2E_GUARD="apps/web/scripts/security/assert-no-skipped-critical-e2e.mjs"
@@ -111,7 +117,8 @@ required_suite_paths() {
     "${CONTRACT_TESTS[@]}" \
     "${K8S_TESTS[@]}" \
     "${LAYER2_FAIL_CLOSED_TESTS[@]}" \
-    "${LAYER5_FAIL_CLOSED_TESTS[@]}"; do
+    "${LAYER5_FAIL_CLOSED_TESTS[@]}" \
+    "${HOSTILE_API_KEY_RESOLVER_TESTS[@]}"; do
     printf '%s\n' "${path%%::*}"
   done
 }

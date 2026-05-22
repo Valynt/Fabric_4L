@@ -36,6 +36,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 logger = logging.getLogger(__name__)
 _thread_local = threading.local()
 DEFAULT_API_KEY_ROLE = Role.READ_ONLY.value
+INVALID_API_KEY_CONTEXT_ERROR_CODE = "INVALID_API_KEY_CONTEXT"
 
 
 @dataclass
@@ -350,7 +351,15 @@ class GovernanceMiddlewareSync:
             try:
                 record = self._api_key_resolver(api_key_header)
                 if record and record.get("enabled", True):
-                    return self._build_context_from_api_key_sync(record)
+                    candidate = self._build_context_from_api_key_sync(record)
+                    if candidate.validate():
+                        logger.warning(
+                            "API key context rejected: %s",
+                            INVALID_API_KEY_CONTEXT_ERROR_CODE,
+                            extra={"error_code": INVALID_API_KEY_CONTEXT_ERROR_CODE},
+                        )
+                        return None
+                    return candidate
             except Exception as exc:
                 logger.debug("API key resolution failed: %s", exc)
 

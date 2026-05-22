@@ -49,6 +49,16 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_legacy_tenant_access.py \
+            --allowlist config/ci/legacy_tenant_access_shim_allowlist.yaml \
+            --phase "${SHIM_LEGACY_ACCESS_PHASE:-warn}" \
+            --base-ref "origin/${{ github.base_ref || 'main' }}" \
+            --json | tee artifacts/legacy-tenant-access-shim-lifecycle.json
+          exit ${PIPESTATUS[0]}
+
       - name: Run structural preflight
         run: |
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
@@ -146,6 +156,9 @@ jobs:
 
       - name: Enforce hermetic build input policy
         run: python scripts/ci/check_hermetic_build_inputs.py
+
+      - name: Enforce secure error envelope gate
+        run: python scripts/ci/check_secure_error_envelope.py
 
 
       - name: Generate layer quality scorecard
