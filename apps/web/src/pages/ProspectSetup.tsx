@@ -27,7 +27,7 @@ const MODE_CONFIG: Record<ProspectSetupMode, ModeConfig> = {
   },
   "value-pilot": {
     workspacePath: (accountId) => `/accounts/${accountId}/workspace/action-plan`,
-    fallbackRoute: "workflow-intelligence",
+    fallbackRoute: "value-pilot-intelligence",
   },
 }
 
