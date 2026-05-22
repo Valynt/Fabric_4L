@@ -6,7 +6,7 @@ For full details, see:
 
 - [System Overview](docs/architecture/system-overview.md)
 - [Architecture Concepts](docs/core-concepts/architecture.md)
-- [ADR-001: Six-Layer Architecture](docs/explanations/adr/ADR-001-six-layer-architecture.md)
+- [ADR-002: Six-Layer Architecture](docs/explanations/adr/ADR-002-six-layer-architecture.md)
 - [Component Interaction Map](docs/architecture/component-interaction-map.md)
 
 ## Layers

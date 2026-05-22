@@ -1,7 +1,7 @@
 # Layer 6: Benchmark Service
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: per [ADR-027](../../docs/architecture/adr-027-layer3-canonical-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. `value_fabric/layer6/` is a path-appender shim only. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. `value_fabric/layer6/` is a path-appender shim only. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Standalone service for comparative intelligence and peer benchmarking.
 
@@ -46,7 +46,7 @@ Layer 6 integrates with Layer 4 Agents via the `IBenchmarkClient` interface (see
 
 ## Source ownership
 
-Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/architecture/adr-027-layer3-canonical-path.md)).
+Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)).
 
 `value_fabric/layer6/` is a **path-appender shim** that resolves `value_fabric.layer6.*` imports to the canonical service tree. Do not add implementation files there; CI gates (`scripts/ci/check_layer56_shims.py`, `scripts/ci/check_stale_namespace_dirs.py`) reject regressions.
 

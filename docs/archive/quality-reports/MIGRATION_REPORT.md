@@ -63,14 +63,14 @@ Successfully migrated all file path references from the legacy `value-fabric/` d
 
 ### 6. ADR Migration
 Migrated unique ADRs from `value-fabric/docs/ADRs/` to canonical `docs/explanations/adr/` with YAML front matter:
-- ADR-001-six-layer-architecture.md
+- ADR-002-six-layer-architecture.md
 - ADR-002-tenant-isolation.md
 - ADR-003-security-gates.md
 - ADR-004-canonical-paths.md
 - ADR-005-contracts.md
 - ADR-006-deployment.md
 - ADR-007-observability.md
-- ADR-008-jwt-api-key-authentication.md
+- ADR-009-jwt-api-key-hybrid-authentication.md
 - ADR-009-llm-safety.md
 
 ### 7. Package Files Updated

@@ -1,8 +1,15 @@
-<!-- Migrated from services/ADRs/ during legacy path cleanup. -->
+---
+title: "ADR-008: OpenTelemetry for Observability"
+category: "explanations"
+audience: "advanced"
+last-reviewed: "2026-04-21"
+freshness: "current"
+related: ["../../core-concepts/architecture", "../../reference/layer4-agents-api"]
+---
 
-# ADR-013: OpenTelemetry for Observability
+# ADR-008: OpenTelemetry for Observability
 
-**Status:** Accepted  
+**Status:** ✅ Accepted  
 **Date:** April 2026  
 **Authors:** Distinguished Engineering Team  
 **Reviewers:** Platform Operations Committee
@@ -388,7 +395,7 @@ with tracer.start_as_current_span("operation"):
 
 ## Related Decisions
 
-- ADR-001: Multi-layer architecture (distributed tracing critical)
+- ADR-001: Six-layer architecture (distributed tracing critical)
 - ADR-005: Circuit breaker pattern (correlate with traces)
 
 ---

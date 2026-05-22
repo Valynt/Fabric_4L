@@ -1,6 +1,6 @@
 <!-- Migrated from services/ADRs/ during legacy path cleanup. -->
 
-# ADR-009: PostgreSQL + RLS for Multi-Tenancy
+# ADR-010: PostgreSQL + RLS for Multi-Tenancy
 
 **Status:** Accepted  
 **Date:** April 2026  

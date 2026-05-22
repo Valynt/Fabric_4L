@@ -1,5 +1,5 @@
 ---
-title: "ADR-003: JWT + API Key Authentication Strategy"
+title: "ADR-004: JWT + API Key Authentication Strategy"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-19"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/security-model", "../../reference/layer4-agents-api", "../../how-to-guides/configure-sso"]
 ---
 
-# ADR-003: JWT + API Key Authentication Strategy
+# ADR-004: JWT + API Key Authentication Strategy
 
 **Status:** ✅ Accepted
 

@@ -1,5 +1,5 @@
 ---
-title: "ADR-002: Neo4j + pgvector Hybrid Graph Database"
+title: "ADR-003: Neo4j + pgvector Hybrid Graph Database"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-19"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/ontology-system", "../../reference/layer3-knowledge-api", "../why-knowledge-graph"]
 ---
 
-# ADR-002: Neo4j + pgvector Hybrid Graph Database
+# ADR-003: Neo4j + pgvector Hybrid Graph Database
 
 **Status:** ✅ Accepted
 

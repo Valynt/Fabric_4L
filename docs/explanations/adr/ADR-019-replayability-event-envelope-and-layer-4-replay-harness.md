@@ -1,4 +1,4 @@
-# ADR-016: Replayability Event Envelope and Layer 4 Replay Harness
+# ADR-019: Replayability Event Envelope and Layer 4 Replay Harness
 
 - **Status:** Accepted
 - **Date:** 2026-05-12
