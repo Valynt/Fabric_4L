@@ -18,6 +18,7 @@ BLOCK_PATTERNS = [
     re.compile(r"[\"'](?:error|message|detail)[\"']\s*:\s*repr\((?:e|exc)\)"),
     re.compile(r"traceback\.format_exc\("),
     re.compile(r"\bexc\.args\b"),
+    re.compile(r"HTTPException\([^\n]*str\((?:e|exc)\)"),
 ]
 
 ALLOWLIST = (
