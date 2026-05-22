@@ -67,7 +67,7 @@ def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
 
 def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
     pkg = db.dsar_packages.get(record.package_id, tenant_id=record.tenant_id) if record.package_id else None
-    complete = bool(pkg and pkg.export_payload.get("accounts") is not None)
+    complete = bool(pkg and any(pkg.export_payload.get(k) for k in ("accounts", "evidence", "hypotheses")))
     if not complete:
         raise ValueError("DSAR package incomplete")
     db.dsar_packages.update(pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
