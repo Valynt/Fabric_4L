@@ -335,6 +335,7 @@ export const settingsNavigation: SettingsNavItem[] = [
       { label: "Preferences", path: "/personal/preferences" },
       { label: "Notifications", path: "/personal/notifications" },
       { label: "Active Sessions", path: "/personal/sessions" },
+      { label: "My Activity", path: "/personal/activity" },
     ],
   },
   {
