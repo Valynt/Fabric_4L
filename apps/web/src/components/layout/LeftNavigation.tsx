@@ -92,7 +92,7 @@ export function LeftNavigation({
         </button>
       </div>
 
-      <nav aria-label="Primary" className="flex-1 space-y-1 overflow-y-auto p-2">
+      <nav aria-label="Primary navigation" className="flex-1 space-y-1 overflow-y-auto p-2">
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.id as keyof typeof NAV_ICONS] ?? Radar;
 
