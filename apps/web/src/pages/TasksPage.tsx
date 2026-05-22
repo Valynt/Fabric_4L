@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/states';
 import { useCreateTask, useTasks, useUpdateTask, type TaskRecord } from '@/hooks/useTasks';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
+import { safeAsync } from '@/lib/async';
 
 function TaskStatusBadge({ status }: { status: TaskRecord['status'] }) {
   if (status === 'completed') return <StatusBadge status="completed" />;
@@ -44,7 +45,7 @@ export default function TasksPage() {
           title="Tasks"
           subtitle="Create, assign, complete, and reload tenant-scoped workflow tasks."
           actions={
-            <Btn variant="outline" onClick={() => void tasks.refetch()} disabled={tasks.isFetching}>
+            <Btn variant="outline" onClick={() => safeAsync(tasks.refetch(), "tasks.refetch")} disabled={tasks.isFetching}>
               {tasks.isFetching ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RefreshCw size={14} className="mr-1.5" />}
               Refresh
             </Btn>
