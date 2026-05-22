@@ -115,23 +115,26 @@ open http://localhost:5173
 
 ## Repository map
 
+Per **[ADR-027](docs/architecture/adr-027-layer3-canonical-path.md)**, the
+canonical implementation tree is `services/`. The `value_fabric/layer*/`
+packages are **namespace shims only** that re-export from the matching service
+package. See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
+for the full matrix (canonical paths, allowed new-development targets, and
+shim-removal review dates).
+
 | Path | Status | Purpose |
 |------|--------|---------|
-| `value_fabric/` | **Canonical** | Runtime Python package root for the six-layer platform |
-| `value_fabric/layer1/` | **Canonical** | Layer 1 ingestion runtime modules |
-| `value_fabric/layer2/` | **Canonical** | Layer 2 extraction runtime modules |
-| `value_fabric/layer3/` | **Canonical** | Layer 3 knowledge/retrieval runtime modules |
-| `value_fabric/layer4/` | **Canonical** | Layer 4 agent orchestration runtime modules |
-| `value_fabric/layer5/` | **Canonical** | Layer 5 ground-truth runtime modules |
-| `value_fabric/layer6/` | **Canonical** | Layer 6 benchmark runtime modules |
-| `value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
-| `services/` | **Maintained (service deployment layer)** | Deployable service apps, migrations, manifests, and service-specific tests |
-| `services/layer1-ingestion/` ... `services/layer6-benchmarks/` | **Maintained** | Layer service entrypoints and infra wrappers |
+| `services/layer1-ingestion/src/` | **Canonical** | Layer 1 ingestion runtime |
+| `services/layer2-extraction/src/` | **Canonical** | Layer 2 extraction runtime |
+| `services/layer3-knowledge/src/` | **Canonical** | Layer 3 knowledge / retrieval runtime |
+| `services/layer4-agents/src/` | **Canonical** | Layer 4 agent orchestration runtime |
+| `services/layer5-ground-truth/src/layer5_ground_truth/` | **Canonical** | Layer 5 ground-truth runtime |
+| `services/layer6-benchmarks/src/` | **Canonical** | Layer 6 benchmark runtime |
 | `services/api/` | **Maintained** | Cross-layer API service |
-| `services/` | **Legacy reference** | Historical monorepo path naming retained for compatibility/docs backreferences |
-| `apps/web/` | Canonical frontend | Current web UI package and build target |
-| `contracts/` | **Canonical** | Versioned tool manifests, JSON Schemas, OpenAPI specs |
+| `value_fabric/layer1/` … `value_fabric/layer6/` | **Shim only (per ADR-027)** | Namespace facades; no net-new logic. Shim-removal review by 2026-09-30. |
+| `value_fabric/shared/` | **Canonical** | Shared runtime packages (identity, security, models, boundaries) |
 | `apps/web/` | **Canonical** | React + TypeScript UI |
+| `contracts/` | **Canonical** | Versioned tool manifests, JSON Schemas, OpenAPI specs |
 | `k8s/` | **Canonical** | Kubernetes manifests |
 | `monitoring/` | **Canonical** | Prometheus + Grafana dashboards |
 | `packs/` | **Canonical** | Domain-specific data packs (life-sciences, manufacturing, software) |
@@ -141,29 +144,21 @@ open http://localhost:5173
 
 ### Source of truth paths
 
-Runtime API modules (exact paths):
+All net-new runtime code lands under `services/layer{N}-*/src/`. Cross-layer
+imports may use either the service package (`layer{N}_{name}.*`) or the
+`value_fabric.layer{N}.*` shim during transition — the shim resolves to the
+same module objects. See the path governance matrix for layer-specific notes.
 
-- `value_fabric/layer1/api/routes/`
-- `value_fabric/layer2/api/routes/`
-- `value_fabric/layer3/api/routes/`
-- `value_fabric/layer5/api/`
-- `value_fabric/layer6/api/routes/`
+### Per-layer contributor rule
 
-Domain/runtime packages (exact paths):
-
-- `value_fabric/layer1/`
-- `value_fabric/layer2/`
-- `value_fabric/layer3/`
-- `value_fabric/layer4/`
-- `value_fabric/layer5/`
-- `value_fabric/layer6/`
-- `value_fabric/shared/`
-
-### Layer 6 contributor rule
-
-Place all Layer 6 runtime implementation changes in `value_fabric/layer6/`.
-
-Treat `services/layer6-benchmarks/src/` as a compatibility wrapper tree only. If you add a new Layer 6 module, add the matching wrapper entry to `scripts/mirrored_files.json` and keep the service file to the generated two-line re-export form.
+For every layer 1–6: place all runtime implementation changes under
+`services/layer{N}-*/src/`. Do **not** add new logic under
+`value_fabric/layer{N}/` — those packages are namespace shims (per ADR-027)
+and CI enforces this via
+[`scripts/ci/check_layer6_wrapper_drift.py`](scripts/ci/check_layer6_wrapper_drift.py),
+[`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py), and the
+import-topology tests under [`tests/arch/`](tests/arch/) and
+[`tests/contract/`](tests/contract/).
 
 ## Core concepts
 
@@ -221,6 +216,20 @@ Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with t
 | Document | Description |
 |----------|-------------|
 | [All ADRs](docs/explanations/adr/) | Architecture Decision Records |
+| [ADR-027: Service-first canonical paths](docs/architecture/adr-027-layer3-canonical-path.md) | Why `services/` is the implementation tree and `value_fabric/` is shim-only |
+
+### Reference & Governance
+
+| Document | Description |
+|----------|-------------|
+| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer; canonical vs shim paths |
+| [Service Routing & API Version Matrix](docs/reference/service-routing-and-api-version-matrix.md) | Per-service ports, base paths, and version compatibility |
+| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, generated-client rules for `apps/web/` |
+| [Testing Strategy](docs/reference/testing-strategy.md) | Test layers, commands, and contract-test requirements |
+| [Operators' Runbook Index](docs/how-to-guides/operators.md) | Single jumping-off point for every operator-facing runbook |
+| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve; what requires an RFC |
+| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical list of compatibility shims and deprecations |
+| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract / tenant / shim changes |
 
 ### Meta
 

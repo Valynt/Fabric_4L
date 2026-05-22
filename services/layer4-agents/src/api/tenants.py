@@ -93,6 +93,19 @@ class TenantSummary(BaseModel):
     entity_count: int = 0
 
 
+# Fixed allowlist of tables that may hold tenant-scoped entity rows. Any
+# value used in raw SQL identifier position MUST come from this set so the
+# f-string composition below cannot become an injection sink if the list is
+# ever sourced from request input by a future contributor.
+_TENANT_ENTITY_TABLES: frozenset[str] = frozenset({
+    "entities",
+    "knowledge_entities",
+    "graph_entities",
+    "crm_accounts",
+    "accounts",
+})
+
+
 async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> int:
     """Count persisted tenant entities from available production tables.
 
@@ -105,15 +118,14 @@ async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> i
     """
     from sqlalchemy import text
 
-    candidates = (
-        "entities",
-        "knowledge_entities",
-        "graph_entities",
-        "crm_accounts",
-        "accounts",
-    )
     total = 0
-    for table_name in candidates:
+    for table_name in _TENANT_ENTITY_TABLES:
+        # Defense in depth: the identifier is interpolated into raw SQL, so
+        # reject anything that is not a known table name even though the loop
+        # currently iterates a hardcoded set.
+        if table_name not in _TENANT_ENTITY_TABLES:
+            raise ValueError(f"Refusing to query unknown table: {table_name!r}")
+
         exists_result = await db_session.execute(
             text("SELECT to_regclass(:table_name) IS NOT NULL"),
             {"table_name": table_name},
@@ -122,7 +134,7 @@ async def _count_tenant_entities(db_session: AsyncSession, tenant_id: UUID) -> i
             continue
 
         count_result = await db_session.execute(
-            text(f"SELECT COUNT(*) FROM {table_name} WHERE tenant_id = :tenant_id"),
+            text(f'SELECT COUNT(*) FROM "{table_name}" WHERE tenant_id = :tenant_id'),
             {"tenant_id": tenant_id},
         )
         total += int(count_result.scalar() or 0)

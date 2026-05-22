@@ -1,10 +1,25 @@
 # Fabric 4L Deprecation Map
 
-**Status:** 🔄 IN PROGRESS
-**Last Updated:** 2026-04-28
+> **Canonical source of truth:** The authoritative registry for runtime
+> compatibility shims, deprecated paths, and their target-removal dates is now
+> **[`docs/governance/compatibility-debt-registry.md`](governance/compatibility-debt-registry.md)**.
+> Its machine-readable mirror is [`docs/governance/deprecations.json`](governance/deprecations.json)
+> (do not hand-edit; regenerate from the registry). The CI gate input lives at
+> [`tests/baselines/deprecation-budget.json`](../tests/baselines/deprecation-budget.json).
+>
+> **All new entries must be added to the registry, not this file.** This page
+> is retained for traceability and links into historical pattern-level
+> deprecations below.
+
+## Historical entries
+
+**Status:** 🔄 IN PROGRESS  
+**Last Updated:** 2026-04-28  
 **Auto-Update Schedule:** Weekly (Mondays 00:00 UTC)
 
-This document tracks all non-canonical patterns in the codebase and their migration paths to the canonical patterns defined in [CONTRACT.md](./contract.md).
+This historical content tracks non-canonical patterns in the codebase and
+their migration paths to the canonical patterns defined in
+[CONTRACT.md](./contract.md).
 
 ---
 

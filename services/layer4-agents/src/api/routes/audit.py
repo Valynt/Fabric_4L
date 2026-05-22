@@ -113,7 +113,20 @@ async def list_audit_logs(
     if start and end and start > end:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="from_date must be before to_date")
 
-    clauses = ["tenant_id = :tenant_id"]
+    # WHERE clauses are composed from a fixed allowlist of (column_sql,
+    # bind_name) pairs only — all caller-supplied values flow through
+    # bind parameters, never string interpolation, so the composed
+    # ``where_sql`` cannot carry attacker payload.
+    _ALLOWED_CLAUSES: frozenset[str] = frozenset({
+        "tenant_id = :tenant_id",
+        "timestamp >= :from_date",
+        "timestamp <= :to_date",
+        "resource_type = :entity_type",
+        "action = :event_type",
+        "(user_id = :agent OR api_key_id = :agent)",
+    })
+
+    clauses: list[str] = ["tenant_id = :tenant_id"]
     params: dict[str, Any] = {
         "tenant_id": context.tenant_id,
         "limit": per_page,
@@ -135,6 +148,15 @@ async def list_audit_logs(
     if agent:
         clauses.append("(user_id = :agent OR api_key_id = :agent)")
         params["agent"] = agent
+
+    # Defense in depth: assert every composed clause came from the allowlist
+    # so a future edit cannot accidentally introduce an interpolated value.
+    for clause in clauses:
+        if clause not in _ALLOWED_CLAUSES:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Internal error composing audit query",
+            )
 
     where_sql = " AND ".join(clauses)
     total_result = await db.execute(

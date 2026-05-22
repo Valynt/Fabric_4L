@@ -1,4 +1,4 @@
-# Launch Decision Artifact (Canonical)
+d# Launch Decision Artifact (Canonical)
 
 - **Owner:** Release Management (Engineering)
 - **Last Updated (UTC):** 2026-05-21

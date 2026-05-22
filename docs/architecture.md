@@ -1,100 +1,38 @@
-# Fabric_4L Architecture
+---
+title: "Architecture (redirect)"
+status: "redirect"
+canonical: "core-concepts/architecture.md"
+last-reviewed: "2026-05-22"
+---
 
-## Layered Architecture (L1-L6)
+# Architecture
 
-### L1 Ingestion
-- Accepts external inputs: websites, CRM records, PDFs, call notes, public filings, case studies, product docs, spreadsheets, uploaded files, APIs.
-- Normalizes raw inputs into source documents and ingestion events.
+> This page has been consolidated. The canonical platform architecture lives at
+> **[`docs/core-concepts/architecture.md`](core-concepts/architecture.md)**.
+>
+> Earlier content here described an MVP-era mock-runtime model. The platform
+> has since moved to a production six-layer microservices topology backed by
+> PostgreSQL, Neo4j, pgvector, Redis, and S3 — see the canonical doc for the
+> current view, including C4 diagrams, container topology, and data flow.
 
-### L2 Extraction
-- Extracts signals, entities, pain points, metrics, claims, stakeholders, use cases, and evidence snippets.
-- Produces structured extraction results with provenance.
+## Quick reference
 
-### L3 Knowledge
-- Maintains the knowledge graph.
-- Graph abstraction for accounts, personas, signals, drivers, levers, formulas, evidence, business cases, and relationships.
-- In MVP: mock graph store; production target is Neo4j.
+| Layer | Service | Port | Purpose |
+| ----- | ------- | ---- | ------- |
+| 1 | layer1-ingestion    | 8001 | Playwright crawling, document parsing, ingestion jobs |
+| 2 | layer2-extraction   | 8002 | Pydantic v2 + LLM-guided ontology extraction, RDF/OWL |
+| 3 | layer3-knowledge    | 8003 | Neo4j + pgvector, GraphRAG, hybrid retrieval |
+| 4 | layer4-agents       | 8004 | LangGraph workflows, ROI / whitespace / business case |
+| 5 | layer5-ground-truth | 8005 | TruthObject validation, maturity ladder |
+| 6 | layer6-benchmarks   | 8006 | Datasets, peer comparison, statistical validation |
 
-### L4 Agents
-- Orchestrates multi-agent workflows.
-- LangGraph-style workflows with checkpointing, resume, tool execution, and review gates.
-- In MVP: mockable orchestration with MockLLMProvider.
+## Where to read next
 
-### L5 Ground Truth
-- Stores validated truth objects.
-- Tracks human-verified claims, formulas, evidence, assumptions, benchmark approvals, and review decisions.
-
-### L6 Benchmarks
-- Stores benchmark datasets, policies, industry averages, confidence levels, and formula calibration metadata.
-
-## Frontend Architecture
-
-- React 19 + TypeScript + Vite
-- Tailwind CSS + shadcn/ui primitives
-- TanStack Query for server state
-- Zustand for client state
-- React Router for navigation
-- Recharts for charts
-- React Flow for graph visualization
-
-## Backend Service Architecture
-
-- FastAPI with modular routers
-- Pydantic v2 models for request/response validation
-- In-memory mock database with tenant isolation patterns
-- Services layer for business logic (ROI, governance, agents)
-- Seed data loader from existing `packs/` directory
-
-## Data Stores
-
-| Store | Purpose | MVP | Production |
-|-------|---------|-----|------------|
-| MockDatabase | Relational data | In-memory | PostgreSQL |
-| Graph | Knowledge relationships | Mock | Neo4j |
-| Cache/Queue | Async jobs | Mock | Redis + Celery |
-| Vector | Semantic search | N/A | pgvector / Qdrant |
-| Object Storage | Documents | N/A | S3-compatible |
-
-## Agent Orchestration
-
-- `AgentOrchestrator` class manages agent runs
-- `MockLLMProvider` implements provider abstraction:
-  - `generateStructured()`
-  - `summarize()`
-  - `extract()`
-  - `classify()`
-  - `reason()`
-- Supports checkpointing, resume, cancel, and review gates
-
-## Evidence Provenance
-
-Every AI-generated object carries:
-- `source`
-- `confidence`
-- `status`
-- `evidenceIds`
-- `createdBy`: agent | user | system
-- `reviewState`
-
-## Governance Model
-
-- Review decisions on AI-generated claims
-- Evidence approval workflows
-- Formula validation gates
-- Ground truth tracking
-- Production readiness gates
-
-## Tenant Isolation Model
-
-- Every account-scoped object includes `tenantId`
-- Tenant context middleware extracts `X-Tenant-ID` header
-- API handlers require tenant context
-- Mock database filters all queries by tenant
-- Tests verify cross-tenant access is blocked
-
-## Production Deployment Path
-
-1. Docker Compose for local development
-2. Kubernetes-ready manifests in `infra/k8s/`
-3. GitHub Actions CI/CD pipelines
-4. OPA policy gates in `.fabric/`
+- **Canonical platform architecture (C4 + Mermaid):** [`core-concepts/architecture.md`](core-concepts/architecture.md)
+- **System overview & component map:** [`architecture/system-overview.md`](architecture/system-overview.md), [`architecture/component-interaction-map.md`](architecture/component-interaction-map.md)
+- **Six-layer rationale (ADR-001):** [`explanations/adr/ADR-001-six-layer-architecture.md`](explanations/adr/ADR-001-six-layer-architecture.md)
+- **Canonical runtime paths (ADR-027):** [`reference/layer-runtime-path-governance.md`](reference/layer-runtime-path-governance.md)
+- **Layer-4 agent-specific architecture:** [`agent-architecture.md`](agent-architecture.md)
+- **Frontend navigation architecture:** [`NAVIGATION_ARCHITECTURE.md`](NAVIGATION_ARCHITECTURE.md)
+- **Security model & tenant isolation:** [`core-concepts/security-model.md`](core-concepts/security-model.md), [`tenant-isolation.md`](tenant-isolation.md)
+- **Frontend governance contract:** [`../DESIGN.md`](../DESIGN.md)

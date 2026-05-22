@@ -1,5 +1,14 @@
 # Compatibility Debt Registry
 
+> **Canonical source of truth** for runtime compatibility shims, wrappers, and
+> their target-removal dates. New entries land here, not in
+> [`docs/DEPRECATIONS.md`](../DEPRECATIONS.md). The machine-readable mirror is
+> [`deprecations.json`](deprecations.json) (regenerate from this registry;
+> do not hand-edit). The CI gate input is
+> [`tests/baselines/deprecation-budget.json`](../../tests/baselines/deprecation-budget.json).
+> Pattern-level historical entries remain in
+> [`docs/DEPRECATIONS.md`](../DEPRECATIONS.md) for traceability only.
+
 This registry tracks **runtime** compatibility wrappers/shims that exist to preserve backward compatibility while canonical paths are adopted.
 
 ## Policy
