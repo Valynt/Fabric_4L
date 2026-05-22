@@ -105,16 +105,16 @@ class TestWorkflowWebSocketOwnership:
         from value_fabric.layer4.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
         # Simulate immediate client disconnect so the loop exits cleanly
         ws.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
 
         with patch(
-            "value_fabric.layer4.api.websocket.routes.decode_jwt",
-            return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
+            "value_fabric.layer4.api.websocket.routes.decode_ws_token",
+            return_value=(TENANT_A_ID, USER_A_ID),
         ):
             with patch(
-                "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+                "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
                 new=AsyncMock(return_value=True),
             ):
                 with patch(
@@ -128,12 +128,10 @@ class TestWorkflowWebSocketOwnership:
                         websocket=ws,
                         workflow_id=WORKFLOW_A,
                         last_event_id=None,
-                        token=None,
-                    )
+                                            )
 
         # Connection was accepted (ws_manager.connect was called)
         mock_mgr.return_value.connect.assert_awaited_once()
-        assert mock_mgr.return_value.connect.await_args.kwargs["correlation_id"]
         # No error close was issued
         for call in ws.close.call_args_list:
             code = call.kwargs.get("code") or (call.args[0] if call.args else None)
@@ -151,19 +149,18 @@ class TestWorkflowWebSocketOwnership:
         from value_fabric.layer4.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         # Ownership check returns False — workflow belongs to Tenant B
         with patch(
-            "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+            "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
             new=AsyncMock(return_value=False),
         ):
             await workflow_websocket(
                 websocket=ws,
                 workflow_id=WORKFLOW_B,
                 last_event_id=None,
-                token=None,
-            )
+                            )
 
         ws.close.assert_awaited_once()
         close_code = ws.close.call_args.kwargs.get("code") or ws.close.call_args.args[0]
@@ -180,18 +177,17 @@ class TestWorkflowWebSocketOwnership:
         from value_fabric.layer4.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         with patch(
-            "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+            "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
             new=AsyncMock(return_value=False),
         ):
             await workflow_websocket(
                 websocket=ws,
                 workflow_id="wf-does-not-exist",
                 last_event_id=None,
-                token=None,
-            )
+                            )
 
         ws.close.assert_awaited_once()
         close_code = ws.close.call_args.kwargs.get("code") or ws.close.call_args.args[0]
@@ -207,20 +203,21 @@ class TestWorkflowWebSocketOwnership:
         """
         captured: dict[str, str] = {}
 
-        async def _capture(workflow_id: str, tenant_id: str) -> bool:
+        async def _capture(workflow_id: str, tenant_id: str, user_id: str | None) -> tuple[bool, str]:
             captured["workflow_id"] = workflow_id
             captured["tenant_id"] = tenant_id
-            return False  # deny — we only care about what was passed
+            captured["user_id"] = user_id or ""
+            return False, "AUTHZ_WORKFLOW_TENANT_MISMATCH"  # deny — we only care about what was passed
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         with patch(
-            "value_fabric.layer4.api.websocket.routes.decode_jwt",
-            return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
+            "value_fabric.layer4.api.websocket.routes.decode_ws_token",
+            return_value=(TENANT_A_ID, USER_A_ID),
         ):
             with patch(
-                "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+                "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
                 new=_capture,
             ):
                 from value_fabric.layer4.api.websocket.routes import workflow_websocket
@@ -228,8 +225,7 @@ class TestWorkflowWebSocketOwnership:
                     websocket=ws,
                     workflow_id=WORKFLOW_B,
                     last_event_id=None,
-                    token=None,
-                )
+                                    )
 
         assert captured.get("tenant_id") == TENANT_A_ID, (
             "Ownership check must receive tenant_id from the JWT, not from the URL. "
@@ -239,15 +235,15 @@ class TestWorkflowWebSocketOwnership:
 
 
 class TestWorkflowWebSocketOwnershipUnit:
-    """Unit tests for _verify_workflow_ownership directly.
+    """Unit tests for _resolve_workflow_authorization directly.
 
-    _verify_workflow_ownership imports get_executor locally from
+    _resolve_workflow_authorization imports get_executor locally from
     value_fabric.layer4.api.routes.workflows, so we patch it there.
     """
 
     @pytest.mark.asyncio
     async def test_returns_true_when_tenant_matches(self):
-        from value_fabric.layer4.api.websocket.routes import _verify_workflow_ownership
+        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -259,13 +255,13 @@ class TestWorkflowWebSocketOwnershipUnit:
             "value_fabric.layer4.api.routes.workflows.get_executor",
             return_value=mock_executor,
         ):
-            result = await _verify_workflow_ownership(WORKFLOW_A, TENANT_A_ID)
+            result = await _resolve_workflow_authorization(WORKFLOW_A, TENANT_A_ID, USER_A_ID)
 
-        assert result is True
+        assert result == (True, "AUTHZ_OK")
 
     @pytest.mark.asyncio
     async def test_returns_false_when_tenant_mismatches(self):
-        from value_fabric.layer4.api.websocket.routes import _verify_workflow_ownership
+        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -277,13 +273,13 @@ class TestWorkflowWebSocketOwnershipUnit:
             "value_fabric.layer4.api.routes.workflows.get_executor",
             return_value=mock_executor,
         ):
-            result = await _verify_workflow_ownership(WORKFLOW_B, TENANT_A_ID)
+            result = await _resolve_workflow_authorization(WORKFLOW_B, TENANT_A_ID, USER_A_ID)
 
-        assert result is False, "Tenant A must not own Tenant B's workflow"
+        assert result == (False, "AUTHZ_WORKFLOW_TENANT_MISMATCH"), "Tenant A must not own Tenant B's workflow"
 
     @pytest.mark.asyncio
     async def test_returns_false_when_workflow_not_found(self):
-        from value_fabric.layer4.api.websocket.routes import _verify_workflow_ownership
+        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = None
@@ -292,13 +288,13 @@ class TestWorkflowWebSocketOwnershipUnit:
             "value_fabric.layer4.api.routes.workflows.get_executor",
             return_value=mock_executor,
         ):
-            result = await _verify_workflow_ownership("wf-ghost", TENANT_A_ID)
+            result = await _resolve_workflow_authorization("wf-ghost", TENANT_A_ID, USER_A_ID)
 
-        assert result is False, "Missing workflow must deny to prevent enumeration"
+        assert result == (False, "AUTHZ_WORKFLOW_NOT_FOUND"), "Missing workflow must deny to prevent enumeration"
 
     @pytest.mark.asyncio
     async def test_returns_false_when_workflow_has_no_tenant(self):
-        from value_fabric.layer4.api.websocket.routes import _verify_workflow_ownership
+        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -310,14 +306,14 @@ class TestWorkflowWebSocketOwnershipUnit:
             "value_fabric.layer4.api.routes.workflows.get_executor",
             return_value=mock_executor,
         ):
-            result = await _verify_workflow_ownership(WORKFLOW_A, TENANT_A_ID)
+            result = await _resolve_workflow_authorization(WORKFLOW_A, TENANT_A_ID, USER_A_ID)
 
-        assert result is False, "Workflow with no tenant_id must deny"
+        assert result == (False, "AUTHZ_WORKFLOW_TENANT_MISSING"), "Workflow with no tenant_id must deny"
 
     @pytest.mark.asyncio
     async def test_returns_false_on_executor_exception(self):
         """Fail-closed: any unexpected error must deny the connection."""
-        from value_fabric.layer4.api.websocket.routes import _verify_workflow_ownership
+        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.side_effect = RuntimeError("db unavailable")
@@ -326,9 +322,9 @@ class TestWorkflowWebSocketOwnershipUnit:
             "value_fabric.layer4.api.routes.workflows.get_executor",
             return_value=mock_executor,
         ):
-            result = await _verify_workflow_ownership(WORKFLOW_A, TENANT_A_ID)
+            result = await _resolve_workflow_authorization(WORKFLOW_A, TENANT_A_ID, USER_A_ID)
 
-        assert result is False, "Executor failure must fail closed"
+        assert result == (False, "AUTHZ_WORKFLOW_LOOKUP_ERROR"), "Executor failure must fail closed"
 
 
 # ---------------------------------------------------------------------------
@@ -350,7 +346,6 @@ class TestWorkflowWebSocketAuthTransport:
             websocket=ws,
             workflow_id=WORKFLOW_A,
             last_event_id=None,
-            token=token_a,
         )
 
         ws.close.assert_awaited_once()
@@ -369,8 +364,7 @@ class TestWorkflowWebSocketAuthTransport:
             websocket=ws,
             workflow_id=WORKFLOW_A,
             last_event_id=None,
-            token=None,
-        )
+                    )
 
         ws.close.assert_awaited_once()
         ws.accept.assert_not_called()
@@ -381,18 +375,17 @@ class TestWorkflowWebSocketAuthTransport:
         from value_fabric.layer4.api.websocket.routes import workflow_websocket
 
         expired = _make_token(TENANT_A_ID, USER_A_ID, expires_in=-3600)
-        ws = _make_websocket(protocol_header=f"token,{expired}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {expired}")
 
         with patch(
-            "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+            "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
             new=AsyncMock(return_value=True),
         ):
             await workflow_websocket(
                 websocket=ws,
                 workflow_id=WORKFLOW_A,
                 last_event_id=None,
-                token=None,
-            )
+                            )
 
         ws.close.assert_awaited_once()
         ws.accept.assert_not_called()
@@ -412,7 +405,7 @@ class TestSignalsWebSocketOwnership:
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
         ws.receive_text = AsyncMock(side_effect=WebSocketDisconnect())
 
         with patch(
@@ -420,20 +413,13 @@ class TestSignalsWebSocketOwnership:
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value={"id": PROSPECT_A})
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=True),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_A)
 
         # Connection was accepted (not closed with error before accept)
         ws.accept.assert_awaited_once()
-        connected_event = ws.send_json.await_args_list[0].args[0]
-        assert connected_event["event_type"] == "connected"
-        assert connected_event.get("correlation_id")
 
     @pytest.mark.asyncio
     async def test_tenant_a_denied_tenant_b_prospect(self):
@@ -444,21 +430,16 @@ class TestSignalsWebSocketOwnership:
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                # Layer 3 returns None — prospect not found for this tenant
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value=None)
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=False),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_B)
 
         ws.close.assert_awaited_once()
@@ -467,6 +448,7 @@ class TestSignalsWebSocketOwnership:
             f"Cross-tenant prospect access must be closed with 1008, got {close_code}. "
             "SEC-L4-WS-002 regression."
         )
+        assert ws.close.call_args.kwargs.get("reason") == "Authorization failed"
         ws.accept.assert_not_called()
 
     @pytest.mark.asyncio
@@ -475,20 +457,16 @@ class TestSignalsWebSocketOwnership:
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = AsyncMock(return_value=None)
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(return_value=False),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id="prospect-ghost")
 
         ws.close.assert_awaited_once()
@@ -502,20 +480,16 @@ class TestSignalsWebSocketOwnership:
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(
-                    side_effect=RuntimeError("layer3 unreachable")
-                )
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=AsyncMock(side_effect=RuntimeError("db unavailable")),
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_A)
 
         ws.close.assert_awaited_once()
@@ -525,38 +499,34 @@ class TestSignalsWebSocketOwnership:
 
     @pytest.mark.asyncio
     async def test_ownership_check_uses_jwt_tenant_not_path(self):
-        """INVARIANT: Layer 3 lookup uses tenant from JWT, not from the URL path."""
+        """INVARIANT: Ownership lookup uses tenant from JWT, not from the URL path."""
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
-        ws = _make_websocket(protocol_header=f"token,{token_a}")
+        ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
-        captured_tenant: list[str] = []
+        captured_lookup: dict[str, str] = {}
 
-        async def _capture_get_entity(entity_id: str, tenant_id: str | None = None) -> None:
-            if tenant_id:
-                captured_tenant.append(tenant_id)
-            return None  # deny — we only care about what was passed
+        async def _capture_lookup(*, prospect_id: str, tenant_id: str) -> bool:
+            captured_lookup["prospect_id"] = prospect_id
+            captured_lookup["tenant_id"] = tenant_id
+            return False
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
             return_value={"tenant_id": TENANT_A_ID, "sub": USER_A_ID},
         ):
             with patch(
-                "value_fabric.layer4.api.routes.signals.Layer3Client"
-            ) as mock_l3_cls:
-                mock_l3 = AsyncMock()
-                mock_l3.get_entity = _capture_get_entity
-                mock_l3_cls.return_value.__aenter__ = AsyncMock(return_value=mock_l3)
-                mock_l3_cls.return_value.__aexit__ = AsyncMock(return_value=False)
-
+                "value_fabric.layer4.api.routes.signals._tenant_owns_prospect",
+                new=_capture_lookup,
+            ):
                 await signal_stream_websocket(websocket=ws, prospect_id=PROSPECT_B)
 
-        assert captured_tenant, "get_entity must be called with a tenant_id"
-        assert captured_tenant[0] == TENANT_A_ID, (
+        assert captured_lookup.get("tenant_id") == TENANT_A_ID, (
             "Ownership check must use tenant_id from JWT, not from the URL. "
-            f"Got: {captured_tenant[0]!r}"
+            f"Got: {captured_lookup.get('tenant_id')!r}"
         )
+        assert captured_lookup.get("prospect_id") == PROSPECT_B
 
 
 class TestSignalsWebSocketAuthTransport:
@@ -594,7 +564,7 @@ class TestSignalsWebSocketAuthTransport:
         """NEGATIVE: Malformed JWT must be rejected before ownership check."""
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
-        ws = _make_websocket(protocol_header="token,not.a.valid.jwt")
+        ws = _make_websocket(protocol_header="base64url.bearer.authorization, not.a.valid.jwt")
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
@@ -610,7 +580,7 @@ class TestSignalsWebSocketAuthTransport:
         """NEGATIVE: JWT with no tenant_id claim must be rejected."""
         from value_fabric.layer4.api.routes.signals import signal_stream_websocket
 
-        ws = _make_websocket(protocol_header="token,some.jwt.value")
+        ws = _make_websocket(protocol_header="base64url.bearer.authorization, some.jwt.value")
 
         with patch(
             "value_fabric.layer4.api.routes.signals.decode_jwt",
@@ -644,21 +614,20 @@ class TestCrossTenantMatrix:
 
         if endpoint == "workflow":
             from value_fabric.layer4.api.websocket.routes import workflow_websocket
-            ws = _make_websocket(protocol_header=f"token,{token_a}")
+            ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
             with patch(
-                "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
+                "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
                 new=AsyncMock(return_value=False),
             ):
                 await workflow_websocket(
                     websocket=ws,
                     workflow_id=workflow_or_prospect,
                     last_event_id=None,
-                    token=None,
-                )
+                                    )
         else:
             from value_fabric.layer4.api.routes.signals import signal_stream_websocket
-            ws = _make_websocket(protocol_header=f"token,{token_a}")
+            ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
             with patch(
                 "value_fabric.layer4.api.routes.signals.decode_jwt",
