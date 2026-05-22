@@ -20,12 +20,16 @@ import pytest
 import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (psycopg[binary])
 
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from value_fabric.layer4.api.main import app
 from value_fabric.layer4.models.billing import (
     BillingCustomer,
+    BillingInvoice,
+    BillingInvoiceItem,
     BillingSubscription,
+    BillingUsageEvent,
     BillingWebhookEvent,
     SubscriptionStatus,
 )
@@ -1017,3 +1021,75 @@ def test_reactivate_subscription_endpoint(client, mock_db):
     assert response.status_code == 200
     data = response.json()
     assert data["reactivated"] is True
+
+
+@pytest.mark.asyncio
+async def test_ingest_usage_event_duplicate_returns_existing(mock_db):
+    mock_db.flush.side_effect = [IntegrityError("dup", None, None), None]
+    existing = BillingUsageEvent(
+        id="usage_tenant_abc123_evt_1",
+        tenant_id="tenant_abc123",
+        customer_id="user_123",
+        event_id="evt_1",
+        event_name="api_call",
+        metric_name="tokens",
+        quantity=5,
+        timestamp=datetime.now(UTC),
+    )
+    q = MagicMock()
+    q.scalar_one_or_none.return_value = existing
+    mock_db.execute.return_value = q
+    service = BillingService(mock_db)
+    result = await service.ingest_usage_event(
+        tenant_id="tenant_abc123",
+        customer_id="user_123",
+        event_id="evt_1",
+        event_name="api_call",
+        metric_name="tokens",
+        quantity=5,
+        timestamp=datetime.now(UTC),
+    )
+    assert result.id == existing.id
+
+
+@pytest.mark.asyncio
+async def test_reconcile_invoice_usage_mismatch(mock_db):
+    invoice = BillingInvoice(
+        id="inv_1",
+        tenant_id="tenant_abc123",
+        customer_id="user_123",
+        invoice_number="INV-1",
+        status="open",
+        currency="USD",
+        period_start=datetime(2026, 1, 1, tzinfo=UTC),
+        period_end=datetime(2026, 1, 31, tzinfo=UTC),
+    )
+    usage = BillingUsageEvent(
+        id="usage_1",
+        tenant_id="tenant_abc123",
+        customer_id="user_123",
+        event_id="evt_2",
+        event_name="eval",
+        metric_name="tokens",
+        quantity=100,
+        timestamp=datetime(2026, 1, 10, tzinfo=UTC),
+    )
+    item = BillingInvoiceItem(
+        id="item_1",
+        tenant_id="tenant_abc123",
+        invoice_id="inv_1",
+        type="metered",
+        description="tokens",
+        quantity=1,
+        unit_amount=1,
+        amount=1,
+        usage_quantity=90,
+        usage_metric="tokens",
+    )
+    r1 = MagicMock(); r1.scalar_one_or_none.return_value = invoice
+    r2 = MagicMock(); r2.scalars.return_value.all.return_value = [usage]
+    r3 = MagicMock(); r3.scalars.return_value.all.return_value = [item]
+    mock_db.execute.side_effect = [r1, r2, r3]
+    service = BillingService(mock_db)
+    reconciled = await service.reconcile_invoice_usage("tenant_abc123", "inv_1")
+    assert reconciled["mismatch_count"] == 1

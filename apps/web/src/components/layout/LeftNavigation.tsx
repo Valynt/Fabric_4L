@@ -62,6 +62,7 @@ export function LeftNavigation({
 
   return (
     <aside
+      aria-label="Primary sidebar"
       className={[
         "hidden h-screen shrink-0 border-r bg-muted/30 transition-all duration-300 md:flex md:flex-col",
         collapsed ? "w-16" : "w-64",
@@ -91,7 +92,7 @@ export function LeftNavigation({
         </button>
       </div>
 
-      <nav className="flex-1 space-y-1 overflow-y-auto p-2">
+      <nav aria-label="Primary navigation" className="flex-1 space-y-1 overflow-y-auto p-2">
         {navItems.map((item) => {
           const Icon = NAV_ICONS[item.id as keyof typeof NAV_ICONS] ?? Radar;
 

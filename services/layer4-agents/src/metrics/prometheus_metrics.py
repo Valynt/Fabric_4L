@@ -203,6 +203,32 @@ class PrometheusMetrics:
             ["tenant_tier", "mode"],
             registry=self.config.registry,
         )
+        self._metrics["db_pool_size"] = Gauge(
+            f"{prefix}db_pool_size",
+            "Configured DB connection pool size",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_active_connections"] = Gauge(
+            f"{prefix}db_pool_active_connections",
+            "Active DB connections checked out from pool",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_idle_connections"] = Gauge(
+            f"{prefix}db_pool_idle_connections",
+            "Idle DB connections currently in pool",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_wait_seconds"] = Histogram(
+            f"{prefix}db_pool_wait_seconds",
+            "DB pool connection wait latency in seconds",
+            buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_timeouts_total"] = Counter(
+            f"{prefix}db_pool_timeouts_total",
+            "Total DB pool checkout timeouts",
+            registry=self.config.registry,
+        )
 
         # LLM cost metrics (cross-layer, vf_ prefix)
         # SECURITY: Uses tenant_tier instead of tenant_id to prevent cardinality explosion
@@ -369,6 +395,20 @@ class PrometheusMetrics:
                 tenant_tier=tenant_tier,
                 mode=mode,
             ).inc()
+
+    def observe_db_pool_wait(self, duration: float) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_wait_seconds"].observe(duration)
+
+    def increment_db_pool_timeout(self) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_timeouts_total"].inc()
+
+    def set_db_pool_state(self, *, pool_size: int, active: int, idle: int) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_size"].set(pool_size)
+            self._metrics["db_pool_active_connections"].set(active)
+            self._metrics["db_pool_idle_connections"].set(idle)
 
     def record_llm_cost(
         self,

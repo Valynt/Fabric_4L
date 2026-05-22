@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
+import { safeAsync } from '@/lib/async';
 
 export interface NotificationRecord {
   id: string;
@@ -61,7 +62,7 @@ export function useCreateNotification() {
       return response.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QK.notifications.all });
+      safeAsync(queryClient.invalidateQueries({ queryKey: QK.notifications.all }), "notifications.invalidate");
     },
   });
 }
@@ -74,7 +75,7 @@ export function useMarkNotificationRead() {
       return response.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QK.notifications.all });
+      safeAsync(queryClient.invalidateQueries({ queryKey: QK.notifications.all }), "notifications.invalidate");
     },
   });
 }

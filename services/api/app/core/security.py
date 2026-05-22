@@ -45,6 +45,9 @@ class TokenPayload(BaseModel):
     nbf: datetime | None = None
     iss: str
     aud: str | list[str]
+    impersonated_by: str | None = None
+    impersonation_session_id: str | None = None
+    impersonation_reason: str | None = None
 
 
 

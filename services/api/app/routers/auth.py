@@ -27,7 +27,7 @@ from app.core.security import (
     validate_password_strength,
     verify_password,
 )
-from app.models.schemas import Tenant, User
+from app.models.schemas import AuditLogEvent, Tenant, User
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -78,6 +78,20 @@ class UserResponse(BaseModel):
     role: str
     tenant_id: str
     status: str
+
+
+class ImpersonationStartRequest(BaseModel):
+    target_user_id: str
+    reason: str
+    notify_email: bool = False
+    notify_webhook: bool = False
+
+
+class ImpersonationStartResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    expires_in: int
+    impersonation_session_id: str
 
 
 # ---------------------------------------------------------------------------
@@ -207,6 +221,8 @@ _ROLE_RANK: dict[str, int] = {
     "read_only": 20,
 }
 
+_IMPERSONATION_SESSIONS: dict[str, dict[str, str]] = {}
+
 
 @router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def invite_user(
@@ -324,6 +340,105 @@ async def logout(
         fingerprint_hash=fingerprint_hash,
         expires_at_ts=expires_at_ts,
     )
+
+
+@router.post("/impersonation/start", response_model=ImpersonationStartResponse)
+async def start_impersonation(
+    payload: ImpersonationStartRequest,
+    request: Request,
+    current_user: User = Depends(get_current_user),
+) -> ImpersonationStartResponse:
+    if current_user.role not in {"tenant_admin", "super_admin"}:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role for impersonation")
+    target_user = db.users.get(payload.target_user_id, tenant_id=current_user.tenant_id)
+    if target_user is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found in tenant scope")
+    if target_user.tenant_id != current_user.tenant_id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cross-tenant impersonation is forbidden")
+
+    session_id = str(uuid.uuid4())
+    _IMPERSONATION_SESSIONS[session_id] = {
+        "tenant_id": current_user.tenant_id,
+        "target_user_id": target_user.id,
+        "impersonated_by": current_user.id,
+        "reason": payload.reason,
+        "started_at": datetime.now(UTC).isoformat(),
+        "notify_email": str(payload.notify_email),
+        "notify_webhook": str(payload.notify_webhook),
+    }
+    event_payload = {
+        "actor_user_id": current_user.id,
+        "impersonated_user_id": target_user.id,
+        "impersonated_tenant_id": target_user.tenant_id,
+        "impersonated_by": current_user.id,
+        "correlation_id": request.headers.get("X-Request-ID"),
+        "timestamp": datetime.now(UTC).isoformat(),
+        "action_code": "impersonation.start",
+        "reason": payload.reason,
+        "impersonation_session_id": session_id,
+        "tenant_notifications": {
+            "in_app": True,
+            "email": payload.notify_email,
+            "webhook": payload.notify_webhook,
+        },
+    }
+    audit_event_id = str(uuid.uuid4())
+    db.audit_logs.insert(audit_event_id, AuditLogEvent(
+        id=audit_event_id,
+        tenant_id=target_user.tenant_id,
+        actor_type="user",
+        actor_id=current_user.id,
+        action="impersonation.start",
+        resource_type="user",
+        resource_id=target_user.id,
+        payload=event_payload,
+    ))
+    token = create_access_token(
+        subject=target_user.id,
+        tenant_id=target_user.tenant_id,
+        extra_claims={
+            "impersonated_by": current_user.id,
+            "impersonation_session_id": session_id,
+            "impersonation_reason": payload.reason,
+        },
+    )
+    return ImpersonationStartResponse(
+        access_token=token,
+        expires_in=get_settings().access_token_expire_minutes * 60,
+        impersonation_session_id=session_id,
+    )
+
+
+@router.post("/impersonation/stop", status_code=status.HTTP_204_NO_CONTENT)
+async def stop_impersonation(
+    request: Request,
+    auth: TokenPayload = Depends(require_authenticated),
+) -> None:
+    if not auth.impersonation_session_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
+    session = _IMPERSONATION_SESSIONS.pop(auth.impersonation_session_id, None)
+    stop_event_id = str(uuid.uuid4())
+    db.audit_logs.insert(stop_event_id, AuditLogEvent(
+        id=stop_event_id,
+        tenant_id=auth.tenant_id,
+        actor_type="user",
+        actor_id=auth.sub,
+        action="impersonation.stop",
+        resource_type="user",
+        resource_id=session["target_user_id"] if session else auth.sub,
+        payload={
+            "actor_user_id": auth.sub,
+            "impersonated_user_id": session["target_user_id"] if session else auth.sub,
+            "impersonated_tenant_id": auth.tenant_id,
+            "impersonated_by": auth.impersonated_by,
+            "correlation_id": request.headers.get("X-Request-ID"),
+            "timestamp": datetime.now(UTC).isoformat(),
+            "action_code": "impersonation.stop",
+            "reason": session["reason"] if session else auth.impersonation_reason,
+            "impersonation_session_id": auth.impersonation_session_id,
+            "tenant_notifications": {"in_app": True, "email": session["notify_email"] == "True" if session else False, "webhook": session["notify_webhook"] == "True" if session else False},
+        },
+    ))
     return None
 
 

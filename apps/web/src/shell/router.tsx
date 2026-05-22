@@ -120,7 +120,7 @@ const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 
 // ── Workflow ──
-const ProspectSetup = lazy(() => import("@/workflow/pages/ProspectSetup"));
+const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 const WorkflowIntelligence = lazy(() => import("@/workflow/pages/Intelligence"));
 const AIModel = lazy(() => import("@/workflow/pages/AIModel"));
 const WorkflowDriverTree = lazy(() => import("@/workflow/pages/DriverTree"));
@@ -137,7 +137,7 @@ function ProspectSetupWithNav() {
   const prospectSetup = useProspectSetupAccountCreate();
   const setSelectedAccountId = useAccountContextStore((state) => state.setSelectedAccountId);
 
-  const handleCreateSetup: ComponentProps<typeof ProspectSetup>["onCreateSetup"] = async (payload) => {
+  const handleCreateSetup: ComponentProps<typeof ProspectSetupPage>["onCreateSetup"] = async (payload) => {
     try {
       return await prospectSetup.createSetup(payload);
     } catch (error) {
@@ -147,7 +147,8 @@ function ProspectSetupWithNav() {
   };
 
   return (
-    <ProspectSetup
+    <ProspectSetupPage
+      mode="workflow"
       onNavigateToWorkspace={(path, accountId) => {
         setSelectedAccountId(accountId);
         navigateTo(workspacePath(accountId, "signals"));
