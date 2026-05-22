@@ -22,9 +22,13 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..config.plans import check_entitlement, get_entitlements_response
 from ..models.billing import (
     BillingCustomer,
+    BillingInvoice,
+    BillingInvoiceItem,
     BillingSubscription,
+    BillingUsageEvent,
     BillingWebhookEvent,
     SubscriptionStatus,
+    UsageEventStatus,
 )
 from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, get_stripe
 
@@ -333,6 +337,50 @@ class BillingService:
         except StripeError as e:
             raise ValueError(f"Failed to create portal session: {e}") from e
 
+    async def ingest_usage_event(
+        self,
+        *,
+        tenant_id: str,
+        customer_id: str,
+        event_id: str,
+        event_name: str,
+        metric_name: str,
+        quantity: float,
+        timestamp: datetime,
+        unit: str | None = None,
+        metadata: dict[str, Any] | None = None,
+    ) -> BillingUsageEvent:
+        """Persist a usage event with tenant-scoped idempotency."""
+        usage_event = BillingUsageEvent(
+            id=f"usage_{tenant_id}_{event_id}",
+            tenant_id=tenant_id,
+            customer_id=customer_id,
+            event_id=event_id,
+            event_name=event_name,
+            metric_name=metric_name,
+            quantity=quantity,
+            unit=unit,
+            timestamp=timestamp,
+            status=UsageEventStatus.PENDING,
+            event_metadata=metadata,
+        )
+        self.db.add(usage_event)
+        try:
+            await self.db.flush()
+            return usage_event
+        except IntegrityError:
+            await self.db.rollback()
+            result = await self.db.execute(
+                select(BillingUsageEvent).where(
+                    BillingUsageEvent.tenant_id == tenant_id,
+                    BillingUsageEvent.event_id == event_id,
+                )
+            )
+            existing = result.scalar_one_or_none()
+            if existing:
+                return existing
+            raise
+
     async def handle_webhook(self, payload: bytes, signature: str, webhook_secret: str) -> bool:
         """Handle Stripe webhook event with idempotency check."""
         # Validate signature is present
@@ -384,12 +432,24 @@ class BillingService:
                 # For subscription events, we can look up the customer
                 pass  # tenant_id will be set by the specific handler if available
             
+            invoice_obj = event.get("data", {}).get("object", {})
             webhook_event = BillingWebhookEvent(
                 id=event_id,
                 type=event_type,
                 tenant_id=tenant_id,
             )
             self.db.add(webhook_event)
+            logger.info(
+                "billing.webhook_reconciliation_artifact",
+                extra={
+                    "event_id": event_id,
+                    "event_type": event_type,
+                    "invoice_id": invoice_obj.get("id"),
+                    "invoice_amount_paid": invoice_obj.get("amount_paid"),
+                    "invoice_status": invoice_obj.get("status"),
+                    "subscription_id": invoice_obj.get("subscription"),
+                },
+            )
             await self.db.flush()
 
             return True
@@ -586,8 +646,20 @@ class BillingService:
 
     async def _handle_payment_succeeded(self, invoice: dict[str, Any]) -> None:
         """Handle invoice.payment_succeeded event."""
-        # Could track payment history here if needed
-        pass
+        stripe_invoice_id = invoice.get("id")
+        if not stripe_invoice_id:
+            return
+        result = await self.db.execute(
+            select(BillingInvoice).where(BillingInvoice.stripe_invoice_id == stripe_invoice_id)
+        )
+        local_invoice = result.scalar_one_or_none()
+        if local_invoice:
+            local_invoice.status = "paid"
+            local_invoice.amount_paid = int(invoice.get("amount_paid") or local_invoice.amount_paid)
+            local_invoice.amount_due = int(invoice.get("amount_due") or local_invoice.amount_due)
+            local_invoice.total = int(invoice.get("total") or local_invoice.total)
+            local_invoice.paid_at = self._utc_now()
+            await self.db.flush()
 
     async def _handle_payment_failed(self, invoice: dict[str, Any]) -> None:
         """Handle invoice.payment_failed event."""
@@ -602,6 +674,51 @@ class BillingService:
             if subscription:
                 subscription.status = SubscriptionStatus.PAST_DUE
                 await self.db.flush()
+
+    async def reconcile_invoice_usage(self, tenant_id: str, invoice_id: str) -> dict[str, Any]:
+        """Compare internal usage ledger totals vs invoice metered line items."""
+        result = await self.db.execute(
+            select(BillingInvoice).where(
+                BillingInvoice.id == invoice_id,
+                BillingInvoice.tenant_id == tenant_id,
+            )
+        )
+        invoice = result.scalar_one_or_none()
+        if not invoice:
+            raise ValueError("Invoice not found")
+
+        usage_result = await self.db.execute(
+            select(BillingUsageEvent).where(
+                BillingUsageEvent.tenant_id == tenant_id,
+                BillingUsageEvent.customer_id == invoice.customer_id,
+                BillingUsageEvent.timestamp >= invoice.period_start,
+                BillingUsageEvent.timestamp <= invoice.period_end,
+            )
+        )
+        usage_events = usage_result.scalars().all()
+        usage_totals: dict[str, float] = {}
+        for event in usage_events:
+            usage_totals[event.metric_name] = usage_totals.get(event.metric_name, 0.0) + float(event.quantity)
+
+        items_result = await self.db.execute(
+            select(BillingInvoiceItem).where(BillingInvoiceItem.invoice_id == invoice_id)
+        )
+        invoice_items = items_result.scalars().all()
+        billed_totals: dict[str, float] = {}
+        for item in invoice_items:
+            metric = item.usage_metric or item.description
+            billed_totals[metric] = billed_totals.get(metric, 0.0) + float(item.usage_quantity or item.quantity or 0.0)
+
+        mismatches = []
+        for metric in set(usage_totals) | set(billed_totals):
+            ledger_value = usage_totals.get(metric, 0.0)
+            billed_value = billed_totals.get(metric, 0.0)
+            if abs(ledger_value - billed_value) > 1e-9:
+                mismatches.append(
+                    {"metric_name": metric, "ledger_quantity": ledger_value, "invoice_quantity": billed_value}
+                )
+
+        return {"invoice_id": invoice_id, "mismatch_count": len(mismatches), "mismatches": mismatches}
 
     async def cancel_subscription(
         self,
