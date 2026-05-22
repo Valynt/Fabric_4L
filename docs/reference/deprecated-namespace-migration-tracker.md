@@ -37,7 +37,7 @@ Drive internal imports of `value_fabric.layer1_ingestion` and `value_fabric.laye
 
 ### Snapshot details (2026-05-22)
 
-- Command: `python scripts/ci/check_deprecated_namespace_imports.py --json --use-baseline --enforce-ratchet`
+- Command: `python scripts/ci/check_deprecated_namespace_imports.py --strict --json --use-baseline --enforce-ratchet`
 - Ratchet status: **pass** (`current_count=0`, `baseline_count=0`)
 - Policy: CI now fails strict mode for any net-new deprecated namespace import and can enforce baseline ratchet (`--enforce-ratchet`).
 
