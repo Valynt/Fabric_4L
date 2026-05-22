@@ -77,47 +77,45 @@ class generate_workspace_intelligenceResult(TypedDictModel):
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
-E2E_SEED_PRIVILEGED_REASON = "playwright-backend-validation-seed"
-E2E_DRAFT_CASE_ID = "case-draft-001"
-E2E_APPROVED_CASE_ID = "case-e2e-approved-001"
-E2E_APPROVED_CASE_ALIASES = ["case-meridian-e2e-001"]
-E2E_TENANT_SLUG = "tenant-e2e-001"
-E2E_TENANT_NAME = "E2E Validation Tenant"
-E2E_SERVICE_ACCOUNT_ID = "svc-playwright-backend-validation"
-E2E_AUTH_SEED_SOURCE = "backend-integrated-auth-context"
-E2E_VALIDATION_USER_IDS = {
-    "admin": UUID(os.environ.get("E2E_VALIDATION_ADMIN_ID", "00000000-0000-4000-e2e0-000000000201")),
-    "reviewer": UUID(os.environ.get("E2E_VALIDATION_REVIEWER_ID", "00000000-0000-4000-e2e0-000000000202")),
-    "read_only": UUID(os.environ.get("E2E_VALIDATION_READONLY_ID", "00000000-0000-4000-e2e0-000000000203")),
-    "sales": UUID(os.environ.get("E2E_VALIDATION_SALES_ID", "00000000-0000-4000-e2e0-000000000204")),
-}
-E2E_VALIDATION_USERS = [
+from ...test_support.seed_runtime_config import (
+    SEED_APPROVED_CASE_ALIASES,
+    SEED_APPROVED_CASE_ID,
+    SEED_AUTH_SOURCE,
+    SEED_DRAFT_CASE_ID,
+    SEED_PRIVILEGED_REASON,
+    SEED_SERVICE_ACCOUNT_ID,
+    SEED_TENANT_NAME,
+    SEED_TENANT_SLUG,
+    SEED_VALIDATION_USER_IDS,
+)
+
+VALIDATION_USERS = [
     {
-        "id": E2E_VALIDATION_USER_IDS["admin"],
-        "email": "e2e-admin@valuefabric.test",
-        "display_name": "E2E Validation Admin",
+        "id": SEED_VALIDATION_USER_IDS["admin"],
+        "email": "validation-admin@valuefabric.test",
+        "display_name": "Validation Admin",
         "role": "super_admin",
     },
     {
-        "id": E2E_VALIDATION_USER_IDS["reviewer"],
-        "email": "e2e-reviewer@valuefabric.test",
-        "display_name": "E2E Validation Reviewer",
+        "id": SEED_VALIDATION_USER_IDS["reviewer"],
+        "email": "validation-reviewer@valuefabric.test",
+        "display_name": "Validation Reviewer",
         "role": "analyst",
     },
     {
-        "id": E2E_VALIDATION_USER_IDS["read_only"],
-        "email": "e2e-readonly@valuefabric.test",
-        "display_name": "E2E Validation Read Only",
+        "id": SEED_VALIDATION_USER_IDS["read_only"],
+        "email": "validation-readonly@valuefabric.test",
+        "display_name": "Validation Read Only",
         "role": "read_only",
     },
     {
-        "id": E2E_VALIDATION_USER_IDS["sales"],
-        "email": "e2e-sales@valuefabric.test",
-        "display_name": "E2E Validation Sales",
+        "id": SEED_VALIDATION_USER_IDS["sales"],
+        "email": "validation-sales@valuefabric.test",
+        "display_name": "Validation Sales",
         "role": "analyst",
     },
 ]
-E2E_ACCOUNT_MAPPINGS = [
+VALIDATION_ACCOUNT_MAPPINGS = [
     {
         "provider_record_id": "acct-meridian-001",
         "backend_uuid": os.environ.get("E2E_MERIDIAN_ACCOUNT_UUID", "00000000-0000-4000-e2e0-000000000101"),
@@ -235,9 +233,9 @@ class BusinessCaseLifecycleSeedRequest(BaseModel):
     """Non-production deterministic lifecycle seed payload for backend E2E validation."""
 
     account_id: UUID
-    draft_case_id: str = E2E_DRAFT_CASE_ID
-    approved_case_id: str = E2E_APPROVED_CASE_ID
-    approved_case_aliases: list[str] = Field(default_factory=lambda: E2E_APPROVED_CASE_ALIASES.copy())
+    draft_case_id: str = SEED_DRAFT_CASE_ID
+    approved_case_id: str = SEED_APPROVED_CASE_ID
+    approved_case_aliases: list[str] = Field(default_factory=lambda: SEED_APPROVED_CASE_ALIASES.copy())
 
 
 class ValidationSeededApiKey(BaseModel):
@@ -264,11 +262,11 @@ class ValidationAuthContextSeedRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     tenant_id: UUID | None = None
-    tenant_slug: str = Field(default=E2E_TENANT_SLUG, min_length=1, max_length=63)
-    tenant_name: str = Field(default=E2E_TENANT_NAME, min_length=1, max_length=200)
-    service_account_id: str = Field(default=E2E_SERVICE_ACCOUNT_ID, min_length=1, max_length=128)
+    tenant_slug: str = Field(default=SEED_TENANT_SLUG, min_length=1, max_length=63)
+    tenant_name: str = Field(default=SEED_TENANT_NAME, min_length=1, max_length=200)
+    service_account_id: str = Field(default=SEED_SERVICE_ACCOUNT_ID, min_length=1, max_length=128)
     api_key: ValidationSeededApiKey | None = None
-    account_mappings: list[dict[str, str]] = Field(default_factory=lambda: E2E_ACCOUNT_MAPPINGS.copy())
+    account_mappings: list[dict[str, str]] = Field(default_factory=lambda: VALIDATION_ACCOUNT_MAPPINGS.copy())
 
 
 class ValidationSessionRequest(BaseModel):
@@ -442,7 +440,7 @@ def _require_validation_seed_allowed(http_request: Request, context: RequestCont
     if not context.tenant_id:
         raise HTTPException(status_code=403, detail="Validation seeding requires tenant context")
     reason = http_request.headers.get("X-Privileged-Reason", "").strip()
-    if reason != E2E_SEED_PRIVILEGED_REASON:
+    if reason != SEED_PRIVILEGED_REASON:
         raise HTTPException(status_code=403, detail="Validation seeding requires privileged reason")
 
 
@@ -468,7 +466,7 @@ async def _upsert_validation_tenant(
     settings_payload = {
         "isolation_tier": IsolationTier.SHARED.value,
         "seeded": True,
-        "seed_source": E2E_AUTH_SEED_SOURCE,
+        "seed_source": SEED_AUTH_SOURCE,
         "backend_integrated_validation": True,
     }
     if tenant is None:
@@ -480,7 +478,7 @@ async def _upsert_validation_tenant(
             settings=settings_payload,
             status_changed_at=now,
             status_reason="backend-integrated validation seed",
-            status_changed_by=actor or E2E_SERVICE_ACCOUNT_ID,
+            status_changed_by=actor or SEED_SERVICE_ACCOUNT_ID,
         )
         db.add(tenant)
     else:
@@ -495,7 +493,7 @@ async def _upsert_validation_tenant(
 async def _upsert_validation_users(db: AsyncSession, *, tenant_id: UUID) -> list[dict[str, str]]:
     seeded: list[dict[str, str]] = []
     now = datetime.now(UTC)
-    for user_data in E2E_VALIDATION_USERS:
+    for user_data in VALIDATION_USERS:
         user_id = user_data["id"]
         user = await db.get(User, user_id)
         if user is None:
@@ -540,7 +538,7 @@ async def _upsert_validation_api_key(
     metadata = {
         **api_key_payload.metadata,
         "seeded": True,
-        "seed_source": E2E_AUTH_SEED_SOURCE,
+        "seed_source": SEED_AUTH_SOURCE,
         "service_account_id": service_account_id,
         "raw_secret_persisted": False,
     }
@@ -604,7 +602,7 @@ async def seed_validation_auth_context(
         tenant_id=tenant_id,
         tenant_name=payload.tenant_name,
         tenant_slug=payload.tenant_slug,
-        actor=context.service_account_id or str(context.user_id or E2E_SERVICE_ACCOUNT_ID),
+        actor=context.service_account_id or str(context.user_id or SEED_SERVICE_ACCOUNT_ID),
     )
     seeded_users = await _upsert_validation_users(db, tenant_id=tenant_id)
     seeded_api_key = None
@@ -777,7 +775,7 @@ def _seeded_business_case_output(
                 "export_allowed": approved,
                 "crm_push_available": approved,
                 "realization_conversion_available": approved,
-                "seed_source": E2E_SEED_PRIVILEGED_REASON,
+                "seed_source": SEED_PRIVILEGED_REASON,
             },
         },
         "verify_truth_requirements": {
@@ -1177,7 +1175,7 @@ async def seed_business_case_lifecycle(
             "user_id": context.user_id,
             "account_id": str(payload.account_id),
             "seeded": True,
-            "seed_source": E2E_SEED_PRIVILEGED_REASON,
+            "seed_source": SEED_PRIVILEGED_REASON,
             "lifecycle_status": lifecycle_status,
         }
 
@@ -1221,7 +1219,7 @@ async def seed_business_case_lifecycle(
                         "case_id": case_id,
                         "account_id": str(payload.account_id),
                         "lifecycle_status": lifecycle_status,
-                        "seed_source": E2E_SEED_PRIVILEGED_REASON,
+                        "seed_source": SEED_PRIVILEGED_REASON,
                     },
                 )
                 audit_events_requested += 1

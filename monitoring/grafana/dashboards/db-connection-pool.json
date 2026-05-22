@@ -1,0 +1,43 @@
+{
+  "title": "DB Connection Pool",
+  "uid": "db-connection-pool",
+  "schemaVersion": 38,
+  "version": 1,
+  "refresh": "30s",
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Pool Utilization %",
+      "targets": [
+        {"expr": "100 * layer4_db_pool_active_connections / clamp_min(layer4_db_pool_size, 1)", "legendFormat": "layer4"},
+        {"expr": "100 * layer5_db_pool_active_connections / clamp_min(layer5_db_pool_size, 1)", "legendFormat": "layer5"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Pool Wait Latency Percentiles (s)",
+      "targets": [
+        {"expr": "histogram_quantile(0.50, rate(layer4_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer4 p50"},
+        {"expr": "histogram_quantile(0.95, rate(layer4_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer4 p95"},
+        {"expr": "histogram_quantile(0.99, rate(layer4_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer4 p99"},
+        {"expr": "histogram_quantile(0.50, rate(layer5_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer5 p50"},
+        {"expr": "histogram_quantile(0.95, rate(layer5_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer5 p95"},
+        {"expr": "histogram_quantile(0.99, rate(layer5_db_pool_wait_seconds_bucket[5m]))", "legendFormat": "layer5 p99"}
+      ],
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Pool Timeout/Error Rates",
+      "targets": [
+        {"expr": "rate(layer4_db_pool_timeouts_total[5m])", "legendFormat": "layer4 timeout/s"},
+        {"expr": "rate(layer5_db_pool_timeouts_total[5m])", "legendFormat": "layer5 timeout/s"}
+      ],
+      "gridPos": {"h": 8, "w": 24, "x": 0, "y": 8}
+    }
+  ]
+}

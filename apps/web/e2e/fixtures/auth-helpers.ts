@@ -1,3 +1,4 @@
+import { E2E_SEED_PRIVILEGED_REASON, E2E_SEED_TENANT_SLUG } from './seed-constants';
 /**
  * Auth Helpers for Playwright Contract Tests
  *
@@ -36,7 +37,7 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
   id: 'test-user-e2e',
   email: 'e2e@valuefabric.test',
   role: 'admin',
-  tenantId: 'tenant-e2e-001',
+  tenantId: E2E_SEED_TENANT_SLUG,
   tenantSlug: 'e2e-test',
 };
 
@@ -155,7 +156,7 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
       'Content-Type': 'application/json',
       'X-Tenant-ID': requestUser.tenantId,
       'X-Service-Auth': serviceSecret,
-      'X-Privileged-Reason': 'playwright-backend-validation-seed',
+      'X-Privileged-Reason': E2E_SEED_PRIVILEGED_REASON,
     },
     data: {
       user_id: requestUser.id,
