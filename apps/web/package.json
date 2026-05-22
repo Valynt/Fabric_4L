@@ -71,7 +71,7 @@
     "test:e2e:journey-launch": "pnpm run test:e2e:guard && playwright test --project=journeys e2e/journeys/j24-account-signals-evidence-driver-calculator-business-case.spec.ts",
     "collect:journey-slo": "node scripts/quality/collect-journey-slo-metrics.mjs",
     "test:journey-slo-gate": "node scripts/quality/assert-journey-launch-slos.mjs",
-    "test:frontend-hygiene": "node scripts/quality/assert-frontend-hygiene.mjs && pnpm run check:no-legacy-api-imports && pnpm run check:compatibility-shims-registered",
+    "test:frontend-hygiene": "node scripts/quality/assert-frontend-hygiene.mjs && node scripts/quality/assert-explicit-any-threshold.mjs && pnpm run check:no-legacy-api-imports && pnpm run check:compatibility-shims-registered",
     "test:legacy-removals": "node scripts/quality/assert-legacy-removals.mjs",
     "test:coverage:critical": "vitest run --coverage --config vitest.critical-coverage.config.ts",
     "check:no-legacy-api-imports": "node scripts/assert-no-legacy-api-imports.mjs",
