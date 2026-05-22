@@ -184,11 +184,14 @@ class TenantEnforcedAsyncSession(AsyncSession):
         try:
             return await super().execute(statement, params, **kwargs)
         except SATimeoutError:
-            from metrics.prometheus_metrics import get_metrics
+            try:
+                from metrics.prometheus_metrics import get_metrics
 
-            metrics = get_metrics()
-            if metrics is not None:
-                metrics.increment_db_pool_timeout()
+                metrics = get_metrics()
+                if metrics is not None:
+                    metrics.increment_db_pool_timeout()
+            except Exception:
+                logger.debug("DB pool timeout metric emission failed", exc_info=True)
             raise
 
 
