@@ -30,7 +30,7 @@ last-reviewed: "2026-05-22"
 
 - **Canonical platform architecture (C4 + Mermaid):** [`core-concepts/architecture.md`](core-concepts/architecture.md)
 - **System overview & component map:** [`architecture/system-overview.md`](architecture/system-overview.md), [`architecture/component-interaction-map.md`](architecture/component-interaction-map.md)
-- **Six-layer rationale (ADR-001):** [`explanations/adr/ADR-001-six-layer-architecture.md`](explanations/adr/ADR-001-six-layer-architecture.md)
+- **Six-layer rationale (ADR-001):** [`explanations/adr/ADR-002-six-layer-architecture.md`](explanations/adr/ADR-002-six-layer-architecture.md)
 - **Canonical runtime paths (ADR-027):** [`reference/layer-runtime-path-governance.md`](reference/layer-runtime-path-governance.md)
 - **Layer-4 agent-specific architecture:** [`agent-architecture.md`](agent-architecture.md)
 - **Frontend navigation architecture:** [`NAVIGATION_ARCHITECTURE.md`](NAVIGATION_ARCHITECTURE.md)

@@ -1,5 +1,5 @@
 ---
-title: "ADR-001: Six-Layer Architecture"
+title: "ADR-002: Six-Layer Architecture"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-19"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/architecture", "../../reference/layer1-ingestion-api", "../why-knowledge-graph"]
 ---
 
-# ADR-001: Six-Layer Architecture
+# ADR-002: Six-Layer Architecture
 
 **Status:** ✅ Accepted
 

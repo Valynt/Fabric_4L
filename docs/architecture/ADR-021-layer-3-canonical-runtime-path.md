@@ -1,4 +1,4 @@
-# ADR-027: Layer 3 Canonical Runtime Path
+# ADR-021: Layer 3 Canonical Runtime Path
 
 ## Status
 

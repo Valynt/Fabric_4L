@@ -70,7 +70,7 @@ docs/core-concepts/ontology-system.md
 docs/current-failures.md
 docs/decisions/0003-audit-emission-middleware-boundary.md
 docs/decisions/0004-layer4-database-facade-compatibility.md
-docs/explanations/adr/ADR-015-layer5-canonical-source.md
+docs/explanations/adr/ADR-018-layer-5-canonical-source.md
 docs/governance/auth-tenant-todo-audit-2026-05-12.md
 docs/governance/compatibility-debt-registry.md
 docs/governance/layer3-service-source-inventory.md

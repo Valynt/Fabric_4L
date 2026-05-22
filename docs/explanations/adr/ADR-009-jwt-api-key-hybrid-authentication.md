@@ -1,5 +1,5 @@
 ---
-title: "ADR-008: JWT + API Key Hybrid Authentication"
+title: "ADR-009: JWT + API Key Hybrid Authentication"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-21"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/architecture", "../../reference/layer4-agents-api", "../why-knowledge-graph"]
 ---
 
-# ADR-008: JWT + API Key Hybrid Authentication
+# ADR-009: JWT + API Key Hybrid Authentication
 
 **Status:** ✅ Accepted  
 **Date:** April 2026  

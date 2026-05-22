@@ -1,5 +1,5 @@
 ---
-title: "ADR-004: Ontology-Guided LLM Extraction"
+title: "ADR-005: Ontology-Guided LLM Extraction"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-19"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/ontology-system", "../../reference/layer2-extraction-api", "../../how-to-guides/author-value-pack"]
 ---
 
-# ADR-004: Ontology-Guided LLM Extraction
+# ADR-005: Ontology-Guided LLM Extraction
 
 **Status:** ✅ Accepted
 

@@ -1,6 +1,6 @@
 <!-- Migrated from services/ADRs/ during legacy path cleanup. -->
 
-# ADR-014: Neo4j for Knowledge Graph Storage
+# ADR-016: Neo4j for Knowledge Graph Storage
 
 **Status:** Accepted  
 **Date:** April 2026  

@@ -92,7 +92,7 @@ Value Fabric implements **PostgreSQL Row-Level Security (RLS)** for multi-tenanc
 - Same `id` allowed across different tenants
 - Community Edition compatible (no enterprise-only features required)
 
-See [ADR-003](docs/explanations/adr/ADR-009-postgresql-rls-multi-tenancy.md) for detailed design.
+See [ADR-003](docs/explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) for detailed design.
 
 ---
 
@@ -374,7 +374,7 @@ LangGraph provides checkpointed state for long-running workflows:
 # Human-in-the-loop pause points
 ```
 
-See [ADR-004](docs/explanations/adr/ADR-010-langgraph-workflow-orchestration.md) for workflow design.
+See [ADR-004](docs/explanations/adr/ADR-011-langgraph-for-workflow-orchestration.md) for workflow design.
 
 ### Acceptance Criteria
 
@@ -719,14 +719,14 @@ Fabric_4L/
 
 | ADR | Title | Status |
 |-----|-------|--------|
-| [ADR-001](docs/explanations/adr/ADR-007-multi-layer-architecture-vs-monolith.md) | Multi-Layer Architecture vs Monolith | Accepted |
-| [ADR-002](docs/explanations/adr/ADR-008-neo4j-knowledge-graph-storage.md) | Neo4j for Knowledge Graph Storage | Accepted |
-| [ADR-003](docs/explanations/adr/ADR-009-postgresql-rls-multi-tenancy.md) | PostgreSQL RLS Multi-Tenancy | Accepted |
-| [ADR-004](docs/explanations/adr/ADR-010-langgraph-workflow-orchestration.md) | LangGraph Workflow Orchestration | Accepted |
-| [ADR-005](docs/explanations/adr/ADR-011-circuit-breaker-pattern.md) | Circuit Breaker Pattern | Accepted |
-| [ADR-006](docs/explanations/adr/ADR-012-repository-pattern.md) | Repository Pattern | Accepted |
-| [ADR-007](docs/explanations/adr/ADR-013-opentelemetry-observability.md) | OpenTelemetry Observability | Accepted |
-| [ADR-008](docs/explanations/adr/ADR-014-jwt-api-key-hybrid-authentication.md) | JWT + API Key Authentication | Accepted |
+| [ADR-001](docs/explanations/adr/ADR-014-multi-layer-architecture-vs-monolith.md) | Multi-Layer Architecture vs Monolith | Accepted |
+| [ADR-002](docs/explanations/adr/ADR-016-neo4j-for-knowledge-graph-storage.md) | Neo4j for Knowledge Graph Storage | Accepted |
+| [ADR-003](docs/explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) | PostgreSQL RLS Multi-Tenancy | Accepted |
+| [ADR-004](docs/explanations/adr/ADR-011-langgraph-for-workflow-orchestration.md) | LangGraph Workflow Orchestration | Accepted |
+| [ADR-005](docs/explanations/adr/ADR-012-circuit-breaker-pattern-for-external-service-resilience.md) | Circuit Breaker Pattern | Accepted |
+| [ADR-006](docs/explanations/adr/ADR-013-repository-pattern-for-data-access.md) | Repository Pattern | Accepted |
+| [ADR-007](docs/explanations/adr/ADR-015-opentelemetry-for-observability.md) | OpenTelemetry Observability | Accepted |
+| [ADR-008](docs/explanations/adr/ADR-017-jwt-api-key-hybrid-authentication.md) | JWT + API Key Authentication | Accepted |
 
 ---
 

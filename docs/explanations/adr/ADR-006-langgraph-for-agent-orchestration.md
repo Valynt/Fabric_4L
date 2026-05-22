@@ -1,5 +1,5 @@
 ---
-title: "ADR-005: LangGraph for Agent Orchestration"
+title: "ADR-006: LangGraph for Agent Orchestration"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-04-19"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../core-concepts/agent-framework", "../../reference/layer4-agents-api", "../why-langgraph"]
 ---
 
-# ADR-005: LangGraph for Agent Orchestration
+# ADR-006: LangGraph for Agent Orchestration
 
 **Status:** ✅ Accepted
 

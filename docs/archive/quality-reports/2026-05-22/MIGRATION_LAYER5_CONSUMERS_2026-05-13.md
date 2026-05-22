@@ -54,7 +54,7 @@ Added 5 regression tests:
 
 ### 3. ADR-027 update — document Layer 5 status
 
-**File:** `docs/architecture/adr-027-layer3-canonical-path.md`
+**File:** `docs/architecture/ADR-021-layer-3-canonical-runtime-path.md`
 
 Updated Migration Status table:
 - Layer 5: `Compliant` — "Canonical imports enabled 2026-05-13 via pytest.ini pythonpath; shim remains for backward compat"
@@ -65,7 +65,7 @@ Updated Migration Status table:
 |------|--------|
 | `pytest.ini` | Added `services/layer5-ground-truth/src` to `pythonpath` |
 | `tests/arch/test_canonical_module_sentinels.py` | Added 5 Layer 5 canonical import regression tests |
-| `docs/architecture/adr-027-layer3-canonical-path.md` | Updated migration status notes for Layer 5 |
+| `docs/architecture/ADR-021-layer-3-canonical-runtime-path.md` | Updated migration status notes for Layer 5 |
 
 ## Tests Run
 
