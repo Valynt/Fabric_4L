@@ -298,6 +298,18 @@ class InvoiceService:
         if customer_id:
             self.authorize_customer_access(customer_id)
             query = query.where(BillingInvoice.customer_id == customer_id)
+        else:
+            admin_check = getattr(self, "is_admin", False)
+            is_admin = admin_check() if callable(admin_check) else bool(admin_check)
+            if not is_admin:
+                actor_customer_id = getattr(self, "actor_customer_id", None)
+                if not actor_customer_id:
+                    raise HTTPException(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        detail="Not authorized to list invoices across customers",
+                    )
+                query = query.where(BillingInvoice.customer_id == actor_customer_id)
+
         if status:
             query = query.where(BillingInvoice.status == status)
         if period_start_after:
