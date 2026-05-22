@@ -82,9 +82,9 @@ def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
 
 
 def _sign_token(package_id: str, requester_user_id: str, expires_at: str) -> str:
-    msg = f"{package_id}:{requester_user_id}:{expires_at}".encode()
-    sig = hmac.new(_SIGNING_KEY, msg, hashlib.sha256).hexdigest()
     nonce = secrets.token_hex(6)
+    msg = f"{package_id}:{requester_user_id}:{expires_at}:{nonce}".encode()
+    sig = hmac.new(_get_signing_key(), msg, hashlib.sha256).hexdigest()
     return f"{package_id}.{requester_user_id}.{expires_at}.{nonce}.{sig}"
 
 
