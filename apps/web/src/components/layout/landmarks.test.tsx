@@ -14,7 +14,7 @@ describe("layout landmarks", () => {
     );
 
     const sidebar = screen.getByRole("complementary", { name: /primary sidebar/i });
-    const nav = within(sidebar).getByRole("navigation", { name: /primary/i });
+    const nav = within(sidebar).getByRole("navigation", { name: /primary navigation/i });
 
     expect(nav).toBeInTheDocument();
   });
