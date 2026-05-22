@@ -245,6 +245,47 @@ class Scenario(BaseModel):
 # ============================================================================
 
 
+
+
+class DSARRequestCreate(BaseModel):
+    subject_identity: dict[str, str]
+    scope: list[str] = Field(default_factory=list)
+    legal_basis: Literal["gdpr_art_15", "ccpa_1798_110", "other"] = "gdpr_art_15"
+    requester_channel: Literal["portal", "email", "api", "support"] = "portal"
+    tenant_context: dict[str, str] = Field(default_factory=dict)
+
+
+class DSARRequestRecord(BaseModel):
+    id: str
+    tenant_id: str
+    requester_user_id: str
+    subject_identity: dict[str, str]
+    scope: list[str] = Field(default_factory=list)
+    legal_basis: str
+    requester_channel: str
+    tenant_context: dict[str, str] = Field(default_factory=dict)
+    data_categories: list[str] = Field(default_factory=list)
+    redaction_status: Literal["pending", "applied", "not_required"] = "pending"
+    completion_evidence: list[str] = Field(default_factory=list)
+    status: Literal["registered", "exporting", "reconciling", "complete", "escalated"] = "registered"
+    requested_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    sla_deadline_at: str
+    completed_at: str | None = None
+    escalated_at: str | None = None
+    package_id: str | None = None
+
+
+class DSARPackage(BaseModel):
+    id: str
+    dsar_request_id: str
+    tenant_id: str
+    requester_user_id: str
+    export_payload: dict[str, Any] = Field(default_factory=dict)
+    completeness_verified: bool = False
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    expires_at: str
+
+
 class ROICalculation(BaseModel):
     id: str
     account_id: str
