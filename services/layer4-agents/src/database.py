@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 import warnings
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -26,6 +27,7 @@ DEFAULT_ISOLATION_TIER = "shared"
 
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import event, text
+from sqlalchemy.exc import TimeoutError as SATimeoutError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -174,6 +176,22 @@ _RLS_SUPPORTED_SCHEMES = frozenset({"postgresql", "postgres", "postgresql+asyncp
 _RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
 
 
+def _record_pool_state(engine: AsyncEngine) -> None:
+    try:
+        from .metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics is None:
+            return
+        pool = engine.sync_engine.pool
+        active = int(pool.checkedout())
+        size = int(pool.size())
+        idle = max(size - active, 0)
+        metrics.set_db_pool_state(pool_size=size, active=active, idle=idle)
+    except Exception:
+        logger.debug("DB pool state metric emission failed", exc_info=True)
+
+
 def get_database_url() -> str:
     """Get database URL from environment.
 
@@ -247,7 +265,18 @@ class TenantEnforcedAsyncSession(AsyncSession):
     async def execute(self, statement, params=None, /, **kwargs):  # type: ignore[override]
         if not _statement_sets_tenant_context(statement):
             _assert_session_has_tenant_context(self, operation="statement execution")
-        return await super().execute(statement, params, **kwargs)
+        try:
+            return await super().execute(statement, params, **kwargs)
+        except SATimeoutError:
+            try:
+                from .metrics import get_metrics
+
+                metrics = get_metrics()
+                if metrics is not None:
+                    metrics.increment_db_pool_timeout()
+            except Exception:
+                logger.debug("DB pool timeout metric emission failed", exc_info=True)
+            raise
 
 
 @event.listens_for(TenantEnforcedAsyncSession.sync_session_class, "before_flush")
@@ -269,6 +298,26 @@ def get_engine() -> AsyncEngine:
             echo=False,
             future=True,
         )
+        _record_pool_state(_engine)
+
+        @event.listens_for(_engine.sync_engine.pool, "checkout")
+        def _on_pool_checkout(dbapi_conn, connection_record, connection_proxy) -> None:
+            connection_record.info["pool_checkout_start"] = time.perf_counter()
+            _record_pool_state(_engine)
+
+        @event.listens_for(_engine.sync_engine.pool, "checkin")
+        def _on_pool_checkin(dbapi_conn, connection_record) -> None:
+            start = connection_record.info.pop("pool_checkout_start", None)
+            if start is not None:
+                try:
+                    from .metrics import get_metrics
+
+                    metrics = get_metrics()
+                    if metrics is not None:
+                        metrics.observe_db_pool_wait(time.perf_counter() - start)
+                except Exception:
+                    logger.debug("DB pool wait metric emission failed", exc_info=True)
+            _record_pool_state(_engine)
     return _engine
 
 
