@@ -704,7 +704,10 @@ class BillingService:
             usage_totals[event.metric_name] = usage_totals.get(event.metric_name, 0.0) + float(event.quantity)
 
         items_result = await self.db.execute(
-            select(BillingInvoiceItem).where(BillingInvoiceItem.invoice_id == invoice_id)
+            select(BillingInvoiceItem).where(
+                BillingInvoiceItem.invoice_id == invoice_id,
+                BillingInvoiceItem.tenant_id == tenant_id,
+            )
         )
         invoice_items = items_result.scalars().all()
         billed_totals: dict[str, float] = {}
