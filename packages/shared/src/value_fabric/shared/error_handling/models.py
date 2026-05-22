@@ -80,3 +80,22 @@ class ErrorResponse(BaseModel):
             }
         }
     )
+
+
+def build_error_detail(
+    *,
+    message: str,
+    error_code: str,
+    request_id: str | None,
+    correlation_id: str | None = None,
+) -> dict[str, str]:
+    """Build canonical API error detail payload for HTTPException responses."""
+    payload = {
+        "message": message,
+        "error_code": error_code,
+    }
+    if request_id:
+        payload["request_id"] = request_id
+    if correlation_id:
+        payload["correlation_id"] = correlation_id
+    return payload

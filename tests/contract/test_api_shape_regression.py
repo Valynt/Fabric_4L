@@ -10,6 +10,7 @@ from .schema_assertions import assert_matches_schema
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 L4_OPENAPI = REPO_ROOT / "contracts" / "openapi" / "layer4-agents.json"
+L3_OPENAPI = REPO_ROOT / "contracts" / "openapi" / "layer3-knowledge.json"
 L5_OPENAPI = REPO_ROOT / "contracts" / "openapi" / "layer5-ground-truth.json"
 
 
@@ -87,6 +88,36 @@ def test_l4_workflow_resume_validation_error_shape_is_stable() -> None:
         path="/v1/workflows/{workflow_id}/resume",
         method="post",
         status_code="422",
+        payload=payload,
+    )
+
+
+def test_l3_graph_error_shape_is_stable() -> None:
+    payload = {
+        "message": "Failed to retrieve graph.",
+        "code": "INTERNAL_ERROR",
+        "trace_id": "trace-l3-graph-001",
+    }
+    _assert_response_shape(
+        L3_OPENAPI,
+        path="/graph",
+        method="get",
+        status_code="500",
+        payload=payload,
+    )
+
+
+def test_l4_analysis_error_shape_is_stable() -> None:
+    payload = {
+        "message": "ROI analysis failed.",
+        "code": "INTERNAL_ERROR",
+        "trace_id": "trace-l4-roi-001",
+    }
+    _assert_response_shape(
+        L4_OPENAPI,
+        path="/v1/analysis/roi",
+        method="post",
+        status_code="500",
         payload=payload,
     )
 

@@ -59,6 +59,9 @@ jobs:
           python scripts/ci/python_contract_lint.py --strict --json | tee artifacts/python-contract-lint.json
           exit ${PIPESTATUS[0]}
 
+      - name: Block HTTPException detail leak patterns in runtime routes
+        run: python scripts/ci/check_http_exception_leaks.py
+
       - name: Run import topology tests
         run: |
           pip install pytest pyyaml

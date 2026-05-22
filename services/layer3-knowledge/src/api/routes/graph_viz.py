@@ -12,6 +12,8 @@ import re
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from value_fabric.shared.error_handling.middleware import get_request_id
+from value_fabric.shared.error_handling.models import build_error_detail
 
 from ...api.dependencies import AppState, get_app_state, get_graph_rag, get_hybrid_search
 from ...api.models import (
@@ -173,9 +175,11 @@ async def get_full_graph(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to retrieve graph: %s", e)
+        request_id = get_request_id(request)
+        logger.exception("Failed to retrieve graph", extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(e).__name__})
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve graph: {str(e)}"
+            status_code=500,
+            detail=build_error_detail(message="Failed to retrieve graph.", error_code="INTERNAL_ERROR", request_id=request_id, correlation_id=request_id),
         )
 
 
@@ -288,9 +292,11 @@ async def get_entity_subgraph(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
+        request_id = get_request_id(request)
+        logger.exception("Failed to retrieve subgraph for %s", entity_id, extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(e).__name__})
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500,
+            detail=build_error_detail(message="Failed to retrieve subgraph.", error_code="INTERNAL_ERROR", request_id=request_id, correlation_id=request_id),
         )
 
 
@@ -521,7 +527,9 @@ async def get_query_subgraph(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to retrieve subgraph: %s", e)
+        request_id = get_request_id(request)
+        logger.exception("Failed to retrieve query subgraph", extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(e).__name__})
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500,
+            detail=build_error_detail(message="Failed to retrieve subgraph.", error_code="INTERNAL_ERROR", request_id=request_id, correlation_id=request_id),
         )

@@ -869,7 +869,7 @@ async def quick_roi_analysis(
         )
 
     except Exception as e:
-        raise normalize_exception(e, status_code=500, detail=f"ROI analysis failed: {str(e)}")
+        raise normalize_exception(e, status_code=500, detail="ROI analysis failed.")
 
 
 @router.post("/analysis/whitespace", response_model=WhitespaceAnalysisResponse)
@@ -917,7 +917,7 @@ async def quick_whitespace_analysis(
         )
 
     except Exception as e:
-        raise normalize_exception(e, status_code=500, detail=f"Whitespace analysis failed: {str(e)}")
+        raise normalize_exception(e, status_code=500, detail="Whitespace analysis failed.")
 
 
 @router.post("/cases", response_model=BusinessCaseResponse)
@@ -1023,7 +1023,7 @@ async def generate_business_case(
         )
 
     except Exception as e:
-        raise normalize_exception(e, status_code=500, detail=f"Business case generation failed: {str(e)}")
+        raise normalize_exception(e, status_code=500, detail="Business case generation failed.")
 
 
 @router.post("/cases/{case_id}/regenerate", response_model=BusinessCaseResponse)
