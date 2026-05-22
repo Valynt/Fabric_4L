@@ -45,6 +45,8 @@ from app.models.schemas import (
     ToolResult,
     User,
     ValueDriver,
+    DSARRequestRecord,
+    DSARPackage,
     ValueHypothesis,
     ValuePack,
 )
@@ -365,6 +367,8 @@ class InMemoryDatabase:
         self.governance_gates = InMemoryTable("governance_gates", "tenant_id")
         self.users = InMemoryTable("users", "tenant_id")
         self.tenants = InMemoryTable("tenants", "id")
+        self.dsar_requests = InMemoryTable("dsar_requests", "tenant_id")
+        self.dsar_packages = InMemoryTable("dsar_packages", "tenant_id")
 
 
 class SQLiteDatabase:
@@ -403,6 +407,8 @@ class SQLiteDatabase:
         self.governance_gates = self._table("governance_gates", GovernanceGate, "tenant_id")
         self.users = self._table("users", User, "tenant_id")
         self.tenants = self._table("tenants", Tenant, "id")
+        self.dsar_requests = self._table("dsar_requests", DSARRequestRecord, "tenant_id")
+        self.dsar_packages = self._table("dsar_packages", DSARPackage, "tenant_id")
 
     def _initialize_schema(self) -> None:
         with self._lock, self._connection:
