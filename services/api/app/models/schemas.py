@@ -261,8 +261,8 @@ class DSARRequestRecord(BaseModel):
     requester_user_id: str
     subject_identity: dict[str, str]
     scope: list[str] = Field(default_factory=list)
-    legal_basis: str
-    requester_channel: str
+    legal_basis: Literal["gdpr_art_15", "ccpa_1798_110", "other"]
+    requester_channel: Literal["portal", "email", "api", "support"]
     tenant_context: dict[str, str] = Field(default_factory=dict)
     data_categories: list[str] = Field(default_factory=list)
     redaction_status: Literal["pending", "applied", "not_required"] = "pending"
