@@ -165,4 +165,12 @@ class SIEMAuditSink:
         return headers
 
     def _redact(self, details: Dict[str, Any]) -> Dict[str, Any]:
-        return {k: ("[REDACTED]" if k.lower() in SENSITIVE_FIELDS else v) for k, v in details.items()}
+        result = {}
+        for k, v in details.items():
+            if k.lower() in SENSITIVE_FIELDS:
+                result[k] = "[REDACTED]"
+            elif isinstance(v, dict):
+                result[k] = self._redact(v)
+            else:
+                result[k] = v
+        return result
