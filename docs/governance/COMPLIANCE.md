@@ -15,3 +15,10 @@ For full details, see:
 - SOC 2 Type II alignment
 - OWASP Top 10 coverage
 - SLSA Build Level 2 provenance
+
+## Test Integrity Policy
+
+- Synthetic coverage inflation tests are prohibited.
+- Do not add tests whose primary purpose is to execute lines without asserting user-facing behavior, contract guarantees, tenant isolation, or security outcomes.
+- Coverage improvements must come from real tests that validate business logic, API contracts, failure modes, and hostile multi-tenant scenarios.
+- CI and code review must reject placeholder tests that only boost percentage metrics.
