@@ -712,8 +712,17 @@ class BillingService:
         invoice_items = items_result.scalars().all()
         billed_totals: dict[str, float] = {}
         for item in invoice_items:
-            metric = item.usage_metric or item.description
-            billed_totals[metric] = billed_totals.get(metric, 0.0) + float(item.usage_quantity or item.quantity or 0.0)
+            metric = item.usage_metric
+            if not metric:
+                continue
+            quantity = (
+                item.usage_quantity
+                if item.usage_quantity is not None
+                else item.quantity
+                if item.quantity is not None
+                else 0.0
+            )
+            billed_totals[metric] = billed_totals.get(metric, 0.0) + float(quantity)
 
         mismatches = []
         for metric in set(usage_totals) | set(billed_totals):
