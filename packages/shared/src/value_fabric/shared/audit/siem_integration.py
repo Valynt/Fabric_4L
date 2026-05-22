@@ -145,6 +145,18 @@ class SIEMAuditSink:
                 response = await client.post(self._config.endpoint, json=payload, headers=headers)
             if 200 <= response.status_code < 300:
                 self._seen_event_ids.add(event_id)
+                self.metrics.delivered_total += 1
+                created_at_iso = payload.get("timestamps", {}).get("created_at")
+                if created_at_iso:
+                    from datetime import datetime
+                    try:
+                        created_dt = datetime.fromisoformat(created_at_iso)
+                        latency = max(0.0, self._now_fn() - created_dt.timestamp())
+                        self.metrics.delivery_latency_seconds.append(latency)
+                        if latency > self._config.slo_seconds:
+                            self.metrics.slo_breaches_total += 1
+                    except ValueError:
+                        pass
                 return True
         except Exception:
             return False
