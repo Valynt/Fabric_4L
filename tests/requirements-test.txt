@@ -37,7 +37,7 @@ respx>=0.21.0          # HTTP mocking for httpx — mandatory for L1 crawler tes
 # ---------------------------------------------------------------------------
 factory-boy>=3.3.0
 faker>=33.0.0
-testcontainers>=4.8.0  # Spins up Docker containers for integration tests
+testcontainers>=4.14.2  # Spins up Docker containers for integration tests
 
 # ---------------------------------------------------------------------------
 # Layer 1 — content extraction and XML (production deps, needed at test time)
