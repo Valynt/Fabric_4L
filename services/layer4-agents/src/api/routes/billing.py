@@ -242,6 +242,11 @@ class record_chargeResult(TypedDictModel):
     status: Any
     stripe_charge_id: Any
 
+class reconcile_invoiceResult(TypedDictModel):
+    invoice_id: Any
+    mismatch_count: Any
+    mismatches: Any
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
@@ -499,6 +504,20 @@ async def create_portal(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Portal creation failed",
         ) from e
+
+
+@router.get("/invoices/{invoice_id}/reconciliation", response_model=reconcile_invoiceResult)
+async def reconcile_invoice(
+    invoice_id: str,
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Reconcile usage ledger against invoice line items."""
+    service = BillingService(db)
+    try:
+        return await service.reconcile_invoice_usage(context.tenant_id, invoice_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
 
 
 # ============================================================================

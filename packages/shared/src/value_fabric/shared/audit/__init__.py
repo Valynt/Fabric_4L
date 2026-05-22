@@ -7,6 +7,7 @@ Provides:
 """
 
 from .emitter import AuditEmitter, emit_audit_event
+from .siem_integration import SIEMAuditSink, SIEMDeliveryConfig
 from .models import (
     AuditAction,
     AuditEvent,
@@ -31,4 +32,6 @@ __all__ = [
     "PolicyDecisionRecord",
     "MemoryAccessRecord",
     "ReplaySnapshotRecord",
+    "SIEMAuditSink",
+    "SIEMDeliveryConfig",
 ]
