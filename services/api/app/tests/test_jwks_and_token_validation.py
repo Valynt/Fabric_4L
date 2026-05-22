@@ -18,8 +18,6 @@ import pytest
 from fastapi import HTTPException
 import jwt as jose_jwt  # alias preserved so test bodies need no further changes
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-
 from app.core.security import create_access_token
 from app.main import app
 from fastapi.testclient import TestClient

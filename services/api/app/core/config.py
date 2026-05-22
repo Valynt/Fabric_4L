@@ -113,6 +113,16 @@ class Settings(BaseSettings):
     def is_production_like(self) -> bool:
         return _is_production_like(self.app_env)
 
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def reject_sqlite(cls, value: object) -> object:
+        """SQLite is not supported in any environment; require PostgreSQL."""
+        if isinstance(value, str) and value.startswith("sqlite"):
+            raise ValueError(
+                "SQLite is not supported. Configure a PostgreSQL database_url."
+            )
+        return value
+
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins(cls, value: object) -> object:
@@ -131,8 +141,7 @@ class Settings(BaseSettings):
                 errors.append("database_url must be configured in production-like environments")
             else:
                 errors.append(
-                    "services/api standalone production persistence requires PostgreSQL with "
-                    "Row-Level Security; the current SQLite durable facade is demo/dev only"
+                    "services/api requires a PostgreSQL database with Row-Level Security"
                 )
             if self.llm_provider.lower() == "mock":
                 errors.append("llm_provider=mock is disabled in production-like environments")

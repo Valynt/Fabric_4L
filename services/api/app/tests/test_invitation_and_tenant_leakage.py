@@ -10,8 +10,6 @@ from __future__ import annotations
 
 import os
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-
 import pytest
 from fastapi.testclient import TestClient
 
