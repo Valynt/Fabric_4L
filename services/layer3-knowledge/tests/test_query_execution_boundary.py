@@ -18,6 +18,7 @@ HIGH_RISK_RUNTIME_ROOTS = (
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "services",
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "agents",
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "analytics",
+    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "retrieval",
 )
 SCANNER = REPO_ROOT / "scripts" / "check_layer3_cypher_scope.py"
 ALLOWED_SYSTEM_SCOPED_PATH_FRAGMENTS = (
@@ -41,7 +42,7 @@ class _DirectNeo4jRunVisitor(ast.NodeVisitor):
 
     def visit_Call(self, node: ast.Call) -> None:  # noqa: N802 - ast visitor hook
         func = node.func
-        if isinstance(func, ast.Attribute) and func.attr == "run":
+        if isinstance(func, ast.Attribute) and func.attr in {"run", "execute_query"}:
             owner = self._owner_name(func.value)
             if owner in {"session", "raw_session", "tx", "transaction"}:
                 self.violations.append((node.lineno, node.col_offset))
