@@ -23,6 +23,7 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 | [ADR-003](./ADR-003-authentication-strategy.md) | JWT + API Key Authentication | ✅ Accepted | 2025-02-15 |
 | [ADR-004](./ADR-004-ontology-extraction.md) | Ontology-Guided LLM Extraction | ✅ Accepted | 2025-03-01 |
 | [ADR-005](./ADR-005-agent-orchestration.md) | LangGraph for Agent Orchestration | ✅ Accepted | 2025-03-15 |
+| [ADR-020](./ADR-020-layer2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
 
 ---
 
@@ -86,4 +87,4 @@ To propose a new ADR:
 
 ---
 
-*Last updated: 2026-04-19*
+*Last updated: 2026-05-22*

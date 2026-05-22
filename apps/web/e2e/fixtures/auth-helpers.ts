@@ -23,8 +23,10 @@ export interface TestUserInfo {
   tenantSlug: string;
 }
 
-export const BACKEND_E2E_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
-const BACKEND_E2E_USER_ID = '00000000-0000-4000-e2e0-0000000000a1';
+export const BACKEND_E2E_TENANT_ID =
+  process.env.BACKEND_E2E_TENANT_ID || '00000000-0000-4000-e2e0-000000000001';
+const BACKEND_E2E_USER_ID =
+  process.env.BACKEND_E2E_USER_ID || '00000000-0000-4000-e2e0-0000000000a1';
 
 /**
  * Default test user — admin role for maximum access in contract tests.

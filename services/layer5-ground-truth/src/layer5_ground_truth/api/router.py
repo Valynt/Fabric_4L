@@ -500,24 +500,28 @@ async def validate_truth(
             ),
         )
     except InvalidTransitionError as exc:
+        logger.warning("invalid_truth_transition", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_TRANSITION", "message": str(exc)},
+            detail={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"},
         )
     except InsufficientEvidenceError as exc:
+        logger.warning("insufficient_evidence", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INSUFFICIENT_EVIDENCE", "message": str(exc)},
+            detail={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"},
         )
     except TransitionConflictError as exc:
+        logger.warning("truth_transition_conflict", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "TRANSITION_CONFLICT", "message": str(exc)},
+            detail={"code": "TRANSITION_CONFLICT", "message": "Conflict during state transition"},
         )
     except ValueError as exc:
+        logger.warning("truth_value_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_REQUEST", "message": str(exc)},
+            detail={"code": "INVALID_REQUEST", "message": "Invalid request parameters"},
         )
 
     # Sync to Layer 3 after approval

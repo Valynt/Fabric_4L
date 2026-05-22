@@ -14,9 +14,10 @@ import {
   expectTenantContext,
   requireBackendOrThrow,
 } from '../helpers/validation-program';
+import { BACKEND_E2E_TENANT_ID } from '../fixtures/auth-helpers';
 
 const SEED_ACCOUNT_ID = 'acct-meridian-001';
-const SEED_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
+const SEED_TENANT_ID = BACKEND_E2E_TENANT_ID;
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

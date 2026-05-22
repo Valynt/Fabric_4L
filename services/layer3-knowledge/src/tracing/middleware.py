@@ -23,7 +23,8 @@ from typing import Any, Optional
 from fastapi import Request, Response
 from opentelemetry import propagate, trace
 from opentelemetry.context import attach, detach
-from opentelemetry.trace import SpanContext as OTelSpanContext, TraceFlags
+from opentelemetry.trace import SpanContext as OTelSpanContext
+from opentelemetry.trace import TraceFlags
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 from value_fabric.shared.observability.trace_context import canonical_trace_headers

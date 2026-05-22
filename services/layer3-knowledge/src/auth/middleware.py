@@ -91,11 +91,6 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         if api_key_header:
             return api_key_header
 
-        # Try query parameter (less secure, but supported)
-        api_key_param = request.query_params.get("api_key")
-        if api_key_param:
-            return api_key_param
-
         return None
 
 

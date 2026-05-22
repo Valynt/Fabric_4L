@@ -31,6 +31,20 @@ asyncio_mode = "auto"
 testpaths = ["app/tests"]
 pythonpath = [".", "../..", "../../packages/shared/src"]
 
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 75
+
 [tool.mypy]
 python_version = "3.11"
 strict = true

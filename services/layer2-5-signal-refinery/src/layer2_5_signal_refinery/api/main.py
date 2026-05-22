@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..clients.l3_graph_client import get_l3_client
@@ -98,6 +99,7 @@ def create_app() -> FastAPI:
     )
 
     _add_governance_middleware(app)
+    register_exception_handlers(app)
 
     # Routes
     app.include_router(signals_router)

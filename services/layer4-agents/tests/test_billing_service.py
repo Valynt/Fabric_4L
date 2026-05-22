@@ -65,11 +65,25 @@ def mock_db():
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
     from value_fabric.layer4.database import get_db
-    async def _override():
+    from value_fabric.shared.identity.dependencies import require_authenticated
+    from value_fabric.shared.identity.context import RequestContext
+
+    async def _override_db():
         yield mock_db
-    app.dependency_overrides[get_db] = _override
+
+    async def _override_auth():
+        return RequestContext(
+            tenant_id="tenant_abc123",
+            user_id="user_123",
+            roles=["admin"],
+            permissions=["billing:read", "billing:write"],
+        )
+
+    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[require_authenticated] = _override_auth
     yield
     app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(require_authenticated, None)
 
 
 @pytest.fixture
@@ -584,3 +598,422 @@ def test_subscription_is_canceled_property():
         cancel_at_period_end=False
     )
     assert sub.is_canceled is False
+
+
+# =============================================================================
+# Subscription Lifecycle Tests
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_cancel_subscription_at_period_end(mock_db, sample_subscription):
+    """Test canceling a subscription at period end."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_stripe_sub = MagicMock()
+    mock_stripe_sub.current_period_end = 1893456000  # ~2030-01-01
+    mock_stripe.Subscription.modify.return_value = mock_stripe_sub
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.cancel_subscription(
+            customer_id="user_123",
+            tenant_id="tenant_abc123",
+            cancel_immediately=False,
+        )
+
+    assert result["canceled"] is True
+    assert result["cancel_at_period_end"] is True
+    assert sample_subscription.status == SubscriptionStatus.ACTIVE
+    assert sample_subscription.cancel_at_period_end is True
+    mock_stripe.Subscription.modify.assert_called_once_with(
+        "sub_stripe123",
+        cancel_at_period_end=True,
+    )
+
+
+@pytest.mark.asyncio
+async def test_cancel_subscription_immediately_downgrades_to_free(mock_db, sample_subscription):
+    """Test immediate cancel downgrades to free tier."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_stripe_sub = MagicMock()
+    mock_stripe_sub.current_period_end = None
+    mock_stripe.Subscription.modify.return_value = mock_stripe_sub
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.cancel_subscription(
+            customer_id="user_123",
+            tenant_id="tenant_abc123",
+            cancel_immediately=True,
+        )
+
+    assert result["canceled"] is True
+    assert result["cancel_at_period_end"] is False
+    assert sample_subscription.status == SubscriptionStatus.CANCELED
+    mock_db.add.assert_called()  # Free subscription added
+
+
+@pytest.mark.asyncio
+async def test_cancel_subscription_no_active_subscription(mock_db):
+    """Test cancel fails when no active subscription exists."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+
+    service = BillingService(mock_db)
+    with pytest.raises(ValueError, match="No active subscription found"):
+        await service.cancel_subscription(customer_id="user_123")
+
+
+@pytest.mark.asyncio
+async def test_update_subscription_plan(mock_db, sample_subscription):
+    """Test updating a subscription plan."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('value_fabric.layer4.services.billing_service.get_price_id', return_value="price_enterprise"):
+        service = BillingService(mock_db)
+        result = await service.update_subscription_plan(
+            customer_id="user_123",
+            new_plan_id="enterprise",
+        )
+
+    assert result["updated"] is True
+    assert result["previous_plan_id"] == "pro"
+    assert sample_subscription.plan_id == "enterprise"
+    mock_stripe.Subscription.modify.assert_called_once_with(
+        "sub_stripe123",
+        items=[{"price": "price_enterprise", "quantity": 1}],
+        proration_behavior="create_prorations",
+    )
+
+
+@pytest.mark.asyncio
+async def test_update_subscription_plan_same_plan(mock_db, sample_subscription):
+    """Test plan update fails when already on requested plan."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    service = BillingService(mock_db)
+    with pytest.raises(ValueError, match="already on the requested plan"):
+        await service.update_subscription_plan(
+            customer_id="user_123",
+            new_plan_id="pro",
+        )
+
+
+@pytest.mark.asyncio
+async def test_reactivate_subscription(mock_db):
+    """Test reactivating a subscription scheduled to cancel."""
+    scheduled_sub = BillingSubscription(
+        id="sub_123",
+        customer_id="user_123",
+        stripe_subscription_id="sub_stripe123",
+        plan_id="pro",
+        status=SubscriptionStatus.ACTIVE,
+        cancel_at_period_end=True,
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = scheduled_sub
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.reactivate_subscription(customer_id="user_123")
+
+    assert result["reactivated"] is True
+    assert scheduled_sub.cancel_at_period_end is False
+    mock_stripe.Subscription.modify.assert_called_once_with(
+        "sub_stripe123",
+        cancel_at_period_end=False,
+    )
+
+
+@pytest.mark.asyncio
+async def test_reactivate_subscription_not_scheduled(mock_db):
+    """Test reactivation fails when subscription is not scheduled to cancel."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+
+    service = BillingService(mock_db)
+    with pytest.raises(ValueError, match="No scheduled-to-cancel subscription"):
+        await service.reactivate_subscription(customer_id="user_123")
+
+
+# =============================================================================
+# Webhook Lifecycle Tests
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_webhook_subscription_created(mock_db):
+    """Test customer.subscription.created webhook creates subscription."""
+    customer = BillingCustomer(
+        id="user_123",
+        tenant_id="tenant_abc123",
+        stripe_customer_id="cus_test123",
+        email="test@example.com",
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.side_effect = [None, customer, None]
+    mock_db.execute.return_value = mock_result
+
+    event = {
+        "id": "evt_sub_created",
+        "type": "customer.subscription.created",
+        "data": {
+            "object": {
+                "id": "sub_new123",
+                "customer": "cus_test123",
+                "status": "active",
+                "items": {
+                    "data": [{"price": {"id": "price_pro"}}]
+                },
+            }
+        },
+    }
+
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = event
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.handle_webhook(
+            payload=b'{}',
+            signature="sig",
+            webhook_secret="whsec_test",
+        )
+
+    assert result is True
+    mock_db.add.assert_called()
+
+
+@pytest.mark.asyncio
+async def test_webhook_subscription_updated_plan_change(mock_db, sample_subscription):
+    """Test subscription.updated webhook updates plan_id."""
+    # First query: idempotency check (no existing event)
+    # Second query: find subscription by stripe_subscription_id
+    idempotency_result = MagicMock()
+    idempotency_result.scalar_one_or_none.return_value = None
+    subscription_result = MagicMock()
+    subscription_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.side_effect = [idempotency_result, subscription_result]
+
+    event = {
+        "id": "evt_sub_updated",
+        "type": "customer.subscription.updated",
+        "data": {
+            "object": {
+                "id": "sub_stripe123",
+                "status": "active",
+                "items": {
+                    "data": [{"price": {"id": "price_enterprise"}}]
+                },
+                "current_period_start": 1704067200,
+                "current_period_end": 1893456000,
+                "cancel_at_period_end": False,
+            }
+        },
+    }
+
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = event
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('value_fabric.layer4.config.plans.PLANS', {
+             "enterprise": MagicMock(stripe_price_id="price_enterprise"),
+             "pro": MagicMock(stripe_price_id="price_pro"),
+         }):
+        service = BillingService(mock_db)
+        result = await service.handle_webhook(
+            payload=b'{}',
+            signature="sig",
+            webhook_secret="whsec_test",
+        )
+
+    assert result is True
+    assert sample_subscription.plan_id == "enterprise"
+
+
+@pytest.mark.asyncio
+async def test_webhook_subscription_deleted_downgrades_to_free(mock_db, sample_subscription):
+    """Test subscription.deleted webhook downgrades to free tier."""
+    # First query: idempotency check (no existing event)
+    # Second query: find subscription by stripe_subscription_id
+    idempotency_result = MagicMock()
+    idempotency_result.scalar_one_or_none.return_value = None
+    subscription_result = MagicMock()
+    subscription_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.side_effect = [idempotency_result, subscription_result]
+
+    event = {
+        "id": "evt_sub_deleted",
+        "type": "customer.subscription.deleted",
+        "data": {
+            "object": {
+                "id": "sub_stripe123",
+            }
+        },
+    }
+
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = event
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.handle_webhook(
+            payload=b'{}',
+            signature="sig",
+            webhook_secret="whsec_test",
+        )
+
+    assert result is True
+    assert sample_subscription.status == SubscriptionStatus.CANCELED
+    mock_db.add.assert_called()  # Free subscription added
+
+
+@pytest.mark.asyncio
+async def test_webhook_replay_idempotency_explicit(mock_db):
+    """Test that replayed webhook events are idempotent."""
+    event_id = "evt_replay_123"
+
+    # First: simulate already processed event
+    existing_event = BillingWebhookEvent(id=event_id, type="customer.subscription.updated")
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = existing_event
+    mock_db.execute.return_value = mock_result
+
+    event = {
+        "id": event_id,
+        "type": "customer.subscription.updated",
+        "data": {"object": {"id": "sub_stripe123", "status": "active"}},
+    }
+
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = event
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.handle_webhook(
+            payload=b'{}',
+            signature="sig",
+            webhook_secret="whsec_test",
+        )
+
+    assert result is True
+    # Should not call add for subscription update since already processed
+    mock_db.add.assert_not_called()
+
+
+# =============================================================================
+# Secure Error Envelope Tests
+# =============================================================================
+
+@pytest.mark.asyncio
+async def test_stripe_error_does_not_leak_to_client(mock_db, sample_subscription):
+    """Test that Stripe errors are masked with generic messages."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_stripe.Subscription.modify.side_effect = StripeError("raw stripe error: card declined")
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        with pytest.raises(ValueError) as exc_info:
+            await service.cancel_subscription(customer_id="user_123")
+
+    assert "raw stripe error" not in str(exc_info.value).lower()
+    assert "billing provider error" in str(exc_info.value).lower()
+
+
+# =============================================================================
+# API Route Tests
+# =============================================================================
+
+def test_cancel_subscription_endpoint(client, mock_db, sample_subscription):
+    """Test POST /billing/subscription/cancel endpoint."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_stripe_sub = MagicMock()
+    mock_stripe_sub.current_period_end = 1893456000
+    mock_stripe.Subscription.modify.return_value = mock_stripe_sub
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        response = client.post(
+            "/v1/billing/subscription/cancel?customer_id=user_123",
+            json={"cancel_immediately": False},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["canceled"] is True
+    assert data["cancel_at_period_end"] is True
+
+
+def test_update_plan_endpoint(client, mock_db, sample_subscription):
+    """Test POST /billing/subscription/update-plan endpoint."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = sample_subscription
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('value_fabric.layer4.services.billing_service.get_price_id', return_value="price_enterprise"):
+        response = client.post(
+            "/v1/billing/subscription/update-plan?customer_id=user_123",
+            json={"plan_id": "enterprise"},
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["updated"] is True
+    assert data["previous_plan_id"] == "pro"
+
+
+def test_reactivate_subscription_endpoint(client, mock_db):
+    """Test POST /billing/subscription/reactivate endpoint."""
+    scheduled_sub = BillingSubscription(
+        id="sub_123",
+        customer_id="user_123",
+        stripe_subscription_id="sub_stripe123",
+        plan_id="pro",
+        status=SubscriptionStatus.ACTIVE,
+        cancel_at_period_end=True,
+    )
+
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = scheduled_sub
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+
+    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+        response = client.post(
+            "/v1/billing/subscription/reactivate?customer_id=user_123",
+        )
+
+    assert response.status_code == 200
+    data = response.json()
+    assert data["reactivated"] is True

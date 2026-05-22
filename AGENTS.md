@@ -2,6 +2,8 @@
 
 > Practical commands and directory map for AI agents and contributors.
 > For full architectural rules and governance, see the sections below.
+>
+> **Note:** For the autonomous agent fleet registry defining cross-agent coordination, see `.windsurf/AGENTS.md`.
 
 ---
 

@@ -80,7 +80,8 @@ async def suspend_tenant(
     except HTTPException:
         raise
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        logger.warning("admin_tool_value_error", error=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Admin operation conflict") from exc
 
     emit_audit_event(
         AuditAction.TENANT_SUSPENDED,

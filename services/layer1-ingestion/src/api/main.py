@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 try:
+    from value_fabric.shared.error_handling import register_exception_handlers
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -225,6 +226,7 @@ _security_config_l1 = SecurityConfig.from_env(
     strict_mode=True,
 )
 add_security_middleware(app, config=_security_config_l1)
+register_exception_handlers(app)
 
 # GovernanceMiddleware â€” verifies JWTs and resolves tenant/user context (mandatory)
 redis_rate_limiter = None
@@ -2852,7 +2854,8 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        components["database"] = ComponentHealth(status="unhealthy", message=str(e))
+        logger.error("health_check_database_failed", error=str(e))
+        components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
 
     # Queue check (Redis)
     try:
@@ -3044,7 +3047,8 @@ async def legacy_health_check():
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "database", "status": "unhealthy", "error": str(e)})
+        logger.error("health_check_database_failed", error=str(e))
+        dependencies.append({"name": "database", "status": "unhealthy", "error": "Database connection failed"})
         overall_status = "degraded"
     finally:
         db.close()
@@ -3060,7 +3064,8 @@ async def legacy_health_check():
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "redis", "status": "degraded", "error": str(e)})
+        logger.error("health_check_redis_failed", error=str(e))
+        dependencies.append({"name": "redis", "status": "degraded", "error": "Redis connection failed"})
         overall_status = "degraded"
 
     return legacy_health_checkResult.model_validate({

@@ -13,7 +13,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from ...api.dependencies import AppState, get_app_state, get_graph_rag, get_hybrid_search
+from ...api.dependencies import (
+    AppState,
+    get_app_state,
+    get_graph_rag,
+    get_hybrid_search,
+)
 from ...api.dependencies_tenant_secured import require_request_tenant_id
 from ...api.models import (
     GraphEdge,
@@ -160,7 +165,7 @@ async def get_full_graph(
     except Exception as e:
         logger.error("Failed to retrieve graph: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve graph: {str(e)}"
+            status_code=500, detail="Failed to retrieve graph"
         )
 
 
@@ -269,7 +274,7 @@ async def get_entity_subgraph(
     except Exception as e:
         logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500, detail="Failed to retrieve subgraph"
         )
 
 
@@ -496,5 +501,5 @@ async def get_query_subgraph(
     except Exception as e:
         logger.error("Failed to retrieve subgraph: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500, detail="Failed to retrieve subgraph"
         )

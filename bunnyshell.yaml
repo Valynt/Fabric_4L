@@ -425,7 +425,7 @@ components:
             entrypoint:
                 - /bin/sh
                 - '-c'
-                - |4-
+                - |-
                      until /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do
                       echo 'waiting for minio';
                       sleep 2;
@@ -449,7 +449,7 @@ components:
             entrypoint:
                 - /bin/sh
                 - '-c'
-                - |4-
+                - |-
                     create_db() {
                       if PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -d postgres <<EOF
                     SELECT format('CREATE DATABASE %I', '$1')

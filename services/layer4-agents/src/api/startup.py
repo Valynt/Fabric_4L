@@ -50,7 +50,8 @@ async def check_database_ready() -> StartupCheckResult:
         await init_db()
         return StartupCheckResult(name="database", ok=True)
     except Exception as exc:
-        return StartupCheckResult(name="database", ok=False, detail=str(exc))
+        logger.error("database_startup_check_failed", error=str(exc))
+        return StartupCheckResult(name="database", ok=False, detail="Database connection failed")
 
 
 async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
@@ -60,7 +61,8 @@ async def check_redis_ready(redis_client: Any) -> StartupCheckResult:
         await redis_client.ping()
         return StartupCheckResult(name="redis", ok=True)
     except Exception as exc:
-        return StartupCheckResult(name="redis", ok=False, detail=str(exc))
+        logger.error("redis_startup_check_failed", error=str(exc))
+        return StartupCheckResult(name="redis", ok=False, detail="Redis connection failed")
 
 
 async def check_vault_ready(*, environment: str, vault_addr: str | None) -> StartupCheckResult:

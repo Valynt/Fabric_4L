@@ -2746,7 +2746,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
         logger.error("health_check_database_failed", error=str(e))
-        components["database"] = ComponentHealth(status="unhealthy", message=str(e))
+        components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
         _metrics = get_metrics()
         if _metrics:
             _metrics.increment_errors(error_type="health_check_database_failed", component="api")

@@ -8,6 +8,12 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Quality Debt & Code Hygiene
 
+### security-auditor
+**Description:** Security auditing for CORS, API key leaks, penetration testing support, and vulnerability scanning
+**When to Use:** Auditing CORS configuration, scanning for API key header leaks, checking for hardcoded secrets, validating WebSocket authentication, penetration testing support
+**Side Effects:** none
+**Related Workflow:** `/security-auditor`
+
 ### contract-enforcement-auditor
 **Description:** Scan for contract violations and enforcement gaps across all 6 canonical contracts in contract.md
 **When to Use:** Auditing compliance, checking ESLint rule status, verifying CI gate blocking, assessing gap between documented contracts and runtime enforcement
@@ -70,29 +76,7 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Code Review & Development
 
-### jr-coder
-**Description:** Implement a ticket, write tests, run them, commit, and mark ready for review
-**When to Use:** Writing code for defined tasks
-
-### jr-code-review
-**Description:** Review a completed task for code quality, test coverage, and correctness
-**When to Use:** Code is ready for review
-
-### jr-architect-review
-**Description:** Review a completed feature for cross-task coherence, integration quality, and architectural soundness
-**When to Use:** All tasks in a feature are done before merging
-
-### jr-plan
-**Description:** Break down a plan document into features and tasks with dependencies
-**When to Use:** Starting new work or scoping a project
-
-### jr-rebase
-**Description:** Resolve git rebase conflicts in feature branches
-**When to Use:** Rebase has conflicts that need resolution
-
-### jr-retro
-**Description:** Post-mortem analysis of a completed or in-progress feature
-**When to Use:** Feature shipped, stalled, or after architect review
+*(Note: Legacy jr-* workflow skills removed - not used in this repository)*
 
 ---
 
@@ -113,6 +97,16 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 **Description:** Enforce strict boundary discipline between domains, dependencies, and system layers
 **When to Use:** Ensuring separation between internal domains, external dependencies, and system layers
 **Related Workflow:** `/code-boundary-enforcement`
+
+---
+
+## SaaS & Billing
+
+### stripe-integration
+**Description:** Stripe billing integration for subscriptions, invoicing, usage metering, and customer portal
+**When to Use:** Creating subscriptions, processing webhooks, metering usage, configuring customer portal, DSAR compliance
+**Side Effects:** write
+**Related Workflow:** `/stripe-integration`
 
 ---
 
@@ -187,6 +181,30 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Infrastructure & DevOps
 
+### bunnyshell
+**Description:** Manage Bunnyshell cloud environments for development, staging, and production deployments
+**When to Use:** Creating ephemeral dev environments, managing staging environments, automating production deployments, providing isolated environments for tenant onboarding
+**Side Effects:** exec
+**Related Workflow:** `/bunnyshell`
+
+### observability-setup
+**Description:** OpenTelemetry tracing, structured logging, circuit breakers, and monitoring configuration
+**When to Use:** Migrating services to OTel, standardizing structured logging, implementing circuit breakers, setting up SLO tracking
+**Side Effects:** write
+**Related Workflow:** `/observability-setup`
+
+### load-testing
+**Description:** Load testing and performance validation for production launch readiness
+**When to Use:** Running load tests at 2x traffic, validating p95 latency, verifying HPA scaling, monitoring error rates
+**Side Effects:** exec
+**Related Workflow:** `/load-testing`
+
+### siem-integration
+**Description:** SIEM integration for audit log streaming, security alerting, and compliance monitoring
+**When to Use:** Configuring audit log streaming to SIEM, setting up security alerts, compliance monitoring for SOC 2
+**Side Effects:** write
+**Related Workflow:** `/siem-integration`
+
 ### gate-hardening
 **Description:** Build machine-verifiable production release gate system using TDD
 **When to Use:** Codebase needs ship/no-ship test gates for tenant isolation, state consistency, degraded dependencies
@@ -213,12 +231,12 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Skill Maintenance
 
-**Last Updated:** 2026-05-04
+**Last Updated:** 2026-05-22
 
 **Total Skills:** 38
 
-**Skills with Full Frontmatter:** 3 (contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper)
+**Skills with Full Frontmatter:** 9 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell)
 
-**Skills Needing Frontmatter Updates:** 35 remaining
+**Skills Needing Frontmatter Updates:** 29 remaining
 
 **Note:** This index is generated manually. Consider automating this index generation by parsing SKILL.md frontmatter from all skill directories.

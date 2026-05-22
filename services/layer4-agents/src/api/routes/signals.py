@@ -277,7 +277,7 @@ async def setup_prospect(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Signal detection failed: {str(e)}",
+            detail="Signal detection failed",
         )
 
 
@@ -323,7 +323,7 @@ async def get_account_signals(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve signals: {str(e)}",
+            detail="Failed to retrieve signals",
         )
 
 

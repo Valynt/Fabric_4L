@@ -36,6 +36,25 @@ class BillingService_create_checkout_sessionResult(TypedDictModel):
 class BillingService_create_portal_sessionResult(TypedDictModel):
     url: Any
 
+
+class BillingService_cancel_subscriptionResult(TypedDictModel):
+    canceled: bool
+    cancel_at_period_end: bool
+    current_period_end: Any
+    subscription_id: Any
+
+
+class BillingService_update_subscriptionResult(TypedDictModel):
+    previous_plan_id: str
+    subscription_id: Any
+    updated: bool
+
+
+class BillingService_reactivate_subscriptionResult(TypedDictModel):
+    reactivated: bool
+    subscription_id: Any
+
+
 # Lazy-loaded stripe module
 _stripe = None
 
@@ -150,7 +169,7 @@ class BillingService:
                 # Compensation: Log potential Stripe orphan for cleanup
                 # If stripe_customer_id was created but DB failed, we have an orphan
                 if stripe_customer_id:
-                    logger.warning(
+                    logger.error(
                         "POTENTIAL_STRIPE_ORPHAN",
                         extra={
                             "stripe_customer_id": stripe_customer_id,
@@ -345,6 +364,8 @@ class BillingService:
         try:
             if event_type == "checkout.session.completed":
                 await self._handle_checkout_completed(event["data"]["object"])
+            elif event_type == "customer.subscription.created":
+                await self._handle_subscription_created(event["data"]["object"])
             elif event_type == "customer.subscription.updated":
                 await self._handle_subscription_updated(event["data"]["object"])
             elif event_type == "customer.subscription.deleted":
@@ -355,10 +376,18 @@ class BillingService:
                 await self._handle_payment_failed(event["data"]["object"])
 
             # Record event as processed
+            # Extract tenant_id from customer lookup if available for audit trail
+            tenant_id = None
+            if event_type in ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]:
+                # These events have customer context we can use to extract tenant_id
+                # For checkout.session.completed, tenant_id is set in _handle_checkout_completed
+                # For subscription events, we can look up the customer
+                pass  # tenant_id will be set by the specific handler if available
+            
             webhook_event = BillingWebhookEvent(
                 id=event_id,
                 type=event_type,
-                tenant_id=None,  # Set during event processing if available
+                tenant_id=tenant_id,
             )
             self.db.add(webhook_event)
             await self.db.flush()
@@ -439,6 +468,19 @@ class BillingService:
         current_period_end = stripe_subscription.get("current_period_end")
         cancel_at_period_end = stripe_subscription.get("cancel_at_period_end", False)
 
+        # Extract plan from items (Stripe sends items array with price IDs)
+        plan_id = None
+        items = stripe_subscription.get("items", {})
+        data = items.get("data", [])
+        if data:
+            price_id = data[0].get("price", {}).get("id")
+            if price_id:
+                from ..config.plans import PLANS
+                for pid, plan in PLANS.items():
+                    if getattr(plan, "stripe_price_id", None) == price_id:
+                        plan_id = pid
+                        break
+
         # Find local subscription
         result = await self.db.execute(
             select(BillingSubscription)
@@ -454,6 +496,8 @@ class BillingService:
                 logger.warning(f"Unknown subscription status from Stripe: {status}")
                 # Keep existing status if unknown
             subscription.cancel_at_period_end = cancel_at_period_end
+            if plan_id:
+                subscription.plan_id = plan_id
             if current_period_start:
                 subscription.current_period_start = datetime.fromtimestamp(current_period_start, tz=UTC)
             if current_period_end:
@@ -461,7 +505,10 @@ class BillingService:
             await self.db.flush()
 
     async def _handle_subscription_deleted(self, stripe_subscription: dict[str, Any]) -> None:
-        """Handle customer.subscription.deleted event."""
+        """Handle customer.subscription.deleted event.
+
+        Marks subscription as canceled and downgrades customer to free tier.
+        """
         stripe_sub_id = stripe_subscription["id"]
 
         result = await self.db.execute(
@@ -473,6 +520,69 @@ class BillingService:
         if subscription:
             subscription.status = SubscriptionStatus.CANCELED
             await self.db.flush()
+            # Downgrade to free to ensure entitlement checks don't grant paid features
+            await self._downgrade_to_free(
+                subscription.customer_id, subscription.tenant_id
+            )
+
+    async def _handle_subscription_created(self, stripe_subscription: dict[str, Any]) -> None:
+        """Handle customer.subscription.created event."""
+        stripe_sub_id = stripe_subscription["id"]
+        customer_id = stripe_subscription.get("customer")
+        status = stripe_subscription.get("status", "incomplete")
+        current_period_start = stripe_subscription.get("current_period_start")
+        current_period_end = stripe_subscription.get("current_period_end")
+
+        # Find local customer by Stripe customer ID
+        result = await self.db.execute(
+            select(BillingCustomer)
+            .where(BillingCustomer.stripe_customer_id == customer_id)
+        )
+        customer = result.scalar_one_or_none()
+
+        if not customer:
+            logger.warning(
+                f"Customer not found for Stripe customer {customer_id} on subscription {stripe_sub_id}"
+            )
+            return
+
+        # Determine plan from subscription items
+        plan_id = "free"
+        items = stripe_subscription.get("items", {})
+        data = items.get("data", [])
+        if data:
+            price_id = data[0].get("price", {}).get("id")
+            if price_id:
+                from ..config.plans import PLANS
+                for pid, plan in PLANS.items():
+                    if getattr(plan, "stripe_price_id", None) == price_id:
+                        plan_id = pid
+                        break
+
+        # Create or update subscription record
+        result = await self.db.execute(
+            select(BillingSubscription)
+            .where(BillingSubscription.stripe_subscription_id == stripe_sub_id)
+        )
+        subscription = result.scalar_one_or_none()
+
+        if not subscription:
+            subscription = BillingSubscription(
+                id=f"sub_{customer.id}_{plan_id}",
+                tenant_id=customer.tenant_id,
+                customer_id=customer.id,
+                stripe_subscription_id=stripe_sub_id,
+                plan_id=plan_id,
+                status=SubscriptionStatus(status),
+            )
+            self.db.add(subscription)
+
+        if current_period_start:
+            subscription.current_period_start = datetime.fromtimestamp(current_period_start, tz=UTC)
+        if current_period_end:
+            subscription.current_period_end = datetime.fromtimestamp(current_period_end, tz=UTC)
+
+        await self.db.flush()
 
     async def _handle_payment_succeeded(self, invoice: dict[str, Any]) -> None:
         """Handle invoice.payment_succeeded event."""
@@ -492,6 +602,167 @@ class BillingService:
             if subscription:
                 subscription.status = SubscriptionStatus.PAST_DUE
                 await self.db.flush()
+
+    async def cancel_subscription(
+        self,
+        customer_id: str,
+        tenant_id: str | None = None,
+        cancel_immediately: bool = False,
+    ) -> dict[str, Any]:
+        """Cancel a customer's subscription.
+
+        Args:
+            customer_id: Internal customer/user ID
+            tenant_id: Optional tenant ID for multi-tenant isolation
+            cancel_immediately: If True, cancel immediately; otherwise at period end
+
+        Returns:
+            Cancellation result with subscription ID and period end
+        """
+        subscription = await self.get_active_subscription(customer_id, tenant_id)
+        if not subscription or not subscription.stripe_subscription_id:
+            raise ValueError("No active subscription found for customer")
+
+        try:
+            stripe = _get_stripe()
+            stripe_sub = stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                cancel_at_period_end=not cancel_immediately,
+            )
+
+            subscription.cancel_at_period_end = not cancel_immediately
+            if cancel_immediately:
+                subscription.status = SubscriptionStatus.CANCELED
+                # Downgrade to free immediately
+                await self._downgrade_to_free(customer_id, tenant_id)
+            else:
+                # Mark as will-cancel but keep plan until period end
+                subscription.status = SubscriptionStatus.ACTIVE
+
+            await self.db.flush()
+
+            current_period_end = (
+                datetime.fromtimestamp(stripe_sub.current_period_end, tz=UTC)
+                if stripe_sub.current_period_end
+                else subscription.current_period_end
+            )
+
+            return BillingService_cancel_subscriptionResult.model_validate({
+                "canceled": True,
+                "cancel_at_period_end": not cancel_immediately,
+                "current_period_end": current_period_end,
+                "subscription_id": subscription.id,
+            })
+
+        except StripeError:
+            raise ValueError("Subscription cancellation failed due to a billing provider error") from None
+
+    async def _downgrade_to_free(
+        self, customer_id: str, tenant_id: str | None = None
+    ) -> BillingSubscription:
+        """Create a free-tier subscription for a customer after cancellation.
+
+        Ensures entitlement checks always have a valid subscription record.
+        """
+        free_sub = await self._create_free_subscription(
+            customer_id, tenant_id, fallback_entitlement=False
+        )
+        return free_sub
+
+    async def update_subscription_plan(
+        self,
+        customer_id: str,
+        new_plan_id: str,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Update a customer's subscription plan.
+
+        Args:
+            customer_id: Internal customer/user ID
+            new_plan_id: Target plan ('pro', 'enterprise')
+            tenant_id: Optional tenant ID for multi-tenant isolation
+
+        Returns:
+            Update result with previous and current plan IDs
+        """
+        subscription = await self.get_active_subscription(customer_id, tenant_id)
+        if not subscription or not subscription.stripe_subscription_id:
+            raise ValueError("No active subscription found for customer")
+
+        previous_plan_id = subscription.plan_id
+        if previous_plan_id == new_plan_id:
+            raise ValueError("Customer is already on the requested plan")
+
+        price_id = get_price_id(new_plan_id)
+        if not price_id:
+            raise ValueError(f"Plan not available: {new_plan_id}")
+
+        try:
+            stripe = _get_stripe()
+            stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                items=[{"price": price_id, "quantity": 1}],
+                proration_behavior="create_prorations",
+            )
+
+            subscription.plan_id = new_plan_id
+            await self.db.flush()
+
+            return BillingService_update_subscriptionResult.model_validate({
+                "previous_plan_id": previous_plan_id,
+                "subscription_id": subscription.id,
+                "updated": True,
+            })
+
+        except StripeError:
+            raise ValueError("Plan change failed due to a billing provider error") from None
+
+    async def reactivate_subscription(
+        self,
+        customer_id: str,
+        tenant_id: str | None = None,
+    ) -> dict[str, Any]:
+        """Reactivate a subscription that was scheduled to cancel at period end.
+
+        Args:
+            customer_id: Internal customer/user ID
+            tenant_id: Optional tenant ID for multi-tenant isolation
+
+        Returns:
+            Reactivation result
+        """
+        stmt = (
+            select(BillingSubscription)
+            .where(BillingSubscription.customer_id == customer_id)
+            .where(BillingSubscription.cancel_at_period_end == True)
+            .where(BillingSubscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]))
+            .order_by(BillingSubscription.created_at.desc())
+        )
+        if tenant_id is not None:
+            stmt = stmt.where(BillingSubscription.tenant_id == tenant_id)
+        result = await self.db.execute(stmt)
+        subscription = result.scalar_one_or_none()
+
+        if not subscription or not subscription.stripe_subscription_id:
+            raise ValueError("No scheduled-to-cancel subscription found for customer")
+
+        try:
+            stripe = _get_stripe()
+            stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                cancel_at_period_end=False,
+            )
+
+            subscription.cancel_at_period_end = False
+            await self.db.flush()
+
+            return BillingService_reactivate_subscriptionResult.model_validate({
+                "reactivated": True,
+                "subscription_id": subscription.id,
+            })
+
+        except StripeError:
+            raise ValueError("Subscription reactivation failed due to a billing provider error") from None
 
     async def check_entitlement(self, customer_id: str, feature_id: str) -> bool:
         """Check if customer has access to a feature."""

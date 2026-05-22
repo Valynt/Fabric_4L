@@ -85,6 +85,7 @@ This directory is the **source of truth for agent behavior** in the Value Fabric
 2. The agent loads its allowed skills from `registry/skills.json`.
 3. Before execution, the policy engine evaluates `registry/rules.json` + `rules/*.yaml`.
 4. Context is assembled per `CONTEXT.md` (40% grounding / 40% code / 20% history).
+5. All agents must adhere to the Platform Contract in `packages/platform-contract/CONTRACT.md`.
 
 ### For Skill Authors
 1. Read `skills/SKILL_SCHEMA.md` for the skill contract.
@@ -119,3 +120,4 @@ Before promoting any `.windsurf/` change:
 - [ ] **Memory**: Episodic logs older than 30 days are distilled or archived.
 - [ ] **Context**: Context budget stays within 40/40/20 split.
 - [ ] **Circuit Breaker**: Workflows declare `max_retries` and `escalation_path`.
+- [ ] **Platform Contract**: Changes align with `packages/platform-contract/CONTRACT.md`.

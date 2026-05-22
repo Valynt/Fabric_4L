@@ -15,7 +15,6 @@ No business logic lives here. All endpoint implementations are in
 
 from __future__ import annotations
 
-import logging
 import os
 from contextlib import asynccontextmanager
 from typing import Any
@@ -34,8 +33,8 @@ from value_fabric.shared.fastapi_framework import (
     resolve_cors_policy,
 )
 from value_fabric.shared.identity.vault_check import is_vault_healthy
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
 from value_fabric.shared.security import validate_production_safety
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..api.dependencies import close_app_state, init_app_state
 from ..api.exceptions import (

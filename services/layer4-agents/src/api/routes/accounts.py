@@ -233,7 +233,8 @@ async def create_account(
             account_id=request.id,
         )
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=str(exc)) from exc
+        logger.warning("account_create_conflict", error=str(exc))
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account creation conflict") from exc
     except IntegrityError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists") from exc
     return to_detail_schema(account)
@@ -398,7 +399,7 @@ async def get_account_activity(
     return AccountActivityResponse(**activity)
 
 
-@router.post("/{account_id}/refresh")
+@router.post("/{account_id}/refresh", response_model=AccountDetailSchema)
 async def refresh_account(
     account_id: UUID,
     db: AsyncSession = Depends(get_db_from_context),

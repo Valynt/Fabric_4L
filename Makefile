@@ -251,6 +251,13 @@ contract-tests: ## Run cross-layer contract + architecture tests (fast, no secre
 	$(PYTEST) tests/arch/ -v --tb=short
 	@echo "✅  Contract and architecture tests passed"
 
+pact-tests: ## Run Pact consumer tests (generates .pact files) and provider verification
+	@echo "→ Running Pact consumer contract tests..."
+	$(PYTEST) tests/pact/test_l4_consumer_contract.py -v --tb=short -n 0
+	@echo "→ Running Pact provider verification (requires Layer 4 running)..."
+	$(PYTEST) tests/pact/test_l4_provider_verify.py -v --tb=short -n 0
+	@echo "✅  Pact contract tests passed"
+
 # ─── Stratified Test Targets ─────────────────────────────────────────────────
 
 test-unit: ## Run only unit tests (fast, no external deps)

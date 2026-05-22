@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from datetime import UTC, datetime
 from typing import Any
@@ -85,10 +86,10 @@ E2E_TENANT_NAME = "E2E Validation Tenant"
 E2E_SERVICE_ACCOUNT_ID = "svc-playwright-backend-validation"
 E2E_AUTH_SEED_SOURCE = "backend-integrated-auth-context"
 E2E_VALIDATION_USER_IDS = {
-    "admin": UUID("00000000-0000-4000-e2e0-000000000201"),
-    "reviewer": UUID("00000000-0000-4000-e2e0-000000000202"),
-    "read_only": UUID("00000000-0000-4000-e2e0-000000000203"),
-    "sales": UUID("00000000-0000-4000-e2e0-000000000204"),
+    "admin": UUID(os.environ.get("E2E_VALIDATION_ADMIN_ID", "00000000-0000-4000-e2e0-000000000201")),
+    "reviewer": UUID(os.environ.get("E2E_VALIDATION_REVIEWER_ID", "00000000-0000-4000-e2e0-000000000202")),
+    "read_only": UUID(os.environ.get("E2E_VALIDATION_READONLY_ID", "00000000-0000-4000-e2e0-000000000203")),
+    "sales": UUID(os.environ.get("E2E_VALIDATION_SALES_ID", "00000000-0000-4000-e2e0-000000000204")),
 }
 E2E_VALIDATION_USERS = [
     {
@@ -119,7 +120,7 @@ E2E_VALIDATION_USERS = [
 E2E_ACCOUNT_MAPPINGS = [
     {
         "provider_record_id": "acct-meridian-001",
-        "backend_uuid": "00000000-0000-4000-e2e0-000000000101",
+        "backend_uuid": os.environ.get("E2E_MERIDIAN_ACCOUNT_UUID", "00000000-0000-4000-e2e0-000000000101"),
         "label": "Meridian Automotive",
     }
 ]

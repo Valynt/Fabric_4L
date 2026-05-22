@@ -581,7 +581,7 @@
     },
     {
       "skill_id": "value-engine-e2e-validation",
-      "name": "Value Engine E2E Workflow Validation",
+      "name": "value-engine-e2e-validation",
       "version": "1.0.0",
       "description": "Bootstrap the full development stack, seed a demo tenant and user, authenticate, execute the complete 7-step Value Engine workflow end-to-end, autonomously fix blockers, and produce a final validation report",
       "input_schema": {
@@ -614,6 +614,358 @@
       "timeout_ms": 1800000,
       "required_context": ["project_graph", "test_inventory"],
       "allowed_agents": ["*"]
+    },
+    {
+      "skill_id": "code-boundary-enforcement",
+      "name": "code-boundary-enforcement",
+      "version": "1.0.0",
+      "description": "Enforce strict boundary discipline between domains, dependencies, and system layers",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "boundary_type": { "type": "string", "enum": ["domain", "dependency", "layer"] },
+          "target_paths": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["boundary_type"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "violations": { "type": "array" },
+          "boundary_map": { "type": "object" },
+          "enforcement_passed": { "type": "boolean" }
+        }
+      },
+      "side_effects": "none",
+      "timeout_ms": 60000,
+      "required_context": ["project_graph", "dependency_rules"],
+      "allowed_agents": ["code-reviewer", "drift-assessor"]
+    },
+    {
+      "skill_id": "technical-documentation",
+      "name": "technical-documentation",
+      "version": "1.0.0",
+      "description": "Professional technical documentation generation and maintenance workflow",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "doc_type": { "type": "string", "enum": ["api", "architecture", "how-to", "tutorial", "reference"] },
+          "target_system": { "type": "string" },
+          "audience": { "type": "string", "enum": ["developer", "operator", "end-user"] }
+        },
+        "required": ["doc_type", "target_system"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "document_path": { "type": "string" },
+          "content": { "type": "string" },
+          "diataxis_category": { "type": "string" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 120000,
+      "required_context": ["source_code", "existing_docs"],
+      "allowed_agents": ["docs-writer"]
+    },
+    {
+      "skill_id": "cleanup-docs",
+      "name": "cleanup-docs",
+      "version": "1.0.0",
+      "description": "Monorepo documentation cleanup workflow for consolidating scattered documentation",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "target_directories": { "type": "array", "items": { "type": "string" } },
+          "consolidation_strategy": { "type": "string", "enum": ["merge", "deduplicate", "restructure"] }
+        },
+        "required": ["target_directories"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "files_removed": { "type": "array" },
+          "files_consolidated": { "type": "array" },
+          "new_structure": { "type": "object" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 180000,
+      "required_context": ["docs_inventory", "content_similarity"],
+      "allowed_agents": ["docs-writer"]
+    },
+    {
+      "skill_id": "drift-assessment",
+      "name": "drift-assessment",
+      "version": "1.0.0",
+      "description": "Multi-layer drift detection for API contracts, schemas, and behavior drift",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "drift_type": { "type": "string", "enum": ["api_contract", "schema", "behavior", "all"] },
+          "baseline_version": { "type": "string" },
+          "target_version": { "type": "string" }
+        },
+        "required": ["drift_type"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "drift_report": { "type": "object" },
+          "drift_detected": { "type": "boolean" },
+          "severity": { "type": "string", "enum": ["none", "low", "medium", "high", "critical"] }
+        }
+      },
+      "side_effects": "none",
+      "timeout_ms": 120000,
+      "required_context": ["api_contracts", "schema_definitions", "behavioral_tests"],
+      "allowed_agents": ["drift-assessor"]
+    },
+    {
+      "skill_id": "react-component-design",
+      "name": "react-component-design",
+      "version": "1.0.0",
+      "description": "Three-phase React component design workflow with chain-of-thought rigor",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "component_name": { "type": "string" },
+          "design_phase": { "type": "string", "enum": ["requirements", "architecture", "implementation"] },
+          "use_case": { "type": "string" }
+        },
+        "required": ["component_name", "design_phase"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "component_spec": { "type": "object" },
+          "tsx_code": { "type": "string" },
+          "test_stub": { "type": "string" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 120000,
+      "required_context": ["frontend_design_system", "component_library"],
+      "allowed_agents": ["ui-drift", "facade-connector"]
+    },
+    {
+      "skill_id": "component-self-review",
+      "name": "component-self-review",
+      "version": "1.0.0",
+      "description": "Post-generation code review workflow for enterprise-grade component validation",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "component_path": { "type": "string" },
+          "review_criteria": { "type": "array", "items": { "type": "string" }, "default": ["accessibility", "performance", "maintainability"] }
+        },
+        "required": ["component_path"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "review_findings": { "type": "array" },
+          "score": { "type": "number" },
+          "approval_status": { "type": "string", "enum": ["approved", "needs_revision", "rejected"] }
+        }
+      },
+      "side_effects": "none",
+      "timeout_ms": 60000,
+      "required_context": ["component_code", "design_system_guidelines"],
+      "allowed_agents": ["code-reviewer", "ui-drift"]
+    },
+    {
+      "skill_id": "bunnyshell",
+      "name": "bunnyshell",
+      "version": "1.0.0",
+      "description": "Manage Bunnyshell cloud environments for development, staging, and production deployments",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["list", "deploy", "stop", "start", "clone", "delete", "logs", "exec", "redeploy", "ssh", "port-forward", "config-create", "config-export"] },
+          "environment_id": { "type": "string" },
+          "component_name": { "type": "string" },
+          "command": { "type": "string" },
+          "config_path": { "type": "string" },
+          "service_type": { "type": "string" }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "environments": { "type": "array" },
+          "deployment_status": { "type": "string" },
+          "logs": { "type": "string" },
+          "command_output": { "type": "string" },
+          "config_content": { "type": "string" },
+          "success": { "type": "boolean" },
+          "error": { "type": "string" }
+        }
+      },
+      "side_effects": "exec",
+      "timeout_ms": 300000,
+      "required_context": ["bunnyshell_config", "environment_inventory"],
+      "allowed_agents": ["*"]
+    },
+    {
+      "skill_id": "security-auditor",
+      "name": "security-auditor",
+      "version": "1.0.0",
+      "description": "Security auditing for CORS, API key leaks, penetration testing support, and vulnerability scanning",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "audit_type": { "type": "string", "enum": ["cors", "api-key-leak", "secrets", "websocket-auth", "vault-config", "all"] },
+          "target_services": { "type": "array", "items": { "type": "string" } },
+          "generate_tests": { "type": "boolean", "default": true }
+        },
+        "required": ["audit_type"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "findings": { "type": "array" },
+          "severity_counts": { "type": "object" },
+          "test_cases": { "type": "array" },
+          "remediation_steps": { "type": "array" },
+          "compliance_status": { "type": "string" }
+        }
+      },
+      "side_effects": "none",
+      "timeout_ms": 300000,
+      "required_context": ["security_policies", "api_routes", "infrastructure_manifests"],
+      "allowed_agents": ["code-reviewer", "drift-assessor"]
+    },
+    {
+      "skill_id": "stripe-integration",
+      "name": "stripe-integration",
+      "version": "1.0.0",
+      "description": "Stripe billing integration for subscriptions, invoicing, usage metering, and customer portal",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["create-subscription", "cancel-subscription", "update-subscription", "process-webhook", "meter-usage", "configure-portal", "impersonate-user", "export-dsar"] },
+          "tenant_id": { "type": "string" },
+          "subscription_data": { "type": "object" },
+          "webhook_event": { "type": "object" },
+          "usage_record": { "type": "object" }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "subscription_id": { "type": "string" },
+          "invoice_id": { "type": "string" },
+          "customer_portal_url": { "type": "string" },
+          "usage_report": { "type": "object" },
+          "audit_log": { "type": "array" },
+          "dsar_package_url": { "type": "string" },
+          "success": { "type": "boolean" },
+          "error": { "type": "string" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 300000,
+      "required_context": ["stripe_config", "billing_models", "webhooks"],
+      "allowed_agents": ["*"]
+    },
+    {
+      "skill_id": "observability-setup",
+      "name": "observability-setup",
+      "version": "1.0.0",
+      "description": "OpenTelemetry tracing, structured logging, circuit breakers, and monitoring configuration",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["otel-migrate", "structured-logs", "circuit-breaker", "pool-monitoring", "jaeger-persistence", "slo-setup"] },
+          "target_services": { "type": "array", "items": { "type": "string" } },
+          "config": { "type": "object" }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "services_configured": { "type": "array" },
+          "tracing_config": { "type": "object" },
+          "logging_config": { "type": "object" },
+          "circuit_breaker_rules": { "type": "array" },
+          "monitoring_dashboards": { "type": "array" },
+          "slo_definitions": { "type": "array" },
+          "success": { "type": "boolean" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 300000,
+      "required_context": ["service_configs", "monitoring_stack", "slos"],
+      "allowed_agents": ["infrastructure-operator", "drift-assessor"]
+    },
+    {
+      "skill_id": "load-testing",
+      "name": "load-testing",
+      "version": "1.0.0",
+      "description": "Load testing and performance validation for production launch readiness",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["run-load-test", "validate-latency", "verify-hpa", "monitor-errors", "validate-slos", "war-room-setup"] },
+          "traffic_multiplier": { "type": "number", "default": 2.0 },
+          "duration_minutes": { "type": "number", "default": 30 },
+          "target_endpoints": { "type": "array", "items": { "type": "string" } }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "test_report": { "type": "object" },
+          "latency_percentiles": { "type": "object" },
+          "error_rate": { "type": "number" },
+          "hpa_events": { "type": "array" },
+          "slo_status": { "type": "object" },
+          "recommendations": { "type": "array" },
+          "success": { "type": "boolean" }
+        }
+      },
+      "side_effects": "exec",
+      "timeout_ms": 600000,
+      "required_context": ["deployment_config", "performance_targets", "infrastructure_capacity"],
+      "allowed_agents": ["infrastructure-operator"]
+    },
+    {
+      "skill_id": "siem-integration",
+      "name": "siem-integration",
+      "version": "1.0.0",
+      "description": "SIEM integration for audit log streaming, security alerting, and compliance monitoring",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": { "type": "string", "enum": ["configure-streaming", "map-schema", "setup-alerts", "validate-latency", "compliance-monitoring", "impersonation-audit"] },
+          "siem_provider": { "type": "string" },
+          "webhook_url": { "type": "string" },
+          "event_types": { "type": "array", "items": { "type": "string" } },
+          "alert_rules": { "type": "array" }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "streaming_config": { "type": "object" },
+          "schema_mapping": { "type": "object" },
+          "alert_configuration": { "type": "array" },
+          "latency_test_results": { "type": "object" },
+          "compliance_status": { "type": "object" },
+          "audit_trail_config": { "type": "object" },
+          "success": { "type": "boolean" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 300000,
+      "required_context": ["audit_log_schema", "siem_config", "security_policies"],
+      "allowed_agents": ["infrastructure-operator", "security-auditor"]
     }
   ]
 }

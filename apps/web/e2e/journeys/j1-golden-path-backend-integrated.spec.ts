@@ -29,11 +29,12 @@ import {
   expectSeededBusinessCaseWorkflowResults,
   requireBackendOrThrow,
 } from '../helpers/validation-program';
+import { BACKEND_E2E_TENANT_ID } from '../fixtures/auth-helpers';
 
 // Seeded data IDs from scripts/fixtures/meridian-automotive.ts
 const SEED_ACCOUNT_ID = 'acct-meridian-001';
 const SEED_CASE_ID = 'case-meridian-e2e-001';
-const SEED_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
+const SEED_TENANT_ID = BACKEND_E2E_TENANT_ID;
 const SEED_DOMAIN = 'meridian-auto.com';
 const SEEDED_BUSINESS_CASE_IDS = ['case-draft-001', 'case-e2e-approved-001', SEED_CASE_ID];
 

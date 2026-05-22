@@ -228,13 +228,13 @@ async def provision_tenant(
         logger.warning(f"Tenant provisioning validation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Tenant provisioning validation failed",
         )
     except RuntimeError as e:
         logger.error(f"Tenant provisioning failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Tenant provisioning failed: {str(e)}",
+            detail="Tenant provisioning failed",
         )
     except Exception as e:
         logger.error(f"Unexpected error during tenant provisioning: {e}", exc_info=True)

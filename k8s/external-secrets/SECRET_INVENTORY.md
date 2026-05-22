@@ -11,3 +11,6 @@
 | `postgres-secret` | `value-fabric/database#postgres-password` | Data Platform |
 | `jwt-secret` | `value-fabric/auth#jwt-secret` | Identity/Security |
 | `api-key-hmac-secret` | `value-fabric/auth#api-key-hmac-secret` | Identity/Security |
+| `keycloak-secrets` | `value-fabric/auth#keycloak-bootstrap` | Identity/Security |
+| `keycloak-frontend-client-secret` | `value-fabric/auth#keycloak-frontend-client-secret` | Identity/Security |
+| `keycloak-api-client-secret` | `value-fabric/auth#keycloak-api-client-secret` | Identity/Security |

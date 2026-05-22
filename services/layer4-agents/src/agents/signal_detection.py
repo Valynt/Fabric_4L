@@ -341,7 +341,7 @@ class SignalDetectionAgent(BaseAgent):
                 event = SignalFailedEvent(
                     prospect_id=prospect_data.get("account_id", ""),
                     error_category=ErrorCategory.UNKNOWN,
-                    error_message=str(e),
+                    error_message="Signal detection failed",
                     retryable=False,
                 )
                 await self._emit_event(event)

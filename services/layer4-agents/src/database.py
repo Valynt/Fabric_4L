@@ -609,9 +609,10 @@ async def get_db_from_context(
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
+        logger.warning("tenant_context_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid tenant context",
         ) from e
 
     factory = get_session_factory()
@@ -694,9 +695,10 @@ async def get_db_with_optional_tenant(
             try:
                 effective_tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
+                logger.warning("tenant_context_error", error=str(e))
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=str(e),
+                    detail="Invalid tenant context",
                 ) from e
             await _set_local_tenant_context(session, effective_tenant_id)
         elif context.is_super_admin():

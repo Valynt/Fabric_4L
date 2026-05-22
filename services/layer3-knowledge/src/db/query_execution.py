@@ -23,8 +23,9 @@ unless they are moved behind this boundary.
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Mapping
+from typing import Any
 
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 

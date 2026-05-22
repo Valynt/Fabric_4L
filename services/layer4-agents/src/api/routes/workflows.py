@@ -667,9 +667,11 @@ async def resume_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=404, detail=str(exc))
+            logger.warning("workflow_resume_value_error", error=str(exc))
+            raise HTTPException(status_code=404, detail="Workflow not found")
         if isinstance(exc, WorkflowExecutionError):
-            raise HTTPException(status_code=400, detail=str(exc))
+            logger.warning("workflow_resume_execution_error", error=str(exc))
+            raise HTTPException(status_code=400, detail="Workflow resume failed")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -747,7 +749,8 @@ async def pause_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=404, detail=str(exc))
+            logger.warning("workflow_pause_value_error", error=str(exc))
+            raise HTTPException(status_code=404, detail="Workflow not found")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -887,7 +890,8 @@ async def archive_workflow(
     try:
         result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning("workflow_archive_permission_denied", error=str(e))
+        raise HTTPException(status_code=403, detail="Permission denied to archive workflow")
 
     if result is None:
         raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")

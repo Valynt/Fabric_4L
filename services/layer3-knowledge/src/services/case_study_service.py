@@ -38,6 +38,7 @@ from uuid import uuid4
 import structlog
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
 from ..db.query_execution import run_validated_query
 
 try:

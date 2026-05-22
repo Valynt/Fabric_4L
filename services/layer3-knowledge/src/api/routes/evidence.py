@@ -28,9 +28,9 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
 from ...api.dependencies import get_neo4j_driver
+from ...db.query_execution import run_validated_query
 from ...services.case_study_service import CaseStudy, CaseStudyService
 from ...services.evidence_search import EvidenceSearchService
-from ...db.query_execution import run_validated_query
 
 
 class delete_case_studyResult(TypedDictModel):

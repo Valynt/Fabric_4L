@@ -14,6 +14,10 @@ are enforced by static guard tests and the Layer 3 Cypher-scope scanner.
 System-scoped exceptions are limited to schema/bootstrap/migration code paths.
 """
 
-from .query_execution import TenantQueryValidationError, run_scoped_query, run_validated_query
+from .query_execution import (
+    TenantQueryValidationError,
+    run_scoped_query,
+    run_validated_query,
+)
 
 __all__ = ["TenantQueryValidationError", "run_scoped_query", "run_validated_query"]
