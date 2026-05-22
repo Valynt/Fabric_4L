@@ -143,6 +143,9 @@ jobs:
       - name: Enforce hermetic build input policy
         run: python scripts/ci/check_hermetic_build_inputs.py
 
+      - name: Enforce secure error envelope gate
+        run: python scripts/ci/check_secure_error_envelope.py
+
 
       - name: Generate layer quality scorecard
         run: |
