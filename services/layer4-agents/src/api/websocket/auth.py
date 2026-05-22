@@ -2,15 +2,11 @@
 
 Canonical auth transport: Sec-WebSocket-Protocol bearer format.
   Protocol subprotocols: ['base64url.bearer.authorization', '<jwt>']
-
-Legacy query-parameter auth is accepted with a deprecation warning and
-will be removed in v2.0 (tracked: SEC-L3-012).
 """
 
 from __future__ import annotations
 
 import logging
-import uuid
 
 logger = logging.getLogger(__name__)
 
@@ -59,42 +55,6 @@ def extract_token_from_protocol_header(protocol_header: str) -> str | None:
         return token if token else None
 
     return None
-
-
-def extract_token_from_query_param(
-    token: str | None,
-    *,
-    correlation_id: str | None = None,
-) -> str | None:
-    """Accept a legacy query-parameter token and emit a deprecation warning.
-
-    This path will be removed in v2.0 (SEC-L3-012).  Every call emits a
-    structured WARNING so that telemetry can confirm 0% usage before removal.
-
-    Args:
-        token: Raw token value from the ``token`` query parameter.
-        correlation_id: X-Request-ID / canonical correlation ID for tracing.
-
-    Returns:
-        The token string if non-empty, otherwise None.
-    """
-    if not token or not token.strip():
-        return None
-
-    cid = correlation_id or str(uuid.uuid4())
-    logger.warning(
-        "DEPRECATION [SEC-L3-012]: WebSocket token supplied via query parameter. "
-        "Migrate to Sec-WebSocket-Protocol header before v2.0. "
-        "correlation_id=%s",
-        cid,
-        extra={
-            "event": "ws_auth_legacy_query_param",
-            "deprecation_target": "v2.0",
-            "removal_ticket": "SEC-L3-012",
-            "correlation_id": cid,
-        },
-    )
-    return token.strip()
 
 
 def decode_ws_token(token: str | None) -> tuple[str, str]:
