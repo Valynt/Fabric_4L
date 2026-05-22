@@ -655,9 +655,12 @@ class BillingService:
         local_invoice = result.scalar_one_or_none()
         if local_invoice:
             local_invoice.status = "paid"
-            local_invoice.amount_paid = int(invoice.get("amount_paid") or local_invoice.amount_paid)
-            local_invoice.amount_due = int(invoice.get("amount_due") or local_invoice.amount_due)
-            local_invoice.total = int(invoice.get("total") or local_invoice.total)
+            raw_paid = invoice.get("amount_paid")
+            raw_due = invoice.get("amount_due")
+            raw_total = invoice.get("total")
+            local_invoice.amount_paid = int(raw_paid if raw_paid is not None else local_invoice.amount_paid)
+            local_invoice.amount_due = int(raw_due if raw_due is not None else local_invoice.amount_due)
+            local_invoice.total = int(raw_total if raw_total is not None else local_invoice.total)
             local_invoice.paid_at = self._utc_now()
             await self.db.flush()
 
