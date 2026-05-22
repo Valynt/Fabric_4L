@@ -121,7 +121,7 @@ async def create_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     data = body.model_dump()
@@ -172,7 +172,7 @@ async def list_signals(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     items, total = await repo.list(
@@ -204,7 +204,7 @@ async def get_account_signals(
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     items, total = await repo.list(
@@ -229,7 +229,7 @@ async def get_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     signal = await repo.get(signal_id)
@@ -250,7 +250,7 @@ async def update_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
@@ -285,7 +285,7 @@ async def delete_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> None:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     deleted = await repo.soft_delete(signal_id)
@@ -305,7 +305,7 @@ async def review_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     new_state = str(body.status) if hasattr(body.status, "value") else body.status
@@ -340,7 +340,7 @@ async def promote_signal(
     request: Request,
     db: AsyncSession = Depends(get_db_from_context),
 ) -> dict[str, Any]:
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     signal = await repo.get(signal_id)
@@ -384,7 +384,7 @@ async def refine_signals(
     falls back to ``source_refs`` for backward compatibility. The fallback
     produces signals with synthetic content and should not be used in production.
     """
-    tenant_id = get_tenant_id_from_context(request)
+    tenant_id = get_tenant_id_from_context()
     repo = _get_repo(db, tenant_id)
 
     now = datetime.now(UTC).isoformat()
