@@ -10,9 +10,9 @@
 
 ## Executive Summary
 
-> **Canonical source:** [`docs/readiness/current.md`](docs/readiness/current.md) is the single source of truth for launch readiness percentage and criteria.
-> Any readiness percentage in this roadmap is **historical/contextual** (audit date: 2026-04-09) and must not be treated as the current launch-readiness value.
-> Do not update percentages here — update `docs/readiness/current.md` with fresh `make verify` evidence instead.
+> **Canonical claimed-readiness source:** [`docs/release/readiness-matrix.yaml`](docs/release/readiness-matrix.yaml) is the single source of truth for per-workstream claimed percentages and ownership.
+> `ROADMAP.md` must mirror those values in the Executive Summary table only. Do not duplicate or independently edit percentages elsewhere in this document.
+> Backing launch evidence and acceptance criteria remain in [`docs/readiness/current.md`](docs/readiness/current.md).
 
 
 The Value Fabric platform has substantial implementation across all 4 original layers:
@@ -2202,7 +2202,7 @@ Task 40 (30min) → Task 41 (15min) → Task 42 (2hrs) → Tasks 46-47 (4 days) 
 
 ### Executive Summary
 
-> Canonical launch readiness and launch criteria now live in `docs/readiness/current.md`.
+> Canonical claimed-readiness percentages now live in `docs/release/readiness-matrix.yaml`; launch criteria remain in `docs/readiness/current.md`.
 > Current canonical value: **Launch Readiness: 95%**.
 
 
@@ -3989,7 +3989,7 @@ Task 85 (Cost metrics) ──► Task 70 (Model Registry)
 
 ### Executive Summary
 
-> Canonical launch readiness and launch criteria now live in `docs/readiness/current.md`.
+> Canonical claimed-readiness percentages now live in `docs/release/readiness-matrix.yaml`; launch criteria remain in `docs/readiness/current.md`.
 > Current canonical value: **Launch Readiness: 95%**.
 
 

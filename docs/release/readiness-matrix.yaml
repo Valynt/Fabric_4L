@@ -1,0 +1,39 @@
+# Canonical claimed launch-readiness percentages for ROADMAP workstreams.
+# Keep this file in sync with ROADMAP executive summary status labels.
+readiness_matrix:
+  - workstream: "L1: Ingestion"
+    claimed_percent: 75
+    owner: Layer 1 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "L2: Extraction"
+    claimed_percent: 92
+    owner: Layer 2 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "L3: Knowledge Graph"
+    claimed_percent: 85
+    owner: Layer 3 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "L4: Agents"
+    claimed_percent: 78
+    owner: Layer 4 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "L5: Ground Truth"
+    claimed_percent: 100
+    owner: Layer 5 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "L6: Benchmarks"
+    claimed_percent: 90
+    owner: Layer 6 Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "Frontend"
+    claimed_percent: 90
+    owner: Frontend Team
+    evidence_link: docs/readiness/current.md
+  - workstream: "DevOps/Infra"
+    claimed_percent: 95
+    owner: Platform Engineering
+    evidence_link: docs/readiness/current.md
+  - workstream: "Phase 3"
+    claimed_percent: 95
+    owner: Program Management
+    evidence_link: docs/readiness/current.md
