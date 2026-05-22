@@ -186,6 +186,7 @@ export const QK = {
     auditExport: (jobId: string) => ["governance", "audit-export", jobId] as const,
     lineage: (correlationId: string) =>
       ["governance", "lineage", correlationId] as const,
+    complianceStatus: () => ["governance", "compliance-status"] as const,
   },
 
   versions: {
