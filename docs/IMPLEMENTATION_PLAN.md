@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical migration plan for the Navigation Architecture cutover. See [docs/archive/INDEX.md](archive/INDEX.md). The resulting navigation model is documented in [NAVIGATION_ARCHITECTURE.md](NAVIGATION_ARCHITECTURE.md) and governed by [DESIGN.md](../DESIGN.md).
+
 # Fabric 4L: Navigation Architecture Implementation Plan
 
 This document outlines the step-by-step implementation plan to migrate the Fabric 4L frontend to the new Navigation Architecture Specification. The goal is to transition from the current dual-track workflow (6-stage Value Studio + 7-step Workflow) to the unified **Progressive Synthesis** model (Accounts → Intelligence → Value Studio).

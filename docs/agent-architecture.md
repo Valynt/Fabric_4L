@@ -1,4 +1,10 @@
-# Agent Architecture
+# Agent Architecture (Layer 4)
+
+> **Scope:** This document covers **Layer 4** agent orchestration only. For the
+> end-to-end platform architecture (all six layers, deployment topology, data
+> flow), see [`core-concepts/architecture.md`](core-concepts/architecture.md).
+> For repository-wide AI agent contributor rules, see the root
+> [`AGENTS.md`](../AGENTS.md).
 
 ## Overview
 

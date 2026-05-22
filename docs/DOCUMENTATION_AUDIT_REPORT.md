@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical audit snapshot (2026-05-03). Outcomes have been actioned and superseded by subsequent docs work. See [docs/archive/INDEX.md](archive/INDEX.md) for the catalogue of historical reports and their current replacements.
+
 # Documentation Audit Report
 
 **Audit Date:** 2026-05-03  

@@ -1,5 +1,7 @@
 # Migration note: Layer 5/6 canonical imports
 
+> **STATUS: ARCHIVED (superseded by [ADR-027](architecture/adr-027-layer3-canonical-path.md))** — historical migration snapshot. The direction documented below was **reversed** in May 2026: canonical runtime for every layer is now `services/layer{N}-*/src/`, and `value_fabric/layer{5,6}/` are path-appender shims. See [`reference/layer-runtime-path-governance.md`](reference/layer-runtime-path-governance.md) and [`archive/INDEX.md`](archive/INDEX.md).
+
 Date: 2026-05-06
 
 ## Moved/canonicalized modules

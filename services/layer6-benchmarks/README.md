@@ -1,7 +1,7 @@
 # Layer 6: Benchmark Service
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: net-new layer logic must go to canonical runtime packages in `value_fabric/layer*/`. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: per [ADR-027](../../docs/architecture/adr-027-layer3-canonical-path.md), net-new Layer 6 logic must go to `services/layer6-benchmarks/src/`. `value_fabric/layer6/` is a path-appender shim only. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 Standalone service for comparative intelligence and peer benchmarking.
 
@@ -46,23 +46,24 @@ Layer 6 integrates with Layer 4 Agents via the `IBenchmarkClient` interface (see
 
 ## Source ownership
 
-Canonical runtime location for Layer 6 implementation logic: `value_fabric/layer6/`.
+Canonical runtime location for Layer 6 implementation logic: **`services/layer6-benchmarks/src/`** (per [ADR-027](../../docs/architecture/adr-027-layer3-canonical-path.md)).
 
-`services/layer6-benchmarks/` remains the deployable service root (Docker, migrations, tests, packaging).
-If compatibility wrappers exist under `services/layer6-benchmarks/src/`, they must stay thin re-exports only
-and be enforced by:
+`value_fabric/layer6/` is a **path-appender shim** that resolves `value_fabric.layer6.*` imports to the canonical service tree. Do not add implementation files there; CI gates (`scripts/ci/check_layer56_shims.py`, `scripts/ci/check_stale_namespace_dirs.py`) reject regressions.
 
-- `scripts/mirrored_files.json`
+Where wrapper files still exist under `services/layer6-benchmarks/src/` to preserve historical import paths, they must remain byte-aligned thin re-exports declared in `scripts/mirrored_files.json` and enforced by:
+
 - `scripts/check_mirrored_files.py`
 - `scripts/ci/check_layer6_wrapper_drift.py`
 
-Use canonical imports (`value_fabric.layer6.*`) for all new Layer 6 runtime code.
+Use canonical imports (`layer6_benchmarks.*` or `value_fabric.layer6.*` — both resolve to the canonical tree) for all new Layer 6 runtime code.
 
 Contributor placement rule:
 
-- Add or change Layer 6 runtime logic in `value_fabric/layer6/`.
-- Touch `services/layer6-benchmarks/src/` only when service-local wrapper coverage must track the canonical module tree.
-- Wrapper files under `services/layer6-benchmarks/src/` are byte-aligned to a generated re-export template declared in `scripts/mirrored_files.json`; local implementation code there is a CI failure.
+- Add or change Layer 6 runtime logic under `services/layer6-benchmarks/src/`.
+- Do not add files to `value_fabric/layer6/`; it is shim-only.
+- Mirrored compatibility wrappers (if registered in `scripts/mirrored_files.json`) must stay aligned to the generated re-export template.
+
+This section previously recommended the opposite; treat the rule above as authoritative.
 
 Targeted validation for wrapper drift:
 

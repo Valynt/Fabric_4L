@@ -23,7 +23,7 @@ The architecture follows the [Platform Contract](packages/platform-contract/CONT
 └───────────────────────────────┬─────────────────────────────────────────────┘
                                 │
 ┌───────────────────────────────▼─────────────────────────────────────────────┐
-│              LAYER 4: AGENTIC WORKFLOW ENGINE (Port 8002)                    │
+│              LAYER 4: AGENTIC WORKFLOW ENGINE (Port 8004)                    │
 │      (LangGraph · ROI Calculator · Business Case Generator · Checkpoints)  │
 └───────────────────────────────┬─────────────────────────────────────────────┘
                                 │ REST
@@ -33,12 +33,12 @@ The architecture follows the [Platform Contract](packages/platform-contract/CONT
 └───────────────────────────────┬─────────────────────────────────────────────┘
                                 │ RDF/Turtle
 ┌───────────────────────────────▼─────────────────────────────────────────────┐
-│         LAYER 2: ONTOLOGY-GUIDED EXTRACTION PIPELINE (Port 8000)           │
+│         LAYER 2: ONTOLOGY-GUIDED EXTRACTION PIPELINE (Port 8002)           │
 │    (Pydantic v2 · LLM Extraction · RDF/OWL · Provenance · Batch Ingest)    │
 └───────────────────────────────┬─────────────────────────────────────────────┘
                                 │ Markdown chunks
 ┌───────────────────────────────▼─────────────────────────────────────────────┐
-│           LAYER 1: INTELLIGENT DATA INGESTION SERVICE (Port 8000)         │
+│           LAYER 1: INTELLIGENT DATA INGESTION SERVICE (Port 8001)         │
 │     (Playwright · Celery/Redis · PostgreSQL · Multi-tenancy · Compliance) │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```

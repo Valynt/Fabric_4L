@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical alignment analysis. See [docs/archive/INDEX.md](archive/INDEX.md) for the catalogue of historical reports and their current replacements. Current contract alignment is governed by [contracts/GOVERNANCE.md](../contracts/GOVERNANCE.md) and the generated specs under [contracts/openapi/](../contracts/openapi/).
+
 # Backend-Frontend Alignment Analysis
 ## Value Fabric Platform
 

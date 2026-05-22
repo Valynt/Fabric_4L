@@ -10,7 +10,7 @@ repo structure, change safety rules, and how to add agents, skills, and provider
 ### Prerequisites
 
 - Python 3.11+
-- Node.js 20+ and pnpm 10+
+- Node.js 22+ and pnpm 10+
 - Docker + Docker Compose
 - `make`
 
@@ -22,10 +22,11 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — fill in TOGETHER_API_KEY and JWT_SECRET at minimum
+# Edit .env — fill in OPENAI_API_KEY and JWT_SECRET at minimum
 
 # 3. Start infrastructure
-docker compose up -d
+make up
+# Or directly: docker compose -f docker-compose.dev.yml up -d
 
 # 4. Install all service dev dependencies (installs into the pytest pipx venv)
 make setup
@@ -58,6 +59,33 @@ Use these companion governance references during onboarding and before opening a
 - [`.github/pull_request_template.md`](.github/pull_request_template.md) for the required PR
   confirmations covering contract-shape, tenant-isolation, and compatibility-shim impact
 
+## Before You Add A Service Layer
+
+Per **[ADR-027](docs/architecture/adr-027-layer3-canonical-path.md)**, the
+canonical implementation tree for every layer is
+`services/layer{N}-*/src/`. The matching `value_fabric/layer{N}/` package is a
+**namespace shim only** — do not add new logic there. Concretely:
+
+- New runtime modules → `services/layer{N}-*/src/`.
+- New API routes → `services/layer{N}-*/src/api/routes/`.
+- New cross-layer imports → import from the service package
+  (`layer{N}_{name}.*`) or the shim (`value_fabric.layer{N}.*`); both resolve
+  to the same module.
+- Layer 6 wrappers under `services/layer6-benchmarks/src/` (if present) must
+  remain thin re-exports — see [`scripts/check_mirrored_files.py`](scripts/check_mirrored_files.py).
+
+Read [`docs/reference/layer-runtime-path-governance.md`](docs/reference/layer-runtime-path-governance.md)
+for the full path matrix and [`docs/reference/service-routing-and-api-version-matrix.md`](docs/reference/service-routing-and-api-version-matrix.md)
+for per-service ports and API version compatibility.
+
+## Testing
+
+The unified testing strategy — test layers, commands, coverage targets, and
+when contract / hostile-tenant tests are required — lives in
+[`docs/reference/testing-strategy.md`](docs/reference/testing-strategy.md).
+Frontend conventions for queries, mutations, and state live in
+[`docs/reference/frontend-query-patterns.md`](docs/reference/frontend-query-patterns.md).
+
 If your change affects backend routes, frontend API consumers, or compatibility shims, complete the
 governance confirmations in the PR body and update linked contracts, docs, and tests before review.
 
@@ -76,16 +104,21 @@ Directories such as `archive/` and `prototypes/` are treated as **experimental/n
 
 Before adding compatibility wrappers or legacy aliases in runtime code, add/update an entry in `docs/governance/compatibility-debt-registry.md` (owner, reason, target removal date).
 
-### Layer 6 placement rule
+### Layer placement rule (all layers)
 
-- Canonical Layer 6 runtime code belongs in `value_fabric/layer6/`.
-- `services/layer6-benchmarks/src/` is wrapper-only. Do not add business logic there.
-- When a new Layer 6 module needs a compatibility import path, register the wrapper in `scripts/mirrored_files.json` and run:
+Per [ADR-027](docs/architecture/adr-027-layer3-canonical-path.md) and the
+[layer runtime path governance matrix](docs/reference/layer-runtime-path-governance.md):
+
+- Canonical runtime code for every layer belongs in `services/layer{N}-*/src/`.
+- `value_fabric/layer{N}/` packages are **path-appender shims** only — do not add business logic there.
+- Any compatibility wrappers still present under `services/layer6-benchmarks/src/` must remain thin re-exports registered in `scripts/mirrored_files.json` and validated by:
 
 ```bash
 python scripts/ci/check_layer6_wrapper_drift.py
 python scripts/check_mirrored_files.py
 ```
+
+This section previously recommended the opposite for Layer 6; treat the rule above as authoritative.
 
 Before opening a PR, run:
 

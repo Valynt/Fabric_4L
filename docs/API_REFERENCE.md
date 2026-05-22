@@ -2,7 +2,18 @@
 
 > **Version:** 1.0.0  
 > **Base URLs:** Each layer runs as a separate service. Replace `<host>` with the appropriate service address.  
-> **Postman Collections:** Planned but deferred to a future milestone.
+> **Source of truth:** the OpenAPI specs under [`contracts/openapi/`](../contracts/openapi/) are authoritative. This document is a human-readable summary kept in sync with those specs. When in doubt, trust the contract files. Regenerate specs via `make contracts`.
+
+## Service ports
+
+| Layer | Service | Port |
+| ----- | ------- | ---- |
+| 1 | layer1-ingestion    | 8001 |
+| 2 | layer2-extraction   | 8002 |
+| 3 | layer3-knowledge    | 8003 |
+| 4 | layer4-agents       | 8004 |
+| 5 | layer5-ground-truth | 8005 |
+| 6 | layer6-benchmarks   | 8006 |
 
 ---
 
@@ -15,8 +26,9 @@
 - [Layer 3 — Knowledge Graph](#layer-3--knowledge-graph)
 - [Layer 4 — Agents](#layer-4--agents)
 - [Layer 5 — Ground Truth](#layer-5--ground-truth)
+- [Layer 6 — Benchmarks](#layer-6--benchmarks)
 - [Health Endpoints](#health-endpoints)
-- [Postman Collections](#postman-collections)
+- [Interactive Exploration](#interactive-exploration)
 
 ---
 
@@ -613,6 +625,63 @@ Ground-truth store and evaluation API for validating agent outputs.
 
 ---
 
+## Layer 6 — Benchmarks
+
+Base path: `/v1/benchmarks` on port **8006**. Routes are defined in
+[`services/layer6-benchmarks/src/api/routes/benchmarks.py`](../services/layer6-benchmarks/src/api/routes/benchmarks.py).
+All handlers require an authenticated request context (`get_request_context`)
+and are tenant-scoped where the underlying data model requires it.
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET  | `/v1/benchmarks/datasets`                 | List benchmark datasets. Optional `industry` and `segment` query filters. | Yes |
+| GET  | `/v1/benchmarks/datasets/{dataset_id}`    | Fetch a single dataset's detail. | Yes |
+| POST | `/v1/benchmarks/compare`                  | Compare a tenant signal against peer datasets. | Yes |
+| POST | `/v1/benchmarks/validate`                 | Statistically validate a candidate benchmark value. | Yes |
+| GET  | `/v1/benchmarks/industries`               | List known industries available for benchmarking. | Yes |
+
+### `GET /v1/benchmarks/datasets`
+
+Returns `List[DatasetSummary]`. Filterable by:
+
+- `industry` (query, optional)
+- `segment`  (query, optional)
+
+### `GET /v1/benchmarks/datasets/{dataset_id}`
+
+Returns `DatasetDetail` for one dataset. 404 if the dataset is not visible to
+the caller's tenant context.
+
+### `POST /v1/benchmarks/compare`
+
+**Request body:** `ComparisonRequestPayload`  
+**Response:** `ComparisonResponse`
+
+Produces a peer-comparison result for the supplied signal. Schema details live
+in the OpenAPI spec under `contracts/openapi/` and the route schema module
+[`services/layer6-benchmarks/src/api/schemas.py`](../services/layer6-benchmarks/src/api/schemas.py).
+
+### `POST /v1/benchmarks/validate`
+
+**Request body:** `ValidationRequestPayload`  
+**Response:** `ValidationResponse`
+
+Runs statistical validation (confidence, sample size, outlier checks) on a
+candidate benchmark value.
+
+### `GET /v1/benchmarks/industries`
+
+Returns the list of industries the benchmark service knows about. Useful for
+populating filter UIs prior to calling `/datasets`.
+
+Layer 6 also exposes:
+
+| Method | Path | Description | Auth |
+| ------ | ---- | ----------- | ---- |
+| GET | `/ready` | Readiness probe with backing-store status. | No |
+
+---
+
 ## Health Endpoints
 
 Every layer exposes a standard health check:
@@ -634,10 +703,20 @@ Every layer exposes a standard health check:
 
 ---
 
-## Postman Collections
+## Interactive Exploration
 
-> **Status: Deferred.**  
-> Postman / OpenAPI-based collection exports for each layer are planned for a future milestone. In the meantime, use the OpenAPI specs in `contracts/openapi/` to generate client stubs or import into API testing tools.
+Every service mounts an interactive Swagger UI at `/docs` and a ReDoc view at
+`/redoc` when run in non-production mode. Use these to explore live endpoints
+against a running stack.
+
+For offline tooling:
+
+- **OpenAPI specs:** [`contracts/openapi/`](../contracts/openapi/) — authoritative source.
+- **Generated TypeScript client:** [`apps/web/src/api/generated`](../apps/web/src/api/generated) — regenerated from the specs above.
+- **Postman / Insomnia:** import any spec from `contracts/openapi/` directly into the tool of choice.
+- **Contract governance:** [`contracts/GOVERNANCE.md`](../contracts/GOVERNANCE.md).
+
+Regenerate everything: `make contracts`.
 
 ---
 
