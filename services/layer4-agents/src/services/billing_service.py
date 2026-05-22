@@ -243,7 +243,6 @@ class BillingService:
     async def get_active_subscription(self, customer_id: str, tenant_id: str | None = None) -> BillingSubscription | None:
         """Get the active subscription for a customer."""
         self.authorize_customer_access(customer_id)
-        self.authorize_customer_access(customer_id)
         result = await self.db.execute(
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
