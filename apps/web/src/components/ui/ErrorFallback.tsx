@@ -10,6 +10,7 @@ import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from './card';
 import { cn } from '@/lib/utils';
 import { useNavigation } from '@/hooks/useNavigation';
+import { normalizeError } from '@/lib/errors';
 
 interface ErrorFallbackProps {
   error?: Error | null;
@@ -22,37 +23,6 @@ interface ErrorFallbackProps {
   className?: string;
 }
 
-/**
- * Extract user-friendly error message from any error type
- */
-function getErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message;
-  }
-  if (typeof error === 'string') {
-    return error;
-  }
-  if (error && typeof error === 'object' && 'message' in error) {
-    return String((error as { message: unknown }).message);
-  }
-  return 'An unexpected error occurred';
-}
-
-/**
- * Get error code for debugging
- */
-function getErrorCode(error: unknown): string | undefined {
-  if (error && typeof error === 'object') {
-    if ('code' in error) {
-      return String((error as { code: unknown }).code);
-    }
-    if ('statusCode' in error) {
-      return String((error as { statusCode: unknown }).statusCode);
-    }
-  }
-  return undefined;
-}
-
 export function ErrorFallback({
   error,
   title = 'Something went wrong',
@@ -63,8 +33,9 @@ export function ErrorFallback({
   showBackButton = true,
   className,
 }: ErrorFallbackProps) {
-  const errorMessage = error ? getErrorMessage(error) : description || 'An unexpected error occurred';
-  const errorCode = error ? getErrorCode(error) : undefined;
+  const normalizedError = error ? normalizeError(error) : undefined;
+  const errorMessage = normalizedError?.message ?? description ?? 'An unexpected error occurred';
+  const errorCode = normalizedError?.code;
 
   const handleBack = () => {
     window.history.back();

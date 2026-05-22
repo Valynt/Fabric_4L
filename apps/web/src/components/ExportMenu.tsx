@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { FileDown, Loader2 } from "lucide-react";
 import { apiPost } from "@/api/typedClient";
+import { normalizeError } from "@/lib/errors";
 
 interface ExportMenuProps {
   accountId: string;
@@ -24,8 +25,9 @@ export function ExportMenu({ accountId, valueCaseId }: ExportMenuProps) {
       if (response.data.status === "ready") {
         window.open(response.data.download_url, "_blank");
       }
-    } catch (err: any) {
-      setError(err?.message || `Export failed for ${format}`);
+    } catch (err: unknown) {
+      const normalizedError = normalizeError(err, `Export failed for ${format}`);
+      setError(normalizedError.message);
     } finally {
       setLoading(null);
     }
