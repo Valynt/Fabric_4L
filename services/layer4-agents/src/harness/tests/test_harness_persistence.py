@@ -60,7 +60,7 @@ from harness.models import (
     ToolRiskLevel,
     ToolSideEffectClass,
 )
-from harness.registry import HarnessRegistryError, RunNotFoundError
+from harness.registry import RunNotFoundError
 from harness.repositories import (
     CheckpointRepository,
     HarnessRunRepository,
@@ -654,21 +654,33 @@ class TestSqlHarnessRegistryIntegration:
         assert len(runs_a) == 1
 
 
-    async def test_get_events_sync_raises_not_implemented(
+    async def test_get_events_sync_returns_in_memory_events(
         self, session: AsyncSession
     ) -> None:
-        """SqlTelemetryEmitter.get_events() raises NotImplementedError.
-
-        Returning [] would produce false-negative telemetry assertions in
-        callers migrating from the in-memory emitter. The error message must
-        name get_events_async() as the correct alternative.
-        """
+        """SqlTelemetryEmitter.get_events() mirrors in-memory filtering behavior."""
         from harness.sql_stores import SqlTelemetryEmitter
 
         emitter = SqlTelemetryEmitter(session)
-        with pytest.raises(NotImplementedError) as exc_info:
-            emitter.get_events()
-        assert "get_events_async" in str(exc_info.value)
+        run = HarnessRun(
+            tenant_id=TENANT_A,
+            workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
+            initiated_by=InitiatedBy.USER,
+        )
+        emitter.emit_transition_event(
+            run=run,
+            from_state=HarnessState.INIT,
+            to_state=HarnessState.RESOLVE_CONTEXT,
+        )
+
+        all_events = emitter.get_events()
+        run_events = emitter.get_events(run_id=run.id)
+        tenant_events = emitter.get_events(tenant_id=TENANT_A)
+
+        assert len(all_events) == 1
+        assert len(run_events) == 1
+        assert len(tenant_events) == 1
+        assert run_events[0].run_id == run.id
+        assert tenant_events[0].tenant_id == TENANT_A
 
     async def test_decide_gate_enriches_telemetry_with_run_trace_id(
         self, session: AsyncSession
@@ -832,8 +844,8 @@ class TestSqlClaimValidationStore:
             SqlTelemetryEmitter,
             SqlToolContractRegistry,
         )
-        from harness.validation_hooks import ClaimValidationRequest, ValidationHook
         from harness.state_machine import StateMachine
+        from harness.validation_hooks import ClaimValidationRequest, ValidationHook
 
         # Stub the ValidationHook to return a known PASSED result
         mock_hook = ValidationHook(primary_validator=None)
@@ -884,4 +896,3 @@ class TestSqlClaimValidationStore:
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
-

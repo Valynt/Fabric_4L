@@ -120,8 +120,9 @@ async def workflow_websocket(
     """
     # OBS-L4-004: Resolve correlation ID at the HTTP upgrade stage.
     trace_ctx = resolve_trace_context(websocket.headers)
-    trace_id = trace_ctx.trace_id or str(uuid.uuid4())
-    correlation_id = trace_id
+    connection_trace_id = trace_ctx.trace_id or str(uuid.uuid4())
+    trace_id = connection_trace_id
+    correlation_id = connection_trace_id
     _log: dict = {
         "workflow_id": workflow_id,
         "trace_id": trace_id,
@@ -171,15 +172,17 @@ async def workflow_websocket(
             last_event_id,
             tenant_id=tenant_id,
             user_id=user_id,
-            trace_id=trace_id,
+            trace_id=connection_trace_id,
             correlation_id=correlation_id,
+            x_request_id=connection_trace_id,
+            request_id=connection_trace_id,
         )
 
         while True:
             try:
                 message = await websocket.receive_json()
                 await ws_manager.handle_client_message(
-                    websocket, workflow_id, message, trace_id=trace_id
+                    websocket, workflow_id, message, trace_id=connection_trace_id
                 )
             except WebSocketDisconnect:
                 logger.info("WebSocket client disconnected", extra=_log)
@@ -195,4 +198,4 @@ async def workflow_websocket(
         logger.error("WebSocket session error", extra={**_log, "error": str(exc)})
     finally:
         logger.info("WebSocket workflow session ended", extra=_log)
-        await ws_manager.disconnect(websocket, workflow_id, trace_id=trace_id)
+        await ws_manager.disconnect(websocket, workflow_id, trace_id=connection_trace_id)

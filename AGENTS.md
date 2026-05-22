@@ -1,10 +1,315 @@
-# Value Fabric Agent Rules
+# Value Fabric — Agent Reference
 
-You are an AI coding agent working inside the Value Fabric / Fabric_4L repository.
+> Practical commands and directory map for AI agents and contributors.
+> For full architectural rules and governance, see the sections below.
 
-Value Fabric is a production-grade, enterprise agentic SaaS platform that transforms unstructured enterprise data into structured, actionable knowledge through an ontology-guided six-layer semantic pipeline and autonomous AI agents.
+---
 
-Your job is to make safe, production-aligned changes that preserve architecture, contracts, tenant isolation, frontend governance, and cross-layer consistency.
+## Setup
+
+### Prerequisites
+
+- Python 3.11+
+- Node.js ≥ 22.12.0 and pnpm 10.18.1
+- Docker + Docker Compose
+- `make`
+
+### First-time setup
+
+```bash
+# 1. Clone and configure environment
+cp .env.example .env
+# Edit .env — set JWT_SECRET and the provider key(s) you use for local dev: OPENAI_API_KEY and/or ANTHROPIC_API_KEY; use LAYER4_TOGETHER_API_KEY for Layer4 Together access
+
+# 2. Enable pnpm via corepack (do not use npm/yarn)
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
+
+# 3. Install frontend dependencies
+pnpm install --frozen-lockfile
+
+# 4. Install Python service dependencies into the pytest pipx venv
+make setup
+
+# 5. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
+docker compose -f docker-compose.dev.yml up -d
+
+# 6. Run database migrations
+make migrate
+
+# 7. Verify everything passes
+make verify
+```
+
+---
+
+## Dev Server
+
+```bash
+# Local Docker Compose stack (frontend + supporting backend services defined in docker-compose.dev.yml)
+docker compose -f docker-compose.dev.yml up
+
+# Frontend only (Vite, port 3001, with mock API)
+pnpm --dir apps/web run dev
+
+# Frontend against live backend services
+pnpm --dir apps/web run dev:live
+# Requires: VITE_API_BASE_URL, VITE_PROXY_L1_URL … VITE_PROXY_L6_URL
+```
+
+---
+
+## Build
+
+```bash
+# Frontend production build
+pnpm --dir apps/web run build
+
+# Analyze bundle size
+pnpm --dir apps/web run build:analyze
+```
+
+---
+
+## Testing
+
+### Backend (Python / pytest)
+
+```bash
+# All backend layers
+make test
+
+# Single layer
+make test-layer1
+make test-layer2
+make test-layer3
+make test-layer4
+make test-layer5
+make test-layer6
+
+# Specific test file or marker
+pytest services/layer4-agents/tests/test_*.py
+pytest -m unit
+pytest -m "contract_static"
+pytest -m "tenant_boundary"
+
+# Contract + architecture tests (no live services required)
+make contract-tests
+
+# Backend-integrated validation (requires running stack)
+make test-backend-integrated-validation
+
+# Release smoke (boots full L1–L6 stack)
+make test-backend-integrated-release-smoke
+```
+
+**Key pytest markers** (pass via `-m`):
+
+| Marker | Meaning |
+|---|---|
+| `unit` | Fast, no I/O |
+| `integration` | Real DB/cache, no containers |
+| `contract_static` | OpenAPI contract checks, no live services |
+| `service_required` | Contract tests needing live endpoints |
+| `tenant_boundary` | Cross-tenant isolation regression |
+| `security` | OWASP Top 10 |
+| `slow` | >1 s or heavy deps |
+| `backend_integrated` | Full live-stack validation |
+
+### Frontend (Vitest + Playwright)
+
+```bash
+# Unit/component tests
+pnpm --dir apps/web run test
+
+# Watch mode
+pnpm --dir apps/web run test:watch
+
+# Coverage
+pnpm --dir apps/web run test:coverage
+
+# Contract tests only
+pnpm --dir apps/web run test:contracts
+
+# Security: assert no dev auth bypass in production build
+pnpm --dir apps/web run test:prod-auth-bypass
+
+# E2E (mocked, Playwright)
+pnpm --dir apps/web run test:e2e
+
+# E2E against live backend
+pnpm --dir apps/web run test:e2e:live
+# Requires: PLAYWRIGHT_LIVE_MODE=true, PLAYWRIGHT_LIVE_FRONTEND_URL, PLAYWRIGHT_BACKEND_URL
+
+# Specific golden-path journeys
+pnpm --dir apps/web run test:e2e:golden:j1:canonical
+pnpm --dir apps/web run test:e2e:golden:j11
+
+# Accessibility
+pnpm --dir apps/web run test:a11y:components
+pnpm --dir apps/web run test:a11y:pages
+```
+
+---
+
+## Lint & Format
+
+```bash
+# All Python layers (ruff)
+make lint
+
+# Single layer
+make lint-layer1   # … lint-layer6
+
+# Python type-check (mypy)
+make typecheck
+make typecheck-layer4   # … per-layer variants
+
+# Frontend lint (hygiene + legacy import checks)
+pnpm --dir apps/web run lint
+
+# Frontend type-check
+pnpm --dir apps/web run typecheck
+
+# Python formatting (black) — via pre-commit
+pre-commit run black --all-files
+
+# Frontend formatting (prettier)
+pnpm --dir apps/web run format
+
+# Install pre-commit hooks (run once)
+pre-commit install
+```
+
+---
+
+## Contract & Governance Checks
+
+```bash
+# Full verification gate (required before PR)
+make verify
+
+# Contract compliance
+pnpm run check:contract-compliance
+
+# Regenerate API types and assert no drift
+pnpm run check:api-types
+
+# Check for unresolved merge conflict markers
+make check-conflict-markers
+
+# Enforce pytest skip governance
+make check-pytest-skip-governance
+
+# Frontend verification suite
+pnpm run verify:frontend
+```
+
+---
+
+## Migrations
+
+```bash
+# All layers
+make migrate
+
+# Per-layer
+make migrate-layer1
+make migrate-layer2
+make migrate-layer4
+make migrate-layer5
+
+# Validate migration entrypoints (exactly one Alembic head per service)
+make check-migration-heads
+```
+
+---
+
+## PR Requirements
+
+### Branch naming
+
+No enforced pattern is documented; use descriptive names (e.g., `feat/layer4-checkpoint-resume`, `fix/tenant-isolation-l3`).
+
+### Commit format
+
+Follow conventional commits where possible. Co-author AI-assisted commits:
+
+```
+Co-authored-by: Ona <no-reply@ona.com>
+```
+
+### Required CI checks (`.github/workflows/pr-checks.yml`)
+
+All PRs targeting `main` must pass the GitHub checks as named in the workflow:
+
+- `structural-preflight` — import topology, Python contract lint, frontend root policy, and pnpm-only/package-manager enforcement
+- Per-layer lint, typecheck, and test jobs
+- `contract-checks` — OpenAPI drift detection and related contract coverage
+- Any additional required jobs shown in the PR’s Checks tab under `.github/workflows/pr-checks.yml`
+
+### PR body
+
+Fill in the required sections from `.github/pull_request_template.md`:
+
+- **Governance Impact** — contract shape, tenant isolation, compatibility shim impact
+- **Release & Policy Checklist** — contracts updated, API versioning, DR runbooks
+- **Validation** — confirm `make verify` passed; `make evals` for agent/prompt changes
+
+---
+
+## Key Directories
+
+```
+apps/web/                    Frontend (React, Vite, TanStack Query, Tailwind, shadcn/ui)
+services/
+  layer1-ingestion/          L1: Playwright crawling, Celery jobs, Redis queues (port 8001)
+  layer2-extraction/         L2: Pydantic v2 extraction, RDF/OWL, provenance (port 8002)
+  layer3-knowledge/          L3: Neo4j, GraphRAG, hybrid retrieval, pgvector (port 8003)
+  layer4-agents/             L4: LangGraph workflows, ROI calculator, agent orchestration (port 8004)
+  layer5-ground-truth/       L5: TruthObject validation, maturity ladder (port 8005)
+  layer6-benchmarks/         L6: Peer comparison, statistical validation (port 8006)
+  api/                       Shared API gateway / auth enforcement
+value_fabric/                Runtime Python packages (canonical source for L1–L4, L6, shared)
+packages/
+  shared/                    Shared Python library (tenant context, base models)
+  platform-contract/         Cross-layer contract definitions and test harness
+contracts/
+  openapi/                   OpenAPI specs (source of truth for API contracts)
+  jsonschema/                JSON Schema definitions
+tests/
+  contract/                  Cross-layer contract and architecture tests
+  security/                  OWASP / tenant-boundary security tests
+  backend_integrated/        Full-stack integration tests (requires live services)
+packs/                       Domain extension packs (ontologies, formulas, benchmarks)
+docs/                        Documentation (Diataxis: tutorials, how-to, reference, explanations)
+scripts/ci/                  CI gate scripts (contract compliance, structural preflight, etc.)
+config/ci/                   CI configuration (skip allowlists, legacy debt baselines)
+k8s/                         Kubernetes manifests
+monitoring/                  Observability configuration
+.github/workflows/           CI/CD pipeline definitions
+```
+
+---
+
+## Important Files
+
+| File | Purpose |
+|---|---|
+| `DESIGN.md` | **Required reading** before modifying `apps/web/` |
+| `docs/contract.md` | Canonical platform contract (tenant context, middleware, agent output shape) |
+| `docs/governance.md` | Engineering governance entry points |
+| `canonical-paths-policy.md` | Runtime path governance matrix |
+| `.env.example` | All required environment variables with safe defaults |
+| `pytest.ini` | pytest configuration, markers, and test profiles |
+| `.pre-commit-config.yaml` | Pre-commit hooks (gitleaks, black, ruff, prettier) |
+| `docs/governance/compatibility-debt-registry.md` | Compatibility shim tracking |
+
+---
+
+## Architecture Rules
+
+The sections below define the invariants every agent and contributor must preserve.
 
 ---
 
@@ -107,38 +412,6 @@ services/layer4-agents/
 services/layer5-ground-truth/
 services/layer6-benchmarks/
 services/api/
-```
-
-### Frontend
-
-```text
-apps/web/
-```
-
-### Contracts
-
-```text
-contracts/
-```
-
-### Infrastructure
-
-```text
-k8s/
-monitoring/
-.github/workflows/
-```
-
-### Packs
-
-```text
-packs/
-```
-
-### Documentation
-
-```text
-docs/
 ```
 
 Path governance matrix for canonical vs compatibility locations:
@@ -770,12 +1043,8 @@ Optimize for long-term platform integrity over short-term patching.
 
 ## Project Docs
 
-This document covers the AI agent architecture for Value Fabric.
-
-For full details, see:
-
 - [Agent Architecture](docs/AGENTS.md)
-- [Frontend Governance Contract](DESIGN.md) - required reading before modifying `apps/web/`
+- [Frontend Governance Contract](DESIGN.md) — required reading before modifying `apps/web/`
 - [Layer 4 Agents Service](services/layer4-agents/README.md)
 - [ADR-001: Six-Layer Architecture](docs/explanations/adr/ADR-001-six-layer-architecture.md)
 - [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md)

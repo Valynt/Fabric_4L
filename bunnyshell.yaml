@@ -440,6 +440,9 @@ components:
         kind: Service
         name: postgres-init
         dockerCompose:
+            depends_on:
+                postgres:
+                    condition: service_healthy
             environment:
                 POSTGRES_USER: '${POSTGRES_USER}'
                 POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
@@ -447,15 +450,24 @@ components:
                 - /bin/sh
                 - '-c'
                 - |4-
-                     until PGPASSWORD="$POSTGRES_PASSWORD" pg_isready -h postgres -U "$POSTGRES_USER"; do
-                      echo 'waiting for postgres';
-                      sleep 2;
-                    done;
-                    PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -c "CREATE DATABASE layer2_extraction;" 2>/dev/null || true;
-                    PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -c "CREATE DATABASE ground_truth;" 2>/dev/null || true;
-                    PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -c "CREATE DATABASE layer4_agents;" 2>/dev/null || true;
-                    PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -c "CREATE DATABASE layer6_benchmarks;" 2>/dev/null || true;
-                    exit 0;
+                    create_db() {
+                      if PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -d postgres <<EOF
+                    SELECT format('CREATE DATABASE %I', '$1')
+                    WHERE NOT EXISTS (
+                      SELECT 1 FROM pg_database WHERE datname = '$1'
+                    ) \gexec
+                    EOF
+                      then
+                        echo "$1 created or already exists"
+                      else
+                        echo "ERROR creating $1" >&2
+                        exit 1
+                      fi
+                    }
+                    create_db layer2_extraction
+                    create_db ground_truth
+                    create_db layer4_agents
+                    create_db layer6_benchmarks
             image: 'postgres:15-alpine'
             deploy:
                 resources:
@@ -497,6 +509,7 @@ components:
             environment:
                 POSTGRES_DB: ingestion
                 POSTGRES_INITDB_ARGS: '-E UTF8 --locale=C'
+                POSTGRES_MULTIPLE_DATABASES: 'ingestion,layer2_extraction,ground_truth,layer4_agents,layer6_benchmarks'
                 POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
                 POSTGRES_USER: ${POSTGRES_USER}
             healthcheck:
