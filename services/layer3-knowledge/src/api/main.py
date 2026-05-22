@@ -34,6 +34,7 @@ from value_fabric.shared.fastapi_framework import (
     resolve_cors_policy,
 )
 from value_fabric.shared.identity.vault_check import is_vault_healthy
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 from value_fabric.shared.security import validate_production_safety
 
 from ..api.dependencies import close_app_state, init_app_state
@@ -312,6 +313,7 @@ capabilities for enterprise AI workflows.
     )
 
 
+reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
 app = _create_app()
 
 # OpenTelemetry instrumentation (after app creation)
