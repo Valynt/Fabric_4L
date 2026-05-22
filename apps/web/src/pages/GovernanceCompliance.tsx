@@ -7,7 +7,7 @@ import {
   useTruths,
 } from "@/hooks/useGroundTruthGovernance";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, MetricCard, LegacyDataTable } from "@/components/ui/fabric";
+import { PageHeader, MetricCard, DataTable } from "@/components/ui/fabric";
 
 export default function GovernanceCompliance() {
   const { data: freshnessSummary, isLoading: isLoadingFreshness } =
@@ -70,16 +70,27 @@ export default function GovernanceCompliance() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SectionCard title="Maturity Ladder Coverage" noPad>
-          <LegacyDataTable
-            columns={["Level", "Name", "Required Status", "Count"]}
-            rows={(maturityLadder?.levels ?? []).map(level => [
-              <span key="level" className="font-semibold">
-                L{level.level}
-              </span>,
-              <span key="name">{level.name}</span>,
-              <span key="status">{level.required_status}</span>,
-              <span key="count">{maturityCounts[level.level] ?? 0}</span>,
-            ])}
+          <DataTable
+            columns={[
+              {
+                key: "level",
+                header: "Level",
+                render: (value) => (
+                  <span className="font-semibold">L{value}</span>
+                ),
+              },
+              { key: "name", header: "Name" },
+              { key: "status", header: "Required Status" },
+              { key: "count", header: "Count" },
+            ]}
+            data={(maturityLadder?.levels ?? []).map(level => ({
+              key: `maturity-${level.level}`,
+              level: level.level,
+              name: level.name,
+              status: level.required_status,
+              count: maturityCounts[level.level] ?? 0,
+            }))}
+            keyExtractor={(item) => String(item.key)}
             emptyMessage="No maturity ladder definition returned"
           />
         </SectionCard>
@@ -88,21 +99,27 @@ export default function GovernanceCompliance() {
           title={`Stale Truth Objects (${staleTruths?.items.length ?? 0})`}
           noPad
         >
-          <LegacyDataTable
-            columns={["Truth ID", "Claim", "Status", "Maturity", "Freshness"]}
-            rows={(staleTruths?.items ?? []).map(truth => [
-              <span key="id" className="font-mono text-[11px]">
-                {(truth.id ?? '').slice(0, 12)}
-              </span>,
-              <span key="claim" className="line-clamp-2">
-                {truth.claim}
-              </span>,
-              <span key="status">{truth.status}</span>,
-              <span key="maturity">L{truth.maturity_level}</span>,
-              <span key="freshness" className="text-[11px] text-neutral-500">
-                {truth.freshness ? new Date(truth.freshness).toLocaleDateString() : (truth.is_stale ? 'Stale' : 'Fresh')}
-              </span>,
-            ])}
+          <DataTable
+            columns={[
+              { key: "id", header: "Truth ID" },
+              { key: "claim", header: "Claim" },
+              { key: "status", header: "Status" },
+              { key: "maturity", header: "Maturity" },
+              { key: "freshness", header: "Freshness" },
+            ]}
+            data={(staleTruths?.items ?? []).map(truth => ({
+              key: truth.id ?? truth.claim,
+              id: <span className="font-mono text-[11px]">{(truth.id ?? '').slice(0, 12)}</span>,
+              claim: <span className="line-clamp-2">{truth.claim}</span>,
+              status: <span>{truth.status}</span>,
+              maturity: <span>L{truth.maturity_level}</span>,
+              freshness: (
+                <span className="text-[11px] text-neutral-500">
+                  {truth.freshness ? new Date(truth.freshness).toLocaleDateString() : (truth.is_stale ? 'Stale' : 'Fresh')}
+                </span>
+              ),
+            }))}
+            keyExtractor={(item) => String(item.key)}
             emptyMessage="No stale truths currently detected"
           />
         </SectionCard>

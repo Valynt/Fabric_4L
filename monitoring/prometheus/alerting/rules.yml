@@ -70,3 +70,23 @@ groups:
         annotations:
           summary: "Journey non-empty response guarantee violated"
           description: "One or more required journey responses became empty."
+  - name: db_pool_alerts
+    interval: 30s
+    rules:
+      - alert: DatabasePoolHighUtilization
+        expr: |
+          (
+            layer4_db_pool_active_connections / clamp_min(layer4_db_pool_size, 1) > 0.80
+          )
+          or
+          (
+            layer5_db_pool_active_connections / clamp_min(layer5_db_pool_size, 1) > 0.80
+          )
+        for: 10m
+        labels:
+          severity: warning
+          owner: platform-sre
+        annotations:
+          summary: "Sustained DB pool utilization above 80%"
+          description: "Connection pool utilization has stayed above 80% for 10m on Layer 4 and/or Layer 5."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/database/pool-utilization"
