@@ -8,7 +8,7 @@
 
 ## Overview
 
-Fabric_4L uses a mockable agent orchestration layer for MVP. Real LLM providers can be plugged in later.
+Fabric_4L delegates runtime LLM operations through the Layer 4 agent service contract. The services/api orchestrator must not execute local/mock LLM providers.
 
 ## Agents
 
@@ -24,20 +24,13 @@ Fabric_4L uses a mockable agent orchestration layer for MVP. Real LLM providers 
 - Value Realization Agent
 - Governance Review Agent
 
-## LLM Provider Interface
+## Runtime Delegation Contract
 
-```python
-class LLMProvider:
-    def generateStructured(self, prompt: str, schema: dict) -> dict
-    def summarize(self, text: str) -> str
-    def extract(self, text: str, fields: list) -> dict
-    def classify(self, text: str, labels: list) -> str
-    def reason(self, premise: str, question: str) -> str
-```
+`services/api` calls Layer 4 contracted endpoints for workflow-step execution.
 
-## MockLLMProvider
-
-Returns deterministic seeded outputs for all methods. Used in MVP to avoid requiring real API keys.
+- No in-process mock provider fallback in production runtime paths.
+- Layer 4 unavailability maps to service-unavailable/dependency-failure API responses.
+- Provider selection remains inside Layer 4 adapters, preserving provider-agnostic orchestration boundaries.
 
 ## AgentOrchestrator
 
@@ -62,9 +55,6 @@ Agent runs can set `review_required=True` to pause for human approval before con
 
 ## Production Integration
 
-Replace `MockLLMProvider` with:
-- OpenAI GPT-4/4o
-- Together.ai Llama 3
-- Anthropic Claude
+Layer 4 remains the only runtime boundary that selects concrete LLM providers (OpenAI, Together, Anthropic, etc.) through adapters.
 
-Add LangGraph for complex multi-step workflows with checkpointing.
+Services/API must delegate and fail closed when Layer 4 is unavailable.
