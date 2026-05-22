@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/states';
 import { useCreateNotification, useMarkNotificationRead, useNotifications } from '@/hooks/useNotifications';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
+import { safeAsync } from '@/lib/async';
 
 export default function NotificationsPage() {
   const [title, setTitle] = useState('');
@@ -43,7 +44,7 @@ export default function NotificationsPage() {
           title="Notifications"
           subtitle="Persisted in-app feed for workflow events, review reminders, and collaboration updates."
           actions={
-            <Btn variant="outline" onClick={() => void notifications.refetch()} disabled={notifications.isFetching}>
+            <Btn variant="outline" onClick={() => safeAsync(notifications.refetch(), "notifications.refetch")} disabled={notifications.isFetching}>
               {notifications.isFetching ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RefreshCw size={14} className="mr-1.5" />}
               Refresh
             </Btn>

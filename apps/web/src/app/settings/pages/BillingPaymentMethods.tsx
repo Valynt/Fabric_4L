@@ -1,6 +1,7 @@
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useBilling } from "@/hooks/useBilling";
 import { CapabilityGate } from "../components/CapabilityGate";
+import { safeAsync } from '@/lib/async';
 
 export function BillingPaymentMethods() {
   const { user } = useAuthContext();
@@ -20,7 +21,7 @@ export function BillingPaymentMethods() {
             </div>
             <button
               type="button"
-              onClick={() => void openCustomerPortal(window.location.href)}
+              onClick={() => safeAsync(openCustomerPortal(window.location.href), "billing.openPortal")}
               disabled={isOpeningPortal || !customerId}
               className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
