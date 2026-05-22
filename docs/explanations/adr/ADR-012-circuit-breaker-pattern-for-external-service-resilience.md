@@ -1,6 +1,6 @@
 <!-- Migrated from services/ADRs/ during legacy path cleanup. -->
 
-# ADR-011: Circuit Breaker Pattern for External Service Resilience
+# ADR-012: Circuit Breaker Pattern for External Service Resilience
 
 **Status:** Accepted  
 **Date:** April 2026  

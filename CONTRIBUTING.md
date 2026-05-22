@@ -61,7 +61,7 @@ Use these companion governance references during onboarding and before opening a
 
 ## Before You Add A Service Layer
 
-Per **[ADR-027](docs/architecture/adr-027-layer3-canonical-path.md)**, the
+Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree for every layer is
 `services/layer{N}-*/src/`. The matching `value_fabric/layer{N}/` package is a
 **namespace shim only** — do not add new logic there. Concretely:
@@ -106,7 +106,7 @@ Before adding compatibility wrappers or legacy aliases in runtime code, add/upda
 
 ### Layer placement rule (all layers)
 
-Per [ADR-027](docs/architecture/adr-027-layer3-canonical-path.md) and the
+Per [ADR-021](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) and the
 [layer runtime path governance matrix](docs/reference/layer-runtime-path-governance.md):
 
 - Canonical runtime code for every layer belongs in `services/layer{N}-*/src/`.

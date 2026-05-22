@@ -43,7 +43,7 @@ ALLOWLIST: set[str] = {
     # Shim files
     "value_fabric/layer6/__init__.py",
     # ADR and governance docs
-    "docs/architecture/adr-027-layer3-canonical-path.md",
+    "docs/architecture/ADR-021-layer-3-canonical-runtime-path.md",
     "docs/reference/layer-runtime-path-governance.md",
     # CI and contract tests that intentionally verify the shim
     "tests/arch/test_canonical_module_sentinels.py",

@@ -1,5 +1,5 @@
 ---
-title: "ADR-006: OpenAPI TypeScript Generator Selection"
+title: "ADR-007: OpenAPI TypeScript Generator Selection"
 category: "explanations"
 audience: "advanced"
 last-reviewed: "2026-05-05"
@@ -7,7 +7,7 @@ freshness: "current"
 related: ["../../reference/layer1-ingestion-api", "../../deployment/ci-cd"]
 ---
 
-# ADR-006: OpenAPI TypeScript Generator Selection
+# ADR-007: OpenAPI TypeScript Generator Selection
 
 **Status:** ✅ Accepted
 
@@ -130,5 +130,5 @@ We will standardize on **openapi-typescript** (v7.x) for Sprint 2.
 
 ## Related Decisions
 
-- ADR-001: Six-Layer Architecture (defines why we have six OpenAPI specs).
+- ADR-002: Six-Layer Architecture (defines why we have six OpenAPI specs).
 - CONTRACT.md §2.3: Type Synchronization Contract (mandates generated types stay in sync).

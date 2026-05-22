@@ -126,7 +126,7 @@ Condition for full production GO:
 | `tests/contract/test_*.py` (8 files) | Fixed stale `)` syntax errors |
 | `tests/contract/test_*.py` (5 files) | Added `try/except ImportError` collection guards |
 | `services/layer3-knowledge/src/migrations/*.py` (2 files) | Fixed docstring `python -m` paths |
-| `docs/architecture/adr-027-layer3-canonical-path.md` | Added Production Readiness Completion section |
+| `docs/architecture/ADR-021-layer-3-canonical-runtime-path.md` | Added Production Readiness Completion section |
 | `docs/governance/production-readiness-live-env-deferred.md` | New: Track B deferred items register |
 | `docs/governance/production-readiness-status-2026-05-14.md` | New: this document |
 | `CHANGELOG.md` | Updated [Unreleased] with all production readiness changes |

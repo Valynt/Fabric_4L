@@ -288,7 +288,7 @@ Common issues:
 ## Related
 
 - [Keycloak Integration Guide](../operations/keycloak-integration.md) — architecture, M2M auth, identity brokering
-- [ADR-003: JWT + API Key Authentication Strategy](../explanations/adr/ADR-003-authentication-strategy.md)
+- [ADR-004: JWT + API Key Authentication Strategy](../explanations/adr/ADR-004-jwt-api-key-authentication-strategy.md)
 - [Security Model](../core-concepts/security-model.md)
 - [Layer 4 Agents API Reference](../reference/layer4-agents-api.md)
 - [Troubleshooting](../troubleshooting/index.md)

@@ -1,6 +1,6 @@
 # Source Tree Canonicalization (Layers 5-6)
 
-> **Updated for [ADR-027](architecture/adr-027-layer3-canonical-path.md).** The earlier revision of this document
+> **Updated for [ADR-027](architecture/ADR-021-layer-3-canonical-runtime-path.md).** The earlier revision of this document
 > named `value_fabric/layer6/` as the canonical Layer 6 runtime tree. Under ADR-027 the canonical runtime tree
 > for every layer is `services/layer{N}-*/src/`. See
 > [`reference/layer-runtime-path-governance.md`](reference/layer-runtime-path-governance.md) for the full matrix.
