@@ -12,6 +12,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -72,9 +74,17 @@ class UsageService:
     # Default lookback period for aggregation
     DEFAULT_AGGREGATION_WINDOW_DAYS = 30
 
-    def __init__(self, db: AsyncSession, tenant_id: str | None = None):
+    def __init__(self, db: AsyncSession, tenant_id: str | None = None, actor_customer_id: str | None = None, actor_is_admin: bool = False):
         self.db = db
         self.tenant_id = tenant_id
+        self.actor_customer_id = actor_customer_id
+        self.actor_is_admin = actor_is_admin
+
+    def authorize_customer_access(self, customer_id: str) -> None:
+        if self.actor_is_admin:
+            return
+        if not self.actor_customer_id or self.actor_customer_id != customer_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for requested customer_id")
 
     async def _get_stripe_customer_id(self, customer_id: str) -> str | None:
         """Get Stripe customer ID for internal customer.
@@ -179,6 +189,8 @@ class UsageService:
             UsageValidationError: If validation fails
             IntegrityError: If tenant_id is not set
         """
+        self.authorize_customer_access(customer_id)
+
         # Validate tenant context
         if not self.tenant_id:
             raise UsageValidationError(
@@ -349,6 +361,7 @@ class UsageService:
         Returns:
             Summary dict with total quantity, event count, etc.
         """
+        self.authorize_customer_access(customer_id)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 
@@ -408,6 +421,7 @@ class UsageService:
         Returns:
             List of usage events
         """
+        self.authorize_customer_access(customer_id)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 
@@ -447,6 +461,7 @@ class UsageService:
         if not event_ids:
             return 0
 
+        self.authorize_customer_access(customer_id)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 

@@ -11,6 +11,8 @@ import logging
 from datetime import UTC, datetime
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -50,8 +52,16 @@ def _get_stripe():
 class BillingService:
     """Service for billing operations."""
 
-    def __init__(self, db: AsyncSession) -> None:
+    def __init__(self, db: AsyncSession, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> None:
         self.db = db
+        self.actor_customer_id = actor_customer_id
+        self.actor_is_admin = actor_is_admin
+
+    def authorize_customer_access(self, customer_id: str) -> None:
+        if self.actor_is_admin:
+            return
+        if not self.actor_customer_id or self.actor_customer_id != customer_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for requested customer_id")
 
     @staticmethod
     def _utc_now() -> datetime:
@@ -75,6 +85,7 @@ class BillingService:
             name: Optional customer name
             tenant_id: Optional tenant ID for multi-tenant isolation
         """
+        self.authorize_customer_access(customer_id)
         max_retries = 3
         base_delay = 0.1
 
@@ -231,6 +242,8 @@ class BillingService:
 
     async def get_active_subscription(self, customer_id: str, tenant_id: str | None = None) -> BillingSubscription | None:
         """Get the active subscription for a customer."""
+        self.authorize_customer_access(customer_id)
+        self.authorize_customer_access(customer_id)
         result = await self.db.execute(
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
@@ -258,6 +271,7 @@ class BillingService:
         cancel_url: str,
     ) -> dict[str, Any]:
         """Create a Stripe checkout session for subscription."""
+        self.authorize_customer_access(customer_id)
         # Get or create customer
         result = await self.db.execute(
             select(BillingCustomer).where(BillingCustomer.id == customer_id)
@@ -496,6 +510,7 @@ class BillingService:
     async def check_entitlement(self, customer_id: str, feature_id: str) -> bool:
         """Check if customer has access to a feature."""
         # Get subscription
+        self.authorize_customer_access(customer_id)
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 

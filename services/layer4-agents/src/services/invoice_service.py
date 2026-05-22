@@ -11,6 +11,8 @@ import uuid
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
+from fastapi import HTTPException, status
+
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -42,9 +44,17 @@ logger = logging.getLogger(__name__)
 class InvoiceService:
     """Service for invoice and charge management."""
 
-    def __init__(self, db: AsyncSession, tenant_id: str | None = None):
+    def __init__(self, db: AsyncSession, tenant_id: str | None = None, actor_customer_id: str | None = None, actor_is_admin: bool = False):
         self.db = db
         self.tenant_id = tenant_id
+        self.actor_customer_id = actor_customer_id
+        self.actor_is_admin = actor_is_admin
+
+    def authorize_customer_access(self, customer_id: str) -> None:
+        if self.actor_is_admin:
+            return
+        if not self.actor_customer_id or self.actor_customer_id != customer_id:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for requested customer_id")
 
     # ====================================================================================
     # Invoice CRUD Operations
@@ -76,6 +86,7 @@ class InvoiceService:
         Returns:
             Created invoice
         """
+        self.authorize_customer_access(customer_id)
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
@@ -228,7 +239,10 @@ class InvoiceService:
             query = query.options(selectinload(BillingInvoice.charges))
 
         result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+        invoice = result.scalar_one_or_none()
+        if invoice:
+            self.authorize_customer_access(invoice.customer_id)
+        return invoice
 
     async def get_invoice_by_number(self, invoice_number: str) -> BillingInvoice | None:
         """Get an invoice by invoice number.
@@ -282,6 +296,7 @@ class InvoiceService:
         )
 
         if customer_id:
+            self.authorize_customer_access(customer_id)
             query = query.where(BillingInvoice.customer_id == customer_id)
         if status:
             query = query.where(BillingInvoice.status == status)
@@ -440,6 +455,7 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
+        self.authorize_customer_access(customer_id)
         charge = BillingCharge(
             id=str(uuid.uuid4()),
             tenant_id=self.tenant_id,
@@ -486,7 +502,10 @@ class InvoiceService:
                 BillingCharge.id == charge_id,
             )
         )
-        return result.scalar_one_or_none()
+        charge = result.scalar_one_or_none()
+        if charge:
+            self.authorize_customer_access(charge.customer_id)
+        return charge
 
     async def list_charges(
         self,
@@ -514,6 +533,7 @@ class InvoiceService:
         query = select(BillingCharge).where(BillingCharge.tenant_id == self.tenant_id)
 
         if customer_id:
+            self.authorize_customer_access(customer_id)
             query = query.where(BillingCharge.customer_id == customer_id)
         if invoice_id:
             query = query.where(BillingCharge.invoice_id == invoice_id)

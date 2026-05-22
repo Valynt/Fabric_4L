@@ -236,6 +236,22 @@ class record_chargeResult(TypedDictModel):
     status: Any
     stripe_charge_id: Any
 
+
+
+def _is_billing_admin(context: RequestContext) -> bool:
+    return context.has_any_role("admin", "tenant_admin", "super_admin")
+
+
+def guard_customer_access(context: RequestContext, customer_id: str) -> str:
+    validated = validate_customer_id(customer_id)
+    actor_id = str(context.user_id) if context.user_id is not None else None
+    if _is_billing_admin(context) or (actor_id and actor_id == validated):
+        return validated
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for requested customer_id")
+
+
+def _service_actor_kwargs(context: RequestContext) -> dict[str, Any]:
+    return {"actor_customer_id": str(context.user_id) if context.user_id is not None else None, "actor_is_admin": _is_billing_admin(context)}
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
@@ -315,7 +331,8 @@ async def get_subscription(
     Returns:
         Subscription details including plan and status
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
     subscription = await service.get_subscription(customer_id)
 
     if not subscription:
@@ -356,7 +373,8 @@ async def create_checkout(
     Returns:
         Session ID and checkout URL
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
 
     try:
         result = await service.create_checkout_session(
@@ -390,7 +408,8 @@ async def create_portal(
     Returns:
         Portal URL for customer to manage billing
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
 
     try:
         result = await service.create_portal_session(
@@ -424,7 +443,8 @@ async def get_entitlements(
     Returns:
         Plan details and feature availability map
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
     return await service.get_entitlements(customer_id)
 
 
@@ -444,7 +464,8 @@ async def check_feature(
     Returns:
         Feature access status
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
     has_access = await service.check_entitlement(customer_id, feature_id)
 
     return check_featureResult.model_validate({
@@ -473,7 +494,8 @@ async def sync_customer(
     Returns:
         Customer record with Stripe ID if available
     """
-    service = BillingService(db)
+    customer_id = guard_customer_access(context, customer_id)
+    service = BillingService(db, **_service_actor_kwargs(context))
     
     # Extract tenant_id from context if available
     tenant_id = context.tenant_id
@@ -542,7 +564,7 @@ async def stripe_webhook(
     # Read raw body for signature verification
     body = await request.body()
 
-    service = BillingService(db)
+    service = BillingService(db, **_service_actor_kwargs(context))
 
     try:
         await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)

@@ -584,3 +584,35 @@ def test_subscription_is_canceled_property():
         cancel_at_period_end=False
     )
     assert sub.is_canceled is False
+
+
+@pytest.mark.asyncio
+async def test_billing_service_blocks_cross_customer_access(mock_db):
+    service = BillingService(mock_db, actor_customer_id="user_a", actor_is_admin=False)
+    with pytest.raises(Exception) as exc:
+        await service.get_subscription("user_b")
+    assert "403" in str(exc.value) or "Not authorized" in str(exc.value)
+
+
+def test_route_guard_blocks_cross_customer_access():
+    from value_fabric.layer4.api.routes.billing import guard_customer_access
+    from value_fabric.shared.identity.context import RequestContext
+
+    ctx = RequestContext(tenant_id="tenant_a", user_id="user_a", roles=["member"], auth_source="jwt")
+    with pytest.raises(Exception):
+        guard_customer_access(ctx, "user_b")
+
+
+@pytest.mark.asyncio
+async def test_invoice_service_blocks_indirect_invoice_access(mock_db):
+    from value_fabric.layer4.models.billing import BillingInvoice
+    from value_fabric.layer4.services.invoice_service import InvoiceService
+
+    invoice = BillingInvoice(id="inv_1", tenant_id="tenant_a", customer_id="user_b", invoice_number="INV-1", status="draft", currency="USD", period_start=datetime.now(UTC), period_end=datetime.now(UTC), subtotal=0, tax=0, total=0, amount_paid=0, amount_due=0, balance=0)
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = invoice
+    mock_db.execute.return_value = mock_result
+
+    service = InvoiceService(mock_db, tenant_id="tenant_a", actor_customer_id="user_a", actor_is_admin=False)
+    with pytest.raises(Exception):
+        await service.get_invoice("inv_1")
