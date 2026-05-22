@@ -326,7 +326,7 @@ class WorkflowWebSocketManager:
     async def disconnect(self, websocket: WebSocket, workflow_id: str, trace_id: str | None = None) -> None:
         """Remove a WebSocket connection."""
         log_trace_id = trace_id
-        log_correlation_id = trace_id
+        log_correlation_id = None
         async with self._lock:
             if workflow_id in self._workflow_connections:
                 # Find and remove the connection
