@@ -12,7 +12,6 @@
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
-	harness-task harness-guard harness-check
 	check-layer3-legacy-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
 	harness-task harness-guard harness-check \

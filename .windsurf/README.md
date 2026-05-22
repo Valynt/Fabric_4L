@@ -35,8 +35,7 @@ This directory is the **source of truth for agent behavior** in the Value Fabric
 │   └── .../SKILL.md          # Individual skill definitions
 │
 ├── rules/                    # Guardrails, policies, constraint definitions
-│   ├── rules.md              # Human-readable quick reference (legacy)
-│   ├── rules_ops.md          # Operations & governance rules (legacy)
+│   ├── RULE_REVIEW.md        # Rule validation audit and gap analysis
 │   ├── hard-constraints.yaml # Blocker rules — enforced pre-execution
 │   ├── dependency-rules.yaml # Module boundary enforcement
 │   ├── safety-rules.yaml     # Security & safety constraints

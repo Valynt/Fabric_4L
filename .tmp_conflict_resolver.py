@@ -112,7 +112,7 @@ DECISIONS: dict[str, str] = {
 
 
 def main() -> int:
-    repo = Path(r"C:\Users\BBB\Fabric_4L")
+    repo = Path(__file__).parent.parent
     changed = 0
     missing = 0
     for relpath, side in DECISIONS.items():

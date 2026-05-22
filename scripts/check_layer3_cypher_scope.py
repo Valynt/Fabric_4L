@@ -146,25 +146,7 @@ def discover(root:Path)->list[Entry]:
                 entries.append(Entry(key,rel,lineno,n.name,marker,dyn))
     return entries
 
-def main(argv=None):
-    ap=argparse.ArgumentParser()
-    ap.add_argument('--root',default='.')
-    ap.add_argument('--warnings-as-errors', action='store_true')
-    ap.add_argument('--paths', nargs='*', default=[])
-    args=ap.parse_args(argv)
-    root=Path(args.root).resolve()
-    entries=discover(root)
-    inv_file=root/INV_PATH
-    if not inv_file.exists():
-        print(f"ERROR: inventory missing: {INV_PATH}")
-        return 1
-    inv=json.loads(inv_file.read_text(encoding='utf-8'))
-    known={i['key']:i for i in inv.get('paths',[])}
-    errors=[]
-    for e in entries:
-        rec=known.get(e.key)
-        if rec is None:
-            errors.append(f"UNKNOWN new runtime path: {e.key}")
+@dataclass(frozen=True)
 class Finding:
     path: Path
     line: int
@@ -264,28 +246,6 @@ def _iter_direct_neo4j_run_calls(path: Path) -> list[tuple[int, int]]:
     for node in ast.walk(tree):
         if not isinstance(node, ast.Call):
             continue
-        status=rec.get('status')
-        if status in {'unknown','unsafe'}:
-            errors.append(f"{status.upper()} runtime path present: {e.key}")
-        if status=='safe':
-            if rec.get('requires_inline_marker', True) and not e.marker:
-                errors.append(f"SAFE path missing inline marker ({MARKER}): {e.key}")
-            tests=rec.get('test_evidence') or []
-            if not tests:
-                errors.append(f"SAFE path missing test_evidence: {e.key}")
-            expected=set(rec.get('dynamic_fragments',[]))
-            actual=set(e.dynamic)
-            if expected!=actual:
-                errors.append(f"dynamic fragment mismatch for {e.key}: expected {sorted(expected)} got {sorted(actual)}")
-    inv_keys=set(known)
-    discovered={e.key for e in entries}
-    stale=sorted(inv_keys-discovered)
-    if stale:
-        print("WARN: stale inventory entries:")
-        for s in stale: print(f"  - {s}")
-    if errors:
-        for err in errors: print(f"ERROR: {err}")
-        print(f"Layer 3 Cypher scope scan complete: {len(errors)} error(s), 0 warning(s), {len(errors)} total finding(s).")
         func = node.func
         if not isinstance(func, ast.Attribute) or func.attr != "run":
             continue
@@ -395,7 +355,6 @@ def main(argv: list[str] | None = None) -> int:
     )
     if errors or (args.warnings_as_errors and warnings):
         return 1
-    print(f"Layer 3 Cypher scope scan complete: 0 error(s), 0 warning(s), 0 total finding(s).")
     return 0
 
 if __name__=='__main__':

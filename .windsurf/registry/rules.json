@@ -28,7 +28,7 @@
       "description": "Never modify shared/identity/ without a security review",
       "source_file": "rules/hard-constraints.yaml",
       "pattern": {
-        "files_glob": ["shared/identity/**/*"],
+        "files_glob": ["shared/identity/**/*", "packages/shared/src/value_fabric/shared/identity/**/*"],
         "trigger": "any_change"
       },
       "action": {
@@ -124,7 +124,7 @@
       },
       "action": {
         "type": "block",
-        "message": "API route missing authentication. Add @require_auth or document exemption.",
+        "message": "API route missing authentication. Add Depends(require_authenticated) or document exemption.",
         "required_verification": ["auth_middleware_check"]
       }
     },
@@ -171,7 +171,7 @@
       "source_file": "rules/dependency-rules.yaml",
       "pattern": {
         "files_glob": ["services/layer*/**/*.py"],
-        "exemptions": ["tests/**/*.py", "services/layer*/tests/**/*.py"],
+        "exemptions": ["tests/**/*.py", "services/layer*/tests/**/*.py", "value_fabric/layer*/**/*.py"],
         "trigger": "upstream_import"
       },
       "action": {
@@ -188,13 +188,30 @@
       "description": "shared/identity/ should not import from other layers to avoid circular dependencies",
       "source_file": "rules/dependency-rules.yaml",
       "pattern": {
-        "files_glob": ["shared/identity/**/*.py"],
+        "files_glob": ["shared/identity/**/*.py", "packages/shared/src/value_fabric/shared/identity/**/*.py", "value_fabric/shared/identity/**/*.py"],
         "trigger": "non-leaf-import"
       },
       "action": {
         "type": "warn",
         "message": "shared/identity/ importing from application layers risks circular dependencies.",
         "required_verification": ["circular_dependency_check"]
+      }
+    },
+    {
+      "rule_id": "DR-005",
+      "name": "root-tests-exempt-from-layer-order",
+      "category": "dependency-rules",
+      "severity": "block",
+      "description": "Root tests/ directory is exempt from layer-import-order rules for integration testing",
+      "source_file": "rules/dependency-rules.yaml",
+      "pattern": {
+        "files_glob": ["tests/**/*.py"],
+        "trigger": "cross_layer_import"
+      },
+      "action": {
+        "type": "allow",
+        "message": "Root tests/ are exempt from layer-order restrictions for integration testing.",
+        "required_verification": ["integration_test_check"]
       }
     },
     {
@@ -245,6 +262,40 @@
       "action": {
         "type": "warn",
         "message": "Type checking failed. Fix type errors before committing.",
+        "auto_fix": false
+      }
+    },
+    {
+      "rule_id": "ST-004",
+      "name": "typescript-strict-mode-gradual-migration",
+      "category": "style-rules",
+      "severity": "warn",
+      "description": "TypeScript strict mode is enabled but no-explicit-any is off for gradual migration",
+      "source_file": "rules/style-rules.yaml",
+      "pattern": {
+        "files_glob": ["**/*.ts", "**/*.tsx"],
+        "trigger": "any_type_usage"
+      },
+      "action": {
+        "type": "warn",
+        "message": "TypeScript any type detected. Gradual migration allows this temporarily, but prefer explicit types.",
+        "auto_fix": false
+      }
+    },
+    {
+      "rule_id": "ST-005",
+      "name": "tailwind-v4-css-config",
+      "category": "style-rules",
+      "severity": "warn",
+      "description": "Tailwind v4 uses CSS-based config (@theme inline), not tailwind.config.js",
+      "source_file": "rules/style-rules.yaml",
+      "pattern": {
+        "files_glob": ["tailwind.config.*"],
+        "trigger": "config_file_exists"
+      },
+      "action": {
+        "type": "warn",
+        "message": "Tailwind v4 uses CSS config in frontend/client/src/index.css. Do not create tailwind.config.js.",
         "auto_fix": false
       }
     },

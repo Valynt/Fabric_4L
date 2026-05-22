@@ -35,6 +35,7 @@ rules:
       type: file_change
       files:
         - "shared/identity/**/*"
+        - "packages/shared/src/value_fabric/shared/identity/**/*"
     action:
       type: block
       message: "Modifications to shared/identity/ require explicit security review and 2 approvals."
