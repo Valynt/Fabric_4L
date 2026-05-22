@@ -1,3 +1,4 @@
+import { safeAsync } from '@/lib/async';
 /**
  * Screen 5 — Value Trees: Tree Explorer
  * Design: Refined Enterprise SaaS
@@ -421,7 +422,7 @@ export default function ValueTreeExplorer() {
             <Btn
               variant="primary"
               disabled={!entityId || createTreeMutation.isPending || importTreeMutation.isPending}
-              onClick={() => void handleCreateTree()}
+              onClick={() => safeAsync(handleCreateTree(), "valueTree.create")}
             >
               {createTreeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12}/>} New Tree
             </Btn>
@@ -432,7 +433,7 @@ export default function ValueTreeExplorer() {
             >
               {importTreeMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Upload size={12}/>} Import
             </Btn>
-            <input ref={importFileRef} type="file" accept="application/json" className="hidden" onChange={(e) => void handleImportFile(e)} />
+            <input ref={importFileRef} type="file" accept="application/json" className="hidden" onChange={(e) => safeAsync(handleImportFile(e), "valueTree.import")} />
             <Btn 
               variant="ghost" 
               onClick={() => {
@@ -525,9 +526,9 @@ export default function ValueTreeExplorer() {
             variant="ghost"
             className="ml-auto text-[11px]"
             onClick={() => {
-              void refetchTree();
+              safeAsync(refetchTree(), "valueTree.refetchTree");
               if (view === "paths") {
-                void refetchPaths();
+                safeAsync(refetchPaths(), "valueTree.refetchPaths");
               }
             }}
           >
