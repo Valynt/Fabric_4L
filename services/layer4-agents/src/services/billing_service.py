@@ -21,11 +21,13 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config.plans import check_entitlement, get_entitlements_response
 from ..models.billing import (
+    BillingPlanVersion,
     BillingCustomer,
     BillingSubscription,
     BillingWebhookEvent,
     SubscriptionStatus,
 )
+from .plan_version_service import PlanVersionService
 from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, get_stripe
 
 
@@ -52,6 +54,7 @@ class BillingService:
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
+        self.plan_versions = PlanVersionService(db)
 
     async def get_or_create_customer(
         self,
@@ -170,6 +173,9 @@ class BillingService:
             status=SubscriptionStatus.ACTIVE,
             stripe_subscription_id=None,
         )
+        plan_version = await self.plan_versions.get_effective_plan_version("free", datetime.now(UTC))
+        if plan_version:
+            subscription.plan_version_id = plan_version.id
         self.db.add(subscription)
         await self.db.flush()
         return subscription
@@ -360,13 +366,18 @@ class BillingService:
         if subscription:
             subscription.stripe_subscription_id = subscription_id
             subscription.status = SubscriptionStatus.ACTIVE
+            plan_version = await self.plan_versions.get_effective_plan_version(plan_id, datetime.now(UTC))
+            if plan_version:
+                subscription.plan_version_id = plan_version.id
         else:
+            plan_version = await self.plan_versions.get_effective_plan_version(plan_id, datetime.now(UTC))
             subscription = BillingSubscription(
                 id=f"sub_{customer_id}_{plan_id}",
                 tenant_id=tenant_id,
                 customer_id=customer_id,
                 stripe_subscription_id=subscription_id,
                 plan_id=plan_id,
+                plan_version_id=plan_version.id if plan_version else None,
                 status=SubscriptionStatus.ACTIVE,
             )
             self.db.add(subscription)
@@ -442,6 +453,11 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
+        plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
+        if plan_version:
+            feature_ids = set((plan_version.features or {}).get("ids", []))
+            return feature_id in feature_ids or "*" in feature_ids
         return check_entitlement(plan_id, feature_id)
 
     async def get_entitlements(self, customer_id: str) -> dict[str, Any]:
@@ -449,4 +465,15 @@ class BillingService:
         subscription = await self.get_active_subscription(customer_id)
         plan_id = subscription.plan_id if subscription else "free"
 
+        await self.plan_versions.ensure_bootstrap_defaults()
+        plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
+        if plan_version:
+            feature_ids = set((plan_version.features or {}).get("ids", []))
+            return {
+                "plan_id": plan_id,
+                "plan_name": plan_id.title(),
+                "features": {feature: {"enabled": True} for feature in feature_ids},
+                "plan_version_id": plan_version.id,
+                "plan_version": plan_version.version,
+            }
         return get_entitlements_response(plan_id)
