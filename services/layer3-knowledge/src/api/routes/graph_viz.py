@@ -11,9 +11,10 @@ import logging
 import re
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from ...api.dependencies import AppState, get_app_state, get_graph_rag, get_hybrid_search
+from ...api.dependencies_tenant_secured import require_request_tenant_id
 from ...api.models import (
     GraphEdge,
     GraphNode,
@@ -26,16 +27,6 @@ from ...api.models import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Graph"])
-
-
-def _extract_tenant_id(request: Request | None) -> str | None:
-    """Extract tenant_id from authenticated request context."""
-    if not request:
-        return None
-    ctx = getattr(request.state, "context", None)
-    if ctx and getattr(ctx, "tenant_id", None):
-        return str(ctx.tenant_id)
-    return None
 
 
 def _build_graph_node(
@@ -76,7 +67,7 @@ def _build_graph_node(
 
 @router.get("/graph", response_model=GraphResponse, tags=["Graph"])
 async def get_full_graph(
-    request: Request,
+    tenant_id: str = Depends(require_request_tenant_id),
     limit: int = 1000,
     app_state: AppState = Depends(get_app_state),
 ) -> GraphResponse:
@@ -84,12 +75,6 @@ async def get_full_graph(
     neo4j = app_state.neo4j_driver
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
-
-    tenant_id = _extract_tenant_id(request)
-    if not tenant_id:
-        raise HTTPException(
-            status_code=400, detail="tenant_id is required for graph access"
-        )
 
     try:
         nodes_result = await neo4j.execute_query(
@@ -182,7 +167,7 @@ async def get_full_graph(
 @router.get("/entities/{entity_id}/subgraph", response_model=SubgraphResponse)
 async def get_entity_subgraph(
     entity_id: str,
-    request: Request,
+    tenant_id: str = Depends(require_request_tenant_id),
     depth: int = 2,
     app_state: AppState = Depends(get_app_state),
 ) -> SubgraphResponse:
@@ -190,12 +175,6 @@ async def get_entity_subgraph(
     neo4j = app_state.neo4j_driver
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
-
-    tenant_id = _extract_tenant_id(request)
-    if not tenant_id:
-        raise HTTPException(
-            status_code=400, detail="tenant_id is required for value tree access"
-        )
 
     depth = max(1, min(depth, 5))
 
@@ -299,7 +278,7 @@ _VALID_REL_TYPE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
 @router.get("/v1/graph/subgraph", response_model=SubgraphResponse)
 async def get_query_subgraph(
-    request: Request,
+    tenant_id: str = Depends(require_request_tenant_id),
     query: str | None = Query(None, description="Search query to find matching entities"),
     center_entity_id: str | None = Query(None, description="Center entity ID for expansion mode"),
     depth: int = Query(2, ge=1, le=3, description="Traversal depth (1-3)"),
@@ -321,12 +300,6 @@ async def get_query_subgraph(
         raise HTTPException(
             status_code=400,
             detail="Either 'query' or 'center_entity_id' parameter is required",
-        )
-
-    tenant_id = _extract_tenant_id(request)
-    if not tenant_id:
-        raise HTTPException(
-            status_code=400, detail="tenant_id is required for graph explorer access"
         )
 
     neo4j = app_state.neo4j_driver

@@ -388,6 +388,15 @@ def require_tenant_header_for_internal():
     return _check_tenant_header
 
 
+def require_request_tenant_id(request: Request) -> str:
+    """Extract tenant from request.state.context and fail closed when absent."""
+    ctx = getattr(request.state, "context", None)
+    tenant_id = getattr(ctx, "tenant_id", None) if ctx else None
+    if not tenant_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_id is required")
+    return str(tenant_id)
+
+
 # Backward-compatible aliases for route type hints
 Neo4jTenantSession = Neo4jTenantSessionSecured
 Neo4jTenantValidatedSession = Neo4jTenantSessionSecured
