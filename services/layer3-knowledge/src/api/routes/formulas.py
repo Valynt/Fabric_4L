@@ -21,6 +21,9 @@ from logging_config import get_logger
 from ...agents.scenario_engine import VariableAdjustment, scenario_engine
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.routes.formula_governance import STATUS_DRAFT, STATUS_UNDER_REVIEW
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_context
+
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key, require_admin_role
 
@@ -1034,6 +1037,7 @@ def _build_formula_metadata(formula_node: dict, variables_nodes: list) -> Formul
 async def create_formula(
     request: CreateFormulaRequest,
     api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ) -> FormulaMetadata:
     """Create a new formula with Neo4j persistence.
 
@@ -1043,7 +1047,7 @@ async def create_formula(
     formula_id = f"formula_{uuid.uuid4().hex[:12]}"
     version_id = f"fv_{uuid.uuid4().hex[:12]}"
     now = datetime.now(UTC).isoformat()
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = str(tenant.tenant_id)
     owner = request.owner or getattr(api_key, "owner_email", None)
 
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
@@ -1177,13 +1181,14 @@ async def update_formula(
     formula_id: str,
     request: UpdateFormulaRequest,
     api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ) -> FormulaMetadata:
     """Update an existing formula.
 
     Only formulas in 'draft' or 'under_review' status can be updated.
     If expression changes, creates a new version.
     """
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = str(tenant.tenant_id)
 
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         # Check formula exists and is editable
@@ -1358,12 +1363,13 @@ async def update_formula(
 async def delete_formula(
     formula_id: str,
     api_key: APIKey = Depends(require_admin_role),
+    tenant: RequestContext = Depends(require_tenant_context),
 ) -> dict[str, str]:
     """Delete a formula and all associated versions and variables.
 
     Restricted to admin users. Cannot delete if formula is referenced by ValuePacks.
     """
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = str(tenant.tenant_id)
 
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         # Check formula exists
