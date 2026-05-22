@@ -22,7 +22,7 @@ async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenan
 
 
 @router.get('/dsar/{request_id}')
-async def get_dsar(request_id: str, tenant_id: str = Depends(tenant_required)):
+async def get_dsar(request_id: str, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)):
     request = db.dsar_requests.get(request_id, tenant_id=tenant_id)
     if not request:
         raise HTTPException(status_code=404, detail='DSAR request not found')
