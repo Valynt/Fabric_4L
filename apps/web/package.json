@@ -21,7 +21,7 @@
     "test:workflow-matrix": "node scripts/quality/assert-frontend-workflow-matrix.mjs",
     "test:api-type-drift": "node scripts/quality/assert-generated-api-types-current.mjs",
     "test:bundle-budget": "node scripts/quality/assert-bundle-budget.mjs",
-    "verify:frontend": "node scripts/quality/verify-frontend.mjs",
+    "verify:frontend": "node scripts/quality/verify-frontend.mjs && pnpm run check:async-boundaries && pnpm run test:prod-unhandled-rejections",
     "test:e2e": "pnpm run test:e2e:guard && playwright test",
     "test:e2e:ui": "pnpm run test:e2e:guard && playwright test --ui",
     "test:e2e:debug": "pnpm run test:e2e:guard && playwright test --debug",
@@ -71,11 +71,13 @@
     "test:e2e:journey-launch": "pnpm run test:e2e:guard && playwright test --project=journeys e2e/journeys/j24-account-signals-evidence-driver-calculator-business-case.spec.ts",
     "collect:journey-slo": "node scripts/quality/collect-journey-slo-metrics.mjs",
     "test:journey-slo-gate": "node scripts/quality/assert-journey-launch-slos.mjs",
-    "test:frontend-hygiene": "node scripts/quality/assert-frontend-hygiene.mjs && pnpm run check:no-legacy-api-imports && pnpm run check:compatibility-shims-registered",
+    "test:frontend-hygiene": "node scripts/quality/assert-frontend-hygiene.mjs && node scripts/quality/assert-explicit-any-threshold.mjs && pnpm run check:no-legacy-api-imports && pnpm run check:compatibility-shims-registered",
     "test:legacy-removals": "node scripts/quality/assert-legacy-removals.mjs",
     "test:coverage:critical": "vitest run --coverage --config vitest.critical-coverage.config.ts",
     "check:no-legacy-api-imports": "node scripts/assert-no-legacy-api-imports.mjs",
-    "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs"
+    "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs",
+    "check:async-boundaries": "node scripts/quality/async-boundary-audit.mjs",
+    "test:prod-unhandled-rejections": "NODE_ENV=production NODE_OPTIONS=--unhandled-rejections=strict vitest run"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

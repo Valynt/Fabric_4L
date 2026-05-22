@@ -1,6 +1,6 @@
 # Layer 3 / Layer 6 canonical-vs-wrapper policy
 
-> **SUPERSEDED by [ADR-027](../architecture/adr-027-layer3-canonical-path.md).** This document described the
+> **SUPERSEDED by [ADR-027](../architecture/ADR-021-layer-3-canonical-runtime-path.md).** This document described the
 > pre-ADR-027 policy where `value_fabric/layer{3,6}/` was canonical and `services/layer{3,6}-*/src/` held
 > wrappers. Under ADR-027 that direction is **inverted**: canonical runtime is
 > `services/layer{N}-*/src/` and `value_fabric/layer{N}/` are path-appender shims. Refer to

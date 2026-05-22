@@ -159,7 +159,7 @@ def _make_websocket(protocol_header: str = "") -> MagicMock:
 async def test_route_rejects_missing_token(caplog):
     ws = _make_websocket()
     await workflow_websocket(websocket=ws, workflow_id="wf-1")
-    ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
+    ws.close.assert_awaited_once_with(code=1008, reason='{"code":"AUTH_TOKEN_MISSING"}')
     assert "AUTH_TOKEN_MISSING" in caplog.text
     assert "trace_id" in caplog.text
 
@@ -181,7 +181,7 @@ async def test_route_rejects_bare_subprotocol_name(caplog):
     """A bare subprotocol name (no canonical prefix) must be rejected with 1008."""
     ws = _make_websocket("graphql-ws")
     await workflow_websocket(websocket=ws, workflow_id="wf-bare")
-    ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
+    ws.close.assert_awaited_once_with(code=1008, reason='{"code":"AUTH_TOKEN_MISSING"}')
     assert "AUTH_TOKEN_MISSING" in caplog.text
 
 
@@ -201,7 +201,7 @@ async def test_route_does_not_leak_token_in_logs(caplog):
 
     assert "super.secret.jwt" not in caplog.text
     assert "AUTH_TOKEN_DECODE_FAILED" in caplog.text
-    ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
+    ws.close.assert_awaited_once_with(code=1008, reason='{"code":"AUTH_TOKEN_DECODE_FAILED"}')
 
 
 # ---------------------------------------------------------------------------

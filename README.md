@@ -115,7 +115,7 @@ open http://localhost:5173
 
 ## Repository map
 
-Per **[ADR-027](docs/architecture/adr-027-layer3-canonical-path.md)**, the
+Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree is `services/`. The `value_fabric/layer*/`
 packages are **namespace shims only** that re-export from the matching service
 package. See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
@@ -216,7 +216,7 @@ Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with t
 | Document | Description |
 |----------|-------------|
 | [All ADRs](docs/explanations/adr/) | Architecture Decision Records |
-| [ADR-027: Service-first canonical paths](docs/architecture/adr-027-layer3-canonical-path.md) | Why `services/` is the implementation tree and `value_fabric/` is shim-only |
+| [ADR-027: Service-first canonical paths](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) | Why `services/` is the implementation tree and `value_fabric/` is shim-only |
 
 ### Reference & Governance
 

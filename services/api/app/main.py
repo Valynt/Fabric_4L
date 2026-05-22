@@ -22,6 +22,7 @@ from app.routers import (
     governance,
     hypotheses,
     intelligence,
+    privacy,
     realization,
     reviews,
     value_cases,
@@ -109,6 +110,7 @@ app.include_router(reviews.router, prefix="/v1")
 app.include_router(versioning.router, prefix="/v1")
 app.include_router(realization.router, prefix="/v1")
 app.include_router(agents.router, prefix="/v1")
+app.include_router(privacy.router, prefix="/v1")
 
 # Audit logging for all state-changing requests
 app.add_middleware(AuditMiddleware)

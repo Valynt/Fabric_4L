@@ -44,8 +44,7 @@ if (!Element.prototype.scrollIntoView) {
 }
 // Radix DropdownMenu uses PointerEvent to detect open/close.
 if (typeof window !== 'undefined' && !window.PointerEvent) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (window as any).PointerEvent = class PointerEvent extends MouseEvent {
+  (window as Window & typeof globalThis & { PointerEvent: typeof MouseEvent }).PointerEvent = class PointerEvent extends MouseEvent {
     constructor(type: string, params: PointerEventInit = {}) {
       super(type, params);
     }

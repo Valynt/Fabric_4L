@@ -175,6 +175,6 @@ Screens compose components. They must remain agnostic to API schema details.
 
 ## Related
 
-- [ADR-006: OpenAPI TypeScript Generator Selection](../explanations/adr/ADR-006-openapi-typescript-generator.md)
+- [ADR-007: OpenAPI TypeScript Generator Selection](../explanations/adr/ADR-007-openapi-typescript-generator-selection.md)
 - `apps/web/src/api/generated/` — Generated type output
 - `apps/web/scripts/generate-api-types.ts` — Generation pipeline

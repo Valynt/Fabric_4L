@@ -1,10 +1,8 @@
-import sys
-from types import SimpleNamespace
-
 import pytest
 
 from app.core.config import Settings
 from app.models.schemas import Account
+
 
 
 def test_database_factory_rejects_unsupported_durable_backend(monkeypatch):
@@ -14,7 +12,7 @@ def test_database_factory_rejects_unsupported_durable_backend(monkeypatch):
         app_env="development",
         mock_persistence=False,
         database_url="postgresql://fabric:example@localhost:5432/fabric",
-        llm_provider="mock",
+        llm_provider="layer4",
         seed_demo_data=False,
     )
     monkeypatch.setattr(database, "get_settings", lambda: settings)
@@ -54,40 +52,53 @@ def test_production_like_settings_reject_mock_llm_even_when_override_is_true():
 
 
 def test_create_llm_provider_rejects_mock_provider_in_production_like_environment(monkeypatch):
+def test_orchestrator_execute_step_requires_layer4_delegation(monkeypatch):
+
     from app.services import agent_orchestrator
 
-    settings = SimpleNamespace(
-        llm_provider="mock",
-        llm_model=None,
-        is_production_like=True,
-    )
-    monkeypatch.setattr(agent_orchestrator, "get_settings", lambda: settings)
+    calls = {}
 
-    with pytest.raises(agent_orchestrator.ProductionLLMNotConfigured, match="Mock LLM provider"):
-        agent_orchestrator.create_llm_provider()
+    class FakeLayer4Client:
+        provider_name = "layer4"
+
+        def execute_step(self, *, tenant_id, run_id, step_name, tool_name):
+            calls.update({
+                "tenant_id": tenant_id,
+                "run_id": run_id,
+                "step_name": step_name,
+                "tool_name": tool_name,
+            })
+            return {"delegated": True}
+
+    orchestrator = agent_orchestrator.AgentOrchestrator(layer4_client=FakeLayer4Client())
+    run = orchestrator.create_run(tenant_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa", workflow_type="roi")
+
+    updated = orchestrator.execute_step(run.id, "draft", tenant_id="aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+
+    assert calls["run_id"] == run.id
+    assert updated.output["provider"] == "layer4"
+    assert updated.output["layer4"] == {"delegated": True}
 
 
-def test_create_llm_provider_wires_openai_adapter_without_calling_network(monkeypatch):
-    from app.services import agent_orchestrator
+def test_layer4_client_raises_unavailable_on_transport_error(monkeypatch):
+    from app.services.agent_orchestrator import Layer4OrchestrationClient, Layer4UnavailableError
+    import httpx
 
-    captured = {}
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
 
-    class FakeOpenAI:
-        def __init__(self, api_key, timeout):
-            captured["api_key"] = api_key
-            captured["timeout"] = timeout
+        def __enter__(self):
+            return self
 
-    monkeypatch.setitem(sys.modules, "openai", SimpleNamespace(OpenAI=FakeOpenAI))
-    monkeypatch.setenv("OPENAI_API_KEY", "test-key")
-    settings = SimpleNamespace(
-        llm_provider="openai",
-        llm_model="gpt-test",
-        is_production_like=True,
-    )
-    monkeypatch.setattr(agent_orchestrator, "get_settings", lambda: settings)
+        def __exit__(self, *args):
+            return False
 
-    provider = agent_orchestrator.create_llm_provider()
+        def post(self, *args, **kwargs):
+            raise httpx.ConnectError("boom")
 
-    assert provider.provider_name == "openai"
-    assert provider.model == "gpt-test"
-    assert captured == {"api_key": "test-key", "timeout": 60.0}
+    monkeypatch.setattr(httpx, "Client", FakeClient)
+
+    client = Layer4OrchestrationClient(base_url="http://layer4")
+    with pytest.raises(Layer4UnavailableError):
+        client.execute_step(tenant_id="t", run_id="r", step_name="s", tool_name=None)

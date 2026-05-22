@@ -41,6 +41,8 @@ from app.models.schemas import (
     ToolResult,
     User,
     ValueDriver,
+    DSARRequestRecord,
+    DSARPackage,
     ValueHypothesis,
     ValuePack,
 )
@@ -183,6 +185,157 @@ class InMemoryTable(Generic[T]):
             return True
 
 
+class AppendOnlyInMemoryTable(InMemoryTable[T]):
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be updated")
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be deleted")
+
+
+class SQLiteTable(Generic[T]):
+    """Durable JSON-record table preserving the current standalone API table API.
+
+    The table stores each Pydantic object as a JSON payload and keeps a separate
+    tenant column for fail-closed tenant-scoped reads. This intentionally avoids
+    importing lower-layer implementations or duplicating business logic across
+    Fabric_4L layers while making the non-mock standalone API path executable.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        connection: sqlite3.Connection,
+        lock: threading.RLock,
+        model_cls: type[T] | None = None,
+        tenant_field: str = "tenant_id",
+    ):
+        self.name = name
+        self.tenant_field = tenant_field
+        self._connection = connection
+        self._lock = lock
+        self._model_cls = model_cls
+
+    def _deserialize(self, payload: str) -> T:
+        data = json.loads(payload)
+        if self._model_cls and issubclass(self._model_cls, BaseModel):
+            return self._model_cls.model_validate(data)  # type: ignore[return-value]
+        return data  # type: ignore[return-value]
+
+    def _get_tenant_id(self, obj: T) -> str | None:
+        return _tenant_from_obj(obj, self.tenant_field)
+
+    def _require_tenant_scope(self, tenant_id: str | None, *, operation: str) -> str:
+        if not _is_tenant_scoped_field(self.tenant_field):
+            return str(tenant_id) if tenant_id is not None else ""
+        return require_tenant_context(tenant_id, operation=f"{self.name}.{operation}")
+
+    def _require_object_tenant(self, obj: T) -> str:
+        if not _is_tenant_scoped_field(self.tenant_field):
+            tenant_id = self._get_tenant_id(obj)
+            return str(tenant_id) if tenant_id is not None else ""
+        return require_tenant_context(
+            self._get_tenant_id(obj),
+            operation=f"{self.name}.insert",
+        )
+
+    def insert(self, id: str, obj: T) -> T:
+        payload = _to_payload(obj)
+        tenant_id = self._require_object_tenant(obj)
+        now = _now_iso()
+        payload_json = json.dumps(payload, default=_json_default, sort_keys=True)
+        with self._lock, self._connection:
+            self._connection.execute(
+                """
+                INSERT INTO fabric_api_records(table_name, id, tenant_id, payload, created_at, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?)
+                ON CONFLICT(table_name, tenant_id, id) DO UPDATE SET
+                    tenant_id = excluded.tenant_id,
+                    payload = excluded.payload,
+                    updated_at = excluded.updated_at
+                """,
+                (self.name, id, tenant_id, payload_json, now, now),
+            )
+        return obj
+
+    def get(self, id: str, tenant_id: str | None = None) -> T | None:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="get")
+        query = "SELECT payload FROM fabric_api_records WHERE table_name = ? AND id = ?"
+        params: list[Any] = [self.name, id]
+        if _is_tenant_scoped_field(self.tenant_field):
+            query += " AND tenant_id = ?"
+            params.append(normalized_tenant_id)
+        with self._lock:
+            row = self._connection.execute(query, params).fetchone()
+        if row is None:
+            return None
+        return self._deserialize(row[0])
+
+    def list(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+    ) -> builtins.list[T]:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="list")
+        query = "SELECT payload FROM fabric_api_records WHERE table_name = ?"
+        params: list[Any] = [self.name]
+        if _is_tenant_scoped_field(self.tenant_field):
+            # Cross-tenant reads require explicit opt-in via allow_system_scope=True
+            # in addition to a reserved keyword — string value alone is not enough.
+            if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
+                pass  # intentional cross-tenant read
+            else:
+                query += " AND tenant_id = ?"
+                params.append(normalized_tenant_id)
+        query += " ORDER BY id"
+        with self._lock:
+            rows = self._connection.execute(query, params).fetchall()
+        items = [self._deserialize(row[0]) for row in rows]
+        if filter_fn:
+            items = [item for item in items if filter_fn(item)]
+        return items
+
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
+        self._require_tenant_scope(tenant_id, operation="update")
+        obj = self.get(id, tenant_id=tenant_id)
+        if obj is None:
+            return None
+        if isinstance(obj, dict):
+            obj.update(fields)
+            obj["updated_at"] = _now_iso()
+        else:
+            for key, value in fields.items():
+                setattr(obj, key, value)
+            if hasattr(obj, "updated_at"):
+                setattr(obj, "updated_at", _now_iso())
+        self.insert(id, obj)
+        return obj
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="delete")
+        obj = self.get(id, tenant_id=tenant_id)
+        if obj is None:
+            return False
+        query = "DELETE FROM fabric_api_records WHERE table_name = ? AND id = ?"
+        params: list[Any] = [self.name, id]
+        if _is_tenant_scoped_field(self.tenant_field):
+            query += " AND tenant_id = ?"
+            params.append(normalized_tenant_id)
+        with self._lock, self._connection:
+            cursor = self._connection.execute(query, params)
+        return cursor.rowcount > 0
+
+
+class AppendOnlySQLiteTable(SQLiteTable[T]):
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be updated")
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be deleted")
+
+
 class InMemoryDatabase:
     """Development-only database facade matching the current repository API."""
 
@@ -205,11 +358,14 @@ class InMemoryDatabase:
         self.review_requests = InMemoryTable("review_requests", "tenant_id")
         self.review_comments = InMemoryTable("review_comments", "tenant_id")
         self.snapshots = InMemoryTable("snapshots", "tenant_id")
-        self.audit_logs = InMemoryTable("audit_logs", "tenant_id")
+        self.audit_logs = AppendOnlyInMemoryTable("audit_logs", "tenant_id")
         self.value_packs = InMemoryTable("value_packs", "tenant_id")
         self.governance_gates = InMemoryTable("governance_gates", "tenant_id")
         self.users = InMemoryTable("users", "tenant_id")
         self.tenants = InMemoryTable("tenants", "id")
+        self.dsar_requests = InMemoryTable("dsar_requests", "tenant_id")
+        self.dsar_packages = InMemoryTable("dsar_packages", "tenant_id")
+
 
 
 # Backward-compatible aliases for existing tests and imports. New code should use

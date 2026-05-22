@@ -1,3 +1,4 @@
+import { safeAsync } from '@/lib/async';
 /**
  * useJobStream.ts - Server-Sent Events hook for extraction job streaming
  *
@@ -505,7 +506,7 @@ export function useJobStream(jobId: string | null) {
 
       // Set up interval polling
       pollIntervalRef.current = setInterval(() => {
-        void pollJobStatus();
+        safeAsync(pollJobStatus(), "jobStream.poll");
       }, POLL_INTERVALS.jobStream);
     };
 

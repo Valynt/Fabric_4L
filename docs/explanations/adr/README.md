@@ -18,12 +18,25 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
-| [ADR-001](./ADR-001-six-layer-architecture.md) | Six-Layer Architecture | ✅ Accepted | 2025-01-15 |
-| [ADR-002](./ADR-002-hybrid-graph-database.md) | Neo4j + pgvector Hybrid Graph | ✅ Accepted | 2025-02-01 |
-| [ADR-003](./ADR-003-authentication-strategy.md) | JWT + API Key Authentication | ✅ Accepted | 2025-02-15 |
-| [ADR-004](./ADR-004-ontology-extraction.md) | Ontology-Guided LLM Extraction | ✅ Accepted | 2025-03-01 |
-| [ADR-005](./ADR-005-agent-orchestration.md) | LangGraph for Agent Orchestration | ✅ Accepted | 2025-03-15 |
-| [ADR-020](./ADR-020-layer2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
+| [ADR-002](./ADR-002-six-layer-architecture.md) | Six-Layer Architecture | ✅ Accepted | 2025-01-15 |
+| [ADR-003](./ADR-003-neo4j-pgvector-hybrid-graph-database.md) | Neo4j + pgvector Hybrid Graph Database | ✅ Accepted | 2025-02-01 |
+| [ADR-004](./ADR-004-jwt-api-key-authentication-strategy.md) | JWT + API Key Authentication Strategy | ✅ Accepted | 2025-02-15 |
+| [ADR-005](./ADR-005-ontology-guided-llm-extraction.md) | Ontology-Guided LLM Extraction | ✅ Accepted | 2025-03-01 |
+| [ADR-006](./ADR-006-langgraph-for-agent-orchestration.md) | LangGraph for Agent Orchestration | ✅ Accepted | 2025-03-15 |
+| [ADR-007](./ADR-007-openapi-typescript-generator-selection.md) | OpenAPI TypeScript Generator Selection | ✅ Accepted | 2026-05-05 |
+| [ADR-008](./ADR-008-opentelemetry-for-observability.md) | OpenTelemetry for Observability | ✅ Accepted | April 2026 |
+| [ADR-009](./ADR-009-jwt-api-key-hybrid-authentication.md) | JWT + API Key Hybrid Authentication | ✅ Accepted | April 2026 |
+| [ADR-010](./ADR-010-postgresql-rls-for-multi-tenancy.md) | PostgreSQL + RLS for Multi-Tenancy | ✅ Accepted | April 2026 |
+| [ADR-011](./ADR-011-langgraph-for-workflow-orchestration.md) | LangGraph for Workflow Orchestration | ✅ Accepted | April 2026 |
+| [ADR-012](./ADR-012-circuit-breaker-pattern-for-external-service-resilience.md) | Circuit Breaker Pattern for External Service Resilience | ✅ Accepted | April 2026 |
+| [ADR-013](./ADR-013-repository-pattern-for-data-access.md) | Repository Pattern for Data Access | ✅ Accepted | April 2026 |
+| [ADR-014](./ADR-014-multi-layer-architecture-vs-monolith.md) | Multi-Layer Architecture vs Monolith | ✅ Accepted | April 2026 |
+| [ADR-015](./ADR-015-opentelemetry-for-observability.md) | OpenTelemetry for Observability | ✅ Accepted | April 2026 |
+| [ADR-016](./ADR-016-neo4j-for-knowledge-graph-storage.md) | Neo4j for Knowledge Graph Storage | ✅ Accepted | April 2026 |
+| [ADR-017](./ADR-017-jwt-api-key-hybrid-authentication.md) | JWT + API Key Hybrid Authentication | ✅ Accepted | April 2026 |
+| [ADR-018](./ADR-018-layer-5-canonical-source.md) | Layer 5 Canonical Source | ✅ Accepted | — |
+| [ADR-019](./ADR-019-replayability-event-envelope-and-layer-4-replay-harness.md) | Replayability Event Envelope and Layer 4 Replay Harness | ✅ Accepted | — |
+| [ADR-020](./ADR-020-layer-2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
 
 ---
 
@@ -81,7 +94,7 @@ What becomes easier or more difficult to do because of this change?
 To propose a new ADR:
 
 1. Copy the template above
-2. Use the next available ADR number
+2. Use the next sequential ADR number (`ADR-###-slug.md`)
 3. Submit for review via PR
 4. Update this index
 
