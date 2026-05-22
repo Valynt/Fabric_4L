@@ -866,7 +866,7 @@ class BillingService:
         stmt = (
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
-            .where(BillingSubscription.cancel_at_period_end == True)
+            .where(BillingSubscription.cancel_at_period_end.is_(True))
             .where(BillingSubscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]))
             .order_by(BillingSubscription.created_at.desc())
         )

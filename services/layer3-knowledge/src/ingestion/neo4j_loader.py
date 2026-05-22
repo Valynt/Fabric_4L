@@ -14,8 +14,6 @@ import logging
 from collections import defaultdict
 from datetime import datetime
 from typing import Any
-
-from ..services.embedding_errors import EmbeddingProviderUnavailableError
 from uuid import UUID
 
 from neo4j import AsyncDriver
@@ -26,6 +24,7 @@ from ..config import Settings, get_settings
 from ..db.driver import get_driver
 from ..ingestion.validators import RequiredFieldValidator
 from ..schema.constraints import ENTITY_TYPES, RELATIONSHIP_TYPES
+from ..services.embedding_errors import EmbeddingProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 

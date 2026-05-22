@@ -22,6 +22,7 @@ unless they are moved behind this boundary.
 
 from __future__ import annotations
 
+import asyncio
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
@@ -31,9 +32,17 @@ from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
 SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
 
+# Global Cypher query limits (PERF-001)
+MAX_QUERY_DEPTH = 10
+QUERY_TIMEOUT_SECONDS = 30.0
+
 
 class TenantQueryValidationError(ValueError):
     """Raised when Cypher execution violates tenant isolation requirements."""
+
+
+class CypherDepthLimitExceeded(TenantQueryValidationError):
+    """Raised when a Cypher query exceeds the maximum allowed traversal depth."""
 
 
 _FALLBACK_TENANT_OWNED_LABELS = {
@@ -97,6 +106,11 @@ def _load_tenant_owned_labels() -> set[str]:
 
 _TENANT_OWNED_LABELS = _load_tenant_owned_labels()
 _CLAUSE_KEYWORD_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE)\b", re.IGNORECASE)
+# Matches variable-length path patterns like *1..4, *..5, *1.., *3, *11
+_VAR_LENGTH_PATH_PATTERN = re.compile(
+    r"\[\s*(?:[:!]?\s*[A-Za-z_][A-Za-z0-9_]*\s*\|?\s*)*\*\s*(?:(\d+)\s*\.\.\s*(\d+)?|\.\.\s*(\d+)|(\d+)\s*\.\.|(\d+))?\s*\]",
+    re.IGNORECASE,
+)
 _TENANT_LABEL_PATTERN = re.compile(
     r"\(\s*(?P<alias>[A-Za-z_][A-Za-z0-9_]*)?\s*:\s*"
     r"(?P<label>[A-Za-z_][A-Za-z0-9_]*)"
@@ -159,6 +173,19 @@ class TenantQueryExecutor:
     """Single query execution wrapper for tenant-scoped Cypher."""
 
     @classmethod
+    def _extract_max_depth(cls, query: str) -> int | None:
+        """Return the largest explicit depth bound found in variable-length paths."""
+        max_depth: int | None = None
+        for match in _VAR_LENGTH_PATH_PATTERN.finditer(query):
+            # Groups: (start_depth, end_depth, dotdot_end_depth, start_only_depth, fixed_depth)
+            for raw in match.groups():
+                if raw is not None:
+                    depth = int(raw)
+                    if max_depth is None or depth > max_depth:
+                        max_depth = depth
+        return max_depth
+
+    @classmethod
     async def run(
         cls,
         run_callable,
@@ -172,12 +199,20 @@ class TenantQueryExecutor:
             params["_tenant_id"] = context.tenant_id
 
         cls._validate(query=query, params=params, context=context)
-        return await run_callable(query, params)
+        coro = run_callable(query, params)
+        return await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
 
     @classmethod
     def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:
         if context.is_bypass:
             return
+
+        # Depth limit check (PERF-001)
+        max_depth = cls._extract_max_depth(query)
+        if max_depth is not None and max_depth > MAX_QUERY_DEPTH:
+            raise CypherDepthLimitExceeded(
+                f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"
+            )
 
         touches_tenant_data = _touches_tenant_owned_label(query)
         if touches_tenant_data and not context.tenant_id and not context.allow_system_query:

@@ -1,0 +1,76 @@
+"""Shared infrastructure package.
+
+Extracted from Layer 3 for cross-layer reuse.
+"""
+
+from .auth import (
+    APIKey,
+    APIKeyCreateRequest,
+    APIKeyCreateResponse,
+    APIKeyManager,
+    APIKeyResponse,
+    APIKeyUpdateRequest,
+    AuthenticationResult,
+    AuthorizationChecker,
+    Permission,
+    Role,
+    get_api_key_manager,
+    get_authorization_checker,
+    initialize_authentication,
+    ROLE_PERMISSIONS,
+)
+from .cache import (
+    CacheConfig,
+    CacheKey,
+    CachePort,
+    AiocacheCacheAdapter,
+    CacheProviderName,
+    RedisCache,
+    CacheManager,
+    LegacyCacheAdapter,
+    CacheParityMismatch,
+    RequestDeduplicator,
+    as_cache_port,
+    build_cache_port,
+    ShadowCacheComparator,
+    get_cache_manager,
+    get_request_deduplicator,
+    initialize_cache,
+    cache_result,
+)
+
+__all__ = [
+    # Auth
+    "Permission",
+    "Role",
+    "APIKey",
+    "APIKeyCreateRequest",
+    "APIKeyResponse",
+    "APIKeyCreateResponse",
+    "APIKeyUpdateRequest",
+    "AuthenticationResult",
+    "APIKeyManager",
+    "AuthorizationChecker",
+    "get_api_key_manager",
+    "get_authorization_checker",
+    "initialize_authentication",
+    "ROLE_PERMISSIONS",
+    # Cache
+    "CacheConfig",
+    "CacheKey",
+    "CachePort",
+    "AiocacheCacheAdapter",
+    "CacheProviderName",
+    "RedisCache",
+    "CacheManager",
+    "LegacyCacheAdapter",
+    "CacheParityMismatch",
+    "RequestDeduplicator",
+    "as_cache_port",
+    "build_cache_port",
+    "ShadowCacheComparator",
+    "get_cache_manager",
+    "get_request_deduplicator",
+    "initialize_cache",
+    "cache_result",
+]

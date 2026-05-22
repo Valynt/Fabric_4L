@@ -1,9 +1,6 @@
-"""Authentication package initialization.
+"""Authentication package initialization."""
 
-Re-exports from value_fabric.shared.infrastructure.auth during migration.
-"""
-
-from value_fabric.shared.infrastructure.auth import (
+from .api_keys import (
     ROLE_PERMISSIONS,
     APIKey,
     APIKeyCreateRequest,

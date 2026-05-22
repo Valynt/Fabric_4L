@@ -27,6 +27,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported

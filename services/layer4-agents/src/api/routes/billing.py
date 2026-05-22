@@ -115,9 +115,10 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ...services.billing_service import BillingService
 from ...services.overage_service import OverageService
-from ...services.stripe_client import StripeError, StripeNotConfiguredError
+from ...services.stripe_client import StripeError
 from ...services.usage_service import UsageService, UsageValidationError
 from ..common.db import get_route_db
+
 
 class get_subscriptionResult(TypedDictModel):
     cancel_at_period_end: bool
