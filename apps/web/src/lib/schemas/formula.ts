@@ -37,7 +37,10 @@ export const FormulaSchema = z.object({
   last_reviewed: z.string().optional(),
   reviewers: z.array(z.string().email('Reviewer must be a valid email')).optional(),
   expression: z.string().optional(),
-  variables: z.any().optional(),
+  variables: z.union([
+    z.array(z.string().min(1, 'Variable names must be non-empty strings')),
+    z.record(z.string(), z.unknown()),
+  ]).optional(),
 });
 
 export const FormulaListSchema = z.array(FormulaSchema);

@@ -14,6 +14,8 @@ import {
   EntityContextResponseSchema,
   EntityTraversalResponseSchema,
 } from './schemas';
+import { FormulaSchema } from '@/lib/schemas/formula';
+import { ExtractedEntitySchema, ExtractionResultsResponseSchema } from '@/api/protocol/extraction';
 
 // ── ValidationError ──────────────────────────────────────────────────────────
 
@@ -333,5 +335,111 @@ describe('EntityTraversalResponseSchema', () => {
     });
     expect(result.success).toBe(true);
     if (result.success) expect(result.data.paths).toEqual([]);
+  });
+});
+
+// ── FormulaSchema (lib/schemas/formula.ts) ──────────────────────────────────
+
+describe('FormulaSchema variables shape', () => {
+  const baseFormula = {
+    id: 'formula-1',
+    name: 'ROI',
+  };
+
+  it('accepts array variables used by formula creation/list consumers', () => {
+    const result = FormulaSchema.safeParse({ ...baseFormula, variables: ['revenue', 'cost'] });
+    expect(result.success).toBe(true);
+  });
+
+  it('accepts object variables used by evaluation/scenario contract payloads', () => {
+    const result = FormulaSchema.safeParse({
+      ...baseFormula,
+      variables: { annual_savings: 500000, implementation_cost: 200000 },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects invalid scalar variables payload', () => {
+    const result = FormulaSchema.safeParse({ ...baseFormula, variables: 42 });
+    expect(result.success).toBe(false);
+  });
+});
+
+// ── Extraction protocol entity/result schema tightening ─────────────────────
+
+describe('ExtractedEntitySchema attributes shape', () => {
+  const baseEntity = {
+    entity_id: 'e-1',
+    type: 'organization',
+    name: 'Acme',
+    confidence: 0.91,
+  };
+
+  it('accepts flexible attribute object values', () => {
+    const result = ExtractedEntitySchema.safeParse({
+      ...baseEntity,
+      attributes: {
+        revenue: 1000000,
+        tags: ['finance', 'public'],
+        metadata: { source: '10-k' },
+        nullable: null,
+      },
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects non-object attributes payloads', () => {
+    const result = ExtractedEntitySchema.safeParse({ ...baseEntity, attributes: 'bad-shape' });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe('ExtractionResultsResponseSchema', () => {
+  it('accepts valid extraction results response payload', () => {
+    const result = ExtractionResultsResponseSchema.safeParse({
+      summary: {
+        job_id: 'job-1',
+        total_entities: 3,
+        returned_entities: 3,
+        page: 1,
+        page_size: 50,
+        total_pages: 1,
+        mode: 'full',
+      },
+      entities: [
+        {
+          entity_id: 'e-1',
+          type: 'organization',
+          name: 'Acme',
+          confidence: 0.91,
+          attributes: { sector: 'manufacturing' },
+        },
+      ],
+    });
+    expect(result.success).toBe(true);
+  });
+
+  it('rejects entities with malformed attributes', () => {
+    const result = ExtractionResultsResponseSchema.safeParse({
+      summary: {
+        job_id: 'job-1',
+        total_entities: 1,
+        returned_entities: 1,
+        page: 1,
+        page_size: 50,
+        total_pages: 1,
+        mode: 'summary',
+      },
+      entities: [
+        {
+          entity_id: 'e-1',
+          type: 'organization',
+          name: 'Acme',
+          confidence: 0.91,
+          attributes: 999,
+        },
+      ],
+    });
+    expect(result.success).toBe(false);
   });
 });
