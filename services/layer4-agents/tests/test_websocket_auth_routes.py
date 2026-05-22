@@ -176,6 +176,7 @@ async def test_route_auth_failure_log_has_trace_metadata(caplog):
     assert record.correlation_id == "req-auth-001"
     assert record.request_id == "req-auth-001"
 
+@pytest.mark.asyncio
 async def test_route_rejects_bare_subprotocol_name(caplog):
     """A bare subprotocol name (no canonical prefix) must be rejected with 1008."""
     ws = _make_websocket("graphql-ws")
