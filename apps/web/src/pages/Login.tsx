@@ -1,3 +1,4 @@
+import { safeAsync } from '@/lib/async';
 /**
  * Login Page — OIDC Authentication Entry Point
  *
@@ -58,7 +59,7 @@ export default function Login() {
     }
 
     if (code && state) {
-      void handleCallbackFlow(code, state);
+      safeAsync(handleCallbackFlow(code, state), "login.callback");
     }
   }, [searchParams]);
 

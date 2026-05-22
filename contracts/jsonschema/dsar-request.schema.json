@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric/contracts/jsonschema/dsar-request.schema.json",
+  "title": "DSARRequest",
+  "type": "object",
+  "required": ["subject_identity"],
+  "properties": {
+    "subject_identity": {"type": "object", "additionalProperties": {"type": "string"}},
+    "scope": {"type": "array", "items": {"type": "string"}},
+    "legal_basis": {"type": "string", "enum": ["gdpr_art_15", "ccpa_1798_110", "other"]},
+    "requester_channel": {"type": "string", "enum": ["portal", "email", "api", "support"]},
+    "tenant_context": {"type": "object", "additionalProperties": {"type": "string"}}
+  }
+}
