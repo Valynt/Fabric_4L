@@ -996,6 +996,7 @@ async def health_check():
                 "status": "degraded",
                 "response_time_ms": None,
                 "error": "Release-smoke readiness skips downstream Layer 3 probe; live smoke tests validate cross-service contracts after startup",
+                "failure_reason": "layer3_probe_skipped",
             }
         )
         overall_status = "degraded"
@@ -1015,6 +1016,7 @@ async def health_check():
                     "status": "healthy" if l3_healthy else "unhealthy",
                     "response_time_ms": l3_response_ms,
                     "error": None if l3_healthy else "Layer 3 returned unhealthy status",
+                    "failure_reason": None if l3_healthy else "dependency_unhealthy",
                 }
             )
 
@@ -1027,6 +1029,7 @@ async def health_check():
                     "status": "unhealthy",
                     "response_time_ms": None,
                     "error": str(e),
+                    "failure_reason": str(e),
                 }
             )
             overall_status = "degraded"

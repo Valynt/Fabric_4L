@@ -265,6 +265,16 @@ async def health_check(
         },
     )
 
+    dependency_payload = [
+        {
+            **(dep.model_dump() if hasattr(dep, "model_dump") else dict(dep)),
+            "failure_reason": getattr(dep, "error", None)
+            if hasattr(dep, "error")
+            else (dep.get("error") if isinstance(dep, dict) else None),
+        }
+        for dep in dependencies
+    ]
+
     return {
         "status": overall_status,
         "service": "layer3-knowledge",
@@ -277,7 +287,7 @@ async def health_check(
         "timestamp": datetime.now(UTC),
         "uptime_seconds": metrics.uptime_seconds,
         "response_time_ms": response_time_ms,
-        "dependencies": dependencies,
+        "dependencies": dependency_payload,
         "metrics": metrics,
         "neo4j": neo4j_health,
         "schema_status": schema_status,
