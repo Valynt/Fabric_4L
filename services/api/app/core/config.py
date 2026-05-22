@@ -93,6 +93,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 60
     mock_persistence: bool = False
     database_url: str | None = None
+    redis_url: str | None = None
     llm_provider: str = ""
     llm_model: str | None = None
     allow_mock_llm: bool = False

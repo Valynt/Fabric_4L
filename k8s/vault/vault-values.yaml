@@ -1,0 +1,120 @@
+# Vault Helm Chart Values — Production HA Mode
+# Reference: https://developer.hashicorp.com/vault/docs/platform/k8s/helm
+#
+# Deploy with:
+#   helm repo add hashicorp https://helm.releases.hashicorp.com
+#   helm upgrade --install vault hashicorp/vault -f k8s/vault/vault-values.yaml
+#
+# After deploy, initialize and unseal:
+#   kubectl exec -it vault-0 -- vault operator init
+#   kubectl exec -it vault-0 -- vault operator unseal
+#   kubectl exec -it vault-1 -- vault operator raft join http://vault-0.vault-internal:8200
+#   kubectl exec -it vault-1 -- vault operator unseal
+#   kubectl exec -it vault-2 -- vault operator raft join http://vault-0.vault-internal:8200
+#   kubectl exec -it vault-2 -- vault operator unseal
+
+server:
+  # HA mode requires 3+ replicas
+  replicas: 3
+
+  image:
+    repository: hashicorp/vault
+    tag: "1.18.1"
+    pullPolicy: IfNotPresent
+
+  # Production resource sizing
+  resources:
+    requests:
+      memory: "512Mi"
+      cpu: "250m"
+    limits:
+      memory: "1Gi"
+      cpu: "1000m"
+
+  # Enterprise-grade affinity — spread across nodes/zones
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: {{ template "vault.name" . }}
+              app.kubernetes.io/instance: "{{ .Release.Name }}"
+              component: server
+          topologyKey: kubernetes.io/hostname
+
+  # Data volume for Raft storage
+  dataStorage:
+    enabled: true
+    size: 10Gi
+    mountPath: "/vault/data"
+    storageClass: ""
+    accessMode: ReadWriteOnce
+
+  # Audit log volume
+  auditStorage:
+    enabled: true
+    size: 5Gi
+    mountPath: "/vault/audit"
+    storageClass: ""
+    accessMode: ReadWriteOnce
+
+  # HA configuration with integrated Raft storage
+  ha:
+    enabled: true
+    replicas: 3
+    raft:
+      enabled: true
+      # Set Node ID from pod ordinal index
+      setNodeId: true
+      config: |
+        ui = true
+        listener "tcp" {
+          tls_disable     = 1
+          address         = "[::]:8200"
+          cluster_address = "[::]:8201"
+        }
+        storage "raft" {
+          path    = "/vault/data"
+          node_id = "{{ .Env.POD_NAME }}"
+          retry {
+            leader_api_addr = "http://vault-0.vault-internal:8200"
+          }
+        }
+        service_registration "kubernetes" {}
+        telemetry {
+          prometheus_retention_time = "30s"
+          disable_hostname            = true
+        }
+
+  # Run as non-root
+  securityContext:
+    runAsNonRoot: true
+    runAsUser: 100
+    runAsGroup: 1000
+    fsGroup: 1000
+    fsGroupChangePolicy: "OnRootMismatch"
+    capabilities:
+      drop:
+        - ALL
+
+  # Network policy for Vault
+  networkPolicy:
+    enabled: true
+
+# Disable standalone Vault agent injector (use external-secrets instead)
+injector:
+  enabled: false
+
+# UI ingress (configure TLS in production)
+ui:
+  enabled: true
+  serviceType: "ClusterIP"
+  # For production, enable ingress with cert-manager TLS:
+  # ingress:
+  #   enabled: true
+  #   hosts:
+  #     - host: vault.value-fabric.io
+  #   tls:
+  #     - secretName: vault-tls
+  #       hosts:
+  #         - vault.value-fabric.io

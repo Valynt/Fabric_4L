@@ -52,18 +52,12 @@ def _add_governance_middleware(app: FastAPI) -> None:
         add_security_middleware(app, config=security_config)
         app.add_middleware(CORSMiddleware, **resolve_cors_policy().as_kwargs())
         logger.info("Governance middleware loaded from value_fabric.shared")
-    except ImportError:
-        logger.warning(
-            "value_fabric.shared not available — running without governance middleware. "
-            "This is only acceptable in isolated test environments."
-        )
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "FATAL: value_fabric.shared is required for secure CORS configuration. "
+            "Running without governance middleware is not permitted. "
+            "Install the shared package or set CORS_ORIGINS explicitly."
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

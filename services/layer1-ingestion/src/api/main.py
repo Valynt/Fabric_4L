@@ -27,15 +27,18 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
-from value_fabric.shared.identity.middleware import GovernanceMiddleware
-from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
-from value_fabric.shared.identity.vault_check import is_vault_healthy
-from value_fabric.shared.models.typed_dict import TypedDictModel
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
-
-# Hard imports - fail fast if security components unavailable
-from value_fabric.shared.security import SecurityConfig, add_security_middleware
+try:
+    from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
+    from value_fabric.shared.identity.vault_check import is_vault_healthy
+    from value_fabric.shared.models.typed_dict import TypedDictModel
+    from value_fabric.shared.security import SecurityConfig, add_security_middleware
+    from value_fabric.shared.startup import reject_insecure_bypass_in_production
+except ImportError as e:
+    raise ImportError(
+        f"Failed to import from value_fabric.shared. Ensure packages/shared is in PYTHONPATH. Error: {e}"
+    ) from e
 
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
@@ -479,12 +482,12 @@ class CreateTargetRequest(BaseModel):
     url: str = Field(..., description="Target URL")
     target_type: TargetType = TargetType.SINGLE_PAGE
     crawl_path: CrawlPath = CrawlPath.BROWSER  # HTTPX Fast Path selection
-    extraction_config: ExtractionConfigInput = Field(default_factory=ExtractionConfigInput)
-    browser_config: BrowserConfigInput = Field(default_factory=BrowserConfigInput)
+    extraction_config: ExtractionConfigInput = Field(default_factory=lambda: ExtractionConfigInput())
+    browser_config: BrowserConfigInput = Field(default_factory=lambda: BrowserConfigInput())
     schedule: ScheduleInput | None = None
-    rate_limit: RateLimitInput = Field(default_factory=RateLimitInput)
-    compliance: ComplianceInput = Field(default_factory=ComplianceInput)
-    proxy_config: ProxyConfigInput = Field(default_factory=ProxyConfigInput)
+    rate_limit: RateLimitInput = Field(default_factory=lambda: RateLimitInput())
+    compliance: ComplianceInput = Field(default_factory=lambda: ComplianceInput())
+    proxy_config: ProxyConfigInput = Field(default_factory=lambda: ProxyConfigInput())
     authentication: AuthenticationInput | None = None
     tags: list[str] = []
 

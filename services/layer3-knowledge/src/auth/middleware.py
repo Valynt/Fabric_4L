@@ -66,12 +66,9 @@ class AuthenticationMiddleware(BaseHTTPMiddleware):
         # Process request
         response = await call_next(request)
 
-        # Add authentication headers
-        if hasattr(request.state, "authenticated") and request.state.authenticated:
-            api_key_obj = request.state.authenticated_api_key
-            response.headers["X-API-Key-ID"] = api_key_obj.key_id
-            response.headers["X-API-Key-Name"] = api_key_obj.name
-            response.headers["X-API-Key-Role"] = api_key_obj.role.value
+        # SECURITY: Intentionally do NOT add X-API-Key-* headers to responses.
+        # Leaking key metadata (ID, name, role) creates an information disclosure
+        # vulnerability. Request state retains auth context for internal use only.
 
         return response
 

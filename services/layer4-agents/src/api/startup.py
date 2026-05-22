@@ -77,6 +77,7 @@ class RuntimeState:
     crm_sync_scheduler: CRMSyncScheduler | None = None
     crm_sync_job_runner: CRMSyncJobRunner | None = None
     oidc_cleanup_task: OIDCCleanupTask | None = None
+    gate_timeout_scheduler: Any | None = None
 
 
 runtime_state = RuntimeState()
@@ -159,10 +160,14 @@ def build_lifespan(
             await runtime_state.crm_sync_job_runner.stop()
         if runtime_state.oidc_cleanup_task:
             await runtime_state.oidc_cleanup_task.stop()
+        if runtime_state.gate_timeout_scheduler is not None:
+            await runtime_state.gate_timeout_scheduler.stop()
         if runtime_state.checkpoint_saver:
             await CheckpointConfig.close_saver(runtime_state.checkpoint_saver)
         if runtime_state.state_manager and getattr(runtime_state.state_manager, "redis_client", None):
-            await runtime_state.state_manager.redis_client.aclose()
+            redis_client = runtime_state.state_manager.redis_client
+            if redis_client is not None:
+                await redis_client.aclose()
         await close_db()
         if getattr(app.state, "tracer_provider", None):
             app.state.tracer_provider.shutdown()
@@ -178,11 +183,18 @@ async def start_optional_integrations(app: FastAPI) -> None:
         runtime_state.crm_sync_scheduler = await get_crm_sync_scheduler()
         await runtime_state.crm_sync_scheduler.start()
     if runtime_state.state_manager and getattr(runtime_state.state_manager, "redis_client", None):
-        runtime_state.crm_sync_job_runner = CRMSyncJobRunner(runtime_state.state_manager.redis_client)
-        await runtime_state.crm_sync_job_runner.start()
+        redis_client = runtime_state.state_manager.redis_client
+        if redis_client is not None:
+            runtime_state.crm_sync_job_runner = CRMSyncJobRunner(redis_client)
+            await runtime_state.crm_sync_job_runner.start()
 
     if settings.enable_oidc_cleanup:
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
             db_session_factory=db_session,
             interval_seconds=300.0,
         )
+
+    # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
+    from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(db_session)
+    await runtime_state.gate_timeout_scheduler.start()

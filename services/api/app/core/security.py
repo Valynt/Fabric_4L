@@ -1,6 +1,7 @@
 import base64
 import binascii
 import hashlib
+import logging
 import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -15,6 +16,9 @@ from pydantic import BaseModel
 from app.core.config import get_settings
 from app.core.database import db
 from app.models.schemas import User
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Brute-force / account lockout constants (F-05)
@@ -45,19 +49,49 @@ class TokenPayload(BaseModel):
 
 
 
-_REVOKED_TOKEN_STORE: dict[str, tuple[str, int]] = {}
-
-
 def _revocation_key(tenant_id: str, jti: str) -> str:
     return f"auth:revoked:{tenant_id}:{jti}"
 
 
 def revoke_token(*, tenant_id: str, jti: str, fingerprint_hash: str, expires_at_ts: int) -> None:
-    _REVOKED_TOKEN_STORE[_revocation_key(tenant_id, jti)] = (fingerprint_hash, expires_at_ts)
+    """Add a token to the revocation denylist with TTL.
+
+    Uses Redis when available; falls back to in-memory only in dev/test.
+    """
+    key = _revocation_key(tenant_id, jti)
+    try:
+        from app.core.redis_client import get_redis_client
+        r = get_redis_client()
+        if r is not None:
+            ttl = max(0, expires_at_ts - int(datetime.now(UTC).timestamp()))
+            if ttl > 0:
+                r.setex(key, ttl, fingerprint_hash)
+            return
+    except Exception as exc:
+        logger.warning("Redis revoke_token failed, falling back to memory: %s", exc)
+
+    # Fallback in-memory (dev/test only)
+    _REVOKED_TOKEN_STORE[key] = (fingerprint_hash, expires_at_ts)
 
 
 def is_token_revoked(tenant_id: str, jti: str, fingerprint_hash: str) -> bool:
+    """Check if a token is in the revocation denylist.
+
+    Uses Redis when available; falls back to in-memory only in dev/test.
+    """
     key = _revocation_key(tenant_id, jti)
+    try:
+        from app.core.redis_client import get_redis_client
+        r = get_redis_client()
+        if r is not None:
+            stored = r.get(key)
+            if stored is None:
+                return False
+            return stored == fingerprint_hash
+    except Exception as exc:
+        logger.warning("Redis is_token_revoked failed, falling back to memory: %s", exc)
+
+    # Fallback in-memory (dev/test only)
     record = _REVOKED_TOKEN_STORE.get(key)
     if record is None:
         return False
@@ -66,6 +100,12 @@ def is_token_revoked(tenant_id: str, jti: str, fingerprint_hash: str) -> bool:
         _REVOKED_TOKEN_STORE.pop(key, None)
         return False
     return record[0] == fingerprint_hash
+
+
+# Dev/test fallback store (never used in production when Redis is configured)
+_REVOKED_TOKEN_STORE: dict[str, tuple[str, int]] = {}
+
+
 def _auth_error(status_code: int, *, error_code: str, message: str) -> HTTPException:
     return HTTPException(
         status_code=status_code,
