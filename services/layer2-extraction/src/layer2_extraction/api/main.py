@@ -32,6 +32,7 @@ from pydantic import BaseModel, Field
 
 # Load secrets from Infisical if available (optional in dev, required in prod)
 from value_fabric.shared.secrets import load_infisical_secrets
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api.deps import RequestContext
 
@@ -109,6 +110,7 @@ lifespan = create_lifespan(
     ws_manager=_ws_manager,
 )
 
+reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_app(lifespan=lifespan)
 
 # Extraction configuration constants

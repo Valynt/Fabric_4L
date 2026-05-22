@@ -15,6 +15,7 @@ from fastapi.responses import Response
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 try:
     from value_fabric.shared.secrets import load_infisical_secrets
@@ -64,6 +65,7 @@ logger = logging.getLogger(__name__)
 SERVICE_NAME = "layer6-benchmarks"
 SERVICE_VERSION = "1.0.0"
 _SETTINGS: Layer6Settings = validate_layer6_startup_settings()
+reject_insecure_bypass_in_production(service_name="layer6-benchmarks", settings=_SETTINGS)
 _benchmark_repo: BenchmarkRepository | None = None
 _neo4j_startup_error: str | None = None
 
