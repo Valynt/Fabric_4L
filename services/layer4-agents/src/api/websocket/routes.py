@@ -143,7 +143,7 @@ async def workflow_websocket(
             exc.code,
             extra={"auth_code": exc.code, **_log},
         )
-        await websocket.close(code=1008, reason="Authentication failed")
+        await websocket.close(code=1008, reason=f'{{"code":"{exc.code}"}}')
         return
 
     # Bind tenant context to the log dict now that we have it.
