@@ -88,6 +88,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
         actor_id = str(ctx.user_id) if ctx and ctx.user_id else None
         tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else None
         impersonator_id = ctx.impersonator_id if ctx else None
+        request_id = request.headers.get("X-Request-ID") or (ctx.request_id if ctx else None)
 
         # Extract client IP with proxy awareness
         forwarded = request.headers.get("X-Forwarded-For")
@@ -109,6 +110,7 @@ class AuditMiddleware(BaseHTTPMiddleware):
             "ip_address": client_ip,
             "method": method,
             "path": request.url.path,
+            "request_id": request_id,
             "status_code": response.status_code,
             "duration_ms": round(duration_ms, 2),
         }

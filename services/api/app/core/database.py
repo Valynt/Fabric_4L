@@ -189,6 +189,14 @@ class InMemoryTable(Generic[T]):
             return True
 
 
+class AppendOnlyInMemoryTable(InMemoryTable[T]):
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be updated")
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be deleted")
+
+
 class SQLiteTable(Generic[T]):
     """Durable JSON-record table preserving the current standalone API table API.
 
@@ -324,6 +332,14 @@ class SQLiteTable(Generic[T]):
         return cursor.rowcount > 0
 
 
+class AppendOnlySQLiteTable(SQLiteTable[T]):
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be updated")
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be deleted")
+
+
 class InMemoryDatabase:
     """Development-only database facade matching the current repository API."""
 
@@ -346,7 +362,7 @@ class InMemoryDatabase:
         self.review_requests = InMemoryTable("review_requests", "tenant_id")
         self.review_comments = InMemoryTable("review_comments", "tenant_id")
         self.snapshots = InMemoryTable("snapshots", "tenant_id")
-        self.audit_logs = InMemoryTable("audit_logs", "tenant_id")
+        self.audit_logs = AppendOnlyInMemoryTable("audit_logs", "tenant_id")
         self.value_packs = InMemoryTable("value_packs", "tenant_id")
         self.governance_gates = InMemoryTable("governance_gates", "tenant_id")
         self.users = InMemoryTable("users", "tenant_id")
@@ -386,7 +402,7 @@ class SQLiteDatabase:
         self.review_requests = self._table("review_requests", ReviewRequest, "tenant_id")
         self.review_comments = self._table("review_comments", ReviewComment, "tenant_id")
         self.snapshots = self._table("snapshots", AccountVersionSnapshot, "tenant_id")
-        self.audit_logs = self._table("audit_logs", AuditLogEvent, "tenant_id")
+        self.audit_logs = AppendOnlySQLiteTable("audit_logs", self._connection, self._lock, AuditLogEvent, "tenant_id")
         self.value_packs = self._table("value_packs", ValuePack, "tenant_id")
         self.governance_gates = self._table("governance_gates", GovernanceGate, "tenant_id")
         self.users = self._table("users", User, "tenant_id")

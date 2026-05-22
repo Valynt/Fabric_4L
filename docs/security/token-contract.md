@@ -57,6 +57,9 @@ All maintained services must fail closed on JWT parse or claim errors.
 | `isolation_tier` | string | Tenant isolation level | "shared" |
 | `roles` | string[] | System-wide roles | [] |
 | `scp` | string[] | OAuth-style scopes | [] |
+| `impersonated_by` | UUID | Original support/admin actor when token is an impersonation token | None |
+| `impersonation_session_id` | UUID | Immutable session identifier for impersonation lifecycle audit | None |
+| `impersonation_reason` | string | Operator-provided justification for support impersonation | None |
 
 **Extended token example:**
 
