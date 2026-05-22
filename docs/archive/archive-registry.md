@@ -1,7 +1,50 @@
 # Documentation Archive Registry
 
-> **Last Updated:** 2026-04-27  
-> **Archive Rounds:** Phase 1 (2026-04-19), Phase 2 (2026-04-27)
+> **Last Updated:** 2026-05-22  
+> **Archive Rounds:** Phase 1 (2026-04-19), Phase 2 (2026-04-27), Phase 3 (2026-05-22)
+
+---
+
+## Phase 3: Temporal Reports Archival (2026-05-22)
+
+**Rationale:** All temporal audit reports, sprint-scoped assessments, implementation summaries, and one-off remediation reports from `reports/` have been archived. These are point-in-time artifacts whose work is now complete and reflected in the codebase and ROADMAP.md.
+
+| Archived File | Original Location | Archive Date | Rationale | Modern Equivalent |
+|---------------|-------------------|--------------|-----------|-------------------|
+| `ASSURANCE_REMEDIATION_REPORT.md` | `reports/` | 2026-05-22 | Remediation complete | `ROADMAP.md`, `SECURITY.md` |
+| `B2-python-vuln-audit-2026-05-14.md` | `reports/` | 2026-05-22 | Vulnerability audit complete | `SECURITY.md` |
+| `CONTRACT_AUDIT_REPORT.md` | `reports/` | 2026-05-22 | Contract audit complete | `contracts/`, `docs/DEPRECATIONS.md` |
+| `DEAD_CODE_SWEEP_REPORT.md` | `reports/` | 2026-05-22 | Dead code sweep complete | `ROADMAP.md` |
+| `DEAD_CODE_SWEEP_REPORT_2026-05-03.md` | `reports/` | 2026-05-22 | Dead code sweep complete | `ROADMAP.md` |
+| `DEAD_CODE_SWEEP_REPORT_2026-05-06.md` | `reports/` | 2026-05-22 | Dead code sweep complete | `ROADMAP.md` |
+| `DESIGN_SYSTEM_PERFORMANCE_AUDIT_2026-05-06.md` | `reports/` | 2026-05-22 | Design system audit complete | `DESIGN.md` |
+| `FRONTEND_COMPREHENSIVE_AUDIT_REPORT_2026-05-04.md` | `reports/` | 2026-05-22 | Frontend audit complete | `DESIGN.md`, `apps/web/README.md` |
+| `FRONTEND_STABILIZATION_FIXES_APPLIED_2026-05-06.md` | `reports/` | 2026-05-22 | Stabilization complete | `ROADMAP.md` |
+| `FRONTEND_STABILIZATION_REPORT_2026-05-06.md` | `reports/` | 2026-05-22 | Stabilization complete | `ROADMAP.md` |
+| `GATES_INFRASTRUCTURE_AUDIT_2026-05-02.md` | `reports/` | 2026-05-22 | Gates implemented | `.github/workflows/critical-gates.yml` |
+| `GATE_GRADUATION_REPORT_2026-05-02.md` | `reports/` | 2026-05-22 | Gates graduated | `.github/workflows/` |
+| `L1-L2_BACKEND_IMPLEMENTATION_SUMMARY_2026-05-06.md` | `reports/` | 2026-05-22 | Implementation complete | `CHANGELOG.md`, `ROADMAP.md` |
+| `LAYER4_CONSUMER_MIGRATION_REPORT_2026-05-13.md` | `reports/` | 2026-05-22 | Migration complete | `CHANGELOG.md` |
+| `MIGRATION_HARDENING_REPORT_2026-05-12.md` | `reports/` | 2026-05-22 | Migration hardening complete | `CHANGELOG.md` |
+| `MIGRATION_LAYER5_CONSUMERS_2026-05-13.md` | `reports/` | 2026-05-22 | Migration complete | `CHANGELOG.md` |
+| `OPENAPI_DIL_HOOK_DIFF_2026-05-06.md` | `reports/` | 2026-05-22 | OpenAPI updates applied | `contracts/openapi/` |
+| `P0_CONTRACT_REMEDIATION_REPORT.md` | `reports/` | 2026-05-22 | Contract remediation complete | `contracts/` |
+| `PRODUCTION_READINESS_ASSESSMENT_2026-05-05.md` | `reports/` | 2026-05-22 | Production readiness achieved | `ROADMAP.md` |
+| `RELEASE_GATE_SPRINT6.md` | `reports/` | 2026-05-22 | Sprint 6 complete | `CHANGELOG.md` |
+| `RELEASE_READINESS_AUDIT_2026-05-12.md` | `reports/` | 2026-05-22 | Release achieved (v1.0.0) | `CHANGELOG.md` |
+| `SECURITY_AUDIT_SPRINT5.md` | `reports/` | 2026-05-22 | Security audit complete | `SECURITY.md` |
+| `SECURITY_FIXES_IMPLEMENTED.md` | `reports/` | 2026-05-22 | Security fixes applied | `SECURITY.md`, `CHANGELOG.md` |
+| `TEST_COVERAGE_RUBRIC_AUDIT_2026-05-12.md` | `reports/` | 2026-05-22 | Coverage audit complete | `tests/README.md` |
+| `TEST_REPORT_2026-05-17.md` | `reports/` | 2026-05-22 | Test report superseded | `tests/README.md` |
+| `USER_WORKFLOW_CODE_AUDIT_2026-05-12.md` | `reports/` | 2026-05-22 | Workflow audit complete | `ROADMAP.md` |
+| `anti-drift-hardening-deliverable.md` | `reports/` | 2026-05-22 | Drift hardening applied | `AGENTS.md`, `.github/workflows/` |
+| `h05-contract-placeholder-compliance.md` | `reports/` | 2026-05-22 | Compliance task complete | `contracts/` |
+| `launch-readiness-sprint0.md` | `reports/` | 2026-05-22 | Launch achieved | `CHANGELOG.md`, `ROADMAP.md` |
+| `layer1-import-migration-2026-05-13.md` | `reports/` | 2026-05-22 | Migration complete | `CHANGELOG.md` |
+| `layer3-production-readiness-review.md` | `reports/` | 2026-05-22 | Production readiness achieved | `ROADMAP.md` |
+| `repo-hygiene-cleanup-summary.md` | `reports/` | 2026-05-22 | Cleanup complete | `CHANGELOG.md` |
+
+**Location:** `docs/archive/quality-reports/2026-05-22/`
 
 ---
 
@@ -56,15 +99,16 @@
 
 ## Archive Statistics
 
-| Metric | Phase 1 | Phase 2 | Total |
-|--------|---------|---------|-------|
-| Files Archived | 10 | 17 | **27** |
-| Files Deleted | 0 | 1 | **1** |
-| Archive Dates | 2026-04-19 | 2026-04-27 | — |
+| Metric | Phase 1 | Phase 2 | Phase 3 | Total |
+|--------|---------|---------|---------|-------|
+| Files Archived | 10 | 17 | 32 | **59** |
+| Files Deleted | 0 | 1 | 0 | **1** |
+| Archive Dates | 2026-04-19 | 2026-04-27 | 2026-05-22 | — |
 
 **Quick Access:**
 - Phase 1: `docs/archive/2026-04-19/`
 - Phase 2: `docs/archive/2026-04-27/` — See [ASSESSMENT_INDEX.md](./2026-04-27/ASSESSMENT_INDEX.md)
+- Phase 3: `docs/archive/quality-reports/2026-05-22/`
 
 ---
 
@@ -84,8 +128,11 @@ docs/archive/
 │   ├── ARCHIVED_TIER1_BLOCKERS_IMPLEMENTATION_COMPLETE.md
 │   └── ARCHIVED_DEPLOYMENT_REALITY_REPORT.md
 │
-└── 2026-04-27/          # Phase 2: Documentation cleanup assessment
-    └── ASSESSMENT_INDEX.md  # (see file for 17 archived documents)
+├── 2026-04-27/          # Phase 2: Documentation cleanup assessment
+│   └── ASSESSMENT_INDEX.md  # (see file for 17 archived documents)
+│
+└── quality-reports/
+    └── 2026-05-22/      # Phase 3: Temporal reports from reports/ (32 files)
 ```
 
 ---

@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased] — ADR-027 Canonical Path Migration + Production Readiness
+## [Unreleased]
 
 ### Changed
 - **ADR-027 Layer 2 migration**: Moved `alignment.py`, `coreference.py`, `validation.py`, and `api/` wrappers from `value_fabric/layer2/` to `services/layer2-extraction/src/layer2_extraction/`. Deleted empty stale directories (`coreference/`, `db/`, `extraction/`). `value_fabric/layer2/` now contains only the path-appender shim `__init__.py`.
@@ -35,6 +35,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Added 8 new critical gates to `.github/workflows/critical-gates.yml`: `adr027-layer3-imports`, `adr027-layer4-imports`, `adr027-layer5-shim`, `adr027-deprecated-namespaces`, `adr027-duplicate-source-trees`, `alembic-head-consistency`, `env-contract-structure`, `stale-namespace-dirs`.
 - Added `check_stale_namespace_dirs.py` step to `repo-hygiene.yml`; added `value_fabric/**` to path triggers.
 - Fixed `critical-gates.yml` gate commands referencing non-existent test files (`test_tenant_isolation_hostile.py` → `test_tenant_isolation.py` + `test_graph_tenant_hostile_regression.py`; `test_auth_endpoint_coverage.py` → `test_sensitive_route_audit_coverage.py`).
+- Canonical launch readiness source set to `docs/readiness/current.md`; roadmap launch criteria references now point to canonical readiness.
 
 ## [1.0.0] — 2026-05-12
 
@@ -65,25 +66,6 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Fixed K8s overlay patches: corrected ConfigMap name (`global-config` → `value-fabric-config`)
 - Fixed K8s overlay patches: added missing namespace metadata
 - Aligned all version sources to 1.0.0
-
-## [Unreleased]
-
-### Added
-- `AGENTS.md` — contributor guide for AI agents and developers (P0 MAS best practice)
-- `contracts/tool-manifests/` — versioned JSON Schema tool manifests for all agent skills
-- `contracts/jsonschema/` — shared data model schemas (entities, events)
-- `tests/evals/` — golden-trace agent evaluation framework with fixtures
-- Root `README.md` with repo map and quickstart
-- `CONTRIBUTING.md` — developer setup, coding standards, PR conventions
-- `SECURITY.md` — supported versions and vulnerability reporting
-- `CHANGELOG.md` — SemVer-based release history
-- `Makefile` — developer ergonomics (`verify`, `test`, `lint`, `build`, `migrate`, `evals`)
-- `.github/dependabot.yml` — automated dependency updates (pip, npm, GitHub Actions)
-
----
-
-### Changed
-- Canonical launch readiness source set to `docs/readiness/current.md`; roadmap launch criteria references now point to canonical readiness.
 
 ## [0.9.0] — 2026-04-12
 
@@ -118,3 +100,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - 12 atomic skill definitions (evaluate_formula, semantic_search, graph_traverse, etc.)
 - CI pipeline: lint, type-check, 80%+ coverage gate per layer
 - Docker Compose for local full-stack development
+- `AGENTS.md` — contributor guide for AI agents and developers (P0 MAS best practice)
+- `contracts/tool-manifests/` — versioned JSON Schema tool manifests for all agent skills
+- `contracts/jsonschema/` — shared data model schemas (entities, events)
+- `tests/evals/` — golden-trace agent evaluation framework with fixtures
+- Root `README.md` with repo map and quickstart
+- `CONTRIBUTING.md` — developer setup, coding standards, PR conventions
+- `SECURITY.md` — supported versions and vulnerability reporting
+- `CHANGELOG.md` — SemVer-based release history
+- `Makefile` — developer ergonomics (`verify`, `test`, `lint`, `build`, `migrate`, `evals`)
+- `.github/dependabot.yml` — automated dependency updates (pip, npm, GitHub Actions)

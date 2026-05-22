@@ -47,10 +47,7 @@ import {
   Crown,
   Wrench,
   Lightbulb,
-  Calculator,
   FileText,
-  TrendingUp,
-  RotateCcw,
 } from "lucide-react";
 
 // â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -71,16 +68,7 @@ export interface TieredNavProps {
 // but the actual workspace tabs are rendered by their respective workspace shells.
 
 const NAV_SPINE: NavItem[] = [
-  // ─── 1. HOME ──────────────────────────────────────────────────────────────────
-  {
-    id: "home",
-    label: "Home",
-    icon: <Building2 size={16} />,
-    path: "/home",
-    tier: "standard",
-    description: "Dashboard overview",
-  },
-  // ─── 2. ACCOUNTS ──────────────────────────────────────────────────────────────
+  // ─── 1. ACCOUNTS ──────────────────────────────────────────────────────────────
   {
     id: "accounts",
     label: "Accounts",
@@ -89,80 +77,98 @@ const NAV_SPINE: NavItem[] = [
     tier: "standard",
     description: "Manage prospect accounts",
   },
-  // ─── 3. INTELLIGENCE ──────────────────────────────────────────────────────────
-  // Tabs (rendered by IntelligenceShell): Signals, Stakeholder Map, Ontology Match, Enrichment
+  // ─── 2. INTELLIGENCE ──────────────────────────────────────────────────────────
   {
     id: "intelligence",
     label: "Intelligence",
     icon: <Radar size={16} />,
     path: "/intelligence",
     tier: "standard",
-    description: "AI-enriched prospect profile: signals, stakeholders, ontology",
+    description: "Discovery workspace: signals, drivers, evidence, stakeholders",
+    children: [
+      {
+        id: "intelligence-signals",
+        label: "Signals",
+        path: "/intelligence/signals",
+        tier: "standard",
+      },
+      {
+        id: "intelligence-drivers",
+        label: "Drivers",
+        path: "/drivers",
+        tier: "standard",
+      },
+      {
+        id: "intelligence-evidence",
+        label: "Evidence",
+        path: "/drivers/evidence",
+        tier: "standard",
+      },
+      {
+        id: "intelligence-stakeholders",
+        label: "Stakeholders",
+        path: "/intelligence/stakeholders",
+        tier: "standard",
+      },
+    ],
   },
-  // ─── 4. HYPOTHESIS ────────────────────────────────────────────────────────────
+  // ─── 3. VALUE STUDIO ──────────────────────────────────────────────────────────
   {
-    id: "hypothesis",
-    label: "Hypothesis",
+    id: "value-studio",
+    label: "Value Studio",
     icon: <Lightbulb size={16} />,
-    path: "/hypothesis",
+    path: "/studio/action-plan",
     tier: "standard",
-    description: "AI-generated value hypotheses for the account",
+    description: "Synthesis workspace: action plan, value model, narrative",
+    children: [
+      {
+        id: "studio-action-plan",
+        label: "Action Plan",
+        path: "/studio/action-plan",
+        tier: "standard",
+      },
+      {
+        id: "studio-value-model",
+        label: "Value Model",
+        path: "/studio/value-model",
+        tier: "standard",
+      },
+      {
+        id: "studio-narrative",
+        label: "Narrative",
+        path: "/studio/narrative",
+        tier: "standard",
+      },
+    ],
   },
-  // ─── 5. DRIVER TREE ───────────────────────────────────────────────────────────
-  // Tabs (rendered by DriverTreeShell): Evidence, Alternatives, Solution Cost
+  // ─── 4. CONTEXT ENGINE ────────────────────────────────────────────────────────
   {
-    id: "drivers",
-    label: "Driver Tree",
-    icon: <GitBranch size={16} />,
-    path: "/drivers",
-    tier: "standard",
-    description: "Map signals to business value drivers with evidence",
-  },
-  // ─── 6. CALCULATOR ────────────────────────────────────────────────────────────
-  {
-    id: "calculator",
-    label: "Calculator",
-    icon: <Calculator size={16} />,
-    path: "/calculator",
-    tier: "standard",
-    description: "ROI calculator and value model",
-  },
-  // ─── 7. VALUE CASE ────────────────────────────────────────────────────────────
-  {
-    id: "value-case",
-    label: "Value Case",
-    icon: <FileText size={16} />,
-    path: "/value-case",
-    tier: "standard",
-    description: "Generated narrative and executive value case",
-  },
-  // ─── 8. VALUE REALIZATION ─────────────────────────────────────────────────────
-  {
-    id: "realization",
-    label: "Value Realization",
-    icon: <TrendingUp size={16} />,
-    path: "/realization",
-    tier: "standard",
-    description: "Track realized value post-sale",
-  },
-  // ─── SETUP ────────────────────────────────────────────────────────────────────
-  {
-    id: "setup",
-    label: "Setup",
+    id: "context-engine",
+    label: "Context Engine",
     icon: <Wrench size={16} />,
-    path: "/workflow/prospect",
+    path: "/context",
     tier: "standard",
-    description: "Prospect setup and configuration",
+    description: "Value packs, models, formulas, and agents",
   },
+  // ─── 5. DELIVERABLES ──────────────────────────────────────────────────────────
   {
-    id: "resume-workflow",
-    label: "Resume Last Workflow",
-    icon: <RotateCcw size={16} />,
-    path: "/intelligence",
+    id: "deliverables",
+    label: "Deliverables",
+    icon: <FileText size={16} />,
+    path: "/deliverables",
     tier: "standard",
-    description: "Jump back to the most recent workflow location",
+    description: "Packaged outputs for sharing",
   },
-  // ─── SETTINGS (Admin) ─────────────────────────────────────────────────────────
+  // ─── 6. GOVERNANCE ────────────────────────────────────────────────────────────
+  {
+    id: "governance",
+    label: "Governance",
+    icon: <GitBranch size={16} />,
+    path: "/governance",
+    tier: "standard",
+    description: "Audit, provenance, and compliance",
+  },
+  // ─── 7. SETTINGS (Admin) ──────────────────────────────────────────────────────
   {
     id: "settings",
     label: "Settings",
