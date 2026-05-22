@@ -19,8 +19,8 @@ from pydantic import BaseModel, Field
 from logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
-from ...auth.api_keys import APIKey
-from ...auth.middleware import get_current_api_key
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 logger = get_logger(__name__)
 
@@ -44,14 +44,6 @@ def _is_production_like() -> bool:
     return env in _PRODUCTION_ENVS
 
 router = APIRouter()
-
-def _get_authenticated_tenant_id(api_key: APIKey) -> str:
-    """Resolve tenant ID from authenticated API-key context and fail closed if absent."""
-    tenant_id = str(getattr(api_key, "tenant_id", "") or "").strip()
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
-    return tenant_id
-
 
 # Pydantic Models
 
@@ -214,10 +206,10 @@ async def search_variables(
     data_type: str | None = Query(None, description="Filter by data type"),
     source_type: str | None = Query(None, description="Filter by source type"),
     is_active: bool = Query(True, description="Only active variables"),
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Search variables by context."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     # Build safe query with parameterized WHERE conditions only
     # NEVER use string interpolation (f-strings or .format()) for Cypher queries
     where_conditions = ["v.isActive = $is_active", "v.tenant_id = $tenant_id"]
@@ -279,10 +271,10 @@ async def search_variables(
 @router.get("/variables/{variable_id}", response_model=VariableDetail)
 async def get_variable(
     variable_id: str,
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Get variable definition by ID."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     query = """
     MATCH (v:Variable {id: $variable_id})
     WHERE v.tenant_id = $tenant_id
@@ -341,14 +333,14 @@ async def get_variable(
 @router.post("/variables", response_model=VariableDetail, status_code=201)
 async def create_variable(
     request: VariableCreateRequest,
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Register a new variable definition. Requires authentication."""
     import uuid
 
     variable_id = str(uuid.uuid4())
     now = datetime.now(UTC).isoformat()
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
 
     # Build validation rules
     validation_rules = []
@@ -444,10 +436,10 @@ async def create_variable(
 async def update_variable(
     variable_id: str,
     request: VariableUpdateRequest,
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Update variable definition. Requires authentication."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     # Check variable exists
     check_query = "MATCH (v:Variable {id: $variable_id}) WHERE v.tenant_id = $tenant_id RETURN v"
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
@@ -522,17 +514,17 @@ async def update_variable(
             raise HTTPException(status_code=500, detail="Failed to update variable")
 
     # Return updated variable
-    return await get_variable(variable_id)
+    return await get_variable(variable_id, tenant=tenant)
 
 
 @router.post("/variables/{variable_id}/resolve", response_model=ResolveResponse)
 async def resolve_variable(
     variable_id: str,
     request: ResolveRequest,
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Resolve variable value for given context."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     # Get variable definition
     var_query = """
     MATCH (v:Variable {id: $variable_id})
@@ -606,10 +598,10 @@ async def resolve_variable(
 async def validate_value(
     variable_id: str,
     request: ValidateRequest,
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Validate value against variable rules."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     # Get variable validation rules
     query = """
     MATCH (v:Variable {id: $variable_id})
@@ -723,10 +715,10 @@ class SourceBindingResponse(BaseModel):
 
 @router.get("/variables/stats", response_model=VariableStatsResponse)
 async def get_variable_stats(
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """Return aggregate statistics for the variable registry."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     query = """
     MATCH (v:Variable)
     WHERE v.tenant_id = $tenant_id
@@ -758,10 +750,10 @@ async def get_variable_stats(
 
 @router.get("/variables/bindings", response_model=list[SourceBindingResponse])
 async def list_source_bindings(
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ):
     """List data source binding configurations and their health status."""
-    tenant_id = _get_authenticated_tenant_id(api_key)
+    tenant_id = str(tenant.tenant_id)
     query = """
     MATCH (sb:SourceBinding)
     WHERE sb.tenant_id = $tenant_id
