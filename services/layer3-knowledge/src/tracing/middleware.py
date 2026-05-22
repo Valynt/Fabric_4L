@@ -21,6 +21,9 @@ from collections.abc import Callable
 from typing import Any, Optional
 
 from fastapi import Request, Response
+from opentelemetry import propagate, trace
+from opentelemetry.context import attach, detach
+from opentelemetry.trace import SpanContext as OTelSpanContext, TraceFlags
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 from value_fabric.shared.observability.trace_context import canonical_trace_headers
@@ -53,36 +56,45 @@ class TracingMiddleware(BaseHTTPMiddleware):
         """
         super().__init__(app)
         self.tracer = tracer or get_tracer()
+        self._otel_tracer = trace.get_tracer(__name__)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request with tracing."""
-        # Extract trace context from headers
-        trace_context = self.tracer.extract_trace_context_from_headers(
-            dict(request.headers)
-        )
+        parent_ctx = propagate.extract(dict(request.headers))
+        token = attach(parent_ctx)
 
-        # Start server span
-        span = self.tracer.start_span(
+        request_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID")
+        correlation_id = getattr(request.state, "correlation_id", None) or request.headers.get("X-Correlation-ID")
+
+        attributes = {
+            "http.method": request.method,
+            "http.url": str(request.url),
+            "http.scheme": request.url.scheme,
+            "http.host": request.url.hostname,
+            "http.path": request.url.path,
+            "http.query": request.url.query,
+            "http.user_agent": request.headers.get("User-Agent", ""),
+            "http.remote_addr": request.client.host if request.client else "",
+        }
+        if request.url.port is not None:
+            attributes["http.port"] = request.url.port
+        if request_id:
+            attributes["http.request_id"] = request_id
+        if correlation_id:
+            attributes["http.correlation_id"] = correlation_id
+
+        span = self._otel_tracer.start_span(
             name=f"{request.method} {request.url.path}",
-            kind=SpanKind.SERVER,
-            parent_context=trace_context,
-            attributes={
-                "http.method": request.method,
-                "http.url": str(request.url),
-                "http.scheme": request.url.scheme,
-                "http.host": request.url.hostname,
-                "http.port": request.url.port,
-                "http.path": request.url.path,
-                "http.query": request.url.query,
-                "http.user_agent": request.headers.get("User-Agent", ""),
-                "http.remote_addr": request.client.host if request.client else "",
-                "http.request_id": getattr(request.state, "request_id", None),
-            },
+            context=parent_ctx,
+            attributes=attributes,
         )
 
-        # Store span in request state for access in endpoints
         request.state.span = span
-        request.state.trace_context = span.trace_context
+        request.state.trace_context = span.get_span_context()
+        logger.info(
+            "request_tracing_started",
+            extra={"request_id": request_id, "correlation_id": correlation_id},
+        )
 
         try:
             # Process request
@@ -100,18 +112,18 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
             # Set span status based on response
             if response.status_code >= 400:
-                span.set_status(SpanStatus.ERROR, f"HTTP {response.status_code}")
+                span.set_status(trace.Status(trace.StatusCode.ERROR, f"HTTP {response.status_code}"))
             else:
-                span.set_status(SpanStatus.OK)
+                span.set_status(trace.Status(trace.StatusCode.OK))
 
             # Add trace headers to response
-            self._add_trace_headers(response, span.trace_context)
+            self._add_trace_headers(response, span.get_span_context())
 
             return response
 
         except Exception as exc:
             # Record exception
-            span.set_error(exc)
+            span.record_exception(exc)
             span.set_attributes(
                 {
                     "error.type": type(exc).__name__,
@@ -124,9 +136,14 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
         finally:
             # End the span
-            self.tracer.end_span(span)
+            span.end()
+            detach(token)
+            logger.info(
+                "request_tracing_finished",
+                extra={"request_id": request_id, "correlation_id": correlation_id},
+            )
 
-    def _add_trace_headers(self, response: Response, trace_context) -> None:
+    def _add_trace_headers(self, response: Response, trace_context: OTelSpanContext) -> None:
         """Add trace context headers to response.
 
         Args:
@@ -134,18 +151,11 @@ class TracingMiddleware(BaseHTTPMiddleware):
             trace_context: Trace context
         """
         headers = response.headers
-        for header, value in canonical_trace_headers(trace_context.trace_id).items():
+        trace_id = format(trace_context.trace_id, "032x")
+        for header, value in canonical_trace_headers(trace_id).items():
             headers[header] = value
-        headers["X-Span-Id"] = trace_context.span_id
-
-        if trace_context.parent_span_id:
-            headers["X-Parent-Span-Id"] = trace_context.parent_span_id
-
-        headers["X-Trace-Sampled"] = str(trace_context.sampled).lower()
-
-        # Add baggage items
-        for key, value in trace_context.baggage.items():
-            headers[f"X-Baggage-{key}"] = value
+        headers["X-Span-Id"] = format(trace_context.span_id, "016x")
+        headers["X-Trace-Sampled"] = str(bool(trace_context.trace_flags & TraceFlags.SAMPLED)).lower()
 
 
 class StreamingResponseTracer:
