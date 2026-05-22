@@ -22,7 +22,7 @@ Routes:
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
@@ -30,7 +30,9 @@ from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 from ...api.dependencies import get_neo4j_driver
 from ...db.query_execution import run_validated_query
 from ...services.case_study_service import CaseStudy, CaseStudyService
+from ...services.embedding_errors import EmbeddingProviderUnavailableError
 from ...services.evidence_search import EvidenceSearchService
+from ..exceptions import create_service_unavailable_http_exception
 
 
 class delete_case_studyResult(TypedDictModel):
@@ -285,6 +287,7 @@ async def stats_by_product(
 @router.post("/search", summary="Semantic evidence search")
 async def semantic_search(
     request: SemanticSearchRequest,
+    http_request: Request,
     tenant_id: str = Depends(get_verified_tenant_id),
     driver=Depends(get_neo4j_driver),
 ) -> dict[str, Any]:
@@ -295,12 +298,32 @@ async def semantic_search(
     """
     search_service = EvidenceSearchService(driver)
 
-    results = await search_service.find_matching_evidence(
-        tenant_id=tenant_id,
-        signal_description=request.query,
-        evidence_types=request.evidence_types,
-        limit=request.limit,
-    )
+    correlation_id = http_request.headers.get("x-correlation-id") or http_request.headers.get("x-request-id") or "unknown"
+    try:
+        results = await search_service.find_matching_evidence(
+            tenant_id=tenant_id,
+            signal_description=request.query,
+            evidence_types=request.evidence_types,
+            limit=request.limit,
+        )
+    except EmbeddingProviderUnavailableError as exc:
+        logger.warning(
+            "semantic_search_embedding_provider_unavailable",
+            provider=exc.provider,
+            failure_cause=exc.failure_cause,
+            retry_hint=exc.retry_hint,
+            correlation_id=correlation_id,
+        )
+        raise create_service_unavailable_http_exception(
+            message="Embedding provider unavailable",
+            service=exc.provider,
+            retry_after=exc.retry_after_seconds,
+            details={
+                "failure_cause": exc.failure_cause,
+                "retry_hint": exc.retry_hint,
+                "correlation_id": correlation_id,
+            },
+        ) from exc
 
     return semantic_searchResult.model_validate({
         "query": request.query,
