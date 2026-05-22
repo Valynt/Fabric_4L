@@ -11,10 +11,11 @@ import uuid
 from datetime import datetime, timedelta
 
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ...api.dependencies import AppState, get_app_state
 from ...api.models import DocumentExportRequest, DocumentExportResponse
+from value_fabric.shared.error_handling import build_error_detail
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +25,7 @@ router = APIRouter(prefix="/v1", tags=["Documents"])
 @router.post("/documents/export", response_model=DocumentExportResponse)
 async def export_document(
     request: DocumentExportRequest,
+    http_request: Request,
     app_state: AppState = Depends(get_app_state),
 ) -> DocumentExportResponse:
     """Export a business case to PDF via the Layer 4 DocumentExportTool."""
@@ -114,8 +116,14 @@ async def export_document(
         )
     except HTTPException:
         raise
-    except Exception as e:
-        logger.error("Document export failed: %s", e)
+    except Exception as exc:
+        request_id = getattr(getattr(http_request, "state", None), "request_id", None)
+        logger.exception("Document export failed", extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(exc).__name__})
         raise HTTPException(
-            status_code=500, detail=f"Document export failed: {str(e)}"
+            status_code=500,
+            detail=build_error_detail(
+                message="Document export failed",
+                error_code="L3_DOCUMENT_EXPORT_FAILED",
+                request_id=request_id,
+            ),
         )
