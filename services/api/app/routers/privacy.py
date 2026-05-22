@@ -17,7 +17,10 @@ async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenan
     record = dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
     package = dsar_service.launch_export_pipeline(record)
     refreshed = db.dsar_requests.get(record.id, tenant_id=tenant_id)
-    complete = dsar_service.reconcile_package(refreshed)
+    try:
+        complete = dsar_service.reconcile_package(refreshed)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     return {"request": complete, "download_url": dsar_service.issue_download_url(package)}
 
 
