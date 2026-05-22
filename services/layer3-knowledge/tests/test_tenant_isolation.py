@@ -11,7 +11,10 @@ import pytest
 from fastapi import HTTPException
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from value_fabric.layer3.api.routes.graph_viz import _extract_tenant_id, get_full_graph
+from value_fabric.layer3.api.dependencies_tenant_secured import require_request_tenant_id
+from value_fabric.layer3.api.routes.graph_viz import get_entity_subgraph, get_full_graph, get_query_subgraph
+from value_fabric.layer3.api.routes.query_search import graph_rag_query_impl, hybrid_search_impl
+from value_fabric.layer3.api.models import GraphRAGQuery, SearchRequest, SearchType
 from value_fabric.layer3.api.routes.entities import list_entities
 
 
@@ -61,20 +64,15 @@ class TestTenantIsolation:
         )
         return mock
 
-    def test_extract_tenant_id_with_context(self, mock_request_with_tenant):
-        """_extract_tenant_id should return tenant_id from request context."""
-        tenant_id = _extract_tenant_id(mock_request_with_tenant)
+    def test_require_request_tenant_id_with_context(self, mock_request_with_tenant):
+        """Dependency should return tenant_id from request context."""
+        tenant_id = require_request_tenant_id(mock_request_with_tenant)
         assert tenant_id == "tenant-a"
 
-    def test_extract_tenant_id_without_context(self, mock_request_no_tenant):
-        """_extract_tenant_id should return None without context."""
-        tenant_id = _extract_tenant_id(mock_request_no_tenant)
-        assert tenant_id is None
-
-    def test_extract_tenant_id_none_request(self):
-        """_extract_tenant_id should handle None request."""
-        tenant_id = _extract_tenant_id(None)
-        assert tenant_id is None
+    def test_require_request_tenant_id_without_context(self, mock_request_no_tenant):
+        """Dependency should fail closed without context."""
+        with pytest.raises(HTTPException):
+            require_request_tenant_id(mock_request_no_tenant)
 
     @pytest.mark.asyncio
     async def test_list_entities_requires_tenant_id(self, mock_neo4j_session_no_tenant):
@@ -135,7 +133,7 @@ class TestTenantIsolation:
             await get_full_graph(
                 limit=1000,
                 app_state=mock_state,
-                request=None,
+                tenant_id="",
             )
 
         assert exc_info.value.status_code == 400
@@ -153,7 +151,7 @@ class TestTenantIsolation:
         await get_full_graph(
             limit=1000,
             app_state=mock_state,
-            request=mock_request_with_tenant,
+            tenant_id="tenant-a",
         )
 
         calls = mock_neo4j.execute_query.call_args_list
@@ -178,9 +176,34 @@ class TestTenantIsolation:
         request.state.context = None
 
         with pytest.raises(HTTPException) as exc_info:
-            await get_full_graph(limit=1000, app_state=mock_state, request=request)
+            await get_full_graph(limit=1000, app_state=mock_state, tenant_id="")
 
         assert exc_info.value.status_code == 400
+
+    @pytest.mark.asyncio
+    async def test_hostile_missing_tenant_rejected_graph_subgraph_endpoint(self):
+        mock_state = MagicMock()
+        mock_state.neo4j_driver = AsyncMock()
+        with pytest.raises(HTTPException):
+            await get_entity_subgraph(entity_id="e1", depth=1, app_state=mock_state, tenant_id="")
+
+    @pytest.mark.asyncio
+    async def test_hostile_missing_tenant_rejected_query_subgraph_endpoint(self):
+        mock_state = MagicMock()
+        mock_state.neo4j_driver = AsyncMock()
+        with pytest.raises(HTTPException):
+            await get_query_subgraph(query="abc", app_state=mock_state, tenant_id="", hybrid_search=MagicMock(), graph_rag=MagicMock())
+
+    @pytest.mark.asyncio
+    async def test_hostile_missing_tenant_rejected_graph_rag_endpoint(self):
+        with pytest.raises(ValueError):
+            await graph_rag_query_impl(GraphRAGQuery(query="q"), graph_rag=MagicMock(), ctx=None, request=None)
+
+    @pytest.mark.asyncio
+    async def test_hostile_missing_tenant_rejected_hybrid_search_endpoint(self):
+        request = SearchRequest(query="q", search_type=SearchType.HYBRID, top_k=5)
+        with pytest.raises((HTTPException, ValueError, TypeError)):
+            await hybrid_search_impl(request, hybrid_search=MagicMock(), ctx=None, http_request=None)
 
     def test_cross_tenant_access_blocked_in_list_entities(self):
         """Tenant A cannot see Tenant B's entities via list_entities."""

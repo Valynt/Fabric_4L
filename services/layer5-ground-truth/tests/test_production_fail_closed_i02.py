@@ -342,7 +342,6 @@ class TestLayer5GetCurrentUserHardening:
             request=request,
             authorization=None,
             x_tenant_id=None,
-            tenant_id=None,
             settings=settings,
         )
 
@@ -363,7 +362,6 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id="11111111-1111-4111-8111-111111111111",
-                tenant_id=None,
                 settings=settings,
             )
 
@@ -383,7 +381,6 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id=None,
-                tenant_id="11111111-1111-4111-8111-111111111111",
                 settings=settings,
             )
 
@@ -405,7 +402,6 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id="11111111-1111-4111-8111-111111111111",
-                tenant_id=None,
                 settings=settings,
             )
 
@@ -424,10 +420,42 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id=tenant,
-                tenant_id=None,
                 settings=settings,
             )
         assert exc_info.value.status_code == 401
+
+    def test_authenticated_tenant_mismatch_is_403(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from uuid import UUID
+
+        from fastapi import HTTPException
+        from layer5_ground_truth.api import auth as auth_module
+        from layer5_ground_truth.api.auth import get_current_user
+
+        settings = self._build_settings(monkeypatch, runtime_mode="test", allow_bypass=True)
+        request = self._fake_request(ctx=None)
+        auth_tenant = "11111111-1111-4111-8111-111111111111"
+        spoofed_tenant = "22222222-2222-4222-8222-222222222222"
+
+        monkeypatch.setattr(
+            auth_module,
+            "_decode_jwt",
+            lambda token, settings: {"sub": "user-1", settings.jwt_tenant_claim: auth_tenant},
+        )
+        monkeypatch.setattr(
+            auth_module,
+            "_extract_org_id_from_payload",
+            lambda payload, settings: UUID(auth_tenant),
+        )
+
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(
+                request=request,
+                authorization="Bearer mocked.token.value",
+                x_tenant_id=spoofed_tenant,
+                settings=settings,
+            )
+
+        assert exc_info.value.status_code == 403
 
     @pytest.mark.parametrize(
         ("runtime_mode", "expect_fallback_admitted"),
@@ -457,7 +485,6 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id=tenant,
-                tenant_id=None,
                 settings=settings,
             )
         assert header_exc.value.status_code == 401
@@ -467,7 +494,6 @@ class TestLayer5GetCurrentUserHardening:
                 request=request,
                 authorization=None,
                 x_tenant_id=None,
-                tenant_id=tenant,
                 settings=settings,
             )
         assert query_exc.value.status_code == 401
@@ -490,9 +516,9 @@ class TestLayer5GetCurrentUserHardening:
 
         with caplog.at_level("WARNING"):
             with pytest.raises(Exception):
-                get_current_user(request=request, authorization=None, x_tenant_id=tenant, tenant_id=None, settings=settings)
+                get_current_user(request=request, authorization=None, x_tenant_id=tenant, settings=settings)
             with pytest.raises(Exception):
-                get_current_user(request=request, authorization=None, x_tenant_id=None, tenant_id=tenant, settings=settings)
+                get_current_user(request=request, authorization=None, x_tenant_id=None, settings=settings)
 
         assert "layer5.x_tenant_id_header" not in caplog.text
         assert "layer5.tenant_query_param" not in caplog.text
