@@ -18,6 +18,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventStatus
+from value_fabric.layer4.api.routes.billing import UsageBatchRequest, UsageEventRequest, ingest_usage_batch, ingest_usage_event
 
 # Mock stripe before importing
 mock_stripe_module = MagicMock()
@@ -283,6 +284,56 @@ def client():
     from fastapi.testclient import TestClient
     from value_fabric.layer4.api.main import app
     return TestClient(app)
+
+
+@pytest.mark.asyncio
+async def test_ingest_usage_event_blocks_hard_limit(mock_db):
+    """Hard-limit plans are denied before usage is consumed."""
+    context = MagicMock()
+    context.tenant_id = "tenant_abc123"
+    request = UsageEventRequest(
+        event_id="evt_limit_block",
+        customer_id="user_123",
+        event_name="api_call",
+        metric_name="requests",
+        quantity=10.0,
+    )
+
+    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": False, "error": "Usage limit exceeded for requests", "limit": 100, "current_usage": 100, "overage": 10, "requested": 10.0})), \
+         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
+        with pytest.raises(Exception) as exc:
+            await ingest_usage_event(request=request, db=mock_db, context=context)
+        assert getattr(exc.value, "status_code", None) == 402
+        ingest_mock.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
+    """Soft-limit plans pass pre-check and continue deterministic ingestion."""
+    context = MagicMock()
+    context.tenant_id = "tenant_abc123"
+    request = UsageBatchRequest(events=[
+        UsageEventRequest(
+            event_id="evt_1",
+            customer_id="user_123",
+            event_name="api_call",
+            metric_name="requests",
+            quantity=2.0,
+        ),
+        UsageEventRequest(
+            event_id="evt_2",
+            customer_id="user_123",
+            event_name="api_call",
+            metric_name="requests",
+            quantity=3.0,
+        ),
+    ])
+
+    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": True})), \
+         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_batch", new=AsyncMock(return_value={"created": 2, "duplicates": 0, "errors": 0, "error_details": None})) as batch_mock:
+        response = await ingest_usage_batch(request=request, db=mock_db, context=context)
+        assert response["created"] == 2
+        batch_mock.assert_called_once()
 
 
 @pytest.mark.skip(reason="Requires full FastAPI app context")
