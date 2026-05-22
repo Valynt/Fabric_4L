@@ -53,6 +53,17 @@ class BillingService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
+    @staticmethod
+    def enforce_customer_binding(
+        customer_id: str,
+        principal_customer_id: str | None,
+        allow_cross_customer: bool = False,
+    ) -> None:
+        if allow_cross_customer:
+            return
+        if not principal_customer_id or principal_customer_id != customer_id:
+            raise PermissionError("forbidden_customer_scope")
+
     async def get_or_create_customer(
         self,
         customer_id: str,

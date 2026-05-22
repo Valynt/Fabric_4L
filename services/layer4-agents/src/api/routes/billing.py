@@ -242,6 +242,27 @@ router = APIRouter(prefix="/billing", tags=["Billing"])
 STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 
 
+ADMIN_ROLES = {"admin", "tenant_admin", "super_admin"}
+
+
+def _is_admin_context(context: RequestContext) -> bool:
+    return context.is_super_admin() or any(role in ADMIN_ROLES for role in context.roles)
+
+
+def _authorize_customer_binding(context: RequestContext, customer_id: str) -> str:
+    """Authorize access to a customer-scoped billing resource."""
+    validated_customer_id = validate_customer_id(customer_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    if _is_admin_context(context):
+        return validated_customer_id
+    if not principal_id or principal_id != validated_customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="forbidden_customer_scope",
+        )
+    return validated_customer_id
+
+
 # ============================================================================
 # Request/Response Models
 # ============================================================================
@@ -315,6 +336,7 @@ async def get_subscription(
     Returns:
         Subscription details including plan and status
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
     subscription = await service.get_subscription(customer_id)
 
@@ -356,6 +378,7 @@ async def create_checkout(
     Returns:
         Session ID and checkout URL
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
 
     try:
@@ -390,6 +413,7 @@ async def create_portal(
     Returns:
         Portal URL for customer to manage billing
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
 
     try:
@@ -424,6 +448,7 @@ async def get_entitlements(
     Returns:
         Plan details and feature availability map
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
     return await service.get_entitlements(customer_id)
 
@@ -444,6 +469,7 @@ async def check_feature(
     Returns:
         Feature access status
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
     has_access = await service.check_entitlement(customer_id, feature_id)
 
@@ -473,8 +499,9 @@ async def sync_customer(
     Returns:
         Customer record with Stripe ID if available
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     service = BillingService(db)
-    
+
     # Extract tenant_id from context if available
     tenant_id = context.tenant_id
     
@@ -724,6 +751,7 @@ async def get_usage_summary(
     Returns:
         Usage summary with total quantity and event count
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
@@ -774,6 +802,7 @@ async def list_usage_events(
     Returns:
         List of usage events
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
@@ -839,6 +868,7 @@ async def sync_usage_to_stripe(
         400: Validation error or no Stripe customer linked
         402: Stripe not configured
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
@@ -898,6 +928,7 @@ async def get_usage_limits(
     Returns:
         Usage limits and current consumption for all metrics
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     
     service = OverageService(db, tenant_id=tenant_id)
@@ -967,6 +998,7 @@ async def check_request_allowed(
         402: Hard limit exceeded (upgrade required)
         400: Invalid request
     """
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     
     service = OverageService(db, tenant_id=tenant_id)
@@ -1080,6 +1112,12 @@ async def list_invoices(
     from ...services.invoice_service import InvoiceService
     
     tenant_id = context.tenant_id
+    is_admin = _is_admin_context(context)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    if customer_id is not None:
+        customer_id = _authorize_customer_binding(context, customer_id)
+    elif not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden_customer_scope")
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
@@ -1141,7 +1179,7 @@ async def create_invoice(
     
     try:
         invoice = await service.create_invoice(
-            customer_id=request.customer_id,
+            customer_id=_authorize_customer_binding(context, request.customer_id),
             period_start=request.period_start,
             period_end=request.period_end,
             invoice_number=request.invoice_number,
@@ -1182,9 +1220,17 @@ async def get_invoice(
     
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    is_admin = _is_admin_context(context)
     
     try:
-        invoice = await service.get_invoice(invoice_id, include_items=True, include_charges=True)
+        invoice = await service.get_invoice(
+            invoice_id,
+            include_items=True,
+            include_charges=True,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
+        )
         
         if not invoice:
             raise HTTPException(
@@ -1267,10 +1313,14 @@ async def add_invoice_item(
     
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    is_admin = _is_admin_context(context)
     
     try:
         item = await service.add_invoice_item(
             invoice_id=invoice_id,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
             description=request.description,
             amount=request.amount_cents,
             quantity=request.quantity,
@@ -1316,9 +1366,15 @@ async def finalize_invoice(
     
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    is_admin = _is_admin_context(context)
     
     try:
-        invoice = await service.finalize_invoice(invoice_id)
+        invoice = await service.finalize_invoice(
+            invoice_id,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
+        )
         
         return finalize_invoiceResult.model_validate({
             "id": invoice.id,
@@ -1352,9 +1408,16 @@ async def void_invoice(
     
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    is_admin = _is_admin_context(context)
     
     try:
-        invoice = await service.void_invoice(invoice_id, reason=reason)
+        invoice = await service.void_invoice(
+            invoice_id,
+            reason=reason,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
+        )
         
         return void_invoiceResult.model_validate({
             "id": invoice.id,
@@ -1391,6 +1454,12 @@ async def list_charges(
     from ...services.invoice_service import InvoiceService
     
     tenant_id = context.tenant_id
+    is_admin = _is_admin_context(context)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    if customer_id is not None:
+        customer_id = _authorize_customer_binding(context, customer_id)
+    elif invoice_id is None and not is_admin:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="forbidden_customer_scope")
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
@@ -1400,6 +1469,8 @@ async def list_charges(
             status=status,
             limit=limit,
             offset=offset,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
         )
         
         return list_chargesResult.model_validate({
@@ -1445,10 +1516,12 @@ async def record_charge(
     
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    is_admin = _is_admin_context(context)
     
     try:
         charge = await service.record_charge(
-            customer_id=request.customer_id,
+            customer_id=_authorize_customer_binding(context, request.customer_id),
             amount=request.amount_cents,
             status=request.status,
             invoice_id=request.invoice_id,
@@ -1456,6 +1529,8 @@ async def record_charge(
             payment_method_id=request.payment_method_id,
             payment_method_type=request.payment_method_type,
             description=request.description,
+            principal_customer_id=principal_id,
+            allow_cross_customer=is_admin,
         )
         
         return record_chargeResult.model_validate({
@@ -1521,6 +1596,7 @@ async def get_customer_balance(
     """
     from ...services.invoice_service import InvoiceService
     
+    customer_id = _authorize_customer_binding(context, customer_id)
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
     

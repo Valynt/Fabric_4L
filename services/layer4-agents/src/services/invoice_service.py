@@ -46,6 +46,17 @@ class InvoiceService:
         self.db = db
         self.tenant_id = tenant_id
 
+    def _enforce_customer_binding(
+        self,
+        target_customer_id: str,
+        principal_customer_id: str | None,
+        allow_cross_customer: bool,
+    ) -> None:
+        if allow_cross_customer:
+            return
+        if not principal_customer_id or principal_customer_id != target_customer_id:
+            raise PermissionError("forbidden_customer_scope")
+
     # ====================================================================================
     # Invoice CRUD Operations
     # ====================================================================================
@@ -130,6 +141,8 @@ class InvoiceService:
         discount_amount: int = 0,
         price_id: str | None = None,
         metadata: dict | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> BillingInvoiceItem:
         """Add a line item to an invoice.
 
@@ -190,6 +203,7 @@ class InvoiceService:
         )
         invoice = invoice_result.scalar_one_or_none()
         if invoice:
+            self._enforce_customer_binding(invoice.customer_id, principal_customer_id, allow_cross_customer)
             invoice.subtotal += amount
             invoice.total = invoice.subtotal + invoice.tax
             invoice.amount_due = invoice.total - invoice.amount_paid
@@ -203,6 +217,8 @@ class InvoiceService:
         invoice_id: str,
         include_items: bool = True,
         include_charges: bool = False,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> BillingInvoice | None:
         """Get an invoice by ID.
 
@@ -228,7 +244,10 @@ class InvoiceService:
             query = query.options(selectinload(BillingInvoice.charges))
 
         result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+        invoice = result.scalar_one_or_none()
+        if invoice:
+            self._enforce_customer_binding(invoice.customer_id, principal_customer_id, allow_cross_customer)
+        return invoice
 
     async def get_invoice_by_number(self, invoice_number: str) -> BillingInvoice | None:
         """Get an invoice by invoice number.
@@ -260,6 +279,8 @@ class InvoiceService:
         offset: int = 0,
         period_start_after: datetime | None = None,
         period_end_before: datetime | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> list[BillingInvoice]:
         """List invoices with optional filters.
 
@@ -282,6 +303,7 @@ class InvoiceService:
         )
 
         if customer_id:
+            self._enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
             query = query.where(BillingInvoice.customer_id == customer_id)
         if status:
             query = query.where(BillingInvoice.status == status)
@@ -297,7 +319,12 @@ class InvoiceService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def finalize_invoice(self, invoice_id: str) -> BillingInvoice:
+    async def finalize_invoice(
+        self,
+        invoice_id: str,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
+    ) -> BillingInvoice:
         """Finalize a draft invoice (make it open/payable).
 
         Args:
@@ -312,7 +339,12 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
-        invoice = await self.get_invoice(invoice_id, include_items=True)
+        invoice = await self.get_invoice(
+            invoice_id,
+            include_items=True,
+            principal_customer_id=principal_customer_id,
+            allow_cross_customer=allow_cross_customer,
+        )
         if not invoice:
             raise ValueError(f"Invoice not found: {invoice_id}")
 
@@ -367,7 +399,13 @@ class InvoiceService:
         logger.info(f"Marked invoice {invoice.invoice_number} as paid: {amount_paid} cents")
         return invoice
 
-    async def void_invoice(self, invoice_id: str, reason: str | None = None) -> BillingInvoice:
+    async def void_invoice(
+        self,
+        invoice_id: str,
+        reason: str | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
+    ) -> BillingInvoice:
         """Void an invoice.
 
         Args:
@@ -380,7 +418,11 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
-        invoice = await self.get_invoice(invoice_id)
+        invoice = await self.get_invoice(
+            invoice_id,
+            principal_customer_id=principal_customer_id,
+            allow_cross_customer=allow_cross_customer,
+        )
         if not invoice:
             raise ValueError(f"Invoice not found: {invoice_id}")
 
@@ -417,6 +459,8 @@ class InvoiceService:
         receipt_url: str | None = None,
         description: str | None = None,
         metadata: dict | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> BillingCharge:
         """Record a charge attempt.
 
@@ -439,6 +483,7 @@ class InvoiceService:
         """
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
+        self._enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
 
         charge = BillingCharge(
             id=str(uuid.uuid4()),
@@ -495,6 +540,8 @@ class InvoiceService:
         status: str | None = None,
         limit: int = 50,
         offset: int = 0,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> list[BillingCharge]:
         """List charges with optional filters.
 
@@ -514,6 +561,7 @@ class InvoiceService:
         query = select(BillingCharge).where(BillingCharge.tenant_id == self.tenant_id)
 
         if customer_id:
+            self._enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
             query = query.where(BillingCharge.customer_id == customer_id)
         if invoice_id:
             query = query.where(BillingCharge.invoice_id == invoice_id)
@@ -524,7 +572,11 @@ class InvoiceService:
         query = query.limit(limit).offset(offset)
 
         result = await self.db.execute(query)
-        return list(result.scalars().all())
+        charges = list(result.scalars().all())
+        if not allow_cross_customer:
+            for charge in charges:
+                self._enforce_customer_binding(charge.customer_id, principal_customer_id, allow_cross_customer)
+        return charges
 
     async def refund_charge(
         self,
@@ -690,5 +742,3 @@ class InvoiceService:
             "lifetime_paid_cents": paid_row.total_paid or 0,
             "lifetime_paid_dollars": (paid_row.total_paid or 0) / 100.0,
         })
-
-

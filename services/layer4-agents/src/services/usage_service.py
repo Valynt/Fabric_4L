@@ -76,6 +76,17 @@ class UsageService:
         self.db = db
         self.tenant_id = tenant_id
 
+    @staticmethod
+    def enforce_customer_binding(
+        customer_id: str,
+        principal_customer_id: str | None,
+        allow_cross_customer: bool = False,
+    ) -> None:
+        if allow_cross_customer:
+            return
+        if not principal_customer_id or principal_customer_id != customer_id:
+            raise UsageValidationError("forbidden_customer_scope", field="customer_id")
+
     async def _get_stripe_customer_id(self, customer_id: str) -> str | None:
         """Get Stripe customer ID for internal customer.
 
@@ -337,6 +348,8 @@ class UsageService:
         metric_name: str,
         start_date: datetime | None = None,
         end_date: datetime | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> dict[str, Any]:
         """Get aggregated usage for a customer and metric.
 
@@ -349,6 +362,7 @@ class UsageService:
         Returns:
             Summary dict with total quantity, event count, etc.
         """
+        self.enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 
@@ -394,6 +408,8 @@ class UsageService:
         end_date: datetime | None = None,
         limit: int = 100,
         offset: int = 0,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> list[BillingUsageEvent]:
         """List individual usage events for a customer.
 
@@ -408,6 +424,7 @@ class UsageService:
         Returns:
             List of usage events
         """
+        self.enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 
@@ -503,6 +520,8 @@ class UsageService:
         self,
         customer_id: str,
         metric_name: str | None = None,
+        principal_customer_id: str | None = None,
+        allow_cross_customer: bool = False,
     ) -> dict[str, Any]:
         """Sync pending usage events to Stripe MeterEvents.
 
@@ -522,6 +541,7 @@ class UsageService:
             report_meter_event,
         )
 
+        self.enforce_customer_binding(customer_id, principal_customer_id, allow_cross_customer)
         if not self.tenant_id:
             raise UsageValidationError("tenant_id is required", field="tenant_id")
 
