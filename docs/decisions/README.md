@@ -18,6 +18,7 @@ All significant technical decisions for Value Fabric are documented here using A
 | 0002 | Knowledge Tool Runtime Tenant Context  | accepted | 2024-01-15 |
 | 0003 | Audit Emission Middleware Boundary     | accepted | 2024-01-15 |
 | 0004 | Layer 4 Database Facade Compatibility  | accepted | 2024-01-15 |
+| 0005 | Shared Identity Canonical Runtime Location | accepted | 2026-05-22 |
 
 ## When to Write an ADR
 

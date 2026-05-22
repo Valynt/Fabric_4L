@@ -103,3 +103,4 @@ Sprint 11 should enforce DTO import boundaries only after Sprint 2 through Sprin
 | Hard lint rule for generated DTO import leakage | Enforcing before adapters exist could block legacy code unexpectedly. | Sprint 11. |
 | Broad replacement of `JSON.parse`, direct `fetch`, or legacy casts | Too broad for stabilization; should follow schema helper and adapter creation. | Sprint 3 onward. |
 | Onboarding documentation update | Kept out of this first implementation slice to keep the change reviewable. | Sprint 12 or next documentation pass. |
+| Broad API error-model versioning retrofit across existing frontend consumers | Product/API compatibility risk; requires coordinated frontend + SDK rollout. Decision: dual-stack compatibility adapter with fixed deprecation window while `ErrorEnvelopeV1` becomes canonical immediately. | Start immediately; sunset legacy error shape support by 2026-08-31. |

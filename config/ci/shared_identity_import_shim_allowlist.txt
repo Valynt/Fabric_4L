@@ -1,0 +1,2 @@
+# Relative file paths allowed to keep compatibility imports temporarily.
+# Keep this list small and time-boxed.

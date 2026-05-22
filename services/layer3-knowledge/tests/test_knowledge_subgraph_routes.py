@@ -14,7 +14,6 @@ Tests cover:
 from __future__ import annotations
 
 from http import HTTPStatus
-from types import SimpleNamespace
 from unittest.mock import AsyncMock, patch
 
 import pytest
@@ -58,12 +57,10 @@ class _Neo4jSession:
         return _Result(self._records)
 
 
-def _api_key(tenant_id: str) -> SimpleNamespace:
-    return SimpleNamespace(tenant_id=tenant_id)
+def _tenant_ctx(tenant_id: str | None):
+    from value_fabric.shared.identity.context import RequestContext
 
-
-def _no_tenant_api_key() -> SimpleNamespace:
-    return SimpleNamespace(tenant_id=None)
+    return RequestContext(tenant_id=tenant_id, user_id="test-user", source="jwt")
 
 
 # ---------------------------------------------------------------------------
@@ -90,7 +87,7 @@ async def test_get_benchmark_variables_happy_path(monkeypatch):
 
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
-    result = await get_benchmark_variables(industry="SaaS", api_key=_api_key(tenant_id))
+    result = await get_benchmark_variables(industry="SaaS", tenant=_tenant_ctx(tenant_id))
 
     assert result.industry == "SaaS"
     assert result.benchmark_id == "bm-1"
@@ -109,7 +106,7 @@ async def test_get_benchmark_variables_no_match_returns_empty(monkeypatch):
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
     result = await get_benchmark_variables(
-        industry="UnknownIndustry", api_key=_api_key("tenant-xyz")
+        industry="UnknownIndustry", tenant=_tenant_ctx("tenant-xyz")
     )
 
     assert result.industry == "UnknownIndustry"
@@ -129,7 +126,7 @@ async def test_get_benchmark_variables_scopes_to_tenant(monkeypatch):
 
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
-    await get_benchmark_variables(industry="Healthcare", api_key=_api_key(tenant_id))
+    await get_benchmark_variables(industry="Healthcare", tenant=_tenant_ctx(tenant_id))
 
     assert session.last_kwargs.get("tenant_id") == tenant_id
     assert session.last_kwargs.get("industry") == "Healthcare"
@@ -137,13 +134,13 @@ async def test_get_benchmark_variables_scopes_to_tenant(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_benchmark_variables_missing_tenant_raises_401(monkeypatch):
-    """Missing tenant context raises HTTPException 401."""
+    """Missing tenant context raises HTTPException 403."""
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
-        await get_benchmark_variables(industry="SaaS", api_key=_no_tenant_api_key())
+        await get_benchmark_variables(industry="SaaS", tenant=_tenant_ctx(None))
 
-    assert exc_info.value.status_code == HTTPStatus.UNAUTHORIZED
+    assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
 
 
 @pytest.mark.asyncio
@@ -157,7 +154,7 @@ async def test_get_benchmark_variables_query_includes_value_driver_tenant_scope(
 
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
-    await get_benchmark_variables(industry="SaaS", api_key=_api_key(tenant_id))
+    await get_benchmark_variables(industry="SaaS", tenant=_tenant_ctx(tenant_id))
 
     # Both the Benchmark and ValueDriver WHERE clauses must receive tenant_id.
     # The query passes a single $tenant_id parameter used for both nodes.
@@ -186,7 +183,7 @@ async def test_get_value_driver_formulas_happy_path(monkeypatch):
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
     result = await get_value_driver_formulas(
-        driver_ids=["vd-1", "vd-2"], api_key=_api_key(tenant_id)
+        driver_ids=["vd-1", "vd-2"], tenant=_tenant_ctx(tenant_id)
     )
 
     assert len(result.drivers) == 2
@@ -211,7 +208,7 @@ async def test_get_value_driver_formulas_partial_match_reports_missing(monkeypat
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
     result = await get_value_driver_formulas(
-        driver_ids=["vd-1", "vd-missing"], api_key=_api_key(tenant_id)
+        driver_ids=["vd-1", "vd-missing"], tenant=_tenant_ctx(tenant_id)
     )
 
     assert len(result.drivers) == 1
@@ -249,15 +246,15 @@ async def test_get_value_driver_formulas_empty_list_raises_422(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_get_value_driver_formulas_missing_tenant_raises_401(monkeypatch):
-    """Missing tenant context raises HTTPException 401."""
+    """Missing tenant context raises HTTPException 403."""
     from fastapi import HTTPException
 
     with pytest.raises(HTTPException) as exc_info:
         await get_value_driver_formulas(
-            driver_ids=["vd-1"], api_key=_no_tenant_api_key()
+            driver_ids=["vd-1"], tenant=_tenant_ctx(None)
         )
 
-    assert exc_info.value.status_code == HTTPStatus.UNAUTHORIZED
+    assert exc_info.value.status_code == HTTPStatus.FORBIDDEN
 
 
 @pytest.mark.asyncio
@@ -272,7 +269,7 @@ async def test_get_value_driver_formulas_deduplicates_ids(monkeypatch):
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
     await get_value_driver_formulas(
-        driver_ids=["vd-1", "vd-1", "vd-2"], api_key=_api_key(tenant_id)
+        driver_ids=["vd-1", "vd-1", "vd-2"], tenant=_tenant_ctx(tenant_id)
     )
 
     queried_ids = session.last_kwargs.get("driver_ids", [])
@@ -291,7 +288,7 @@ async def test_get_value_driver_formulas_scopes_to_tenant(monkeypatch):
     monkeypatch.setattr("api.routes.knowledge.create_neo4j_tenant_session", _factory)
 
     await get_value_driver_formulas(
-        driver_ids=["vd-1"], api_key=_api_key(tenant_id)
+        driver_ids=["vd-1"], tenant=_tenant_ctx(tenant_id)
     )
 
     assert session.last_kwargs.get("tenant_id") == tenant_id

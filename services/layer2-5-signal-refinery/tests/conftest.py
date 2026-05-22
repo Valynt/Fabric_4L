@@ -38,6 +38,10 @@ os.environ["JWT_SECRET"] = "test-secret-32-chars-long-ok-yes"
 from layer2_5_signal_refinery import database as db_module  # noqa: E402
 from layer2_5_signal_refinery.api.main import create_app  # noqa: E402
 from layer2_5_signal_refinery.models.db_models import Base  # noqa: E402
+from value_fabric.shared.identity.context import (  # noqa: E402
+    RequestContext,
+    set_request_context,
+)
 
 # ---------------------------------------------------------------------------
 # Shared test tenant IDs
@@ -121,11 +125,25 @@ def _make_client_fixture(tenant_id: uuid.UUID):
                 await session.close()
 
         app.dependency_overrides[db_mod.get_db_from_context] = _test_db
+        
+        @app.middleware("http")
+        async def _inject_test_request_context(request, call_next):
+            set_request_context(
+                RequestContext(
+                    tenant_id=str(tenant_id),
+                    user_id="test-user",
+                    roles=["admin"],
+                    auth_source="jwt_claim",
+                )
+            )
+            try:
+                return await call_next(request)
+            finally:
+                set_request_context(None)
 
         async with AsyncClient(
             transport=ASGITransport(app=app),
             base_url="http://test",
-            headers={"X-Tenant-ID": str(tenant_id)},
         ) as c:
             yield c
 

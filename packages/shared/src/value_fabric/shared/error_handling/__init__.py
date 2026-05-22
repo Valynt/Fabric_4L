@@ -14,6 +14,7 @@ from .handlers import (
     install_error_response_openapi,
     register_exception_handlers,
 )
+from .helpers import build_error_detail
 from .middleware import get_request_id, RequestIDMiddleware
 from .models import ErrorCode, ErrorResponse
 
@@ -23,6 +24,7 @@ __all__ = [
     "canonical_error_response_schema",
     "ErrorCode",
     "ErrorResponse",
+    "build_error_detail",
     "get_request_id",
     "install_error_response_openapi",
     "NotFoundError",

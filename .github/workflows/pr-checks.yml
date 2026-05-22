@@ -44,10 +44,23 @@ jobs:
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
 
+      - name: Validate workflow target/artifact references
+        run: python3 scripts/ci/check_workflow_targets_and_artifacts.py
+
       - name: Set up Python
         uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
         with:
           python-version: '3.11'
+
+      - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_legacy_tenant_access.py \
+            --allowlist config/ci/legacy_tenant_access_shim_allowlist.yaml \
+            --phase "${SHIM_LEGACY_ACCESS_PHASE:-warn}" \
+            --base-ref "origin/${{ github.base_ref || 'main' }}" \
+            --json | tee artifacts/legacy-tenant-access-shim-lifecycle.json
+          exit ${PIPESTATUS[0]}
 
       - name: Run structural preflight
         run: |
@@ -124,6 +137,10 @@ jobs:
           python scripts/ci/check_shared_imports.py --strict --scope runtime --json | tee artifacts/shared-imports-runtime.json
           exit ${PIPESTATUS[0]}
 
+      - name: Enforce shared identity canonical imports
+        run: |
+          python scripts/ci/check_shared_identity_canonical_imports.py
+
       - name: Deprecated namespace import gate
         run: python scripts/ci/check_deprecated_namespace_imports.py --strict --use-baseline --json
 
@@ -146,6 +163,14 @@ jobs:
       - name: Enforce hermetic build input policy
         run: python scripts/ci/check_hermetic_build_inputs.py
 
+      - name: Enforce secure error envelope gate
+        run: python scripts/ci/check_secure_error_envelope.py
+
+
+      - name: Tenant boundary static runtime enforcement
+        run: |
+          python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
 
       - name: Generate layer quality scorecard
         run: |

@@ -1,8 +1,8 @@
 """Ingestion domain router — RDF ingest, sync status, and source deletion.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
-All write-paths use the sync_manager service; tenant_id is extracted from
-the authenticated request context or the X-Tenant-ID header.
+All write-paths use the sync_manager service; tenant_id is derived
+exclusively from authenticated request context (never from X-Tenant-ID).
 """
 
 from __future__ import annotations

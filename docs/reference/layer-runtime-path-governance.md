@@ -37,7 +37,7 @@ Layer 6 note: when compatibility wrappers are present under `services/layer6-ben
 
 ### Allowed imports in production/runtime code
 
-- Runtime-to-runtime imports within canonical roots (for example `value_fabric/layerX/*`, `value_fabric/shared/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
+- Runtime-to-runtime imports within canonical roots (for example `value_fabric/layerX/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
 - Compatibility imports that remain inside approved compatibility wrappers documented in this matrix.
 
 ### Forbidden imports in production/runtime code
@@ -47,6 +47,15 @@ Layer 6 note: when compatibility wrappers are present under `services/layer6-ben
 - Any import from other non-runtime roots that are not canonical runtime or approved compatibility wrapper paths.
 
 These restrictions are enforced by architecture tests (`tests/arch/test_no_non_runtime_imports.py`) and frontend hygiene linting (`apps/web/scripts/quality/assert-frontend-hygiene.mjs`).
+
+
+## Shared identity package canonical location
+
+- **Canonical runtime package location (only):** `packages/shared/src/value_fabric/shared/identity/`.
+- **Approved public import root:** `value_fabric.shared.identity`.
+- **Disallowed imports:** `shared.identity.*`, any `value_fabric.layer*/identity*` module, and any service-local `...identity...` module outside approved shims.
+- **CI guardrail:** `scripts/ci/check_shared_identity_canonical_imports.py` with explicit shim exceptions in `config/ci/shared_identity_import_shim_allowlist.txt`.
+- **Policy:** no alternate canonical paths are allowed for shared identity runtime code.
 
 ## Contributor checklist (required)
 

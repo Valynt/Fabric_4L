@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..clients.l3_graph_client import get_l3_client
 from ..config import get_settings
@@ -88,6 +89,7 @@ async def lifespan(app: FastAPI):
 
 def create_app() -> FastAPI:
     settings = get_settings()
+    reject_insecure_bypass_in_production(service_name="layer2-5-signal-refinery", settings=settings)
 
     app = FastAPI(
         title="Layer 2.5: Signal Refinery",

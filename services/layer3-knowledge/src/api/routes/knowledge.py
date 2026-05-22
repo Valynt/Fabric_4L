@@ -28,8 +28,8 @@ from pydantic import BaseModel, Field
 from logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
-from ...auth.api_keys import APIKey
-from ...auth.middleware import get_current_api_key
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 logger = get_logger(__name__)
 
@@ -91,7 +91,7 @@ class ValueDriverFormulasResponse(BaseModel):
 )
 async def get_benchmark_variables(
     industry: str = Query(..., description="Industry vertical to look up"),
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ) -> BenchmarkVariablesResponse:
     """Return benchmark variables and defaults for the given industry.
 
@@ -101,9 +101,7 @@ async def get_benchmark_variables(
     Used by Layer 4 agents to resolve benchmark context without embedding
     Cypher in the agent layer.
     """
-    tenant_id = str(getattr(api_key, "tenant_id", "") or "").strip()
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = str(tenant.tenant_id)
 
     query = """
         MATCH (v:ValueDriver)-[:HAS_BENCHMARK]->(b:Benchmark)
@@ -151,7 +149,7 @@ async def get_value_driver_formulas(
         ...,
         description="Value driver IDs to look up (repeat parameter for multiple)",
     ),
-    api_key: APIKey = Depends(get_current_api_key),
+    tenant: RequestContext = Depends(require_tenant_context),
 ) -> ValueDriverFormulasResponse:
     """Return formula definitions for the requested value driver IDs.
 
@@ -162,9 +160,7 @@ async def get_value_driver_formulas(
     Used by Layer 4 agents to resolve formula context without embedding
     Cypher in the agent layer.
     """
-    tenant_id = str(getattr(api_key, "tenant_id", "") or "").strip()
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+    tenant_id = str(tenant.tenant_id)
 
     if not driver_ids:
         raise HTTPException(status_code=422, detail="driver_ids must not be empty")

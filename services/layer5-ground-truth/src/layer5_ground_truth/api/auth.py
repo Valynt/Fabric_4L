@@ -14,10 +14,8 @@ Fail-closed contract:
   - In any production-like runtime (``ENVIRONMENT``/``APP_ENV`` in
     ``production|staging``), no ``GovernanceMiddleware`` context means 401.
     No header or query-param fallback is permitted.
-  - Dev/test fallback is limited to direct JWT verification gated behind
-    ``ALLOW_INSECURE_DEV_AUTH_BYPASS=true`` **and** a non-production
-    environment. Tenant headers and query params remain non-authoritative
-    diagnostics and cannot create tenant context on their own.
+  - No direct JWT, tenant-header, or tenant-query fallback is permitted in this
+    module. Tenant identity must come from canonical authenticated context only.
 """
 
 import logging
@@ -25,7 +23,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Header, HTTPException, Query, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 from value_fabric.shared.identity.fallback_telemetry import (
     enforce_fallback_enabled,
@@ -217,151 +215,34 @@ def _token_claims_from_context(ctx) -> TokenClaims:
 
 def get_current_user(
     request: Request,
-    authorization: str | None = Header(default=None),
-    x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
-    tenant_id: str | None = Query(
-        default=None,
-        description="Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-    ),
     settings: Settings = Depends(get_settings),
 ) -> TokenClaims:
     """
-    Resolve the caller's identity from the GovernanceMiddleware context.
+    Resolve caller identity exclusively from canonical authenticated context.
 
-    Primary path (all environments): read ``request.state.governance_context``
-    populated by the canonical ``GovernanceMiddleware``.
+    The only accepted source of tenant/user identity is
+    ``request.state.governance_context`` (or legacy ``request.state.context``
+    shim populated by shared middleware).
 
-    Dev/test fallback (non-production only, requires
-    ``ALLOW_INSECURE_DEV_AUTH_BYPASS=true``): when no middleware context is
-    present, tolerate a legacy direct JWT path to keep existing test fixtures
-    working without weakening production.
-
-    Raises HTTP 401 if no valid identity can be resolved.
+    Any request lacking canonical context fails closed. Header/query tenant hints
+    are explicitly rejected and never used for identity resolution.
     """
-    # ── 1. Primary path — GovernanceMiddleware-validated context ──────────
-    ctx = getattr(request.state, "governance_context", None) or getattr(
-        request.state, "context", None
-    )
+    _ = settings
+
+    ctx = getattr(request.state, "governance_context", None) or getattr(request.state, "context", None)
     if ctx is not None and getattr(ctx, "tenant_id", None):
         return _token_claims_from_context(ctx)
 
-    # In any production-like runtime, a missing middleware context is a
-    # fail-closed 401 — no header or query-param fallback is permitted.
-    if settings.is_production_like or not settings.allow_insecure_dev_auth_bypass:
+    hinted_tenant = request.headers.get("X-Tenant-ID") or request.query_params.get("tenant_id")
+    if hinted_tenant:
         raise _auth_http_exception(
-            status.HTTP_401_UNAUTHORIZED,
-            error_code="AUTH_REQUIRED",
-            message="Authentication required.",
+            status.HTTP_403_FORBIDDEN,
+            error_code="AUTH_TENANT_HINT_REJECTED",
+            message="Tenant hints are not accepted without canonical authenticated context.",
         )
-
-    # ── 2. Dev/test fallback — direct Bearer JWT verification ─────────────
-    if authorization:
-        if not authorization.startswith("Bearer "):
-            raise _auth_http_exception(
-                status.HTTP_401_UNAUTHORIZED,
-                error_code="AUTH_INVALID_TOKEN",
-                message="Invalid token.",
-            )
-        enforce_fallback_enabled("layer5.direct_jwt", default=True)
-        token = authorization[7:].strip()
-        if not token:
-            raise _auth_http_exception(
-                status.HTTP_401_UNAUTHORIZED,
-                error_code="AUTH_INVALID_TOKEN",
-                message="Invalid token.",
-            )
-        payload = _decode_jwt(token, settings)
-        org_id = _extract_org_id_from_payload(payload, settings)
-        if org_id is None:
-            raise _auth_http_exception(
-                status.HTTP_401_UNAUTHORIZED,
-                error_code="AUTH_INVALID_TOKEN",
-                message="Invalid token.",
-            )
-
-        user_id = payload.get(settings.jwt_user_claim)
-        email = payload.get("email")
-        roles = payload.get(settings.jwt_roles_claim, [])
-        if isinstance(roles, str):
-            roles = [roles]
-        if x_tenant_id and x_tenant_id != str(org_id):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Tenant context mismatch.",
-            )
-        record_fallback_usage(
-            "layer5.direct_jwt",
-            tenant_id=org_id,
-            client_id=request.headers.get("X-Client-ID"),
-            service="layer5-ground-truth",
-            path=str(request.url.path),
-        )
-        return TokenClaims(
-            tenant_id=org_id,
-            user_id=user_id,
-            email=email,
-            roles=roles,
-            permissions=_derive_permissions(roles),
-            raw=payload,
-        )
-
-    # ── 3. Dev/test fallback — X-Tenant-ID header (no user context) ───────
-    # NOTE: This path is reachable only when ALLOW_INSECURE_DEV_AUTH_BYPASS=true
-    # AND the environment is NOT production-like. GovernanceMiddleware rejects
-    # unverified X-Tenant-ID in production by refusing to build a context, and
-    # the fail-closed branch above short-circuits before we get here.
-    if x_tenant_id:
-        enforce_fallback_enabled("layer5.x_tenant_id_header", default=True)
-        try:
-            org_id = UUID(x_tenant_id)
-            record_fallback_usage(
-                "layer5.x_tenant_id_header",
-                tenant_id=org_id,
-                client_id=request.headers.get("X-Client-ID"),
-                service="layer5-ground-truth",
-                path=str(request.url.path),
-            )
-            return TokenClaims(
-                tenant_id=org_id,
-                user_id="service",
-                roles=["service"],
-            )
-        except (ValueError, AttributeError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"X-Tenant-ID header is not a valid UUID: {x_tenant_id!r}",
-            )
-
-    # ── 4. Dev/test fallback — tenant_id query param ──────────────────────
-    if settings.jwt_fallback_to_query_param and tenant_id:
-        enforce_fallback_enabled("layer5.tenant_query_param", default=True)
-        try:
-            org_id = UUID(tenant_id)
-            logger.debug(
-                "Using tenant_id query param fallback for tenant %s — "
-                "set JWT_FALLBACK_TO_QUERY_PARAM=false in production",
-                org_id,
-            )
-            record_fallback_usage(
-                "layer5.tenant_query_param",
-                tenant_id=org_id,
-                client_id=request.headers.get("X-Client-ID"),
-                service="layer5-ground-truth",
-                path=str(request.url.path),
-            )
-            return TokenClaims(
-                tenant_id=org_id,
-                user_id=None,
-                roles=[],
-            )
-        except (ValueError, AttributeError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"tenant_id query param is not a valid UUID: {tenant_id!r}",
-            )
 
     raise _auth_http_exception(
         status.HTTP_401_UNAUTHORIZED,
-        error_code="AUTH_REQUIRED",
-        message="Authentication required.",
+        error_code="AUTH_CONTEXT_REQUIRED",
+        message="Authenticated request context is required.",
     )

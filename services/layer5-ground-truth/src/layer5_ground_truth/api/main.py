@@ -21,6 +21,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 
 from layer5_ground_truth import __version__
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..shared_bootstrap import (
     SecurityConfig,
@@ -318,6 +319,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("L5: OpenTelemetry tracing initialized")
 
     settings = get_settings()
+    reject_insecure_bypass_in_production(service_name="layer5-ground-truth", settings=settings)
     logger.info("Starting Layer 5 Ground Truth service on port %d", settings.api_port)
 
     # Security: fail fast if weak JWT secret is used in production

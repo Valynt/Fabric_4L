@@ -37,8 +37,8 @@ async def test_create_signal_returns_201(client):
     assert "created_at" in data
 
 
-async def test_create_signal_sets_tenant_from_header(client):
-    """tenant_id must come from the X-Tenant-ID header, not the request body."""
+async def test_create_signal_sets_tenant_from_request_context(client):
+    """tenant_id must come from canonical request context, not request body."""
     payload = make_signal_payload()
     response = await client.post("/api/v1/signals", json=payload)
     assert response.status_code == 201

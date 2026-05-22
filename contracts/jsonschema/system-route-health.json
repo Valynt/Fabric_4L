@@ -3,11 +3,20 @@
   "$id": "https://valuefabric/contracts/jsonschema/system-route-health.json",
   "title": "SystemRouteHealthResponse",
   "type": "object",
-  "required": ["status", "service", "readiness"],
+  "required": [
+    "status",
+    "service",
+    "readiness",
+    "dependencies"
+  ],
   "properties": {
     "status": {
       "type": "string",
-      "enum": ["healthy", "degraded", "unhealthy"]
+      "enum": [
+        "healthy",
+        "degraded",
+        "unhealthy"
+      ]
     },
     "service": {
       "type": "string",
@@ -15,12 +24,57 @@
     },
     "readiness": {
       "type": "object",
-      "required": ["is_ready", "reason"],
+      "required": [
+        "is_ready",
+        "reason"
+      ],
       "properties": {
-        "is_ready": {"type": "boolean"},
-        "reason": {"type": "string"}
+        "is_ready": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string"
+        }
       },
       "additionalProperties": true
+    },
+    "dependencies": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "name",
+          "status",
+          "failure_reason"
+        ],
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "healthy",
+              "degraded",
+              "unhealthy"
+            ]
+          },
+          "failure_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "response_time_ms": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "additionalProperties": true
+      }
     }
   },
   "additionalProperties": true
