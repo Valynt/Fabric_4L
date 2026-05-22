@@ -1,3 +1,4 @@
+import { safeAsync } from '@/lib/async';
 /**
  * useAuth Hook — Authentication Operations
  *
@@ -74,7 +75,7 @@ export function useAuthRedirect() {
     // logout is async (calls backend to clear cookie) but we navigate
     // immediately — local state is cleared synchronously before the
     // network call, so the redirect is safe without awaiting.
-    void logout();
+    safeAsync(logout(), "auth.logout");
     navigateTo('login');
   };
 
