@@ -45,6 +45,11 @@ class InvoiceService:
     def __init__(self, db: AsyncSession, tenant_id: str | None = None):
         self.db = db
         self.tenant_id = tenant_id
+    @staticmethod
+    def _authorize_customer_access(customer_id: str, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> None:
+        if actor_is_admin or actor_customer_id is None or customer_id == actor_customer_id:
+            return
+        raise ValueError("Forbidden for requested customer_id")
 
     # ====================================================================================
     # Invoice CRUD Operations
@@ -60,6 +65,8 @@ class InvoiceService:
         currency: str = "USD",
         description: str | None = None,
         due_date: datetime | None = None,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
     ) -> BillingInvoice:
         """Create a new invoice.
 
@@ -78,6 +85,8 @@ class InvoiceService:
         """
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
+        self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
+        self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
 
         if not invoice_number:
             # Generate invoice number: INV-{tenant_short}-{YYYYMMDD}-{random}
@@ -203,6 +212,8 @@ class InvoiceService:
         invoice_id: str,
         include_items: bool = True,
         include_charges: bool = False,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
     ) -> BillingInvoice | None:
         """Get an invoice by ID.
 
@@ -228,7 +239,10 @@ class InvoiceService:
             query = query.options(selectinload(BillingInvoice.charges))
 
         result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+        invoice = result.scalar_one_or_none()
+        if invoice:
+            self._authorize_customer_access(invoice.customer_id, actor_customer_id, actor_is_admin)
+        return invoice
 
     async def get_invoice_by_number(self, invoice_number: str) -> BillingInvoice | None:
         """Get an invoice by invoice number.
@@ -255,6 +269,8 @@ class InvoiceService:
     async def list_invoices(
         self,
         customer_id: str | None = None,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
         status: str | None = None,
         limit: int = 50,
         offset: int = 0,
@@ -282,6 +298,7 @@ class InvoiceService:
         )
 
         if customer_id:
+            self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
             query = query.where(BillingInvoice.customer_id == customer_id)
         if status:
             query = query.where(BillingInvoice.status == status)
@@ -297,7 +314,7 @@ class InvoiceService:
         result = await self.db.execute(query)
         return list(result.scalars().all())
 
-    async def finalize_invoice(self, invoice_id: str) -> BillingInvoice:
+    async def finalize_invoice(self, invoice_id: str, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> BillingInvoice:
         """Finalize a draft invoice (make it open/payable).
 
         Args:
@@ -312,7 +329,7 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
-        invoice = await self.get_invoice(invoice_id, include_items=True)
+        invoice = await self.get_invoice(invoice_id, include_items=True, actor_customer_id=actor_customer_id, actor_is_admin=actor_is_admin)
         if not invoice:
             raise ValueError(f"Invoice not found: {invoice_id}")
 
@@ -348,7 +365,7 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
-        invoice = await self.get_invoice(invoice_id)
+        invoice = await self.get_invoice(invoice_id, actor_customer_id=actor_customer_id, actor_is_admin=actor_is_admin)
         if not invoice:
             raise ValueError(f"Invoice not found: {invoice_id}")
 
@@ -367,7 +384,7 @@ class InvoiceService:
         logger.info(f"Marked invoice {invoice.invoice_number} as paid: {amount_paid} cents")
         return invoice
 
-    async def void_invoice(self, invoice_id: str, reason: str | None = None) -> BillingInvoice:
+    async def void_invoice(self, invoice_id: str, reason: str | None = None, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> BillingInvoice:
         """Void an invoice.
 
         Args:
@@ -380,7 +397,7 @@ class InvoiceService:
         if not self.tenant_id:
             raise ValueError("tenant_id is required")
 
-        invoice = await self.get_invoice(invoice_id)
+        invoice = await self.get_invoice(invoice_id, actor_customer_id=actor_customer_id, actor_is_admin=actor_is_admin)
         if not invoice:
             raise ValueError(f"Invoice not found: {invoice_id}")
 
@@ -406,6 +423,8 @@ class InvoiceService:
     async def record_charge(
         self,
         customer_id: str,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
         amount: int,
         status: str = ChargeStatus.SUCCEEDED,
         invoice_id: str | None = None,
@@ -491,6 +510,8 @@ class InvoiceService:
     async def list_charges(
         self,
         customer_id: str | None = None,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
         invoice_id: str | None = None,
         status: str | None = None,
         limit: int = 50,
@@ -514,6 +535,7 @@ class InvoiceService:
         query = select(BillingCharge).where(BillingCharge.tenant_id == self.tenant_id)
 
         if customer_id:
+            self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
             query = query.where(BillingCharge.customer_id == customer_id)
         if invoice_id:
             query = query.where(BillingCharge.invoice_id == invoice_id)
@@ -643,6 +665,8 @@ class InvoiceService:
     async def get_customer_balance(
         self,
         customer_id: str,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
     ) -> dict[str, Any]:
         """Get customer balance summary.
 
@@ -690,5 +714,4 @@ class InvoiceService:
             "lifetime_paid_cents": paid_row.total_paid or 0,
             "lifetime_paid_dollars": (paid_row.total_paid or 0) / 100.0,
         })
-
 

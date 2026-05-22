@@ -103,6 +103,21 @@ def validate_customer_id(customer_id: str) -> str:
         )
     return customer_id
 
+
+def _is_billing_admin(context: RequestContext) -> bool:
+    return context.has_any_role("admin", "tenant_admin", "super_admin")
+
+
+def enforce_customer_binding(context: RequestContext, customer_id: str, *, allow_admin: bool = True) -> str:
+    """Authorize access to customer-linked billing resources."""
+    validated_customer_id = validate_customer_id(customer_id)
+    principal_id = str(context.user_id) if context.user_id is not None else None
+    if principal_id and validated_customer_id == principal_id:
+        return validated_customer_id
+    if allow_admin and _is_billing_admin(context):
+        return validated_customer_id
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden for requested customer_id")
+
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -315,8 +330,9 @@ async def get_subscription(
     Returns:
         Subscription details including plan and status
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
-    subscription = await service.get_subscription(customer_id)
+    subscription = await service.get_subscription(customer_id, actor_customer_id=str(context.user_id) if context.user_id is not None else None, actor_is_admin=_is_billing_admin(context))
 
     if not subscription:
         # Return free tier default
@@ -356,11 +372,14 @@ async def create_checkout(
     Returns:
         Session ID and checkout URL
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
 
     try:
         result = await service.create_checkout_session(
             customer_id=customer_id,
+            actor_customer_id=str(context.user_id) if context.user_id is not None else None,
+            actor_is_admin=_is_billing_admin(context),
             plan_id=request.plan_id,
             success_url=request.success_url,
             cancel_url=request.cancel_url,
@@ -390,11 +409,14 @@ async def create_portal(
     Returns:
         Portal URL for customer to manage billing
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
 
     try:
         result = await service.create_portal_session(
             customer_id=customer_id,
+            actor_customer_id=str(context.user_id) if context.user_id is not None else None,
+            actor_is_admin=_is_billing_admin(context),
             return_url=request.return_url,
         )
         return result
@@ -424,6 +446,7 @@ async def get_entitlements(
     Returns:
         Plan details and feature availability map
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
     return await service.get_entitlements(customer_id)
 
@@ -444,6 +467,7 @@ async def check_feature(
     Returns:
         Feature access status
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
     has_access = await service.check_entitlement(customer_id, feature_id)
 
@@ -473,6 +497,7 @@ async def sync_customer(
     Returns:
         Customer record with Stripe ID if available
     """
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
     
     # Extract tenant_id from context if available
@@ -542,6 +567,7 @@ async def stripe_webhook(
     # Read raw body for signature verification
     body = await request.body()
 
+    customer_id = enforce_customer_binding(context, customer_id)
     service = BillingService(db)
 
     try:
@@ -596,7 +622,7 @@ async def ingest_usage_event(
     try:
         event = await service.ingest_event(
             event_id=request.event_id,
-            customer_id=request.customer_id,
+            customer_id=enforce_customer_binding(context, request.customer_id),
             event_name=request.event_name,
             metric_name=request.metric_name,
             quantity=request.quantity,
@@ -1069,8 +1095,12 @@ async def list_invoices(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
+        if customer_id:
+            customer_id = enforce_customer_binding(context, customer_id)
         invoices = await service.list_invoices(
             customer_id=customer_id,
+            actor_customer_id=str(context.user_id) if context.user_id is not None else None,
+            actor_is_admin=_is_billing_admin(context),
             status=status,
             limit=limit,
             offset=offset,
@@ -1127,7 +1157,7 @@ async def create_invoice(
     
     try:
         invoice = await service.create_invoice(
-            customer_id=request.customer_id,
+            customer_id=enforce_customer_binding(context, request.customer_id),
             period_start=request.period_start,
             period_end=request.period_end,
             invoice_number=request.invoice_number,
@@ -1170,7 +1200,7 @@ async def get_invoice(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
-        invoice = await service.get_invoice(invoice_id, include_items=True, include_charges=True)
+        invoice = await service.get_invoice(invoice_id, include_items=True, include_charges=True, actor_customer_id=str(context.user_id) if context.user_id is not None else None, actor_is_admin=_is_billing_admin(context))
         
         if not invoice:
             raise HTTPException(
@@ -1257,6 +1287,8 @@ async def add_invoice_item(
     try:
         item = await service.add_invoice_item(
             invoice_id=invoice_id,
+            actor_customer_id=str(context.user_id) if context.user_id is not None else None,
+            actor_is_admin=_is_billing_admin(context),
             description=request.description,
             amount=request.amount_cents,
             quantity=request.quantity,
@@ -1304,7 +1336,7 @@ async def finalize_invoice(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
-        invoice = await service.finalize_invoice(invoice_id)
+        invoice = await service.finalize_invoice(invoice_id, actor_customer_id=str(context.user_id) if context.user_id is not None else None, actor_is_admin=_is_billing_admin(context))
         
         return finalize_invoiceResult.model_validate({
             "id": invoice.id,
@@ -1340,7 +1372,7 @@ async def void_invoice(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
-        invoice = await service.void_invoice(invoice_id, reason=reason)
+        invoice = await service.void_invoice(invoice_id, reason=reason, actor_customer_id=str(context.user_id) if context.user_id is not None else None, actor_is_admin=_is_billing_admin(context))
         
         return void_invoiceResult.model_validate({
             "id": invoice.id,
@@ -1380,9 +1412,13 @@ async def list_charges(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
+        if customer_id:
+            customer_id = enforce_customer_binding(context, customer_id)
         charges = await service.list_charges(
             customer_id=customer_id,
             invoice_id=invoice_id,
+            actor_customer_id=str(context.user_id) if context.user_id is not None else None,
+            actor_is_admin=_is_billing_admin(context),
             status=status,
             limit=limit,
             offset=offset,
@@ -1434,7 +1470,7 @@ async def record_charge(
     
     try:
         charge = await service.record_charge(
-            customer_id=request.customer_id,
+            customer_id=enforce_customer_binding(context, request.customer_id),
             amount=request.amount_cents,
             status=request.status,
             invoice_id=request.invoice_id,
@@ -1511,7 +1547,8 @@ async def get_customer_balance(
     service = InvoiceService(db, tenant_id=tenant_id)
     
     try:
-        balance = await service.get_customer_balance(customer_id)
+        customer_id = enforce_customer_binding(context, customer_id)
+        balance = await service.get_customer_balance(customer_id, actor_customer_id=str(context.user_id) if context.user_id is not None else None, actor_is_admin=_is_billing_admin(context))
         return balance
     except Exception as e:
         logger.exception(f"Failed to get customer balance: {e}")

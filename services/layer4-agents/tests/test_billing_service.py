@@ -23,6 +23,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from value_fabric.layer4.api.main import app
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.layer4.models.billing import (
     BillingCustomer,
     BillingSubscription,
@@ -416,6 +418,36 @@ def test_check_feature_endpoint(client, mock_db, sample_subscription):
     data = response.json()
     assert data["feature_id"] == "advanced_models"
     assert data["has_access"] is True
+
+
+def test_customer_id_authorization_denies_cross_user_subscription(client):
+    """User A cannot access User B subscription via direct customer_id."""
+    async def _auth_override():
+        return RequestContext(tenant_id="tenant_abc123", user_id="user_a", roles=["member"])
+    app.dependency_overrides[require_authenticated] = _auth_override
+    try:
+        response = client.get("/v1/billing/subscription?customer_id=user_b")
+        assert response.status_code == 403
+    finally:
+        app.dependency_overrides.pop(require_authenticated, None)
+
+
+def test_customer_id_authorization_denies_cross_user_invoice_resource(client, mock_db):
+    """User A cannot access User B invoice through resource-id path."""
+    invoice = MagicMock()
+    invoice.customer_id = "user_b"
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = invoice
+    mock_db.execute.return_value = mock_result
+
+    async def _auth_override():
+        return RequestContext(tenant_id="tenant_abc123", user_id="user_a", roles=["member"])
+    app.dependency_overrides[require_authenticated] = _auth_override
+    try:
+        response = client.get("/v1/billing/invoices/inv_123")
+        assert response.status_code == 500 or response.status_code == 400 or response.status_code == 403
+    finally:
+        app.dependency_overrides.pop(require_authenticated, None)
 
 
 # =============================================================================

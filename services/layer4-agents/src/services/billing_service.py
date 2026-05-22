@@ -53,6 +53,14 @@ class BillingService:
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
 
+    @staticmethod
+    def _authorize_customer_access(customer_id: str, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> None:
+        if actor_is_admin:
+            return
+        if actor_customer_id is not None and customer_id == actor_customer_id:
+            return
+        raise ValueError("Forbidden for requested customer_id")
+
     async def get_or_create_customer(
         self,
         customer_id: str,
@@ -184,8 +192,9 @@ class BillingService:
         )
         return result.scalar_one_or_none()
 
-    async def get_subscription(self, customer_id: str) -> BillingSubscription | None:
+    async def get_subscription(self, customer_id: str, actor_customer_id: str | None = None, actor_is_admin: bool = False) -> BillingSubscription | None:
         """Get the most recent subscription for a customer (any status)."""
+        self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
         result = await self.db.execute(
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
@@ -196,11 +205,14 @@ class BillingService:
     async def create_checkout_session(
         self,
         customer_id: str,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
         plan_id: str,
         success_url: str,
         cancel_url: str,
     ) -> dict[str, Any]:
         """Create a Stripe checkout session for subscription."""
+        self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
         # Get or create customer
         result = await self.db.execute(
             select(BillingCustomer).where(BillingCustomer.id == customer_id)
@@ -236,9 +248,12 @@ class BillingService:
     async def create_portal_session(
         self,
         customer_id: str,
+        actor_customer_id: str | None = None,
+        actor_is_admin: bool = False,
         return_url: str,
     ) -> dict[str, Any]:
         """Create a Stripe customer portal session."""
+        self._authorize_customer_access(customer_id, actor_customer_id, actor_is_admin)
         result = await self.db.execute(
             select(BillingCustomer).where(BillingCustomer.id == customer_id)
         )
