@@ -8,7 +8,7 @@ import { Globe, ChevronDown, ChevronUp, Settings2, Zap, Clock, CheckCircle2, Ale
 import { useRecentIngestionJobs, useIngestionStats, useSubmitDomain, type IngestionJob } from "@/hooks/useIngestion";
 import { useIngestionUIStore } from "@/stores";
 import { toast } from "sonner";
-import { MetricCard, PageHeader, LegacyDataTable, StatusBadge, Btn } from "@/components/ui/fabric";
+import { MetricCard, PageHeader, DataTable, StatusBadge, Btn } from "@/components/ui/fabric";
 
 const EXTRACTION_PROFILES = ["Default", "Deep Crawl", "Financial Focus", "Technical Focus"];
 const ONTOLOGY_TARGETS = ["General", "SaaS / B2B", "Financial Services", "Healthcare"];
@@ -173,17 +173,26 @@ export default function CommandCenter() {
             <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
             <button className="text-[11px] text-blue-600 hover:underline">View all</button>
           </div>
-          <LegacyDataTable
-            columns={["Domain", "Pages", "Status", "Updated"]}
-            rows={recentJobs.map(job => [
+          <DataTable
+            columns={[
+              { key: "domain", header: "Domain" },
+              { key: "pages", header: "Pages" },
+              { key: "status", header: "Status" },
+              { key: "updated", header: "Updated" },
+            ]}
+            data={recentJobs.map(job => ({
+              id: job.id,
+              domain: (
               <span className="flex items-center gap-2">
                 <span className="text-neutral-300 text-[14px]">🏢</span>
                 <span className="font-medium text-foreground">{job.domain}</span>
-              </span>,
-              <span className="text-muted-foreground">{job.pagesProcessed || 0}</span>,
-              <StatusBadge status={job.status}/>,
-              <span className="text-muted-foreground/60 text-[11px]">{job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : '-'}</span>,
-            ])}
+              </span>
+              ),
+              pages: <span className="text-muted-foreground">{job.pagesProcessed || 0}</span>,
+              status: <StatusBadge status={job.status}/>,
+              updated: <span className="text-muted-foreground/60 text-[11px]">{job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : '-'}</span>,
+            }))}
+            keyExtractor={(item) => item.id}
           />
         </div>
 
