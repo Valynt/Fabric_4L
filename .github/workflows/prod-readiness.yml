@@ -70,34 +70,81 @@ jobs:
         if: needs.determine-profile.outputs.profile == 'release-candidate'
         run: |
           python -m pip install --upgrade pip pytest
-          TARGET_FILES=(
-            tests/security/test_cross_tenant_api.py
-            tests/security/test_tenant_boundary_fails_closed.py
-            tests/security/test_tenant_mismatch.py
-            tests/security/test_privileged_audit.py
-            tests/security/test_layer3_ingest_tenant_hint_hostile.py
-            tests/security/test_cross_layer_tenant_isolation_matrix.py
-          )
 
-          expected=$(python -m pytest --collect-only -q "${TARGET_FILES[@]}" | rg -c "::")
-          selected=$(python -m pytest --collect-only -q -m tenant_boundary "${TARGET_FILES[@]}" | rg -c "::")
+          TENANT_BUNDLE_DIR="${ARTIFACT_DIR}/security/tenant-isolation"
+          mkdir -p "${TENANT_BUNDLE_DIR}"
 
-          if [[ "$selected" -ne "$expected" ]]; then
-            echo "ERROR: tenant_boundary marker coverage mismatch (selected=$selected expected=$expected)"
+          BUNDLE_TS="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          BUNDLE_TS_SAFE="$(date -u +%Y%m%dT%H%M%SZ)"
+          BUNDLE_SHA="${GITHUB_SHA}"
+
+          mapfile -t SECURITY_TENANT_TESTS < <(find tests/security -maxdepth 1 -type f -name 'test_*.py' | sort)
+          mapfile -t SERVICE_TENANT_TESTS < <(find services -type f -path '*/tests/test_*.py' | rg 'tenant|isolation|boundary' | sort)
+
+          if [[ ${#SECURITY_TENANT_TESTS[@]} -eq 0 ]]; then
+            echo "ERROR: no tests found under tests/security"
             exit 1
           fi
 
-          python -m pytest -v -m tenant_boundary "${TARGET_FILES[@]}" --maxfail=1
-
-
-          matrix_expected=$(python -m pytest --collect-only -q tests/security/test_cross_layer_tenant_isolation_matrix.py | rg -c "::")
-          matrix_selected=$(python -m pytest --collect-only -q -m tenant_matrix tests/security/test_cross_layer_tenant_isolation_matrix.py | rg -c "::")
-          if [[ "$matrix_selected" -ne "$matrix_expected" ]]; then
-            echo "ERROR: tenant_matrix marker coverage mismatch (selected=$matrix_selected expected=$matrix_expected)"
+          if [[ ${#SERVICE_TENANT_TESTS[@]} -eq 0 ]]; then
+            echo "ERROR: no per-service tenant tests found under services/**/tests"
             exit 1
           fi
+
+          echo "Running dedicated tenant-boundary suite"
+          python -m pytest -v -m tenant_boundary "${SECURITY_TENANT_TESTS[@]}" "${SERVICE_TENANT_TESTS[@]}" --maxfail=1 \
+            --junitxml "${TENANT_BUNDLE_DIR}/junit-${BUNDLE_TS_SAFE}.xml"
 
           python -m pytest -v -m tenant_matrix tests/security/test_cross_layer_tenant_isolation_matrix.py --maxfail=1
+
+          cat > "${TENANT_BUNDLE_DIR}/bundle-latest.json" <<EOF
+          {
+            "suite": "tenant-boundary",
+            "status": "green",
+            "timestamp_utc": "${BUNDLE_TS}",
+            "commit_sha": "${BUNDLE_SHA}",
+            "retention_expectation_hours": 24,
+            "security_tests": ${#SECURITY_TENANT_TESTS[@]},
+            "service_tenant_tests": ${#SERVICE_TENANT_TESTS[@]}
+          }
+          EOF
+
+          cp "${TENANT_BUNDLE_DIR}/bundle-latest.json" "${TENANT_BUNDLE_DIR}/bundle-${BUNDLE_TS_SAFE}-${BUNDLE_SHA}.json"
+
+      - name: Enforce tenant-isolation bundle freshness for release-candidate
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          from datetime import datetime, timezone
+          from pathlib import Path
+
+          bundle_path = Path("artifacts/security/tenant-isolation/bundle-latest.json")
+          if not bundle_path.exists():
+              raise SystemExit("ERROR: tenant-isolation bundle-latest.json is missing")
+
+          data = json.loads(bundle_path.read_text())
+          if data.get("status") != "green":
+              raise SystemExit("ERROR: latest tenant-isolation bundle is not green")
+
+          ts = data.get("timestamp_utc")
+          try:
+              dt = datetime.strptime(ts, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=timezone.utc)
+          except Exception as exc:
+              raise SystemExit(f"ERROR: invalid timestamp_utc in tenant bundle: {ts!r} ({exc})")
+
+          age_hours = (datetime.now(timezone.utc) - dt).total_seconds() / 3600
+          if age_hours > 24:
+              raise SystemExit(f"ERROR: latest tenant-isolation bundle is stale ({age_hours:.2f}h old; limit 24h)")
+
+          if data.get("commit_sha") != os.environ.get("GITHUB_SHA"):
+              raise SystemExit(
+                  "ERROR: latest tenant-isolation bundle commit SHA does not match release candidate commit"
+              )
+
+          print(f"Tenant-isolation bundle freshness check passed: age={age_hours:.2f}h")
+          PY
       - uses: actions/upload-artifact@v4
         with:
           name: security-artifacts
