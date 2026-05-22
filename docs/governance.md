@@ -57,3 +57,25 @@ Tracks:
 ## Ground Truth
 
 Validated truth objects store human-verified claims with evidence and reviewer attribution.
+
+## Static Tenant Inference Enforcement (Runtime)
+
+The CI static gate `scripts/ci/boundary_check.py` is blocking for runtime source trees:
+
+- `services/**/*.py`
+- `value_fabric/**/*.py`
+- `packages/shared/src/shared/**/*.py`
+
+Outside explicit allowlisted compatibility resolver code, runtime code MUST NOT infer tenant context from:
+
+- `request.headers.get("X-Tenant-ID")`
+- `request.query_params`
+- `.get("tenant_id")` on request payload/query objects
+- `api_key.tenant_id` or `getattr(api_key, "tenant_id", ...)`
+
+Allowed exceptions are limited to:
+
+- shared tenant resolver compatibility paths under `packages/shared/src/shared/identity/*` and `packages/shared/src/shared/boundaries/tenant_boundary.py`
+- static checker tests and fixtures only
+
+There are no non-production runtime exceptions for these patterns outside the allowlist.

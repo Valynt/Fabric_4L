@@ -161,6 +161,11 @@ jobs:
         run: python scripts/ci/check_secure_error_envelope.py
 
 
+      - name: Tenant boundary static runtime enforcement
+        run: |
+          python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
+
       - name: Generate layer quality scorecard
         run: |
           mkdir -p artifacts

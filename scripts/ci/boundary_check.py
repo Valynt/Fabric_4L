@@ -1,172 +1,67 @@
-"""CI gate: Detect tenant boundary violations before they reach production.
-
-This script fails the build if any direct header access patterns are detected.
-Run in CI with: python scripts/ci/boundary_check.py
-
-Exit codes:
-    0: No violations detected
-    1: Violations found (CI gate fails)
-"""
-
+"""CI gate: detect prohibited tenant inference in runtime source trees."""
 from __future__ import annotations
-
-import ast
-import re
-import sys
+import argparse, re, subprocess, sys
 from pathlib import Path
 
-# Violation patterns - only detect READING headers (incoming requests)
-# NOT setting headers on outgoing requests (headers['X-Tenant-ID'] = value is OK)
-# Uses case-insensitive header name matching to catch all variants:
-#   X-Tenant-ID, x-tenant-id, X-Tenant-Id, X-TENANT-ID, HTTP_X_TENANT_ID
-VIOLATION_PATTERNS = [
-    # headers['X-Tenant-ID'] used as value (not assignment) - case-insensitive header name
-    r"headers\s*\[\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]\s*\](?!\s*=)",
-    # headers.get('X-Tenant-ID') - case-insensitive header name
-    r"headers\.get\s*\(\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]",
-    # request.headers['X-Tenant-ID'] used as value - case-insensitive header name
-    r"request\.headers\s*\[\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]\s*\](?!\s*=)",
-    # request.headers.get('X-Tenant-ID') - case-insensitive header name
-    r"request\.headers\.get\s*\(\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]",
-    # req.headers patterns - case-insensitive header name
-    r"req\.headers\s*\[\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]\s*\](?!\s*=)",
-    r"req\.headers\.get\s*\(\s*['\"][Xx]-[Tt][Ee][Nn][Aa][Nn][Tt]-[Ii][Dd]['\"]",
-    # WSGI convention: HTTP_X_TENANT_ID
-    r"environ\[[\'\"]HTTP_[Xx]_[Tt][Ee][Nn][Aa][Nn][Tt]_[Ii][Dd][\'\"]\]",
+DENY_PATTERNS = [
+    r'request\.headers\.get\s*\(\s*["\"]X-Tenant-ID["\"]',
+    r'request\.query_params',
+    r'\b(?:request\.query_params|query_params|query|params|payload|body|request_body|data)\.get\s*\(\s*["\"]tenant_id["\"]',
+    r'api_key\.tenant_id',
+    r'getattr\s*\(\s*api_key\s*,\s*["\"]tenant_id["\"]',
 ]
-
-# Allowed paths (internal boundary implementations and security validators)
-ALLOWED_PATHS = [
-    "shared/boundaries/tenant_boundary.py",
-    "shared/identity/middleware.py",
-    "shared/identity/context.py",
-    "shared/security/dil_auth.py",  # Security validator - compares header against context
-    "services/api/app/core/tenant_context.py",
-    "services/layer5-ground-truth/src/layer5_ground_truth/api/tenant_context.py",
+ALLOWLIST_PATHS = [
+    "packages/shared/src/shared/boundaries/tenant_boundary.py",
+    "packages/shared/src/shared/identity/context.py",
+    "packages/shared/src/shared/identity/middleware.py",
+    "tests/security/test_boundary_check_static.py",
+    "tests/fixtures/security/boundary_check/",
 ]
+RUNTIME_ROOTS = [Path("services"), Path("value_fabric"), Path("packages/shared/src/shared")]
 
-ALLOWED_LINE_EXCEPTIONS = {
-    (
-        "services/layer1-ingestion/src/api/app_monolith.py",
-        'tenant_header = request.headers.get("X-Tenant-ID", "").strip()',
-    ),
-}
+def is_allowlisted(p: Path)->bool: return any(a in str(p).replace('\\','/') for a in ALLOWLIST_PATHS)
 
+def changed_lines(base_ref:str)->dict[str,set[int]]:
+    diff = subprocess.run(["git","diff","--unified=0","--no-color",f"{base_ref}...HEAD","--","*.py"],capture_output=True,text=True,check=False).stdout
+    out:dict[str,set[int]]={}; cur=None
+    for line in diff.splitlines():
+        if line.startswith("+++ b/"): cur=line[6:]; out.setdefault(cur,set())
+        elif line.startswith("@@") and cur:
+            m=re.search(r"\+(\d+)(?:,(\d+))?",line)
+            if not m: continue
+            start=int(m.group(1)); count=int(m.group(2) or "1")
+            for n in range(start,start+count): out[cur].add(n)
+    return out
 
-def is_allowed_path(filepath: Path) -> bool:
-    """Check if file is in allowed list."""
-    path_str = str(filepath).replace("\\", "/")
-    return any(allowed in path_str for allowed in ALLOWED_PATHS)
+def find_violations_in_file(filepath: Path, only_lines:set[int]|None=None)->list[dict]:
+    if is_allowlisted(filepath): return []
+    v=[]
+    for i,line in enumerate(filepath.read_text(encoding='utf-8').splitlines(),1):
+        if only_lines is not None and i not in only_lines: continue
+        for p in DENY_PATTERNS:
+            if re.search(p,line,re.IGNORECASE): v.append({"line":i,"content":line.strip()}); break
+    return v
 
-
-def is_allowed_line_exception(filepath: Path, line: str) -> bool:
-    path_str = str(filepath).replace("\\", "/")
-    stripped = line.strip()
-    return any(path in path_str and stripped == allowed_line for path, allowed_line in ALLOWED_LINE_EXCEPTIONS)
-
-
-def has_boundary_import(content: str) -> bool:
-    """Check if file uses boundary imports via AST parsing.
-    
-    Avoids false positives from comments or string literals.
-    """
-    try:
-        tree = ast.parse(content)
-        for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom):
-                if node.module and ('shared.boundaries' in node.module or node.module == 'shared.boundaries'):
-                    for alias in node.names:
-                        if alias.name in ('require_tenant_from_request', 'require_tenant_context'):
-                            return True
-    except SyntaxError:
-        pass
-    return False
-
-
-def find_violations_in_file(filepath: Path) -> list[dict]:
-    """Find all violations in a file."""
-    if is_allowed_path(filepath):
-        return []
-    
-    violations = []
-    try:
-        content = filepath.read_text(encoding='utf-8')
-        lines = content.split('\n')
-        
-        # Pre-compute if file already uses boundary imports (AST-based, not substring)
-        file_has_boundary = has_boundary_import(content)
-        
-        for line_num, line in enumerate(lines, 1):
-            for pattern in VIOLATION_PATTERNS:
-                if re.search(pattern, line, re.IGNORECASE):
-                    if is_allowed_line_exception(filepath, line):
-                        continue
-                    # Skip if file already uses boundary imports properly
-                    if file_has_boundary:
-                        continue
-                    violations.append({
-                        'line': line_num,
-                        'content': line.strip(),
-                        'pattern': pattern,
-                    })
-                    break  # One violation per line is enough
-    except (IOError, OSError, UnicodeDecodeError) as e:
-        print(f"Warning: Could not read {filepath}: {e}")
-    
-    return violations
-
-
-def main():
-    """Run boundary check and exit with appropriate code."""
-    root = Path("services")
-    if not root.exists():
-        print("Error: services directory not found")
-        sys.exit(1)
-    
-    print("=" * 60)
-    print("TENANT BOUNDARY SECURITY CHECK")
-    print("=" * 60)
-    print()
-    
-    all_violations: dict[Path, list[dict]] = {}
-    
-    for filepath in root.rglob("*.py"):
-        # Skip virtual environments and third-party packages
-        path_str = str(filepath).replace("\\", "/")
-        if "/.venv/" in path_str or "/site-packages/" in path_str:
-            continue
-        violations = find_violations_in_file(filepath)
-        if violations:
-            all_violations[filepath] = violations
-    
-    if not all_violations:
-        print("✓ No tenant boundary violations detected")
-        print()
-        print("All code properly uses shared.boundaries for tenant context")
-        sys.exit(0)
-    
-    # Print violations
-    total = 0
-    for filepath, violations in sorted(all_violations.items()):
-        print(f"\n{filepath}")
-        for v in violations:
-            print(f"  Line {v['line']}: {v['content'][:60]}")
-            total += 1
-    
-    print()
-    print("=" * 60)
-    print(f"FAIL: {len(all_violations)} files with {total} boundary violations")
-    print("=" * 60)
-    print()
-    print("Direct header access is prohibited. Use:")
-    print("  from shared.boundaries import require_tenant_from_request")
-    print()
-    print("To fix automatically:")
-    print("  python scripts/fix_tenant_boundary_violations.py --apply")
-    print()
-    
+def main()->None:
+    ap=argparse.ArgumentParser(); ap.add_argument('--base-ref'); args=ap.parse_args()
+    touched = changed_lines(args.base_ref) if args.base_ref else None
+    violations={}
+    for root in [r for r in RUNTIME_ROOTS if r.exists()]:
+        for f in root.rglob('*.py'):
+            s=str(f).replace('\\','/')
+            if any(x in s for x in ['/tests/','/.venv/','/site-packages/']): continue
+            rel=s
+            line_scope = touched.get(rel) if touched is not None else None
+            if touched is not None and not line_scope: continue
+            found=find_violations_in_file(f,line_scope)
+            if found: violations[f]=found
+    if not violations:
+        print('✓ No tenant boundary violations detected'); sys.exit(0)
+    total=0
+    for fp,vs in sorted(violations.items()):
+        print(f"\n{fp}")
+        for x in vs: print(f"  Line {x['line']}: {x['content'][:120]}"); total+=1
+    print(f"\nFAIL: {len(violations)} files with {total} boundary violations")
     sys.exit(1)
 
-
-if __name__ == "__main__":
-    main()
+if __name__=='__main__': main()

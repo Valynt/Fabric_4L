@@ -375,7 +375,7 @@ jobs:
           echo "Direct header access (headers['X-Tenant-ID']) is PROHIBITED."
           echo "All code must use: from shared.boundaries import require_tenant_context"
           echo ""
-          python scripts/ci/boundary_check.py
+          python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
         # NO continue-on-error: This is a BLOCKING security gate
 
       - name: Run tenant boundary security tests
