@@ -10,7 +10,10 @@ from datetime import UTC, datetime, timedelta
 from app.core.database import db
 from app.models.schemas import DSARPackage, DSARRequestCreate, DSARRequestRecord
 
-_SIGNING_KEY = b"dsar-dev-signing-key"
+from app.core.config import get_settings as _get_settings
+
+def _get_signing_key() -> bytes:
+    return _get_settings().secret_key.encode()
 
 
 def _now() -> datetime:
