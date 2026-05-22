@@ -382,8 +382,9 @@ async def start_impersonation(
             "webhook": payload.notify_webhook,
         },
     }
-    db.audit_logs.insert(str(uuid.uuid4()), AuditLogEvent(
-        id=str(uuid.uuid4()),
+    audit_event_id = str(uuid.uuid4())
+    db.audit_logs.insert(audit_event_id, AuditLogEvent(
+        id=audit_event_id,
         tenant_id=target_user.tenant_id,
         actor_type="user",
         actor_id=current_user.id,
