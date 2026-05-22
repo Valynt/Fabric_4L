@@ -49,6 +49,10 @@ export interface TenantSettings {
     favicon_url?: string;
     custom_domain?: string;
   };
+  compliance?: {
+    data_residency_region?: string;
+    data_residency_self_service?: boolean;
+  };
   updated_at: string;
   updated_by?: string;
 }
@@ -59,6 +63,7 @@ export interface UpdateSettingsPayload {
   notifications?: Partial<TenantSettings['notifications']>;
   security?: Partial<TenantSettings['security']>;
   branding?: Partial<TenantSettings['branding']>;
+  compliance?: Partial<TenantSettings['compliance']>;
 }
 
 interface RawTenantSettingsResponse {
@@ -119,6 +124,12 @@ function normalizeTenantSettings(raw: RawTenantSettingsResponse): TenantSettings
       favicon_url: typeof branding.favicon_url === "string" ? branding.favicon_url : undefined,
       custom_domain: typeof branding.custom_domain === "string" ? branding.custom_domain : undefined,
     },
+    compliance: {
+      data_residency_region: typeof settings.data_residency_region === "string"
+        ? settings.data_residency_region
+        : undefined,
+      data_residency_self_service: settings.data_residency_self_service === true,
+    },
     updated_at: raw.updated_at ?? raw.created_at ?? "",
     updated_by: raw.updated_by,
   };
@@ -144,6 +155,14 @@ function serializeTenantSettingsUpdate(payload: UpdateSettingsPayload): { settin
   }
   if (payload.branding) {
     settings.custom_branding = payload.branding;
+  }
+  if (payload.compliance) {
+    if (payload.compliance.data_residency_region) {
+      settings.data_residency_region = payload.compliance.data_residency_region;
+    }
+    if (typeof payload.compliance.data_residency_self_service === "boolean") {
+      settings.data_residency_self_service = payload.compliance.data_residency_self_service;
+    }
   }
 
   return { settings };

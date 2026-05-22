@@ -37,6 +37,32 @@ const FeatureFlagUpsertRequestSchema = z.object({
   metadata: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
+
+const ComplianceStatusEnumSchema = z.enum(["compliant", "in_progress", "non_compliant", "expired", "not_applicable"]);
+
+const ComplianceFrameworkStatusSchema = z.object({
+  framework: z.string().min(1),
+  status: ComplianceStatusEnumSchema,
+  control_coverage_percent: z.number().min(0).max(100),
+  exceptions_count: z.number().int().nonnegative(),
+  effective_date: z.string().datetime().optional(),
+  next_review_date: z.string().datetime().optional(),
+  attestation_expires_at: z.string().datetime().optional(),
+  owner: z.string().min(1).optional(),
+  evidence_references: z.array(
+    z.object({
+      id: z.string().min(1).optional(),
+      label: z.string().min(1),
+      url: z.string().url().optional(),
+    })
+  ),
+});
+
+const ComplianceStatusResponseSchema = z.object({
+  items: z.array(ComplianceFrameworkStatusSchema),
+  updated_at: z.string().datetime().optional(),
+  updated_by: z.string().min(1).optional(),
+});
 // ── POST /v1/tenants ─────────────────────────────────────────────────────────
 
 describe('Contract: POST /v1/tenants', () => {
@@ -208,6 +234,53 @@ describe('Contract: PUT /v1/feature-flags/{flag_key}', () => {
       FeatureFlagUpsertRequestSchema,
       { enabled: true, rollout_percentage: 50.5 },
       'FeatureFlagUpsertRequest with float percentage'
+    );
+  });
+});
+
+
+// ── GET /v1/governance/compliance/status ─────────────────────────────────────
+
+describe('Contract: GET /v1/governance/compliance/status', () => {
+  it('accepts a typed compliance status payload', () => {
+    const payload = assertSchema(
+      ComplianceStatusResponseSchema,
+      {
+        items: [
+          {
+            framework: 'SOC 2 Type II',
+            status: 'compliant',
+            control_coverage_percent: 98.4,
+            exceptions_count: 2,
+            effective_date: '2026-01-10T00:00:00Z',
+            next_review_date: '2026-07-10T00:00:00Z',
+            attestation_expires_at: '2027-01-10T00:00:00Z',
+            owner: 'governance@acme.com',
+            evidence_references: [{ id: 'att-2026', label: 'SOC2 report', url: 'https://evidence.example/soc2' }],
+          },
+        ],
+        updated_at: '2026-05-22T16:00:00Z',
+        updated_by: 'governance-agent',
+      },
+      'ComplianceStatusResponse'
+    );
+
+    expect(payload.items[0].framework).toBe('SOC 2 Type II');
+  });
+
+  it('rejects out-of-range control coverage percent', () => {
+    assertSchemaRejects(
+      ComplianceStatusResponseSchema,
+      {
+        items: [{
+          framework: 'HIPAA',
+          status: 'in_progress',
+          control_coverage_percent: 120,
+          exceptions_count: 0,
+          evidence_references: [],
+        }],
+      },
+      'ComplianceStatusResponse with invalid coverage'
     );
   });
 });
