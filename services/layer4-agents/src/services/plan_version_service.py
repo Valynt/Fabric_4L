@@ -1,9 +1,8 @@
 from __future__ import annotations
 
-import uuid
 from datetime import UTC, datetime
 
-from sqlalchemy import and_, or_, select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..config.plans import build_plan_version_payload, get_plan
@@ -60,7 +59,16 @@ class PlanVersionService:
             return await self.get_effective_plan_version("free", at_time)
 
         if subscription.plan_version_id:
-            result = await self.db.execute(select(BillingPlanVersion).where(BillingPlanVersion.id == subscription.plan_version_id))
+            result = await self.db.execute(
+                select(BillingPlanVersion).where(
+                    BillingPlanVersion.id == subscription.plan_version_id,
+                    BillingPlanVersion.plan_id == subscription.plan_id,
+                    or_(
+                        BillingPlanVersion.tenant_id.is_(None),
+                        BillingPlanVersion.tenant_id == subscription.tenant_id,
+                    ),
+                )
+            )
             pinned = result.scalar_one_or_none()
             if pinned:
                 return pinned
