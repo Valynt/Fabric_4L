@@ -20,8 +20,8 @@ from uuid import UUID
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from agents.base import AgentResult, BaseAgent
-from db.query_execution import run_validated_query
+from .base import AgentResult, BaseAgent
+from ..db.query_execution import run_validated_query
 
 
 class ProvenanceTrackingAgent__record_entityResult(TypedDictModel):

@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical change log for the 2026-04-21 defensive-programming refactor. See [docs/archive/INDEX.md](archive/INDEX.md). The repo-wide change log lives in [CHANGELOG.md](../CHANGELOG.md).
+
 # Defensive Programming Refactoring - Change Log
 
 **Date:** 2026-04-21  

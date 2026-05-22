@@ -1,14 +1,19 @@
-# Spec: 24-Hour Hackathon Sprint — Broad GA / Public Launch
-## (Supersedes Sprint 4 / Sprint 5 / Sprint 6 specs)
+# Value Fabric Platform — Launch & Hardening Roadmap Spec
 
-## Status
-Ready for implementation
+**Date:** 2026-05-21  
+**Status:** Draft — awaiting confirmation  
+**Phases:** Phase 1 (GA-blocking), Phase 2 (post-launch hardening), Phase 3 (debt retirement)
+**Supersedes:** 24-Hour Hackathon Sprint spec (Sprint 4/5/6)
 
 ---
 
 ## Problem Statement
 
-Value Fabric is at 97% launch readiness (canonical: `docs/readiness/current.md`) but is blocked from Broad GA by 4 open P0 release blockers, 6 P1 pre-demo items, and a set of frontend UX gaps (Sprint 4 W1–W6) that make the product unsuitable for public users. This sprint closes every blocking item in parallel across security, architecture, infrastructure, frontend, testing, and deployment — targeting a Docker Compose–based public launch within 24 hours.
+Value Fabric has reached ≥85% assurance score with all code-level P0/P1 blockers resolved (Sprint 5, 2026-05-19). The remaining work falls into three categories:
+
+1. **GA-blocking (Phase 1, 1–2 weeks):** Four items must land before production launch — L3 Neo4j tenant scoping hardening with hostile tests and schema migrations, L3 import topology fix unblocking 14 test files (~22 tests), a live cross-layer E2E critical-path smoke, and formal sign-off collection.
+2. **Post-launch hardening (Phase 2, first 30 days):** L1 ingestion productionization, observability/alerting, L4 checkpoint/resume hardening, RFC-001 formula scenario endpoint, and per-tenant rate-limit/feature-flag UI.
+3. **Debt retirement and feature expansion (Phase 3, Q3 2026):** Backend and frontend shim removal on schedule, auth/SSO closure, L2 reference model integration as a pack, L3 performance tuning, and cross-phase always-on discipline.
 
 ---
 
@@ -16,291 +21,310 @@ Value Fabric is at 97% launch readiness (canonical: `docs/readiness/current.md`)
 
 | Area | State |
 |---|---|
-| Launch readiness | 97% (canonical: `docs/readiness/current.md`) |
-| Frontend Vitest | 1,515/1,615 passing — 100 failures across 16 files |
-| Backend test suite | ~6,349/8,064 passing — majority of failures are infra-dependent (no live services) |
-| P0 blockers | 4 open (RLS regression, arch failures, Redis mock bug, staging digest) |
-| P1 blockers | 6 open (CI branch protection, unauthenticated route, contract test errors, schemathesis compat, connection-pool tests, security test gaps) |
-| Sprint 4 frontend | W1–W6 not yet implemented (Harness Runs UI, AIModel banner, BusinessCase trust row, admin empty states, Playwright/Vitest coverage) |
-| Deployment | `docker-compose.live.yml` exists; staging `kustomization.yaml` has placeholder digests blocking CI |
+| Launch readiness | ≥85% assurance score — production-ready threshold met (canonical: `docs/readiness/current.md`) |
+| All code-level P0/P1 blockers | Resolved 2026-05-19 (Sprint 5) |
+| Frontend Vitest | 1,773/1,773 passing (140 files) |
+| Backend arch/cache/contract/unit | 677/677 passing |
+| Security P0/P1 suites | 78/78 passing |
+| Remaining open blockers | All `REQUIRES_ENVIRONMENT` (infra/live-stack dependent) |
+| L3 import topology | 14 test files blocked by `ModuleNotFoundError` under repo-root pytest |
+| L3 Neo4j schema | tenant_id indexes/constraints not yet migrated for 7 node labels |
+| Hostile cross-tenant tests | Missing for benchmarks, variables, models, formula_governance routes |
 
 ---
 
-## Requirements
+## Phase 1 — Launch Path (GA-blocking, 1–2 weeks)
 
-### Track 1 — P0 Blockers (all in parallel)
+### 1.1 L3 Neo4j Tenant Scoping Hardening
 
-#### P0-1: RLS Enforcement Regression
-- `tests/security/test_rls_enforcement.py::TestRLSPolicyStructure::test_remediation_migrations_do_not_reintroduce_null_visibility` must pass.
-- Audit all Alembic migrations added after the last known-green baseline to identify which migration reintroduced NULL `tenant_id` visibility.
-- Fix the offending migration or add a compensating migration that restores the RLS policy.
-- All 12+ tests in `test_rls_enforcement.py` must pass after the fix.
+**Context:** Code inspection confirms `benchmarks.py`, `variables.py`, `formula_governance.py`, and `models_router.py` already contain `tenant_id` in MATCH/WHERE clauses. `entities.py` was fixed in Sprint 5. The remaining gaps are: (a) no Neo4j schema migrations enforcing `tenant_id` on node labels, and (b) no hostile cross-tenant tests for these four route modules.
 
-#### P0-2: Architecture Conformance Failures
-Five failures in `tests/arch/` block `gate-arch` (a hard gate per `.fabric/prod-gates.policy.yaml`):
-- **D-01**: L3 compat path conformance — fix shim or test expectation.
-- **D-02**: L5 `TruthObject` missing `tenant_id` field — add field to model and migration.
-- **D-03**: Syntax error in `app_monolith` — fix the syntax error.
-- **D-11**: L3 shim drift — align shim with canonical service path.
-- **D-12**: L3 tenant dependency validation — fix import or dependency resolution.
-- All 21 tests in `tests/arch/` must pass after fixes.
+**Requirements:**
 
-#### P0-3: Redis Cache Tenant Isolation (False-Green Gate)
-- All 14 tests in `tests/cache/test_redis_tenant_isolation.py` fail with `TypeError: '>=' not supported between instances of 'AsyncMock' and 'int'`.
-- Fix: mock `incr` to return `int` (not `AsyncMock`) in the test fixtures.
-- All 14 tests must pass after the fix.
-- Verify the underlying tenant isolation invariant is actually enforced (not just the mock).
+1. Create a Neo4j schema migration script (Cypher or Python) that adds:
+   - `CREATE CONSTRAINT IF NOT EXISTS FOR (n:Benchmark) REQUIRE n.tenant_id IS NOT NULL`
+   - `CREATE INDEX IF NOT EXISTS FOR (n:Benchmark) ON (n.tenant_id)`
+   - Same pattern for `:BenchmarkPolicy`, `:Variable`, `:SourceBinding`, `:ValueModel`, `:Formula`, `:FormulaVersion`
+   - Migration must be idempotent (`IF NOT EXISTS`) and tracked in a migrations manifest.
+2. Add hostile cross-tenant tests under `tests/security/`:
+   - `test_benchmarks_cross_tenant_isolation.py`
+   - `test_variables_cross_tenant_isolation.py`
+   - `test_models_cross_tenant_isolation.py`
+   - `test_formula_governance_cross_tenant_isolation.py`
+   - Each file must cover: Tenant A cannot read Tenant B nodes, Tenant A cannot write/mutate Tenant B nodes, missing tenant context fails closed (401/403).
+3. Run `pytest tests/security/ tests/layer3/ -q` and confirm green.
 
-#### P0-4: Staging Kustomization Placeholder Digests
-- `k8s/envs/staging/kustomization.yaml` contains placeholder image digests (`sha256:1111...7777`).
-- Run `scripts/ci/prepare_kustomize_deploy.sh staging` to replace placeholders with real digests.
-- Verify `scripts/check-no-placeholder-digests.sh k8s/envs/staging/kustomization.yaml` exits 0.
-- Staging promotion CI must unblock after this fix.
+**Acceptance Criteria:**
+- [ ] Neo4j migration script exists, is idempotent, covers all 7 node labels.
+- [ ] Migration is tracked in a manifest or migration registry file.
+- [ ] 4 hostile test files exist under `tests/security/`, each with ≥3 test cases.
+- [ ] `pytest tests/security/ tests/layer3/ -q` passes with no failures on tenant isolation suites.
+- [ ] No existing passing tests are broken.
 
 ---
 
-### Track 2 — P1 Pre-Demo Blockers (all in parallel)
+### 1.2 L3 Import Topology Fix
 
-#### P1-1: Mandatory Security Regression as Required CI Check
-- Configure `mandatory-security-regression` job in `.github/workflows/security-gates.yml` as a required status check in GitHub branch protection for `main`.
-- Document the configuration step in `docs/runbooks/branch-protection.md` (create if absent).
+**Context:** 14 test files fail to collect because bare `api.*` and `config.*` imports don't resolve when pytest runs from the repo root under `importlib` mode. The `value_fabric.layer3` shim correctly appends `services/layer3-knowledge/src` to `__path__`, but pytest's `importlib` mode doesn't propagate that path for sub-imports. There is also a `config.Settings` namespace collision between layer3 and layer4-agents.
 
-#### P1-2: Unauthenticated Route — `GET /workflows/{workflow_id}/state/errors`
-- Add `require_authenticated` dependency to the route handler, OR add an explicit allowlist entry in `contracts/route-auth-allowlist.yaml` with a documented rationale if the route is intentionally public.
-- Update the route auth inventory test to reflect the change.
+**Fix strategy:** pytest.ini rootdir + conftest (do not modify the shim).
 
-#### P1-3: Contract Test Collection Errors (4 L3 files)
-Fix import-time drift in:
-- `tests/contract/test_entity_contract.py`
-- `tests/contract/test_l3_provenance_audit_contract.py`
-- `tests/contract/test_l3_route_alias_parity.py`
-- `tests/contract/test_layer3_graph_deprecation_contract.py`
+**Requirements:**
 
-All 4 files must collect without errors under `pytest tests/contract`.
+1. Add or update `conftest.py` at `services/layer3-knowledge/` to insert `services/layer3-knowledge/src` into `sys.path` at collection time.
+2. Update `pytest.ini` (or `pyproject.toml` `[tool.pytest.ini_options]`) to include `services/layer3-knowledge` in `testpaths` so the conftest is picked up when running from repo root.
+3. Resolve the `config.Settings` namespace collision — layer3 tests must import layer3's `config.Settings`, not layer4's.
+4. Do not modify `value_fabric/layer3/__init__.py`.
 
-#### P1-4: Schemathesis × pytest-xdist Incompatibility
-- Pin schemathesis and/or pytest-xdist to compatible versions, OR configure schemathesis tests to run serially (`-p no:xdist`) in `pytest.ini` or a dedicated `conftest.py`.
-- `pytest tests/contract` must complete without `WorkerController has no attribute 'workeroutput'` crash.
+**Affected files (14):**
+`tests/layer3/test_endpoint_tenant_isolation.py`, `test_error_handling_regression.py`, `test_model_registry_tenant_context.py`, `test_models_error_sanitization.py`, `test_variables_tenant_context_fail_closed.py`, `test_api_rate_limit_contract.py`, `test_graph_repository_tenant_contracts.py`, `test_typed_payloads.py`, `test_ingest_tenant_fail_closed.py`, `test_rate_limit_manager_types.py`, `tests/ci/test_layer3_settings_import_compat.py`, `tests/performance/test_performance_optimizations.py`, `tests/security/test_layer3_similarity_roi_tenant_isolation.py`, `tests/security/test_neo4j_cross_tenant_write_isolation.py`
 
-#### P1-5: Connection-Pooling and ACID Property Tests
-- Add tests covering connection pool exhaustion behavior and ACID property guarantees for multi-tenant writes.
-- Minimum: one test per service that has a PostgreSQL dependency (L1, L4, L5, API service).
-- Tests must be tagged `pytest.mark.connection_pool` and `pytest.mark.acid`.
-
-#### P1-6: Security Test Gaps
-Add tests for:
-- `GovernanceMiddleware` resolution-order adversarial scenarios (wrong tenant in header vs JWT claim).
-- `RequestContext` immutability (mutation attempt raises error).
-- Tier-aware isolation (tenant tier does not grant cross-tenant access).
-- Audit event emission completeness (every gate decision emits an audit event).
-
-All new tests in `tests/security/` with `pytest.mark.security`.
+**Acceptance Criteria:**
+- [ ] All 14 files collect without `ModuleNotFoundError` or `ImportError`.
+- [ ] `pytest tests/layer3/ --collect-only -q` shows 0 collection errors for these files.
+- [ ] Layer3 `config.Settings` resolves to `services/layer3-knowledge/src/config/`, not layer4's config.
+- [ ] No regression in currently-passing layer3 or layer4 tests.
 
 ---
 
-### Track 3 — Frontend Sprint 4 (W1–W6, all in parallel)
+### 1.3 Live Cross-Layer E2E (Critical Path L1→L6)
 
-#### W1: Harness Runs UI — Close Contract Spec Gaps
-- Confirm canonical gate-decision route is `POST /api/v1/agents/harness/gates/{gate_id}/decide`; payload field is `decision`. Fix any mismatch in `harnessApi` or contract spec fixture.
-- Confirm `useDecideGate` mutation awaits registry call correctly; fix 422 on invalid transitions.
-- Confirm polling: non-terminal runs refetch on `POLL_INTERVALS.workflows`; terminal runs do not. Fix broken `refetchInterval` callback if needed.
-- Remove `test.fail()` from `e2e/contracts/harness-runs.spec.ts` only after W1.1–W1.3 are verified stable.
-- `e2e/journeys/j25-harness-run-lifecycle.spec.ts` must continue to pass (or remain correctly skipped when `PLAYWRIGHT_BACKEND_URL` is absent).
+**Context:** The blocker register requires live E2E evidence. Minimum scope for Phase 1 sign-off is one critical-path smoke: ingest → extract → graph → agent → ground-truth → benchmark. `docker-compose.live.yml` exists and can be used locally; evidence must be committed as an artifact.
 
-#### W2: AIModel.tsx — Live Workflow Status Banner
-- Add `WorkflowStatusBanner` component at the top of `AIModel.tsx` reading `runId` from URL params or falling back to the most recent harness run for the current account.
-- Banner displays: run status, current state/step, last-updated timestamp, gate/validation state.
-- Banner has loading, error, and empty states.
-- Add annotation below hypothesis list: `"Hypotheses are demo data — backend model generation is not yet wired."`
-- Static Meridian/manufacturing hypotheses remain untouched.
-- TypeScript must pass for the new component and its props.
+**Requirements:**
 
-#### W3: BusinessCase.tsx — Trust Status Row
-- Add compact status row near header/export controls rendering one of: `Degraded`, `Pending Review`, `Validated`, `Export Blocked`, `Export Ready`.
-- `Degraded` state: show `Degraded` + `Internal draft only` badges, disable export, tooltip: `"LLM, validation, or evidence enrichment was incomplete. Human review required."`
-- `Pending Review` state: show `Pending Review` + `Internal draft only` badges, disable export, tooltip: `"Claims require validation or human approval before export."`
-- `Validated` state: show `Validated` badge, enable export if all existing export requirements pass.
-- `Export Blocked` state: show `Export Blocked` badge, disable export.
-- Existing `isApproved && hasExportDocument` gate logic is preserved; status row is additive.
-- No full redesign; existing layout, ROI hero card, and sections unchanged.
+1. Bring up all six layer services via `docker-compose.live.yml` (or `docker-compose.test.yml`).
+2. Execute the critical-path smoke sequence:
+   - POST to L1 `/api/v1/ingestion/jobs` → confirm job created
+   - Trigger L2 extraction on the ingested content → confirm entity extracted
+   - Verify L3 graph node created for the entity (GET `/api/v1/entities`)
+   - Trigger L4 agent workflow (ROI or business case) → confirm workflow completes
+   - Verify L5 ground-truth validation passes for the workflow output
+   - Verify L6 benchmark lookup returns a result
+3. Capture evidence as `signoff-evidence/e2e-critical-path-$(date +%Y%m%d).json` with per-layer health status, request/response summaries, and timestamps.
+4. Commit the evidence artifact to `signoff-evidence/`.
+5. Update `docs/readiness/launch-decision-artifact.md` "Live workflow validation" row to `PASS` with artifact reference.
 
-#### W4: Auth/Session — Demo-Path Verification
-- Document auth path alignment: `services/api` (`tenant_required`/JWT) and `services/layer4-agents` (`require_authenticated`/`RequestContext`) are both protected.
-- Verify frontend `AuthContext` OIDC flow reaches both services correctly in the demo environment.
-- No code change required unless a concrete 401/403 failure is found.
-- Defer full enterprise auth UX polish (invite flows, role management UI, session expiry UX).
-
-#### W5: Admin Pages — Graceful Empty/Error States
-- `BenchmarkPolicies`, `VariableRegistry`, `FormulaGovernance`, and `ValuePacks` must render a visible empty state (using existing `EmptyState` component) when API returns an empty list.
-- Each page must render a visible error banner (not a blank screen) when the API call fails, using existing `QueryState`/`ErrorBoundary` pattern.
-- If a hook calls a non-existent route (e.g., 404), add `"Data unavailable in this environment"` inline notice — no new backend routes.
-
-#### W6: Playwright and Vitest Coverage
-- Remove `test.fail()` from `e2e/contracts/harness-runs.spec.ts` after W1 is confirmed.
-- Add Vitest unit tests for `BusinessCase.tsx`: degraded/pending-review/validated/internal-draft-only badge rendering; export disabled when degraded/pending/failed; export enabled only when validated + `document_url` present.
-- Add Vitest unit tests for `AIModel.tsx` status banner: all status states, loading, error, empty.
-- Add/update Playwright spec: BusinessCase shows correct status row; export blocked for degraded/pending-review; export available for validated.
-- `j25-harness-run-lifecycle.spec.ts` must continue to pass or remain correctly skipped.
-- Net-new failing test count must not increase.
+**Acceptance Criteria:**
+- [ ] All six layer health endpoints return 200 during the run.
+- [ ] Critical-path sequence completes end-to-end without error.
+- [ ] Evidence JSON artifact committed under `signoff-evidence/`.
+- [ ] `docs/readiness/launch-decision-artifact.md` updated with artifact reference and PASS status.
 
 ---
 
-### Track 4 — Test Infrastructure (live services)
+### 1.4 Sign-off Completion
 
-- Start `docker-compose.test.yml` (or `docker-compose.dev.yml`) to provide PostgreSQL, Redis, and Neo4j.
-- Re-run the full test suite with live services available.
-- Fix the 16 failing frontend test files:
-  - `src/hooks/useTargets.test.ts` — restore or recreate missing `./queryKeys` module.
-  - `src/hooks/useAuth.test.ts` — fix temporal dead zone (TDZ) initialization error.
-  - All 14 MSW unmatched-handler failures — add missing MSW request handlers for the routes being tested.
-- Target: frontend Vitest suite at 0 failures (1,615/1,615 passing).
-- Target: backend suites with live services — resolve all infrastructure-dependent failures; genuine logic failures must be fixed or explicitly documented with a skip rationale.
+**Context:** `docs/readiness/launch-decision-artifact.md` is the canonical sign-off document. `docs/LAUNCH_RUNBOOK.md` is the execution runbook. Sign-off happens after 1.1–1.3 land (Option A — no conditional sign-off).
 
----
+**Requirements:**
 
-### Track 5 — Deployment (Docker Compose)
+1. Verify 1.1, 1.2, and 1.3 acceptance criteria are all met.
+2. Update `docs/readiness/launch-decision-artifact.md` with evidence references for 1.1, 1.2, 1.3.
+3. Collect countersignatures from Eng, Sec, Product, Ops in the artifact's sign-off table.
+4. Execute `docs/LAUNCH_RUNBOOK.md` steps in order.
 
-- Validate `docker-compose.live.yml` starts all 6 layers + frontend cleanly.
-- Ensure all required environment variables are documented in `.env.example` and `.env.dev.example`.
-- Run `make verify` (or the closest available subset) against the live stack and confirm no failing gates.
-- Perform a full smoke test against the running stack:
-  - Layer 1–6 health endpoints return 200.
-  - Frontend loads and authenticates via OIDC.
-  - At least one end-to-end workflow (ingest → extract → knowledge → agent → ground-truth → benchmark) completes without error.
-- Document the launch procedure in `docs/runbooks/docker-compose-launch.md`.
+**Acceptance Criteria:**
+- [ ] All four sign-off roles have countersigned `launch-decision-artifact.md`.
+- [ ] `docs/LAUNCH_RUNBOOK.md` execution log attached or referenced.
+- [ ] `docs/readiness/current.md` reflects final launch state.
 
 ---
 
-### Track 6 — Telemetry and Observability (Sprint 6 carry-over)
+## Phase 2 — Post-Launch Hardening (first 30 days, parallel workstreams)
 
-#### S6-R4: LLM Cost Telemetry
-- Uncomment and wire `LLMCostCalculator` in `services/layer4-agents/src/engine/executor.py`.
-- Structured log fields per LLM call: `tenant_id`, `workflow_id`, `model`, `prompt_tokens`, `completion_tokens`, `cost_usd`.
-- Add contract test asserting these fields are present for a mocked LLM call.
-- Populate `monitoring/grafana/dashboards/llm-costs.json`: total cost by tenant (time series), cost by model (bar), token usage by workflow (table).
+### 2.1 L1 Ingestion Productionization (detailed)
 
-#### S6-R5: Harness Trace and Validation Outcome Telemetry
-- Harness trace events must emit: `tenant_id`, `run_id`, `workflow_type`, `stage`, `trace_id`.
-- Validation outcome events must emit: `tenant_id`, `run_id`, `gate_id`, `outcome`, `decision_by`.
-- Failed/degraded workflow events must emit: `tenant_id`, `run_id`, `error_class`, `error_code`, `stage`.
-- Add contract tests for each structured log schema.
+**Context:** L1 has Celery/Redis wiring implemented but the scheduler priority queue (`src/scheduler/priority_queue.py`) is an in-memory stub. Proxy rotation is absent. Celery→L2 handoff is not wired.
 
-#### S6-R6: Release Gate Report
-- Create `reports/RELEASE_GATE_SPRINT7.md` (this sprint) stating: no P0 blockers, deployment path (Docker Compose), GitOps status, digest guard passes, rollback procedure reference.
+**Requirements:**
 
----
+1. **Redis-backed scheduler queue:** Replace the in-memory priority queue with a Redis-backed implementation using `redis-py` async client. Preserve the existing `PriorityQueue` interface so callers are unaffected.
+2. **Celery→L2 wiring:** Wire `services/layer1-ingestion/src/shared/tasks.py` Celery tasks to publish extraction jobs to L2's ingestion endpoint on job completion. Use the existing `Layer2Client` or equivalent HTTP client.
+3. **Proxy rotation:** Implement a basic proxy rotation pool in `services/layer1-ingestion/src/crawler/` that cycles through proxies from a configurable `PROXY_LIST` env var (comma-separated URLs). Fail open (no proxy) if list is empty or env var is unset.
+4. **Postgres job state:** Confirm `IngestionJob` model has `tenant_id`, `status`, `started_at`, `completed_at`, `error_message`. Add any missing fields with an Alembic migration.
+5. Add unit tests for the Redis queue and Celery→L2 wiring. Mock Redis and L2 client in tests.
+6. Add `PROXY_LIST` to `.env.example` with an empty default and documentation comment.
 
-### Track 7 — Documentation and Launch Prep
-
-- Update `docs/readiness/current.md` with fresh `make verify` evidence after all fixes.
-- Update `docs/readiness/blockers.md` — mark all resolved P0/P1 items as closed with evidence.
-- Update `docs/readiness/launch-decision-artifact.md` — fill in Engineering/Security/Product/Operations sign-off table.
-- Create `docs/runbooks/docker-compose-launch.md` with step-by-step launch, smoke test, and rollback instructions.
-- Ensure `README.md` reflects the current setup commands (pnpm, docker-compose, make verify).
-- Create `docs/runbooks/hotfix-process.md` documenting the post-launch hotfix and rollback procedure.
+**Acceptance Criteria:**
+- [ ] Redis-backed priority queue passes existing scheduler tests.
+- [ ] Celery task publishes to L2 on job completion (verified by unit test with mock L2 client).
+- [ ] Proxy rotation cycles through configured proxies; falls back gracefully when list is empty.
+- [ ] `IngestionJob` model has all required state fields; Alembic migration exists for any new columns.
+- [ ] `pytest services/layer1-ingestion/ -q` passes.
+- [ ] `PROXY_LIST` documented in `.env.example`.
 
 ---
 
-## Acceptance Criteria
+### 2.2 Observability & Alerting (detailed)
 
-| # | Criterion | Verification |
+**Context:** Prometheus alert rules exist in `monitoring/alerting/rules-production.yml`. Alertmanager configs exist. Gaps: per-layer SLOs, on-call receiver wiring, request-ID propagation audit.
+
+**Requirements:**
+
+1. **Per-layer SLO alert rules** — extend `monitoring/alerting/rules-production.yml` with rules for each of L1–L6:
+   - Error rate > 1% over 5m → `warning`; > 5% over 5m → `critical`
+   - P95 latency > 2s over 5m → `warning`; > 5s → `critical`
+   - Service down (no scrape) > 1m → `critical`
+2. **On-call wiring** — update `monitoring/alertmanager/alertmanager-production.yml` to route `critical` severity alerts to the on-call receiver. Document receiver config in `docs/runbooks/on-call-setup.md` (create if absent).
+3. **Request-ID propagation audit** — audit all six layer FastAPI apps for `X-Request-ID` header propagation. Each layer must: accept `X-Request-ID` from upstream or generate one if absent; include it in all structured log entries; forward it to downstream layer calls. Document gaps in `docs/governance/request-id-propagation-audit.md`.
+4. **Synthetic alert test** — document a manual test procedure: kill one service in docker-compose, confirm alert fires within 2 minutes. Attach evidence.
+
+**Acceptance Criteria:**
+- [ ] Per-layer SLO rules exist in `monitoring/alerting/rules-production.yml` for all 6 layers (error rate, latency, service-down).
+- [ ] Alertmanager routes `critical` to on-call receiver; config is documented.
+- [ ] Request-ID audit doc exists at `docs/governance/request-id-propagation-audit.md`; all gaps have a remediation ticket or are fixed inline.
+- [ ] Synthetic alert test evidence documented.
+
+---
+
+### 2.3 L4 Checkpoint/Resume Hardening (stub)
+
+**Context:** L4 has `state_manager.py`, `executor.py`, `replay.py`, and `workflows/base.py` with checkpoint/resume logic. Gaps: crash-resume reliability, idempotent tool replay, schema-version pinning.
+
+**Requirements (detail in Phase 2 sprint planning):**
+1. Workflow must resume from last checkpoint after process restart.
+2. Tool calls must be replayable without side effects (idempotency key or deduplication).
+3. Checkpoint payloads must include a schema version; mismatches must fail closed with a clear error.
+4. Tests using `services/layer4-agents/src/workflows/` fixtures covering crash-resume and idempotent replay.
+
+---
+
+### 2.4 RFC-001 Formula Scenario Endpoint
+
+**Context:** RFC-001 is approved (2026-04-27). `useFormulaScenario` frontend hook exists (Sprint 4, commit `4978c58`). The backend handler and OpenAPI contract entry are missing.
+
+**Requirements:**
+
+1. **OpenAPI contract:** Add `POST /api/v1/formulas/scenario` to `contracts/openapi/layer3-knowledge.json` with `ScenarioRequest` and `ScenarioResponse` schemas per RFC-001:
+   - `ScenarioRequest`: `formula_id` (string, required), `adjustments[]` (`variable_id`, `new_value`)
+   - `ScenarioResponse`: `formula_id`, `original_value`, `adjusted_value`, `delta_percentage`, `new_roi`, `new_payback_months`, `warnings[]`
+2. **Route handler:** Implement in `services/layer3-knowledge/src/api/routes/formulas.py` (or new `scenario.py`):
+   - Validate `formula_id` belongs to the authenticated tenant via tenant-scoped Neo4j lookup.
+   - Cross-tenant `formula_id` returns 404 (not 403, to avoid enumeration).
+   - Missing tenant context returns 401.
+   - Compute original values, apply adjustments, return `ScenarioResponse`.
+3. **Contract test:** Add `tests/contract/test_formula_scenario_contract.py` asserting response shape matches OpenAPI spec.
+4. **Frontend hook alignment:** Verify `useFormulaScenario` calls the correct path and maps the response correctly. Update if needed.
+5. Run `python scripts/ci/platform_contract_lint.py` to confirm no drift.
+
+**Acceptance Criteria:**
+- [ ] `contracts/openapi/layer3-knowledge.json` contains `POST /formulas/scenario` with correct schemas.
+- [ ] Handler returns correct `ScenarioResponse` for valid input.
+- [ ] Cross-tenant `formula_id` returns 404; missing tenant context returns 401.
+- [ ] Contract test passes.
+- [ ] `useFormulaScenario` hook calls the correct endpoint and maps response correctly.
+- [ ] `platform_contract_lint.py` passes with no new drift.
+
+---
+
+### 2.5 Per-Tenant Rate Limit + Feature Flag UI (stub)
+
+**Context:** Per-tenant rate limiting and feature flags are fully implemented (Tasks 107/108). Gap: admin surface in `apps/web/src/routes/pages/settings/`.
+
+**Requirements (detail in Phase 2 sprint planning):**
+1. Admin settings page at `/settings/rate-limits` showing per-tenant rate limit config (read + write).
+2. Admin settings page at `/settings/feature-flags` showing feature flag toggles per tenant.
+3. Follow `DESIGN.md` — use `PageShell`, `PageHeader`, horizontal tabs, existing shadcn/ui primitives.
+4. TanStack Query hooks for read/write. Mutations must show loading/error/success states.
+
+---
+
+## Phase 3 — Debt Retirement & Feature Expansion (Q3 2026)
+
+### 3.1 Backend Shim Removal
+
+Removal cadence: one shim per sprint (continuous). No big-bang debt-burn week.
+
+| ID | Path | Deadline |
 |---|---|---|
-| AC-1 | All 4 P0 blockers resolved | `make verify` passes; `test_rls_enforcement.py` all pass; `tests/arch/` all pass; `test_redis_tenant_isolation.py` all pass; staging digest guard exits 0 |
-| AC-2 | All 6 P1 items resolved | `mandatory-security-regression` is a required CI check; unauthenticated route fixed; contract tests collect cleanly; schemathesis runs without crash; connection-pool + ACID tests added; security test gaps filled |
-| AC-3 | Frontend Sprint 4 W1–W6 complete | Harness Runs UI contract spec has no `test.fail()`; AIModel has live status banner; BusinessCase has trust status row; admin pages have empty/error states; Vitest 0 failures; Playwright specs pass |
-| AC-4 | Frontend Vitest at 0 failures | `pnpm --dir apps/web exec vitest run` exits 0 with 1,615 tests passing |
-| AC-5 | Backend tests pass with live services | `docker-compose.test.yml` up; infrastructure-dependent failures resolved; genuine logic failures fixed or documented |
-| AC-6 | `make verify` passes | All gates green (lint, typecheck, tests, contract-tests, security-smoke, deprecations, tool-contracts, platform-contract-lint, etc.) |
-| AC-7 | Docker Compose launch succeeds | `docker-compose.live.yml up` starts cleanly; all health endpoints return 200; OIDC auth works; one full L1→L6 workflow completes |
-| AC-8 | LLM cost telemetry wired | `LLMCostCalculator` active in executor; structured log fields present; Grafana dashboard populated |
-| AC-9 | Harness/validation telemetry contract tests pass | All 3 structured log schema contract tests pass |
-| AC-10 | Release gate report created | `reports/RELEASE_GATE_SPRINT7.md` exists with no P0 blockers |
-| AC-11 | Readiness docs updated | `docs/readiness/current.md` updated; `blockers.md` all P0/P1 closed; launch-decision-artifact sign-off table filled |
-| AC-12 | Launch runbooks complete | `docs/runbooks/docker-compose-launch.md` and `docs/runbooks/hotfix-process.md` exist and are accurate |
+| COMPAT-L1-001 | `services/layer1-ingestion/src/api/routes/compatibility.py` | 2026-08-31 |
+| COMPAT-L3-001 | `value_fabric/layer3/api/routes/compat_aliases.py` | 2026-08-31 |
+| COMPAT-L3-002 | `value_fabric/layer3/api/routes/entity_compat.py` | 2026-08-31 |
+| COMPAT-L3-004 | `value_fabric/layer3/api/compat_wiring.py` | 2026-08-31 |
+| COMPAT-L4-001 | `services/layer4-agents/src/api/routes/frontend_compat.py` | 2026-08-31 |
+| COMPAT-L5-001 | `value_fabric/layer5/` (package shim tree) | 2026-09-30 |
+| COMPAT-L3-003 | `services/layer3-knowledge/src/` (mirrored tree) | 2026-10-31 |
+
+**Per-shim removal checklist:**
+1. Confirm zero active imports (grep + CI check).
+2. Delete the shim file/tree.
+3. Delete compatibility tests that only validated shim behavior.
+4. Update `compatibility-debt-registry.md` (strikethrough row + removal date).
+5. Run `pnpm --dir apps/web run check:compatibility-shims-registered` and `make verify`.
 
 ---
 
-## Implementation Approach
+### 3.2 Frontend Shim Cleanup (18 items)
 
-The following tracks run in parallel. Within each track, steps are sequential.
+Removal order (low-risk first):
+1. Type export shims (COMPAT-WEB-006 through WEB-009, WEB-017) — June 2026
+2. Hook re-export shims (WEB-003, WEB-005, WEB-013, WEB-015) — July 2026
+3. UI primitive shims (WEB-010, WEB-011) — July 2026
+4. Auth/session shims (WEB-002, WEB-007) — July 2026
+5. AppShell/RightRail controlled-state shims (WEB-012, WEB-013) — August 2026
+6. Auth provider/route shims (WEB-014, WEB-016) — September 2026
 
-### Track 1 — P0 Blockers
-1. Audit Alembic migration history to find the NULL `tenant_id` RLS regression (P0-1).
-2. Write a compensating migration or fix the offending migration; run `test_rls_enforcement.py`.
-3. Fix `tests/arch/` D-01, D-02, D-03, D-11, D-12 failures (P0-2).
-4. Fix `tests/cache/test_redis_tenant_isolation.py` AsyncMock → int mock (P0-3).
-5. Run `scripts/ci/prepare_kustomize_deploy.sh staging`; verify digest guard (P0-4).
-
-### Track 2 — P1 Blockers
-1. Add `require_authenticated` to `GET /workflows/{workflow_id}/state/errors` (P1-2).
-2. Fix import-time drift in 4 L3 contract test files (P1-3).
-3. Pin schemathesis/xdist or configure serial execution (P1-4).
-4. Add connection-pool and ACID tests per service (P1-5).
-5. Add GovernanceMiddleware, RequestContext, tier-aware, and audit-event security tests (P1-6).
-6. Configure `mandatory-security-regression` as required CI check (P1-1) — requires GitHub branch protection settings.
-
-### Track 3 — Frontend Sprint 4
-1. Fix W1: confirm route/payload, fix polling, remove `test.fail()` guards.
-2. Implement W2: `WorkflowStatusBanner` in `AIModel.tsx`.
-3. Implement W3: trust status row in `BusinessCase.tsx`.
-4. Verify W4: auth path alignment; document findings.
-5. Implement W5: empty/error states for 4 admin pages.
-6. Implement W6: Vitest unit tests + Playwright spec updates.
-
-### Track 4 — Test Infrastructure
-1. Start `docker-compose.test.yml` (or `docker-compose.dev.yml`).
-2. Restore/recreate `./queryKeys` module for `useTargets.test.ts`.
-3. Fix TDZ initialization error in `useAuth.test.ts`.
-4. Add missing MSW request handlers for all 14 unmatched-handler failures.
-5. Re-run full Vitest suite; confirm 0 failures.
-6. Re-run backend suites with live services; fix or document remaining failures.
-
-### Track 5 — Deployment
-1. Validate `docker-compose.live.yml` configuration; fix any missing env vars.
-2. Update `.env.example` and `.env.dev.example` with all required variables.
-3. Run `make verify` against live stack.
-4. Execute smoke test (health endpoints, OIDC, L1→L6 workflow).
-5. Write `docs/runbooks/docker-compose-launch.md`.
-
-### Track 6 — Telemetry
-1. Uncomment `LLMCostCalculator` in `executor.py`; add structured log fields.
-2. Add contract test for LLM cost log schema.
-3. Populate `monitoring/grafana/dashboards/llm-costs.json`.
-4. Verify harness trace and validation outcome log fields; add contract tests.
-5. Create `reports/RELEASE_GATE_SPRINT7.md`.
-
-### Track 7 — Documentation
-1. Update `docs/readiness/current.md` with fresh evidence.
-2. Close all resolved P0/P1 items in `docs/readiness/blockers.md`.
-3. Fill sign-off table in `docs/readiness/launch-decision-artifact.md`.
-4. Write `docs/runbooks/hotfix-process.md`.
-5. Verify `README.md` setup commands are current.
+Same per-shim checklist as 3.1.
 
 ---
 
-## Out of Scope (Deferred to Post-Launch)
+### 3.3 Auth/SSO Closure (stub)
 
-- OAuth authorization flow for CRM integrations (P2-1)
-- Celery/Redis queue for background sync (P2-2)
-- Full SLO/error-budget monitoring (P2-5)
-- Disaster recovery rehearsal (P2-6)
-- Penetration testing (P2-7)
-- K8s admission-time image digest validation via Kyverno/OPA (P2-8)
-- Canonical contract compliance from ~58% to ≥85% (P2-9 — 449 violations)
-- 12 frontend placeholder items blocked on missing backend endpoints (P2-10)
-- Full enterprise auth UX (invite flows, role management, session expiry)
-- APQC/BIAN/FIBO reference model integration (L2)
-- Proxy rotation for L1 crawler
+1. Verify backend OIDC endpoints are reachable and return correct token shapes.
+2. Remove legacy Microsoft provider key (COMPAT-WEB-014) after tenant migration confirmed.
+3. Add SSO E2E Playwright test: login → callback → protected route.
 
 ---
 
-## Risk Register
+### 3.4 L2 Reference Model Integration — APQC/BIAN/FIBO (stub)
 
-| Risk | Likelihood | Impact | Mitigation |
+- Ship as a pack under `packs/` per AGENTS.md §13. Do not modify core extraction logic.
+- Pack provides ontology mappings from extracted entities to APQC/BIAN/FIBO taxonomy nodes.
+- Contract tests verify pack-loaded entities map to reference taxonomy.
+
+---
+
+### 3.5 L3 Performance Tuning (stub)
+
+- Profile under tenant load (k6 or locust).
+- Cache where >20% latency gain is measurable.
+- Document decisions in an ADR under `docs/explanations/adr/`.
+
+---
+
+## Cross-Phase Always-On Discipline
+
+These apply to every PR across all phases:
+
+1. **Contract-first:** Regenerate generated types after any OpenAPI change. Run `python scripts/ci/platform_contract_lint.py` before merge. `contracts/drift-allowlist.yaml` must not expand without Platform Architecture approval.
+2. **Hostile test per new endpoint:** Every new API endpoint must have a cross-tenant hostile test.
+3. **Test failure burn-down:** Target the 37 logic/assertion failures and 56 fixture-missing failures from `reports/TEST_REPORT_2026-05-17.md`. Assign 2–3 per sprint.
+4. **Diataxis doc parity:** New features must include at least a how-to guide or reference entry per AGENTS.md §16.
+
+---
+
+## Verification Matrix
+
+| Phase | Gate | Command | Pass Condition |
 |---|---|---|---|
-| RLS migration fix introduces new regression | Medium | High | Run full `test_rls_enforcement.py` + tenant isolation suite after fix |
-| Arch D-02 (L5 TruthObject `tenant_id`) requires a migration | Medium | High | Write additive migration; test with L5 suite before merging |
-| MSW handler gaps are larger than 14 files | Low | Medium | Audit all `useXxx.test.ts` files for unregistered routes before fixing |
-| Docker Compose live stack fails to start | Low | High | Test each service independently; check `.env` completeness first |
-| `mandatory-security-regression` CI config requires GitHub admin access | Medium | Low | Document as manual step; proceed with code fixes in parallel |
-| 24-hour window insufficient for all tracks | Medium | High | Prioritize P0 → P1 → Track 5 (deploy) → Track 3 (frontend) → Track 6 (telemetry) |
+| 1.1 | Tenant isolation tests | `pytest tests/security/ tests/layer3/ -q` | 0 failures on tenant isolation suites |
+| 1.2 | Import topology | `pytest tests/layer3/ --collect-only -q` | 0 collection errors for 14 files |
+| 1.3 | E2E critical path | `docker-compose -f docker-compose.live.yml up` + smoke script | All 6 layers 200; artifact committed |
+| 1.4 | Sign-off | Manual | 4 countersignatures in launch-decision-artifact.md |
+| 2.1 | L1 tests | `pytest services/layer1-ingestion/ -q` | 0 failures |
+| 2.2 | Observability | Synthetic alert test | Alert fires within 2 min of service kill |
+| 2.4 | RFC-001 contract | `python scripts/ci/platform_contract_lint.py` | No new drift |
+| All | Full platform | `make verify` | Green |
+
+---
+
+## Key Decisions
+
+1. **Sign-off ordering:** Sign after 1.1/1.2/1.3 land. No conditional sign-off.
+2. **Shim removal cadence:** Continuous (one per sprint), not big-bang August debt-burn.
+3. **RFC-001 timing:** Phase 2 (hook already exists; backend is low-risk).
+4. **E2E minimum scope:** Critical path L1→L6 only for Phase 1 sign-off.
+5. **Import topology fix:** pytest.ini rootdir + conftest approach; do not modify the shim.
+6. **Phase 2 spec depth:** L1 productionization and observability in full detail; L4 checkpoint and rate-limit UI as stubs.
+7. **Reference models:** Land in `packs/` not core (AGENTS.md §13).

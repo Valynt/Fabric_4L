@@ -1,0 +1,23 @@
+# Temporary allowlist for legacy tenant access shims.
+# Entries are file+line specific and must be removed in the same PR that completes the owning layer migration.
+allowlist: []
+
+migration_owners:
+  - layer: L1
+    owner: layer1-ingestion
+    removal_milestone: "PR milestone: L1 TenantContext migration"
+  - layer: L3
+    owner: layer3-knowledge
+    removal_milestone: "PR milestone: L3 TenantContext migration"
+  - layer: L5
+    owner: layer5-ground-truth
+    removal_milestone: "PR milestone: L5 TenantContext migration"
+  - layer: L6
+    owner: layer6-benchmarks
+    removal_milestone: "PR milestone: L6 TenantContext migration"
+  - layer: L2
+    owner: layer2-extraction
+    removal_milestone: "PR milestone: L2 TenantContext migration"
+  - layer: L4
+    owner: layer4-agents
+    removal_milestone: "PR milestone: L4 TenantContext migration"

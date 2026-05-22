@@ -8,7 +8,7 @@ from value_fabric.shared.identity.context import require_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from config import Settings, get_settings
+from value_fabric.layer3.config import Settings, get_settings
 from db.query_execution import run_scoped_query
 from db.query_execution import run_validated_query
 

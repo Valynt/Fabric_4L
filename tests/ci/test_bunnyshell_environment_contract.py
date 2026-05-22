@@ -103,6 +103,65 @@ def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disa
     )
 
 
+def test_postgres_init_depends_on_postgres_healthy():
+    """postgres-init must wait for postgres to pass its healthcheck (Finding 2)."""
+    config = _load_bunnyshell()
+    init = _component(config, "postgres-init")
+    depends_on = init["dockerCompose"].get("depends_on", {})
+    assert "postgres" in depends_on, "postgres-init must declare depends_on: postgres"
+    assert depends_on["postgres"].get("condition") == "service_healthy", (
+        "postgres-init must use condition: service_healthy to avoid the race"
+    )
+
+
+def test_postgres_init_env_vars_declared_in_environment_block():
+    """Credentials must be in the environment: block so the container receives them (Finding 1)."""
+    config = _load_bunnyshell()
+    init = _component(config, "postgres-init")
+    env = init["dockerCompose"].get("environment", {})
+    assert env.get("POSTGRES_USER") == "${POSTGRES_USER}", (
+        "POSTGRES_USER must be declared in postgres-init environment:"
+    )
+    assert env.get("POSTGRES_PASSWORD") == "${POSTGRES_PASSWORD}", (
+        "POSTGRES_PASSWORD must be declared in postgres-init environment:"
+    )
+
+
+def test_postgres_init_script_does_not_unconditionally_exit_zero():
+    """The init script must propagate real errors rather than always exiting 0 (Finding 3)."""
+    config = _load_bunnyshell()
+    init = _component(config, "postgres-init")
+    entrypoint = init["dockerCompose"]["entrypoint"]
+    # The shell script is the third element of the entrypoint list
+    script = entrypoint[2]
+    assert "exit 0" not in script, (
+        "postgres-init script must not unconditionally exit 0; "
+        "real psql failures must propagate"
+    )
+    assert "exit 1" in script, (
+        "postgres-init script must exit 1 on unexpected psql errors"
+    )
+
+
+def test_postgres_multiple_databases_includes_all_required_dbs():
+    """POSTGRES_MULTIPLE_DATABASES must list every database the stack needs (Finding 4)."""
+    config = _load_bunnyshell()
+    postgres_env = _component(config, "postgres")["dockerCompose"]["environment"]
+    multi_db = postgres_env.get("POSTGRES_MULTIPLE_DATABASES", "")
+    required = {
+        "ingestion",
+        "layer2_extraction",
+        "ground_truth",
+        "layer4_agents",
+        "layer6_benchmarks",
+    }
+    declared = {db.strip() for db in multi_db.split(",")}
+    missing = required - declared
+    assert not missing, (
+        f"POSTGRES_MULTIPLE_DATABASES is missing: {missing}"
+    )
+
+
 def test_bunnyshell_layer4_ingress_targets_container_service_port():
     config = _load_bunnyshell()
     layer4 = _component(config, "layer4")

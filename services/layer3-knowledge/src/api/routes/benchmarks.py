@@ -20,12 +20,22 @@ from pydantic import BaseModel, Field
 from logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
+from ...api.routes._utils import get_tenant_id_from_api_key
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key
 
 logger = get_logger(__name__)
 
 router = APIRouter()
+
+
+def _get_authenticated_tenant_id(api_key: APIKey) -> str:
+    """Resolve tenant ID from authenticated API-key context; fail closed if absent.
+
+    Delegates to the shared get_tenant_id_from_api_key helper in _utils.
+    """
+    return get_tenant_id_from_api_key(api_key)
+
 
 # Pagination limits
 MAX_PAGE_SIZE = 100
@@ -90,9 +100,7 @@ async def list_benchmarks(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """List benchmarks with optional filters."""
-    tenant_id = getattr(api_key, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = _get_authenticated_tenant_id(api_key)
     where_conditions: list[str] = []
     params: dict[str, Any] = {"limit": limit, "tenant_id": tenant_id}
 
@@ -160,9 +168,7 @@ async def list_benchmark_policies(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """List benchmark policy configurations."""
-    tenant_id = getattr(api_key, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (bp:BenchmarkPolicy)
     WHERE bp.tenant_id = $tenant_id
@@ -194,9 +200,7 @@ async def get_benchmark(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get a single benchmark by ID."""
-    tenant_id = getattr(api_key, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (b:Benchmark {id: $benchmark_id})
     WHERE b.tenant_id = $tenant_id
@@ -239,9 +243,7 @@ async def update_benchmark_policy(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Update a benchmark policy."""
-    tenant_id = getattr(api_key, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = _get_authenticated_tenant_id(api_key)
     # Build SET clauses dynamically from provided fields
     set_parts: list[str] = []
     params: dict[str, Any] = {"policy_id": policy_id, "tenant_id": tenant_id}
@@ -334,9 +336,7 @@ async def seed_benchmark_policies(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Seed default benchmark policies if none exist. Idempotent."""
-    tenant_id = getattr(api_key, "tenant_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = _get_authenticated_tenant_id(api_key)
 
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         created: list[BenchmarkPolicy] = []

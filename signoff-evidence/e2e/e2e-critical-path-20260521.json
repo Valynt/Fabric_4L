@@ -1,0 +1,162 @@
+{
+  "run_id": "a880dff4fd09",
+  "started_at": "2026-05-21T06:02:58.443668+00:00",
+  "completed_at": "2026-05-21T06:02:58.446790+00:00",
+  "overall_status": "dry_run",
+  "dry_run": true,
+  "layer_health": {
+    "L1": "unhealthy (HTTP None)",
+    "L2": "unhealthy (HTTP None)",
+    "L3": "unhealthy (HTTP None)",
+    "L4": "unhealthy (HTTP None)",
+    "L5": "unhealthy (HTTP None)",
+    "L6": "unhealthy (HTTP None)"
+  },
+  "steps": [
+    {
+      "step": "health_L1",
+      "layer": "L1",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8001/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8001/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.445601+00:00"
+    },
+    {
+      "step": "health_L2",
+      "layer": "L2",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8002/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8002/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.445867+00:00"
+    },
+    {
+      "step": "health_L3",
+      "layer": "L3",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8003/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8003/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446102+00:00"
+    },
+    {
+      "step": "health_L4",
+      "layer": "L4",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8004/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8004/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446349+00:00"
+    },
+    {
+      "step": "health_L5",
+      "layer": "L5",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8005/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8005/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446552+00:00"
+    },
+    {
+      "step": "health_L6",
+      "layer": "L6",
+      "status": "fail",
+      "http_status": null,
+      "url": "http://localhost:8006/health",
+      "request_summary": "",
+      "response_summary": "HTTP GET http://localhost:8006/health failed: <urlopen error [Errno 111] Connection refused>",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446746+00:00"
+    },
+    {
+      "step": "l1_ingest",
+      "layer": "L1",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "POST http://localhost:8001/api/v1/ingestion/jobs",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446759+00:00"
+    },
+    {
+      "step": "l2_extract",
+      "layer": "L2",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "POST http://localhost:8002/api/v1/extract",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446766+00:00"
+    },
+    {
+      "step": "l3_graph",
+      "layer": "L3",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "GET http://localhost:8003/api/v1/entities?limit=1&tenant_id=e2e-smoke-tenant",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446772+00:00"
+    },
+    {
+      "step": "l4_agent",
+      "layer": "L4",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "POST http://localhost:8004/api/v1/workflows/roi",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446778+00:00"
+    },
+    {
+      "step": "l5_ground_truth",
+      "layer": "L5",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "GET http://localhost:8005/api/v1/truth-objects?limit=1&tenant_id=e2e-smoke-tenant",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446782+00:00"
+    },
+    {
+      "step": "l6_benchmark",
+      "layer": "L6",
+      "status": "skip",
+      "http_status": null,
+      "url": "",
+      "request_summary": "GET http://localhost:8006/api/v1/benchmarks?limit=1&tenant_id=e2e-smoke-tenant",
+      "response_summary": "dry_run",
+      "duration_ms": 0.0,
+      "error": null,
+      "timestamp": "2026-05-21T06:02:58.446787+00:00"
+    }
+  ],
+  "summary": "overall=dry_run passed=0 failed=6 skipped=6"
+}

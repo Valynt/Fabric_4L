@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical security fix execution log (2026-04-27). See [docs/archive/INDEX.md](archive/INDEX.md). Current security governance lives in [SECURITY.md](../SECURITY.md), [security/](security/), and [security-gates.md](security-gates.md).
+
 # Fabric 4L Security Fixes Execution Log
 
 **Execution Date:** 2026-04-27

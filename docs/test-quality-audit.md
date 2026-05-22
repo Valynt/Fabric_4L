@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical audit snapshot (2026-05-01). See [docs/archive/INDEX.md](archive/INDEX.md). Current testing strategy lives in [reference/testing-strategy.md](reference/testing-strategy.md).
+
 # Test Quality Audit - May 1, 2026
 
 ## Phase 1: Discovery Summary

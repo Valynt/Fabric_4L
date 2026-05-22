@@ -19,11 +19,20 @@ from pydantic import BaseModel, Field
 from logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
-from ...api.routes._utils import semver_key
+from ...api.routes._utils import get_tenant_id_from_api_key, semver_key
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key, require_admin_role
 
 logger = get_logger(__name__)
+
+
+def _get_authenticated_tenant_id(api_key: APIKey) -> str:
+    """Resolve tenant ID from authenticated API-key context; fail closed if absent.
+
+    Delegates to the shared get_tenant_id_from_api_key helper in _utils.
+    """
+    return get_tenant_id_from_api_key(api_key)
+
 
 # Status constants for Formula Governance
 STATUS_DRAFT = "draft"
@@ -181,7 +190,7 @@ async def list_pending_approvals(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """List all formulas currently pending review/approval."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (f:Formula)
     WHERE f.status = 'under_review'
@@ -226,7 +235,7 @@ async def list_formula_versions(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """List all versions of a formula."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (f:Formula {id: $formula_id})-[:HAS_VERSION]->(fv:FormulaVersion)
     WHERE ($include_retired OR fv.status <> 'retired')
@@ -266,7 +275,7 @@ async def get_formula_governance(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get governance metadata for a formula."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (f:Formula {id: $formula_id})
     WHERE f.tenant_id = $tenant_id
@@ -328,7 +337,7 @@ async def create_formula_version(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Create a new formula version. Requires authentication."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
 
     # Check formula exists
     check_query = "MATCH (f:Formula {id: $formula_id}) WHERE f.tenant_id = $tenant_id RETURN f"
@@ -410,7 +419,7 @@ async def submit_for_review(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Submit formula for review. Requires authentication."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     # Check current status
     check_query = """
     MATCH (f:Formula {id: $formula_id})
@@ -498,7 +507,7 @@ async def approve_formula(
     api_key: APIKey = Depends(require_admin_role),
 ):
     """Approve formula (admin only)."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     now = datetime.now(UTC).isoformat()
 
     query = """
@@ -554,7 +563,7 @@ async def activate_formula(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Activate a formula version. Requires authentication."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     now = datetime.now(UTC).isoformat()
     effective_date = (request.effective_date or datetime.now(UTC)).isoformat()
 
@@ -639,7 +648,7 @@ async def deprecate_formula(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Deprecate a formula. Requires authentication."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     # Check current status
     check_query = """
     MATCH (f:Formula {id: $formula_id})
@@ -721,7 +730,7 @@ async def get_formula_dependencies(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get formula dependencies."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     deps = []
 
     if direction in ["outgoing", "both"]:
@@ -770,7 +779,7 @@ async def validate_activation(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Validate if formula can be activated."""
-    tenant_id = getattr(api_key, "tenant_id", None)
+    tenant_id = _get_authenticated_tenant_id(api_key)
     query = """
     MATCH (f:Formula {id: $formula_id})
     WHERE f.tenant_id = $tenant_id

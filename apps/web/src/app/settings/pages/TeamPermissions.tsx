@@ -1,10 +1,10 @@
-import PermissionsAdmin from "@/pages/admin/PermissionsAdmin";
 import { CapabilityGate } from "../components/CapabilityGate";
+import { TeamPermissionsScreen } from "./TeamAccessScreens";
 
 export function TeamPermissions() {
   return (
     <CapabilityGate capability="team">
-      <PermissionsAdmin />
+      <TeamPermissionsScreen />
     </CapabilityGate>
   );
 }

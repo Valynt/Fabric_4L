@@ -592,8 +592,17 @@ async def ingest_usage_event(
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
+    overage_service = OverageService(db, tenant_id=tenant_id)
     
     try:
+        quota_result = await overage_service.validate_request(
+            customer_id=request.customer_id,
+            metric_name=request.metric_name,
+            requested_quantity=request.quantity,
+        )
+        if not quota_result["allowed"]:
+            _raise_quota_exceeded(request.metric_name, quota_result)
+
         event = await service.ingest_event(
             event_id=request.event_id,
             customer_id=request.customer_id,
@@ -652,8 +661,23 @@ async def ingest_usage_batch(
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
+    overage_service = OverageService(db, tenant_id=tenant_id)
     
     try:
+        projected_usage: dict[tuple[str, str], float] = {}
+        for event in request.events:
+            key = (event.customer_id, event.metric_name)
+            projected_usage[key] = projected_usage.get(key, 0.0) + event.quantity
+
+        for (customer_id, metric_name), total_requested in projected_usage.items():
+            quota_result = await overage_service.validate_request(
+                customer_id=customer_id,
+                metric_name=metric_name,
+                requested_quantity=total_requested,
+            )
+            if not quota_result["allowed"]:
+                _raise_quota_exceeded(metric_name, quota_result)
+
         # Convert Pydantic models to dicts for the service
         events_data = [event.model_dump() for event in request.events]
         result = await service.ingest_batch(events_data)
@@ -951,17 +975,7 @@ async def check_request_allowed(
         result = await service.validate_request(customer_id, metric_name, quantity)
         
         if not result["allowed"]:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": result["error"],
-                    "metric": metric_name,
-                    "limit": result["limit"],
-                    "current_usage": result["current_usage"],
-                    "overage": result["overage"],
-                    "upgrade_required": True,
-                },
-            )
+            _raise_quota_exceeded(metric_name, result)
         
         return result
         
@@ -1519,3 +1533,18 @@ async def get_customer_balance(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve customer balance",
         )
+def _raise_quota_exceeded(metric_name: str, result: dict[str, Any]) -> None:
+    """Raise a standardized hard-limit response for quota failures."""
+    raise HTTPException(
+        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        detail={
+            "error": "quota_exceeded",
+            "message": result.get("error", f"Usage limit exceeded for {metric_name}"),
+            "metric": metric_name,
+            "limit": result.get("limit"),
+            "current_usage": result.get("current_usage"),
+            "requested": result.get("requested"),
+            "overage": result.get("overage"),
+            "upgrade_required": True,
+        },
+    )

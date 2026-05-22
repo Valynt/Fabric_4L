@@ -86,6 +86,11 @@ jobs:
             owner: "@value-fabric/architects"
             escalation: "@value-fabric/maintainers"
             command: "python scripts/ci/check_layer4_canonical_imports.py"
+          - id: shared-identity-canonical-imports
+            service: shared
+            owner: "@value-fabric/security-leads"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_shared_identity_canonical_imports.py"
           - id: adr027-layer5-shim
             service: layer5
             owner: "@value-fabric/architects"

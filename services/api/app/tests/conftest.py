@@ -10,6 +10,7 @@ Provides:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import secrets
 
 import pytest
 import jwt
@@ -71,7 +72,8 @@ def mint_token(
         "aud": TEST_AUDIENCE,
         "iat": int(datetime.now(UTC).timestamp()),
         "nbf": int(datetime.now(UTC).timestamp()),
-        "exp": expire,
+        "exp": int(expire.timestamp()),
+        "jti": secrets.token_urlsafe(16),
     }
     return jwt.encode(payload, TEST_SECRET, algorithm=TEST_ALGORITHM)
 

@@ -1,4 +1,15 @@
-"""Pytest configuration for Value Fabric Layer 3 tests."""
+"""Pytest configuration for Value Fabric Layer 3 tests.
+
+sys.path setup
+--------------
+services/layer3-knowledge/src is inserted at position 0 so that bare
+``from config import Settings`` and ``from api import ...`` imports in
+layer3 source files resolve to the layer3 package, not to layer4-agents/src
+which also has a ``config`` module.
+
+This resolves the config.Settings namespace collision described in the
+Phase 1.2 import topology fix (spec.md §1.2).
+"""
 
 import os
 import sys
@@ -6,15 +17,19 @@ from pathlib import Path
 
 import pytest
 
-# Add src directory to Python path for imports
-src_path = Path(__file__).parent / "src"
-sys.path.insert(0, str(src_path))
+_HERE = Path(__file__).parent
+_REPO_ROOT = _HERE.parent.parent
 
-# Add shared module (at repo root) to Python path
-repo_root = Path(__file__).parent.parent.parent
-shared_path = repo_root / "shared"
-sys.path.insert(0, str(shared_path))
-sys.path.insert(0, str(repo_root))
+# Layer 3 src must be first so its `config` package shadows layer4's.
+# Always remove any existing occurrence then reinsert at 0 to guarantee priority.
+_L3_SRC = _HERE / "src"
+_l3_str = str(_L3_SRC)
+sys.path = [p for p in sys.path if p != _l3_str]
+sys.path.insert(0, _l3_str)
+
+# Repo root for value_fabric.* namespace packages.
+if str(_REPO_ROOT) not in sys.path:
+    sys.path.insert(1, str(_REPO_ROOT))
 
 # Set test environment variables
 os.environ.setdefault("NEO4J_PASSWORD", "test_password")

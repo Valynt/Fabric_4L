@@ -63,8 +63,17 @@ Goal: freeze launch inputs and prove rollback readiness before production traffi
 - Review rollback triggers and confirm thresholds in [Error Monitoring](ERROR_MONITORING.md).
 - Snapshot dashboards, alert receiver status, and service health baselines.
 - Confirm migration rollback or forward-fix notes for any persistence changes.
+- Execute the critical-path L1→L6 E2E smoke against the live stack and attach the artifact to the evidence bundle:
 
-Exit criteria: launch owner records go/no-go decision, rollback owner confirms readiness, stakeholder update cadence is scheduled, and all launch-critical evidence gaps are closed or explicitly accepted.
+  ```bash
+  docker compose -f docker-compose.live.yml up -d
+  docker compose -f docker-compose.live.yml exec layer4 \
+      python /app/scripts/e2e/critical_path_smoke.py --network
+  ```
+
+  The script writes a timestamped JSON artifact to `signoff-evidence/e2e/`. Commit the artifact and reference it in `docs/readiness/launch-decision-artifact.md` §1a row "Live stack run". Exit code 0 is required; any failure blocks T-0.
+
+Exit criteria: launch owner records go/no-go decision, rollback owner confirms readiness, stakeholder update cadence is scheduled, critical-path E2E artifact is committed, and all launch-critical evidence gaps are closed or explicitly accepted.
 
 ## T-0 Launch
 

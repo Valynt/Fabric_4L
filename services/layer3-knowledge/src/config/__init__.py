@@ -1,6 +1,6 @@
 """Configuration package initialization."""
 
-from ..config.manager import (
+from .manager import (
     APIConfig,
     AppConfig,
     AuthConfig,
@@ -21,7 +21,7 @@ from ..config.manager import (
     load_config,
     validate_configuration,
 )
-from ..config.settings import Settings, get_settings
+from .settings import Settings, get_settings
 
 __all__ = [
     "Settings",

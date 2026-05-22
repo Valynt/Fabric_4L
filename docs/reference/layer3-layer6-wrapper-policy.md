@@ -1,14 +1,22 @@
 # Layer 3 / Layer 6 canonical-vs-wrapper policy
 
-## Purpose
+> **SUPERSEDED by [ADR-027](../architecture/adr-027-layer3-canonical-path.md).** This document described the
+> pre-ADR-027 policy where `value_fabric/layer{3,6}/` was canonical and `services/layer{3,6}-*/src/` held
+> wrappers. Under ADR-027 that direction is **inverted**: canonical runtime is
+> `services/layer{N}-*/src/` and `value_fabric/layer{N}/` are path-appender shims. Refer to
+> [`layer-runtime-path-governance.md`](layer-runtime-path-governance.md) for the authoritative matrix.
+> The mirrored-wrapper / byte-alignment rules below still apply to **legacy** wrapper files that remain registered in
+> `scripts/mirrored_files.json`; do not register new wrappers.
 
-`value_fabric/` is the canonical runtime source for Layer 3 and Layer 6 API modules.
+## Purpose (historical)
 
-For Layer 6 specifically, the canonical runtime implementation location is:
+`value_fabric/` was the canonical runtime source for Layer 3 and Layer 6 API modules under the pre-ADR-027 policy.
+
+For Layer 6 specifically, the historical canonical runtime implementation location was:
 
 - `value_fabric/layer6/`
 
-The service-local Layer 6 tree under `services/layer6-benchmarks/src/` is not a second runtime root. It is a compatibility-only wrapper tree that preserves deployable import paths while forwarding all implementation to `value_fabric.layer6.*`.
+The service-local Layer 6 tree under `services/layer6-benchmarks/src/` was treated as a compatibility-only wrapper tree that preserved deployable import paths while forwarding all implementation to `value_fabric.layer6.*`.
 
 Service-local API modules under:
 

@@ -229,6 +229,9 @@ services:
       NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD}
       REDIS_URL: redis://redis:6379/0
       LOG_LEVEL: info
+    depends_on:
+      layer3-neo4j-migrate:
+        condition: service_completed_successfully
     volumes:
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
@@ -239,6 +242,38 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+
+  layer3-neo4j-migrate:
+    build:
+      context: .
+      dockerfile: ./services/layer3-knowledge/Dockerfile.full
+      args:
+        <<: *build-args
+        BUILDER_BASE_IMAGE: ${BUILDER_BASE_IMAGE:-}
+    container_name: vf-live-layer3-neo4j-migrate
+    command:
+      - sh
+      - -lc
+      - |
+        attempts=0
+        until /app/.venv/bin/python /app/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py; do
+          attempts=$$((attempts + 1))
+          if [ "$$attempts" -ge 24 ]; then
+            echo "layer3 neo4j migration 030 failed after $${attempts} attempts"
+            exit 1
+          fi
+          echo "waiting for neo4j ($${attempts}/24)"
+          sleep 5
+        done
+    environment:
+      NEO4J_URI: bolt://neo4j:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?set NEO4J_PASSWORD}
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - live-network
 
   # ---------------------------------------------------------------------------
   # Layer 4: Agents Service (public host port 8004)

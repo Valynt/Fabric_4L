@@ -18,6 +18,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Validate workflow target/artifact references
+        run: python3 scripts/ci/check_workflow_targets_and_artifacts.py
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:

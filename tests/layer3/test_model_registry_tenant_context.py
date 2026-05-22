@@ -7,7 +7,10 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-from value_fabric.layer3.api.routes.models import _get_tenant_context
+from value_fabric.layer3.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+
+# Alias kept for test readability — tests call extract_tenant_from_bearer directly below.
+_get_tenant_context = extract_tenant_from_bearer
 
 
 def _token(payload: dict[str, str]) -> str:
@@ -41,10 +44,11 @@ def test_model_registry_tenant_context_rejects_forged_header_tenant() -> None:
 
 
 def test_model_registry_tenant_context_returns_canonical_payload() -> None:
-    context = _get_tenant_context(
+    context = extract_tenant_from_bearer(
         _request(_token({"sub": "user-1", "tenant_id": "tenant-a"}), tenant_header="tenant-a")
     )
 
+    assert isinstance(context, TenantBearerContext)
     assert context.tenant_id == "tenant-a"
     assert context.user_id == "user-1"
     assert context.source == "authorization_bearer"

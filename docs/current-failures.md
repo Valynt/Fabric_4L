@@ -77,10 +77,11 @@
 
 ## Remaining Work (Verified as Actually Open)
 
-Based on ROADMAP audit + code inspection, the following gaps are genuinely incomplete:
+Based on ROADMAP audit + code inspection, the following gaps are genuinely incomplete.
 
 ### Security / Tenant Isolation
-- **L3 Neo4j tenant scoping (other route modules)** — `benchmarks.py`, `variables.py`, `models.py`, `formula_governance.py` use node labels (`:Benchmark`, `:Variable`, `:ValueModel`, `:Formula`) that do not consistently have `tenant_id` in the current schema. Schema migrations needed before query scoping can be added safely.
+- **L3 Neo4j tenant scoping (other route modules)** — **✅ RESOLVED 2026-05-21.** All four route modules (`benchmarks.py`, `variables.py`, `models_router.py`, `formula_governance.py`) have `WHERE x.tenant_id = $tenant_id` enforced on every MATCH/MERGE/CREATE. Schema migration `services/layer3-knowledge/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py` adds NOT NULL constraints + btree indexes on `tenant_id` for `:Benchmark`, `:BenchmarkPolicy`, `:Variable`, `:SourceBinding`, `:ValueModel`, `:Formula`, `:FormulaVersion`. Migration is wired into `docker-compose.live.yml` via service `layer3-neo4j-migrate` and runs to completion before `layer3` starts. 49/49 hostile cross-tenant tests pass (`tests/security/test_{benchmarks,variables,models,formula_governance}_cross_tenant_isolation.py`). See `docs/readiness/launch-decision-artifact.md` §1a.
+- **L3 import topology** — **✅ RESOLVED 2026-05-21.** 14 previously-blocked test files now collect (55 tests). Resolution covered merge conflicts, bare imports, `config/__init__.py` relative import, `TypedDict` namespace collision, `app_monolith.py` shim, and `pytest.ini` `testpaths` update. See `docs/readiness/launch-decision-artifact.md` §1a.
 - **PostgreSQL RLS** — L1/L4/L5 tables have RLS. L4 `accounts.py` confirmed to use `get_db_from_context`.
 
 ### Infra / Production Hardening
@@ -89,10 +90,14 @@ Based on ROADMAP audit + code inspection, the following gaps are genuinely incom
 - **L1 Celery/Redis wiring** — Fully implemented; only scheduler priority queue is in-memory stub
 - **Feature flags** — Fully implemented (Task 107 ✅)
 - **Per-tenant rate limiting** — Fully implemented (Task 108 ✅)
+- **Live cross-layer E2E** — Smoke script ready at `scripts/e2e/critical_path_smoke.py`; dry-run artifact committed at `signoff-evidence/e2e/e2e-critical-path-20260521.json`. **Pending:** execute against `docker-compose -f docker-compose.live.yml up -d` and commit the live-stack artifact.
 
 ### Frontend
 - **Auth UI** — SSO/OIDC frontend fully wired (`/login`, `/login/callback`, `AuthContext`, `ProtectedRoute`, httpOnly cookies). Backend OIDC endpoint verification + provider config alignment is the remaining gap.
 - **L5 approval queue UI** — Human approval workflow frontend integration unclear
+
+### Launch Sign-Off
+- Engineering / Security / Product / Operations countersignatures pending in `docs/readiness/launch-decision-artifact.md` §4.
 
 ---
 

@@ -12,7 +12,7 @@ import uuid
 
 import pytest
 
-from value_fabric.layer2.models import (
+from layer2_extraction.models import (
     ExtractionResult,
     MetricDirection,
     ValueCategory,
@@ -20,7 +20,7 @@ from value_fabric.layer2.models import (
     ValueMetric,
     ValueMetricExtractionResponse,
 )
-from value_fabric.layer2.output.rdf_generator import generate_rdf
+from layer2_extraction.output.rdf_generator import generate_rdf
 
 
 UUID_STRING_LENGTH = 36

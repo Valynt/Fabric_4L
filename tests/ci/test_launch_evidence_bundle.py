@@ -96,3 +96,21 @@ def test_cli_artifacts_only_writes_json_summary(tmp_path: Path) -> None:
     assert summary_path.exists()
     payload = json.loads(summary_path.read_text(encoding="utf-8"))
     assert payload["summary"]["missing"] > 0
+
+
+def test_artifacts_only_summary_includes_launch_readiness_scores(tmp_path: Path) -> None:
+    module = _load_module()
+    summary_path = tmp_path / ".tmp" / "summary.json"
+    evidence_root = tmp_path / "docs" / "launch" / "evidence"
+    evidence_root.mkdir(parents=True, exist_ok=True)
+    (evidence_root / "baseline-validators.json").write_text("{}", encoding="utf-8")
+
+    results = module.LaunchEvidenceCollector(tmp_path, artifacts_only=True).collect_all("evidence_archive")
+    module.EvidenceDocs(tmp_path).write_all(results, dry_run=False, json_summary=summary_path)
+
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    scores = payload["summary"]["scores"]
+
+    assert scores["launch_readiness"] == 14.3
+    assert scores["core_ga"] == 16.7
+    assert scores["paid_ga"] == 16.7

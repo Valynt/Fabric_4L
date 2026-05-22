@@ -1,7 +1,7 @@
-# Launch Decision Artifact (Canonical)
+d# Launch Decision Artifact (Canonical)
 
 - **Owner:** Release Management (Engineering)
-- **Last Updated (UTC):** 2026-05-18
+- **Last Updated (UTC):** 2026-05-21
 - **Scope:** Production launch go/no-go decision package for Value Fabric.
 - **Aligned Runbook:** `docs/runbooks/deployment-rollout-and-rollback.md`
 - **Primary Readiness Criteria Source:** `docs/readiness/current.md`
@@ -19,8 +19,62 @@ This table maps each launch criterion in `docs/readiness/current.md` to objectiv
 | 5. Release gate report indicates no P0 blockers | `artifacts/release/gate-result.json`, `artifacts/release/summary.md` | `scripts/ops/release-gate.sh` + `scripts/ops/render-release-summary.sh` | Engineering + Product |
 | 6. Launch readiness percentage aligned across canonical docs | `docs/readiness/current.md` and launch docs consistency checks | Docs review + release checklist validation | Product + Operations |
 | Tenant isolation regression-free | Tenant isolation test reports and targeted logs | `pytest tests/security -k tenant` (or equivalent service-specific tenant suites) | Security + Engineering |
-| Live workflow validation passes | End-to-end workflow run outputs (L1→L6 critical path) and smoke logs | Release smoke checks after staged deploy | Operations |
+| L3 Neo4j tenant scoping hardened | 49/49 hostile cross-tenant tests pass (`tests/security/test_benchmarks_cross_tenant_isolation.py`, `test_variables_cross_tenant_isolation.py`, `test_models_cross_tenant_isolation.py`, `test_formula_governance_cross_tenant_isolation.py`); Neo4j schema migration `030_neo4j_tenant_id_constraints_and_indexes.py` created with idempotent NOT NULL constraints + indexes on 7 node labels; migration registry at `services/layer3-knowledge/src/migrations/MIGRATIONS.md` | `pytest tests/security/test_benchmarks_cross_tenant_isolation.py tests/security/test_variables_cross_tenant_isolation.py tests/security/test_models_cross_tenant_isolation.py tests/security/test_formula_governance_cross_tenant_isolation.py --no-mandatory-dep-check -q` → 49 passed | Security + Engineering |
+| L3 import topology fixed | 14 previously-blocked test files now collect (55 tests); resolved: 12 git merge conflicts across layer3-knowledge/src, 4 bare `agents.base` imports, 3 bare `config` imports, `config/__init__.py` relative import, `TypedDict` namespace, missing `rdflib`/`neo4j`/`langgraph` deps in pytest venv, `app_monolith.py` shim, `_get_tenant_context` function; `pytest.ini` updated with `testpaths = services/layer3-knowledge`; `services/layer3-knowledge/conftest.py` updated with sys.path guard | `pytest tests/layer3/ tests/ci/test_layer3_settings_import_compat.py tests/performance/test_performance_optimizations.py tests/security/test_layer3_similarity_roi_tenant_isolation.py tests/security/test_neo4j_cross_tenant_write_isolation.py --collect-only --no-mandatory-dep-check -q` → 55 collected, 0 errors | Engineering |
+| Live workflow validation passes | E2E critical-path smoke script at `scripts/e2e/critical_path_smoke.py`; dry-run artifact at `signoff-evidence/e2e/e2e-critical-path-20260521.json`; **REQUIRES live stack** (`docker-compose -f docker-compose.live.yml up -d`) for full PASS — run `python scripts/e2e/critical_path_smoke.py` against live stack and commit updated artifact | `python scripts/e2e/critical_path_smoke.py` (requires live docker-compose stack) | Operations |
 | Security regression suite stable | Security regression test artifacts | `pytest tests/security` | Security |
+
+## 1a) Phase 1 Implementation Evidence (2026-05-21)
+
+### 1.1 L3 Neo4j Tenant Scoping Hardening
+
+| Item | Status | Evidence |
+|---|---|---|
+| Neo4j schema migration (7 labels) | ✅ Created | `services/layer3-knowledge/src/migrations/030_neo4j_tenant_id_constraints_and_indexes.py` |
+| Migration wired into deploy sequence | ✅ Added 2026-05-21 | `docker-compose.live.yml` service `layer3-neo4j-migrate` runs migration 030 before `layer3` starts (`depends_on: service_completed_successfully`); idempotent against repeat runs. |
+| Migration registry | ✅ Created | `services/layer3-knowledge/src/migrations/MIGRATIONS.md` |
+| Hostile tests — benchmarks | ✅ 13/13 pass | `tests/security/test_benchmarks_cross_tenant_isolation.py` |
+| Hostile tests — variables | ✅ 12/12 pass | `tests/security/test_variables_cross_tenant_isolation.py` |
+| Hostile tests — models | ✅ 12/12 pass | `tests/security/test_models_cross_tenant_isolation.py` |
+| Hostile tests — formula governance | ✅ 12/12 pass | `tests/security/test_formula_governance_cross_tenant_isolation.py` |
+| **Total hostile tests** | **✅ 49/49 pass** | `pytest tests/security/test_*_cross_tenant_isolation.py --no-mandatory-dep-check` |
+
+### 1.2 L3 Import Topology Fix
+
+| Item | Status | Evidence |
+|---|---|---|
+| Merge conflicts resolved | ✅ 17 files | `services/layer3-knowledge/src/` (12 files) + `services/layer5-ground-truth/src/` (5 files) |
+| Bare import fixes | ✅ | `agents/*.py` (4 files), `analytics/*.py` (3 files), `api/routes/entities.py` |
+| `config/__init__.py` relative import | ✅ Fixed | `from .manager` / `from .settings` |
+| `TypedDict` namespace collision | ✅ Fixed | `rate_limiting/types.py` → `typing_extensions.TypedDict` |
+| `app_monolith.py` shim | ✅ Created | `services/layer3-knowledge/src/api/app_monolith.py` |
+| `_get_tenant_context` function | ✅ Added | `services/layer3-knowledge/src/api/routes/models_router.py` |
+| `pytest.ini` testpaths | ✅ Updated | Added `services/layer3-knowledge` |
+| `services/layer3-knowledge/conftest.py` | ✅ Updated | sys.path guard + namespace collision comment |
+| **Collection result** | **✅ 55 collected, 0 errors** | Previously: 0 collected, 14 errors |
+| Tests passing (of collected) | 39/55 pass | 14 pre-existing logic failures (cross-phase burn-down), 2 async fixture errors |
+
+### 1.3 Live Cross-Layer E2E
+
+| Item | Status | Evidence |
+|---|---|---|
+| Smoke script | ✅ Created | `scripts/e2e/critical_path_smoke.py` |
+| Dry-run artifact | ✅ Committed | `signoff-evidence/e2e/e2e-critical-path-20260521.json` |
+| Live stack run | ⏳ Pending | Requires `docker-compose -f docker-compose.live.yml up -d` + `python scripts/e2e/critical_path_smoke.py` |
+
+### 1.4 Sign-off
+
+| Item | Status |
+|---|---|
+| 1.1 complete | ✅ |
+| 1.2 complete | ✅ |
+| 1.3 script ready | ✅ (live run pending) |
+| Eng countersignature | ⏳ Pending |
+| Sec countersignature | ⏳ Pending |
+| Product countersignature | ⏳ Pending |
+| Ops countersignature | ⏳ Pending |
+
+---
 
 ## 2) Go / No-Go Thresholds
 

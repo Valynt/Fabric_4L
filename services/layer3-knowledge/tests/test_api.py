@@ -33,6 +33,25 @@ def test_ingest_endpoint_validation(test_client: TestClient) -> None:
     assert response.status_code in {HTTPStatus.OK, HTTPStatus.INTERNAL_SERVER_ERROR, HTTPStatus.SERVICE_UNAVAILABLE}
 
 
+
+
+def test_ingest_rejects_tenant_header_without_authenticated_context(test_client: TestClient) -> None:
+    """X-Tenant-ID alone must not satisfy ingest tenant authentication requirements."""
+    payload: dict[str, Any] = {
+        "rdf_data": "test",
+        "source_id": "src-1",
+        "extraction_job_id": "job-1",
+    }
+
+    response = test_client.post(
+        "/v1/ingest",
+        json=payload,
+        headers={"X-Tenant-ID": "tenant-spoof-attempt"},
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json()["detail"] == "Authenticated tenant context required for ingestion"
+
 def test_query_endpoint_validation(test_client: TestClient) -> None:
     """Query endpoint validates required fields (422) and accepts valid requests."""
     response = test_client.post("/v1/query", json={})

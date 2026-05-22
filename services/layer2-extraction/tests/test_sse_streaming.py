@@ -16,8 +16,8 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
-from value_fabric.layer2.api import main as api_main
-from value_fabric.layer2.integration.job_store import PipelineJob
+from layer2_extraction.api import main as api_main
+from layer2_extraction.integration.job_store import PipelineJob
 
 # Attach the test-tenant middleware once, before the app starts, so that
 # X-Test-Tenant headers are resolved to a governance context in all tests.

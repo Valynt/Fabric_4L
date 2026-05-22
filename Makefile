@@ -13,6 +13,7 @@
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
 	check-layer3-legacy-tenant-dependency-imports \
+	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
 	harness-task harness-guard harness-check \
 	docs-harness
@@ -42,7 +43,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-layer3-tenant-dependency-imports lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -82,9 +83,6 @@ check-migration-entrypoints: ## Ensure maintained services expose migration entr
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
 	@python3 scripts/ci/check_migration_entrypoints.py
 
-check-layer3-tenant-dependency-imports: ## Block Layer 3 legacy tenant dependency imports in API code
-	@python3 scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
-
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
 	@set +e; python -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
@@ -92,10 +90,12 @@ check-pytest-skip-governance: ## Enforce pytest skip governance from collection 
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
-	@python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
+	@$(PYTHON) scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
+
+check-layer3-tenant-dependency-imports: check-layer3-legacy-tenant-dependency-imports ## Alias for check-layer3-legacy-tenant-dependency-imports (backward compat)
 
 check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register keys (path_pattern + marker + reason_pattern)
-	@python scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
+	@$(PYTHON) scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
 	@python3 scripts/ci/check_reports_evidence_policy.py

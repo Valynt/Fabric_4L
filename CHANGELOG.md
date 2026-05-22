@@ -7,7 +7,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 
 ---
 
-## [Unreleased] — ADR-027 Canonical Path Migration + Production Readiness
+## [Unreleased]
 
 ### Changed
 - **ADR-027 Layer 2 migration**: Moved `alignment.py`, `coreference.py`, `validation.py`, and `api/` wrappers from `value_fabric/layer2/` to `services/layer2-extraction/src/layer2_extraction/`. Deleted empty stale directories (`coreference/`, `db/`, `extraction/`). `value_fabric/layer2/` now contains only the path-appender shim `__init__.py`.
@@ -35,6 +35,19 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Added 8 new critical gates to `.github/workflows/critical-gates.yml`: `adr027-layer3-imports`, `adr027-layer4-imports`, `adr027-layer5-shim`, `adr027-deprecated-namespaces`, `adr027-duplicate-source-trees`, `alembic-head-consistency`, `env-contract-structure`, `stale-namespace-dirs`.
 - Added `check_stale_namespace_dirs.py` step to `repo-hygiene.yml`; added `value_fabric/**` to path triggers.
 - Fixed `critical-gates.yml` gate commands referencing non-existent test files (`test_tenant_isolation_hostile.py` → `test_tenant_isolation.py` + `test_graph_tenant_hostile_regression.py`; `test_auth_endpoint_coverage.py` → `test_sensitive_route_audit_coverage.py`).
+- Canonical launch readiness source set to `docs/readiness/current.md`; roadmap launch criteria references now point to canonical readiness.
+
+### Documentation
+- **Architecture docs consolidated**: `docs/core-concepts/architecture.md` is now the single canonical platform architecture document. `docs/architecture.md` and `docs/architecture_overview.md` reduced to redirect stubs (six-layer port table + links). `docs/agent-architecture.md` clarified to be Layer-4-specific and points to the canonical doc and the root `AGENTS.md` for repo-wide AI contributor rules.
+- **README repository map corrected for ADR-027**: Rewrote the "Repository map", "Source of truth paths", and per-layer contributor-rule sections so the README matches ADR-027 and the path governance matrix — `services/layer{N}-*/src/` is canonical and `value_fabric/layer{N}/` is shim-only. The earlier "Layer 6 contributor rule" recommended the opposite.
+- **README Reference & Governance subsection** added linking the path governance matrix, service routing & API version matrix, contract governance, compatibility debt registry, launch drift prevention SOP, and the new frontend / testing / operators reference docs.
+- **CONTRIBUTING.md**: Added "Before You Add A Service Layer" callout linking the path governance and service routing matrices, and a "Testing" section pointing at the unified testing strategy.
+- **Layer 6 API reference completed**: Added the Layer 6 (`/v1/benchmarks/*`) section to `docs/API_REFERENCE.md`, replaced the "Postman deferred" wording with an "Interactive Exploration" pointer to Swagger UI + the OpenAPI specs under `contracts/openapi/`, and added an explicit "Source of truth" callout naming `contracts/openapi/` as authoritative.
+- **New reference docs**: `docs/reference/frontend-query-patterns.md` (TanStack Query keys / mutations / invalidation, Zustand rules, generated-client policy, tenant-safety rules in the web app) and `docs/how-to-guides/operators.md` (a single index of every operator-facing runbook under `docs/runbooks/`, `docs/operations/`, `docs/operational/`, `docs/deployment/`, recommending `docs/runbooks/` as canonical going forward).
+- **Historical reports archived in place**: Added `STATUS: ARCHIVED` banners to 10 dated audit reports (`DOCUMENTATION_AUDIT_REPORT.md`, `BACKEND_FRONTEND_ALIGNMENT_ANALYSIS.md`, `misalignment-report.md`, `test-quality-audit.md`, `test-audit-2026-04-28.md`, `SECURITY_FIXES_EXECUTION_LOG.md`, `SECURITY_FIXES_SUMMARY.md`, `MCP_GATEWAY_SECURITY_ASSESSMENT_2026-04-24.md`, `IMPLEMENTATION_PLAN.md`, `CHANGES.md`). New `docs/archive/INDEX.md` catalogues each archived doc with its replacement. Files were intentionally not physically relocated to avoid breaking external bookmarks; a follow-up commit can `git mv` them once link checkers and external references have been audited.
+- **Deprecation source of truth designated**: `docs/governance/compatibility-debt-registry.md` is now the canonical registry for runtime compatibility shims; `docs/DEPRECATIONS.md` converted to a pointer with historical pattern-level entries retained under a "Historical entries" heading.
+- **`docs/README.md` index refreshed** with operators, frontend query patterns, testing strategy, path governance, ADR-027, archive, and API contract sources.
+- **Layer 6 placement drift removed**: `CONTRIBUTING.md` "Layer 6 placement rule", `services/layer6-benchmarks/README.md` "Source ownership", and `docs/source-tree-canonicalization.md` rewritten to match ADR-027 (canonical = `services/layer6-benchmarks/src/`; `value_fabric/layer6/` is shim-only). `docs/reference/layer3-layer6-wrapper-policy.md` marked superseded with a banner; `docs/migration-note-layer56-canonical-imports.md` archived and added to `docs/archive/INDEX.md`.
 
 ## [1.0.0] — 2026-05-12
 
@@ -65,25 +78,6 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - Fixed K8s overlay patches: corrected ConfigMap name (`global-config` → `value-fabric-config`)
 - Fixed K8s overlay patches: added missing namespace metadata
 - Aligned all version sources to 1.0.0
-
-## [Unreleased]
-
-### Added
-- `AGENTS.md` — contributor guide for AI agents and developers (P0 MAS best practice)
-- `contracts/tool-manifests/` — versioned JSON Schema tool manifests for all agent skills
-- `contracts/jsonschema/` — shared data model schemas (entities, events)
-- `tests/evals/` — golden-trace agent evaluation framework with fixtures
-- Root `README.md` with repo map and quickstart
-- `CONTRIBUTING.md` — developer setup, coding standards, PR conventions
-- `SECURITY.md` — supported versions and vulnerability reporting
-- `CHANGELOG.md` — SemVer-based release history
-- `Makefile` — developer ergonomics (`verify`, `test`, `lint`, `build`, `migrate`, `evals`)
-- `.github/dependabot.yml` — automated dependency updates (pip, npm, GitHub Actions)
-
----
-
-### Changed
-- Canonical launch readiness source set to `docs/readiness/current.md`; roadmap launch criteria references now point to canonical readiness.
 
 ## [0.9.0] — 2026-04-12
 
@@ -118,3 +112,13 @@ Versions follow [Semantic Versioning](https://semver.org/).
 - 12 atomic skill definitions (evaluate_formula, semantic_search, graph_traverse, etc.)
 - CI pipeline: lint, type-check, 80%+ coverage gate per layer
 - Docker Compose for local full-stack development
+- `AGENTS.md` — contributor guide for AI agents and developers (P0 MAS best practice)
+- `contracts/tool-manifests/` — versioned JSON Schema tool manifests for all agent skills
+- `contracts/jsonschema/` — shared data model schemas (entities, events)
+- `tests/evals/` — golden-trace agent evaluation framework with fixtures
+- Root `README.md` with repo map and quickstart
+- `CONTRIBUTING.md` — developer setup, coding standards, PR conventions
+- `SECURITY.md` — supported versions and vulnerability reporting
+- `CHANGELOG.md` — SemVer-based release history
+- `Makefile` — developer ergonomics (`verify`, `test`, `lint`, `build`, `migrate`, `evals`)
+- `.github/dependabot.yml` — automated dependency updates (pip, npm, GitHub Actions)

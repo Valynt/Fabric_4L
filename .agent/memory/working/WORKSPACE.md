@@ -1,30 +1,24 @@
 # Workspace (live task state)
 
 ## Current task
-Fabric Harness MVP — verified and linted.
+Quality and launch readiness score updates.
 
 ## Status
-COMPLETE. All 86 harness tests pass. Ruff clean (200 auto-fixes applied, 2 manual fixes).
+IN PROGRESS. Added score regressions for launch evidence and quality scorecard generation.
 
 ## What was done
-- Discovered harness was already fully implemented in `services/layer4-agents/src/harness/`
-- Ran 86 tests: all passed (0.28s)
-- Applied ruff auto-fixes (200 issues: import sorting, `typing.Dict/List/Tuple` → `dict/list/tuple`, `Optional[X]` → `X | None`)
-- Fixed 2 remaining ruff issues manually in `test_harness.py` (walrus operator → explicit import)
-- Confirmed 86/86 tests still pass after lint fixes
+- Inspected `scripts/ci/layer_quality_scorecard.py` and `scripts/ci/generate_launch_evidence_bundle.py`
+- Added regression coverage for layer-scoped quality scoring and launch readiness score summaries
+- Implemented launch readiness score output for generated evidence docs/json summary
+- Scoped layer quality scorecard shared docs/tests/contracts matching by layer token and added check counts
+- Ran targeted pytest and `py_compile`; regenerated `docs/governance/layer-quality-scorecard.json`
 
 ## Files touched
-- `src/harness/__init__.py` — import sort fixed
-- `src/harness/models.py` — typing modernized
-- `src/harness/state_machine.py` — typing modernized
-- `src/harness/policies.py` — typing modernized
-- `src/harness/tool_contracts.py` — typing modernized
-- `src/harness/human_gates.py` — typing modernized
-- `src/harness/checkpoints.py` — typing modernized
-- `src/harness/telemetry.py` — typing modernized
-- `src/harness/validation_hooks.py` — typing modernized
-- `src/harness/registry.py` — typing modernized
-- `src/harness/tests/test_harness.py` — walrus operator fix
+- `scripts/ci/layer_quality_scorecard.py`
+- `scripts/ci/generate_launch_evidence_bundle.py`
+- `tests/ci/test_layer_quality_scorecard.py`
+- `tests/ci/test_launch_evidence_bundle.py`
+- `docs/governance/layer-quality-scorecard.json`
 
 ## Next step
-Archive this workspace on next session start.
+Run final validation and archive on completion.

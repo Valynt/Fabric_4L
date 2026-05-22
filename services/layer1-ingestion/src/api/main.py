@@ -32,6 +32,7 @@ from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 # Hard imports - fail fast if security components unavailable
 from value_fabric.shared.security import SecurityConfig, add_security_middleware
@@ -92,6 +93,7 @@ structlog.configure(
 )
 
 logger = structlog.get_logger()
+reject_insecure_bypass_in_production(service_name="layer1-ingestion", settings=settings)
 
 # =============================================================================
 # DEPRECATION REGISTER

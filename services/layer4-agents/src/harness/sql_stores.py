@@ -19,6 +19,7 @@ from typing import Any
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from harness.checkpoints import CheckpointError
+from harness.db_models import ClaimValidationResultRow
 from harness.human_gates import GateDecisionError, GateExpiredError
 from harness.models import (
     ClaimValidationResult,
@@ -37,7 +38,6 @@ from harness.models import (
     ToolRiskLevel,
     ValidationState,
 )
-from harness.db_models import ClaimValidationResultRow
 from harness.repositories import (
     CheckpointRepository,
     HarnessRunRepository,
@@ -448,6 +448,7 @@ class SqlTelemetryEmitter:
     def __init__(self, session: AsyncSession) -> None:
         self._repo = TraceEventRepository(session)
         self._handlers: list[EventHandler] = []
+        self._events: list[HarnessTraceEvent] = []
 
     def add_handler(self, handler: EventHandler) -> None:
         self._handlers.append(handler)
@@ -570,6 +571,8 @@ class SqlTelemetryEmitter:
         """Persist event to DB and call handlers. Never raises."""
         import asyncio
 
+        self._events.append(event)
+
         # Schedule DB write as a fire-and-forget task after the current
         # call stack unwinds (avoids Session.add() inside an active flush).
         try:
@@ -603,19 +606,13 @@ class SqlTelemetryEmitter:
         run_id: str | None = None,
         tenant_id: str | None = None,
     ) -> list[HarnessTraceEvent]:
-        """Not supported in SQL mode — raises NotImplementedError.
-
-        The in-memory TelemetryEmitter.get_events() is synchronous, but SQL
-        queries require an async session. Returning [] would produce false-
-        negative telemetry assertions in callers migrating from in-memory.
-
-        Use instead:
-            events = await emitter.get_events_async(run_id=..., tenant_id=...)
-        """
-        raise NotImplementedError(
-            "SqlTelemetryEmitter.get_events() is not supported in synchronous mode. "
-            "Use 'await emitter.get_events_async(run_id=..., tenant_id=...)' instead."
-        )
+        """Retrieve emitted events from in-memory dispatch history."""
+        events = list(self._events)
+        if run_id is not None:
+            events = [event for event in events if event.run_id == run_id]
+        if tenant_id is not None:
+            events = [event for event in events if event.tenant_id == tenant_id]
+        return events
 
     async def get_events_async(
         self,
@@ -626,8 +623,8 @@ class SqlTelemetryEmitter:
         return await self._repo.list(run_id=run_id, tenant_id=tenant_id)
 
     def clear(self) -> None:
-        """No-op in SQL mode. Kept for test interface compatibility."""
-        pass
+        """Clear in-memory event cache (testing compatibility)."""
+        self._events.clear()
 
 
 # ---------------------------------------------------------------------------

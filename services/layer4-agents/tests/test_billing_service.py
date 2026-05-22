@@ -42,6 +42,7 @@ mock_stripe_module.billing_portal = MagicMock()
 
 with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
     from value_fabric.layer4.services.billing_service import BillingService
+    from value_fabric.layer4.services.stripe_client import StripeError
 
 
 # =============================================================================
@@ -139,8 +140,85 @@ async def test_get_or_create_customer_new(mock_db):
     assert customer.email == "new@example.com"
     assert customer.name == "New User"
     assert customer.stripe_customer_id == "cus_new123"
+    assert customer.stripe_sync_status == "synced"
     mock_db.add.assert_called()
     mock_db.flush.assert_called()
+
+@pytest.mark.asyncio
+async def test_get_or_create_customer_stripe_unavailable_marks_sync_failed(mock_db):
+    """Stripe failure should persist explicit failed sync state."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_stripe.Customer.create.side_effect = StripeError("stripe unavailable")
+
+    with patch('src.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        customer = await service.get_or_create_customer(
+            customer_id="user_pending",
+            email="pending@example.com",
+            name="Pending User",
+        )
+
+    assert customer.stripe_customer_id is None
+    assert customer.stripe_sync_status == "failed"
+    assert customer.stripe_sync_error is not None
+
+
+@pytest.mark.asyncio
+async def test_get_or_create_customer_logs_orphan_on_db_failure_after_stripe_success(mock_db):
+    """DB failure after Stripe success should log orphan compensation signal."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = None
+    mock_db.execute.return_value = mock_result
+    mock_db.flush.side_effect = [None, Exception("db flush failed")]
+
+    mock_stripe = MagicMock()
+    mock_customer = MagicMock()
+    mock_customer.id = "cus_orphan_123"
+    mock_stripe.Customer.create.return_value = mock_customer
+
+    with patch('src.services.billing_service._get_stripe', return_value=mock_stripe), patch('src.services.billing_service.logger') as mock_logger:
+        service = BillingService(mock_db)
+        with pytest.raises(Exception):
+            await service.get_or_create_customer(
+                customer_id="user_orphan",
+                email="orphan@example.com",
+                name="Orphan User",
+            )
+    assert mock_logger.warning.called
+
+
+@pytest.mark.asyncio
+async def test_reconcile_customer_sync_retry_recovers_failed_customer(mock_db):
+    """Failed sync should recover via reconciliation retry."""
+    customer = BillingCustomer(
+        id="user_retry",
+        tenant_id="tenant_abc123",
+        stripe_customer_id=None,
+        stripe_sync_status="failed",
+        stripe_sync_error="timeout",
+        email="retry@example.com",
+        name="Retry User",
+    )
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = [customer]
+    mock_db.execute.return_value = mock_result
+
+    mock_stripe = MagicMock()
+    mock_remote = MagicMock()
+    mock_remote.id = "cus_recovered_1"
+    mock_stripe.Customer.create.return_value = mock_remote
+    with patch('src.services.billing_service._get_stripe', return_value=mock_stripe):
+        service = BillingService(mock_db)
+        result = await service.reconcile_customer_sync(batch_size=10)
+
+    assert customer.stripe_customer_id == "cus_recovered_1"
+    assert customer.stripe_sync_status == "synced"
+    assert customer.stripe_sync_error is None
+    assert result["synced"] == 1
 
 
 @pytest.mark.asyncio

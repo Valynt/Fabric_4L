@@ -153,6 +153,9 @@ apps/web/coverage/
 services/layer4-agents/collect_errors.txt
 services/layer4-agents/collect_out*.txt
 
+# Generated agent operational memory — not reproducible, not source code
+.agent/memory/episodic/
+
 # Temporary drift/migration baseline files
 tmp_*_findings.json
 tmp_*_after_fix.json

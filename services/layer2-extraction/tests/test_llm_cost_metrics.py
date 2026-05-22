@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from value_fabric.layer2.metrics.prometheus_metrics import (
+from layer2_extraction.metrics.prometheus_metrics import (
     MetricsConfig,
     PrometheusMetrics,
     initialize_metrics,

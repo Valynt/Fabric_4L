@@ -18,6 +18,8 @@ export interface OperationalAuditEntry {
   action: string;
   agent: string;
   details: Record<string, unknown>;
+  event_hash?: string | null;
+  event_reference?: string | null;
 }
 
 export interface OperationalAuditResponse {
@@ -30,8 +32,30 @@ export interface OperationalAuditResponse {
 export interface OperationalAuditFilters {
   eventType?: string;
   entityType?: string;
+  entityId?: string;
+  action?: string;
+  actor?: string;
+  startDate?: string;
+  endDate?: string;
   page?: number;
   perPage?: number;
+}
+
+export function buildOperationalAuditParams(filters: OperationalAuditFilters): URLSearchParams {
+  const params = new URLSearchParams();
+  params.set("source", "access");
+  params.set("page", String(filters.page ?? 1));
+  params.set("per_page", String(filters.perPage ?? 25));
+
+  if (filters.eventType) params.set("event_type", filters.eventType);
+  if (filters.entityType) params.set("entity_type", filters.entityType);
+  if (filters.entityId) params.set("entity_id", filters.entityId);
+  if (filters.action) params.set("action", filters.action);
+  if (filters.actor) params.set("actor", filters.actor);
+  if (filters.startDate) params.set("start_date", filters.startDate);
+  if (filters.endDate) params.set("end_date", filters.endDate);
+
+  return params;
 }
 
 export class OperationalAuditApiError extends BaseApiError {
@@ -44,17 +68,7 @@ export class OperationalAuditApiError extends BaseApiError {
 async function fetchOperationalAudit(
   filters: OperationalAuditFilters
 ): Promise<OperationalAuditResponse> {
-  const params = new URLSearchParams();
-  params.set("source", "access");
-  params.set("page", String(filters.page ?? 1));
-  params.set("per_page", String(filters.perPage ?? 25));
-
-  if (filters.eventType) {
-    params.set("event_type", filters.eventType);
-  }
-  if (filters.entityType) {
-    params.set("entity_type", filters.entityType);
-  }
+  const params = buildOperationalAuditParams(filters);
 
   const response = await apiGet<OperationalAuditResponse>(
     "l4",

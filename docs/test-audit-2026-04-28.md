@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical audit snapshot (2026-04-28). See [docs/archive/INDEX.md](archive/INDEX.md). Current testing strategy lives in [reference/testing-strategy.md](reference/testing-strategy.md).
+
 # Test Audit — April 28, 2026
 
 ## Scope and method

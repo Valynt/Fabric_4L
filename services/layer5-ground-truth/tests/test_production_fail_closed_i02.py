@@ -288,13 +288,8 @@ class TestLayer5ProductionSettingsFailClosed:
 class TestLayer5GetCurrentUserHardening:
     """Regression coverage for ``get_current_user`` adapter.
 
-    The dependency must:
-      * derive identity from ``request.state.governance_context`` when present;
-      * return 401 in production-like runtimes when no middleware context is set
-        (no header or query-param fallback permitted);
-      * only fall back to legacy header/query paths when
-        ``ALLOW_INSECURE_DEV_AUTH_BYPASS=true`` AND the environment is NOT
-        production-like.
+    The dependency must derive identity only from canonical middleware context
+    and fail closed otherwise.
     """
 
     @staticmethod
@@ -303,9 +298,9 @@ class TestLayer5GetCurrentUserHardening:
         from types import SimpleNamespace
 
         state = SimpleNamespace(governance_context=ctx, context=ctx)
-        return SimpleNamespace(state=state, headers=headers or {}, url=SimpleNamespace(path="/test-auth"))
+        return SimpleNamespace(state=state, headers=headers or {}, query_params={}, url=SimpleNamespace(path="/test-auth"))
 
-    def _build_settings(self, monkeypatch: pytest.MonkeyPatch, *, runtime_mode: str, allow_bypass: bool, enable_query_fallback: bool = False):
+    def _build_settings(self, monkeypatch: pytest.MonkeyPatch, *, runtime_mode: str):
         _clear_layer5_env(monkeypatch)
         if runtime_mode in {"prod", "staging"}:
             _set_valid_production_env(monkeypatch)
@@ -313,11 +308,8 @@ class TestLayer5GetCurrentUserHardening:
         else:
             monkeypatch.setenv("ENVIRONMENT", runtime_mode)
             monkeypatch.setenv("JWT_SECRET", VALID_JWT_SECRET)
-        monkeypatch.setenv(
-            "ALLOW_INSECURE_DEV_AUTH_BYPASS",
-            "true" if allow_bypass else "false",
-        )
-        monkeypatch.setenv("JWT_FALLBACK_TO_QUERY_PARAM", "true" if enable_query_fallback else "false")
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "false")
+        monkeypatch.setenv("JWT_FALLBACK_TO_QUERY_PARAM", "false")
         return Settings()
 
     def test_derives_identity_from_governance_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -325,7 +317,7 @@ class TestLayer5GetCurrentUserHardening:
 
         from layer5_ground_truth.api.auth import get_current_user
 
-        settings = self._build_settings(monkeypatch, runtime_mode="prod", allow_bypass=False)
+        settings = self._build_settings(monkeypatch, runtime_mode="prod")
 
         tenant = uuid4()
 
@@ -340,9 +332,6 @@ class TestLayer5GetCurrentUserHardening:
 
         claims = get_current_user(
             request=request,
-            authorization=None,
-            x_tenant_id=None,
-            tenant_id=None,
             settings=settings,
         )
 
@@ -355,39 +344,35 @@ class TestLayer5GetCurrentUserHardening:
 
         from layer5_ground_truth.api.auth import get_current_user
 
-        settings = self._build_settings(monkeypatch, runtime_mode="prod", allow_bypass=False)
+        settings = self._build_settings(monkeypatch, runtime_mode="prod")
         request = self._fake_request(ctx=None)
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(
                 request=request,
-                authorization=None,
-                x_tenant_id="11111111-1111-4111-8111-111111111111",
-                tenant_id=None,
                 settings=settings,
             )
 
         assert exc_info.value.status_code == 401
-        assert exc_info.value.detail["error_code"] == "AUTH_REQUIRED"
+        assert exc_info.value.detail["error_code"] == "AUTH_CONTEXT_REQUIRED"
 
-    def test_production_ignores_tenant_id_query_param(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_header_tenant_hint_does_not_establish_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from fastapi import HTTPException
 
         from layer5_ground_truth.api.auth import get_current_user
 
-        settings = self._build_settings(monkeypatch, runtime_mode="prod", allow_bypass=False)
-        request = self._fake_request(ctx=None)
+        settings = self._build_settings(monkeypatch, runtime_mode="prod")
+        tenant = "11111111-1111-4111-8111-111111111111"
+        request = self._fake_request(ctx=None, headers={"X-Tenant-ID": tenant})
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(
                 request=request,
-                authorization=None,
-                x_tenant_id=None,
-                tenant_id="11111111-1111-4111-8111-111111111111",
                 settings=settings,
             )
 
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail["error_code"] == "AUTH_TENANT_HINT_REJECTED"
 
     def test_dev_bypass_disabled_without_context_is_401(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from fastapi import HTTPException
@@ -397,102 +382,76 @@ class TestLayer5GetCurrentUserHardening:
         # Non-production but bypass flag OFF: must still fail closed when no
         # middleware context is present, so unit tests that forget to override
         # the dependency cannot accidentally grant auth.
-        settings = self._build_settings(monkeypatch, runtime_mode="dev", allow_bypass=False)
+        settings = self._build_settings(monkeypatch, runtime_mode="dev")
         request = self._fake_request(ctx=None)
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(
                 request=request,
-                authorization=None,
-                x_tenant_id="11111111-1111-4111-8111-111111111111",
-                tenant_id=None,
                 settings=settings,
             )
 
         assert exc_info.value.status_code == 401
 
-    def test_dev_bypass_enabled_still_rejects_header_only_tenant_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
+    def test_query_tenant_hint_does_not_establish_context(self, monkeypatch: pytest.MonkeyPatch) -> None:
         from fastapi import HTTPException
         from layer5_ground_truth.api.auth import get_current_user
 
-        settings = self._build_settings(monkeypatch, runtime_mode="dev", allow_bypass=True)
+        settings = self._build_settings(monkeypatch, runtime_mode="dev")
         request = self._fake_request(ctx=None)
-        tenant = "11111111-1111-4111-8111-111111111111"
+        request.query_params = {"tenant_id": "11111111-1111-4111-8111-111111111111"}
 
         with pytest.raises(HTTPException) as exc_info:
             get_current_user(
                 request=request,
-                authorization=None,
-                x_tenant_id=tenant,
-                tenant_id=None,
                 settings=settings,
             )
-        assert exc_info.value.status_code == 401
+        assert exc_info.value.status_code == 403
+        assert exc_info.value.detail["error_code"] == "AUTH_TENANT_HINT_REJECTED"
 
     @pytest.mark.parametrize(
-        ("runtime_mode", "expect_fallback_admitted"),
-        [("prod", False), ("staging", False), ("dev", True), ("test", True)],
+        "runtime_mode",
+        ["prod", "staging", "dev", "test"],
     )
-    def test_runtime_mode_header_and_query_hints_never_create_identity(
+    def test_runtime_mode_missing_context_fails_closed(
         self,
         monkeypatch: pytest.MonkeyPatch,
         runtime_mode: str,
-        expect_fallback_admitted: bool,
     ) -> None:
         from fastapi import HTTPException
 
         from layer5_ground_truth.api.auth import get_current_user
 
-        tenant = "11111111-1111-4111-8111-111111111111"
         settings = self._build_settings(
             monkeypatch,
             runtime_mode=runtime_mode,
-            allow_bypass=expect_fallback_admitted,
-            enable_query_fallback=expect_fallback_admitted,
         )
         request = self._fake_request(ctx=None)
+        with pytest.raises(HTTPException) as exc_info:
+            get_current_user(request=request, settings=settings)
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail["error_code"] == "AUTH_CONTEXT_REQUIRED"
 
-        with pytest.raises(HTTPException) as header_exc:
-            get_current_user(
-                request=request,
-                authorization=None,
-                x_tenant_id=tenant,
-                tenant_id=None,
-                settings=settings,
-            )
-        assert header_exc.value.status_code == 401
-
-        with pytest.raises(HTTPException) as query_exc:
-            get_current_user(
-                request=request,
-                authorization=None,
-                x_tenant_id=None,
-                tenant_id=tenant,
-                settings=settings,
-            )
-        assert query_exc.value.status_code == 401
-
-    def test_non_production_header_and_query_hints_do_not_emit_fallback_logs(
-        self,
-        monkeypatch: pytest.MonkeyPatch,
-        caplog: pytest.LogCaptureFixture,
-    ) -> None:
+    def test_conflicting_hint_with_context_is_ignored_for_resolution(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        from uuid import uuid4
         from layer5_ground_truth.api.auth import get_current_user
 
-        tenant = "11111111-1111-4111-8111-111111111111"
-        settings = self._build_settings(
-            monkeypatch,
-            runtime_mode="test",
-            allow_bypass=True,
-            enable_query_fallback=True,
+        settings = self._build_settings(monkeypatch, runtime_mode="test")
+        canonical_tenant = uuid4()
+        request = self._fake_request(
+            ctx=type(
+                "_Ctx",
+                (),
+                {
+                    "tenant_id": canonical_tenant,
+                    "user_id": "user-123",
+                    "roles": ["admin"],
+                    "permissions": frozenset(),
+                    "raw": {"source": "governance_context"},
+                },
+            )(),
+            headers={"X-Tenant-ID": "22222222-2222-4222-8222-222222222222"},
         )
-        request = self._fake_request(ctx=None)
 
-        with caplog.at_level("WARNING"):
-            with pytest.raises(Exception):
-                get_current_user(request=request, authorization=None, x_tenant_id=tenant, tenant_id=None, settings=settings)
-            with pytest.raises(Exception):
-                get_current_user(request=request, authorization=None, x_tenant_id=None, tenant_id=tenant, settings=settings)
-
-        assert "layer5.x_tenant_id_header" not in caplog.text
-        assert "layer5.tenant_query_param" not in caplog.text
+        claims = get_current_user(request=request, settings=settings)
+        assert claims.tenant_id == canonical_tenant

@@ -30,7 +30,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from logging_config import get_logger
 
-from ...api.routes._utils import increment_patch_version
+from ...api.routes._utils import get_tenant_id_from_api_key, increment_patch_version
 from ...api.routes.formulas import evaluate_expression
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key
@@ -79,11 +79,18 @@ def _extract_tenant_id(request: Request | None) -> str | None:
 
 
 def _tenant_id_from_api_key(api_key: APIKey) -> str:
-    """Resolve tenant context for legacy API-key endpoints and fail closed if absent."""
-    tenant_id = getattr(api_key, "tenant_id", None) or getattr(api_key, "workspace_id", None)
-    if not tenant_id:
-        raise HTTPException(status_code=403, detail="Tenant context is required")
-    return str(tenant_id)
+    """Resolve tenant ID from authenticated API-key metadata; fail closed if absent.
+
+    Delegates to the shared get_tenant_id_from_api_key helper in _utils.
+
+    Contract note: previously raised 403 ("Tenant context is required"). Changed to
+    401 in round-2 hardening to align with benchmarks.py and formula_governance.py,
+    which treat a missing/invalid tenant as an authentication failure (the API key
+    does not carry a valid identity) rather than an authorization failure.
+    Callers that previously distinguished 403 from 401 should be updated accordingly.
+    """
+    return get_tenant_id_from_api_key(api_key)
+
 
 # Status constants for Value Packs
 STATUS_DRAFT = "draft"
@@ -1466,7 +1473,7 @@ async def seed_valuepack_data(
         raise HTTPException(status_code=404, detail=f"ValuePack not found: {industry_id}")
     
     vp = _valuepack_db[industry_id]
-    tenant_id = api_key.tenant_id if hasattr(api_key, 'tenant_id') else 'default'
+    tenant_id = _tenant_id_from_api_key(api_key)
     
     # Build Cypher query to create ValuePack graph
     cypher = """

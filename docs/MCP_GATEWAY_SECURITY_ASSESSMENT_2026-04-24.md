@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical security assessment (2026-04-24). See [docs/archive/INDEX.md](archive/INDEX.md). Current MCP gateway docs live under [reference/](reference/) and [security/](security/).
+
 # MCP Gateway Security Assessment (2026-04-24)
 
 ## Scope

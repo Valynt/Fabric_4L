@@ -9,6 +9,30 @@ Common helpers for validation, parsing, and formatting.
 
 import re
 
+from fastapi import HTTPException
+
+from ...auth.api_keys import APIKey
+
+
+def get_tenant_id_from_api_key(api_key: APIKey) -> str:
+    """Resolve tenant ID from authenticated API-key metadata; fail closed if absent.
+
+    Single source of truth for API-key tenant extraction across L3 routes.
+
+    Raises HTTPException(401) for any of: missing metadata attr, non-dict metadata,
+    None metadata, missing tenant_id key, non-string tenant_id, empty string, or
+    whitespace-only tenant_id.
+    """
+    raw = getattr(api_key, "metadata", None)
+    metadata = raw if isinstance(raw, dict) else {}
+    raw_tenant_id = metadata.get("tenant_id")
+    if not isinstance(raw_tenant_id, str):
+        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    tenant_id = raw_tenant_id.strip()
+    if not tenant_id:
+        raise HTTPException(status_code=401, detail="Invalid tenant context")
+    return tenant_id
+
 
 def parse_semver(version: str) -> tuple[int, int, int, str | None, str | None]:
     """Parse semver string into components.

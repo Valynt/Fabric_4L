@@ -8,10 +8,10 @@ import httpx
 import pytest
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from value_fabric.layer2.api import main as api_main
-from value_fabric.layer2.integration.layer3_client import IngestionResponse, IngestionStatus
-from value_fabric.layer2.integration.pending_ingestion_store import PendingIngestionRecord
-from value_fabric.layer2.models import (
+from layer2_extraction.api import main as api_main
+from layer2_extraction.integration.layer3_client import IngestionResponse, IngestionStatus
+from layer2_extraction.integration.pending_ingestion_store import PendingIngestionRecord
+from layer2_extraction.models import (
     Capability,
     ExtractionResult,
     PredicateType,
@@ -248,7 +248,7 @@ def request_payload() -> dict:
 
 @pytest.fixture(autouse=True)
 def reset_pipeline_state(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.layer2.integration.job_store import InMemoryJobStore
+    from layer2_extraction.integration.job_store import InMemoryJobStore
     test_job_store = InMemoryJobStore()
     monkeypatch.setattr(api_main, "job_store", test_job_store)
     yield

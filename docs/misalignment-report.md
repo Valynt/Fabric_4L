@@ -1,3 +1,5 @@
+> **STATUS: ARCHIVED** — historical misalignment snapshot (2026-05-02). See [docs/archive/INDEX.md](archive/INDEX.md). Current contract alignment is governed by [contracts/GOVERNANCE.md](../contracts/GOVERNANCE.md).
+
 # Backend-Frontend Misalignment Report
 
 **Generated:** May 2, 2026  

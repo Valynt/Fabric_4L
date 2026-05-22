@@ -11,12 +11,18 @@
 | I need to... | Go to |
 |--------------|-------|
 | Get started quickly | [`/getting-started/`](./getting-started/) |
-| Understand the architecture | [`/core-concepts/`](./core-concepts/) |
+| Understand the architecture | [`core-concepts/architecture.md`](./core-concepts/architecture.md) |
+| Look up an API | [`API_REFERENCE.md`](./API_REFERENCE.md) (human-readable) · [`/contracts/openapi/`](../contracts/openapi/) (authoritative) |
 | Solve a specific problem | [`/how-to-guides/`](./how-to-guides/) |
+| Run / operate the platform | [`how-to-guides/operators.md`](./how-to-guides/operators.md) |
 | Look up API/config details | [`/reference/`](./reference/) |
+| Frontend query / state rules | [`reference/frontend-query-patterns.md`](./reference/frontend-query-patterns.md) |
+| Testing strategy | [`reference/testing-strategy.md`](./reference/testing-strategy.md) |
+| Where new code must live | [`reference/layer-runtime-path-governance.md`](./reference/layer-runtime-path-governance.md) |
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |
-| Understand design decisions | [`/explanations/`](./explanations/) |
-| Contribute to the project | [`/contributing/`](./contributing/) |
+| Understand design decisions | [`/explanations/`](./explanations/) · [`/explanations/adr/`](./explanations/adr/) |
+| Contribute to the project | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
+| Find a historical report | [`archive/INDEX.md`](./archive/INDEX.md) |
 
 ---
 

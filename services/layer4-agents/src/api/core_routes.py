@@ -72,6 +72,7 @@ def register_core_routes(app: FastAPI) -> None:
                         "status": "healthy",
                         "response_time_ms": None,
                         "error": None,
+                        "failure_reason": None,
                     }
                 )
             else:
@@ -81,6 +82,7 @@ def register_core_routes(app: FastAPI) -> None:
                         "status": "degraded",
                         "response_time_ms": None,
                         "error": "Checkpointing not configured",
+                        "failure_reason": "checkpointing_not_configured",
                     }
                 )
                 overall_status = "degraded"
@@ -91,6 +93,7 @@ def register_core_routes(app: FastAPI) -> None:
                     "status": "unhealthy",
                     "response_time_ms": None,
                     "error": str(exc),
+                    "failure_reason": str(exc),
                 }
             )
             overall_status = "degraded"
@@ -101,7 +104,7 @@ def register_core_routes(app: FastAPI) -> None:
             ):
                 await runtime_state.state_manager.redis_client.ping()
                 dependencies.append(
-                    {"name": "redis", "status": "healthy", "response_time_ms": None, "error": None}
+                    {"name": "redis", "status": "healthy", "response_time_ms": None, "error": None, "failure_reason": None}
                 )
             else:
                 dependencies.append(
@@ -110,11 +113,12 @@ def register_core_routes(app: FastAPI) -> None:
                         "status": "degraded",
                         "response_time_ms": None,
                         "error": "Redis not configured",
+                        "failure_reason": "redis_not_configured",
                     }
                 )
         except Exception as exc:
             dependencies.append(
-                {"name": "redis", "status": "unhealthy", "response_time_ms": None, "error": str(exc)}
+                {"name": "redis", "status": "unhealthy", "response_time_ms": None, "error": str(exc), "failure_reason": str(exc)}
             )
 
         return health_checkResult.model_validate({

@@ -21,6 +21,8 @@ from pydantic import ValidationError
 
 from metrics.prometheus_metrics import get_metrics
 
+from metrics.prometheus_metrics import get_metrics
+
 from ..config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -679,13 +681,13 @@ class Layer3Client:
         self,
         entity_id: str,
         tenant_id: UUID,
-        request_id: str | None = None,
     ) -> dict[str, Any] | None:
         """
         Fetch entity metadata from Layer 3 to enrich a TruthObject.
 
         Returns the entity dict or None if not found / unavailable.
         """
+        request_tenant = str(tenant_id)
         try:
             client = self._get_client()
             resp = await client.get(
@@ -696,19 +698,7 @@ class Layer3Client:
             if resp.status_code == 404:
                 return None
             resp.raise_for_status()
-            try:
-                data = resp.json()
-            except (json.JSONDecodeError, ValueError):
-                logger.warning(
-                    "layer3_entity_context_contract_invalid_json",
-                    extra=_log_context(
-                        tenant_id=tenant_id,
-                        request_id=request_id,
-                        error_code=ERR_LAYER3_CONTRACT_INVALID,
-                        sync_status="contract_invalid",
-                    ),
-                )
-                return None
+            data = resp.json()
             if not isinstance(data, dict):
                 logger.warning(
                     "layer3_entity_context_contract_invalid",
@@ -734,7 +724,6 @@ class Layer3Client:
                 raise Layer3TenantMismatchError(
                     "Layer 3 returned entity context for a different tenant",
                     tenant_id=tenant_id,
-                    request_id=request_id,
                 )
             return data
         except httpx.HTTPStatusError as exc:
@@ -742,7 +731,6 @@ class Layer3Client:
                 "layer3_entity_context_http_status",
                 extra=_log_context(
                     tenant_id=tenant_id,
-                    request_id=request_id,
                     error_code=(
                         ERR_LAYER3_SERVER_ERROR
                         if exc.response.status_code >= 500
@@ -752,29 +740,87 @@ class Layer3Client:
                 ),
             )
             return None
-        except httpx.TimeoutException:
+        except httpx.TimeoutException as exc:
             logger.debug(
                 "layer3_entity_context_timeout",
-                extra=_log_context(
-                    tenant_id=tenant_id,
-                    request_id=request_id,
-                    error_code=ERR_LAYER3_TIMEOUT,
-                ),
+                extra=_log_context(tenant_id=tenant_id, error_code=ERR_LAYER3_TIMEOUT),
             )
             return None
-        except httpx.RequestError:
+        except httpx.RequestError as exc:
             logger.debug(
                 "layer3_entity_context_http_client_error",
                 extra=_log_context(
-                    tenant_id=tenant_id,
-                    request_id=request_id,
-                    error_code=ERR_LAYER3_HTTP_CLIENT,
+                    tenant_id=tenant_id, error_code=ERR_LAYER3_HTTP_CLIENT
                 ),
-            )
-            return None
-        except ValidationError:
+            payload = resp.json()
+            if not isinstance(payload, dict):
+                raise ValidationError.from_exception_data(
+                    "Layer3EntityContext",
+                    [
+                        {
+                            "type": "dict_type",
+                            "loc": ("response",),
+                            "msg": "Layer 3 entity context must be an object",
+                            "input": payload,
+                        }
+                    ],
+                )
+            response_tenant = payload.get("tenant_id")
+            if response_tenant is not None and str(response_tenant) != request_tenant:
+                logger.warning(
+                    "Layer 3 entity context tenant mismatch",
+                    extra={
+                        "error_code": L3_ERR_CONTRACT,
+                        "request_id": None,
+                        "tenant_id": request_tenant,
+                        "entity_id": entity_id,
+                        "response_tenant_id": str(response_tenant),
+                    },
+                )
+                return None
+            return payload
+        except httpx.TimeoutException as exc:
             logger.warning(
-                "layer3_entity_context_contract_validation_failed",
+                "Layer 3 entity context fetch timed out",
+                extra={
+                    "error_code": L3_ERR_TIMEOUT,
+                    "request_id": None,
+                    "tenant_id": request_tenant,
+                    "entity_id": entity_id,
+                },
+            )
+            logger.debug("Layer 3 timeout details for entity %s: %s", entity_id, exc)
+            return None
+        except httpx.HTTPError as exc:
+            logger.warning(
+                "Layer 3 entity context HTTP client failure",
+                extra={
+                    "error_code": L3_ERR_HTTP_CLIENT,
+                    "request_id": None,
+                    "tenant_id": request_tenant,
+                    "entity_id": entity_id,
+                },
+            )
+            logger.debug("Layer 3 HTTP client failure for entity %s: %s", entity_id, exc)
+            return None
+        except ValidationError as exc:
+            logger.warning(
+                "Layer 3 entity context contract validation failed",
+                extra={
+                    "error_code": L3_ERR_CONTRACT,
+                    "request_id": None,
+                    "tenant_id": request_tenant,
+                    "entity_id": entity_id,
+                },
+            )
+            logger.debug("Layer 3 contract validation details for entity %s: %s", entity_id, exc)
+            return None
+        except Exception as exc:
+            logger.debug("Layer 3 entity context fetch failed for %s: %s", entity_id, exc)
+            return None
+        except (json.JSONDecodeError, ValueError) as exc:
+            logger.warning(
+                "layer3_entity_context_contract_invalid_json",
                 extra=_log_context(
                     tenant_id=tenant_id,
                     request_id=request_id,
@@ -782,6 +828,22 @@ class Layer3Client:
                     sync_status="contract_invalid",
                 ),
             )
+            logger.debug("Layer 3 HTTP client failure for entity %s: %s", entity_id, exc)
+            return None
+        except ValidationError as exc:
+            logger.warning(
+                "Layer 3 entity context contract validation failed",
+                extra={
+                    "error_code": L3_ERR_CONTRACT,
+                    "request_id": None,
+                    "tenant_id": request_tenant,
+                    "entity_id": entity_id,
+                },
+            )
+            logger.debug("Layer 3 contract validation details for entity %s: %s", entity_id, exc)
+            return None
+        except Exception as exc:
+            logger.debug("Layer 3 entity context fetch failed for %s: %s", entity_id, exc)
             return None
 
     # ------------------------------------------------------------------

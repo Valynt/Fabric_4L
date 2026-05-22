@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-05-18T06:15:29.741926+00:00",
+  "generated_at": "2026-05-19T12:48:10.610185+00:00",
   "policy_version": "1.0.0",
   "thresholds": {
     "per_layer_min_score": 80,
@@ -12,6 +12,8 @@
     "layer1": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",
@@ -38,6 +40,8 @@
     "layer2": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",
@@ -64,6 +68,8 @@
     "layer3": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",
@@ -90,6 +96,8 @@
     "layer4": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",
@@ -116,6 +124,8 @@
     "layer5": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",
@@ -142,6 +152,8 @@
     "layer6": {
       "score": 100.0,
       "status": "pass",
+      "passed_checks": 5,
+      "total_checks": 5,
       "checks": {
         "tenant_isolation_tests": {
           "description": "Tenant isolation test presence",

@@ -161,7 +161,20 @@ async def test_route_rejects_missing_token(caplog):
     await workflow_websocket(websocket=ws, workflow_id="wf-1")
     ws.close.assert_awaited_once_with(code=1008, reason="Authentication failed")
     assert "AUTH_TOKEN_MISSING" in caplog.text
+    assert "trace_id" in caplog.text
 
+
+@pytest.mark.asyncio
+async def test_route_auth_failure_log_has_trace_metadata(caplog):
+    ws = _make_websocket()
+    ws.headers["x-request-id"] = "req-auth-001"
+
+    await workflow_websocket(websocket=ws, workflow_id="wf-1")
+
+    record = next(r for r in caplog.records if "WebSocket authentication failed" in r.message)
+    assert record.trace_id == "req-auth-001"
+    assert record.correlation_id == "req-auth-001"
+    assert record.request_id == "req-auth-001"
 
 @pytest.mark.asyncio
 async def test_route_rejects_bare_subprotocol_name(caplog):
@@ -208,6 +221,7 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
     )
 
     ws = _make_websocket("base64url.bearer.authorization, valid.jwt.token")
+    ws.headers["x-request-id"] = "req-123"
     mock_manager = MagicMock()
     mock_manager.connect = AsyncMock()
     mock_manager.disconnect = AsyncMock()
@@ -217,8 +231,8 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
         "value_fabric.layer4.api.websocket.routes.get_ws_manager",
         return_value=mock_manager,
     ), patch(
-        "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
-        return_value=True,
+        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        return_value=(True, "AUTHZ_OK"),
     ):
         await workflow_websocket(
             websocket=ws, workflow_id="wf-success", last_event_id="evt-001"
@@ -229,6 +243,10 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
     call_kwargs = mock_manager.connect.call_args
     assert call_kwargs.kwargs["tenant_id"] == "tenant-abc"
     assert call_kwargs.kwargs["user_id"] == "user-xyz"
+    assert call_kwargs.kwargs["trace_id"] == "req-123"
+    assert call_kwargs.kwargs["correlation_id"] == "req-123"
+    assert call_kwargs.kwargs["x_request_id"] == "req-123"
+    assert call_kwargs.kwargs["request_id"] == "req-123"
     mock_manager.disconnect.assert_awaited_once()
 
 
@@ -249,12 +267,40 @@ async def test_route_rejects_when_workflow_not_owned_by_tenant(monkeypatch):
         "value_fabric.layer4.api.websocket.routes.get_ws_manager",
         return_value=mock_manager,
     ), patch(
-        "value_fabric.layer4.api.websocket.routes._verify_workflow_ownership",
-        return_value=False,
+        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        return_value=(False, "AUTHZ_WORKFLOW_TENANT_MISMATCH"),
     ):
         await workflow_websocket(websocket=ws, workflow_id="wf-other-tenant")
 
     ws.close.assert_awaited_once_with(
-        code=1008, reason="Workflow not found or access denied"
+        code=1008, reason='{"code":"AUTHZ_WORKFLOW_TENANT_MISMATCH"}'
+    )
+    mock_manager.connect.assert_not_awaited()
+
+
+@pytest.mark.asyncio
+async def test_route_rejects_when_workflow_missing(monkeypatch):
+    """Missing workflow must fail closed with structured authz reason."""
+    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr(
+        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        lambda _t: {"tenant_id": "tenant-a", "sub": "user-1"},
+    )
+
+    ws = _make_websocket("base64url.bearer.authorization, valid.jwt.token")
+    mock_manager = MagicMock()
+    mock_manager.connect = AsyncMock()
+
+    with patch(
+        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        return_value=mock_manager,
+    ), patch(
+        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        return_value=(False, "AUTHZ_WORKFLOW_NOT_FOUND"),
+    ):
+        await workflow_websocket(websocket=ws, workflow_id="wf-missing")
+
+    ws.close.assert_awaited_once_with(
+        code=1008, reason='{"code":"AUTHZ_WORKFLOW_NOT_FOUND"}'
     )
     mock_manager.connect.assert_not_awaited()

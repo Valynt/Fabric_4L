@@ -15,7 +15,8 @@ def test_normalize_exception_passthrough_http_exception() -> None:
     normalized = normalize_exception(
         original,
         status_code=500,
-        detail="unused",
+        message="unused",
+        error_code="L4_UNUSED",
     )
 
     assert normalized is original
@@ -27,19 +28,23 @@ def test_normalize_exception_wraps_non_http_exception() -> None:
     normalized = normalize_exception(
         RuntimeError("boom"),
         status_code=500,
-        detail="ROI analysis failed: boom",
+        message="ROI analysis failed",
+        error_code="L4_ROI_FAILED",
+        request_id="req-1",
     )
 
     assert isinstance(normalized, HTTPException)
     assert normalized.status_code == 500
-    assert normalized.detail == "ROI analysis failed: boom"
+    assert normalized.detail["message"] == "ROI analysis failed"
+    assert normalized.detail["error_code"] == "L4_ROI_FAILED"
+    assert normalized.detail["request_id"] == "req-1"
 
 
 def test_raise_normalized_preserves_http_exception_payload() -> None:
     original = HTTPException(status_code=400, detail="tenant_id is required")
 
     with pytest.raises(HTTPException) as raised:
-        raise_normalized(original, status_code=500, detail="unused")
+        raise_normalized(original, status_code=500, message="unused", error_code="L4_UNUSED")
 
     assert raised.value.status_code == 400
     assert raised.value.detail == "tenant_id is required"
@@ -79,13 +84,16 @@ def test_raise_normalized_with_log_logs_non_http_exception(monkeypatch: pytest.M
         raise_normalized_with_log(
             RuntimeError("boom"),
             status_code=500,
-            detail="Failed to pause workflow",
+            message="Failed to pause workflow",
+            error_code="L4_WORKFLOW_PAUSE_FAILED",
+            request_id="req-123",
             logger=_Logger(),
             log_message="Unexpected error pausing workflow wf-123",
         )
 
     assert raised.value.status_code == 500
-    assert raised.value.detail == "Failed to pause workflow"
+    assert raised.value.detail["message"] == "Failed to pause workflow"
+    assert raised.value.detail["error_code"] == "L4_WORKFLOW_PAUSE_FAILED"
     assert calls == ["Unexpected error pausing workflow wf-123"]
 
 
@@ -100,7 +108,8 @@ def test_raise_normalized_with_log_skips_logging_http_exception() -> None:
         raise_normalized_with_log(
             HTTPException(status_code=404, detail="not found"),
             status_code=500,
-            detail="unused",
+            message="unused",
+        error_code="L4_UNUSED",
             logger=_Logger(),
             log_message="should not log",
         )
