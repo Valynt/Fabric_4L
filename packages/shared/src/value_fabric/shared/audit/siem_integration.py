@@ -92,7 +92,10 @@ class SIEMAuditSink:
             return True
 
         payload = self.to_siem_schema(event, trace_id=trace_id)
-        payload["timestamps"]["dispatched_at"] = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(self._now_fn()))
+        from datetime import datetime, timezone as _tz
+        payload["timestamps"]["dispatched_at"] = datetime.fromtimestamp(
+            self._now_fn(), tz=_tz.utc
+        ).isoformat()
 
         headers = self._headers(payload)
         last_error = "unknown"
