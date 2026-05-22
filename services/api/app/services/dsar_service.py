@@ -76,7 +76,7 @@ def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
 
 
 def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
-    if record.status != "complete" and _now() > datetime.fromisoformat(record.sla_deadline_at):
+    if record.status not in ("complete", "escalated") and _now() > datetime.fromisoformat(record.sla_deadline_at):
         return db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="escalated", escalated_at=_now().isoformat())
     return record
 
