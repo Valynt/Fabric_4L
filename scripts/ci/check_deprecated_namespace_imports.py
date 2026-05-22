@@ -188,7 +188,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.enforce_ratchet:
         ratchet_violation = len(all_findings) > len(baseline)
 
-    summary = _summary_by_category(all_findings)
+    summary = _summary_by_category(findings)
 
     if args.json:
         print(json.dumps({
