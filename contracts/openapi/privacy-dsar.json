@@ -1,0 +1,18 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Privacy DSAR API", "version": "1.0.0"},
+  "paths": {
+    "/v1/privacy/dsar": {
+      "post": {
+        "summary": "Register DSAR and launch export",
+        "requestBody": {"required": true, "content": {"application/json": {"schema": {"$ref": "#/components/schemas/DSARRequest"}}}},
+        "responses": {"202": {"description": "Accepted"}}
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "DSARRequest": {"$ref": "../jsonschema/dsar-request.schema.json"}
+    }
+  }
+}
