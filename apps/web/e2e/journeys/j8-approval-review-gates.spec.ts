@@ -1,3 +1,4 @@
+import { E2E_SEED_APPROVED_CASE_ID, E2E_SEED_PRIVILEGED_REASON, E2E_SEED_TENANT_SLUG } from '../fixtures/seed-constants';
 /**
  * Journey 8: Approval and Review Gates
  *
@@ -14,7 +15,7 @@ import {
 } from '../helpers/validation-program';
 
 const ACCOUNT_ID = 'acct-meridian';
-const CASE_ID = 'case-e2e-approved-001';
+const CASE_ID = E2E_SEED_APPROVED_CASE_ID;
 
 journeyTest.describe('Journey 8: Approval and Review Gates', () => {
   journeyTest.beforeEach(async ({ addMocks }) => {
@@ -48,7 +49,7 @@ journeyTest.describe('Journey 8: Approval and Review Gates', () => {
           integrations: [
             {
               id: 'int-salesforce-001',
-              tenant_id: 'tenant-e2e-001',
+              tenant_id: E2E_SEED_TENANT_SLUG,
               provider: 'salesforce',
               enabled: true,
               instance_url: 'https://meridian.my.salesforce.com',

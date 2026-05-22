@@ -1,3 +1,4 @@
+import { E2E_SEED_APPROVED_CASE_ID, E2E_SEED_PRIVILEGED_REASON, E2E_SEED_TENANT_SLUG } from './fixtures/seed-constants';
 /**
  * Export Workflow Validation Suite
  *
@@ -13,7 +14,7 @@ import {
   expectRouteSupportsWorkflow,
 } from './helpers/validation-program';
 
-const CASE_ID = 'case-e2e-approved-001';
+const CASE_ID = E2E_SEED_APPROVED_CASE_ID;
 
 journeyTest.describe('Export Workflow Validation Suite', () => {
   journeyTest.beforeEach(async ({ addMocks }) => {
