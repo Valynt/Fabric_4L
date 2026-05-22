@@ -25,7 +25,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, Header, HTTPException, Query, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 from value_fabric.shared.identity.fallback_telemetry import (
     enforce_fallback_enabled,
@@ -219,10 +219,6 @@ def get_current_user(
     request: Request,
     authorization: str | None = Header(default=None),
     x_tenant_id: str | None = Header(default=None, alias="X-Tenant-ID"),
-    tenant_id: str | None = Query(
-        default=None,
-        description="Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-    ),
     settings: Settings = Depends(get_settings),
 ) -> TokenClaims:
     """
@@ -304,61 +300,6 @@ def get_current_user(
             permissions=_derive_permissions(roles),
             raw=payload,
         )
-
-    # ── 3. Dev/test fallback — X-Tenant-ID header (no user context) ───────
-    # NOTE: This path is reachable only when ALLOW_INSECURE_DEV_AUTH_BYPASS=true
-    # AND the environment is NOT production-like. GovernanceMiddleware rejects
-    # unverified X-Tenant-ID in production by refusing to build a context, and
-    # the fail-closed branch above short-circuits before we get here.
-    if x_tenant_id:
-        enforce_fallback_enabled("layer5.x_tenant_id_header", default=True)
-        try:
-            org_id = UUID(x_tenant_id)
-            record_fallback_usage(
-                "layer5.x_tenant_id_header",
-                tenant_id=org_id,
-                client_id=request.headers.get("X-Client-ID"),
-                service="layer5-ground-truth",
-                path=str(request.url.path),
-            )
-            return TokenClaims(
-                tenant_id=org_id,
-                user_id="service",
-                roles=["service"],
-            )
-        except (ValueError, AttributeError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"X-Tenant-ID header is not a valid UUID: {x_tenant_id!r}",
-            )
-
-    # ── 4. Dev/test fallback — tenant_id query param ──────────────────────
-    if settings.jwt_fallback_to_query_param and tenant_id:
-        enforce_fallback_enabled("layer5.tenant_query_param", default=True)
-        try:
-            org_id = UUID(tenant_id)
-            logger.debug(
-                "Using tenant_id query param fallback for tenant %s — "
-                "set JWT_FALLBACK_TO_QUERY_PARAM=false in production",
-                org_id,
-            )
-            record_fallback_usage(
-                "layer5.tenant_query_param",
-                tenant_id=org_id,
-                client_id=request.headers.get("X-Client-ID"),
-                service="layer5-ground-truth",
-                path=str(request.url.path),
-            )
-            return TokenClaims(
-                tenant_id=org_id,
-                user_id=None,
-                roles=[],
-            )
-        except (ValueError, AttributeError):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"tenant_id query param is not a valid UUID: {tenant_id!r}",
-            )
 
     raise _auth_http_exception(
         status.HTTP_401_UNAUTHORIZED,
