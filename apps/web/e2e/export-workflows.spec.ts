@@ -1,4 +1,4 @@
-import { E2E_SEED_APPROVED_CASE_ID, E2E_SEED_PRIVILEGED_REASON, E2E_SEED_TENANT_SLUG } from './fixtures/seed-constants';
+import { E2E_SEED_APPROVED_CASE_ID } from './fixtures/seed-constants';
 /**
  * Export Workflow Validation Suite
  *
