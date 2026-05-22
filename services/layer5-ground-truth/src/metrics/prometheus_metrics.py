@@ -189,6 +189,32 @@ class PrometheusMetrics:
             ["mode"],
             registry=self.config.registry,
         )
+        self._metrics["db_pool_size"] = Gauge(
+            f"{prefix}db_pool_size",
+            "Configured DB connection pool size",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_active_connections"] = Gauge(
+            f"{prefix}db_pool_active_connections",
+            "Active DB connections checked out from pool",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_idle_connections"] = Gauge(
+            f"{prefix}db_pool_idle_connections",
+            "Idle DB connections currently in pool",
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_wait_seconds"] = Histogram(
+            f"{prefix}db_pool_wait_seconds",
+            "DB pool connection wait latency in seconds",
+            buckets=[0.001, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.5, 5.0],
+            registry=self.config.registry,
+        )
+        self._metrics["db_pool_timeouts_total"] = Counter(
+            f"{prefix}db_pool_timeouts_total",
+            "Total DB pool checkout timeouts",
+            registry=self.config.registry,
+        )
 
         # Build info
         self._metrics["build_info"] = Info(
@@ -260,6 +286,19 @@ class PrometheusMetrics:
             self._metrics["kg_sync_outcomes_total"].labels(
                 sync_status=sync_status, transition=transition
             ).inc()
+    def set_db_pool_state(self, *, pool_size: int, active: int, idle: int) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_size"].set(pool_size)
+            self._metrics["db_pool_active_connections"].set(active)
+            self._metrics["db_pool_idle_connections"].set(idle)
+
+    def observe_db_pool_wait(self, duration: float) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_wait_seconds"].observe(duration)
+
+    def increment_db_pool_timeout(self) -> None:
+        if self.config.enabled:
+            self._metrics["db_pool_timeouts_total"].inc()
 
     def increment_freshness_checks(self) -> None:
         if self.config.enabled:

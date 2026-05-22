@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import { EmptyState } from '@/components/states';
 import { useComments, useCreateComment } from '@/hooks/useComments';
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { safeAsync } from '@/lib/async';
 
 export default function CollaborationCommentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -52,7 +53,7 @@ export default function CollaborationCommentsPage() {
           title="Collaboration Comments"
           subtitle="Create subject-scoped comments through the Layer 4 API and verify reload persistence."
           actions={
-            <Btn variant="outline" onClick={() => void comments.refetch()} disabled={comments.isFetching}>
+            <Btn variant="outline" onClick={() => safeAsync(comments.refetch(), "comments.refetch")} disabled={comments.isFetching}>
               {comments.isFetching ? <Loader2 size={14} className="mr-1.5 animate-spin" /> : <RefreshCw size={14} className="mr-1.5" />}
               Refresh
             </Btn>
