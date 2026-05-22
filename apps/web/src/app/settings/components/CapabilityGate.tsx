@@ -1,8 +1,10 @@
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { captureMessage } from "@/lib/telemetry";
 import {
   type SettingsCapability,
+  describeDenialReason,
   useSettingsAccess,
 } from "../access";
 
@@ -21,23 +23,33 @@ export function CapabilityGate({
   fallbackDescription = "Your role does not include the permission required to view this settings section.",
   className,
 }: CapabilityGateProps) {
-  const { hasCapability, role } = useSettingsAccess();
+  const { role, getCapabilityDecision } = useSettingsAccess();
+  const decision = getCapabilityDecision(capability);
 
-  if (hasCapability(capability)) {
-    return <>{children}</>;
-  }
+  useEffect(() => {
+    if (!decision.allowed) {
+      captureMessage("Privileged UI action denied", "warn", {
+        feature: "settings-capability-gate",
+        userId: role,
+        errorCode: "UI_PRIVILEGED_ACTION_DENIED",
+        capability,
+        denialReasons: decision.reasons,
+      });
+    }
+  }, [capability, decision.allowed, decision.reasons, role]);
+
+  if (decision.allowed) return <>{children}</>;
 
   return (
     <section className={cn("rounded-lg border border-amber-200 bg-amber-50 p-5 dark:border-amber-900 dark:bg-amber-950", className)}>
       <div className="flex items-start gap-3">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700 dark:text-amber-300" />
         <div className="space-y-1">
-          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">
-            {fallbackTitle}
-          </h3>
-          <p className="text-xs text-amber-800 dark:text-amber-200">
-            {fallbackDescription}
-          </p>
+          <h3 className="text-sm font-semibold text-amber-900 dark:text-amber-100">{fallbackTitle}</h3>
+          <p className="text-xs text-amber-800 dark:text-amber-200">{fallbackDescription}</p>
+          <ul className="mt-1 list-disc pl-4 text-xs text-amber-800 dark:text-amber-200">
+            {decision.reasons.map((reason) => <li key={reason}>{describeDenialReason(reason)}</li>)}
+          </ul>
           <p className="text-[11px] uppercase tracking-wide text-amber-700/80 dark:text-amber-300/80">
             Current role: {role.replace("_", " ")}
           </p>
