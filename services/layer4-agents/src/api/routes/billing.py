@@ -250,8 +250,14 @@ def guard_customer_access(context: RequestContext, customer_id: str) -> str:
     raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not authorized for requested customer_id")
 
 
-def _service_actor_kwargs(context: RequestContext) -> dict[str, Any]:
-    return {"actor_customer_id": str(context.user_id) if context.user_id is not None else None, "actor_is_admin": _is_billing_admin(context)}
+def _service_actor_kwargs(context: RequestContext, customer_id: str | None = None) -> dict[str, Any]:
+    kwargs: dict[str, Any] = {
+        "actor_customer_id": str(context.user_id) if context.user_id is not None else None,
+        "actor_is_admin": _is_billing_admin(context),
+    }
+    if customer_id is not None:
+        kwargs["customer_id"] = guard_customer_access(context, customer_id)
+    return kwargs
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
