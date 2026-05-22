@@ -22,10 +22,11 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 
 # 2. Configure environment
 cp .env.example .env
-# Edit .env — fill in LAYER4_TOGETHER_API_KEY and JWT_SECRET at minimum
+# Edit .env — fill in OPENAI_API_KEY (or LAYER4_TOGETHER_API_KEY) and JWT_SECRET at minimum
 
 # 3. Start infrastructure
-docker compose -f docker-compose.dev.yml up -d
+make up
+# Or directly: docker compose -f docker-compose.dev.yml up -d
 
 # 4. Install all service dev dependencies (installs into the pytest pipx venv)
 make setup
