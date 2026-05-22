@@ -6,6 +6,7 @@ Follows the same pattern as Layer 1's database.py but with async support.
 """
 
 import logging
+import time
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
@@ -13,6 +14,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 from sqlalchemy import event
+from sqlalchemy.exc import TimeoutError as SATimeoutError
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -81,6 +83,22 @@ _privileged_db_session_metrics = {
     "denials_total": 0,
     "missing_reason_total": 0,
 }
+
+
+def _record_pool_state(engine: AsyncEngine) -> None:
+    try:
+        from metrics.prometheus_metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics is None:
+            return
+        pool = engine.sync_engine.pool
+        active = int(pool.checkedout())
+        size = int(pool.size())
+        idle = max(size - active, 0)
+        metrics.set_db_pool_state(pool_size=size, active=active, idle=idle)
+    except Exception:
+        logger.debug("DB pool state metric emission failed", exc_info=True)
 
 
 def _setup_sqlite_uuid_handling(url: str) -> None:
@@ -163,7 +181,15 @@ class TenantEnforcedAsyncSession(AsyncSession):
     async def execute(self, statement, params=None, /, **kwargs):  # type: ignore[override]
         if not _statement_sets_tenant_context(statement):
             _assert_session_has_tenant_context(self, operation="statement execution")
-        return await super().execute(statement, params, **kwargs)
+        try:
+            return await super().execute(statement, params, **kwargs)
+        except SATimeoutError:
+            from metrics.prometheus_metrics import get_metrics
+
+            metrics = get_metrics()
+            if metrics is not None:
+                metrics.increment_db_pool_timeout()
+            raise
 
 
 @event.listens_for(TenantEnforcedAsyncSession.sync_session_class, "before_flush")
@@ -193,6 +219,23 @@ def get_engine() -> AsyncEngine:
             settings.database_url,
             **engine_kwargs,
         )
+        _record_pool_state(_engine)
+
+        @event.listens_for(_engine.sync_engine.pool, "checkout")
+        def _on_pool_checkout(dbapi_conn, connection_record, connection_proxy) -> None:
+            connection_record.info["pool_checkout_start"] = time.perf_counter()
+            _record_pool_state(_engine)
+
+        @event.listens_for(_engine.sync_engine.pool, "checkin")
+        def _on_pool_checkin(dbapi_conn, connection_record) -> None:
+            start = connection_record.info.pop("pool_checkout_start", None)
+            if start is not None:
+                from metrics.prometheus_metrics import get_metrics
+
+                metrics = get_metrics()
+                if metrics is not None:
+                    metrics.observe_db_pool_wait(time.perf_counter() - start)
+            _record_pool_state(_engine)
         _setup_sqlite_uuid_handling(settings.database_url)
     return _engine
 
