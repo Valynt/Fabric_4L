@@ -174,21 +174,23 @@ class BillingService:
         await self.db.flush()
         return subscription
 
-    async def get_active_subscription(self, customer_id: str) -> BillingSubscription | None:
+    async def get_active_subscription(self, customer_id: str, tenant_id: str | None = None) -> BillingSubscription | None:
         """Get the active subscription for a customer."""
         result = await self.db.execute(
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
+            .where(BillingSubscription.tenant_id == tenant_id if tenant_id else True)
             .where(BillingSubscription.status.in_([SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]))
             .order_by(BillingSubscription.created_at.desc())
         )
         return result.scalar_one_or_none()
 
-    async def get_subscription(self, customer_id: str) -> BillingSubscription | None:
+    async def get_subscription(self, customer_id: str, tenant_id: str | None = None) -> BillingSubscription | None:
         """Get the most recent subscription for a customer (any status)."""
         result = await self.db.execute(
             select(BillingSubscription)
             .where(BillingSubscription.customer_id == customer_id)
+            .where(BillingSubscription.tenant_id == tenant_id if tenant_id else True)
             .order_by(BillingSubscription.created_at.desc())
         )
         return result.scalar_one_or_none()
