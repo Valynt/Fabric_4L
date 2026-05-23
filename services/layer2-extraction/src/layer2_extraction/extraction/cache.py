@@ -109,8 +109,10 @@ class ExtractionCache:
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        payload = (
-            f"{tenant_id}:{source_hash}:{extraction_version}:{value_pack_id}:{model}:{temperature}:{endpoint}"
+        import json
+        payload = json.dumps(
+            [tenant_id, source_hash, extraction_version, value_pack_id, model, str(temperature), endpoint],
+            separators=(",", ":"),
         )
         return f"l2_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
 
