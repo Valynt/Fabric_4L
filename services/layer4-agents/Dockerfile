@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 4: Agentic Workflow Engine
 # Stage 1: Builder - compiles dependencies
-FROM ghcr.io/value-fabric/base-images/python:3.11.13-slim-bookworm@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -28,7 +28,7 @@ COPY src/ ./src/
 # value_fabric is mounted as a volume in docker-compose.dev.yml
 
 # Stage 2: Runtime - minimal image with only runtime libraries
-FROM ghcr.io/value-fabric/base-images/python:3.11.13-slim-bookworm@sha256:86adf8dbadc3d6e82ee5dd2c74bec2e1c2467cdad47886280501df722372d2e1 AS runtime
+FROM python:3.11.13-slim-bookworm AS runtime
 
 # Install only runtime library (libpq for psycopg2)
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
