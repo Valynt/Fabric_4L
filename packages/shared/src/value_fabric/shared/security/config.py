@@ -548,7 +548,7 @@ def validate_jwt_secret_strength() -> None:
     at least 256 bits (32 bytes) for HMAC keys.
 
     Raises:
-        ValueError: If JWT_SECRET is too short in production
+        ValueError: If JWT_SECRET is too short in production-like environments
     """
     jwt_secret = os.getenv("JWT_SECRET", "")
 
@@ -556,17 +556,19 @@ def validate_jwt_secret_strength() -> None:
         # Missing JWT_SECRET is handled by validate_all_controls / jwt.py
         return
 
-    if is_production() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
+    # Enforce minimum length in production-like environments for consistency
+    # with other JWT config checks (JWT_ISSUER, JWT_AUDIENCE)
+    if is_production_like_environment() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
         raise ValueError(
             f"JWT_SECRET is too short ({len(jwt_secret)} chars). "
-            f"Production requires at least {_MIN_JWT_SECRET_LENGTH} characters "
+            f"Production-like environments require at least {_MIN_JWT_SECRET_LENGTH} characters "
             f"(256 bits) to resist brute-force attacks. "
             f"Generate a strong secret: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
         )
     elif not is_development() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
         logger.warning(
             "JWT_SECRET is only %d characters. "
-            "Production requires at least %d characters.",
+            "Production-like environments require at least %d characters.",
             len(jwt_secret),
             _MIN_JWT_SECRET_LENGTH,
         )

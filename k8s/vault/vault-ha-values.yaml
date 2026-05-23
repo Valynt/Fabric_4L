@@ -1,0 +1,200 @@
+# Vault HA Helm Values for Production
+# Based on hashicorp/vault Helm chart
+# 
+# Prerequisites:
+# - AWS KMS key created for auto-unseal
+# - TLS certificates provisioned (or use cert-manager)
+# - Kubernetes auth method enabled in Vault
+# - IAM role for Vault pods to access KMS
+#
+# Deployment:
+#   helm install vault hashicorp/vault -f k8s/vault/vault-ha-values.yaml -n vault
+#
+# Auto-unseal with AWS KMS:
+#   https://developer.hashicorp.com/vault/docs/configuration/seal/awskms
+#
+# Cloud portability:
+#   To use Azure Key Vault or GCP KMS instead, replace the seal "awskms" block
+#   with "azurekeyvault" or "gcpckms" configuration.
+
+global:
+  enabled: true
+  tlsDisable: false  # TLS REQUIRED for production
+
+# Vault server configuration
+server:
+  # HA mode with 3 replicas
+  ha:
+    enabled: true
+    replicas: 3
+    config: |
+      ui = true
+      listener "tcp" {
+        tls_disable = 0
+        address = "[::]:8200"
+        cluster_address = "[::]:8201"
+      }
+      storage "raft" {
+        path = "/vault/data"
+      }
+      seal "awskms" {
+        region     = "${VAULT_AWS_REGION}"
+        kms_key_id = "${VAULT_AWS_KMS_KEY_ID}"
+      }
+      service_registration "kubernetes" {}
+
+  # Raft storage backend
+  dataStorage:
+    enabled: true
+    size: 20Gi
+    storageClass: "${STORAGE_CLASS:-standard}"
+    mountPath: "/vault/data"
+
+  # Resource requests/limits
+  resources:
+    requests:
+      memory: "1Gi"
+      cpu: "500m"
+    limits:
+      memory: "2Gi"
+      cpu: "1000m"
+
+  # Update strategy for HA pods
+  updateStrategyType: RollingUpdate
+
+  # Affinity rules for HA pods
+  affinity: |
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: vault
+          topologyKey: kubernetes.io/hostname
+
+# UI enabled
+ui:
+  enabled: true
+
+# Service configuration
+service:
+  enabled: true
+  type: ClusterIP
+  port: 8200
+  annotations: {}
+
+# Ingress configuration (optional - for external access)
+ingress:
+  enabled: false
+  # ingressClassName: nginx
+  # hosts:
+  #   - host: vault.example.com
+  #     paths:
+  #       - /
+
+# Prometheus metrics
+metrics:
+  enabled: true
+
+# RBAC
+rbac:
+  create: true
+  rules:
+    - apiGroups: [""]
+      resources: ["secrets"]
+      verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  name: vault
+  annotations:
+    # IAM role for AWS KMS access (using IRSA)
+    eks.amazonaws.com/role-arn: "${VAULT_IAM_ROLE_ARN}"
+
+# Pod security context
+securityContext:
+  runAsUser: 100
+  runAsGroup: 1000
+  fsGroup: 1000
+
+# Container security context
+containerSecurityContext:
+  allowPrivilegeEscalation: false
+  capabilities:
+    drop:
+      - ALL
+  readOnlyRootFilesystem: false  # Vault needs to write to /vault/file
+
+# Liveness and readiness probes
+livenessProbe:
+  enabled: true
+  path: "/v1/sys/health"
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+readinessProbe:
+  enabled: true
+  path: "/v1/sys/health"
+  initialDelaySeconds: 5
+  periodSeconds: 5
+  timeoutSeconds: 5
+  failureThreshold: 3
+
+# Unsealer configuration (for auto-unseal)
+# Note: Using AWS KMS seal above instead of unsealer
+unsealer:
+  enabled: false
+
+# Audit logging
+auditStorage:
+  enabled: true
+  size: 10Gi
+  storageClass: "${STORAGE_CLASS:-standard}"
+  mountPath: "/vault/audit"
+
+# Extra environment variables
+extraEnv:
+  - name: VAULT_AWS_REGION
+    value: "${VAULT_AWS_REGION:-us-east-1}"
+  - name: VAULT_AWS_KMS_KEY_ID
+    value: "${VAULT_AWS_KMS_KEY_ID}"
+  - name: VAULT_LOG_LEVEL
+    value: "info"
+  - name: VAULT_LOG_FORMAT
+    value: "json"
+
+# Extra volumes for TLS certificates
+extraVolumes:
+  - name: vault-tls
+    secret:
+      secretName: vault-tls
+      optional: true
+
+extraVolumeMounts:
+  - name: vault-tls
+    mountPath: /vault/tls
+    readOnly: true
+
+# Init containers for TLS setup (if needed)
+initContainers:
+  # Uncomment if using cert-manager for TLS
+  # - name: cert-manager
+  #   image: cert-manager/cert-manager-controller:v1.13.0
+  #   command: ["/bin/sh", "-c"]
+  #   args:
+  #     - |
+  #       # Copy TLS certificates from cert-manager secret
+  #       cp /certs/tls.crt /vault/tls/server.crt
+  #       cp /certs/tls.key /vault/tls/server.key
+  #       cp /certs/ca.crt /vault/tls/ca.crt
+  #   volumeMounts:
+  #     - name: vault-tls
+  #       mountPath: /vault/tls
+  #     - name: certs
+  #       mountPath: /certs
+  #   volumes:
+  #     - name: certs
+  #       secret:
+  #         secretName: vault-tls-cert-manager

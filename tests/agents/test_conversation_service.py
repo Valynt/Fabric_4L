@@ -18,57 +18,59 @@ FALLBACK_CONFIDENCE_THRESHOLD = 0.5
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 
 import asyncio
-
-try:
-    from services.conversation import ConversationService, WORKFLOW_INTENTS, TAB_SYSTEM_PROMPTS
-except ImportError as _exc:
-    import pytest
-    pytest.skip(
-        f"[LAYER3_IMPORT_PATH] Layer 3 relative-import chain breaks when loaded via sys.path: {_exc}",
-        allow_module_level=True,
-    )
 import json
 import sys
 import types
+from pathlib import Path
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 # ---------------------------------------------------------------------------
-# Stub external dependencies so we can import ConversationService directly
+# Add canonical Layer 4 path and stub external dependencies
 # ---------------------------------------------------------------------------
 
-# Minimal stubs for modules that ConversationService imports
+# Add canonical Layer 4 path to sys.path for import resolution
+# Use Path for cleaner path handling (improvement over os.path)
+_repo_root = Path(__file__).resolve().parent.parent.parent
+_l4_src = _repo_root / "services" / "layer4-agents" / "src"
+if str(_l4_src) not in sys.path:
+    sys.path.insert(0, str(_l4_src))
+
+# Stub external dependencies
 _audit_emitter = types.ModuleType("shared.audit.emitter")
 _audit_emitter.emit_audit_event = AsyncMock()
 sys.modules.setdefault("shared.audit.emitter", _audit_emitter)
 sys.modules.setdefault("shared.audit", types.ModuleType("shared.audit"))
 sys.modules.setdefault("shared", types.ModuleType("shared"))
 
-# Now import the service — add the layer4-agents src to path
-import os
-_repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-_l4_src = os.path.join(_repo_root, "services", "layer4-agents", "src")
-if _l4_src not in sys.path:
-    sys.path.insert(0, _l4_src)
-
-# Also need to stub the services package if it doesn't resolve
-import importlib
+# Try standard import first
 try:
     from services.conversation import ConversationService, WORKFLOW_INTENTS, TAB_SYSTEM_PROMPTS
 except ModuleNotFoundError:
-    # The services dir may not be a package — import directly
+    # Fallback to direct file loading if package structure doesn't resolve
     import importlib.util
     spec = importlib.util.spec_from_file_location(
         "services.conversation",
-        f"{_l4_src}/services/conversation.py",
+        _l4_src / "services" / "conversation.py",
     )
-    _mod = importlib.util.module_from_spec(spec)
-    sys.modules["services.conversation"] = _mod
-    spec.loader.exec_module(_mod)
-    ConversationService = _mod.ConversationService
-    WORKFLOW_INTENTS = _mod.WORKFLOW_INTENTS
-    TAB_SYSTEM_PROMPTS = _mod.TAB_SYSTEM_PROMPTS
+    if spec and spec.loader:
+        _mod = importlib.util.module_from_spec(spec)
+        sys.modules["services.conversation"] = _mod
+        spec.loader.exec_module(_mod)
+        ConversationService = _mod.ConversationService
+        WORKFLOW_INTENTS = _mod.WORKFLOW_INTENTS
+        TAB_SYSTEM_PROMPTS = _mod.TAB_SYSTEM_PROMPTS
+    else:
+        pytest.skip(
+            "[LAYER4_IMPORT_PATH] Layer 4 import failed - package structure issue",
+            allow_module_level=True,
+        )
+except ImportError as _exc:
+    pytest.skip(
+        f"[LAYER4_IMPORT_PATH] Layer 4 import failed: {_exc}",
+        allow_module_level=True,
+    )
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -76,11 +78,16 @@ def cleanup_module_stubs():
     """Cleanup module stubs after test session completes."""
     yield
     # Cleanup - remove stubs
-    for key in ["shared.audit.emitter", "shared.audit", "shared"]:
+    for key in [
+        "shared.audit.emitter",
+        "shared.audit",
+        "shared",
+        "services.conversation",
+    ]:
         if key in sys.modules:
             del sys.modules[key]
-    if _l4_src in sys.path:
-        sys.path.remove(_l4_src)
+    if str(_l4_src) in sys.path:
+        sys.path.remove(str(_l4_src))
 
 
 # ---------------------------------------------------------------------------

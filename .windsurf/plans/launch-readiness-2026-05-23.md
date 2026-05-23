@@ -1,7 +1,7 @@
 # Launch Readiness Assessment - 2026-05-23 (Updated)
 
 **Overall Claimed Readiness: ~87%** (from ROADMAP.md)
-**Overall Verified Readiness: PARTIAL** (gate-all passes with local dev configuration)
+**Overall Verified Readiness: PARTIAL** (gate-all passes with local dev configuration, Sprint 0 P0 security tasks pending)
 
 ---
 
@@ -13,8 +13,11 @@ This assessment initially identified **critical launch-gate infrastructure drift
 2. **Outdated skip guards**: Security tests had skip guards for `fastapi` that were no longer needed since the package is installed
 3. **Test suite dependencies**: Several test suites require infrastructure (PostgreSQL, live services, Linux tools) not available in local dev
 4. **Gate scope**: The mandatory security regression gate was too broad for local dev environments
+5. **P0 security vulnerabilities**: Sprint 0 identified 5 P0 security and infrastructure tasks that must be completed before production launch
 
-**Status**: `make gate-all` now passes successfully with a minimal gate configuration suitable for local development. The gate infrastructure is functional; the remaining blockers are infrastructure-dependent test suites that should run in CI environments with full service stacks.
+**Status**: `make gate-all` now passes successfully with a minimal gate configuration suitable for local development. The gate infrastructure is functional; however, **Sprint 0 P0 security tasks remain pending** and must be completed before production launch. The remaining blockers are:
+- Sprint 0 P0 security tasks (API key header leaks, Vault HA, hardcoded credentials, PostgreSQL auth, DB migration sequencing)
+- Infrastructure-dependent test suites that should run in CI environments with full service stacks
 
 ---
 
@@ -133,7 +136,49 @@ This assessment initially identified **critical launch-gate infrastructure drift
 
 ---
 
-## Refreshed 5-Sprint Plan (Updated)
+## Refreshed 6-Sprint Plan (Updated)
+
+### Sprint 0 — Emergency Security Stabilization (Days 1-3) ⚠️ PENDING
+**Goal**: Resolve P0 security vulnerabilities and infrastructure gaps before proceeding with gate infrastructure.
+
+**Tasks**:
+- [ ] SEC-002: Strip X-API-Key-* headers from all responses
+  - Use `security-auditor` skill to scan for API key header leaks
+  - Remove all `X-API-Key-*` headers from HTTP responses
+  - Add CI lint rule to fail build if found
+  - Verify with curl/manual testing
+
+- [ ] SEC-003: Deploy Vault production HA mode
+  - Use `bunnyshell` skill if managing environments
+  - Configure Vault HA with auto-unseal (AWS KMS)
+  - Remove dev token from all manifests
+  - Verify health check passes
+  - Consult context7 for Vault HA configuration documentation
+
+- [ ] INFRA-001: Remove hardcoded DB password from K8s manifest
+  - Externalize password to Vault via agent injector
+  - Run `checkov` scan to verify
+  - Update Kubernetes manifests
+
+- [ ] INFRA-002: Fix POSTGRES_HOST_AUTH_METHOD in dev compose
+  - Change to `scram-sha-256`
+  - Verify dev environment still functional
+
+- [ ] INFRA-003: Add DB migration sequencing to deploy script
+  - Add Helm pre-install hook to run `alembic upgrade head` with `pg_advisory_lock`
+  - Test rollback procedure
+  - Use context7 for Alembic and Helm best practices
+
+**Exit Criteria**:
+- All X-API-Key-* headers removed from responses
+- Vault HA deployed and healthy
+- No hardcoded credentials in K8s manifests
+- PostgreSQL auth method uses scram-sha-256
+- DB migration sequencing tested
+
+**Owner**: Security + DevOps
+
+---
 
 ### Sprint 1 — Launch Gate Repair (Days 1-3) ✅ COMPLETED
 **Goal**: Align prod-readiness infrastructure to actual file locations and implement placeholder gates.
@@ -283,15 +328,23 @@ This assessment initially identified **critical launch-gate infrastructure drift
 ## Critical Path (Updated)
 
 ```
-Sprint 1 ✅ (Gate Repair) → Sprint 2 ✅ (Evidence Access) → Sprint 3 ✅ (Security) → Sprint 4 ⚠️ (Monitoring/K8s - Infra-Dependent) → Sprint 5 ✅ (Final Decision)
+Sprint 0 ⚠️ (Emergency Security) → Sprint 1 ✅ (Gate Repair) → Sprint 2 ✅ (Evidence Access) → Sprint 3 ✅ (Security) → Sprint 4 ⚠️ (Monitoring/K8s - Infra-Dependent) → Sprint 5 ✅ (Final Decision)
 ```
 
-**Estimated to Launch**: Local dev gates complete; infrastructure-dependent tasks require CI environment with full service stack
+**Estimated to Launch**: Sprint 0 P0 security tasks must complete before proceeding; local dev gates complete; infrastructure-dependent tasks require CI environment with full service stack
 
 ---
 
 ## Launch Checklist (Post-Sprint 5)
 
+### Sprint 0 — Emergency Security Stabilization
+- [ ] X-API-Key-* headers removed from all responses (Sprint 0)
+- [ ] Vault production HA deployed (Sprint 0)
+- [ ] Hardcoded DB passwords removed from K8s manifests (Sprint 0)
+- [ ] PostgreSQL auth method fixed to scram-sha-256 (Sprint 0)
+- [ ] DB migration sequencing implemented (Sprint 0)
+
+### Sprint 1-5 — Gate Infrastructure & Verification
 - [x] All P0 gate infrastructure issues resolved (Sprint 1) ✅
 - [x] Evidence artifacts accessible and fresh (Sprint 2) ✅
 - [x] Security isolation tests pass (Sprint 3) ✅
@@ -305,7 +358,7 @@ Sprint 1 ✅ (Gate Repair) → Sprint 2 ✅ (Evidence Access) → Sprint 3 ✅ (
 - [x] Go/no-go decision documented (Sprint 5) ✅
 - [x] Risk acceptances documented for carryovers (Sprint 5) ✅
 
-**Current**: 8/12 criteria met (6/8 local dev criteria met, 0/4 infrastructure-dependent criteria met) | **Target**: 12/12
+**Current**: 8/17 criteria met (6/8 local dev criteria met, 0/4 infrastructure-dependent criteria met, 0/5 Sprint 0 security criteria met) | **Target**: 17/17
 
 ---
 
@@ -313,12 +366,22 @@ Sprint 1 ✅ (Gate Repair) → Sprint 2 ✅ (Evidence Access) → Sprint 3 ✅ (
 
 If timeline pressure requires phased launch:
 
-1. **Infrastructure-Dependent Test Suites** - Accept as CI-only verification if local dev cannot run full service stack
-2. **JWT Config Validation Implementation** - Accept as post-launch carryover if current secret strength validation is deemed sufficient
-3. **L1 Celery/Redis Wiring** - Accept as post-launch carryover if initial traffic volume is low
-4. **Evidence Artifacts Gitignore** - Accept if external artifact storage is configured in CI workflows
+1. **Sprint 0 P0 Security Tasks** - NOT ACCEPTABLE for risk acceptance; these are P0 security vulnerabilities that must be resolved before production launch:
+   - X-API-Key-* header leaks (information disclosure)
+   - Vault HA deployment (secret management)
+   - Hardcoded DB passwords (credential exposure)
+   - PostgreSQL auth method (authentication security)
+   - DB migration sequencing (data integrity)
 
-**Note**: Any downgrades must be explicitly documented in risk acceptance and approved by security/architecture review.
+2. **Infrastructure-Dependent Test Suites** - Accept as CI-only verification if local dev cannot run full service stack
+
+3. **JWT Config Validation Implementation** - Accept as post-launch carryover if current secret strength validation is deemed sufficient
+
+4. **L1 Celery/Redis Wiring** - Accept as post-launch carryover if initial traffic volume is low
+
+5. **Evidence Artifacts Gitignore** - Accept if external artifact storage is configured in CI workflows
+
+**Note**: Sprint 0 P0 security tasks are launch blockers and cannot be accepted as post-launch carryovers. Any other downgrades must be explicitly documented in risk acceptance and approved by security/architecture review.
 
 ---
 

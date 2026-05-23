@@ -41,9 +41,9 @@
 - [ ] Migrate dev Vault secrets to production Vault
 - [ ] Document Vault backup and restore procedures
 
-**Status**: [ ] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
+**Status**: [X] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
 
-**Comments**: _______________________________
+**Comments**: Approved Vault + ExternalSecrets for now, but allow external managed secrets as future alternative.
 
 ---
 
@@ -77,9 +77,9 @@
 - [ ] Update K8s manifests for ingress configuration
 - [ ] Remove services/api from production deployment plans
 
-**Status**: [ ] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
+**Status**: [ ] Approved  [ ] Rejected  [X] Deferred  [ ] Needs more research
 
-**Comments**: _______________________________
+**Comments**: Defer final API gateway role; prefer cloud-native ingress for production.
 
 ---
 
@@ -117,9 +117,9 @@
 - [ ] Add to production compose files
 - [ ] Create K8s deployment manifests
 
-**Status**: [ ] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
+**Status**: [X] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
 
-**Comments**: _______________________________
+**Comments**: Conditional approval for production only after health, metrics, contracts, and deployment wiring are ready.
 
 ---
 
@@ -157,9 +157,9 @@
 - [ ] Update Keycloak for dev-only use
 - [ ] Add IdP health monitoring
 
-**Status**: [ ] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
+**Status**: [X] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
 
-**Comments**: _______________________________
+**Comments**: Approve external managed IdP for production; keep Keycloak for local/dev.
 
 ---
 
@@ -199,9 +199,9 @@
 - [ ] Update Layer 1 to use storage abstraction
 - [ ] Add storage backup/restore procedures
 
-**Status**: [ ] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
+**Status**: [X] Approved  [ ] Rejected  [ ] Deferred  [ ] Needs more research
 
-**Comments**: _______________________________
+**Comments**: Approve S3-compatible abstraction with MinIO local and managed S3-compatible storage in production.
 
 ---
 
@@ -210,16 +210,16 @@
 **Total Decisions**: 5
 
 **Approval Status**:
-- Approved: ___/5
-- Rejected: ___/5
-- Deferred: ___/5
-- Needs more research: ___/5
+- Approved: 4/5
+- Rejected: 0/5
+- Deferred: 1/5
+- Needs more research: 0/5
 
-**Can Proceed to Phase 1?**: [ ] Yes  [ ] No
+**Can Proceed to Phase 1?**: [X] Yes  [ ] No
 
-**Blocking Issues**: _______________________________
+**Blocking Issues**: None. DEC-002 (API Gateway) deferred but cloud-native ingress can proceed in parallel.
 
-**Additional Comments**: _______________________________
+**Additional Comments**: All critical security and architecture decisions approved. API gateway role deferred to allow cloud-native ingress evaluation.
 
 ---
 

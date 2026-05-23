@@ -293,9 +293,9 @@ services:
     container_name: value-fabric-layer5-migrate
     command: >
       sh -c "
-      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_lock(12345);' &&
-      /app/.venv/bin/alembic upgrade head &&
-      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_unlock(12345);'
+      trap 'PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c \"SELECT pg_advisory_unlock(12345);\"' EXIT
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_lock(12345);'
+      /app/.venv/bin/alembic upgrade head
       "
     environment:
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
@@ -543,6 +543,8 @@ services:
       retries: 3
 
   # PgBouncer connection pool (for production database connection pooling)
+  # NOTE: userlist.txt must be generated from environment variables before starting
+  # For production, use ExternalSecrets Operator to sync from Vault (see k8s/external-secrets/pgbouncer-secrets.yaml)
   pgbouncer:
     image: pgbouncer/pgbouncer:latest
     container_name: value-fabric-pgbouncer
@@ -557,8 +559,12 @@ services:
       - POOL_MODE=transaction
       - MAX_CLIENT_CONN=100
       - DEFAULT_POOL_SIZE=25
-    volumes:
-      - ./k8s/base/userlist.example.txt:/etc/pgbouncer/userlist.txt:ro
+      - PGBOUNCER_USERLIST=${POSTGRES_USER:?POSTGRES_USER is required} ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    command: >
+      sh -c "
+      echo \"$$PGBOUNCER_USERLIST\" > /etc/pgbouncer/userlist.txt &&
+      pgbouncer /etc/pgbouncer/pgbouncer.ini
+      "
     depends_on:
       postgres:
         condition: service_healthy
@@ -566,7 +572,7 @@ services:
       - value-fabric-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 && psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'SELECT 1' || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3
@@ -640,7 +646,11 @@ services:
       timeout: 5s
       retries: 5
 
-  # PostgreSQL backup job (runs nightly at 2 AM UTC)
+  # PostgreSQL backup job
+  # NOTE: This is a one-shot backup container. For scheduled backups, use:
+  # - Kubernetes CronJob in production (see k8s/base/postgres-backup-cronjob.yaml)
+  # - External scheduler (cron, systemd timer) for Docker Compose
+  # Run with: docker compose -f docker-compose.full.yml --profile backup run postgres-backup
   postgres-backup:
     image: postgres:15-alpine
     container_name: value-fabric-postgres-backup
@@ -651,7 +661,10 @@ services:
       BACKUP_DIR=/backups/postgres
       mkdir -p $$BACKUP_DIR
       TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dumpall -h postgres -U $${POSTGRES_USER} > $$BACKUP_DIR/backup_$$TIMESTAMP.sql
+      # Backup application databases only (exclude system databases)
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql
       # Keep last 7 days of backups
       find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
       echo 'Backup completed: backup_$$TIMESTAMP.sql'
@@ -668,7 +681,11 @@ services:
       - value-fabric-network
     restart: "no"
 
-  # Neo4j backup job (runs nightly at 3 AM UTC)
+  # Neo4j backup job
+  # NOTE: This is a one-shot backup container. For scheduled backups, use:
+  # - Kubernetes CronJob in production (see k8s/base/neo4j-backup-cronjob.yaml)
+  # - External scheduler (cron, systemd timer) for Docker Compose
+  # Run with: docker compose -f docker-compose.full.yml --profile backup run neo4j-backup
   neo4j-backup:
     image: neo4j:5-community
     container_name: value-fabric-neo4j-backup
@@ -684,8 +701,9 @@ services:
         echo 'Waiting for Neo4j...'
         sleep 5
       done
-      # Perform backup using neo4j-admin
-      neo4j-admin database dump neo4j --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true
+      # Perform backup using neo4j-admin with --from flag for consistency
+      # Use --fallback-to-full if incremental backup fails
+      neo4j-admin database dump neo4j --from=/data --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true --fallback-to-full=true
       # Keep last 7 days of backups
       find $$BACKUP_DIR -name 'backup_*' -mtime +7 -delete
       echo 'Backup completed: backup_$$TIMESTAMP'
