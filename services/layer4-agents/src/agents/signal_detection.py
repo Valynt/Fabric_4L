@@ -418,7 +418,8 @@ class SignalDetectionAgent(BaseAgent):
             return SignalDetectionAgent__extract_signals_from_layer2Result.model_validate({
                 "signals": [],
                 "duration_ms": 0,
-                "error": str(e),
+                "error": "Signal extraction failed",
+                "error_code": "SIGNAL_EXTRACTION_ERROR",
             })
 
 

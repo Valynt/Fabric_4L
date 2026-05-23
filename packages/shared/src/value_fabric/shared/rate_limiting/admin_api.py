@@ -28,15 +28,6 @@ from .tenant_rate_limiter import (
 )
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-# Import driver getter - may not be available in all contexts
-try:
-    from value_fabric.layer3.db.driver import get_driver
-    NEO4J_AVAILABLE = True
-except ImportError:
-    NEO4J_AVAILABLE = False
-    get_driver = None  # type: ignore
-
-
 class list_rate_limit_tiersResult(TypedDictModel):
     tiers: Any
 
@@ -139,7 +130,10 @@ async def get_tenant_metadata_provider() -> TenantMetadataProvider:
     return Neo4jTenantMetadataProvider()
 
 
-async def _get_tenant_tier_from_db(tenant_id: UUID) -> TenantTier | None:
+async def _get_tenant_tier_from_db(
+    tenant_id: UUID,
+    driver_factory: Any | None = None,
+) -> TenantTier | None:
     """Fetch tenant tier from authoritative database source.
 
     Queries Neo4j Tenant node for tier/isolation_tier property.
@@ -148,11 +142,21 @@ async def _get_tenant_tier_from_db(tenant_id: UUID) -> TenantTier | None:
 
     Args:
         tenant_id: Tenant UUID
+        driver_factory: Optional callable that returns an AsyncDriver.
+            If not provided, attempts a runtime import from the Layer 3
+            driver module (soft dependency to preserve shared-layer boundary).
 
     Returns:
         TenantTier enum value from database, or None if tenant not found
     """
-    if not NEO4J_AVAILABLE or get_driver is None:
+    if driver_factory is None:
+        try:
+            from value_fabric.layer3.db.driver import get_driver as _get_driver
+            driver_factory = _get_driver  # type: ignore[assignment]
+        except ImportError:
+            pass
+
+    if driver_factory is None:
         logger.warning(
             "Neo4j driver not available for tenant tier lookup, "
             "falling back to SHARED for tenant_id=%s",
@@ -161,7 +165,7 @@ async def _get_tenant_tier_from_db(tenant_id: UUID) -> TenantTier | None:
         return None
 
     try:
-        driver = await get_driver()
+        driver = await driver_factory()
         async with driver.session() as session:
             # Query Tenant node for tier - check both tier and isolation_tier properties
             result = await session.run(

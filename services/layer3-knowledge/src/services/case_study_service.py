@@ -521,13 +521,15 @@ class CaseStudyService:
                 errors.append({
                     "index": i,
                     "title": cs_data.get("title", "unknown"),
-                    "error": str(e),
+                    "error": "Case study import failed",
+                    "error_code": "CASE_STUDY_IMPORT_ERROR",
                 })
                 logger.error(
                     "case_study_import_error",
                     index=i,
                     title=cs_data.get("title"),
-                    error=str(e),
+                    error_code="CASE_STUDY_IMPORT_ERROR",
+                    error=str(e) if "case_study" in str(e).lower() else "Import error",
                 )
 
         logger.info(

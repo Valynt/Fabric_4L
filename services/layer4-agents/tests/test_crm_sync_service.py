@@ -76,12 +76,12 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
-    from value_fabric.layer4.database import get_db
+    from value_fabric.layer4.database import get_db_from_context
     async def _override():
         yield mock_db
-    app.dependency_overrides[get_db] = _override
+    app.dependency_overrides[get_db_from_context] = _override
     yield
-    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_db_from_context, None)
 
 
 @pytest.fixture

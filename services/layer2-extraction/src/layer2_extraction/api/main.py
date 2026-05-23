@@ -1150,8 +1150,8 @@ async def health_check():
                     "name": "layer3_knowledge",
                     "status": "unhealthy",
                     "response_time_ms": None,
-                    "error": str(e),
-                    "failure_reason": str(e),
+                    "error": "Layer 3 health check failed",
+                    "error_code": "L3_HEALTH_CHECK_ERROR",
                 }
             )
             overall_status = "degraded"

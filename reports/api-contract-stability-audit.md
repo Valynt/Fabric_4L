@@ -277,27 +277,13 @@ After investigation, the X-Tenant-ID header in Layer 1 is correctly marked as op
 
 ## Next Steps
 
-1. Run the deprecation marker standardization script to identify incomplete deprecations:
-   ```bash
-   python scripts/ci/standardize_deprecation_markers.py --check
-   ```
-
-2. Fix incomplete deprecation markers if found:
-   ```bash
-   python scripts/ci/standardize_deprecation_markers.py --fix
-   ```
-
-3. Sync deprecation register with OpenAPI specs:
-   ```bash
-   python scripts/ci/sync_deprecation_register.py --update
-   ```
-
-4. Run the new contract tests to verify error envelope consistency:
-   ```bash
-   pytest tests/contract/test_error_envelope_consistency.py -v
-   ```
-
+1. ✅ Run the deprecation marker standardization script to identify incomplete deprecations
+2. ✅ Fix incomplete deprecation markers (10 fixed in Layer 3 and Layer 4)
+3. ✅ Sync deprecation register with OpenAPI specs (10 deprecations synced)
+4. ✅ Run the new contract tests to verify error envelope consistency (8 tests passing)
 5. Review and adjust Spectral rules based on actual OpenAPI spec structure
+6. Add canonical ErrorResponse schema to Layer 1 and Layer 3 (migration in progress)
+7. Mark HTTPValidationError as deprecated in Layer 1 and Layer 3 (migration in progress)
 
 ## Conclusion
 

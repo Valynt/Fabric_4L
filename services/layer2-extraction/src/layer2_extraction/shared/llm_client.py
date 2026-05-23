@@ -82,3 +82,16 @@ class LLMClient:
             )
             return resp.content[0].text if resp.content else ""
         raise ValueError(f"Unsupported provider: {self.provider}")
+
+
+class CostRecord:
+    """Placeholder cost tracking record for LLM API calls.
+
+    Required for type hints in llm_extractor.py OpenAPI schema generation.
+    Full cost accounting implementation is tracked in the Layer 2 backlog.
+    """
+
+    def __init__(self, prompt_tokens: int = 0, completion_tokens: int = 0, cost_usd: float = 0.0) -> None:
+        self.prompt_tokens = prompt_tokens
+        self.completion_tokens = completion_tokens
+        self.cost_usd = cost_usd

@@ -75,6 +75,26 @@ spec:
         app: alertmanager
         component: monitoring
     spec:
+      initContainers:
+        - name: alertmanager-config-renderer
+          image: busybox:1.36
+          command:
+            - sh
+            - -c
+            - |
+              envsubst '\${ALERTMANAGER_DEFAULT_WEBHOOK_URL} \${ALERTMANAGER_CRITICAL_WEBHOOK_URL}' \
+                < /etc/alertmanager-template/alertmanager.yml \
+                > /etc/alertmanager/alertmanager.yml
+          envFrom:
+            - secretRef:
+                name: alertmanager-secrets
+                optional: true
+          volumeMounts:
+            - name: config-template
+              mountPath: /etc/alertmanager-template
+              readOnly: true
+            - name: config-rendered
+              mountPath: /etc/alertmanager
       containers:
         - name: alertmanager
           image: prom/alertmanager:v0.28.1
@@ -85,9 +105,9 @@ spec:
             - containerPort: 9093
               name: http
           volumeMounts:
-            - name: config
-              mountPath: /etc/alertmanager/alertmanager.yml
-              subPath: alertmanager.yml
+            - name: config-rendered
+              mountPath: /etc/alertmanager
+              readOnly: true
             - name: data
               mountPath: /alertmanager
           resources:
@@ -112,9 +132,11 @@ spec:
             periodSeconds: 10
             timeoutSeconds: 5
       volumes:
-        - name: config
+        - name: config-template
           configMap:
             name: alertmanager-config
+        - name: config-rendered
+          emptyDir: {}
         - name: data
           persistentVolumeClaim:
             claimName: alertmanager-data

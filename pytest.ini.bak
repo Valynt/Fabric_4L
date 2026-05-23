@@ -7,7 +7,7 @@ testpaths =
 python_files = test_*.py *_test.py
 python_classes = Test*
 python_functions = test_*
-pythonpath = . services/layer3-knowledge/src packages/shared/src services/layer5-ground-truth/src services/api services/layer4-agents/src
+pythonpath = . packages/shared/src services/layer5-ground-truth/src services/api services/layer4-agents/src
 
 addopts =
     -v

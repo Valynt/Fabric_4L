@@ -92,8 +92,8 @@ def register_core_routes(app: FastAPI) -> None:
                     "name": "postgres",
                     "status": "unhealthy",
                     "response_time_ms": None,
-                    "error": str(exc),
-                    "failure_reason": str(exc),
+                    "error": "PostgreSQL health check failed",
+                    "error_code": "POSTGRES_HEALTH_ERROR",
                 }
             )
             overall_status = "degraded"
@@ -118,7 +118,7 @@ def register_core_routes(app: FastAPI) -> None:
                 )
         except Exception as exc:
             dependencies.append(
-                {"name": "redis", "status": "unhealthy", "response_time_ms": None, "error": str(exc), "failure_reason": str(exc)}
+                {"name": "redis", "status": "unhealthy", "response_time_ms": None, "error": "Redis health check failed", "error_code": "REDIS_HEALTH_ERROR"}
             )
 
         return health_checkResult.model_validate({

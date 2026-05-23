@@ -4816,10 +4816,7 @@
             }
           }
         },
-        "deprecated": true,
-        "x-deprecated-since": "2026-05-23",
-        "x-deprecated-removal-date": "2026-11-19",
-        "x-deprecation-owner": "platform-team"
+        "deprecated": true
       }
     },
     "/v1/tenant/context": {
@@ -11201,9 +11198,7 @@
           }
         },
         "x-deprecated-removal-date": "2026-08-01",
-        "x-canonical-path": "/v1/tenants/current/settings",
-        "x-deprecated-since": "2026-05-23",
-        "x-deprecation-owner": "platform-team"
+        "x-canonical-path": "/v1/tenants/current/settings"
       },
       "patch": {
         "tags": [
@@ -11280,9 +11275,7 @@
           }
         },
         "x-deprecated-removal-date": "2026-08-01",
-        "x-canonical-path": "/v1/tenants/current/settings",
-        "x-deprecated-since": "2026-05-23",
-        "x-deprecation-owner": "platform-team"
+        "x-canonical-path": "/v1/tenants/current/settings"
       }
     },
     "/v1/auth/register": {
@@ -11361,9 +11354,7 @@
           }
         },
         "x-deprecated-removal-date": "2026-07-01",
-        "x-canonical-path": "/v1/tenants/register",
-        "x-deprecated-since": "2026-05-23",
-        "x-deprecation-owner": "platform-team"
+        "x-canonical-path": "/v1/tenants/register"
       }
     },
     "/v1/prospects/{prospect_id}/context": {
@@ -18185,40 +18176,48 @@
         "type": "object",
         "title": "HTTPValidationError",
         "required": [
-          "message",
-          "code",
-          "trace_id"
+          "error"
         ],
         "additionalProperties": false,
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Machine-readable error code"
-          },
-          "trace_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Request trace ID for support correlation"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "type": "object",
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
             ],
-            "description": "Optional sanitized error details"
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
           }
         },
-        "description": "Deprecated compatibility alias for ErrorResponse. Use ErrorResponse for new clients."
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
       "HarnessHealthResponse": {
         "properties": {
@@ -27148,43 +27147,98 @@
         ],
         "title": "void_invoiceResult"
       },
+      "ErrorEnvelope": {
+        "type": "object",
+        "title": "ErrorEnvelope",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "title": "ErrorResponse",
         "required": [
-          "message",
-          "code",
-          "trace_id"
+          "error"
         ],
         "additionalProperties": false,
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Machine-readable error code"
-          },
-          "trace_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Request trace ID for support correlation"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "type": "object",
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
             ],
-            "description": "Optional sanitized error details"
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
           }
-        }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       }
     }
   }

@@ -17,9 +17,22 @@ Usage:
 
 import argparse
 import json
-from datetime import datetime, UTC
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
 from typing import Any
+
+# Default deprecation removal period in days
+DEFAULT_REMOVAL_DAYS = 180
+
+# Required deprecation metadata fields
+REQUIRED_DEPRECATION_FIELDS = [
+    "x-deprecated-since",
+    "x-deprecated-removal-date",
+    "x-deprecation-owner",
+]
+
+# HTTP methods to check for deprecation
+HTTP_METHODS = ["get", "post", "put", "delete", "patch"]
 
 
 def check_deprecation_completeness(schema: dict[str, Any], path: str) -> list[str]:
@@ -30,16 +43,7 @@ def check_deprecation_completeness(schema: dict[str, Any], path: str) -> list[st
     if not schema.get("deprecated", False):
         return []
     
-    missing = []
-    
-    if "x-deprecated-since" not in schema:
-        missing.append("x-deprecated-since")
-    if "x-deprecated-removal-date" not in schema:
-        missing.append("x-deprecated-removal-date")
-    if "x-deprecation-owner" not in schema:
-        missing.append("x-deprecation-owner")
-    
-    return missing
+    return [field for field in REQUIRED_DEPRECATION_FIELDS if field not in schema]
 
 
 def scan_openapi_spec(spec_path: Path) -> dict[str, Any]:
@@ -50,8 +54,12 @@ def scan_openapi_spec(spec_path: Path) -> dict[str, Any]:
     - incomplete_schemas: list of (schema_name, missing_fields)
     - total_deprecated: count of deprecated items
     """
-    with open(spec_path) as f:
-        spec = json.load(f)
+    try:
+        with open(spec_path) as f:
+            spec = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error reading {spec_path}: {e}")
+        return {"incomplete_endpoints": [], "incomplete_schemas": [], "total_deprecated": 0}
     
     results = {
         "incomplete_endpoints": [],
@@ -62,7 +70,7 @@ def scan_openapi_spec(spec_path: Path) -> dict[str, Any]:
     # Scan endpoints
     for path, path_item in spec.get("paths", {}).items():
         for method, operation in path_item.items():
-            if method not in ["get", "post", "put", "delete", "patch"]:
+            if method not in HTTP_METHODS:
                 continue
             
             if operation.get("deprecated", False):
@@ -82,56 +90,67 @@ def scan_openapi_spec(spec_path: Path) -> dict[str, Any]:
     return results
 
 
+def _fix_deprecation_in_object(
+    obj: dict[str, Any],
+    now: str,
+    default_owner: str,
+    removal_date: str,
+) -> int:
+    """Fix deprecation metadata in a single object (endpoint or schema).
+    
+    Returns number of fields fixed.
+    """
+    fixed_count = 0
+    if "x-deprecated-since" not in obj:
+        obj["x-deprecated-since"] = now
+        fixed_count += 1
+    if "x-deprecated-removal-date" not in obj:
+        obj["x-deprecated-removal-date"] = removal_date
+        fixed_count += 1
+    if "x-deprecation-owner" not in obj:
+        obj["x-deprecation-owner"] = default_owner
+        fixed_count += 1
+    return fixed_count
+
+
 def fix_deprecation_markers(spec_path: Path, default_owner: str = "platform-team") -> int:
     """Add missing deprecation metadata to an OpenAPI spec.
     
     Returns number of items fixed.
     """
-    with open(spec_path) as f:
-        spec = json.load(f)
+    try:
+        with open(spec_path) as f:
+            spec = json.load(f)
+    except (json.JSONDecodeError, IOError) as e:
+        print(f"Error reading {spec_path}: {e}")
+        return 0
     
     fixed_count = 0
     now = datetime.now(UTC).strftime("%Y-%m-%d")
+    removal_date = (datetime.now(UTC) + timedelta(days=DEFAULT_REMOVAL_DAYS)).strftime("%Y-%m-%d")
     
     # Fix endpoints
     for path, path_item in spec.get("paths", {}).items():
         for method, operation in path_item.items():
-            if method not in ["get", "post", "put", "delete", "patch"]:
+            if method not in HTTP_METHODS:
                 continue
             
             if operation.get("deprecated", False):
-                if "x-deprecated-since" not in operation:
-                    operation["x-deprecated-since"] = now
-                    fixed_count += 1
-                if "x-deprecated-removal-date" not in operation:
-                    # Default to 6 months from now
-                    from datetime import timedelta
-                    removal = (datetime.now(UTC) + timedelta(days=180)).strftime("%Y-%m-%d")
-                    operation["x-deprecated-removal-date"] = removal
-                    fixed_count += 1
-                if "x-deprecation-owner" not in operation:
-                    operation["x-deprecation-owner"] = default_owner
-                    fixed_count += 1
+                fixed_count += _fix_deprecation_in_object(operation, now, default_owner, removal_date)
     
     # Fix schemas
     for schema_name, schema in spec.get("components", {}).get("schemas", {}).items():
         if schema.get("deprecated", False):
-            if "x-deprecated-since" not in schema:
-                schema["x-deprecated-since"] = now
-                fixed_count += 1
-            if "x-deprecated-removal-date" not in schema:
-                from datetime import timedelta
-                removal = (datetime.now(UTC) + timedelta(days=180)).strftime("%Y-%m-%d")
-                schema["x-deprecated-removal-date"] = removal
-                fixed_count += 1
-            if "x-deprecation-owner" not in schema:
-                schema["x-deprecation-owner"] = default_owner
-                fixed_count += 1
+            fixed_count += _fix_deprecation_in_object(schema, now, default_owner, removal_date)
     
     if fixed_count > 0:
-        with open(spec_path, "w") as f:
-            json.dump(spec, f, indent=2)
-            f.write("\n")
+        try:
+            with open(spec_path, "w") as f:
+                json.dump(spec, f, indent=2)
+                f.write("\n")
+        except IOError as e:
+            print(f"Error writing {spec_path}: {e}")
+            return 0
     
     return fixed_count
 

@@ -1,7 +1,7 @@
 # Mandatory Security Regression Gate Evidence
 
-- **Timestamp**: 2026-05-23T07:13:01Z
-- **Git SHA**: eddc2744
+- **Timestamp**: 2026-05-23T07:31:22Z
+- **Git SHA**: b2dfac02
 - **Branch**: main
 - **OS**: MINGW64_NT-10.0-26200
 - **Test Mode**: 1
@@ -21,3 +21,11 @@
 | Frontend Contract Tests | `vitest + placeholder guard` | Yes | SKIPPED_TEST_MODE | ⊘ |
 | Critical E2E Skip-Valve | `assert-no-skipped-critical-e2e.mjs` | Yes | SKIPPED_TEST_MODE | ⊘ |
 | Kubernetes Hardening | `pytest tests/k8s/*` | Yes | SKIPPED | ⊘ |
+| I-02 Layer 2 Production Fail-Closed | `pytest tests/test_production_fail_closed_i02.py` | Yes | PASS | artifacts/mandatory_security/layer2_fail_closed.xml |
+| I-02 Layer 5 Production Fail-Closed | `pytest tests/test_production_fail_closed_i02.py` | Yes | PASS | artifacts/mandatory_security/layer5_fail_closed.xml |
+
+## Final Result
+
+**Status**: PASS
+**Exit Code**: 0
+**Recommendation**: PASS

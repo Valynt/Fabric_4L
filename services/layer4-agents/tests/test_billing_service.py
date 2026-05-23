@@ -68,7 +68,7 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
-    from value_fabric.layer4.database import get_db
+    from value_fabric.layer4.database import get_db_from_context
     from value_fabric.shared.identity.dependencies import require_authenticated
     from value_fabric.shared.identity.context import RequestContext
 
@@ -83,10 +83,10 @@ def override_app_db_dependency(mock_db):
             permissions=["billing:read", "billing:write"],
         )
 
-    app.dependency_overrides[get_db] = _override_db
+    app.dependency_overrides[get_db_from_context] = _override_db
     app.dependency_overrides[require_authenticated] = _override_auth
     yield
-    app.dependency_overrides.pop(get_db, None)
+    app.dependency_overrides.pop(get_db_from_context, None)
     app.dependency_overrides.pop(require_authenticated, None)
 
 

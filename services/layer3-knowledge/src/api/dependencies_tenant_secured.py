@@ -22,8 +22,8 @@ from value_fabric.shared.identity.protocols import (
     RequestContextProvider,
 )
 
-from src.db.query_execution import TenantExecutionContext, TenantQueryExecutor
-from src.security import QueryValidator, UnscopedQueryError
+from ..db.query_execution import TenantExecutionContext, TenantQueryExecutor
+from ..security import QueryValidator, UnscopedQueryError
 
 try:
     from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
@@ -285,7 +285,7 @@ async def get_neo4j_secured(
     driver = getattr(request.app.state, "neo4j_driver", None)
     if not driver:
         try:
-            from src.api.dependencies import get_neo4j_driver
+            from .dependencies import get_neo4j_driver
 
             driver = get_neo4j_driver()
         except Exception as exc:
@@ -312,7 +312,7 @@ async def create_neo4j_tenant_session(tenant_id: str | None) -> Neo4jTenantSessi
     if not tenant_id:
         raise ValueError("tenant_id is required for tenant-scoped sessions")
 
-    from db.driver import get_driver
+    from ..db.driver import get_driver
 
     driver = await get_driver()
     return Neo4jTenantSessionSecured(

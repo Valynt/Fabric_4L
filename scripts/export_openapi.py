@@ -378,7 +378,8 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
     for key, value in EXPORT_ENV.items():
         os.environ.setdefault(key, value)
 
-    for path in (spec.src_path, spec.src_path.parent, SHARED_SRC, REPO_ROOT):
+    PLATFORM_CONTRACT_SRC = REPO_ROOT / "packages" / "platform-contract" / "src" / "python"
+    for path in (spec.src_path, spec.src_path.parent, SHARED_SRC, PLATFORM_CONTRACT_SRC, REPO_ROOT):
         sys.path.insert(0, str(path))
 
     _install_openapi_dependency_shims(spec)

@@ -412,7 +412,7 @@ class BaseAgent(ABC):
                 await self.message_bus.publish(
                     agent_id=self.agent_id,
                     event_type="AGENT_FAILED",
-                    payload={"error": str(e)},
+                    payload={"error": "Agent execution failed", "error_code": "AGENT_EXECUTION_ERROR"},
                 )
 
             raise AgentExecutionError(f"Agent {self.agent_id} failed: {e}") from e

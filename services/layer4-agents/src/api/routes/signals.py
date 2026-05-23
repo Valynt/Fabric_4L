@@ -21,6 +21,7 @@ from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.jwt import decode_jwt
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
 from ...agents.signal_detection import SignalDetectionAgent
@@ -272,7 +273,7 @@ async def setup_prospect(
             resource_type="signals",
             resource_id=request.prospect_data.account_id,
             outcome=AuditOutcome.FAILURE,
-            metadata={"error": str(e), "trace_id": ctx.trace_id},
+            metadata={"error": "Signal detection failed", "error_code": "SIGNAL_DETECTION_ERROR", "trace_id": ctx.trace_id},
         )
 
         raise HTTPException(
@@ -526,7 +527,7 @@ async def signal_stream_websocket(
                 logger.info("Signals WebSocket client disconnected", extra=_log)
 
     except Exception as e:
-        logger.error("Signals WebSocket session error", extra={**_log, "error": str(e)})
+        logger.error("Signals WebSocket session error", extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(e)})
         await websocket.close(code=1011, reason="Server error")
     finally:
         logger.info("Signals WebSocket session ended", extra=_log)

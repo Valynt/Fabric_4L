@@ -22,6 +22,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
 from .auth import (
@@ -191,12 +192,12 @@ async def workflow_websocket(
             except Exception as exc:
                 logger.warning(
                     "WebSocket client message error",
-                    extra={**_log, "error": str(exc)},
+                    extra={**_log, "error_code": "WEBSOCKET_MESSAGE_ERROR", "error": sanitize_log_error(exc)},
                 )
                 # Continue rather than break to keep connection alive
 
     except Exception as exc:
-        logger.error("WebSocket session error", extra={**_log, "error": str(exc)})
+        logger.error("WebSocket session error", extra={**_log, "error_code": "WEBSOCKET_SESSION_ERROR", "error": sanitize_log_error(exc)})
     finally:
         logger.info("WebSocket workflow session ended", extra=_log)
         await ws_manager.disconnect(websocket, workflow_id, trace_id=connection_trace_id)

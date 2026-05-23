@@ -390,7 +390,7 @@ class Neo4jVectorStore:
                 }
 
         except (ClientError, ServiceUnavailable) as exc:
-            return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": str(exc), "indexes": {}})
+            return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": "Neo4j vector store health check failed", "error_code": "NEO4J_VECTOR_STORE_ERROR", "indexes": {}})
 
         return Neo4jVectorStore_index_healthResult.model_validate({
             "status": "healthy" if all_online else "degraded",

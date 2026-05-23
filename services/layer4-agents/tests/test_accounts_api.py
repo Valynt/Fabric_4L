@@ -35,7 +35,7 @@ from testcontainers.postgres import PostgresContainer
 
 from value_fabric.layer4.api.main import app
 from value_fabric.layer4.api.routes.analysis import get_executor
-from value_fabric.layer4.database import Base, get_db
+from value_fabric.layer4.database import Base, get_db_from_context
 from value_fabric.layer4.models.business_case_record import BusinessCaseRecord
 from value_fabric.layer4.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -88,7 +88,7 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
     async def override_get_db():
         yield test_db
     
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_db_from_context] = override_get_db
     
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac

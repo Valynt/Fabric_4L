@@ -25,7 +25,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
 from value_fabric.layer4.api.main import app
-from value_fabric.layer4.database import Base, get_db
+from value_fabric.layer4.database import Base, get_db_from_context
 from value_fabric.layer4.feature_flags.service import FeatureFlagService
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -68,7 +68,7 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
             source="jwt",
         )
 
-    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_db_from_context] = override_get_db
     app.dependency_overrides[require_tenant_admin] = override_require_tenant_admin
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
@@ -277,7 +277,7 @@ async def test_graceful_degradation_without_redis():
 async def test_api_list_flags(client: AsyncClient):
     tenant_id = client.tenant_id  # type: ignore
     # Seed a flag directly via service
-    async for db in app.dependency_overrides[get_db]():
+    async for db in app.dependency_overrides[get_db_from_context]():
         await FeatureFlagService.upsert_flag(
             db=db,
             flag_key="api_flag",
@@ -298,7 +298,7 @@ async def test_api_list_flags(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_api_get_flag(client: AsyncClient):
     tenant_id = client.tenant_id  # type: ignore
-    async for db in app.dependency_overrides[get_db]():
+    async for db in app.dependency_overrides[get_db_from_context]():
         await FeatureFlagService.upsert_flag(
             db=db,
             flag_key="get_me",
@@ -335,7 +335,7 @@ async def test_api_upsert_flag(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_api_delete_flag(client: AsyncClient):
     tenant_id = client.tenant_id  # type: ignore
-    async for db in app.dependency_overrides[get_db]():
+    async for db in app.dependency_overrides[get_db_from_context]():
         await FeatureFlagService.upsert_flag(
             db=db,
             flag_key="delete_me",
@@ -354,7 +354,7 @@ async def test_api_delete_flag(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_api_evaluate_flag(client: AsyncClient):
     tenant_id = client.tenant_id  # type: ignore
-    async for db in app.dependency_overrides[get_db]():
+    async for db in app.dependency_overrides[get_db_from_context]():
         await FeatureFlagService.upsert_flag(
             db=db,
             flag_key="eval_me",

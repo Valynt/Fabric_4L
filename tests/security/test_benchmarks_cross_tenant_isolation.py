@@ -18,10 +18,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-try:
-    from value_fabric.layer3.api.routes.benchmarks import _get_authenticated_tenant_id
-except Exception as _exc:
-    pytest.skip(f"[LAYER3_IMPORT_PATH] Layer 3 module import path issue: {_exc}", allow_module_level=True)
+from value_fabric.layer3.api.routes.benchmarks import _get_authenticated_tenant_id
 
 pytestmark = pytest.mark.tenant_boundary
 
@@ -209,7 +206,7 @@ class TestBenchmarkFailClosed:
 
     def test_valid_tenant_id_is_returned(self):
         """Valid tenant_id is returned unchanged."""
-        mock_key = SimpleNamespace(tenant_id="tenant-abc")
+        mock_key = SimpleNamespace(metadata={"tenant_id": "tenant-abc"})
         result = _get_authenticated_tenant_id(mock_key)
         assert result == "tenant-abc"
 

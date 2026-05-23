@@ -264,7 +264,8 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         except ValueError as exc:
             return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({
                 "status": "failed",
-                "error": str(exc),
+                "error": "ROI subworkflow failed",
+                "error_code": "ROI_SUBWORKFLOW_ERROR",
                 "roi_results": {},
             })
 
@@ -1245,6 +1246,6 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 organization_id,
                 exc,
             )
-            return BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult.model_validate({"error": str(exc), "synced": 0, "failed": 0})
+            return BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult.model_validate({"error": "Ground-truth sync failed", "error_code": "GROUND_TRUTH_SYNC_ERROR", "synced": 0, "failed": 0})
         finally:
             await client.close()

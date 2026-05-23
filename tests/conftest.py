@@ -132,10 +132,12 @@ _PATHS_TO_ADD = [
     # NOTE: Do NOT add packages/shared/src here — it shadows stdlib `secrets`.
     # The shared package is importable as `value_fabric.shared.identity`, etc.
     # via the namespace package setup.
-    str(_PROJECT_ROOT / "services" / "layer3-knowledge" / "src"),
+    str(_PROJECT_ROOT / "services" / "layer4-agents" / "src"),
     str(_PROJECT_ROOT / "services" / "layer1-ingestion" / "src"),
     str(_PROJECT_ROOT / "packages" / "platform-contract" / "src" / "python"),
-    str(_PROJECT_ROOT / "services" / "layer4-agents" / "src"),
+    # Layer 3 must be inserted last (so it ends up first on sys.path) to prevent
+    # layer4 modules (e.g. config package) from shadowing layer3 top-level modules.
+    str(_PROJECT_ROOT / "services" / "layer3-knowledge" / "src"),
 ]
 for p in _PATHS_TO_ADD:
     if p not in sys.path:

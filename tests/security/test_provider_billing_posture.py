@@ -209,23 +209,30 @@ class TestBillingFailClosed:
         )
 
     def test_billing_route_imports_stripe_not_configured_error(self) -> None:
-        """billing.py imports StripeNotConfiguredError for route-level handling."""
+        """routers.py imports StripeNotConfiguredError for route-level handling."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/billing.py"
+            "services/layer4-agents/src/api/routers.py"
         ).read_text()
         assert "StripeNotConfiguredError" in source, (
-            "billing.py must import StripeNotConfiguredError"
+            "routers.py must import StripeNotConfiguredError"
         )
 
     def test_billing_not_configured_response_shape(self) -> None:
-        """billing.py defines the billing_not_configured response shape."""
-        source = pathlib.Path(
+        """billing.py raises 402; routers.py handles billing_not_configured."""
+        billing_source = pathlib.Path(
             "services/layer4-agents/src/api/routes/billing.py"
         ).read_text()
-        assert "billing_not_configured" in source, (
-            "billing.py must define the billing_not_configured error response"
+        routers_source = pathlib.Path(
+            "services/layer4-agents/src/api/routers.py"
+        ).read_text()
+        assert "billing_not_configured" in routers_source, (
+            "routers.py must define the billing_not_configured error response"
         )
-        assert "402" in source or "HTTP_402" in source or "PAYMENT_REQUIRED" in source, (
+        assert (
+            "402" in billing_source
+            or "HTTP_402" in billing_source
+            or "PAYMENT_REQUIRED" in billing_source
+        ), (
             "billing.py must use HTTP 402 for billing_not_configured"
         )
 

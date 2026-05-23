@@ -576,7 +576,7 @@ async def start_prospect_analysis(
             outcome=AuditOutcome.FAILURE,
             resource_type="prospect_analysis",
             resource_id=prospect_id,
-            details={"error": str(e), "reason": "unexpected_error"},
+            details={"error": "Prospect analysis failed", "error_code": "PROSPECT_ANALYSIS_ERROR", "reason": "unexpected_error"},
             tenant_id=tenant_id if tenant_id else None,
             user_id=ctx.user_id if ctx else None,
         )

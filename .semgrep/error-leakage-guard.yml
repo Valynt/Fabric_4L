@@ -1,0 +1,72 @@
+rules:
+  - id: error-str-leakage-in-logger-extra
+    languages:
+      - python
+    message: >
+      Do not pass raw `str(e)` into logger `extra=` dicts. Use
+      `sanitize_log_error(e)` from `value_fabric.shared.error_handling`
+      and include a stable `error_code`.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern: logger.$METHOD(..., extra={..., "error": str($E), ...})
+          - pattern: logger.$METHOD(..., extra={..., "error": str($E)})
+          - pattern: logger.$METHOD(..., extra={"error": str($E), ...})
+    fix: |
+      logger.$METHOD(..., extra={..., "error_code": "ERROR_CODE", "error": sanitize_log_error($E), ...})
+    metadata:
+      category: security
+      technology:
+        - python
+
+  - id: error-str-leakage-in-result-dict
+    languages:
+      - python
+    message: >
+      Do not put raw `str(e)` into internal result/error dicts that may
+      reach the frontend or other services. Use a stable error code and
+      generic message; log the full exception server-side with
+      `exc_info=True`.
+    severity: ERROR
+    patterns:
+      - pattern-either:
+          - pattern: '{..., "error": str($E), ...}'
+          - pattern: '{..., "errors": [str($E)], ...}'
+          - pattern: '{"error": str($E), ...}'
+          - pattern: '{"errors": [str($E)], ...}'
+    metadata:
+      category: security
+      technology:
+        - python
+
+  - id: error-str-leakage-in-celery-stage
+    languages:
+      - python
+    message: >
+      Do not pass raw `str(exc)` into Celery task stage updates or DB
+      fields. Store a stable error code or sanitized message.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern: _update_stage(..., "FAILED", str($E))
+          - pattern: _fail_job(..., str($E), ...)
+    metadata:
+      category: security
+      technology:
+        - python
+
+  - id: error-str-leakage-in-health-check
+    languages:
+      - python
+    message: >
+      Do not return raw `str(exc)` in health-check JSON responses.
+      Use a stable status code and generic message.
+    severity: WARNING
+    patterns:
+      - pattern-either:
+          - pattern: JSONResponse(..., content={..., "error": str($E), ...})
+          - pattern: JSONResponse(..., content={"error": str($E), ...})
+    metadata:
+      category: security
+      technology:
+        - python

@@ -107,6 +107,7 @@ select = [
     "W",   # pycodestyle warnings
     "N",   # pep8-naming
     "UP",  # pyupgrade
+    "TID", # flake8-tidy-imports
 ]
 ignore = [
     "E501",   # Line too long (handled by formatter)
@@ -120,6 +121,13 @@ ignore = [
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
     "UP007",  # Use `X | Y` for union types
 ]
+
+[tool.ruff.lint.flake8-tidy-imports]
+# Block deprecated namespace imports at edit-time (faster feedback than CI-only gates)
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+"value_fabric.layer4_agents" = { msg = "Use value_fabric.layer4 instead." }
+"value_fabric.layer1_ingestion" = { msg = "This namespace is deprecated. Use service-local imports." }
+"value_fabric.layer3_knowledge" = { msg = "This namespace is deprecated. Use service-local imports." }
 
 [tool.mypy]
 python_version = "3.11"

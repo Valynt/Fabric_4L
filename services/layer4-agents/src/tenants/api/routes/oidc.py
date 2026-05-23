@@ -396,7 +396,7 @@ async def oidc_callback(
             tenant_id=tenant_id,
             resource_type="OIDCSession",
             outcome=AuditOutcome.FAILURE,
-            details={"reason": "token_exchange_failed", "error": str(exc)},
+            details={"reason": "token_exchange_failed", "error_code": "OIDC_TOKEN_EXCHANGE_ERROR", "error": "OIDC token verification failed"},
         )
         logger.warning("OIDC token verification failed: %s", exc)
         raise HTTPException(

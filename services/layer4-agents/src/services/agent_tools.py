@@ -67,7 +67,7 @@ class AgentToolRegistry:
             }
         except Exception as e:
             logger.warning("promote_signal tool failed: %s", e)
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "Signal promotion failed", "error_code": "SIGNAL_PROMOTION_ERROR"}
 
     async def validate_hypothesis(
         self,
@@ -107,7 +107,7 @@ class AgentToolRegistry:
             }
         except Exception as e:
             logger.warning("validate_hypothesis tool failed: %s", e)
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "Hypothesis validation failed", "error_code": "HYPOTHESIS_VALIDATION_ERROR"}
 
     def get_tool_schemas(self) -> list[dict[str, Any]]:
         """Return OpenAI-compatible function schemas."""

@@ -58,6 +58,12 @@ resources:
   - frontend.yml
   - monitoring-prometheus.yml
   - monitoring-alertmanager.yml
+  # SECURITY: alertmanager-secrets contains webhook URLs and PagerDuty keys.
+  # Do NOT commit real values. In production, use External Secrets Operator
+  # (k8s/external-secrets/alertmanager-secrets.yaml) or inject via CI.
+  # This placeholder manifest uses environment-variable tokens for kustomize/
+  # envsubst processing at deploy time.
+  - alertmanager-secrets.yml
   - tenant-safety.yml
   # Network policies for zero-trust segmentation
   - network-policies/

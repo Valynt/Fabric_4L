@@ -1149,7 +1149,8 @@ class OrchestrationController:
                 recovered.append({
                     "workflow_id": workflow_id,
                     "status": "ERROR",
-                    "error": str(e),
+                    "error": "Workflow recovery failed",
+                    "error_code": "WORKFLOW_RECOVERY_ERROR",
                 })
         
         if recovered:
@@ -1207,7 +1208,8 @@ class OrchestrationController:
                         payload={
                             "task_id": payload.get("task_id"),
                             "success": False,
-                            "error": str(e),
+                            "error": "Task execution failed",
+                            "error_code": "TASK_EXECUTION_ERROR",
                         },
                         recipient_id=message.sender_id,
                         correlation_id=message.correlation_id,

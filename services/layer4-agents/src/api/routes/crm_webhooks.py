@@ -28,6 +28,7 @@ from pydantic import BaseModel, Field, TypeAdapter
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 # SECURITY: CRM webhook endpoints are server-to-server calls from
@@ -524,8 +525,8 @@ async def salesforce_webhook(
         payload_str = body.decode()
         data = SalesforceWebhookPayload.model_validate_json(payload_str).model_dump()
     except Exception as e:
-        logger.warning("Salesforce webhook received invalid payload", extra={"error": str(e), "body_preview": body[:200].decode(errors='replace')})
-        data = {"raw_body": body.decode(errors='replace'), "parse_error": str(e)}
+        logger.warning("Salesforce webhook received invalid payload", extra={"error_code": "WEBHOOK_PARSE_ERROR", "error": sanitize_log_error(e), "body_preview": body[:200].decode(errors='replace')})
+        data = {"raw_body": body.decode(errors='replace'), "parse_error": "Webhook payload parse failed"}
 
     # Extract record info from Salesforce payload
     # Platform events: {"data": {"payload": {"RecordId": "...", "ChangeEventHeader": {...}}}}

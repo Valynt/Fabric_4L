@@ -16,11 +16,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_SCAN_ROOT = Path("services/layer3-knowledge/src/api")
+DEFAULT_SCAN_ROOTS = (
+    Path("services/layer3-knowledge/src/api"),
+    Path("tests"),
+)
 LEGACY_MODULE_SUFFIX = "dependencies_tenant"
 CANONICAL_MODULE = "dependencies_tenant_secured"
 ALLOWLIST = {
     Path("services/layer3-knowledge/src/api/dependencies_tenant.py"),
+    # Legacy test imports — tracked for migration before 2026-09-30 removal
+    Path("tests/layer3/test_endpoint_tenant_isolation.py"),
+    Path("tests/security/test_cross_layer_tenant.py"),
+    Path("tests/security/test_neo4j_cross_tenant_write_isolation.py"),
 }
 
 
@@ -71,24 +78,25 @@ def _scan_file(path: Path, repo_root: Path) -> list[Finding]:
     return findings
 
 
-def scan(repo_root: Path, scan_root: Path) -> list[Finding]:
-    root = repo_root / scan_root
-    if not root.exists():
-        return []
+def scan(repo_root: Path, scan_roots: tuple[Path, ...]) -> list[Finding]:
     findings: list[Finding] = []
-    for path in sorted(root.rglob("*.py")):
-        findings.extend(_scan_file(path, repo_root))
+    for scan_root in scan_roots:
+        root = repo_root / scan_root
+        if not root.exists():
+            continue
+        for path in sorted(root.rglob("*.py")):
+            findings.extend(_scan_file(path, repo_root))
     return findings
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", default=str(REPO_ROOT))
-    parser.add_argument("--scan-root", default=str(DEFAULT_SCAN_ROOT))
+    parser.add_argument("--scan-roots", nargs="+", default=[str(r) for r in DEFAULT_SCAN_ROOTS])
     args = parser.parse_args(argv)
 
     repo_root = Path(args.repo_root).resolve()
-    findings = scan(repo_root, Path(args.scan_root))
+    findings = scan(repo_root, tuple(Path(r) for r in args.scan_roots))
     if not findings:
         print(f"Layer 3 tenant dependency import gate passed: use {CANONICAL_MODULE}.")
         return 0
