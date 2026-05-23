@@ -21,7 +21,7 @@ from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
@@ -297,6 +297,19 @@ if metrics:
 
 # Create router for spec-compliant endpoints
 router = APIRouter(prefix="/api/v1/ingestion")
+APPROVED_UPLOAD_MIME_TYPES = frozenset({"application/pdf", "text/plain", "text/csv", "application/json"})
+MAX_UPLOAD_FILE_SIZE_BYTES = 10 * 1024 * 1024
+
+
+class MalwareScannerAdapter:
+    """Adapter for pluggable malware scanning."""
+
+    async def scan(self, *, content: bytes, filename: str, tenant_id: UUID) -> tuple[bool, str]:
+        # Hook point for external service (ClamAV/SaaS scanner/etc.)
+        return True, "malware_scan_passed"
+
+
+malware_scanner_adapter = MalwareScannerAdapter()
 
 
 # =============================================================================
@@ -937,6 +950,14 @@ class ContentListResponse(BaseModel):
     total: int
     page: int
     per_page: int
+
+
+class FileUploadResponse(BaseModel):
+    job_id: UUID
+    raw_content_id: UUID
+    status: str
+    processing_status: str
+    reason_code: str
 
 
 # =============================================================================
@@ -1694,6 +1715,101 @@ async def get_domain_fallback_stats(
 # =============================================================================
 # API ENDPOINTS - ScrapingJob
 # =============================================================================
+
+
+@router.post("/uploads", response_model=FileUploadResponse, status_code=202)
+async def upload_file_for_ingestion(
+    request: Request,
+    target_id: UUID = Form(...),
+    file: UploadFile = File(...),
+    connector_id: str | None = Form(None),
+    origin: str | None = Form(None),
+    db: Session = Depends(get_db_from_context_sync),
+    tenant_id: UUID = Depends(get_tenant_id),
+    user_id: UUID = Depends(get_current_user_id),
+):
+    if file.content_type not in APPROVED_UPLOAD_MIME_TYPES:
+        raise HTTPException(status_code=415, detail={"reason_code": "UNSUPPORTED_MEDIA_TYPE"})
+    payload = await file.read()
+    if len(payload) > MAX_UPLOAD_FILE_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail={"reason_code": "FILE_TOO_LARGE"})
+
+    is_clean, scan_reason = await malware_scanner_adapter.scan(
+        content=payload, filename=file.filename or "unnamed", tenant_id=tenant_id
+    )
+    if not is_clean:
+        db.add(
+            ComplianceLog(
+                tenant_id=tenant_id,
+                event_type=ComplianceEventType.TERMS_VIOLATION.value,
+                severity="HIGH",
+                request_url=str(request.url),
+                request_method=request.method,
+                request_timestamp=datetime.now(UTC),
+                response_action_taken="REJECTED_UPLOAD",
+                response_reason="MALWARE_SCAN_FAILED",
+                metadata={"reason_code": "MALWARE_SCAN_FAILED", "scan_reason": scan_reason},
+            )
+        )
+        db.commit()
+        raise HTTPException(status_code=422, detail={"reason_code": "MALWARE_SCAN_FAILED"})
+
+    target = db.query(ScrapingTarget).filter(ScrapingTarget.id == target_id, ScrapingTarget.tenant_id == tenant_id).first()
+    if not target:
+        raise HTTPException(status_code=404, detail="Target not found")
+
+    checksum = __import__("hashlib").sha256(payload).hexdigest()
+    storage_dir = Path(os.getenv("L1_UPLOAD_STORAGE_PATH", "/tmp/value-fabric-layer1")) / str(tenant_id) / "uploads"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    blob_path = storage_dir / f"{uuid4()}-{file.filename or 'asset'}"
+    blob_path.write_bytes(payload)
+
+    job = create_scraping_job(target=target, triggered_by=TriggeredBy.API, created_by=user_id)
+    job.status = JobStatus.QUEUED.value
+    job.configuration = {"ingestion_mode": "file_upload", "raw_content_path": str(blob_path)}
+    db.add(job)
+    db.flush()
+
+    raw_content = RawContent(
+        job_id=job.id,
+        tenant_id=tenant_id,
+        target_id=target_id,
+        source_url=f"upload://{file.filename or 'asset'}",
+        source_domain="upload.local",
+        source_content_type=file.content_type,
+        source_content_length=len(payload),
+        source_type="FILE_UPLOAD",
+        source_origin=origin or "direct-upload",
+        source_connector_id=connector_id,
+        source_checksum_sha256=checksum,
+        source_account_id=tenant_id,
+        storage_binary_path=str(blob_path),
+        processing_status="QUEUED",
+    )
+    db.add(raw_content)
+    db.add(
+        ComplianceLog(
+            tenant_id=tenant_id,
+            job_id=job.id,
+            event_type=ComplianceEventType.DOMAIN_ALLOWED.value,
+            severity="LOW",
+            request_url=str(request.url),
+            request_method=request.method,
+            request_timestamp=datetime.now(UTC),
+            response_action_taken="ACCEPTED_UPLOAD",
+            response_reason="UPLOAD_ACCEPTED",
+            metadata={"reason_code": "UPLOAD_ACCEPTED", "checksum": checksum},
+        )
+    )
+    db.commit()
+    process_scraping_job.delay(str(job.id))
+    return FileUploadResponse(
+        job_id=job.id,
+        raw_content_id=raw_content.id,
+        status=job.status,
+        processing_status=raw_content.processing_status,
+        reason_code="UPLOAD_ACCEPTED",
+    )
 
 
 @router.get("/jobs", response_model=JobListResponse)

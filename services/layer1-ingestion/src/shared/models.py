@@ -526,6 +526,11 @@ class RawContent(Base):
     source_headers = Column(JSONB, default=dict)
     source_content_type = Column(String(255), nullable=True)
     source_content_length = Column(Integer, nullable=True)
+    source_type = Column(String(50), nullable=True)
+    source_origin = Column(String(255), nullable=True)
+    source_connector_id = Column(String(255), nullable=True)
+    source_checksum_sha256 = Column(String(64), nullable=True)
+    source_account_id = Column(UUID(as_uuid=True), nullable=True, index=True)
 
     # Storage References (S3/MinIO paths)
     storage_html_path = Column(Text, nullable=True)
@@ -533,6 +538,7 @@ class RawContent(Base):
     storage_dom_snapshot_path = Column(Text, nullable=True)
     storage_har_path = Column(Text, nullable=True)
     storage_text_content_path = Column(Text, nullable=True)
+    storage_binary_path = Column(Text, nullable=True)
 
     # Content Metadata
     meta_title = Column(Text, nullable=True)
