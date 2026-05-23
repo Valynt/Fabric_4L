@@ -231,7 +231,7 @@ class PlaywrightCrawler:
                                 "Wait selector timeout",
                                 url=url,
                                 selector=wait_for_selector,
-                                error=str(e),
+                                error_code="SELECTOR_TIMEOUT",
                             )
                             if span:
                                 span.set_attribute("crawl.selector_timeout", True)
@@ -295,21 +295,21 @@ class PlaywrightCrawler:
                     logger.error(
                         "Crawl failed",
                         url=url,
-                        error=str(e),
+                        error_code="CRAWL_ERROR",
                         duration_ms=duration_ms,
                         exc_info=True,
                     )
 
                     if span:
                         span.set_attribute("crawl.duration_ms", duration_ms)
-                        span.set_attribute("crawl.error", str(e))
+                        span.set_attribute("crawl.error_code", "CRAWL_ERROR")
 
                     return CrawlResult(
                         url=url,
                         status_code=None,
                         html_content=None,
                         title=None,
-                        error=str(e),
+                        error="Crawl failed",
                         duration_ms=duration_ms,
                         headers={},
                         final_url=url,
@@ -423,7 +423,7 @@ class PlaywrightCrawler:
             await asyncio.sleep(self.config.scroll_delay_after_ms / 1000)
             return True
         except Exception as e:
-            logger.warning("Page scroll failed", error=str(e))
+            logger.warning("Page scroll failed", error_code="SCROLL_ERROR")
             return False
 
     async def extract_links(

@@ -144,7 +144,7 @@ class UsageService:
             return None
         except StripeMeterEventError as e:
             logger.warning(f"Failed to report meter event: {e}")
-            return UsageService__report_to_stripeResult.model_validate({"error": str(e)})
+            return UsageService__report_to_stripeResult.model_validate({"error": "STRIPE_METER_ERROR"})
         except (ConnectionError, TimeoutError, RuntimeError) as e:
             logger.error("Stripe reporting infrastructure failure", extra={"customer_id": customer_id, "metric_name": metric_name, "event_id": event_id, "error_type": type(e).__name__}, exc_info=True)
             return None
@@ -602,13 +602,13 @@ class UsageService:
                         "metric": metric,
                         "quantity": quantity,
                         "events": count,
-                        "error": str(e),
+                        "error": "STRIPE_METER_ERROR",
                     })
                 except StripeNotConfiguredError as e:
                     return UsageService_sync_to_stripeResult.model_validate({
                         "synced": 0,
                         "error": "Stripe not configured",
-                        "details": str(e),
+                        "details": "STRIPE_NOT_CONFIGURED",
                     })
 
 

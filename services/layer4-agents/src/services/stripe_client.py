@@ -326,4 +326,4 @@ async def sync_usage_to_stripe(
 
     except StripeMeterEventError as e:
         logger.error(f"Failed to sync usage to Stripe: {e}")
-        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": total_quantity, "error": str(e)})
+        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": total_quantity, "error": "STRIPE_SYNC_ERROR"})

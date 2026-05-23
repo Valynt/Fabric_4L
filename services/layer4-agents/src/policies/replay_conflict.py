@@ -63,6 +63,7 @@ class ReplayConflictPolicy(BaseModel):
             WorkflowStatus.INTERRUPTED,
             WorkflowStatus.PAUSED,
             WorkflowStatus.PENDING,
+            WorkflowStatus.RUNNING,
         },
         description="Workflow statuses that are eligible for resume",
     )

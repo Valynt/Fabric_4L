@@ -9,8 +9,14 @@ from fastapi import APIRouter, HTTPException, Request
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ConfigDict
 
-from layer2_extraction.models.signal_lifecycle import OperationalSignalLifecycleRecord, SignalLifecycleActor
-from layer2_extraction.services.signal_lifecycle_service import InvalidLifecycleTransitionError, SignalLifecycleService
+from layer2_extraction.models.signal_lifecycle import (
+    OperationalSignalLifecycleRecord,
+    SignalLifecycleActor,
+)
+from layer2_extraction.services.signal_lifecycle_service import (
+    InvalidLifecycleTransitionError,
+    SignalLifecycleService,
+)
 
 router = APIRouter(prefix="/signals", tags=["signal-lifecycle"])
 _service = SignalLifecycleService()

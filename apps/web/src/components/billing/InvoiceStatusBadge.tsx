@@ -30,13 +30,13 @@ const statusConfig: Record<
   draft: {
     label: 'Draft',
     variant: 'secondary',
-    className: 'bg-gray-100 text-gray-700 hover:bg-gray-100 border-gray-200',
+    className: 'bg-muted text-foreground hover:bg-muted border-border',
     icon: FileText,
   },
   void: {
     label: 'Void',
     variant: 'outline',
-    className: 'bg-gray-100 text-gray-500 hover:bg-gray-100 border-gray-300',
+    className: 'bg-muted text-muted-foreground hover:bg-muted border-border',
     icon: XCircle,
   },
   uncollectible: {

@@ -6,6 +6,7 @@
   ],
   "extraPaths": [
     "packages/shared/src",
+    "services/layer1-ingestion/src",
     "services/layer2-extraction/src"
   ],
   "strict": [

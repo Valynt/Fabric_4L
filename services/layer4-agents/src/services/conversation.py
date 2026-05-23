@@ -438,7 +438,7 @@ class ConversationService:
 
         except Exception as e:
             logger.error("Streaming pipeline error: %s", e, exc_info=True)
-            yield {"type": "RUN_ERROR", "timestamp": now(), "runId": run_id, "message": str(e), "retryable": True}
+            yield {"type": "RUN_ERROR", "timestamp": now(), "runId": run_id, "message": "STREAMING_ERROR", "retryable": True}
 
     async def handle_message(
         self,
@@ -775,7 +775,7 @@ class ConversationService:
                 )
         except Exception as e:
             logger.warning("Mutation tool %s failed: %s", tool_name, e)
-            return {"success": False, "error": str(e)}
+            return {"success": False, "error": "MUTATION_TOOL_ERROR"}
 
         return None
 

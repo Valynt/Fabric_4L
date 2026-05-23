@@ -77,7 +77,8 @@ class TestCreateInitialState:
                 "value_driver_ids": ["vd-1", "vd-2"],
                 "industry_vertical": "manufacturing",
                 "tenant_id": "t-42",
-            }
+            },
+            tenant_id="test-tenant",
         )
         assert state.workflow_type.value == "roi_calculator"
         assert state.status == WorkflowStatus.PENDING
@@ -89,7 +90,8 @@ class TestCreateInitialState:
         wf, _ = workflow
         with pytest.raises(ValueError):
             wf.create_initial_state(
-                {"prospect_id": "p-001", "value_driver_ids": []}
+                {"prospect_id": "p-001", "value_driver_ids": []},
+                tenant_id="test-tenant",
             )
 
 
@@ -601,7 +603,8 @@ class TestEndToEnd:
                 "value_driver_ids": ["vd-1"],
                 "industry_vertical": "saas",
                 "tenant_id": "t-1",
-            }
+            },
+            tenant_id="test-tenant",
         )
 
         async def side_effect(tool_name, params):

@@ -68,7 +68,7 @@ def _validate_path(file_path: str, tenant_id: str) -> Path | None:
     except (OSError, ValueError) as e:
         logger.error(
             "Path resolution failed",
-            extra={"file_path": file_path, "tenant_id": tenant_id, "error": str(e)}
+            extra={"file_path": file_path, "tenant_id": tenant_id, "error_code": "PATH_RESOLUTION_ERROR"}
         )
         return None
 
@@ -104,6 +104,6 @@ async def read_file(
     except (OSError, UnicodeDecodeError) as e:
         logger.error(
             "Failed to read file",
-            extra={"file_path": str(validated_path), "tenant_id": tenant_id, "error": str(e)}
+            extra={"file_path": str(validated_path), "tenant_id": tenant_id, "error_code": "FILE_READ_ERROR"}
         )
         return None

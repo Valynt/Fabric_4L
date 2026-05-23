@@ -72,10 +72,10 @@ class SimpleTestWorkflow(BaseWorkflow):
 
         return SimpleTestWorkflow__execute_toolResult.model_validate({"status": "completed", "node": current_node, "tool": tool_name})
 
-    def create_initial_state(self, input_data: dict[str, Any]):
+    def create_initial_state(self, input_data: dict[str, Any], *, tenant_id: str | None = None):
         """Create initial state."""
         from datetime import UTC
-        return BaseAgentState(tenant_id="test-tenant", 
+        return BaseAgentState(tenant_id=tenant_id or "test-tenant",
             workflow_id=input_data.get("workflow_id", f"test-{datetime.now(UTC).timestamp()}"),
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PENDING,
@@ -93,7 +93,7 @@ class TestCheckpointPersistence:
     async def test_checkpoint_saver_stores_state(self, mock_checkpoint_saver, mock_tool_registry):
         """Verify checkpoint saver receives state during workflow execution."""
         workflow = SimpleTestWorkflow(mock_tool_registry, mock_checkpoint_saver)
-        initial_state = workflow.create_initial_state({"test": "data"})
+        initial_state = workflow.create_initial_state({"test": "data"}, tenant_id="test-tenant")
         workflow_id = initial_state.workflow_id
 
         await workflow.run(initial_state, thread_id=workflow_id)
@@ -105,7 +105,7 @@ class TestCheckpointPersistence:
     async def test_workflow_without_checkpoint_saver_runs_normally(self, mock_tool_registry):
         """Workflow functions without checkpointing (backward compatibility)."""
         workflow = SimpleTestWorkflow(mock_tool_registry, checkpoint_saver=None)
-        initial_state = workflow.create_initial_state({"test": "data"})
+        initial_state = workflow.create_initial_state({"test": "data"}, tenant_id="test-tenant")
 
         result = await workflow.run(initial_state, thread_id="test-wf-1")
 

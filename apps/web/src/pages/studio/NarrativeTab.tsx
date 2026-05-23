@@ -67,7 +67,7 @@ const STATUS_CONFIG: Record<
 };
 
 const DIL_STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  draft: { label: "Draft", color: "text-gray-600", bg: "bg-gray-400" },
+  draft: { label: "Draft", color: "text-muted-foreground", bg: "bg-muted" },
   review: { label: "Review", color: "text-orange-600", bg: "bg-orange-500" },
   approved: { label: "Approved", color: "text-green-600", bg: "bg-green-500" },
   delivered: { label: "Delivered", color: "text-blue-600", bg: "bg-blue-500" },

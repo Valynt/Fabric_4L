@@ -678,7 +678,7 @@ def ai_extraction_stage(self, prev_result: dict):
                     raise self.retry(exc=e, countdown=15)
                 raise ValueError(f"L2 extraction failed: HTTP {e.response.status_code}: {e.response.text}")
             except Exception as e:
-                logger.warning("L2 extraction failed, retrying via Celery", job_id=str(job_id), error=str(e))
+                logger.warning("L2 extraction failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
                 raise self.retry(exc=e, countdown=30)
 
             job.configuration["extraction_result"] = extraction_result

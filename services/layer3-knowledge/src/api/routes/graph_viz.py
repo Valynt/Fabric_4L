@@ -42,7 +42,7 @@ except Exception:
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["Graph"])
+router = APIRouter(prefix="/v1", tags=["Graph"])
 
 
 def _build_graph_node(
@@ -92,6 +92,8 @@ async def get_full_graph(
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
+    nodes: list[GraphNode | GraphNodeWithLayout] = []
+
     try:
         nodes_result = await asyncio.wait_for(
             neo4j.execute_query(
@@ -106,8 +108,6 @@ async def get_full_graph(
             ),
             timeout=QUERY_TIMEOUT_SECONDS,
         )
-
-        nodes: list[GraphNode | GraphNodeWithLayout] = []
         node_ids: set[str] = set()
         node_types: dict[str, int] = {}
 
@@ -175,6 +175,9 @@ async def get_full_graph(
 
         total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0  # type: ignore[index]
         total_edges = total_edges_result[0].get("total", 0) if total_edges_result else 0  # type: ignore[index]
+
+        if not total_nodes_result or not total_edges_result:
+            logger.warning("Graph stats query returned empty results")
         density = (
             0.0
             if total_nodes <= 1
@@ -321,10 +324,10 @@ async def get_entity_subgraph(
         metrics = get_metrics() if get_metrics else None
         if metrics:
             metrics.observe_graph_traversal_depth(
-                depth=depth, endpoint="/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
+                depth=depth, endpoint=f"/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
             )
             metrics.observe_graph_result_size(
-                size=len(nodes), endpoint="/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
+                size=len(nodes), endpoint=f"/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
             )
 
         return response
@@ -352,7 +355,7 @@ async def get_entity_subgraph(
 _VALID_REL_TYPE = re.compile(r"^[A-Z_][A-Z0-9_]*$")
 
 
-@router.get("/v1/graph/subgraph", response_model=SubgraphResponse)
+@router.get("/graph/subgraph", response_model=SubgraphResponse)
 async def get_query_subgraph(
     tenant_id: str = Depends(require_request_tenant_id),
     query: str | None = Query(None, description="Search query to find matching entities"),

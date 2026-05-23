@@ -658,7 +658,7 @@ async def get_db_from_context(
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
-        logger.warning("tenant_context_error", error=str(e))
+        logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Invalid tenant context",
@@ -744,7 +744,7 @@ async def get_db_with_optional_tenant(
             try:
                 effective_tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
-                logger.warning("tenant_context_error", error=str(e))
+                logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Invalid tenant context",

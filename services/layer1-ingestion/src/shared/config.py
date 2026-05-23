@@ -228,7 +228,7 @@ class Settings(BaseSettings):
         return is_production_like_environment(self.environment)
 
     @property
-    def cors_policy(self) -> dict[str, object]:
+    def cors_policy(self) -> dict[str, Any]:
         origins = self.cors_origins
         if not origins and not self.is_production_like:
             logger.warning(

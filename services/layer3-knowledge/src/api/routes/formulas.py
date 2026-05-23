@@ -584,7 +584,7 @@ async def evaluate_formula(
         raise
     except Exception as e:
         raise HTTPException(
-            status_code=500, detail=f"Failed to evaluate formula: {str(e)}"
+            status_code=500, detail="FORMULA_EVALUATION_ERROR"
         )
 
 
@@ -848,10 +848,10 @@ async def calculate_scenario(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Scenario calculation failed: %s", str(e), exc_info=True)
+        logger.error("Scenario calculation failed: %s", e, exc_info=True)
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to calculate scenario: {str(e)}",
+            detail="SCENARIO_CALCULATION_ERROR",
         )
 
 
@@ -886,7 +886,7 @@ def evaluate_expression(expression: str, variables: dict[str, float]) -> float:
         result = evaluate_simple(expr)
         return float(result)
     except (ValueError, ZeroDivisionError, TypeError) as e:
-        raise ValueError(f"Invalid expression: {str(e)}")
+        raise ValueError("INVALID_EXPRESSION_ERROR")
 
 
 def evaluate_simple(expr: str) -> float:

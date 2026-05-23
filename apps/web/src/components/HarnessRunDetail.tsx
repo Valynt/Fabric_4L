@@ -56,9 +56,9 @@ function statusColor(status: string): string {
     case "completed": return "bg-emerald-500/15 text-emerald-700 border-emerald-200";
     case "running":   return "bg-blue-500/15 text-blue-700 border-blue-200";
     case "failed":    return "bg-red-500/15 text-red-700 border-red-200";
-    case "cancelled": return "bg-slate-400/15 text-slate-600 border-slate-200";
+    case "cancelled": return "bg-muted/15 text-muted-foreground border-border";
     case "waiting_for_human": return "bg-amber-500/15 text-amber-700 border-amber-200";
-    default:          return "bg-slate-100 text-slate-600 border-slate-200";
+    default:          return "bg-muted text-muted-foreground border-border";
   }
 }
 
@@ -66,7 +66,7 @@ function gateStatusColor(status: string): string {
   switch (status) {
     case "approved": return "bg-emerald-500/15 text-emerald-700";
     case "rejected": return "bg-red-500/15 text-red-700";
-    case "expired":  return "bg-slate-400/15 text-slate-500";
+    case "expired":  return "bg-muted/15 text-muted-foreground";
     case "modified": return "bg-blue-500/15 text-blue-700";
     default:         return "bg-amber-500/15 text-amber-700"; // pending
   }
@@ -86,7 +86,7 @@ function validationStateBadgeClass(state: ValidationState): string {
     case "passed":               return "bg-emerald-500/15 text-emerald-700 border-emerald-200";
     case "failed":               return "bg-red-500/15 text-red-700 border-red-200";
     case "needs_review":         return "bg-amber-500/15 text-amber-700 border-amber-200";
-    case "insufficient_evidence": return "bg-slate-100 text-slate-600 border-slate-200";
+    case "insufficient_evidence": return "bg-muted text-muted-foreground border-border";
   }
 }
 

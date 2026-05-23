@@ -22,9 +22,9 @@ export function IntegrationGrid({
   // Empty state - show available providers to configure
   if (!hasIntegrations) {
     return (
-      <div className="bg-white border border-neutral-200 rounded-xl p-8">
-        <h3 className="text-[14px] font-semibold text-neutral-800 mb-2">Available Integrations</h3>
-        <p className="text-[13px] text-neutral-500 mb-6">
+      <div className="bg-white border border-border rounded-xl p-8">
+        <h3 className="text-sm font-semibold text-foreground mb-2">Available Integrations</h3>
+        <p className="text-sm text-muted-foreground mb-6">
           Select a provider to configure your first integration
         </p>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -34,13 +34,13 @@ export function IntegrationGrid({
               <button
                 key={provider}
                 onClick={() => onSelect(provider)}
-                className="flex flex-col items-center p-6 bg-neutral-50 border border-neutral-200 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-colors text-center"
+                className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-colors text-center"
               >
                 <div className={`w-12 h-12 rounded-xl ${style.iconBg} ${style.iconText} flex items-center justify-center mb-3`}>
                   <Plus size={24} />
                 </div>
-                <span className="text-[13px] font-medium text-neutral-800">{PROVIDER_NAMES[provider]}</span>
-                <span className="text-[11px] text-neutral-500 mt-1">Click to configure</span>
+                <span className="text-sm font-medium text-foreground">{PROVIDER_NAMES[provider]}</span>
+                <span className="text-xs text-muted-foreground mt-1">Click to configure</span>
               </button>
             );
           })}
@@ -50,8 +50,8 @@ export function IntegrationGrid({
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl p-6">
-      <h3 className="text-[14px] font-semibold text-neutral-800 mb-4">
+    <div className="bg-white border border-border rounded-xl p-6">
+      <h3 className="text-sm font-semibold text-foreground mb-4">
         Configured Integrations ({configuredProviders.length})
       </h3>
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">

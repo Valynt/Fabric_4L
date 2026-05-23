@@ -154,6 +154,7 @@ async def get_provenance(
 )
 async def list_audit_logs(
     request: Request,
+    app_state: AppState = Depends(get_app_state),
     source: Literal["all", "provenance", "access"] = Query(
         "all", description="Source: 'provenance', 'access', or 'all'"
     ),
@@ -164,7 +165,6 @@ async def list_audit_logs(
     agent: str | None = Query(None, description="Filter by agent"),
     page: int = Query(1, ge=1, description="Page number"),
     per_page: int = Query(50, ge=1, le=100, description="Entries per page"),
-    app_state: AppState = Depends(get_app_state),
 ):
     tenant_id = _require_tenant_id_from_context(
         request,

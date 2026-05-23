@@ -95,7 +95,7 @@ class PDFAdapter(DataSourceAdapter):
 
             return True
         except Exception as e:
-            self.logger.error("Health check failed", error=str(e))
+            self.logger.error("Health check failed", error_code="PDF_HEALTH_ERROR")
             return False
 
     async def search(
@@ -144,7 +144,7 @@ class PDFAdapter(DataSourceAdapter):
         try:
             return await self._process_pdf(local_path, url or str(local_path), **kwargs)
         except Exception as e:
-            self.logger.error("PDF processing failed", path=str(local_path), error=str(e))
+            self.logger.error("PDF processing failed", path=str(local_path), error_code="PDF_PROCESS_ERROR")
             return None
 
     async def _download_to_temp(self, url: str) -> Path:
@@ -195,7 +195,7 @@ class PDFAdapter(DataSourceAdapter):
                     temp_path.unlink()
 
                 self.logger.warning(
-                    "Download failed, retrying", url=url, attempt=attempt + 1, error=str(e)
+                    "Download failed, retrying", url=url, attempt=attempt + 1, error_code="DOWNLOAD_RETRY_ERROR"
                 )
 
             # Exponential backoff before retry
@@ -309,7 +309,7 @@ class PDFAdapter(DataSourceAdapter):
             return full_text, avg_confidence
 
         except Exception as e:
-            self.logger.error("OCR extraction failed", error=str(e))
+            self.logger.error("OCR extraction failed", error_code="OCR_ERROR")
             return "", None
 
     def _detect_filing_type(self, content: str) -> str:

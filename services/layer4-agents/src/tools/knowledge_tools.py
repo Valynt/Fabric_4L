@@ -249,7 +249,7 @@ class QueryGraphTool(BaseTool):
                 columns=[],
                 row_count=0,
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                error=f"Query execution failed: {str(e)}"
+                error="QUERY_EXECUTION_ERROR"
             )
 
 

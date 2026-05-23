@@ -143,7 +143,7 @@ def _load_deprecation_register() -> dict:
     except Exception as e:
         logger.warning(
             "deprecation_register_load_failed",
-            error=str(e),
+            error_code="DEPRECATION_LOAD_ERROR",
             fallback="empty_register",
         )
         metrics = get_metrics()
@@ -349,7 +349,7 @@ try:
 except Exception as e:
     logger.error(
         "redis_init_failed",
-        error=str(e),
+        error_code="REDIS_INIT_ERROR",
         degraded_mode=True,
         message="Rate limiting disabled - Redis unavailable",
     )
@@ -2302,9 +2302,9 @@ async def batch_operation(
                 succeeded += 1
                 
             except Exception as e:
-                logger.error("batch_execute_failed", target_id=str(target_id), error=str(e))
+                logger.error("batch_execute_failed", target_id=str(target_id), error_code="BATCH_EXECUTE_ERROR")
                 results.append(BatchOperationItemResult(
-                    id=target_id, status="failed", job_id=None, error=str(e)
+                    id=target_id, status="failed", job_id=None, error="BATCH_EXECUTE_ERROR"
                 ))
                 failed += 1
     
@@ -2349,9 +2349,9 @@ async def batch_operation(
                 succeeded += 1
                 
             except Exception as e:
-                logger.error("batch_cancel_failed", job_id=str(job_id), error=str(e))
+                logger.error("batch_cancel_failed", job_id=str(job_id), error_code="BATCH_CANCEL_ERROR")
                 results.append(BatchOperationItemResult(
-                    id=job_id, status="failed", job_id=job_id, error=str(e)
+                    id=job_id, status="failed", job_id=job_id, error="BATCH_CANCEL_ERROR"
                 ))
                 failed += 1
     
@@ -2412,9 +2412,9 @@ async def batch_operation(
                 succeeded += 1
                 
             except Exception as e:
-                logger.error("batch_retry_failed", job_id=str(job_id), error=str(e))
+                logger.error("batch_retry_failed", job_id=str(job_id), error_code="BATCH_RETRY_ERROR")
                 results.append(BatchOperationItemResult(
-                    id=job_id, status="failed", job_id=job_id, error=str(e)
+                    id=job_id, status="failed", job_id=job_id, error="BATCH_RETRY_ERROR"
                 ))
                 failed += 1
     
@@ -2745,7 +2745,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        logger.error("health_check_database_failed", error=str(e))
+        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR")
         components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
         _metrics = get_metrics()
         if _metrics:
@@ -2758,7 +2758,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         redis_client.ping()
         components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        logger.warning("health_check_redis_failed", error=str(e))
+        logger.warning("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR")
         components["queue"] = ComponentHealth(status="degraded", message="Redis not available")
         _metrics = get_metrics()
         if _metrics:
@@ -2956,7 +2956,7 @@ async def legacy_health_check():
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "database", "status": "unhealthy", "error": str(e)})
+        dependencies.append({"name": "database", "status": "unhealthy", "error": "DB_CONNECTION_ERROR"})
         overall_status = "degraded"
     finally:
         db.close()
@@ -2972,7 +2972,7 @@ async def legacy_health_check():
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "redis", "status": "degraded", "error": str(e)})
+        dependencies.append({"name": "redis", "status": "degraded", "error": "REDIS_CONNECTION_ERROR"})
         overall_status = "degraded"
 
     return legacy_health_checkResult.model_validate({

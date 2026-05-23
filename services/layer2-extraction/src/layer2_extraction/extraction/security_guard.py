@@ -8,8 +8,8 @@ This module provides:
 from __future__ import annotations
 
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
-from typing import Iterable
 
 CONTENT_DELIMITER_START = "<<<SOURCE_CONTENT_BEGIN>>>"
 CONTENT_DELIMITER_END = "<<<SOURCE_CONTENT_END>>>"

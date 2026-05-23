@@ -263,7 +263,7 @@ async def _create_entity(
                 return {"success": True, "entity_id": record["entity_id"]}
             return {"success": False, "error": "Failed to create entity"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
 async def _update_entity(
@@ -292,7 +292,7 @@ async def _update_entity(
                 return {"success": True}
             return {"success": False, "error": "Entity not found"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
 async def _delete_entity(
@@ -316,7 +316,7 @@ async def _delete_entity(
                 return {"success": True}
             return {"success": False, "error": "Entity not found"}
     except Exception as e:
-        return {"success": False, "error": str(e)}
+        return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
 async def _delete_entity_by_id(
@@ -491,7 +491,7 @@ async def batch_entity_operations(
                         "operation": operation.operation,
                         "entity_id": getattr(operation, "entity_id", None),
                         "success": False,
-                        "error": str(e),
+                        "error": "BATCH_OPERATION_ERROR",
                     }
                 )
 
@@ -574,7 +574,7 @@ async def batch_analytics(
                 successful += 1
             except Exception as e:
                 logger.warning("Batch analytics failed for %s: %s", entity_id, e)
-                results.append({"entity_id": entity_id, "success": False, "error": str(e)})
+                results.append({"entity_id": entity_id, "success": False, "error": "BATCH_ANALYTICS_ERROR"})
                 failed += 1
 
         aggregate = None

@@ -51,7 +51,7 @@ async def cleanup_expired_oidc_sessions(db: AsyncSession) -> int:
     except Exception as e:
         logger.error(
             "oidc_cleanup_failed",
-            error=str(e),
+            error_code="OIDC_CLEANUP_ERROR",
             timestamp=datetime.now(UTC).isoformat(),
         )
         await db.rollback()
@@ -136,7 +136,7 @@ class OIDCCleanupTask:
             except Exception as e:
                 logger.error(
                     "oidc_cleanup_error",
-                    error=str(e),
+                    error_code="OIDC_CLEANUP_ERROR",
                     error_type=type(e).__name__,
                 )
                 # Wait before retrying to avoid tight error loops

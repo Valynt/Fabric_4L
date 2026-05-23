@@ -108,19 +108,19 @@ export default function ValueCase() {
                   ].map((y) => (
                     <div key={y.year} className="flex-1 flex flex-col items-center gap-1">
                       <span className="text-xs font-semibold text-primary">${y.e}M</span>
-                      <div className="flex items-end gap-1" style={{ height: 100 }}>
-                        <div className="w-5 bg-amber-500/30 rounded-t" style={{ height: `${(y.c / 25) * 100}px` }} />
+                      <div className="flex items-end gap-1 h-24">
+                        <div className="w-5 bg-muted/30 rounded-t" style={{ height: `${(y.c / 25) * 100}px` }} />
                         <div className="w-5 bg-primary rounded-t" style={{ height: `${(y.e / 25) * 100}px` }} />
-                        <div className="w-5 bg-emerald-500/30 rounded-t" style={{ height: `${(y.o / 25) * 100}px` }} />
+                        <div className="w-5 bg-accent/30 rounded-t" style={{ height: `${(y.o / 25) * 100}px` }} />
                       </div>
                       <span className="text-xs text-muted-foreground">{y.year}</span>
                     </div>
                   ))}
                 </div>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1"><div className="w-3 h-3 bg-amber-500/30 rounded" /> Conservative</span>
+                  <span className="flex items-center gap-1"><div className="w-3 h-3 bg-muted/30 rounded" /> Conservative</span>
                   <span className="flex items-center gap-1"><div className="w-3 h-3 bg-primary rounded" /> Expected</span>
-                  <span className="flex items-center gap-1"><div className="w-3 h-3 bg-emerald-500/30 rounded" /> Optimistic</span>
+                  <span className="flex items-center gap-1"><div className="w-3 h-3 bg-accent/30 rounded" /> Optimistic</span>
                 </div>
               </div>
             </SectionCard>

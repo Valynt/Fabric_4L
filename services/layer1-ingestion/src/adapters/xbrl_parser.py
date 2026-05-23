@@ -173,10 +173,10 @@ class XBRLParser:
             return result
 
         except ET.ParseError as e:
-            self.logger.error("XBRL XML parse error", error=str(e))
+            self.logger.error("XBRL XML parse error", error_code="XBRL_PARSE_ERROR")
             return ParsedXBRL()
         except Exception as e:
-            self.logger.error("XBRL parsing failed", error=str(e))
+            self.logger.error("XBRL parsing failed", error_code="XBRL_PARSING_ERROR")
             return ParsedXBRL()
 
     def _extract_contexts(self, root: ET.Element) -> dict[str, dict]:

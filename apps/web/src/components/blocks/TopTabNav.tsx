@@ -57,7 +57,7 @@ export function TopTabNav({ tabs, activeTab, onChange, className }: TopTabNavPro
             role="tab"
             aria-selected={isActive}
             className={cn(
-              "relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors",
+              "relative flex items-center gap-1.5 px-3 py-2 text-sm font-medium transition-colors",
               "-mb-px",
               isActive
                 ? "text-foreground"

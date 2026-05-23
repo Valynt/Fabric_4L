@@ -185,18 +185,18 @@ class CRMSyncService:
                 except SyncTruncatedError as e:
                     has_truncation = True
                     stats["failed"] += 1
-                    stats["errors"].append(f"{prospect_id}: {str(e)}")
+                    stats["errors"].append(f"{prospect_id}: SYNC_TRUNCATED_ERROR")
                     logger.warning(
                         "Sync truncated for account %s from %s: %s",
-                        prospect_id, provider.value, _redacted_error(str(e)),
+                        prospect_id, provider.value, _redacted_error("SYNC_TRUNCATED_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
                 except Exception as e:
                     stats["failed"] += 1
-                    stats["errors"].append(f"{prospect_id}: {str(e)}")
+                    stats["errors"].append(f"{prospect_id}: SYNC_ERROR")
                     logger.error(
                         "Failed to sync account %s from %s: %s",
-                        prospect_id, provider.value, _redacted_error(str(e)),
+                        prospect_id, provider.value, _redacted_error("SYNC_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
 
@@ -252,7 +252,7 @@ class CRMSyncService:
 
         except Exception as e:
             # Update sync status to failed
-            await self._update_sync_status(tenant_id, provider, "failed", str(e)[:1000])
+            await self._update_sync_status(tenant_id, provider, "failed", "SYNC_ERROR"[:1000])
             _increment_metric("crm_salesforce_sync_failed_total")
             duration = time.monotonic() - sync_start
             error_type = type(e).__name__

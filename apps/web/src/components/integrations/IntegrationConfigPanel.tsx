@@ -104,14 +104,14 @@ export function IntegrationConfigPanel({
   // Empty state
   if (!integration) {
     return (
-      <div className="bg-white border border-neutral-200 rounded-xl p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center">
-        <div className="w-16 h-16 rounded-full bg-neutral-100 flex items-center justify-center mb-4">
-          {provider ? providerInfo.icon : <MousePointerClick size={32} className="text-neutral-400" />}
+      <div className="bg-white border border-border rounded-xl p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center">
+        <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+          {provider ? providerInfo.icon : <MousePointerClick size={32} className="text-muted-foreground" />}
         </div>
-        <h3 className="text-[16px] font-semibold text-neutral-800 mb-2">
+        <h3 className="text-base font-semibold text-foreground mb-2">
           {provider ? `Configure ${providerInfo.name}` : 'Select an integration'}
         </h3>
-        <p className="text-[13px] text-neutral-500 max-w-xs">
+        <p className="text-sm text-muted-foreground max-w-xs">
           {provider
             ? isSalesforce
               ? 'Use OAuth to connect Salesforce securely. Token entry is no longer the primary configuration path.'
@@ -143,27 +143,27 @@ export function IntegrationConfigPanel({
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden sticky top-6">
+    <div className="bg-white border border-border rounded-xl overflow-hidden sticky top-6">
       {/* Header */}
-      <div className={`px-6 py-5 border-b border-neutral-100 ${
-        isConnected ? providerInfo.headerBg : "bg-neutral-50"
+      <div className={`px-6 py-5 border-b border-border ${
+        isConnected ? providerInfo.headerBg : "bg-muted"
       }`}>
         <div className="flex items-center gap-4">
           <div className={`w-12 h-12 rounded-xl ${
-            isConnected ? `${providerInfo.iconBg} ${providerInfo.iconText}` : "bg-neutral-100 text-neutral-400"
+            isConnected ? `${providerInfo.iconBg} ${providerInfo.iconText}` : "bg-muted text-muted-foreground"
           } flex items-center justify-center`}>
             {providerInfo.icon}
           </div>
           <div>
-            <h3 className="text-[16px] font-bold text-neutral-900">{providerInfo.name}</h3>
-            <p className="text-[12px] text-neutral-500 mt-0.5">{providerInfo.description}</p>
+            <h3 className="text-base font-bold text-foreground">{providerInfo.name}</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">{providerInfo.description}</p>
           </div>
         </div>
       </div>
 
       {/* Status Badge */}
-      <div className="px-6 py-4 border-b border-neutral-100">
-        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-medium ${getStatusBadgeClasses(status, isConnected)}`}>
+      <div className="px-6 py-4 border-b border-border">
+        <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${getStatusBadgeClasses(status, isConnected)}`}>
           {isConnected ? (
             status === "failed" ? (
               <span className="flex items-center gap-1">
@@ -201,7 +201,7 @@ export function IntegrationConfigPanel({
           <div className="space-y-4">
             {!isSalesforce && providerInfo.fields.map((field) => (
               <div key={field.key}>
-                <label className="text-[12px] font-medium text-neutral-700 mb-1.5 block">
+                <label className="text-xs font-medium text-foreground mb-1.5 block">
                   {field.label}
                   {field.required && <span className="text-red-500 ml-1">*</span>}
                 </label>
@@ -210,20 +210,20 @@ export function IntegrationConfigPanel({
                   value={editConfig[field.key as keyof EditingConfig] as string}
                   onChange={(e) => setEditConfig({ ...editConfig, [field.key]: e.target.value })}
                   placeholder={field.placeholder}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
             ))}
 
             {isSalesforce && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-[12px] text-blue-800">
+              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-xs text-blue-800">
                 Salesforce credentials are managed through OAuth. This panel only updates operational sync settings.
               </div>
             )}
 
             <div className="grid grid-cols-2 gap-4 pt-2">
               <div>
-                <label className="text-[12px] font-medium text-neutral-700 mb-1.5 block">
+                <label className="text-xs font-medium text-foreground mb-1.5 block">
                   Sync Interval (min)
                 </label>
                 <input
@@ -236,11 +236,11 @@ export function IntegrationConfigPanel({
                     const clamped = Math.min(Math.max(value, VALIDATION.SYNC_INTERVAL.MIN), VALIDATION.SYNC_INTERVAL.MAX);
                     setEditConfig({ ...editConfig, syncIntervalMinutes: clamped });
                   }}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
               <div>
-                <label className="text-[12px] font-medium text-neutral-700 mb-1.5 block">
+                <label className="text-xs font-medium text-foreground mb-1.5 block">
                   Batch Size
                 </label>
                 <input
@@ -253,7 +253,7 @@ export function IntegrationConfigPanel({
                     const clamped = Math.min(Math.max(value, VALIDATION.BATCH_SIZE.MIN), VALIDATION.BATCH_SIZE.MAX);
                     setEditConfig({ ...editConfig, syncBatchSize: clamped });
                   }}
-                  className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
               </div>
             </div>
@@ -267,9 +267,9 @@ export function IntegrationConfigPanel({
                   className="sr-only peer"
                 />
                 <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 ${providerInfo.toggleFocus} ${
-                  editConfig.enabled ? providerInfo.toggleBg : "bg-neutral-200"
+                  editConfig.enabled ? providerInfo.toggleBg : "bg-muted"
                 } peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
-                <span className="ml-3 text-[13px] text-neutral-700">Enable integration</span>
+                <span className="ml-3 text-sm text-foreground">Enable integration</span>
               </label>
             </div>
 
@@ -293,34 +293,34 @@ export function IntegrationConfigPanel({
           <div className="space-y-4">
             {/* Connection Status */}
             <div className="grid grid-cols-3 gap-3">
-              <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-100">
-                <div className="flex items-center gap-1.5 text-[10px] font-medium text-neutral-500 mb-1">
+              <div className="p-3 bg-muted rounded-lg border border-border">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
                   <Activity size={10} />
                   Status
                 </div>
-                <p className={`text-[13px] font-semibold ${
-                  isConnected ? "text-emerald-600" : "text-neutral-400"
+                <p className={`text-sm font-semibold ${
+                  isConnected ? "text-emerald-600" : "text-muted-foreground"
                 }`}>
                   {isConnected ? "Active" : "Not Connected"}
                 </p>
               </div>
 
-              <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-100">
-                <div className="flex items-center gap-1.5 text-[10px] font-medium text-neutral-500 mb-1">
+              <div className="p-3 bg-muted rounded-lg border border-border">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
                   <Clock size={10} />
                   Last Sync
                 </div>
-                <p className="text-[13px] font-semibold text-neutral-700">
+                <p className="text-sm font-semibold text-foreground">
                   {formatLastSync(integration?.last_successful_sync_at)}
                 </p>
               </div>
 
-              <div className="p-3 bg-neutral-50 rounded-lg border border-neutral-100">
-                <div className="flex items-center gap-1.5 text-[10px] font-medium text-neutral-500 mb-1">
+              <div className="p-3 bg-muted rounded-lg border border-border">
+                <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground mb-1">
                   <Database size={10} />
                   Records
                 </div>
-                <p className="text-[13px] font-semibold text-neutral-700">
+                <p className="text-sm font-semibold text-foreground">
                   {formatRecordCount(integration?.records_synced)}
                 </p>
               </div>

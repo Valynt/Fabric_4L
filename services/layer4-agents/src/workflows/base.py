@@ -262,7 +262,7 @@ class BaseWorkflow(ABC):
                 raise
             except Exception as e:
                 # Handle error
-                error_msg = f"Node {node_config.id} failed: {str(e)}"
+                error_msg = f"Node {node_config.id} failed: NODE_EXECUTION_ERROR"
                 updates["errors"] = state.errors + [error_msg]
                 updates["status"] = WorkflowStatus.FAILED
 

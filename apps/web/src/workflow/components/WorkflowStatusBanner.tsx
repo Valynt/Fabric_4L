@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<HarnessRunStatus, StatusConfig> = {
   queued: {
     label: "Queued",
     icon: Clock,
-    className: "bg-slate-100 text-slate-600 border-slate-200",
+    className: "bg-muted text-muted-foreground border-border",
   },
   running: {
     label: "Running",
@@ -53,7 +53,7 @@ const STATUS_CONFIG: Record<HarnessRunStatus, StatusConfig> = {
   cancelled: {
     label: "Cancelled",
     icon: XCircle,
-    className: "bg-slate-100 text-slate-500 border-slate-200",
+    className: "bg-muted text-muted-foreground border-border",
   },
   completed: {
     label: "Completed",

@@ -831,7 +831,7 @@ class CompanyKnowledgeService:
                 source_id=source_id,
                 tenant_id=tenant_id,
                 crawl_status=CrawlStatus.FAILED,
-                metadata_updates={"error": str(e)},
+                metadata_updates={"error_code": "CRAWL_ERROR"},
             )
             logger.error("Layer 1 crawl failed for source %s: %s", source_id, e)
             raise

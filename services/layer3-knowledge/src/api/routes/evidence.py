@@ -388,7 +388,7 @@ async def link_evidence_to_driver(
     except HTTPException:
         raise
     except Exception as e:
-        logger.error("Failed to link evidence to driver", error=str(e), tenant_id=tenant_id)
+        logger.error("Failed to link evidence to driver", error_code="LINK_ERROR", tenant_id=tenant_id)
         raise HTTPException(status_code=500, detail="Link creation failed") from e
 
 
@@ -416,7 +416,7 @@ async def unlink_evidence_from_driver(
             deleted = record["deleted"] if record else 0
             return {"evidence_id": evidence_id, "driver_id": driver_id, "deleted": deleted}
     except Exception as e:
-        logger.error("Failed to unlink evidence from driver", error=str(e), tenant_id=tenant_id)
+        logger.error("Failed to unlink evidence from driver", error_code="UNLINK_ERROR", tenant_id=tenant_id)
         raise HTTPException(status_code=500, detail="Link deletion failed") from e
 
 
@@ -448,5 +448,5 @@ async def list_evidence_links(
                 ],
             }
     except Exception as e:
-        logger.error("Failed to list evidence links", error=str(e), tenant_id=tenant_id)
+        logger.error("Failed to list evidence links", error_code="LIST_ERROR", tenant_id=tenant_id)
         raise HTTPException(status_code=500, detail="Link listing failed") from e

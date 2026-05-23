@@ -30,7 +30,7 @@ function PickerContent({ accounts, selectedAccountId, onSelectAccount, onCreateA
     <>
       <div className="p-3 border-b border-border">
         <p className="text-xs font-semibold text-foreground">Select Account</p>
-        <p className="text-[10px] text-muted-foreground mt-0.5">Choose an account to work with</p>
+        <p className="text-xs text-muted-foreground mt-0.5">Choose an account to work with</p>
       </div>
       <div className="p-2">
         <div className="relative">
@@ -49,10 +49,10 @@ function PickerContent({ accounts, selectedAccountId, onSelectAccount, onCreateA
           ) : (
             filtered.map(account => (
               <DropdownMenuItem key={account.id} onClick={() => onSelectAccount(account.id)} className="flex items-center gap-2 px-2 py-2 text-xs cursor-pointer">
-                <Avatar className="size-6"><AvatarFallback className="bg-primary/10 text-primary text-[9px] font-bold">{account.name.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
+                <Avatar className="size-6"><AvatarFallback className="bg-primary/10 text-primary text-xs font-bold">{account.name.charAt(0).toUpperCase()}</AvatarFallback></Avatar>
                 <div className="flex-1 min-w-0">
                   <p className="font-medium truncate">{account.name}</p>
-                  <p className="text-[10px] text-muted-foreground truncate">{account.domain || account.industry || "No details"}</p>
+                  <p className="text-xs text-muted-foreground truncate">{account.domain || account.industry || "No details"}</p>
                 </div>
                 {selectedAccountId === account.id && <Check className="size-3.5 text-primary shrink-0" />}
               </DropdownMenuItem>
@@ -85,10 +85,10 @@ export function AccountPicker({ accounts, selectedAccountId, onSelectAccount, on
         <DropdownMenuTrigger asChild>
           <button className={cn("flex flex-col items-center justify-center gap-1 w-full py-3 px-1 rounded-lg transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground active:bg-sidebar-accent focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring", selectedAccount ? "text-sidebar-primary" : "text-sidebar-foreground/60", className)} aria-label={selectedAccount ? `Current account: ${selectedAccount.name}. Open account picker.` : "Select an account"}>
             <div className="relative">
-              <Avatar className="size-8 border-2 border-sidebar-primary/20"><AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold">{selectedAccount?.name?.charAt(0)?.toUpperCase() || "?"}</AvatarFallback></Avatar>
+              <Avatar className="size-8 border-2 border-sidebar-primary/20"><AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">{selectedAccount?.name?.charAt(0)?.toUpperCase() || "?"}</AvatarFallback></Avatar>
               {selectedAccount && <span className="absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full bg-emerald-500 border-2 border-sidebar" />}
             </div>
-            <span className="text-[9px] font-medium truncate max-w-full px-0.5 leading-tight">{selectedAccount?.name || "Account"}</span>
+            <span className="text-xs font-medium truncate max-w-full px-0.5 leading-tight">{selectedAccount?.name || "Account"}</span>
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent side="right" align="start" className="w-72 p-0" sideOffset={8}>
@@ -102,10 +102,10 @@ export function AccountPicker({ accounts, selectedAccountId, onSelectAccount, on
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button className={cn("flex items-center gap-2 w-full px-3 py-2.5 rounded-lg border transition-colors text-left hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:outline-hidden focus-visible:ring-2 focus-visible:ring-sidebar-ring", selectedAccount ? "border-sidebar-primary/30 bg-sidebar-primary/5 text-sidebar-foreground" : "border-sidebar-border bg-sidebar text-sidebar-foreground/60", className)} aria-label={selectedAccount ? `Current account: ${selectedAccount.name}. Open account picker.` : "Select an account"}>
-          <Avatar className="size-7"><AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold">{selectedAccount?.name?.charAt(0)?.toUpperCase() || "?"}</AvatarFallback></Avatar>
+          <Avatar className="size-7"><AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-xs font-bold">{selectedAccount?.name?.charAt(0)?.toUpperCase() || "?"}</AvatarFallback></Avatar>
           <div className="flex-1 min-w-0">
             <p className="text-xs font-medium truncate">{selectedAccount?.name || "Select account"}</p>
-            <p className="text-[10px] text-muted-foreground truncate">{selectedAccount?.domain || "No account selected"}</p>
+            <p className="text-xs text-muted-foreground truncate">{selectedAccount?.domain || "No account selected"}</p>
           </div>
           <ChevronsUpDown className="size-3.5 text-muted-foreground shrink-0" />
         </button>

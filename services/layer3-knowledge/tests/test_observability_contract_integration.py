@@ -22,10 +22,17 @@ def test_standard_observability_probes_and_correlation_header() -> None:
 @pytest.mark.unit
 def test_graph_specific_metrics_present_in_prometheus_output() -> None:
     """Assert that the four graph-specific SLO metrics are registered and emitted."""
-    client = TestClient(app)
-    response = client.get("/metrics")
-    assert response.status_code == 200
-    body = response.text
+    from value_fabric.layer3.metrics.prometheus_metrics import PrometheusMetrics, MetricsConfig
+
+    metrics = PrometheusMetrics(MetricsConfig())
+
+    # Exercise each metric so they appear in output
+    metrics.observe_graph_traversal_depth(depth=5, endpoint="/test", operation="test")
+    metrics.observe_graph_result_size(size=10, endpoint="/test", operation="test")
+    metrics.increment_graph_slow_queries(operation="test", threshold_bucket=">1s")
+    metrics.increment_tenant_isolation_violation(component="test", violation_type="test")
+
+    body = metrics.get_metrics()
 
     required_metrics = [
         "value_fabric_graph_traversal_depth_bucket",

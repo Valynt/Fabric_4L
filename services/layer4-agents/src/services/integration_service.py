@@ -353,7 +353,7 @@ class IntegrationService:
             logger.error("Connection test failed for %s: %s", provider, e)
             return IntegrationService_test_connectionResult.model_validate({
                 "success": False,
-                "message": f"Connection failed: {str(e)}",
+                "message": "CONNECTION_FAILED_ERROR",
                 "error_code": "CONNECTION_FAILED",
             })
 
@@ -475,7 +475,7 @@ class IntegrationService:
         except httpx.NetworkError as e:
             return IntegrationService__test_salesforce_connectionResult.model_validate({
                 "success": False,
-                "message": f"Network error: {str(e)}",
+                "message": "NETWORK_ERROR",
                 "error_code": "NETWORK_ERROR",
             })
 
@@ -553,7 +553,7 @@ class IntegrationService:
         except httpx.NetworkError as e:
             return IntegrationService__test_hubspot_connectionResult.model_validate({
                 "success": False,
-                "message": f"Network error: {str(e)}",
+                "message": "NETWORK_ERROR",
                 "error_code": "NETWORK_ERROR",
             })
 

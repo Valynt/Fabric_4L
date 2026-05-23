@@ -264,10 +264,10 @@ class EnrichmentOrchestrator:
                     "enrichment_source_failed",
                     account_id=str(account_id),
                     source=source.value,
-                    error=str(e),
+                    error_code="ENRICHMENT_ERROR",
                 )
-                errors.append(f"{source.value}: {str(e)}")
-                results[source.value] = {"success": False, "error": str(e)}
+                errors.append(f"{source.value}: ENRICHMENT_ERROR")
+                results[source.value] = {"success": False, "error": "ENRICHMENT_ERROR"}
 
         # Update account status
         if sources_used:
@@ -344,9 +344,9 @@ class EnrichmentOrchestrator:
                 else:
                     fail_count += 1
             except Exception as e:
-                logger.error("batch_enrichment_error", account_id=str(account_id), error=str(e))
+                logger.error("batch_enrichment_error", account_id=str(account_id), error_code="BATCH_ENRICHMENT_ERROR")
                 fail_count += 1
-                batch_results.append({"account_id": str(account_id), "status": "error", "error": str(e)})
+                batch_results.append({"account_id": str(account_id), "status": "error", "error": "BATCH_ENRICHMENT_ERROR"})
 
         return EnrichmentOrchestrator_enrich_batchResult.model_validate({
             "total": len(account_ids),

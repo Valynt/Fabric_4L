@@ -163,7 +163,7 @@ class PackSkills:
             return PackLoadOutput(
                 success=False,
                 pack=None,
-                error=str(e),
+                error="PACK_LOAD_ERROR",
             )
 
     async def pack_execute(self, input_data: PackExecuteInput) -> PackExecuteOutput:
@@ -215,5 +215,5 @@ class PackSkills:
             return PackCustomizeOutput(
                 success=False,
                 new_pack_id=None,
-                error=str(e),
+                error="PACK_CUSTOMIZE_ERROR",
             )

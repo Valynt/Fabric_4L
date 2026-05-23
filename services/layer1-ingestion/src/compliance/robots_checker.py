@@ -123,9 +123,9 @@ class RobotsChecker:
             return True, None, rules
 
         except Exception as e:
-            self.logger.error("Failed to parse robots.txt", domain=domain, error=str(e))
+            self.logger.error("Failed to parse robots.txt", domain=domain, error_code="ROBOTS_PARSE_ERROR")
             # If parsing fails, allow but log
-            return True, None, {"parse_error": str(e)}
+            return True, None, {"parse_error": "ROBOTS_PARSE_ERROR"}
 
     async def _get_robots_txt(
         self, domain: str, robots_url: str, force_refresh: bool = False
@@ -191,14 +191,14 @@ class RobotsChecker:
                 rules={},
                 http_status=e.response.status_code,
                 is_valid=False,
-                error=str(e),
+                error="HTTP_STATUS_ERROR",
             )
 
             # On error, be conservative and assume allowed
             return None
 
         except Exception as e:
-            self.logger.error("Failed to fetch robots.txt", domain=domain, error=str(e))
+            self.logger.error("Failed to fetch robots.txt", domain=domain, error_code="ROBOTS_FETCH_ERROR")
             return None
 
     def _get_cached_robots_txt(self, domain: str) -> dict[str, Any] | None:
@@ -234,7 +234,7 @@ class RobotsChecker:
                 return None
 
         except Exception as e:
-            self.logger.error("Failed to get cached robots.txt", domain=domain, error=str(e))
+            self.logger.error("Failed to get cached robots.txt", domain=domain, error_code="ROBOTS_CACHE_GET_ERROR")
             return None
 
     def _cache_robots_txt(
@@ -297,7 +297,7 @@ class RobotsChecker:
                 session.commit()
 
         except Exception as e:
-            self.logger.error("Failed to cache robots.txt", domain=domain, error=str(e))
+            self.logger.error("Failed to cache robots.txt", domain=domain, error_code="ROBOTS_CACHE_SET_ERROR")
 
     def _parse_robots_txt(self, content: str) -> dict[str, Any]:
         """Parse robots.txt content into structured rules.
@@ -327,8 +327,8 @@ class RobotsChecker:
             return rules
 
         except Exception as e:
-            self.logger.error("Failed to parse robots.txt content", error=str(e))
-            return RobotsChecker__parse_robots_txtResult.model_validate({"parse_error": str(e)})
+            self.logger.error("Failed to parse robots.txt content", error_code="ROBOTS_PARSE_CONTENT_ERROR")
+            return RobotsChecker__parse_robots_txtResult.model_validate({"parse_error": "ROBOTS_PARSE_CONTENT_ERROR"})
 
     async def get_crawl_delay(self, url: str) -> float | None:
         """Get crawl-delay directive for a domain.

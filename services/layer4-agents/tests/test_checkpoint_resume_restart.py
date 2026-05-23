@@ -53,8 +53,8 @@ class RestartTestWorkflow(BaseWorkflow):
             interrupt("Approval required")
         return {"status": "ok", "node": current_node, "tool": tool_name}
 
-    def create_initial_state(self, input_data: dict[str, Any]) -> BaseAgentState:
-        return BaseAgentState(tenant_id="test-tenant", 
+    def create_initial_state(self, input_data: dict[str, Any], *, tenant_id: str | None = None) -> BaseAgentState:
+        return BaseAgentState(tenant_id=tenant_id or "test-tenant",
             workflow_id=input_data.get("workflow_id", "restart-test-wf"),
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PENDING,
@@ -78,7 +78,7 @@ class TestCheckpointResumeRestart:
 
         # --- First instance: start workflow, it should interrupt before "middle" ---
         workflow1 = RestartTestWorkflow(registry, checkpoint_saver=saver)
-        initial_state = workflow1.create_initial_state({"test": "data"})
+        initial_state = workflow1.create_initial_state({"test": "data"}, tenant_id="test-tenant")
         thread_id = initial_state.workflow_id
 
         result1 = await workflow1.run(initial_state, thread_id=thread_id)
@@ -90,7 +90,7 @@ class TestCheckpointResumeRestart:
 
         # Resume on the new instance using Command(resume=...)
         result2 = await workflow2.run(
-            workflow2.create_initial_state({"test": "data"}),
+            workflow2.create_initial_state({"test": "data"}, tenant_id="test-tenant"),
             thread_id=thread_id,
             resume_data={"approved": True},
         )
@@ -107,14 +107,14 @@ class TestCheckpointResumeRestart:
         thread_id = "persist-test"
 
         workflow1 = RestartTestWorkflow(registry, checkpoint_saver=saver)
-        state1 = workflow1.create_initial_state({"workflow_id": thread_id})
+        state1 = workflow1.create_initial_state({"workflow_id": thread_id}, tenant_id="test-tenant")
         await workflow1.run(state1, thread_id=thread_id)
 
         # Verify checkpoint exists in saver
         assert thread_id in saver.storage
 
         workflow2 = RestartTestWorkflow(registry, checkpoint_saver=saver)
-        state2 = workflow2.create_initial_state({"workflow_id": thread_id})
+        state2 = workflow2.create_initial_state({"workflow_id": thread_id}, tenant_id="test-tenant")
         result2 = await workflow2.run(state2, thread_id=thread_id, resume_data=True)
 
         assert result2.status == WorkflowStatus.COMPLETED
@@ -129,13 +129,13 @@ class TestCheckpointResumeRestart:
         thread_id = "no-share-test"
 
         workflow1 = RestartTestWorkflow(registry, checkpoint_saver=saver1)
-        state1 = workflow1.create_initial_state({"workflow_id": thread_id})
+        state1 = workflow1.create_initial_state({"workflow_id": thread_id}, tenant_id="test-tenant")
         await workflow1.run(state1, thread_id=thread_id)
 
         # Fresh saver = no checkpoint knowledge
         saver2 = InMemorySaver()
         workflow2 = RestartTestWorkflow(registry, checkpoint_saver=saver2)
-        state2 = workflow2.create_initial_state({"workflow_id": thread_id})
+        state2 = workflow2.create_initial_state({"workflow_id": thread_id}, tenant_id="test-tenant")
 
         # With a fresh saver, resume should fail because there's no checkpoint
         with pytest.raises(Exception):

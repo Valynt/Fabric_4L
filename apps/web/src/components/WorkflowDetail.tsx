@@ -366,10 +366,10 @@ function StatusBadge({ status }: { status: string }) {
     pending: { color: "bg-amber-100 text-amber-700", label: "Pending" },
     completed: { color: "bg-green-100 text-green-700", label: "Completed" },
     failed: { color: "bg-red-100 text-red-700", label: "Failed" },
-    cancelled: { color: "bg-gray-100 text-gray-700", label: "Cancelled" },
+    cancelled: { color: "bg-muted text-muted-foreground", label: "Cancelled" },
   };
 
-  const { color, label } = variants[status] || { color: "bg-gray-100", label: status };
+  const { color, label } = variants[status] || { color: "bg-muted", label: status };
 
   return (
     <span className={cn("px-2 py-0.5 rounded text-xs font-medium", color)}>

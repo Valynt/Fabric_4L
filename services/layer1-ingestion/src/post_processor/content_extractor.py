@@ -270,7 +270,7 @@ class ContentExtractor:
                 md = self._clean_markdown(md)
                 return md
             except Exception as e:
-                logger.warning("Markdown conversion failed", error=str(e))
+                logger.warning("Markdown conversion failed", error_code="MARKDOWN_CONVERSION_ERROR")
                 # Return text content as fallback
                 if soup:
                     return soup.get_text(separator="\n", strip=True)

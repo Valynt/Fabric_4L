@@ -308,8 +308,12 @@ class OrchestrationController:
                 exc,
             )
             return FALLBACK_LLM_MODEL
-        except Exception:
-            logger.exception("Unexpected error resolving LLM model for tenant %s, using fallback", tenant_id)
+        except Exception as exc:
+            logger.exception(
+                "Unexpected error resolving LLM model for tenant %s (type: %s), using fallback",
+                tenant_id,
+                type(exc).__name__,
+            )
             return FALLBACK_LLM_MODEL
 
     async def register_agent(self, agent: BaseAgent) -> None:

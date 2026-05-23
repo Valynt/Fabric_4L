@@ -223,7 +223,7 @@ async def api_suspend_tenant(
             db, tenant_id, "suspended", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_suspend_conflict", error=str(e))
+        logger.warning("tenant_suspend_conflict", error_code="TENANT_SUSPEND_ERROR")
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
@@ -246,7 +246,7 @@ async def api_activate_tenant(
             db, tenant_id, "active", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_activate_conflict", error=str(e))
+        logger.warning("tenant_activate_conflict", error_code="TENANT_ACTIVATE_ERROR")
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
@@ -270,7 +270,7 @@ async def api_change_tenant_status(
             db, tenant_id, target_status, reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_status_change_conflict", error=str(e))
+        logger.warning("tenant_status_change_conflict", error_code="TENANT_STATUS_ERROR")
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")

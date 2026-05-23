@@ -57,13 +57,13 @@ export function StatCard({
         >
           <Icon className={cn("w-4 h-4", iconClassName ?? "text-muted-foreground")} />
         </div>
-        <span className="text-[10px] text-muted-foreground uppercase font-medium tracking-wider">
+        <span className="text-xs text-muted-foreground uppercase font-medium tracking-wider">
           {label}
         </span>
       </div>
       <p className="text-2xl font-bold text-card-foreground">{value}</p>
       {sub && (
-        <p className={cn("text-[10px] mt-0.5", subClassName ?? "text-muted-foreground/60")}>
+        <p className={cn("text-xs mt-0.5", subClassName ?? "text-muted-foreground/60")}>
           {sub}
         </p>
       )}

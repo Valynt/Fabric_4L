@@ -27,19 +27,15 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-try:
-    from value_fabric.shared.error_handling import register_exception_handlers
-    from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
-    from value_fabric.shared.identity.middleware import GovernanceMiddleware
-    from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
-    from value_fabric.shared.identity.vault_check import is_vault_healthy
-    from value_fabric.shared.models.typed_dict import TypedDictModel
-    from value_fabric.shared.security import SecurityConfig, add_security_middleware
-    from value_fabric.shared.startup import reject_insecure_bypass_in_production
-except ImportError as e:
-    raise ImportError(
-        f"Failed to import from value_fabric.shared. Ensure packages/shared is in PYTHONPATH. Error: {e}"
-    ) from e
+# Import shared modules
+from value_fabric.shared.error_handling import register_exception_handlers
+from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
+from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
+from value_fabric.shared.identity.vault_check import is_vault_healthy
+from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.security import SecurityConfig, add_security_middleware
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..crawler.decision_store import CrawlDecisionRepository
@@ -165,7 +161,7 @@ def _load_deprecation_register() -> dict:
             with open(register_path, encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.warning("Failed to load deprecation register", error=str(e))
+        logger.warning("Failed to load deprecation register", error_code="DEPRECATION_LOAD_ERROR")
     return _load_deprecation_registerResult.model_validate({"deprecations": []}).model_dump()
 
 
@@ -239,7 +235,7 @@ async def lifespan(app: FastAPI):
     """Verify Vault connectivity in production before accepting traffic."""
     if is_production_like_environment():
         vault_addr = os.getenv("VAULT_ADDR")
-        if vault_addr and is_vault_healthy:
+        if vault_addr:
             logger.info("L1: Checking Vault connectivity", vault_addr=vault_addr)
             ok = await is_vault_healthy(vault_addr)
             if not ok:
@@ -287,7 +283,7 @@ try:
 except Exception as e:
     logger.warning(
         "redis_init_failed",
-        error=str(e),
+        error_code="REDIS_INIT_ERROR",
         degraded_mode=True,
         message="Rate limiting disabled - Redis unavailable",
     )
@@ -1109,17 +1105,17 @@ async def list_targets(
     return TargetListResponse(
         data=[
             ScrapingTargetSummary(
-                id=t.id,
-                name=t.name,
-                url=t.url,
-                target_type=t.target_type,
-                status=t.status,
-                created_at=t.created_at,
-                updated_at=t.updated_at,
-                last_success_at=t.last_success_at,
-                success_count=t.success_count,
-                error_count=t.error_count,
-                average_execution_time_ms=t.average_execution_time_ms,
+                id=t.id,  # type: ignore[arg-type]
+                name=t.name,  # type: ignore[arg-type]
+                url=t.url,  # type: ignore[arg-type]
+                target_type=t.target_type,  # type: ignore[arg-type]
+                status=t.status,  # type: ignore[arg-type]
+                created_at=t.created_at,  # type: ignore[arg-type]
+                updated_at=t.updated_at,  # type: ignore[arg-type]
+                last_success_at=t.last_success_at,  # type: ignore[arg-type]
+                success_count=t.success_count,  # type: ignore[arg-type]
+                error_count=t.error_count,  # type: ignore[arg-type]
+                average_execution_time_ms=t.average_execution_time_ms,  # type: ignore[arg-type]
                 tags=t.tags or [],
             )
             for t in targets
@@ -1501,9 +1497,9 @@ async def validate_target(
 
     # Check robots.txt
     if request.validate_robots_txt:
-        from ..compliance.robots_checker import RobotsChecker
-
         from urllib.parse import urlparse
+
+        from ..compliance.robots_checker import RobotsChecker
         parsed = urlparse(test_url)
         checker = RobotsChecker(db)
         domain = parsed.netloc
@@ -2913,7 +2909,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        logger.error("health_check_database_failed", error=str(e))
+        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR")
         components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
 
     # Queue check (Redis)
@@ -3106,7 +3102,7 @@ async def legacy_health_check():
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_database_failed", error=str(e))
+        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR")
         dependencies.append({"name": "database", "status": "unhealthy", "error": "Database connection failed"})
         overall_status = "degraded"
     finally:
@@ -3123,7 +3119,7 @@ async def legacy_health_check():
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_redis_failed", error=str(e))
+        logger.error("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR")
         dependencies.append({"name": "redis", "status": "degraded", "error": "Redis connection failed"})
         overall_status = "degraded"
 

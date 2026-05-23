@@ -586,7 +586,7 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
         job_id=job_id,
         tenant_id=tenant_id,
         source_url=source_url,
-        source_hash=content_hash,
+        source_hash=source_hash,
         model_version=os.getenv("LLM_MODEL", "gpt-4o"),
         schema_version="v1",
         payload_json=payload,

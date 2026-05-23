@@ -125,7 +125,7 @@ class TestWhitespaceAnalysisWorkflow:
             "prospect_id": "p-001",
             "prospect_needs": "We need better analytics and faster reporting.",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         # Mock get_prospect_data to return valid profile
         async def mock_execute(tool_name: str, params: dict[str, Any]) -> Any:
@@ -151,7 +151,7 @@ class TestWhitespaceAnalysisWorkflow:
             "prospect_id": "p-001",
             "prospect_needs": "We need better analytics.",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "analyze_prospect": {
                 "extracted_needs": ["better analytics", "faster reporting"],
@@ -187,7 +187,7 @@ class TestWhitespaceAnalysisWorkflow:
             "prospect_id": "p-001",
             "prospect_needs": "We need better analytics.",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "identify_gaps": {
                 "gaps": [
@@ -218,7 +218,7 @@ class TestWhitespaceAnalysisWorkflow:
             "prospect_id": "p-001",
             "prospect_needs": "We need better analytics.",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         async def mock_execute(tool_name: str, params: dict[str, Any]) -> Any:
             if tool_name == "query_graph":
@@ -255,7 +255,7 @@ class TestROICalculatorWorkflow:
             "prospect_data": {"annual_revenue": 10_000_000.0},
             "industry_vertical": "financial_services",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         assert isinstance(state, ROIAgentState)
         assert state.status == WorkflowStatus.PENDING
@@ -273,7 +273,7 @@ class TestROICalculatorWorkflow:
             workflow.create_initial_state({
                 "prospect_id": "prospect-001",
                 "value_driver_ids": [],  # Empty — must raise
-            })
+            }, tenant_id="test-tenant")
 
     @pytest.mark.asyncio
     async def test_roi_workflow_run_with_mocked_tools(self) -> None:
@@ -328,7 +328,7 @@ class TestROICalculatorWorkflow:
             "prospect_data": {"annual_revenue": 50_000_000.0},
             "industry_vertical": "financial_services",
         }
-        initial_state = workflow.create_initial_state(input_data)
+        initial_state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         # Mock the LangGraph compiled graph to avoid needing a real graph
         mock_compiled = AsyncMock()
@@ -361,7 +361,7 @@ class TestROICalculatorWorkflow:
             "prospect_id": "prospect-001",
             "value_driver_ids": ["vd-001"],
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         # workflow_type must be set (used by executor.get_workflow_status)
         assert state.workflow_type is not None
@@ -382,7 +382,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary", "roi_analysis"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         assert isinstance(state, BusinessCaseAgentState)
         assert state.status == WorkflowStatus.PENDING
@@ -420,7 +420,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary", "roi_analysis"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "gather_inputs": {
                 "prospect": {
@@ -466,7 +466,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "gather_inputs": {"prospect": {"profile": {"name": "Acme Corp"}}},
             "run_roi": {"roi_results": {}},
@@ -500,7 +500,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "gather_inputs": {"prospect": {"profile": {"name": "Acme Corp"}}},
             "run_roi": {"roi_results": {}},
@@ -575,7 +575,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         result = await workflow._execute_gather_inputs(state)
 
@@ -598,7 +598,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         result = await workflow._execute_verify_truth_requirements(state)
 
@@ -620,7 +620,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.metadata = {"authenticated_tenant_id": "tenant-456"}
 
         # Mock Layer5 client to return a dict missing `error` (common success shape)
@@ -649,7 +649,7 @@ class TestBusinessCaseGeneratorWorkflow:
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
         }
-        initial_state = workflow.create_initial_state(input_data)
+        initial_state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         # Mock the compiled graph
         mock_compiled = AsyncMock()
@@ -931,14 +931,14 @@ class TestWorkflowStateTransitions:
         roi_state = roi_wf.create_initial_state({
             "prospect_id": "p-001",
             "value_driver_ids": ["vd-001"],
-        })
+        }, tenant_id="test-tenant")
         assert roi_state.errors == []
         
         bc_wf = BusinessCaseGeneratorWorkflow(tool_registry=registry)
         bc_state = bc_wf.create_initial_state({
             "account_id": "12345678-1234-5678-1234-567812345678",
             "sections_requested": ["executive_summary"],
-        })
+        }, tenant_id="test-tenant")
         assert bc_state.errors == []
 
     def test_initial_state_has_empty_output_data(self) -> None:
@@ -949,7 +949,7 @@ class TestWorkflowStateTransitions:
         roi_state = roi_wf.create_initial_state({
             "prospect_id": "p-001",
             "value_driver_ids": ["vd-001"],
-        })
+        }, tenant_id="test-tenant")
         assert roi_state.output_data == {}
 
 
@@ -965,7 +965,7 @@ class TestWorkflowInputValidation:
             workflow.create_initial_state({
                 "value_driver_ids": ["vd-001"],
                 # Missing prospect_id
-            })
+            }, tenant_id="test-tenant")
 
     def test_business_case_rejects_empty_sections(self) -> None:
         """Business case workflow must reject empty sections_requested."""
@@ -976,7 +976,7 @@ class TestWorkflowInputValidation:
             workflow.create_initial_state({
                 "prospect_id": "p-001",
                 "sections_requested": [],  # Empty list
-            })
+            }, tenant_id="test-tenant")
 
     def test_roi_workflow_accepts_minimal_valid_input(self) -> None:
         """ROI workflow must accept minimal valid input (prospect_id + value_driver_ids)."""
@@ -986,7 +986,7 @@ class TestWorkflowInputValidation:
         state = workflow.create_initial_state({
             "prospect_id": "p-001",
             "value_driver_ids": ["vd-001"],
-        })
+        }, tenant_id="test-tenant")
         assert state.status == WorkflowStatus.PENDING
         assert state.roi_input.prospect_id == "p-001"
 
@@ -1003,7 +1003,7 @@ class TestWorkflowInputValidation:
             "account_id": "12345678-1234-5678-1234-567812345678",
             "sections_requested": all_sections,
             "output_format": "pdf",
-        })
+        }, tenant_id="test-tenant")
         assert len(state.case_input.sections_requested) == 6
 
 
@@ -1025,7 +1025,7 @@ class TestWorkflowToolFailureHandling:
             "prospect_id": "p-001",
             "value_driver_ids": ["vd-001"],
         }
-        initial_state = workflow.create_initial_state(input_data)
+        initial_state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
 
         # Mock compiled graph to simulate the error being caught
         mock_compiled = AsyncMock()
@@ -1059,7 +1059,7 @@ class TestWorkflowToolFailureHandling:
             "sections_requested": ["executive_summary", "roi_analysis", "implementation"],
             "output_format": "pdf",
         }
-        state = workflow.create_initial_state(input_data)
+        state = workflow.create_initial_state(input_data, tenant_id="test-tenant")
         state.output_data = {
             "gather_inputs": {"prospect": {"profile": {"name": "Acme Corp"}}},
             "run_roi": {"roi_results": {}},

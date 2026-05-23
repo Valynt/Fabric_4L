@@ -40,7 +40,7 @@ function getTypeColor(typeId: string) {
   for (const [key, colors] of Object.entries(TYPE_COLORS)) {
     if (normalizedId.includes(key)) return colors;
   }
-  return { bg: 'bg-neutral-100', border: 'border-neutral-300', text: 'text-neutral-800' };
+  return { bg: 'bg-muted', border: 'border-border', text: 'text-foreground' };
 }
 
 function getTypeIcon(typeId: string) {
@@ -123,7 +123,7 @@ export function RelationshipMap({
           {Object.entries(RELATIONSHIP_COLORS).map(([type, color]) => (
             <div key={type} className="flex items-center gap-1">
               <span className="w-3 h-0.5 rounded-full" style={{ backgroundColor: color }} />
-              <span className="text-[9px] text-muted-foreground capitalize">
+              <span className="text-[10px] text-muted-foreground capitalize">
                 {type.replace(/_/g, ' ')}
               </span>
             </div>

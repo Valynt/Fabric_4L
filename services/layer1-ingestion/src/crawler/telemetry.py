@@ -149,7 +149,7 @@ def start_crawl_span(
             yield span
             span.set_status(Status(StatusCode.OK))
         except Exception as e:
-            span.set_status(Status(StatusCode.ERROR, str(e)))
+            span.set_status(Status(StatusCode.ERROR, "CRAWL_OPERATION_ERROR"))
             span.record_exception(e)
             raise
 
@@ -178,7 +178,7 @@ def start_batch_span(url_count: int, operation: str = "crawl_urls") -> Generator
             yield span
             span.set_status(Status(StatusCode.OK))
         except Exception as e:
-            span.set_status(Status(StatusCode.ERROR, str(e)))
+            span.set_status(Status(StatusCode.ERROR, "CRAWL_OPERATION_ERROR"))
             span.record_exception(e)
             raise
 
@@ -212,7 +212,7 @@ def trace_method(operation_name: str | None = None):
                     span.set_status(Status(StatusCode.OK))
                     return result
                 except Exception as e:
-                    span.set_status(Status(StatusCode.ERROR, str(e)))
+                    span.set_status(Status(StatusCode.ERROR, "METHOD_ERROR"))
                     span.record_exception(e)
                     raise
 

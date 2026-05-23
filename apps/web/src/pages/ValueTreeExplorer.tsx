@@ -125,11 +125,11 @@ function TreeNodeView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
       </div>
       {hasChildren && open && (
         <div className="flex flex-col items-center">
-          <div className="w-px h-4 bg-neutral-300"/>
+          <div className="w-px h-4 bg-border"/>
           <div className="flex gap-4 items-start">
             {(node.children || []).map((child) => (
               <div key={child.id} className="flex flex-col items-center">
-                <div className="w-px h-4 bg-neutral-300"/>
+                <div className="w-px h-4 bg-border"/>
                 <TreeNodeView node={child} depth={depth + 1}/>
               </div>
             ))}
@@ -174,13 +174,13 @@ function ValueTreeSkeleton({ view }: { view: "visual" | "outline" }) {
           {/* Skeleton tree structure */}
           <div className="flex flex-col items-center gap-4">
             <Skeleton className="h-16 w-32 rounded-lg" />
-            <div className="w-px h-8 bg-neutral-200" />
+            <div className="w-px h-8 bg-border" />
             <div className="flex gap-8">
               {[1, 2, 3].map(i => (
                 <div key={i} className="flex flex-col items-center gap-4">
-                  <div className="w-px h-8 bg-neutral-200" />
+                  <div className="w-px h-8 bg-border" />
                   <Skeleton className="h-14 w-28 rounded-lg" />
-                  <div className="w-px h-6 bg-neutral-200" />
+                  <div className="w-px h-6 bg-border" />
                   <div className="flex gap-4">
                     <Skeleton className="h-10 w-24 rounded-lg" />
                     <Skeleton className="h-10 w-24 rounded-lg" />
@@ -471,12 +471,12 @@ export default function ValueTreeExplorer() {
                 <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Nodes</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.totalNodes}</p>
               </div>
-              <div className="w-px h-8 bg-neutral-200" />
+              <div className="w-px h-8 bg-border" />
               <div>
                 <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Edges</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.totalEdges}</p>
               </div>
-              <div className="w-px h-8 bg-neutral-200" />
+              <div className="w-px h-8 bg-border" />
               <div>
                 <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Max Depth</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.maxDepth}</p>

@@ -66,7 +66,6 @@ const initialTree: TreeNode = {
 
 function NodeRow({ node, depth, onToggle }: { node: TreeNode; depth: number; onToggle: (id: string) => void }) {
   const hasChildren = node.children.length > 0;
-  const indent = depth * 20;
   const typeColors = {
     goal: "bg-primary text-primary-foreground",
     driver: "bg-primary/40 text-primary-foreground",
@@ -75,14 +74,14 @@ function NodeRow({ node, depth, onToggle }: { node: TreeNode; depth: number; onT
 
   return (
     <div>
-      <div className={`flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors group ${depth === 0 ? "bg-primary/5 border border-primary/20" : ""}`} style={{ marginLeft: indent }}>
+      <div className={`flex items-center gap-2 py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors group ${depth === 0 ? "bg-primary/5 border border-primary/20" : ""} ${depth > 0 ? "ml-5" : ""}`}>
         <GripVertical className="w-4 h-4 text-muted-foreground/30 shrink-0 cursor-grab opacity-0 group-hover:opacity-100" />
         {hasChildren ? <button onClick={() => onToggle(node.id)} className="shrink-0" aria-label={node.expanded ? `Collapse ${node.label}` : `Expand ${node.label}`}>{node.expanded ? <ChevronDown className="w-4 h-4 text-muted-foreground/60" /> : <ChevronRight className="w-4 h-4 text-muted-foreground/60" />}</button> : <div className="w-4 shrink-0" />}
-        <div className={`w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold shrink-0 ${typeColors[node.type]}`}>{node.type === "goal" ? "G" : node.type === "driver" ? "D" : "L"}</div>
+        <div className={`w-5 h-5 rounded flex items-center justify-center text-xs font-bold shrink-0 ${typeColors[node.type]}`}>{node.type === "goal" ? "G" : node.type === "driver" ? "D" : "L"}</div>
         <span className="text-sm font-medium text-foreground flex-1 min-w-0 truncate">{node.label}</span>
         {node.aiGenerated && <Sparkles className="w-3 h-3 text-primary shrink-0" />}
         <span className="text-xs font-mono text-primary font-semibold w-20 text-right shrink-0">{node.value}</span>
-        <span className="text-[10px] text-muted-foreground/60 hidden lg:block w-36 truncate shrink-0">{node.source}</span>
+        <span className="text-xs text-muted-foreground/60 hidden lg:block w-36 truncate shrink-0">{node.source}</span>
         <Trash2 className="w-3.5 h-3.5 text-muted-foreground/30 hover:text-destructive shrink-0 opacity-0 group-hover:opacity-100 cursor-pointer" />
       </div>
       {hasChildren && node.expanded && (
@@ -157,20 +156,20 @@ export default function DriverTree() {
               <SectionCard title="Formula Inspector">
                 <div className="p-4 space-y-3">
                   <div className="p-3 bg-muted rounded-lg border border-border">
-                    <p className="text-[10px] text-muted-foreground uppercase mb-1">Selected</p>
+                    <p className="text-xs text-muted-foreground uppercase mb-1">Selected</p>
                     <p className="text-sm font-semibold text-foreground">Avoided New Hires (85 positions)</p>
                     <p className="text-xs text-muted-foreground mt-1">AI-generated from h1 — Forge X1 Cobot Workcell</p>
                   </div>
                   <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-                    <p className="text-[10px] text-primary uppercase mb-1">Formula</p>
+                    <p className="text-xs text-primary uppercase mb-1">Formula</p>
                     <p className="text-sm font-mono text-foreground">Positions x Loaded_Annual_Cost</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">= 85 x $50,000 = $4.25M</p>
+                    <p className="text-xs text-muted-foreground mt-1">= 85 x $50,000 = $4.25M</p>
                   </div>
                   <div className="grid grid-cols-3 gap-2">
                     {["85 positions", "$50K/yr", "$4.25M"].map((v) => (
                       <div key={v} className="p-2 bg-card rounded border border-border text-center">
                         <p className="text-xs font-mono font-semibold text-foreground">{v.split(" ")[0]}</p>
-                        <p className="text-[10px] text-muted-foreground">{v.split(" ").slice(1).join(" ")}</p>
+                        <p className="text-xs text-muted-foreground">{v.split(" ").slice(1).join(" ")}</p>
                       </div>
                     ))}
                   </div>

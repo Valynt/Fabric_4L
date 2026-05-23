@@ -165,7 +165,7 @@ class EvaluateFormulaTool(BaseTool):
 
         except Exception as e:
             return EvaluateFormulaOutput(
-                result=None, substituted_formula=input_data.formula, success=False, error=str(e)
+                result=None, substituted_formula=input_data.formula, success=False, error="FORMULA_EVALUATION_ERROR"
             )
 
 

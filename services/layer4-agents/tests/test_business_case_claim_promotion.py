@@ -68,7 +68,8 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
                 "source_references": [{"id": "src-1", "uri": "https://source/1"}],
                 "claim_promotion_thresholds": {"min_confidence": 0.7, "min_evidence_sources": 1},
             },
-        }
+        },
+        tenant_id="test-tenant",
     )
     state.output_data = {
         "verify_truth_requirements": {"passed": True, "requirements": [], "remediation_items": []},
@@ -119,7 +120,8 @@ async def test_skips_claims_below_threshold(monkeypatch):
                 "source_references": [],
                 "claim_promotion_thresholds": {"min_confidence": 0.9, "min_evidence_sources": 2},
             },
-        }
+        },
+        tenant_id="test-tenant",
     )
     state.output_data = {
         "verify_truth_requirements": {"passed": True},
@@ -184,7 +186,8 @@ def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
             "custom_inputs": {"organization_id": "forged-org"},
-        }
+        },
+        tenant_id="test-tenant",
     )
     state.metadata["tenant_id"] = "forged-metadata-tenant"
 
@@ -201,7 +204,8 @@ def test_resolve_organization_id_ignores_forged_metadata_tenant():
             "output_format": "pdf",
             "custom_inputs": {"organization_id": "forged-org"},
             "tenant_id": "auth-tenant-1",
-        }
+        },
+        tenant_id="test-tenant",
     )
     state.metadata["tenant_id"] = "forged-metadata-tenant"
 

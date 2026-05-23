@@ -278,12 +278,12 @@ const SidebarItem = memo(function SidebarItem({
       <Link to={resolvedPath}>
         <div
           className={cn(
-            "flex items-center gap-2.5 px-3 py-2 rounded-lg text-[12px] font-medium transition-all select-none cursor-pointer",
+            "flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium transition-all select-none cursor-pointer",
             isActive
               ? tierStyle.active
               : "text-muted-foreground hover:bg-muted hover:text-foreground",
             item.tier === "admin" && !isActive && "hover:bg-destructive/5",
-            depth > 0 && "py-1.5 text-[11px]"
+            depth > 0 && "py-1.5 text-xs"
           )}
           onClick={e => {
             if (hasVisibleChildren) {
@@ -308,7 +308,7 @@ const SidebarItem = memo(function SidebarItem({
           {item.badge && (
             <span
               className={cn(
-                "text-[9px] px-1.5 py-0.5 rounded border font-semibold",
+                "text-xs px-1.5 py-0.5 rounded border font-semibold",
                 tierStyle.badge
               )}
             >
@@ -371,10 +371,10 @@ function TierSwitcher({
           {TIER_LABELS[currentTier].icon}
         </div>
         <div className="flex-1 text-left">
-          <p className="text-[12px] font-semibold text-foreground">
+          <p className="text-xs font-semibold text-foreground">
             {TIER_LABELS[currentTier].label} Mode
           </p>
-          <p className="text-[10px] text-muted-foreground truncate">
+          <p className="text-xs text-muted-foreground truncate">
             {TIER_LABELS[currentTier].description}
           </p>
         </div>
@@ -422,7 +422,7 @@ function TierSwitcher({
                 }}
                 disabled={tier === "admin"}
                 className={cn(
-                  "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-medium transition-colors",
+                  "w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-xs font-medium transition-colors",
                   currentTier === tier
                     ? tier === "standard"
                       ? "bg-primary/10 text-primary"

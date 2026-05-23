@@ -275,28 +275,32 @@ async def sync_to_kg(
     request_id = getattr(request.state, "trace_id", None)
     synced = 0
     failed = 0
-    for truth in pending:
-        node_id = await client.sync_truth_object(
-            truth_object_id=truth.id,
-            tenant_id=truth.tenant_id,
-            claim=truth.claim,
-            claim_type=truth.claim_type,
-            confidence=truth.confidence,
-            status=truth.status,
-            maturity_level=truth.maturity_level,
-            value=truth.value,
-            applies_to=truth.applies_to,
-            source_count=len(truth.sources),
-            request_id=str(request_id) if request_id else None,
-        )
-        if node_id:
-            truth.kg_node_id = node_id
-            truth.kg_synced_at = datetime.now(UTC)
-            synced += 1
-        else:
-            failed += 1
+    try:
+        for truth in pending:
+            node_id = await client.sync_truth_object(
+                truth_object_id=truth.id,
+                tenant_id=truth.tenant_id,
+                claim=truth.claim,
+                claim_type=truth.claim_type,
+                confidence=truth.confidence,
+                status=truth.status,
+                maturity_level=truth.maturity_level,
+                value=truth.value,
+                applies_to=truth.applies_to,
+                source_count=len(truth.sources),
+                request_id=str(request_id) if request_id else None,
+            )
+            if node_id:
+                truth.kg_node_id = node_id
+                truth.kg_synced_at = datetime.now(UTC)
+                synced += 1
+            else:
+                failed += 1
 
-    await db.commit()
+        await db.commit()
+    except Exception:
+        await db.rollback()
+        raise
 
     return SyncToKgResponse.model_validate(
         {

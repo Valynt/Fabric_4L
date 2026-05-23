@@ -136,8 +136,8 @@ class BillingService:
                     sync_status = "synced"
                 except (StripeNotConfiguredError, StripeError) as e:
                     sync_status = "failed"
-                    sync_error = str(e)
-                    logger.warning("Stripe customer creation failed", extra={"customer_id": customer_id, "tenant_id": tenant_id, "error": str(e)})
+                    sync_error = "STRIPE_SYNC_ERROR"
+                    logger.warning("Stripe customer creation failed", extra={"customer_id": customer_id, "tenant_id": tenant_id, "error_code": "STRIPE_CUSTOMER_ERROR"})
 
                 # Create local customer record first; Stripe sync state is explicit
                 customer = BillingCustomer(
@@ -180,7 +180,7 @@ class BillingService:
                         extra={
                             "stripe_customer_id": stripe_customer_id,
                             "customer_id": customer_id,
-                            "error": str(e),
+                            "error_code": "STRIPE_ORPHAN_ERROR",
                             "action_required": "Reconcile Stripe customer or delete if unused",
                         }
                     )
@@ -240,7 +240,7 @@ class BillingService:
                 synced += 1
             except (StripeNotConfiguredError, StripeError) as e:
                 customer.stripe_sync_status = "failed"
-                customer.stripe_sync_error = str(e)
+                customer.stripe_sync_error = "STRIPE_SYNC_ERROR"
                 failed += 1
 
         backlog = len(customers) - synced
@@ -399,7 +399,7 @@ class BillingService:
             raise ValueError(f"Invalid payload: {e}") from e
         except (TypeError, KeyError) as e:
             if "signature" in str(e).lower():
-                raise ValueError(f"Invalid signature: {e}") from e
+                raise ValueError("Invalid signature: SIGNATURE_ERROR") from e
             raise ValueError(f"Malformed webhook payload: {e}") from e
 
         event_id = event["id"]

@@ -70,7 +70,7 @@ class AdapterRegistry:
             return adapter
         except Exception as e:
             self.logger.error(
-                "Failed to create adapter instance", adapter_type=adapter_type.value, error=str(e)
+                "Failed to create adapter instance", adapter_type=adapter_type.value, error_code="ADAPTER_CREATE_ERROR"
             )
             return None
 

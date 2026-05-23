@@ -147,7 +147,7 @@ class TenantProvisioningService:
                     logger.info(f"Setup PostgreSQL RLS for tenant: {tenant_id}")
                 except Exception as e:
                     logger.error(f"Failed to setup PostgreSQL RLS: {e}")
-                    errors.append(f"PostgreSQL RLS setup failed: {str(e)}")
+                    errors.append("PostgreSQL RLS setup failed: RLS_ERROR")
                     status = "partial"
             
             # Step 4: Setup Neo4j constraints (if driver available)
@@ -157,7 +157,7 @@ class TenantProvisioningService:
                     logger.info(f"Setup Neo4j constraints for tenant: {tenant_id}")
                 except Exception as e:
                     logger.error(f"Failed to setup Neo4j constraints: {e}")
-                    errors.append(f"Neo4j constraint setup failed: {str(e)}")
+                    errors.append("Neo4j constraint setup failed: NEO4J_ERROR")
                     status = "partial"
             
             # Step 5: Emit audit event
@@ -210,7 +210,7 @@ class TenantProvisioningService:
                 resource_id=str(tenant_id),
                 details={
                     "tenant_name": request.tenant_name,
-                    "error": str(e),
+                    "error_code": "PROVISIONING_ERROR",
                 },
             )
             

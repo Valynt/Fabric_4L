@@ -221,7 +221,7 @@ class CrawlDecisionRepository:
             self.logger.error(
                 "Failed to save decision record",
                 decision_id=record.decision_id,
-                error=str(e),
+                error_code="DECISION_SAVE_ERROR",
                 exc_info=True,
             )
             raise

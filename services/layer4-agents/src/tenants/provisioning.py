@@ -200,7 +200,7 @@ class TenantProvisioningService:
         except Exception as e:
             logger.error("Provisioning failed for tenant %s: %s", tenant_id, e)
             state.status = ProvisioningStatus.FAILED
-            state.error = str(e)
+            state.error = "PROVISIONING_ERROR"
             state.retryable = self._is_retryable_error(e)
 
             await emit_audit_event(
@@ -210,7 +210,7 @@ class TenantProvisioningService:
                 resource_id=str(tenant_id),
                 tenant_id=tenant_id,
                 details={
-                    "error": str(e),
+                    "error_code": "PROVISIONING_ERROR",
                     "retryable": state.retryable,
                     "step": state.current_step.name if state.current_step else None,
                 },
@@ -372,7 +372,7 @@ class TenantProvisioningService:
                 await self._rollback_step(step, state, tenant_model)
             except Exception as e:
                 logger.error("Rollback failed for step %s: %s", step.name, e)
-                rollback_errors.append(f"{step.name}: {str(e)}")
+                rollback_errors.append(f"{step.name}: ROLLBACK_ERROR")
 
         state.status = (
             ProvisioningStatus.ROLLED_BACK

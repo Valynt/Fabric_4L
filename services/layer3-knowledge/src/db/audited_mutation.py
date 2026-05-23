@@ -52,6 +52,10 @@ class AuditedGraphMutation:
         now = datetime.now(UTC).isoformat()
         props = dict(properties or {})
 
+        # Double-check rel_type is allowlisted at runtime (defense-in-depth)
+        if rel_type not in ALLOWED_REL_TYPES:
+            raise ValueError(f"Relationship type '{rel_type}' not in allowlist")
+
         merge_query = f"""
         MATCH (src {{id: $src_id, tenant_id: $tenant_id}})
         MATCH (tgt {{id: $tgt_id, tenant_id: $tenant_id}})

@@ -16,7 +16,7 @@ const ROLE_STYLES: Record<string, string> = {
   super_admin: "bg-red-50 text-red-700 border-red-200",
   tenant_admin: "bg-amber-50 text-amber-700 border-amber-200",
   member: "bg-blue-50 text-blue-700 border-blue-200",
-  viewer: "bg-neutral-100 text-neutral-600 border-neutral-200",
+  viewer: "bg-muted text-muted-foreground border-border",
 };
 
 function RoleBadge({ role }: { role: string }) {
@@ -36,18 +36,18 @@ function getTeamActionAccess(role: string) {
 
 function TeamUsersTable({ users, showRoleActions }: { users: User[]; showRoleActions: boolean }) {
   return (
-    <table className="w-full text-[12px]">
-      <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-600 uppercase tracking-wide text-[10px]">
+    <table className="w-full text-xs">
+      <thead className="bg-muted border-b border-border text-muted-foreground uppercase tracking-wide text-xs">
         <tr>
           <th className="text-left px-4 py-2">User</th><th className="text-left px-4 py-2">Role</th><th className="text-left px-4 py-2">Status</th><th className="text-right px-4 py-2">Actions</th>
         </tr>
       </thead>
       <tbody>
         {users.map((u) => (
-          <tr key={u.id} className="border-b border-neutral-100">
+          <tr key={u.id} className="border-b border-border">
             <td className="px-4 py-3">
-              <div className="font-medium text-neutral-800">{u.display_name || u.email}</div>
-              <div className="text-neutral-500">{u.email}</div>
+              <div className="font-medium text-foreground">{u.display_name || u.email}</div>
+              <div className="text-muted-foreground">{u.email}</div>
             </td>
             <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
             <td className="px-4 py-3">{u.status}</td>
@@ -131,30 +131,30 @@ export function TeamPermissionsScreen() {
   return (
     <div className="p-6 max-w-6xl space-y-4">
       <PageHeader title="Team Permissions" subtitle="Review permission matrix and assign policy controls." />
-      <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
-        <table className="w-full text-[12px]">
-          <thead className="bg-neutral-50 border-b border-neutral-200 text-neutral-600 uppercase tracking-wide text-[10px]">
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted border-b border-border text-muted-foreground uppercase tracking-wide text-xs">
             <tr><th className="px-4 py-2 text-left">Policy surface</th><th className="px-4 py-2 text-left">Capability</th><th className="px-4 py-2 text-right">Action</th></tr>
           </thead>
           <tbody>
-            <tr className="border-b border-neutral-100"><td className="px-4 py-3">Members</td><td className="px-4 py-3">members:view/manage</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-neutral-400">Read only</span>}</td></tr>
-            <tr className="border-b border-neutral-100"><td className="px-4 py-3">Roles</td><td className="px-4 py-3">roles:view/manage</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-neutral-400">Read only</span>}</td></tr>
-            <tr><td className="px-4 py-3">API Keys</td><td className="px-4 py-3">keys:view/revoke</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-neutral-400">Read only</span>}</td></tr>
+            <tr className="border-b border-border"><td className="px-4 py-3">Members</td><td className="px-4 py-3">members:view/manage</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-muted-foreground">Read only</span>}</td></tr>
+            <tr className="border-b border-border"><td className="px-4 py-3">Roles</td><td className="px-4 py-3">roles:view/manage</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-muted-foreground">Read only</span>}</td></tr>
+            <tr><td className="px-4 py-3">API Keys</td><td className="px-4 py-3">keys:view/revoke</td><td className="px-4 py-3 text-right">{canAssignPolicies ? <Btn variant="ghost" size="sm">Assign policy</Btn> : <span className="text-muted-foreground">Read only</span>}</td></tr>
           </tbody>
         </table>
       </div>
-      <div className="rounded-xl border border-neutral-200 bg-white overflow-hidden">
-        <table className="w-full text-[12px]">
-          <thead className="bg-neutral-50 border-b border-neutral-200"><tr><th className="px-4 py-2 text-left">API Key</th><th className="px-4 py-2 text-left">Last used</th><th className="px-4 py-2 text-right">Mutation</th></tr></thead>
+      <div className="rounded-xl border border-border bg-white overflow-hidden">
+        <table className="w-full text-xs">
+          <thead className="bg-muted border-b border-border"><tr><th className="px-4 py-2 text-left">API Key</th><th className="px-4 py-2 text-left">Last used</th><th className="px-4 py-2 text-right">Mutation</th></tr></thead>
           <tbody>
             {apiKeys.map((key) => (
-              <tr key={key.id} className="border-b border-neutral-100 last:border-0">
+              <tr key={key.id} className="border-b border-border last:border-0">
                 <td className="px-4 py-3 font-medium">{key.name}</td>
                 <td className="px-4 py-3">{key.last_used_at ? formatDate(key.last_used_at) : "Never"}</td>
                 <td className="px-4 py-3 text-right">
                   {canAssignPolicies ? (
                     <Btn variant="ghost" size="sm" className={cn(revokeMutation.isPending && "opacity-50")} onClick={() => revokeMutation.mutate(key.id)}>Revoke</Btn>
-                  ) : <span className="text-neutral-400">Read only</span>}
+                  ) : <span className="text-muted-foreground">Read only</span>}
                 </td>
               </tr>
             ))}

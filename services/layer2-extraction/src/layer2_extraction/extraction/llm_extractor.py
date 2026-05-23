@@ -578,14 +578,14 @@ class RelationshipExtractor:
         preprocessed = preprocess_source_content(text)
         prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
-        context = telemetry_context or {}
+        context = {}
         model_version = context.get("model_version", self.model)
         schema_version = context.get("schema_version", "unknown")
         value_pack_id = context.get("value_pack_id", "unknown")
         tenant_id = context.get("tenant_id", "unknown")
         ingestion_id = context.get("ingestion_id", "unknown")
         metrics = get_metrics()
-        start = time.perf_counter()
+        endpoint = "extract_relationships"
         try:
             response, _ = await self.client.chat_completion_structured(
                 messages=[

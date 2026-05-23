@@ -81,7 +81,7 @@ export function TabNav({
             )}
           >
             {isVertical && isActive && (
-              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-primary" />
+              <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 rounded-r-full bg-primary" />
             )}
             {tab.icon && <tab.icon className="w-4 h-4 shrink-0" />}
             <span className={isVertical ? "text-left" : ""}>{tab.label}</span>

@@ -14,7 +14,7 @@ vi.mock("@/hooks/useOperationalAudit", async () => {
 });
 
 vi.mock("../access", () => ({
-  useSettingsAccess: vi.fn(() => ({ role: "analyst", hasCapability: () => true })),
+  useSettingsAccess: vi.fn(() => ({ role: "analyst", hasCapability: () => true, getCapabilityDecision: () => ({ allowed: true, reasons: [], source: "fallback" }) })),
 }));
 
 describe("GovernanceAuditTrail", () => {

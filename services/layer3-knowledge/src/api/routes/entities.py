@@ -44,7 +44,7 @@ from ...api.models import (
     ValueTreeTraversal,
 )
 
-router = APIRouter(prefix="/v1", tags=["Entities"], dependencies=[Depends(require_authenticated)])
+router = APIRouter(prefix="/entities", tags=["Entities"], dependencies=[Depends(require_authenticated)])
 logger = get_logger(__name__)
 ENTITY_LIST_SORT_CLAUSES = {
     ("confidence", "asc"): "e.confidence_score ASC",
@@ -81,7 +81,7 @@ def _map_results_to_summaries(results: list[dict[str, Any]]) -> list[EntitySumma
     ]
 
 
-@router.get("/entities", response_model=EntityListResponse)
+@router.get("/", response_model=EntityListResponse)
 async def list_entities(
     search_text: str | None = Query(None, max_length=200, description="Search across name and description"),
     entity_types: list[str] | None = Query(None, description="Filter by entity types"),
@@ -159,16 +159,16 @@ async def list_entities(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": "/v1/entities", "operation": "list_entities"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities", "operation": "list_entities"}
         logger.warning("Entity listing mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
     except Exception as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": "/v1/entities", "operation": "list_entities"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities", "operation": "list_entities"}
         logger.error("Entity listing failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
 
-@router.get("/entities/{entity_id}", response_model=EntityDetail)
+@router.get("/{entity_id}", response_model=EntityDetail)
 async def get_entity_detail(
     entity_id: str,
     include_provenance: bool = Query(True, description="Include provenance chain"),
@@ -256,16 +256,16 @@ async def get_entity_detail(
     except HTTPException:
         raise
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": f"/v1/entities/{entity_id}", "operation": "get_entity_detail"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/v1/entities/{entity_id}", "operation": "get_entity_detail"}
         logger.warning("Entity detail mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
     except Exception as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": f"/v1/entities/{entity_id}", "operation": "get_entity_detail"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/v1/entities/{entity_id}", "operation": "get_entity_detail"}
         logger.error("Entity detail retrieval failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
 
-@router.post("/entities/query", response_model=EntityListResponse)
+@router.post("/query", response_model=EntityListResponse)
 async def query_entities(
     request: EntityFilterRequest,
     _ctx: RequestContext = Depends(require_authenticated),
@@ -337,16 +337,16 @@ async def query_entities(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": "/v1/entities/query", "operation": "query_entities"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities/query", "operation": "query_entities"}
         logger.warning("Entity query mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
     except Exception as exc:
-        context = {"tenant": getattr(neo4j, "tenant_id", "unknown"), "endpoint": "/v1/entities/query", "operation": "query_entities"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities/query", "operation": "query_entities"}
         logger.error("Entity query failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
 
 
-@router.post("/entity/traverse", response_model=ValueTreeResponse)
+@router.post("/traverse", response_model=ValueTreeResponse)
 async def traverse_value_tree(
     request: ValueTreeTraversal,
     _ctx: RequestContext = Depends(require_authenticated),
@@ -372,10 +372,10 @@ async def traverse_value_tree(
         )
 
     except (ValidationError, DatabaseError) as exc:
-        context = {"tenant": getattr(graph_rag, "tenant_id", "unknown"), "endpoint": "/v1/entity/traverse", "operation": "traverse_value_tree"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities/traverse", "operation": "traverse_value_tree"}
         logger.warning("Value tree traversal mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
     except Exception as exc:
-        context = {"tenant": getattr(graph_rag, "tenant_id", "unknown"), "endpoint": "/v1/entity/traverse", "operation": "traverse_value_tree"}
+        context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/v1/entities/traverse", "operation": "traverse_value_tree"}
         logger.error("Value tree traversal failed for %s", request.root_entity_id, extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)

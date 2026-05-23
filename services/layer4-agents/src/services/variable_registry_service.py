@@ -405,7 +405,7 @@ class Neo4jVariableRegistry(IVariableRegistry):
         try:
             self._cast_value(value, variable.data_type)
         except (ValueError, TypeError) as e:
-            return False, f"Invalid data type: {str(e)}"
+            return False, "INVALID_DATA_TYPE_ERROR"
 
         # Run validation rules
         for rule in variable.validation_rules:

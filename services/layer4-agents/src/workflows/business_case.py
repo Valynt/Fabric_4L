@@ -290,7 +290,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
 
 
         except Exception as e:
-            return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({"status": "failed", "error": str(e), "roi_results": {}})
+            return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({"status": "failed", "error": "ROI_SUBWORKFLOW_ERROR", "roi_results": {}})
 
     async def _resolve_value_driver_ids(
         self, state: BusinessCaseAgentState, account_id: str
@@ -498,7 +498,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
 
             except Exception as e:
                 section = BusinessCaseSection(
-                    title=title, content=f"Error generating section: {str(e)}", charts=[], tables=[]
+                    title=title, content="Error generating section: SECTION_GENERATION_ERROR", charts=[], tables=[]
                 )
                 sections_generated.append(section)
 
@@ -756,7 +756,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             }
         except Exception as e:
             assemble_result = {
-                "error": str(e),
+                "error": "DOCUMENT_ASSEMBLE_ERROR",
                 "document_bytes": None,
                 "document_url": None,
             }

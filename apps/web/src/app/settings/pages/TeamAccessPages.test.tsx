@@ -11,6 +11,7 @@ vi.mock("../access", () => ({
     role: roleState.role,
     capabilities: new Set(["team"]),
     hasCapability: () => true,
+    getCapabilityDecision: () => ({ allowed: true, reasons: [], source: "fallback" }),
   }),
 }));
 

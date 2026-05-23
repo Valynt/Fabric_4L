@@ -102,7 +102,7 @@ class SendNotificationTool(BaseTool):
             )
         except Exception as e:
             logger.error(f"Email send failed: {e}")
-            return SendNotificationOutput(success=False, message_id=None, error=str(e))
+            return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
 
     async def _send_slack(self, input_data: SendNotificationInput) -> SendNotificationOutput:
         """Send Slack message via API."""
@@ -129,7 +129,7 @@ class SendNotificationTool(BaseTool):
             )
         except Exception as e:
             logger.error(f"Slack send failed: {e}")
-            return SendNotificationOutput(success=False, message_id=None, error=str(e))
+            return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
 
     async def _send_teams(self, input_data: SendNotificationInput) -> SendNotificationOutput:
         """Send Teams message via webhook."""
@@ -151,7 +151,7 @@ class SendNotificationTool(BaseTool):
             )
         except Exception as e:
             logger.error(f"Teams send failed: {e}")
-            return SendNotificationOutput(success=False, message_id=None, error=str(e))
+            return SendNotificationOutput(success=False, message_id=None, error="EMAIL_SEND_ERROR")
 
 
 class CreateTaskTool(BaseTool):
@@ -195,7 +195,7 @@ class CreateTaskTool(BaseTool):
                 raise ValueError(f"Unsupported PM provider: {self.pm_provider}")
         except Exception as e:
             logger.error(f"Task creation failed: {e}")
-            return CreateTaskOutput(task_id="", success=False, url="", error=str(e))
+            return CreateTaskOutput(task_id="", success=False, url="", error="TASK_CREATE_ERROR")
 
     async def _create_asana_task(
         self, client: httpx.AsyncClient, input_data: CreateTaskInput
@@ -329,7 +329,7 @@ class ScheduleMeetingTool(BaseTool):
         except Exception as e:
             logger.error(f"Meeting scheduling failed: {e}")
             return ScheduleMeetingOutput(
-                meeting_id="", scheduled_time="", calendar_link="", success=False, error=str(e)
+                meeting_id="", scheduled_time="", calendar_link="", success=False, error="MEETING_SCHEDULE_ERROR"
             )
 
     async def _schedule_google_meeting(
@@ -461,7 +461,7 @@ class ExportToCRMTool(BaseTool):
                 raise ValueError(f"Unsupported CRM type: {self.crm_type}")
         except Exception as e:
             logger.error(f"CRM export failed: {e}")
-            return ExportToCRMOutput(crm_record_id="", success=False, url="", error=str(e))
+            return ExportToCRMOutput(crm_record_id="", success=False, url="", error="CRM_EXPORT_ERROR")
 
     async def _export_to_salesforce(
         self, client: httpx.AsyncClient, input_data: ExportToCRMInput

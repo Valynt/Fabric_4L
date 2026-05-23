@@ -37,33 +37,33 @@ export function IntegrationList({
   }
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl overflow-hidden mt-6">
-      <div className="px-6 py-4 border-b border-neutral-100">
-        <h3 className="text-[14px] font-semibold text-neutral-800">Active Integrations</h3>
+    <div className="bg-white border border-border rounded-xl overflow-hidden mt-6">
+      <div className="px-6 py-4 border-b border-border">
+        <h3 className="text-sm font-semibold text-foreground">Active Integrations</h3>
       </div>
 
       <div className="overflow-x-auto">
         <table className="w-full">
           <thead>
-            <tr className="bg-neutral-50">
-              <th className="px-6 py-3 text-left text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
+            <tr className="bg-muted">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Provider
               </th>
-              <th className="px-6 py-3 text-left text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Last Sync
               </th>
-              <th className="px-6 py-3 text-left text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Records
               </th>
-              <th className="px-6 py-3 text-right text-[11px] font-medium text-neutral-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-muted-foreground uppercase tracking-wider">
                 Actions
               </th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
+          <tbody className="divide-y divide-border">
             {activeIntegrations.map((integration) => {
               const provider = integration.provider as CRMProvider;
               const isSelected = selectedProvider === provider;
@@ -73,7 +73,7 @@ export function IntegrationList({
               return (
                 <tr
                   key={integration.id}
-                  className={`hover:bg-neutral-50 cursor-pointer transition-colors ${
+                  className={`hover:bg-muted cursor-pointer transition-colors ${
                     isSelected ? 'bg-blue-50/30' : ''
                   }`}
                   onClick={() => onSelect(provider)}

@@ -63,7 +63,7 @@ import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
 const PROVIDER_COLORS: Record<CRMProvider, { bg: string; text: string; border: string }> = {
   salesforce: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
   hubspot: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
-  manual: { bg: "bg-slate-50", text: "text-slate-700", border: "border-slate-200" },
+  manual: { bg: "bg-muted", text: "text-foreground", border: "border-border" },
 };
 
 const DEFAULT_PROVIDER_STYLE = PROVIDER_COLORS.manual;

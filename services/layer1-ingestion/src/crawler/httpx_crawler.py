@@ -325,7 +325,7 @@ class HttpxCrawler:
                     self.logger.warning(
                         "Network error, retrying",
                         url=url,
-                        error=str(e),
+                        error_code="NETWORK_ERROR",
                         attempt=attempt + 1,
                         max_attempts=max_attempts,
                         wait_seconds=wait_seconds,
@@ -333,7 +333,7 @@ class HttpxCrawler:
                     await asyncio.sleep(wait_seconds)
                     continue
 
-                self.logger.error("Network error (all retries exhausted)", url=url, error=str(e))
+                self.logger.error("Network error (all retries exhausted)", url=url, error_code="NETWORK_ERROR_EXHAUSTED")
                 return self._create_error_result(
                     url=url,
                     status_code=0,
@@ -344,7 +344,7 @@ class HttpxCrawler:
 
             except Exception as e:
                 fetch_time = int((time.monotonic() - start_time) * 1000)
-                self.logger.error("Fetch failed", url=url, error=str(e), exc_info=True)
+                self.logger.error("Fetch failed", url=url, error_code="FETCH_ERROR", exc_info=True)
                 return self._create_error_result(
                     url=url,
                     status_code=0,
@@ -540,7 +540,7 @@ class HttpxCrawler:
             return unique_links
 
         except Exception as e:
-            self.logger.warning("Link extraction failed", error=str(e))
+            self.logger.warning("Link extraction failed", error_code="LINK_EXTRACTION_ERROR")
             return []
 
     def _create_error_result(

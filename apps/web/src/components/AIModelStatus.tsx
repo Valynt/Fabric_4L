@@ -91,7 +91,7 @@ function ModelRow({ task, model }: { task: string; model: string }) {
     <div className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
       <span className="text-xs text-muted-foreground capitalize">{task}</span>
       <span
-        className="text-xs font-mono text-foreground/80 truncate max-w-[180px]"
+        className="text-xs font-mono text-foreground/80 truncate max-w-48"
         title={model}
       >
         {short}
@@ -116,7 +116,7 @@ function GovernanceFlag({
   return (
     <div
       className={cn(
-        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-medium",
+        "flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium",
         active ? activeClass : inactiveClass,
       )}
     >
@@ -162,7 +162,7 @@ export function AIModelStatus({
         </div>
         <div className="flex-1 min-w-0">
           <p className="text-xs font-semibold text-foreground">LLM Provider</p>
-          <p className="text-[10px] text-muted-foreground">Active model configuration</p>
+          <p className="text-xs text-muted-foreground">Active model configuration</p>
         </div>
         <span
           className={cn(
@@ -195,7 +195,7 @@ export function AIModelStatus({
       {/* Enrichment governance */}
       {enrichment != null && (
         <div className="space-y-2">
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide flex items-center gap-1">
             <UserCheck className="w-3 h-3" /> Enrichment Governance
           </p>
 

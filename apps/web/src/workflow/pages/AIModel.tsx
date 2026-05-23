@@ -36,8 +36,8 @@ function runStatusBadgeClass(status: string): string {
     case "running":          return "bg-blue-500/15 text-blue-700 border-blue-200";
     case "failed":           return "bg-red-500/15 text-red-700 border-red-200";
     case "waiting_for_human": return "bg-amber-500/15 text-amber-700 border-amber-200";
-    case "cancelled":        return "bg-slate-400/15 text-slate-600 border-slate-200";
-    default:                 return "bg-slate-100 text-slate-600 border-slate-200";
+    case "cancelled":        return "bg-muted/15 text-muted-foreground border-border";
+    default:                 return "bg-muted text-muted-foreground border-border";
   }
 }
 
@@ -84,11 +84,11 @@ export default function AIModel() {
                   <span className="text-xs text-muted-foreground">Workflow:</span>
                   <Badge
                     variant="outline"
-                    className={cn("text-[10px]", runStatusBadgeClass(harnessRun.status))}
+                    className={cn("text-xs", runStatusBadgeClass(harnessRun.status))}
                   >
                     {harnessRun.status.replace(/_/g, " ")}
                   </Badge>
-                  <span className="text-[10px] font-mono text-muted-foreground truncate max-w-[120px]">
+                  <span className="text-xs font-mono text-muted-foreground truncate max-w-32">
                     {harnessRun.current_state}
                   </span>
                 </div>
@@ -133,7 +133,7 @@ export default function AIModel() {
                           <circle cx="24" cy="24" r="20" fill="none" stroke={h.confidence >= 80 ? "oklch(0.696 0.17 145)" : h.confidence >= 60 ? "oklch(0.75 0.17 80)" : "oklch(0.637 0.207 25)"} strokeWidth="4" strokeDasharray={`${h.confidence * 1.26} 126`} strokeLinecap="round" />
                         </svg>
                         <div className="absolute inset-0 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-card-foreground">{h.confidence}</span>
+                          <span className="text-xs font-bold text-card-foreground">{h.confidence}</span>
                         </div>
                       </div>
                     </div>
@@ -142,7 +142,7 @@ export default function AIModel() {
                       <div className="flex items-center gap-2 mb-1">
                         <h2 className="font-semibold text-card-foreground text-sm">{h.useCase}</h2>
                         {h.status !== "suggested" && (
-                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${h.status === "approved" ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"}`}>{h.status}</span>
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${h.status === "approved" ? "bg-emerald-500/10 text-emerald-500" : "bg-muted text-muted-foreground"}`}>{h.status}</span>
                         )}
                       </div>
                       <p className="text-xs text-muted-foreground italic mb-2">&ldquo;{h.hypothesis}&rdquo;</p>
@@ -187,7 +187,7 @@ export default function AIModel() {
         </section>
 
         {/* Demo data notice */}
-        <p className="text-[11px] text-muted-foreground/60 text-center pt-1">
+        <p className="text-xs text-muted-foreground/60 text-center pt-1">
           Hypotheses are demo data — backend model generation is not yet wired.
         </p>
       </main>
