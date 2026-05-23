@@ -1,7 +1,7 @@
 """Layer 5 Ground Truth API Client.
 
 Used by Layer 4 agent workflows to:
-  - Sync approved TruthObjects to the Layer 3 Knowledge Graph after a
+  - Sync validated TruthObjects to the Layer 3 Knowledge Graph after a
     business case is generated (POST /truths/sync-kg).
   - Submit new TruthObjects extracted during workflow execution.
   - Query existing TruthObjects for context enrichment.
@@ -27,7 +27,7 @@ from tenacity import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
-class Layer5GroundTruthClient_sync_approved_truthsResult(TypedDictModel):
+class Layer5GroundTruthClient_sync_validated_truthsResult(TypedDictModel):
     detail: Any | None = None
     error: str
     failed: int
@@ -102,7 +102,7 @@ class Layer5GroundTruthClient:
         )
 
         # After business case generation completes:
-        result = await client.sync_approved_truths(
+        result = await client.sync_validated_truths(
             organization_id="org-uuid-here"
         )
         logger.info("Synced %d truths to KG", result.get("synced", 0))
@@ -188,7 +188,7 @@ class Layer5GroundTruthClient:
         retry=retry_if_exception_type((httpx.NetworkError, httpx.TimeoutException)),
         reraise=False,
     )
-    async def sync_approved_truths(
+    async def sync_validated_truths(
         self,
         organization_id: str | None = None,
         allow_system_call: bool = False,
@@ -210,7 +210,7 @@ class Layer5GroundTruthClient:
         """
         params = self._require_organization_id(
             organization_id,
-            operation="sync_approved_truths",
+            operation="sync_validated_truths",
             allow_system_call=allow_system_call,
             audit_reason=audit_reason,
         )
@@ -232,7 +232,7 @@ class Layer5GroundTruthClient:
                 exc.response.status_code,
                 exc.response.text[:200],
             )
-            return Layer5GroundTruthClient_sync_approved_truthsResult.model_validate({
+            return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({
                 "error": f"HTTP {exc.response.status_code}",
                 "detail": exc.response.text[:200],
                 "synced": 0,
@@ -242,7 +242,7 @@ class Layer5GroundTruthClient:
 
         except Exception as exc:
             logger.warning("Layer 5 sync-kg failed (non-blocking): %s", exc)
-            return Layer5GroundTruthClient_sync_approved_truthsResult.model_validate({"error": str(exc), "synced": 0, "failed": 0})
+            return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({"error": str(exc), "synced": 0, "failed": 0})
 
     # ------------------------------------------------------------------
     # Submit a new TruthObject

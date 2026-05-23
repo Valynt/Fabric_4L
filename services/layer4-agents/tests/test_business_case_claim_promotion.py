@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from typing import Any
 from unittest.mock import AsyncMock
 
 import pytest
@@ -23,7 +24,7 @@ class _FakeLayer5Client_submit_truthResult(TypedDictModel):
 class _FakeLayer5Client_validate_truthResult(TypedDictModel):
     ok: bool
 
-class _FakeLayer5Client_sync_approved_truthsResult(TypedDictModel):
+class _FakeLayer5Client_sync_validated_truthsResult(TypedDictModel):
     failed: int
     synced: int
 
@@ -34,19 +35,19 @@ class _FakeLayer5Client:
         self.validations: list[dict] = []
 
     async def list_truths(self, **kwargs):
-        return _FakeLayer5Client_list_truthsResult.model_validate({"items": []})
+        return {"items": []}
 
     async def submit_truth(self, **kwargs):
         truth_id = f"truth-{len(self.created_truths) + 1}"
         self.created_truths.append({"id": truth_id, **kwargs})
-        return _FakeLayer5Client_submit_truthResult.model_validate({"id": truth_id})
+        return {"id": truth_id}
 
     async def validate_truth(self, **kwargs):
         self.validations.append(kwargs)
-        return _FakeLayer5Client_validate_truthResult.model_validate({"ok": True})
+        return {"ok": True}
 
-    async def sync_approved_truths(self, **kwargs):
-        return _FakeLayer5Client_sync_approved_truthsResult.model_validate({"synced": 0, "failed": 0})
+    async def sync_validated_truths(self, **kwargs):
+        return {"synced": 0, "failed": 0}
 
     async def close(self):
         return None
@@ -59,7 +60,7 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
     state = workflow.create_initial_state(
         {
-            "prospect_id": "prospect-1",
+            "account_id": "550e8400-e29b-41d4-a716-446655440001",
             "opportunity_id": "opp-1",
             "sections_requested": ["roi_analysis"],
             "output_format": "pdf",
@@ -92,7 +93,8 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
         },
     }
 
-    monkeypatch.setattr("src.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
+    state.metadata["authenticated_tenant_id"] = "test-tenant"
+    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
     result = await workflow._execute_assemble_document(state)
@@ -112,7 +114,7 @@ async def test_skips_claims_below_threshold(monkeypatch):
     workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
     state = workflow.create_initial_state(
         {
-            "prospect_id": "prospect-2",
+            "account_id": "550e8400-e29b-41d4-a716-446655440002",
             "sections_requested": ["executive_summary"],
             "output_format": "pdf",
             "custom_inputs": {
@@ -138,7 +140,8 @@ async def test_skips_claims_below_threshold(monkeypatch):
         "run_roi": {"roi_results": {}},
     }
 
-    monkeypatch.setattr("src.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
+    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
+    state.metadata["authenticated_tenant_id"] = "test-tenant"
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
     result = await workflow._execute_assemble_document(state)
@@ -158,6 +161,7 @@ def test_export_manifest_reads_persisted_case_linkage():
                     "truth_object_ids": ["truth-123"],
                     "claim_traceability": [{"claim": "A", "truth_object_id": "truth-123"}],
                     "threshold_decisions": [{"claim": "A", "decision": "promoted"}],
+                    "source_references": [{"id": "truth-123", "type": "claim"}],
                 }
             },
             # Legacy ad hoc fields should be ignored:
@@ -175,7 +179,7 @@ def test_export_manifest_reads_persisted_case_linkage():
     )
 
     assert manifest["truth_object_ids"] == ["truth-123"]
-    assert manifest["source_references"] == [{"claim": "A", "truth_object_id": "truth-123"}]
+    assert manifest["source_references"] == [{"pointer": "truth-123", "type": "claim", "locator": None}]
 
 
 def test_resolve_organization_id_fails_closed_without_authenticated_tenant():
@@ -208,5 +212,6 @@ def test_resolve_organization_id_ignores_forged_metadata_tenant():
         tenant_id="test-tenant",
     )
     state.metadata["tenant_id"] = "forged-metadata-tenant"
+    state.metadata["authenticated_tenant_id"] = "auth-tenant-1"
 
     assert workflow._resolve_organization_id(state) == "auth-tenant-1"

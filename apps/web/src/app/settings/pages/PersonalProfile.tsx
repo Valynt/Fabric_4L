@@ -31,7 +31,7 @@ export function PersonalProfile() {
           {["Multi-factor authentication", "Google SSO", "Password", "Authenticator app"].map((item) => (
             <div key={item} className="flex items-center justify-between rounded-md border p-3">
               <span className="text-sm">{item}</span>
-              <button type="button" className="text-xs font-medium text-primary hover:underline">Configure</button>
+              <button type="button" className="text-xs font-medium text-primary hover:underline" aria-label={`Configure ${item}`}>Configure</button>
             </div>
           ))}
         </div>

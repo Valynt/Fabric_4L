@@ -138,7 +138,13 @@ export default function NotificationsPage() {
                   <Btn
                     variant="outline"
                     disabled={notification.read || markRead.isPending}
-                    onClick={() => markRead.mutate(notification.id)}
+                    onClick={async () => {
+                      try {
+                        await markRead.mutateAsync(notification.id);
+                      } catch {
+                        toast.error('Failed to mark notification as read. Please try again.');
+                      }
+                    }}
                   >
                     <CheckCircle2 size={14} className="mr-1.5" />
                     {notification.read ? 'Read' : 'Mark Read'}

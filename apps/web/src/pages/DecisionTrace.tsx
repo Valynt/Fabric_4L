@@ -5,6 +5,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useLocation, useSearchParams } from "react-router-dom";
 import { Shield, Download, CheckCircle2, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useProvenanceTrail, useAuditLogs, useExportProvenance, type AuditLogEntry, type AuditLogFilter } from "@/hooks/useProvenance";
 import { useBusinessCase } from "@/hooks/useDocuments";
@@ -68,6 +69,7 @@ export default function DecisionTrace() {
       await exportMutation.mutateAsync({ entityId: selectedEntityId, format: 'prov-o' });
     } catch (error) {
       log.error('Export failed', { errorCode: String(error) });
+      toast.error('Export failed. Please try again.');
     }
   };
 

@@ -3,11 +3,12 @@ import { z } from "zod";
 const UnknownRecordSchema = z.record(z.string(), z.unknown());
 
 export const TruthStatusSchema = z.enum([
-  "extracted",
-  "supported",
-  "corroborated",
-  "approved",
+  "proposed",
+  "validated",
   "disputed",
+  "rejected",
+  "superseded",
+  "expired",
 ]);
 
 export const ClaimTypeSchema = z.enum([
@@ -34,7 +35,7 @@ export const TruthObjectSummarySchema = z
     maturity_level: z.number(),
     is_stale: z.boolean(),
     source_count: z.number().int().nonnegative(),
-    approved_by: z.string().nullable().optional(),
+    validated_by: z.string().nullable().optional(),
     freshness: z.string(),
     created_at: z.string(),
   })

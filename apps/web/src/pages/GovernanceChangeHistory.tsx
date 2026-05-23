@@ -48,11 +48,12 @@ export default function GovernanceChangeHistory() {
               }
             >
               <option value="all">All statuses</option>
-              <option value="extracted">extracted</option>
-              <option value="supported">supported</option>
-              <option value="corroborated">corroborated</option>
-              <option value="approved">approved</option>
+              <option value="proposed">proposed</option>
+              <option value="validated">validated</option>
               <option value="disputed">disputed</option>
+              <option value="rejected">rejected</option>
+              <option value="superseded">superseded</option>
+              <option value="expired">expired</option>
             </select>
           </label>
           <label className="text-[12px] text-neutral-700">

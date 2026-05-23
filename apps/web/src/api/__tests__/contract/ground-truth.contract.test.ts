@@ -234,22 +234,22 @@ describe('Contract: POST /api/v1/truths/{truth_id}/validate', () => {
       ValidateResponseSchema,
       {
         truth_id: '550e8400-e29b-41d4-a716-446655440002',
-        previous_status: 'extracted',
-        new_status: 'supported',
-        maturity_level: 2,
+        previous_status: 'proposed',
+        new_status: 'validated',
+        maturity_level: 4,
       },
       'ValidateResponse'
     );
     expect(resp.truth_id).toBe('550e8400-e29b-41d4-a716-446655440002');
-    expect(resp.previous_status).toBe('extracted');
-    expect(resp.new_status).toBe('supported');
-    expect(resp.maturity_level).toBe(2);
+    expect(resp.previous_status).toBe('proposed');
+    expect(resp.new_status).toBe('validated');
+    expect(resp.maturity_level).toBe(4);
   });
 
   it('rejects non-UUID truth_id', () => {
     assertSchemaRejects(
       ValidateResponseSchema,
-      { truth_id: 'not-a-uuid', previous_status: 'extracted', new_status: 'supported', maturity_level: 2 },
+      { truth_id: 'not-a-uuid', previous_status: 'proposed', new_status: 'validated', maturity_level: 4 },
       'ValidateResponse with non-UUID truth_id'
     );
   });
@@ -299,9 +299,8 @@ describe('Contract: GET /api/v1/maturity-ladder', () => {
         truth_id: '550e8400-e29b-41d4-a716-446655440002',
         current_level: 3,
         history: [
-          { level: 1, status: 'extracted', transitioned_at: '2024-01-10T10:00:00Z' },
-          { level: 2, status: 'supported', transitioned_at: '2024-01-12T10:00:00Z' },
-          { level: 3, status: 'corroborated', transitioned_at: '2024-01-15T10:00:00Z' },
+          { level: 1, status: 'proposed', transitioned_at: '2024-01-10T10:00:00Z' },
+          { level: 4, status: 'validated', transitioned_at: '2024-01-15T10:00:00Z' },
         ],
       },
       'MaturityLadderResponse'

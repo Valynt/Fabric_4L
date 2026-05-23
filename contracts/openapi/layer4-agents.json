@@ -6815,6 +6815,84 @@
         }
       }
     },
+    "/v1/admin/tenant-overview": {
+      "get": {
+        "tags": [
+          "Admin Console"
+        ],
+        "summary": "Get Tenant Overview",
+        "description": "Get a paginated cross-tenant overview.\n\nReturns tenant metadata along with user counts and active workflow\ncounts per tenant. Requires ``super_admin`` role and an\n``X-Privileged-Reason`` header.",
+        "operationId": "get_tenant_overview_v1_admin_tenant_overview_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "description": "Number of tenants to return",
+              "default": 100,
+              "title": "Limit"
+            },
+            "description": "Number of tenants to return"
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "description": "Offset for pagination",
+              "default": 0,
+              "title": "Offset"
+            },
+            "description": "Offset for pagination"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TenantOverviewResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/models": {
       "post": {
         "tags": [
@@ -9490,11 +9568,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Create Checkout V1 Billing Checkout Post"
+                  "$ref": "#/components/schemas/CheckoutResponse"
                 }
               }
             }
@@ -9550,11 +9624,208 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Create Portal V1 Billing Portal Post"
+                  "$ref": "#/components/schemas/PortalResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/invoices/{invoice_id}/reconciliation": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Reconcile Invoice",
+        "description": "Reconcile usage ledger against invoice line items.",
+        "operationId": "reconcile_invoice_v1_billing_invoices__invoice_id__reconciliation_get",
+        "parameters": [
+          {
+            "name": "invoice_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Invoice Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/reconcile_invoiceResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/cancel": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Cancel Subscription",
+        "description": "Cancel a customer's subscription.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Cancellation options\n\nReturns:\n    Cancellation result with period end date",
+        "operationId": "cancel_subscription_v1_billing_subscription_cancel_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelSubscriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/update-plan": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Update Subscription Plan",
+        "description": "Update a customer's subscription plan.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Target plan details\n\nReturns:\n    Update result with previous and current plan",
+        "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpdatePlanResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/subscription/reactivate": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Reactivate Subscription",
+        "description": "Reactivate a subscription scheduled to cancel at period end.\n\nArgs:\n    customer_id: Internal customer/user ID\n\nReturns:\n    Reactivation result",
+        "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64,
+              "pattern": "^[a-zA-Z0-9_-]+$",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReactivateSubscriptionResponse"
                 }
               }
             }
@@ -9600,9 +9871,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Entitlements V1 Billing Entitlements Get"
+                  "$ref": "#/components/schemas/EntitlementsResponse"
                 }
               }
             }
@@ -9659,9 +9928,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Check Feature V1 Billing Check Feature Get"
+                  "$ref": "#/components/schemas/check_featureResult"
                 }
               }
             }
@@ -9717,9 +9984,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Sync Customer V1 Billing Sync Customer Post"
+                  "$ref": "#/components/schemas/sync_customerResult"
                 }
               }
             }
@@ -9762,9 +10027,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Stripe Webhook V1 Billing Webhook Post"
+                  "$ref": "#/components/schemas/stripe_webhookResult"
                 }
               }
             }
@@ -9806,9 +10069,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Ingest Usage Event V1 Billing Events Post"
+                  "$ref": "#/components/schemas/ingest_usage_eventResult"
                 }
               }
             }
@@ -9850,9 +10111,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Ingest Usage Batch V1 Billing Events Batch Post"
+                  "$ref": "#/components/schemas/ingest_usage_batchResult"
                 }
               }
             }
@@ -9938,9 +10197,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Usage Summary V1 Billing Usage  Customer Id  Summary Get"
+                  "$ref": "#/components/schemas/UsageSummaryResponse"
                 }
               }
             }
@@ -10058,8 +10315,7 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "additionalProperties": true
+                    "$ref": "#/components/schemas/UsageEventResponse"
                   },
                   "title": "Response List Usage Events V1 Billing Usage  Customer Id  Events Get"
                 }
@@ -10120,9 +10376,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Sync Usage To Stripe V1 Billing Usage  Customer Id  Sync Post"
+                  "$ref": "#/components/schemas/UsageSyncResponse"
                 }
               }
             }
@@ -10165,9 +10419,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Usage Limits V1 Billing Limits  Customer Id  Get"
+                  "$ref": "#/components/schemas/get_usage_limitsResult"
                 }
               }
             }
@@ -10230,9 +10482,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Check Request Allowed V1 Billing Limits  Customer Id  Check Post"
+                  "$ref": "#/components/schemas/LimitsCheckResponse"
                 }
               }
             }
@@ -10275,9 +10525,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Plan Limits V1 Billing Plans  Plan Id  Limits Get"
+                  "$ref": "#/components/schemas/get_plan_limitsResult"
                 }
               }
             }
@@ -10366,9 +10614,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Invoices V1 Billing Invoices Get"
+                  "$ref": "#/components/schemas/list_invoicesResult"
                 }
               }
             }
@@ -10408,9 +10654,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Create Invoice V1 Billing Invoices Post"
+                  "$ref": "#/components/schemas/create_invoiceResult"
                 }
               }
             }
@@ -10453,9 +10697,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Invoice V1 Billing Invoices  Invoice Id  Get"
+                  "$ref": "#/components/schemas/get_invoiceResult"
                 }
               }
             }
@@ -10508,9 +10750,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Add Invoice Item V1 Billing Invoices  Invoice Id  Items Post"
+                  "$ref": "#/components/schemas/add_invoice_itemResult"
                 }
               }
             }
@@ -10553,9 +10793,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Finalize Invoice V1 Billing Invoices  Invoice Id  Finalize Post"
+                  "$ref": "#/components/schemas/finalize_invoiceResult"
                 }
               }
             }
@@ -10616,9 +10854,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Void Invoice V1 Billing Invoices  Invoice Id  Void Post"
+                  "$ref": "#/components/schemas/void_invoiceResult"
                 }
               }
             }
@@ -10723,9 +10959,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response List Charges V1 Billing Charges Get"
+                  "$ref": "#/components/schemas/list_chargesResult"
                 }
               }
             }
@@ -10765,9 +10999,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Record Charge V1 Billing Charges Post"
+                  "$ref": "#/components/schemas/record_chargeResult"
                 }
               }
             }
@@ -10821,9 +11053,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Revenue Summary V1 Billing Reports Revenue Get"
+                  "$ref": "#/components/schemas/RevenueSummaryResponse"
                 }
               }
             }
@@ -10866,9 +11096,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Get Customer Balance V1 Billing Customers  Customer Id  Balance Get"
+                  "$ref": "#/components/schemas/CustomerBalanceResponse"
                 }
               }
             }
@@ -14668,12 +14896,12 @@
           "draft_case_id": {
             "type": "string",
             "title": "Draft Case Id",
-            "default": "case-draft-001"
+            "default": "case-draft"
           },
           "approved_case_id": {
             "type": "string",
             "title": "Approved Case Id",
-            "default": "case-e2e-approved-001"
+            "default": "case-approved"
           },
           "approved_case_aliases": {
             "items": {
@@ -15127,6 +15355,53 @@
         ],
         "title": "CRMSyncJobResponse"
       },
+      "CancelSubscriptionRequest": {
+        "properties": {
+          "cancel_immediately": {
+            "type": "boolean",
+            "title": "Cancel Immediately",
+            "description": "Cancel immediately vs at period end",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "CancelSubscriptionRequest"
+      },
+      "CancelSubscriptionResponse": {
+        "properties": {
+          "canceled": {
+            "type": "boolean",
+            "title": "Canceled"
+          },
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End"
+          },
+          "current_period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Period End"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "canceled",
+          "cancel_at_period_end",
+          "current_period_end",
+          "subscription_id"
+        ],
+        "title": "CancelSubscriptionResponse"
+      },
       "CaseListItem": {
         "properties": {
           "case_id": {
@@ -15238,6 +15513,24 @@
         ],
         "title": "CheckoutRequest",
         "description": "Request to create a checkout session."
+      },
+      "CheckoutResponse": {
+        "properties": {
+          "session_id": {
+            "type": "string",
+            "title": "Session Id"
+          },
+          "checkout_url": {
+            "type": "string",
+            "title": "Checkout Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "session_id",
+          "checkout_url"
+        ],
+        "title": "CheckoutResponse"
       },
       "CheckpointInfo": {
         "properties": {
@@ -16836,6 +17129,49 @@
         ],
         "title": "CurrentTenantSettingsUpdateResponse"
       },
+      "CustomerBalanceResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "open_invoices_cents": {
+            "type": "integer",
+            "title": "Open Invoices Cents"
+          },
+          "open_invoices_dollars": {
+            "type": "string",
+            "title": "Open Invoices Dollars"
+          },
+          "lifetime_paid_cents": {
+            "type": "integer",
+            "title": "Lifetime Paid Cents"
+          },
+          "lifetime_paid_dollars": {
+            "type": "string",
+            "title": "Lifetime Paid Dollars"
+          },
+          "balance_cents": {
+            "type": "integer",
+            "title": "Balance Cents"
+          },
+          "balance_dollars": {
+            "type": "string",
+            "title": "Balance Dollars"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "open_invoices_cents",
+          "open_invoices_dollars",
+          "lifetime_paid_cents",
+          "lifetime_paid_dollars",
+          "balance_cents",
+          "balance_dollars"
+        ],
+        "title": "CustomerBalanceResponse"
+      },
       "CustomerSyncRequest": {
         "properties": {
           "email": {
@@ -17122,6 +17458,30 @@
           "coverage_pct"
         ],
         "title": "EnrichmentStatusResponse"
+      },
+      "EntitlementsResponse": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "plan_name": {
+            "type": "string",
+            "title": "Plan Name"
+          },
+          "features": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Features"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "plan_name",
+          "features"
+        ],
+        "title": "EntitlementsResponse"
       },
       "ErrorAnalysisResponse": {
         "properties": {
@@ -18984,6 +19344,70 @@
         "title": "KnowledgeSourceResponse",
         "description": "Knowledge source item in API responses."
       },
+      "LimitsCheckResponse": {
+        "properties": {
+          "allowed": {
+            "type": "boolean",
+            "title": "Allowed"
+          },
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "limit": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Limit"
+          },
+          "current_usage": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Usage"
+          },
+          "remaining": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Remaining"
+          }
+        },
+        "type": "object",
+        "required": [
+          "allowed",
+          "customer_id",
+          "metric_name",
+          "quantity",
+          "limit",
+          "current_usage",
+          "remaining"
+        ],
+        "title": "LimitsCheckResponse"
+      },
       "LineageRef": {
         "properties": {
           "business_case_id": {
@@ -19941,6 +20365,19 @@
         "title": "PortalRequest",
         "description": "Request to create a customer portal session."
       },
+      "PortalResponse": {
+        "properties": {
+          "portal_url": {
+            "type": "string",
+            "title": "Portal Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "portal_url"
+        ],
+        "title": "PortalResponse"
+      },
       "ProcessingMetadata": {
         "properties": {
           "extraction_duration_ms": {
@@ -20701,6 +21138,24 @@
         "title": "RankHypothesesRequest",
         "description": "Request to re-rank hypotheses."
       },
+      "ReactivateSubscriptionResponse": {
+        "properties": {
+          "reactivated": {
+            "type": "boolean",
+            "title": "Reactivated"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "reactivated",
+          "subscription_id"
+        ],
+        "title": "ReactivateSubscriptionResponse"
+      },
       "RecordChargeRequest": {
         "properties": {
           "customer_id": {
@@ -21208,6 +21663,44 @@
         ],
         "title": "RetryProvisioningResponse",
         "description": "Response from retry provisioning request."
+      },
+      "RevenueSummaryResponse": {
+        "properties": {
+          "total_revenue_cents": {
+            "type": "integer",
+            "title": "Total Revenue Cents"
+          },
+          "total_revenue_dollars": {
+            "type": "string",
+            "title": "Total Revenue Dollars"
+          },
+          "invoice_count": {
+            "type": "integer",
+            "title": "Invoice Count"
+          },
+          "charge_count": {
+            "type": "integer",
+            "title": "Charge Count"
+          },
+          "period_start": {
+            "type": "string",
+            "title": "Period Start"
+          },
+          "period_end": {
+            "type": "string",
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_revenue_cents",
+          "total_revenue_dollars",
+          "invoice_count",
+          "charge_count",
+          "period_start",
+          "period_end"
+        ],
+        "title": "RevenueSummaryResponse"
       },
       "ReviewRequest": {
         "properties": {
@@ -22611,6 +23104,89 @@
         "title": "TenantModel",
         "description": "Read-only representation of a tenant (returned by API)."
       },
+      "TenantOverviewItem": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "slug": {
+            "type": "string",
+            "title": "Slug"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "tier_id": {
+            "type": "string",
+            "title": "Tier Id",
+            "default": "free"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          },
+          "user_count": {
+            "type": "integer",
+            "title": "User Count",
+            "description": "Total non-deleted users",
+            "default": 0
+          },
+          "active_workflow_count": {
+            "type": "integer",
+            "title": "Active Workflow Count",
+            "description": "Harness runs in non-terminal status",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "slug",
+          "status",
+          "created_at"
+        ],
+        "title": "TenantOverviewItem",
+        "description": "Single tenant entry in the cross-tenant overview."
+      },
+      "TenantOverviewResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/TenantOverviewItem"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "TenantOverviewResponse",
+        "description": "Paginated cross-tenant overview response."
+      },
       "TenantSettingsUpdateResponse": {
         "properties": {
           "id": {
@@ -23142,6 +23718,43 @@
         "title": "TransitionResponse",
         "description": "Response for a successful state transition."
       },
+      "UpdatePlanRequest": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id",
+            "description": "Target plan (pro, enterprise)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id"
+        ],
+        "title": "UpdatePlanRequest"
+      },
+      "UpdatePlanResponse": {
+        "properties": {
+          "previous_plan_id": {
+            "type": "string",
+            "title": "Previous Plan Id"
+          },
+          "subscription_id": {
+            "type": "string",
+            "title": "Subscription Id"
+          },
+          "updated": {
+            "type": "boolean",
+            "title": "Updated"
+          }
+        },
+        "type": "object",
+        "required": [
+          "previous_plan_id",
+          "subscription_id",
+          "updated"
+        ],
+        "title": "UpdatePlanResponse"
+      },
       "UpdateTaskRequest": {
         "properties": {
           "status": {
@@ -23294,6 +23907,67 @@
         "title": "UsageEventRequest",
         "description": "Request body for ingesting a single usage event."
       },
+      "UsageEventResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "event_name": {
+            "type": "string",
+            "title": "Event Name"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "unit": {
+            "type": "string",
+            "title": "Unit"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "metadata": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metadata"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "event_id",
+          "event_name",
+          "metric_name",
+          "quantity",
+          "unit",
+          "timestamp",
+          "status",
+          "metadata"
+        ],
+        "title": "UsageEventResponse"
+      },
       "UsageMetricsResponse": {
         "properties": {
           "tenant_id": {
@@ -23331,6 +24005,88 @@
         ],
         "title": "UsageMetricsResponse",
         "description": "Usage metrics response."
+      },
+      "UsageSummaryResponse": {
+        "properties": {
+          "customer_id": {
+            "type": "string",
+            "title": "Customer Id"
+          },
+          "metric_name": {
+            "type": "string",
+            "title": "Metric Name"
+          },
+          "total_quantity": {
+            "type": "number",
+            "title": "Total Quantity"
+          },
+          "event_count": {
+            "type": "integer",
+            "title": "Event Count"
+          },
+          "period_start": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period Start"
+          },
+          "period_end": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Period End"
+          }
+        },
+        "type": "object",
+        "required": [
+          "customer_id",
+          "metric_name",
+          "total_quantity",
+          "event_count",
+          "period_start",
+          "period_end"
+        ],
+        "title": "UsageSummaryResponse"
+      },
+      "UsageSyncResponse": {
+        "properties": {
+          "synced": {
+            "type": "integer",
+            "title": "Synced"
+          },
+          "failed": {
+            "type": "integer",
+            "title": "Failed"
+          },
+          "error": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "synced",
+          "failed",
+          "error"
+        ],
+        "title": "UsageSyncResponse"
       },
       "UserInviteRequest": {
         "properties": {
@@ -23669,21 +24425,21 @@
             "maxLength": 63,
             "minLength": 1,
             "title": "Tenant Slug",
-            "default": "tenant-e2e-001"
+            "default": "tenant-validation"
           },
           "tenant_name": {
             "type": "string",
             "maxLength": 200,
             "minLength": 1,
             "title": "Tenant Name",
-            "default": "E2E Validation Tenant"
+            "default": "Validation Tenant"
           },
           "service_account_id": {
             "type": "string",
             "maxLength": 128,
             "minLength": 1,
             "title": "Service Account Id",
-            "default": "svc-playwright-backend-validation"
+            "default": "svc-validation-seed"
           },
           "api_key": {
             "anyOf": [
@@ -24750,6 +25506,19 @@
             "additionalProperties": true,
             "type": "object",
             "title": "Metrics"
+          },
+          "reasoning_trace": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reasoning Trace",
+            "description": "Structured reasoning trace for agent outputs"
           }
         },
         "additionalProperties": true,
@@ -24958,6 +25727,30 @@
           "workflow_id": {
             "type": "string",
             "title": "Workflow Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id",
+            "description": "Distinct execution identifier"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id",
+            "description": "Cross-layer audit trace identifier"
           },
           "status": {
             "type": "string",
@@ -25257,6 +26050,30 @@
                 "type": "null"
               }
             ]
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id",
+            "description": "Distinct execution identifier"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id",
+            "description": "Cross-layer audit trace identifier"
           }
         },
         "type": "object",
@@ -25386,6 +26203,56 @@
         "type": "object",
         "title": "WorkspaceEvidenceResponse"
       },
+      "add_invoice_itemResult": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents"
+          },
+          "amount_dollars": {
+            "title": "Amount Dollars"
+          },
+          "description": {
+            "title": "Description"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "invoice_id": {
+            "title": "Invoice Id"
+          },
+          "type": {
+            "title": "Type"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "amount_cents",
+          "amount_dollars",
+          "description",
+          "id",
+          "invoice_id",
+          "type"
+        ],
+        "title": "add_invoice_itemResult"
+      },
+      "check_featureResult": {
+        "properties": {
+          "feature_id": {
+            "title": "Feature Id"
+          },
+          "has_access": {
+            "title": "Has Access"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "feature_id",
+          "has_access"
+        ],
+        "title": "check_featureResult"
+      },
       "convert_hypothesisResult": {
         "properties": {
           "hypothesis_id": {
@@ -25444,6 +26311,300 @@
           "status"
         ],
         "title": "convert_hypothesisResult"
+      },
+      "create_invoiceResult": {
+        "properties": {
+          "created_at": {
+            "title": "Created At"
+          },
+          "customer_id": {
+            "title": "Customer Id"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "invoice_number": {
+            "title": "Invoice Number"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "total_cents": {
+            "title": "Total Cents"
+          },
+          "total_dollars": {
+            "title": "Total Dollars"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "created_at",
+          "customer_id",
+          "id",
+          "invoice_number",
+          "status",
+          "total_cents",
+          "total_dollars"
+        ],
+        "title": "create_invoiceResult"
+      },
+      "finalize_invoiceResult": {
+        "properties": {
+          "amount_due_cents": {
+            "title": "Amount Due Cents"
+          },
+          "amount_due_dollars": {
+            "title": "Amount Due Dollars"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "total_cents": {
+            "title": "Total Cents"
+          },
+          "total_dollars": {
+            "title": "Total Dollars"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "amount_due_cents",
+          "amount_due_dollars",
+          "id",
+          "status",
+          "total_cents",
+          "total_dollars"
+        ],
+        "title": "finalize_invoiceResult"
+      },
+      "get_invoiceResult": {
+        "properties": {
+          "amount_due_cents": {
+            "title": "Amount Due Cents"
+          },
+          "amount_due_dollars": {
+            "title": "Amount Due Dollars"
+          },
+          "amount_paid_cents": {
+            "title": "Amount Paid Cents"
+          },
+          "balance_cents": {
+            "title": "Balance Cents"
+          },
+          "charges": {
+            "title": "Charges"
+          },
+          "created_at": {
+            "title": "Created At"
+          },
+          "currency": {
+            "title": "Currency"
+          },
+          "customer_id": {
+            "title": "Customer Id"
+          },
+          "description": {
+            "title": "Description"
+          },
+          "due_date": {
+            "title": "Due Date"
+          },
+          "hosted_invoice_url": {
+            "title": "Hosted Invoice Url"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "invoice_number": {
+            "title": "Invoice Number"
+          },
+          "invoice_pdf_url": {
+            "title": "Invoice Pdf Url"
+          },
+          "items": {
+            "title": "Items"
+          },
+          "paid_at": {
+            "title": "Paid At"
+          },
+          "period_end": {
+            "title": "Period End"
+          },
+          "period_start": {
+            "title": "Period Start"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "subtotal_cents": {
+            "title": "Subtotal Cents"
+          },
+          "tax_cents": {
+            "title": "Tax Cents"
+          },
+          "total_cents": {
+            "title": "Total Cents"
+          },
+          "total_dollars": {
+            "title": "Total Dollars"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "amount_due_cents",
+          "amount_due_dollars",
+          "amount_paid_cents",
+          "balance_cents",
+          "charges",
+          "created_at",
+          "currency",
+          "customer_id",
+          "description",
+          "due_date",
+          "hosted_invoice_url",
+          "id",
+          "invoice_number",
+          "invoice_pdf_url",
+          "paid_at",
+          "period_end",
+          "period_start",
+          "status",
+          "subtotal_cents",
+          "tax_cents",
+          "total_cents",
+          "total_dollars"
+        ],
+        "title": "get_invoiceResult"
+      },
+      "get_plan_limitsResult": {
+        "properties": {
+          "limits": {
+            "title": "Limits"
+          },
+          "plan_id": {
+            "title": "Plan Id"
+          },
+          "plan_name": {
+            "title": "Plan Name"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "limits",
+          "plan_id",
+          "plan_name"
+        ],
+        "title": "get_plan_limitsResult"
+      },
+      "get_usage_limitsResult": {
+        "properties": {
+          "all_limits_ok": {
+            "title": "All Limits Ok"
+          },
+          "customer_id": {
+            "title": "Customer Id"
+          },
+          "metrics": {
+            "title": "Metrics"
+          },
+          "plan_id": {
+            "title": "Plan Id"
+          },
+          "total_overage_cost": {
+            "title": "Total Overage Cost"
+          },
+          "warnings": {
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "all_limits_ok",
+          "customer_id",
+          "metrics",
+          "plan_id",
+          "total_overage_cost",
+          "warnings"
+        ],
+        "title": "get_usage_limitsResult"
+      },
+      "ingest_usage_batchResult": {
+        "properties": {
+          "created": {
+            "title": "Created"
+          },
+          "duplicates": {
+            "title": "Duplicates"
+          },
+          "error_details": {
+            "title": "Error Details"
+          },
+          "errors": {
+            "title": "Errors"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "created",
+          "duplicates",
+          "error_details",
+          "errors"
+        ],
+        "title": "ingest_usage_batchResult"
+      },
+      "ingest_usage_eventResult": {
+        "properties": {
+          "created_at": {
+            "title": "Created At"
+          },
+          "customer_id": {
+            "title": "Customer Id"
+          },
+          "event_id": {
+            "title": "Event Id"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "metric_name": {
+            "title": "Metric Name"
+          },
+          "quantity": {
+            "title": "Quantity"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          },
+          "timestamp": {
+            "title": "Timestamp"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "created_at",
+          "customer_id",
+          "event_id",
+          "id",
+          "metric_name",
+          "quantity",
+          "status",
+          "tenant_id",
+          "timestamp"
+        ],
+        "title": "ingest_usage_eventResult"
       },
       "layer4_agents__api__routes__audit__AuditLogResponse": {
         "properties": {
@@ -25821,6 +26982,162 @@
         ],
         "title": "RegisterTenantRequest",
         "description": "Request to register a new tenant."
+      },
+      "list_chargesResult": {
+        "properties": {
+          "charges": {
+            "title": "Charges"
+          },
+          "pagination": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Pagination"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "charges",
+          "pagination"
+        ],
+        "title": "list_chargesResult"
+      },
+      "list_invoicesResult": {
+        "properties": {
+          "invoices": {
+            "title": "Invoices"
+          },
+          "pagination": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Pagination"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "invoices",
+          "pagination"
+        ],
+        "title": "list_invoicesResult"
+      },
+      "reconcile_invoiceResult": {
+        "properties": {
+          "invoice_id": {
+            "title": "Invoice Id"
+          },
+          "mismatch_count": {
+            "title": "Mismatch Count"
+          },
+          "mismatches": {
+            "title": "Mismatches"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "invoice_id",
+          "mismatch_count",
+          "mismatches"
+        ],
+        "title": "reconcile_invoiceResult"
+      },
+      "record_chargeResult": {
+        "properties": {
+          "amount_cents": {
+            "title": "Amount Cents"
+          },
+          "amount_dollars": {
+            "title": "Amount Dollars"
+          },
+          "created_at": {
+            "title": "Created At"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "stripe_charge_id": {
+            "title": "Stripe Charge Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "amount_cents",
+          "amount_dollars",
+          "created_at",
+          "id",
+          "status",
+          "stripe_charge_id"
+        ],
+        "title": "record_chargeResult"
+      },
+      "stripe_webhookResult": {
+        "properties": {
+          "received": {
+            "type": "boolean",
+            "title": "Received"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "received"
+        ],
+        "title": "stripe_webhookResult"
+      },
+      "sync_customerResult": {
+        "properties": {
+          "email": {
+            "title": "Email"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name"
+          },
+          "stripe_customer_id": {
+            "title": "Stripe Customer Id"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "email",
+          "id",
+          "name",
+          "stripe_customer_id",
+          "tenant_id"
+        ],
+        "title": "sync_customerResult"
+      },
+      "void_invoiceResult": {
+        "properties": {
+          "id": {
+            "title": "Id"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "voided_at": {
+            "title": "Voided At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "id",
+          "status",
+          "voided_at"
+        ],
+        "title": "void_invoiceResult"
       },
       "ErrorResponse": {
         "type": "object",

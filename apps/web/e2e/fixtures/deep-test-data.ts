@@ -323,7 +323,7 @@ export function createBenchmarkDatasets() {
 export function createGroundTruthSet() {
   return {
     truths: [
-      { id: 'truth-001', truth_id: 'truth-001', claim: 'CFO validates baseline reconciliation hours at 120/week.', status: 'approved', maturity: 'corroborated', confidence: 0.91, stale: false, freshness: 'current', source: 'CFO discovery note' },
+      { id: 'truth-001', truth_id: 'truth-001', claim: 'CFO validates baseline reconciliation hours at 120/week.', status: 'validated', maturity: 'approved', confidence: 0.91, stale: false, freshness: 'current', source: 'CFO discovery note' },
       { id: 'truth-002', truth_id: 'truth-002', claim: 'Hourly rate of $85 is fully loaded including benefits.', status: 'pending', maturity: 'unverified', confidence: 0.6, stale: false, freshness: 'current', source: 'HR estimate' },
       { id: 'truth-003', truth_id: 'truth-003', claim: 'Competitor pricing has decreased 15% YoY.', status: 'rejected', maturity: 'disputed', confidence: 0.3, stale: true, freshness: 'stale', source: 'Market report 2024' },
     ],

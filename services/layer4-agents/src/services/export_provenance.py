@@ -77,6 +77,7 @@ def _normalize_source_pointer(pointer: Any) -> dict[str, Any]:
 
 def _collect_truth_ids(output: dict[str, Any], metadata: dict[str, Any], case_snapshot: dict[str, Any]) -> list[str]:
     explicit_truth_ids = _first_non_empty(
+        output.get("assemble_document", {}).get("case_metadata", {}).get("truth_object_ids"),
         output.get("truth_object_ids"),
         metadata.get("truth_object_ids"),
         case_snapshot.get("truth_ids"),
@@ -100,6 +101,7 @@ def _collect_truth_ids(output: dict[str, Any], metadata: dict[str, Any], case_sn
 
 def _collect_source_pointers(output: dict[str, Any], metadata: dict[str, Any], case_snapshot: dict[str, Any]) -> list[dict[str, Any]]:
     source_refs = _first_non_empty(
+        output.get("assemble_document", {}).get("case_metadata", {}).get("source_references"),
         output.get("source_references"),
         metadata.get("source_references"),
         case_snapshot.get("source_pointers"),

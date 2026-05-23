@@ -84,7 +84,7 @@ class TestCreateInitialState:
         assert state.status == WorkflowStatus.PENDING
         assert state.roi_input.prospect_id == "p-001"
         assert state.roi_input.value_driver_ids == ["vd-1", "vd-2"]
-        assert state.metadata.get("tenant_id") == "t-42"
+        assert state.tenant_id == "test-tenant"
 
     def test_empty_value_driver_ids_raises(self, workflow):
         wf, _ = workflow
@@ -329,11 +329,11 @@ class TestExecuteEvaluateFormula:
                     {
                         "results": [
                             {
-                                "v.id": "vd-1",
-                                "v.name": "Efficiency",
-                                "v.category": "ops",
-                                "v.formula": "revenue * 0.1",
-                                "v.unit": "USD",
+                                "id": "vd-1",
+                                "name": "Efficiency",
+                                "category": "ops",
+                                "formula": "revenue * 0.1",
+                                "unit": "USD",
                             }
                         ]
                     }
@@ -370,11 +370,11 @@ class TestExecuteEvaluateFormula:
                     {
                         "results": [
                             {
-                                "v.id": "vd-1",
-                                "v.name": "Efficiency",
-                                "v.category": "ops",
-                                "v.formula": "revenue * 0.1",
-                                "v.unit": "USD",
+                                "id": "vd-1",
+                                "name": "Efficiency",
+                                "category": "ops",
+                                "formula": "revenue * 0.1",
+                                "unit": "USD",
                             }
                         ]
                     }
@@ -408,11 +408,11 @@ class TestExecuteEvaluateFormula:
                     {
                         "results": [
                             {
-                                "v.id": "vd-1",
-                                "v.name": "Efficiency",
-                                "v.category": "ops",
-                                "v.formula": "revenue * 0.1",
-                                "v.unit": "USD",
+                                "id": "vd-1",
+                                "name": "Efficiency",
+                                "category": "ops",
+                                "formula": "revenue * 0.1",
+                                "unit": "USD",
                             }
                         ]
                     }
@@ -442,11 +442,11 @@ class TestExecuteEvaluateFormula:
             {
                 "results": [
                     {
-                        "v.id": "vd-empty",
-                        "v.name": "Empty",
-                        "v.category": "ops",
-                        "v.formula": None,
-                        "v.unit": "USD",
+                        "id": "vd-empty",
+                        "name": "Empty",
+                        "category": "ops",
+                        "formula": None,
+                        "unit": "USD",
                     }
                 ]
             }
@@ -484,11 +484,11 @@ class TestExecuteEvaluateFormula:
             {
                 "results": [
                     {
-                        "v.id": "vd-1",
-                        "v.name": "Efficiency",
-                        "v.category": "ops",
-                        "v.formula": "revenue * 0.1",
-                        "v.unit": "USD",
+                        "id": "vd-1",
+                        "name": "Efficiency",
+                        "category": "ops",
+                        "formula": "revenue * 0.1",
+                        "unit": "USD",
                     }
                 ]
             }
@@ -624,11 +624,11 @@ class TestEndToEnd:
                     {
                         "results": [
                             {
-                                "v.id": "vd-1",
-                                "v.name": "Test",
-                                "v.category": "ops",
-                                "v.formula": "annual_revenue * 0.05",
-                                "v.unit": "USD",
+                                "id": "vd-1",
+                                "name": "Test",
+                                "category": "ops",
+                                "formula": "annual_revenue * 0.05",
+                                "unit": "USD",
                             }
                         ]
                     }

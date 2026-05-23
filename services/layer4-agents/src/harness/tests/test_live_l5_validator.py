@@ -118,6 +118,25 @@ def _mock_client(
 
 
 class TestStatusMapping:
+    def test_proposed_maps_to_needs_review(self):
+        assert _map_status("proposed") == ValidationState.NEEDS_REVIEW
+
+    def test_validated_maps_to_passed(self):
+        assert _map_status("validated") == ValidationState.PASSED
+
+    def test_disputed_maps_to_failed(self):
+        assert _map_status("disputed") == ValidationState.FAILED
+
+    def test_rejected_maps_to_failed(self):
+        assert _map_status("rejected") == ValidationState.FAILED
+
+    def test_superseded_maps_to_insufficient_evidence(self):
+        assert _map_status("superseded") == ValidationState.INSUFFICIENT_EVIDENCE
+
+    def test_expired_maps_to_insufficient_evidence(self):
+        assert _map_status("expired") == ValidationState.INSUFFICIENT_EVIDENCE
+
+    # Backward-compat aliases
     def test_extracted_maps_to_needs_review(self):
         assert _map_status("extracted") == ValidationState.NEEDS_REVIEW
 
@@ -129,9 +148,6 @@ class TestStatusMapping:
 
     def test_approved_maps_to_passed(self):
         assert _map_status("approved") == ValidationState.PASSED
-
-    def test_disputed_maps_to_failed(self):
-        assert _map_status("disputed") == ValidationState.FAILED
 
     def test_unknown_maps_to_insufficient_evidence(self):
         assert _map_status("unknown_status") == ValidationState.INSUFFICIENT_EVIDENCE

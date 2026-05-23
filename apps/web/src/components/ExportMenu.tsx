@@ -2,6 +2,7 @@ import { useState } from "react";
 import { FileDown, Loader2 } from "lucide-react";
 import { apiPost } from "@/api/typedClient";
 import { normalizeError } from "@/lib/errors";
+import { toast } from "sonner";
 
 interface ExportMenuProps {
   accountId: string;
@@ -28,6 +29,7 @@ export function ExportMenu({ accountId, valueCaseId }: ExportMenuProps) {
     } catch (err: unknown) {
       const normalizedError = normalizeError(err, `Export failed for ${format}`);
       setError(normalizedError.message);
+      toast.error(normalizedError.message);
     } finally {
       setLoading(null);
     }

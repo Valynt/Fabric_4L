@@ -35,6 +35,7 @@ import {
   Package, Search, Filter, AlertCircle, RefreshCw, Loader2,
   Upload, Eye, GitCompare, Map, BookOpen, Lightbulb, Layers,
 } from "lucide-react";
+import { toast } from "sonner";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -592,9 +593,11 @@ function ValuePacksContent() {
     setDeployError(null);
     try {
       await applyMutation.mutateAsync({ packId });
+      toast.success("Pack deployed successfully");
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to deploy pack";
       setDeployError(message);
+      toast.error(message);
       // Error already logged by mutation's onError; UI handles display
     }
   }, [applyMutation]);

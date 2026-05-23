@@ -243,7 +243,7 @@ function PropertyRow({ property, index, isSelected, onSelect, onUpdate, onDelete
           <Btn variant="ghost" className="text-[11px]" onClick={() => setIsEditing(true)}>
             Edit
           </Btn>
-          <Btn variant="ghost" className="text-destructive" onClick={() => onDelete()}>
+          <Btn variant="ghost" className="text-destructive" onClick={() => onDelete()} aria-label="Delete property">
             <Trash2 size={12} />
           </Btn>
         </div>

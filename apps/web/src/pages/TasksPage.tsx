@@ -125,7 +125,13 @@ export default function TasksPage() {
                   <Btn
                     variant="outline"
                     disabled={task.status === 'completed' || updateTask.isPending}
-                    onClick={() => updateTask.mutate({ taskId: task.id, status: 'completed' })}
+                    onClick={async () => {
+                      try {
+                        await updateTask.mutateAsync({ taskId: task.id, status: 'completed' });
+                      } catch {
+                        toast.error('Failed to update task. Please try again.');
+                      }
+                    }}
                   >
                     <CheckCircle2 size={14} className="mr-1.5" />
                     {task.status === 'completed' ? 'Completed' : 'Mark Complete'}

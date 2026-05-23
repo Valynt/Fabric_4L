@@ -13,11 +13,11 @@ const validTruth = {
   claim: "Customers reduce manual research by 30%",
   claim_type: "efficiency_gain",
   confidence: 0.87,
-  status: "supported",
-  maturity_level: 2,
+  status: "validated",
+  maturity_level: 4,
   is_stale: false,
   source_count: 3,
-  approved_by: null,
+  validated_by: "reviewer@example.com",
   freshness: "fresh",
   created_at: "2026-01-01T00:00:00Z",
 };
@@ -66,21 +66,21 @@ describe("ground-truth governance runtime-boundary parsers", () => {
     const result = parseValidationEventListResponse([
       {
         id: "event-1",
-        from_status: "extracted",
-        to_status: "supported",
+        from_status: "proposed",
+        to_status: "validated",
         from_maturity: 1,
-        to_maturity: 2,
+        to_maturity: 4,
         actor: "analyst@example.com",
         actor_type: "user",
         confidence_at_transition: 0.8,
         source_count_at_transition: 3,
-        notes: "Evidence corroborated",
+        notes: "Evidence validated",
         created_at: "2026-01-02T00:00:00Z",
       },
     ]);
 
-    expect(result[0]?.to_status).toBe("supported");
-    expect(result[0]?.to_maturity).toBe(2);
+    expect(result[0]?.to_status).toBe("validated");
+    expect(result[0]?.to_maturity).toBe(4);
   });
 
   it("rejects malformed validation-event arrays", () => {
@@ -88,7 +88,7 @@ describe("ground-truth governance runtime-boundary parsers", () => {
       parseValidationEventListResponse([
         {
           id: "event-1",
-          to_status: "supported",
+          to_status: "validated",
           to_maturity: "level-two",
           actor_type: "user",
           created_at: "2026-01-02T00:00:00Z",

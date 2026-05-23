@@ -316,8 +316,12 @@ export function useCreateWorkflow() {
       return String(workflowId);
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
-      queryClient.invalidateQueries({ queryKey: QK.workflows.history() });
+      queryClient.invalidateQueries({ queryKey: QK.workflows.active() }).catch((err) =>
+        log.error('Invalidate active workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
+      queryClient.invalidateQueries({ queryKey: QK.workflows.history() }).catch((err) =>
+        log.error('Invalidate history workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
     },
     onError: (error) => {
       log.error('CreateWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
@@ -340,8 +344,12 @@ export function useCancelWorkflow() {
       // Brief delay to allow backend to process cancellation
       // before refetching to avoid stale "running" state
       await new Promise(resolve => setTimeout(resolve, CANCEL_DELAY_MS));
-      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
-      await queryClient.invalidateQueries({ queryKey: QK.workflows.history() });
+      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() }).catch((err) =>
+        log.error('Invalidate active workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
+      await queryClient.invalidateQueries({ queryKey: QK.workflows.history() }).catch((err) =>
+        log.error('Invalidate history workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
     },
     onError: (error) => {
       log.error('CancelWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
@@ -443,7 +451,9 @@ export function usePauseWorkflow() {
       await apiPost<l4.components["schemas"]["WorkflowPauseResponse"]>("l4", `/workflows/${id}/pause`, {});
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
+      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() }).catch((err) =>
+        log.error('Invalidate active workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
     },
     onError: (error) => {
       log.error('PauseWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
@@ -462,7 +472,9 @@ export function useResumeWorkflow() {
       await apiPost<l4.components["schemas"]["WorkflowResumeResponse"]>("l4", `/workflows/${id}/resume`, {});
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
+      await queryClient.invalidateQueries({ queryKey: QK.workflows.active() }).catch((err) =>
+        log.error('Invalidate active workflows failed', { error: err instanceof Error ? err.message : String(err) })
+      );
     },
     onError: (error) => {
       log.error('ResumeWorkflow failed', { error: error instanceof Error ? error.message : String(error) });

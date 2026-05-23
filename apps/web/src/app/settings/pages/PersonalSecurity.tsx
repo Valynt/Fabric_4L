@@ -20,7 +20,7 @@ export function PersonalSecurity() {
             <p className="text-sm font-medium">Authenticator app</p>
             <p className="text-xs text-muted-foreground">Not configured</p>
           </div>
-          <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent">Enable</button>
+          <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" aria-label="Enable authenticator app">Enable</button>
         </div>
       </section>
 
@@ -31,7 +31,7 @@ export function PersonalSecurity() {
           {["Google", "Microsoft", "SAML"].map((provider) => (
             <div key={provider} className="flex items-center justify-between rounded-md border p-3">
               <span className="text-sm">{provider}</span>
-              <button type="button" className="text-xs font-medium text-primary hover:underline">Connect</button>
+              <button type="button" className="text-xs font-medium text-primary hover:underline" aria-label={`Connect ${provider}`}>Connect</button>
             </div>
           ))}
         </div>

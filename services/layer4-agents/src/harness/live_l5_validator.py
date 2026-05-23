@@ -28,11 +28,17 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 _STATUS_MAP: dict[str, ValidationState] = {
+    "proposed": ValidationState.NEEDS_REVIEW,
+    "validated": ValidationState.PASSED,
+    "disputed": ValidationState.FAILED,
+    "rejected": ValidationState.FAILED,
+    "superseded": ValidationState.INSUFFICIENT_EVIDENCE,
+    "expired": ValidationState.INSUFFICIENT_EVIDENCE,
+    # Backward-compat aliases
     "extracted": ValidationState.NEEDS_REVIEW,
     "supported": ValidationState.NEEDS_REVIEW,
     "corroborated": ValidationState.NEEDS_REVIEW,
     "approved": ValidationState.PASSED,
-    "disputed": ValidationState.FAILED,
 }
 
 

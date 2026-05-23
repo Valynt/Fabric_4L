@@ -45,7 +45,7 @@ function useGovernanceHandlers() {
     http.get('/api/v1/maturity-ladder', () => {
       return HttpResponse.json({
         levels: [
-          { level: 3, name: 'Validated', description: 'Validated with corroborated evidence', required_status: 'corroborated', advancement_trigger: 'Multi-source verified' },
+          { level: 4, name: 'Validated', description: 'Human-validated truth', required_status: 'validated', advancement_trigger: 'Human review completed' },
         ],
       });
     }),

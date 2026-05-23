@@ -332,7 +332,7 @@ export const WorkspaceGenerateResponseSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const TruthStatusEnum = z.enum([
-  'extracted', 'supported', 'corroborated', 'validated', 'disputed', 'archived',
+  'proposed', 'validated', 'disputed', 'rejected', 'superseded', 'expired',
 ]);
 
 export const TruthObjectResponseSchema = z.object({
@@ -360,7 +360,7 @@ export const TruthObjectSummarySchema = z.object({
   maturity_level: z.number().int().nonnegative(),
   is_stale: z.boolean(),
   source_count: z.number().int().nonnegative().default(0),
-  approved_by: z.string().nullable(),
+  validated_by: z.string().nullable(),
   freshness: z.string(),
   created_at: z.string(),
 });
@@ -526,8 +526,8 @@ export const fixtures = {
     claim: 'Manual reporting costs 12 hours/week per analyst',
     claim_type: 'quantitative',
     confidence: 0.82,
-    status: 'supported',
-    maturity_level: 2,
+    status: 'validated',
+    maturity_level: 4,
     freshness: '2024-01-15T10:00:00Z',
     is_stale: false,
     applies_to: { account_id: 'acct-456' },
@@ -541,11 +541,11 @@ export const fixtures = {
     claim: 'Manual reporting costs 12 hours/week per analyst',
     claim_type: 'quantitative',
     confidence: 0.82,
-    status: 'supported',
-    maturity_level: 2,
+    status: 'validated',
+    maturity_level: 4,
     is_stale: false,
     source_count: 3,
-    approved_by: 'admin@example.com',
+    validated_by: 'admin@example.com',
     freshness: '2024-01-15T10:00:00Z',
     created_at: '2024-01-10T08:00:00Z',
     ...overrides,

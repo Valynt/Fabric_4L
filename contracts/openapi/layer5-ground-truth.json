@@ -19,60 +19,8 @@
           "ground-truth"
         ],
         "summary": "Create a new TruthObject",
-        "description": "Create a new evidence-backed factual claim in EXTRACTED state. If sources are provided and confidence meets the threshold, the object will automatically advance to SUPPORTED or CORROBORATED.",
+        "description": "Create a new evidence-backed factual claim in PROPOSED state. If sources are provided and confidence meets the threshold, the object will automatically advance to VALIDATED.",
         "operationId": "create_truth_api_v1_truths_post",
-        "parameters": [
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -241,56 +189,6 @@
               "default": 0,
               "title": "Offset"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -322,61 +220,9 @@
         "tags": [
           "ground-truth"
         ],
-        "summary": "Sync approved TruthObjects to Layer 3 Knowledge Graph",
-        "description": "Triggers a bulk sync of all APPROVED TruthObjects that have not yet been synced to the Layer 3 Knowledge Graph.",
+        "summary": "Sync validated TruthObjects to Layer 3 Knowledge Graph",
+        "description": "Triggers a bulk sync of all VALIDATED TruthObjects that have not yet been synced to the Layer 3 Knowledge Graph.",
         "operationId": "sync_to_kg_api_v1_truths_sync_kg_post",
-        "parameters": [
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -384,16 +230,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SyncToKgResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -406,8 +242,8 @@
         "tags": [
           "ground-truth"
         ],
-        "summary": "Trigger freshness check for stale truths",
-        "description": "Manually trigger the freshness monitor to check for and mark expired TruthObjects as stale. Can be run in dry-run mode to preview.",
+        "summary": "Trigger freshness check for expired truths",
+        "description": "Manually trigger the freshness monitor to check for and transition expired TruthObjects to EXPIRED status. Can be run in dry-run mode to preview.",
         "operationId": "check_stale_api_v1_truths_check_stale_post",
         "parameters": [
           {
@@ -416,61 +252,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "Preview only, don't mark stale",
+              "description": "Preview only, don't transition to expired",
               "default": false,
               "title": "Dry Run"
             },
-            "description": "Preview only, don't mark stale"
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
+            "description": "Preview only, don't transition to expired"
           }
         ],
         "responses": {
@@ -502,8 +288,8 @@
         "tags": [
           "ground-truth"
         ],
-        "summary": "List stale TruthObjects",
-        "description": "Returns all TruthObjects marked as stale for the organization.",
+        "summary": "List expired TruthObjects",
+        "description": "Returns all TruthObjects with EXPIRED status for the organization.",
         "operationId": "list_stale_api_v1_truths_stale_get",
         "parameters": [
           {
@@ -527,56 +313,6 @@
               "minimum": 0,
               "default": 0,
               "title": "Offset"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -612,58 +348,6 @@
         "summary": "Get freshness status summary",
         "description": "Returns counts of stale, fresh, and expiring-soon TruthObjects.",
         "operationId": "freshness_summary_api_v1_truths_freshness_summary_get",
-        "parameters": [
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -671,16 +355,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FreshnessSummaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -705,56 +379,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Truth Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -801,56 +425,6 @@
               "format": "uuid",
               "title": "Truth Id"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -876,7 +450,7 @@
           "ground-truth"
         ],
         "summary": "Apply a validation state transition",
-        "description": "Trigger a named validation action on a TruthObject. Actions: advance_supported | advance_corroborated | approve | dispute | resolve_dispute | operationalize",
+        "description": "Trigger a named validation action on a TruthObject. Actions: validate | dispute | resolve_dispute | reject | supersede | operationalize",
         "operationId": "validate_truth_api_v1_truths__truth_id__validate_post",
         "parameters": [
           {
@@ -887,56 +461,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Truth Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -1001,56 +525,6 @@
               "format": "uuid",
               "title": "Truth Id"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "requestBody": {
@@ -1107,56 +581,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Truth Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -1218,58 +642,6 @@
         "summary": "Register a new ModelVersion",
         "description": "Register a new LLM model version with cost tracking and capabilities.",
         "operationId": "create_model_version_api_v1_models_post",
-        "parameters": [
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -1387,56 +759,6 @@
               "default": 0,
               "title": "Offset"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -1480,56 +802,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Model Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -1593,56 +865,6 @@
               "title": "Reason"
             },
             "description": "Deprecation reason"
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -1687,56 +909,6 @@
               "format": "uuid",
               "title": "Model Id"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -1780,56 +952,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Model Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -1884,56 +1006,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Model Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -2001,56 +1073,6 @@
               ],
               "title": "Status"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -2094,56 +1116,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Deployment Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -2189,58 +1161,6 @@
         "summary": "Record model evaluation",
         "description": "Record benchmark evaluation results for a model version.",
         "operationId": "create_evaluation_api_v1_evaluations_post",
-        "parameters": [
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
@@ -2337,56 +1257,6 @@
               "default": 0,
               "title": "Offset"
             }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
           }
         ],
         "responses": {
@@ -2430,56 +1300,6 @@
               "type": "string",
               "format": "uuid",
               "title": "Model Id"
-            }
-          },
-          {
-            "name": "tenant_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context.",
-              "title": "Tenant Id"
-            },
-            "description": "Deprecated tenant diagnostic hint. Authenticated tenant comes from JWT context."
-          },
-          {
-            "name": "authorization",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Authorization"
-            }
-          },
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
             }
           }
         ],
@@ -2649,7 +1469,6 @@
           "stale_data",
           "methodology_flaw",
           "out_of_scope",
-          "superseded",
           "other"
         ],
         "title": "DisputeReason",
@@ -3796,6 +2615,18 @@
         "title": "PromoteModelResponse",
         "description": "Response after promoting a model."
       },
+      "RejectionReason": {
+        "type": "string",
+        "enum": [
+          "insufficient_evidence",
+          "out_of_scope",
+          "factually_incorrect",
+          "superseded",
+          "other"
+        ],
+        "title": "RejectionReason",
+        "description": "Reason a truth object was rejected."
+      },
       "RollbackModelRequest": {
         "properties": {
           "reason": {
@@ -4192,7 +3023,7 @@
             "type": "integer",
             "title": "Maturity Level"
           },
-          "approved_by": {
+          "validated_by": {
             "anyOf": [
               {
                 "type": "string"
@@ -4201,9 +3032,9 @@
                 "type": "null"
               }
             ],
-            "title": "Approved By"
+            "title": "Validated By"
           },
-          "approved_at": {
+          "validated_at": {
             "anyOf": [
               {
                 "type": "string",
@@ -4213,9 +3044,9 @@
                 "type": "null"
               }
             ],
-            "title": "Approved At"
+            "title": "Validated At"
           },
-          "approval_notes": {
+          "validation_notes": {
             "anyOf": [
               {
                 "type": "string"
@@ -4224,7 +3055,65 @@
                 "type": "null"
               }
             ],
-            "title": "Approval Notes"
+            "title": "Validation Notes"
+          },
+          "rejected_by": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected By"
+          },
+          "rejected_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejected At"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rejection Reason"
+          },
+          "superseded_by_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Id"
+          },
+          "superseded_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded At"
           },
           "freshness": {
             "type": "string",
@@ -4434,7 +3323,7 @@
             "title": "Source Count",
             "default": 0
           },
-          "approved_by": {
+          "validated_by": {
             "anyOf": [
               {
                 "type": "string"
@@ -4443,7 +3332,7 @@
                 "type": "null"
               }
             ],
-            "title": "Approved By"
+            "title": "Validated By"
           },
           "freshness": {
             "type": "string",
@@ -4719,14 +3608,15 @@
       "TruthStatus": {
         "type": "string",
         "enum": [
-          "extracted",
-          "supported",
-          "corroborated",
-          "approved",
-          "disputed"
+          "proposed",
+          "validated",
+          "disputed",
+          "rejected",
+          "superseded",
+          "expired"
         ],
         "title": "TruthStatus",
-        "description": "Validation state machine \u2014 four ordered states.\n\nTransitions (forward only, except DISPUTED which can revert):\n  extracted \u2192 supported \u2192 corroborated \u2192 approved\n                                       \u2198 disputed (can revert to corroborated)"
+        "description": "Truth lifecycle state machine \u2014 aligned with target trust-governance taxonomy.\n\nTransitions:\n  proposed \u2192 validated | disputed | rejected\n  validated \u2192 disputed | superseded | expired\n  disputed \u2192 validated | rejected\n  rejected \u2192 (terminal)\n  superseded \u2192 (terminal)\n  expired \u2192 (terminal)"
       },
       "TruthValue": {
         "properties": {
@@ -4788,9 +3678,9 @@
           "action": {
             "type": "string",
             "title": "Action",
-            "description": "Transition to apply: advance_supported | advance_corroborated | approve | dispute | resolve_dispute | operationalize",
+            "description": "Transition to apply: validate | dispute | resolve_dispute | reject | supersede | operationalize",
             "examples": [
-              "approve"
+              "validate"
             ]
           },
           "actor": {
@@ -4832,6 +3722,30 @@
               }
             ],
             "description": "Required when action == 'dispute'"
+          },
+          "rejection_reason": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RejectionReason"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Required when action == 'reject'"
+          },
+          "superseded_by_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Superseded By Id",
+            "description": "Required when action == 'supersede'"
           }
         },
         "type": "object",
@@ -4840,7 +3754,7 @@
           "actor"
         ],
         "title": "ValidateRequest",
-        "description": "Schema for POST /truths/{id}/validate \u2014 trigger a state transition.\n\naction values:\n  advance_supported     \u2014 EXTRACTED \u2192 SUPPORTED\n  advance_corroborated  \u2014 SUPPORTED \u2192 CORROBORATED\n  approve               \u2014 CORROBORATED \u2192 APPROVED (requires actor)\n  dispute               \u2014 ANY \u2192 DISPUTED (requires dispute_reason)\n  resolve_dispute       \u2014 DISPUTED \u2192 CORROBORATED\n  operationalize        \u2014 APPROVED \u2192 maturity 5 (status stays APPROVED)"
+        "description": "Schema for POST /truths/{id}/validate \u2014 trigger a state transition.\n\naction values:\n  validate         \u2014 PROPOSED \u2192 VALIDATED (requires evidence + actor)\n  dispute          \u2014 ANY \u2192 DISPUTED (requires dispute_reason)\n  resolve_dispute  \u2014 DISPUTED \u2192 VALIDATED\n  reject           \u2014 PROPOSED|DISPUTED \u2192 REJECTED (requires rejection_reason)\n  supersede        \u2014 VALIDATED \u2192 SUPERSEDED (requires superseded_by_id)\n  operationalize   \u2014 VALIDATED \u2192 maturity 5 (status stays VALIDATED)"
       },
       "ValidateResponse": {
         "properties": {

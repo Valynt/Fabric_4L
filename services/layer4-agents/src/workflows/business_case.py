@@ -556,7 +556,19 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             tenant_id=organization_id if not service_token else None,
         )
 
-        status_rank = {"extracted": 0, "supported": 1, "corroborated": 2, "approved": 3, "disputed": -1}
+        status_rank = {
+            "proposed": 0,
+            "validated": 3,
+            "disputed": -1,
+            "rejected": -1,
+            "superseded": -1,
+            "expired": -1,
+            # Backward-compat aliases for old config files
+            "extracted": 0,
+            "supported": 1,
+            "corroborated": 2,
+            "approved": 3,
+        }
         truth_references: list[dict[str, Any]] = []
         remediation_items: list[dict[str, Any]] = []
         requirement_results: list[dict[str, Any]] = []
@@ -574,7 +586,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             truths = truths_result.get("items", []) if isinstance(truths_result, dict) else []
 
             for req in requirements:
-                required_status = str(req.get("min_status", "corroborated")).lower()
+                required_status = str(req.get("min_status", "validated")).lower()
                 required_maturity = int(req.get("min_maturity", 3))
                 required_confidence = float(req.get("min_confidence", 0.0))
                 required_sources = int(req.get("min_sources", 2))
@@ -660,12 +672,12 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                                 "message": "Evidence exists but corroboration is insufficient. Add independent sources.",
                             }
                         )
-                    elif required_status == "approved" and str(best.get("status", "")).lower() != "approved":
+                    elif required_status in ("approved", "validated") and str(best.get("status", "")).lower() not in ("approved", "validated"):
                         remediation_items.append(
                             {
                                 "type": "approval_pending",
                                 "requirement": label,
-                                "message": "Evidence is not yet approved. Complete governance approval in Layer 5.",
+                                "message": "Evidence is not yet validated. Complete governance validation in Layer 5.",
                             }
                         )
                     else:
@@ -951,24 +963,9 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                             raw_extraction_data={"provenance": candidate.get("provenance", {})},
                         )
                         truth_id = str(created.get("id")) if isinstance(created, dict) and created.get("id") else None
-                        if truth_id:
-                            await client.validate_truth(
-                                truth_id=truth_id,
-                                action="advance_supported",
-                                actor=actor,
-                                actor_type="system",
-                                organization_id=organization_id,
-                                notes="Deterministic promotion from business case output",
-                            )
-                            if evidence_count >= 2:
-                                await client.validate_truth(
-                                    truth_id=truth_id,
-                                    action="advance_corroborated",
-                                    actor=actor,
-                                    actor_type="system",
-                                    organization_id=organization_id,
-                                    notes="Corroboration threshold met from case provenance",
-                                )
+                        # Auto-advance on creation handles PROPOSED → VALIDATED
+                        # when confidence/sources thresholds are met.
+                        pass
 
                 if truth_id:
                     truth_object_ids.append(truth_id)
@@ -1209,7 +1206,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         )
 
     async def _sync_ground_truths_to_kg(self, state: BusinessCaseAgentState) -> dict[str, Any]:
-        """Best-effort sync of approved TruthObjects to the KG via Layer 5.
+        """Best-effort sync of validated TruthObjects to the KG via Layer 5.
 
         Resolves tenant/organization ID exclusively from authenticated
         workflow state metadata set during workflow initialization.
@@ -1231,7 +1228,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         )
 
         try:
-            sync_result = await client.sync_approved_truths(organization_id=organization_id)
+            sync_result = await client.sync_validated_truths(organization_id=organization_id)
             logger.info(
                 "Business case ground-truth sync complete for org=%s: %s",
                 organization_id,

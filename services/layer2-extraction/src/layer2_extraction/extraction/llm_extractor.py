@@ -555,6 +555,7 @@ class RelationshipExtractor:
         source_url: str,
         extraction_job_id: str,
         confidence_threshold: float = 0.75,
+        telemetry_context: dict[str, str] | None = None,
     ) -> list[Relationship]:
         """Extract relationships between identified entities using structured outputs.
 
@@ -578,7 +579,7 @@ class RelationshipExtractor:
         preprocessed = preprocess_source_content(text)
         prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
-        context = {}
+        context = telemetry_context or {}
         model_version = context.get("model_version", self.model)
         schema_version = context.get("schema_version", "unknown")
         value_pack_id = context.get("value_pack_id", "unknown")

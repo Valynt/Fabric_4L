@@ -6,11 +6,12 @@ import { PageHeader, LegacyDataTable } from "@/components/ui/fabric";
 
 const STATUS_OPTIONS: Array<TruthStatus | "all"> = [
   "all",
-  "extracted",
-  "supported",
-  "corroborated",
-  "approved",
+  "proposed",
+  "validated",
   "disputed",
+  "rejected",
+  "superseded",
+  "expired",
 ];
 
 export default function GovernanceEvidence() {

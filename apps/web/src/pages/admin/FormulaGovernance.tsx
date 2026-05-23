@@ -360,6 +360,8 @@ function FormulaGovernanceContent() {
         ].map(tab => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
               "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
@@ -394,6 +396,7 @@ function FormulaGovernanceContent() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search formulas by name, pack, or owner..."
+            aria-label="Search formulas"
             className="flex-1 text-[12px] bg-transparent outline-none text-neutral-600 placeholder:text-neutral-400"
           />
         </div>
@@ -402,6 +405,7 @@ function FormulaGovernanceContent() {
             <button
               key={s}
               onClick={() => setStatusFilter(s)}
+              aria-pressed={statusFilter === s}
               className={`text-[11px] px-2.5 py-1.5 rounded-full border capitalize transition-colors font-medium ${
                 statusFilter === s
                   ? "bg-neutral-800 text-white border-neutral-800"

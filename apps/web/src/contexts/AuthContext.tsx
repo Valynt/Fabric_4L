@@ -57,14 +57,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Restore session metadata from sessionStorage on mount
   useEffect(() => {
-    const meta = sessionService.getSessionMeta();
-    if (meta) {
-      setAuthState({ state: 'authenticated', user: meta.user, error: null });
-      useUserTierStore.getState().setUserRole(meta.user.role);
-    } else {
+    try {
+      const meta = sessionService.getSessionMeta();
+      if (meta) {
+        setAuthState({ state: 'authenticated', user: meta.user, error: null });
+        useUserTierStore.getState().setUserRole(meta.user.role);
+      } else {
+        setAuthState({ state: 'idle', user: null, error: null });
+      }
+    } catch (error) {
+      log.error('Session restore failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
       setAuthState({ state: 'idle', user: null, error: null });
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
   const initiateLogin = useCallback(async (tenantSlug: string) => {
@@ -178,7 +186,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
    * Logout: clears local metadata and calls the backend to expire the cookie.
    */
   const logout = useCallback(async () => {
-    await authClient.logout();
+    try {
+      await authClient.logout();
+    } catch (error) {
+      log.error('Logout request failed', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
 
     setAuthState({ state: 'idle', user: null, error: null });
 

@@ -332,6 +332,8 @@ function VariableRegistryContent() {
         ].map(tab => (
           <button
             key={tab.id}
+            role="tab"
+            aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
               "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
@@ -368,6 +370,7 @@ function VariableRegistryContent() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search variables..."
+                aria-label="Search variables"
                 className="flex-1 text-[12px] bg-transparent outline-none text-neutral-600 placeholder:text-neutral-400"
               />
             </div>
@@ -377,6 +380,7 @@ function VariableRegistryContent() {
                 const value = e.target.value;
                 setTypeFilter(value === "all" ? "all" : value as VariableType);
               }}
+              aria-label="Filter by variable type"
               className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
             >
               <option value="all">All Types</option>
@@ -390,6 +394,7 @@ function VariableRegistryContent() {
                 const value = e.target.value;
                 setSourceFilter(value === "all" ? "all" : value as SourceType);
               }}
+              aria-label="Filter by source"
               className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
             >
               <option value="all">All Sources</option>
@@ -427,8 +432,8 @@ function VariableRegistryContent() {
                     >
                       <td className="px-3 py-3">
                         {expandedVariable === v.variable_id ? 
-                          <ChevronDown size={14} className="text-neutral-400"/> : 
-                          <ChevronRight size={14} className="text-neutral-400"/>
+                          <ChevronDown size={14} className="text-neutral-400" aria-label="Collapse row"/> : 
+                          <ChevronRight size={14} className="text-neutral-400" aria-label="Expand row"/>
                         }
                       </td>
                       <td className="px-3 py-3">

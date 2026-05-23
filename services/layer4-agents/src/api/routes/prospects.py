@@ -232,7 +232,7 @@ async def get_prospect_context(
             source="layer2_extraction" if role_needs_confirmation else "layer3_knowledge_graph",
         )
 
-        truths = await layer5.list_truths(organization_id=tenant_id, claim_type=None, status="APPROVED", limit=25)
+        truths = await layer5.list_truths(organization_id=tenant_id, claim_type=None, status="VALIDATED", limit=25)
         truth_items = truths.get("items", []) if isinstance(truths, dict) else []
 
         # Layer 1 client is included for completeness; if no ingestion metadata exists,

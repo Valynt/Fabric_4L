@@ -16,6 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
+from value_fabric.shared.identity.context import RequestContext, RequestContextManager
+
 from value_fabric.layer4.models.agent_state import (
     BusinessCaseAgentState,
     ROIAgentState,
@@ -135,7 +137,8 @@ class TestWhitespaceAnalysisWorkflow:
 
         registry.execute = AsyncMock(side_effect=mock_execute)
 
-        result = await workflow._execute_analyze_prospect(state)
+        with RequestContextManager(RequestContext(tenant_id="test-tenant")):
+            result = await workflow._execute_analyze_prospect(state)
 
         assert "extracted_needs" in result
         assert "error" in result
@@ -625,7 +628,7 @@ class TestBusinessCaseGeneratorWorkflow:
 
         # Mock Layer5 client to return a dict missing `error` (common success shape)
         mock_client = AsyncMock()
-        mock_client.sync_approved_truths = AsyncMock(return_value={"synced": 5, "failed": 1})
+        mock_client.sync_validated_truths = AsyncMock(return_value={"synced": 5, "failed": 1})
         mock_client.close = AsyncMock()
         mock_client_cls.return_value = mock_client
 

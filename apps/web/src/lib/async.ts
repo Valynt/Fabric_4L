@@ -11,6 +11,8 @@ export function reportFireAndForgetError(scope: string, error: unknown): void {
   }
 }
 
-export function safeAsync(task: Promise<unknown>, scope: string): void {
-  task.catch((error) => reportFireAndForgetError(scope, error));
+export function safeAsync(task: Promise<unknown> | unknown, scope: string): void {
+  if (task && typeof (task as Promise<unknown>).catch === 'function') {
+    (task as Promise<unknown>).catch((error) => reportFireAndForgetError(scope, error));
+  }
 }
