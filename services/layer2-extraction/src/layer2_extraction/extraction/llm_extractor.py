@@ -39,6 +39,7 @@ from layer2_extraction.models.extraction_response import (
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
 from .prompt_loader import render_entity_prompt, render_relationship_prompt
+from .security_guard import enforce_untrusted_output_policy, preprocess_source_content
 
 
 class LLMExtractionError(Exception):
@@ -365,9 +366,10 @@ class EntityExtractor:
         Returns:
             List of extracted entities meeting confidence threshold
         """
+        preprocessed = preprocess_source_content(text)
         prompt = render_entity_prompt(
             entity_type=entity_type,
-            text=text,
+            text=preprocessed.delimited_content,
             confidence_threshold=confidence_threshold,
         )
 
@@ -385,6 +387,7 @@ class EntityExtractor:
 
             entities: list[T] = []
             entities_list: list[T] = getattr(response, entity_attr, [])
+            enforce_untrusted_output_policy(entities_list)
             for entity in entities_list:
                 if entity.confidence >= confidence_threshold:
                     entity.extraction_job_id = extraction_job_id
@@ -551,7 +554,8 @@ class RelationshipExtractor:
         if total_entities < 2:
             return []
 
-        prompt = render_relationship_prompt(text=text, entities=entities)
+        preprocessed = preprocess_source_content(text)
+        prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
         try:
             response, _ = await self.client.chat_completion_structured(
@@ -568,6 +572,7 @@ class RelationshipExtractor:
                 temperature=0.0,
             )
 
+            enforce_untrusted_output_policy(response.relationships)
             relationships = []
             for rel in response.relationships:
                 if rel.confidence >= confidence_threshold:
