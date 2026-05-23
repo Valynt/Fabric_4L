@@ -302,21 +302,10 @@ def get_engine() -> AsyncEngine:
 
         @event.listens_for(_engine.sync_engine.pool, "checkout")
         def _on_pool_checkout(dbapi_conn, connection_record, connection_proxy) -> None:
-            connection_record.info["pool_checkout_start"] = time.perf_counter()
             _record_pool_state(_engine)
 
         @event.listens_for(_engine.sync_engine.pool, "checkin")
         def _on_pool_checkin(dbapi_conn, connection_record) -> None:
-            start = connection_record.info.pop("pool_checkout_start", None)
-            if start is not None:
-                try:
-                    from .metrics import get_metrics
-
-                    metrics = get_metrics()
-                    if metrics is not None:
-                        metrics.observe_db_pool_wait(time.perf_counter() - start)
-                except Exception:
-                    logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
     return _engine
 
