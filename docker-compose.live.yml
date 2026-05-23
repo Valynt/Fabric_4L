@@ -34,6 +34,11 @@ services:
       - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
     networks:
       - live-network
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1GiB'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
@@ -53,6 +58,11 @@ services:
       interval: 5s
       timeout: 3s
       retries: 3
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
 
   neo4j:
     image: neo4j:5-community
@@ -72,6 +82,11 @@ services:
       timeout: 5s
       retries: 10
       start_period: 60s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: '2GiB'
 
   minio:
     image: minio/minio:latest
@@ -89,6 +104,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
 
   minio-init:
     image: minio/mc:latest
@@ -105,6 +125,11 @@ services:
       "
     networks:
       - live-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: '256MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 1: Ingestion Service (internal container port 8000)
@@ -141,6 +166,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1GiB'
 
   layer1-worker:
     build:
@@ -172,6 +202,11 @@ services:
       interval: 15s
       timeout: 10s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
       start_period: 20s
 
   # ---------------------------------------------------------------------------
@@ -210,6 +245,11 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: '2GiB'
       start_period: 10s
 
   # ---------------------------------------------------------------------------
@@ -242,6 +282,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.5'
+          memory: '2GiB'
 
   layer3-neo4j-migrate:
     build:
@@ -274,6 +319,11 @@ services:
         condition: service_healthy
     networks:
       - live-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 4: Agents Service (public host port 8004)
@@ -319,6 +369,11 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: '4GiB'
       start_period: 15s
 
   # ---------------------------------------------------------------------------
@@ -352,6 +407,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 20s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1GiB'
 
   layer5-migrate:
     build:
@@ -384,6 +444,11 @@ services:
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     networks:
       - live-network
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 6: Benchmarks Service (internal container port 8006)
@@ -416,6 +481,11 @@ services:
       timeout: 5s
       retries: 5
       start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: '1GiB'
 
   # ---------------------------------------------------------------------------
   # Frontend — Live Workflow Validation UI (public host port 3001)
@@ -439,6 +509,11 @@ services:
       VITE_PROXY_L4_URL: http://layer4:8000
       VITE_PROXY_L5_URL: http://layer5:8005
       VITE_PROXY_L6_URL: http://layer6:8006
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: '512MiB'
     volumes:
       - ./apps/web:/app
       - /app/node_modules
