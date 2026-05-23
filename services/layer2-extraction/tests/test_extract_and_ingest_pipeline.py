@@ -21,6 +21,7 @@ from layer2_extraction.models import (
 
 
 class request_payloadResult(TypedDictModel):
+    ingestion_id: str
     content_id: str
     extraction_config: dict[str, Any]
     markdown_content: str
@@ -235,6 +236,7 @@ def build_artifacts(job_id: str, source_url: str) -> api_main.ExtractionArtifact
 
 def request_payload() -> dict:
     return request_payloadResult.model_validate({
+        "ingestion_id": "ing-123",
         "content_id": "content-123",
         "source_url": "https://example.com/doc",
         "markdown_content": "Test Header\n\nPipeline orchestration content.",

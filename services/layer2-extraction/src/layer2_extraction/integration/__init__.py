@@ -6,6 +6,11 @@ from layer2_extraction.integration.job_store import (
     PipelineJob,
     build_job_store,
 )
+from layer2_extraction.integration.layer1_ingestion_adapter import (
+    Layer1IngestionAdapter,
+    ResolvedIngestionRecord,
+    build_layer1_ingestion_adapter,
+)
 from layer2_extraction.integration.layer3_client import (
     IngestionResponse,
     IngestionStatus,
@@ -25,11 +30,14 @@ __all__ = [
     "IngestionStatus",
     "InMemoryJobStore",
     "InMemoryPendingIngestionStore",
+    "Layer1IngestionAdapter",
     "Layer3KnowledgeClient",
+    "ResolvedIngestionRecord",
     "PendingIngestionRecord",
     "PendingIngestionStore",
     "PipelineJob",
     "SqlitePendingIngestionStore",
     "build_job_store",
+    "build_layer1_ingestion_adapter",
     "build_pending_ingestion_store",
 ]
