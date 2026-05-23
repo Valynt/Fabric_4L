@@ -34,7 +34,7 @@ class Layer1IngestionAdapter:
             raise HTTPException(status_code=404, detail="Invalid ingestion provenance")
 
         record_tenant = str(record.get("tenant_id") or "")
-        if tenant_id and record_tenant and record_tenant != str(tenant_id):
+        if not tenant_id or not record_tenant or record_tenant != str(tenant_id):
             raise HTTPException(status_code=403, detail="Invalid ingestion provenance")
 
         status = str(record.get("status") or "").lower()
