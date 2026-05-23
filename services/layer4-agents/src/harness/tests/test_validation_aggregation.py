@@ -36,10 +36,9 @@ from harness.models import (
     ValidationState,
     ValidationSummary,
 )
-from harness.policies import aggregate_validation_results, can_publish_output
+from harness.policies import aggregate_validation_results
 from harness.state_machine import StateMachine, ValidationRequiredError
 from harness.validation_hooks import ClaimValidationRequest
-
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -332,7 +331,7 @@ class TestHumanOverrideAudited:
     async def test_gate_decision_by_is_recorded(self):
         """Approving a gate records decision_by on the gate object."""
         from harness.factory import make_in_memory_registry
-        from harness.models import GateStatus, GateType, HarnessWorkflowType, InitiatedBy
+        from harness.models import HarnessWorkflowType, InitiatedBy
 
         registry = make_in_memory_registry()
         run = registry.create_run(
@@ -359,7 +358,7 @@ class TestHumanOverrideAudited:
     async def test_rejected_gate_records_decision_by(self):
         """Rejecting a gate also records decision_by."""
         from harness.factory import make_in_memory_registry
-        from harness.models import GateStatus, GateType, HarnessWorkflowType, InitiatedBy
+        from harness.models import HarnessWorkflowType, InitiatedBy
 
         registry = make_in_memory_registry()
         run = registry.create_run(

@@ -29,7 +29,6 @@ from ..common.audit import emit_route_audit
 from ..common.errors import raise_normalized_with_log
 from ..schemas.workflow_progress import WorkflowProgressSchema, normalize_workflow_progress
 
-
 JsonObject = dict[str, Any]
 
 

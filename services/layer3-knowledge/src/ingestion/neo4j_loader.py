@@ -24,6 +24,7 @@ from ..config import Settings, get_settings
 from ..db.driver import get_driver
 from ..ingestion.validators import RequiredFieldValidator
 from ..schema.constraints import ENTITY_TYPES, RELATIONSHIP_TYPES
+from ..services.embedding_errors import EmbeddingProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -417,14 +418,23 @@ class Neo4jLoader:
             return None
         model = self._get_embedding_model()
         if model is None:
-            # Model unavailable (sentence-transformers not installed), return zero embedding
-            return [0.0] * 384  # Standard all-MiniLM-L6-v2 dimension
+            raise EmbeddingProviderUnavailableError(
+                "Embedding provider unavailable",
+                provider="sentence-transformers",
+                failure_cause="model_unavailable",
+                retry_after_seconds=30,
+                retry_hint="install_or_restore_provider",
+            )
         try:
             return model.encode(text, normalize_embeddings=True).tolist()
         except Exception as exc:
-            logger.warning("Embedding generation failed during ingestion: %s", exc)
-            # Fallback: return zero embedding for tests when encoding fails
-            return [0.0] * 384
+            raise EmbeddingProviderUnavailableError(
+                "Embedding provider unavailable",
+                provider="sentence-transformers",
+                failure_cause=exc.__class__.__name__,
+                retry_after_seconds=30,
+                retry_hint="retry_with_backoff",
+            ) from exc
 
     def _attach_embeddings(self, entity_type: str, entities: list[dict]) -> list[dict]:
         """Attach embeddings to retrieval entity records before persistence."""

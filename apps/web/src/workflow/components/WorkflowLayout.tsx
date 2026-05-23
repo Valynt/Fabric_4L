@@ -57,7 +57,7 @@ export function WorkflowLayout({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            <div className="hidden md:flex items-center gap-1">
+            <nav aria-label="Workflow steps" className="hidden md:flex items-center gap-1">
               {WORKFLOW_STEPS.map((step, idx) => (
                 <React.Fragment key={step.path}>
                   <Link to={step.path}>
@@ -76,7 +76,7 @@ export function WorkflowLayout({ children }: { children: React.ReactNode }) {
                   {idx < WORKFLOW_STEPS.length - 1 && <ChevronRight className="w-4 h-4 text-muted-foreground/40" />}
                 </React.Fragment>
               ))}
-            </div>
+            </nav>
           </div>
         </div>
       </header>

@@ -33,7 +33,7 @@ to the current canonical replacement.
 | ---- | ---- | ----------- |
 | [IMPLEMENTATION_PLAN.md](../IMPLEMENTATION_PLAN.md) | — | [NAVIGATION_ARCHITECTURE.md](../NAVIGATION_ARCHITECTURE.md), [DESIGN.md](../../DESIGN.md) |
 | [CHANGES.md](../CHANGES.md) | 2026-04-21 | [CHANGELOG.md](../../CHANGELOG.md) |
-| [migration-note-layer56-canonical-imports.md](../migration-note-layer56-canonical-imports.md) | 2026-05-06 | Direction reversed by [ADR-027](../architecture/adr-027-layer3-canonical-path.md); see [reference/layer-runtime-path-governance.md](../reference/layer-runtime-path-governance.md) |
+| [migration-note-layer56-canonical-imports.md](../migration-note-layer56-canonical-imports.md) | 2026-05-06 | Direction reversed by [ADR-027](../architecture/ADR-021-layer-3-canonical-runtime-path.md); see [reference/layer-runtime-path-governance.md](../reference/layer-runtime-path-governance.md) |
 
 ## Existing archived materials
 

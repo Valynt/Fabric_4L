@@ -27,6 +27,7 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
+
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
@@ -43,6 +44,7 @@ except ImportError as e:
 
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
+from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
@@ -98,6 +100,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 reject_insecure_bypass_in_production(service_name="layer1-ingestion", settings=settings)
+
+
+def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
+    return {
+        "error": "url_validation_failed",
+        "reason_code": reason_code,
+        "message": "URL blocked by compliance policy",
+    }
 
 # =============================================================================
 # DEPRECATION REGISTER
@@ -1088,9 +1098,12 @@ async def create_target(
 ):
     """Create a new scraping target."""
     # Validate URL
-    parsed = urlparse(request.url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="URL must use http/https protocol")
+    try:
+        validated = validate_url_safety(
+            request.url, allowlist_domains=request.compliance.domain_allowlist
+        )
+    except URLSafetyError as exc:
+        raise HTTPException(status_code=400, detail=_url_safety_error_payload(exc.reason_code)) from exc
 
     # Validate extraction schema if method requires LLM
     if (
@@ -1180,7 +1193,7 @@ async def create_target(
     target = create_scraping_target(
         tenant_id=org_id,
         name=request.name,
-        url=request.url,
+        url=validated.normalized_url,
         target_type=request.target_type,
         created_by=user_id,
         description=request.description,
@@ -1427,9 +1440,14 @@ async def validate_target(
 
     # Validate URL
     test_url = request.test_url or target.url
-    parsed = urlparse(test_url)
-    if parsed.scheme not in ("http", "https"):
-        errors.append(ValidationError(field="url", message="URL must use http/https protocol"))
+    try:
+        validate_url_safety(test_url, allowlist_domains=(target.compliance or {}).get("domain_allowlist"))
+    except URLSafetyError as exc:
+        errors.append(
+            ValidationError(
+                field="url", message=f"URL blocked by compliance policy ({exc.reason_code})"
+            )
+        )
 
     # Validate extraction schema
     if request.validate_schema and target.extraction_config.get("extraction_schema"):

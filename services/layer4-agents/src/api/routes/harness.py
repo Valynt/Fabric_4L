@@ -39,8 +39,8 @@ from ...harness.api_models import (
     ValidateClaimsRequest,
     ValidateClaimsResponse,
     ValidationResultResponse,
+    ValidationSummaryResponse,
 )
-from ...harness.api_models import ValidationSummaryResponse
 from ...harness.factory import make_live_l5_registry, make_sql_registry
 from ...harness.models import GateStatus, HarnessRunStatus, HarnessState, HarnessWorkflowType
 from ...harness.policies import aggregate_validation_results
@@ -183,7 +183,7 @@ async def transition_run(
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", error=str(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
-    except Exception as exc:
+    except Exception:
         logger.exception("Unexpected error transitioning run %s", run_id)
         raise HTTPException(status_code=422, detail="Run transition failed")
 
@@ -228,7 +228,7 @@ async def cancel_run(
     except HarnessRegistryError as exc:
         logger.warning("harness_registry_error", error=str(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
-    except Exception as exc:
+    except Exception:
         logger.exception("Error cancelling run %s", run_id)
         raise HTTPException(status_code=422, detail="Run cancellation failed")
 

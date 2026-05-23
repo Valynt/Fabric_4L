@@ -1,6 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
+import { safeAsync } from '@/lib/async';
 
 export type TaskStatus = 'open' | 'in_progress' | 'completed';
 
@@ -68,7 +69,7 @@ export function useCreateTask() {
       return response.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QK.tasks.all });
+      safeAsync(queryClient.invalidateQueries({ queryKey: QK.tasks.all }), "tasks.invalidate");
     },
   });
 }
@@ -81,7 +82,7 @@ export function useUpdateTask() {
       return response.data;
     },
     onSuccess: () => {
-      void queryClient.invalidateQueries({ queryKey: QK.tasks.all });
+      safeAsync(queryClient.invalidateQueries({ queryKey: QK.tasks.all }), "tasks.invalidate");
     },
   });
 }

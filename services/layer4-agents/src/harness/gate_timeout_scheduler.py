@@ -10,7 +10,6 @@ from __future__ import annotations
 import asyncio
 import logging
 from datetime import UTC, datetime, timedelta
-from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +61,11 @@ class GateTimeoutScheduler:
     async def _expire_overdue_gates(self) -> None:
         """Find and expire all pending gates past their deadline."""
         from sqlalchemy import select
-        from sqlalchemy.ext.asyncio import AsyncSession
 
         deadline = datetime.now(UTC) - timedelta(seconds=self._timeout_seconds)
 
         async with self._session_factory() as session:
             from harness.db_models import HumanGateRow
-            from harness.models import GateStatus
 
             stmt = (
                 select(HumanGateRow)

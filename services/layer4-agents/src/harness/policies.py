@@ -208,7 +208,7 @@ def aggregate_validation_results(
             requires_human_review=True,
         )
 
-    counts: dict[ValidationState, int] = {s: 0 for s in ValidationState}
+    counts: dict[ValidationState, int] = dict.fromkeys(ValidationState, 0)
     for vr in results:
         counts[vr.validation_state] += 1
 

@@ -94,9 +94,11 @@ class Settings(BaseSettings):
     mock_persistence: bool = False
     database_url: str | None = None
     redis_url: str | None = None
-    llm_provider: str = ""
+    llm_provider: str = "layer4"
     llm_model: str | None = None
     allow_mock_llm: bool = False
+    layer4_api_base_url: str = "http://localhost:8004"
+    layer4_timeout_seconds: float = 10.0
     seed_demo_data: bool = False
     # Empty list = no cross-origin requests allowed by default (fail-closed).
     # Development get_settings() supplies localhost defaults only after warning.
@@ -112,6 +114,16 @@ class Settings(BaseSettings):
     @property
     def is_production_like(self) -> bool:
         return _is_production_like(self.app_env)
+
+    @field_validator("database_url", mode="before")
+    @classmethod
+    def reject_sqlite(cls, value: object) -> object:
+        """SQLite is not supported in any environment; require PostgreSQL."""
+        if isinstance(value, str) and value.startswith("sqlite"):
+            raise ValueError(
+                "SQLite is not supported. Configure a PostgreSQL database_url."
+            )
+        return value
 
     @field_validator("cors_origins", mode="before")
     @classmethod
@@ -131,11 +143,10 @@ class Settings(BaseSettings):
                 errors.append("database_url must be configured in production-like environments")
             else:
                 errors.append(
-                    "services/api standalone production persistence requires PostgreSQL with "
-                    "Row-Level Security; the current SQLite durable facade is demo/dev only"
+                    "services/api requires a PostgreSQL database with Row-Level Security"
                 )
-            if self.llm_provider.lower() == "mock":
-                errors.append("llm_provider=mock is disabled in production-like environments")
+            if self.llm_provider.lower() != "layer4":
+                errors.append("llm_provider must be set to layer4 in production-like environments")
             if self.seed_demo_data:
                 errors.append("seed_demo_data must be false in production-like environments")
             if self.secret_key == _DEFAULT_DEV_SECRET or len(self.secret_key) < 32:

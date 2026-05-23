@@ -260,7 +260,7 @@ class TestProductionSecretGuard:
         monkeypatch.setenv("ENVIRONMENT", "production")
         monkeypatch.setenv("SECRET_KEY", "a-sufficiently-long-production-secret-value-xyz")
         monkeypatch.setenv("MOCK_PERSISTENCE", "false")
-        monkeypatch.setenv("DATABASE_URL", "sqlite:////var/lib/fabric_4l/api.db")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fabric:secret@postgres:5432/fabric")
         monkeypatch.setenv("LLM_PROVIDER", "openai")
         monkeypatch.setenv("SEED_DEMO_DATA", "false")
         monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")

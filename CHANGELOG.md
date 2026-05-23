@@ -26,7 +26,7 @@ Versions follow [Semantic Versioning](https://semver.org/).
 ### Added
 - **`scripts/ci/check_stale_namespace_dirs.py`**: New guard that verifies deleted legacy namespace directories (`value_fabric/layer1_ingestion/`, `value_fabric/layer3_knowledge/`, `value_fabric/layer2_extraction/`, `value_fabric/layer6_benchmarks/`) are not reintroduced, and that shim-only directories contain only `__init__.py`.
 - **`.github/workflows/k8s-validation.yml`**: New workflow validating K8s base and overlay manifests (`kubectl kustomize` dry-run) on every PR touching `k8s/`. Includes legacy namespace reference check.
-- **`docs/architecture/adr-027-layer3-canonical-path.md`**: Added Production Readiness Completion section with namespace removal changelog, new CI gates table, deferred items register, and rollback plan.
+- **`docs/architecture/ADR-021-layer-3-canonical-runtime-path.md`**: Added Production Readiness Completion section with namespace removal changelog, new CI gates table, deferred items register, and rollback plan.
 - **`docs/governance/production-readiness-live-env-deferred.md`**: Track B deferred items register for live-environment validation.
 
 ### CI / Guardrails

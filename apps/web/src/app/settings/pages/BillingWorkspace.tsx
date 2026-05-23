@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { usePlatformSettings, useUpdatePlatformSettings } from "@/hooks/usePlatformSettings";
 import { CapabilityGate } from "../components/CapabilityGate";
+import { safeAsync } from '@/lib/async';
 
 export function BillingWorkspace() {
   const { data: settings, isLoading, error } = usePlatformSettings();
@@ -55,7 +56,7 @@ export function BillingWorkspace() {
             </div>
             <button
               type="button"
-              onClick={() => void handleSave()}
+              onClick={() => safeAsync(handleSave(), "billing.save")}
               disabled={updateSettings.isPending}
               className="inline-flex h-8 items-center rounded-md bg-primary px-3 text-xs font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
