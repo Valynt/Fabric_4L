@@ -102,3 +102,38 @@ class TestGlobalMetrics:
         # Then get via global accessor
         retrieved = get_metrics()
         assert retrieved is initialized
+
+
+def test_monitoring_contract_metric_names_and_labels() -> None:
+    """Smoke assertion to prevent monitoring contract drift."""
+    metrics = PrometheusMetrics()
+    labels = dict(
+        tenant_id="tenant-1",
+        ingestion_id="ing-1",
+        extraction_job_id="job-1",
+        model_version="gpt-4o",
+        schema_version="v1",
+        value_pack_id="pack-1",
+    )
+    metrics.record_extraction_outcome(status="success", **labels)
+    metrics.record_schema_validation_failure(endpoint="extract_capabilities", **labels)
+    metrics.record_retry(endpoint="run_extraction", **labels)
+    metrics.record_model_latency(endpoint="extract_capabilities", latency_seconds=0.42, **labels)
+    metrics.record_confidence(entity_type="capability", confidence=0.91, **labels)
+    metrics.record_cache_failure(failure_type="decode", operation="read", **labels)
+    output = metrics.get_metrics()
+    for expected in (
+        "vf_extraction_outcomes_total",
+        "vf_schema_validation_failures_total",
+        "vf_extraction_retries_total",
+        "vf_model_latency_seconds_count",
+        "vf_model_latency_seconds_sum",
+        "vf_extraction_confidence_count",
+        "vf_extraction_confidence_avg",
+        "vf_cache_failures_total",
+        'tenant_id="tenant-1"',
+        'extraction_job_id="job-1"',
+        'schema_version="v1"',
+        'value_pack_id="pack-1"',
+    ):
+        assert expected in output

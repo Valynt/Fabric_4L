@@ -585,6 +585,14 @@ async def run_extraction(
         )
 
     await _set_pipeline_job(job_id, extraction_status="running")
+    telemetry_context = {
+        "tenant_id": str(config.get("tenant_id", "unknown")),
+        "ingestion_id": str(config.get("ingestion_id", "unknown")),
+        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", "unknown"))),
+        "schema_version": str(config.get("schema_version", "unknown")),
+        "value_pack_id": str(config.get("value_pack_id", "default")),
+    }
+    metrics = get_metrics()
 
     # Broadcast pipeline start
     await _ws_manager.broadcast_stage_start(
@@ -655,6 +663,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold,
+                telemetry_context=telemetry_context,
             )
 
             # Collect entities
@@ -857,6 +866,17 @@ async def run_extraction(
             relationships_extracted=len(activity.output_relationships),
             completed_at=datetime.now(UTC) if mark_pipeline_complete else None,
         )
+        if metrics:
+            metrics.record_extraction_outcome(
+                status="success",
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+            )
+        logger.info("Extraction completed", extra={**telemetry_context, "extraction_job_id": job_id})
 
         # Broadcast extraction-only completion (if not going to ingestion)
         if mark_pipeline_complete:
@@ -879,6 +899,26 @@ async def run_extraction(
             last_error=error_msg,
             completed_at=datetime.now(UTC),
         )
+        if metrics:
+            metrics.record_extraction_outcome(
+                status="failure",
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+            )
+            metrics.record_retry(
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+                endpoint="run_extraction",
+            )
+        logger.error("Extraction failed", extra={**telemetry_context, "extraction_job_id": job_id})
 
         # Broadcast extraction failure
         await _ws_manager.broadcast_error(
