@@ -73,7 +73,7 @@ class TestStateManagerInMemoryFallback:
         from value_fabric.layer4.models.agent_state import ROIAgentState
 
         for i in range(7):
-            state = ROIAgentState(
+            state = ROIAgentState(tenant_id="test-tenant", 
                 workflow_id=f"wf-{i}",
                 workflow_type=WorkflowType.ROI_CALCULATOR,
                 status=WorkflowStatus.PENDING,
@@ -89,7 +89,7 @@ class TestStateManagerInMemoryFallback:
     async def test_secret_redaction(self, manager):
         from value_fabric.layer4.models.agent_state import ROIAgentState
 
-        state = ROIAgentState(
+        state = ROIAgentState(tenant_id="test-tenant", 
             workflow_id="wf-secret",
             workflow_type=WorkflowType.ROI_CALCULATOR,
             status=WorkflowStatus.PENDING,
@@ -185,7 +185,7 @@ class TestBaseWorkflowConditionalRouting:
 
         class FakeWorkflow(BaseWorkflow):
             def create_initial_state(self, input_data):
-                return BaseAgentState(
+                return BaseAgentState(tenant_id="test-tenant", 
                     workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR
                 )
 
@@ -198,13 +198,13 @@ class TestBaseWorkflowConditionalRouting:
         router = workflow._create_router(edge)
 
         # No errors → "continue"
-        state_no_errors = BaseAgentState(
+        state_no_errors = BaseAgentState(tenant_id="test-tenant", 
             workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR, errors=[]
         )
         assert router(state_no_errors) == "continue"
 
         # Errors → "retry"
-        state_with_errors = BaseAgentState(
+        state_with_errors = BaseAgentState(tenant_id="test-tenant", 
             workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR, errors=["boom"]
         )
         assert router(state_with_errors) == "retry"
@@ -244,7 +244,7 @@ class TestOrchestrationControllerValidation:
             agent_type="test",
             parameters={
                 "workflow": workflow,
-                "initial_state": BaseAgentState(
+                "initial_state": BaseAgentState(tenant_id="test-tenant", 
                     workflow_id="wf-1", workflow_type=WorkflowType.ROI_CALCULATOR
                 ),
                 "workflow_id": "wf-1",

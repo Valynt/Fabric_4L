@@ -130,6 +130,16 @@ class GateType(str, Enum):
     RESOLVE_CONFLICT = "resolve_conflict"
 
 
+class ActionClass(str, Enum):
+    """Canonical high-impact action classes requiring human approval."""
+
+    APPROVE_HYPOTHESES = "approve_hypotheses"
+    PUBLISH_BUSINESS_CASE = "publish_business_case"
+    APPLY_BENCHMARK_ASSUMPTIONS = "apply_benchmark_assumptions"
+    GENERATE_CUSTOMER_FACING_DELIVERABLE = "generate_customer_facing_deliverable"
+    CHANGE_ACCOUNT_VALUE_MODEL = "change_account_value_model"
+
+
 class GateStatus(str, Enum):
     """Human gate status."""
 
@@ -294,6 +304,10 @@ class ToolContract(BaseModel):
     requires_tenant_context: bool = True
     requires_account_context: bool = False
     approval_policy_id: str | None = None
+    action_class: ActionClass | None = Field(
+        default=None,
+        description="High-impact action class requiring explicit human approval",
+    )
 
     @field_validator("tool_id")
     @classmethod

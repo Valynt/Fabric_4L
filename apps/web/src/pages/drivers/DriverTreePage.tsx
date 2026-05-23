@@ -119,7 +119,7 @@ export default function DriverTreePage() {
                         size="sm"
                         onClick={(e) => {
                           e.stopPropagation();
-                          navigateTo('calculator-roi', { accountId });
+                          navigateTo('calculator', { accountId });
                         }}
                       >
                         Model Impact <ArrowRight size={12} />

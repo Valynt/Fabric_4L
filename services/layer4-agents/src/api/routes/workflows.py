@@ -44,11 +44,16 @@ class WorkflowOutput(BaseModel):
     summary: str | None = None
     artifacts: list[JsonObject] = Field(default_factory=list)
     metrics: JsonObject = Field(default_factory=dict)
+    reasoning_trace: JsonObject | None = Field(
+        default=None, description="Structured reasoning trace for agent outputs"
+    )
     model_config = ConfigDict(extra="allow")
 
 
 class WorkflowResultResponse(BaseModel):
     workflow_id: str
+    run_id: str | None = Field(default=None, description="Distinct execution identifier")
+    trace_id: str | None = Field(default=None, description="Cross-layer audit trace identifier")
     status: WorkflowStatusValue
     output: WorkflowOutput | None = None
     errors: list[WorkflowErrorValue] = Field(default_factory=list)
@@ -199,6 +204,8 @@ class WorkflowStatusResponse(BaseModel):
     priority: int | None = None
     scheduler_status: str | None = None
     progress_meta: WorkflowProgressSchema | None = None
+    run_id: str | None = Field(default=None, description="Distinct execution identifier")
+    trace_id: str | None = Field(default=None, description="Cross-layer audit trace identifier")
 
 class WorkflowListItem(BaseModel):
     id: str
@@ -516,6 +523,8 @@ async def get_workflow_status(
         priority=status.get("priority"),
         scheduler_status=status.get("scheduler_status"),
         progress_meta=normalize_workflow_progress(status=status),
+        run_id=status.get("run_id"),
+        trace_id=status.get("trace_id"),
     )
 
 
@@ -549,10 +558,16 @@ async def get_workflow_result(
     if not result:
         raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} result not found")
 
+    output_data = result.get("output") or {}
     response = WorkflowResultResponse.model_validate({
         "workflow_id": workflow_id,
+        "run_id": result.get("run_id"),
+        "trace_id": result.get("trace_id"),
         "status": status.get("status"),
-        "output": result.get("output"),
+        "output": {
+            "data": output_data,
+            "reasoning_trace": output_data.get("reasoning_trace"),
+        },
         "errors": status.get("errors", []),
         "completed_at": status.get("completed_at"),
     })

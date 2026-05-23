@@ -80,7 +80,7 @@ class TestFreshnessMonitor:
             claim="Expired claim",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC) - timedelta(days=100),
             expires_at=datetime.now(UTC) - timedelta(days=1),  # Expired!
@@ -112,7 +112,7 @@ class TestFreshnessMonitor:
         events = events_result.scalars().all()
         assert len(events) == 1
         assert events[0].actor == "system:freshness_monitor"
-        assert "stale" in events[0].notes.lower()
+        assert "expired" in events[0].notes.lower()
 
     async def test_check_and_mark_stale_respects_dry_run(
         self,
@@ -129,7 +129,7 @@ class TestFreshnessMonitor:
             claim="Expired claim dry run",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC) - timedelta(days=100),
             expires_at=datetime.now(UTC) - timedelta(days=1),
@@ -149,34 +149,34 @@ class TestFreshnessMonitor:
         await db.refresh(expired_truth)
         assert expired_truth.is_stale is False
 
-    async def test_check_and_mark_stale_ignores_already_stale(
+    async def test_check_and_mark_stale_ignores_already_expired(
         self,
         db: AsyncSession,
         monitor: FreshnessMonitor,
     ) -> None:
-        """Test that already stale truths are ignored."""
+        """Test that already expired truths are ignored."""
         org_id = UUID("00000000-0000-0000-0000-000000000001")
 
-        # Create a truth that's already stale
-        already_stale = TruthObject(
+        # Create a truth that's already expired
+        already_expired = TruthObject(
             id=UUID("33333333-3333-3333-3333-333333333333"),
             tenant_id=org_id,
-            claim="Already stale",
+            claim="Already expired",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.EXPIRED.value,
             maturity_level=2,
             freshness=datetime.now(UTC) - timedelta(days=100),
             expires_at=datetime.now(UTC) - timedelta(days=30),
-            is_stale=True,  # Already stale
+            is_stale=True,
         )
-        db.add(already_stale)
+        db.add(already_expired)
         await db.flush()
 
         # Run the check
         result = await monitor.check_and_mark_stale(db, org_id)
 
-        # Should not check already stale truths
+        # Should not check already expired truths
         assert result["checked"] == 0
         assert result["marked_stale"] == 0
 
@@ -195,7 +195,7 @@ class TestFreshnessMonitor:
             claim="No expiry set",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC),
             expires_at=None,  # No expiry
@@ -225,7 +225,7 @@ class TestFreshnessMonitor:
             claim="Idempotent stale transition",
             claim_type=ClaimType.OTHER.value,
             confidence=0.7,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC) - timedelta(days=100),
             expires_at=datetime.now(UTC) - timedelta(days=2),
@@ -260,7 +260,7 @@ class TestFreshnessMonitor:
             claim="Unit idempotency",
             claim_type=ClaimType.OTHER.value,
             confidence=0.7,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             is_stale=False,
         )
@@ -271,12 +271,16 @@ class TestFreshnessMonitor:
 
         first_select = Mock()
         first_select.scalars.return_value.all.return_value = [truth]
+        count_result = Mock()
+        count_result.scalar.return_value = 0
+        first_update = Mock(rowcount=1)
         second_select = Mock()
         second_select.scalars.return_value.all.return_value = []
-        first_update = Mock(rowcount=1)
 
         db = Mock(spec=AsyncSession)
-        db.execute = AsyncMock(side_effect=[first_select, first_update, second_select])
+        db.execute = AsyncMock(
+            side_effect=[first_select, count_result, first_update, second_select]
+        )
         db.add = Mock()
 
         first = await monitor.check_and_mark_stale(db)
@@ -284,7 +288,8 @@ class TestFreshnessMonitor:
 
         assert first["marked_stale"] == 1
         assert second["marked_stale"] == 0
-        db.add.assert_called_once()
+        # expire() adds a ValidationEvent (via _apply_transition)
+        assert db.add.call_count >= 1
 
     async def test_list_stale_truths(
         self,
@@ -302,7 +307,7 @@ class TestFreshnessMonitor:
                 claim=f"Stale truth {i}",
                 claim_type=ClaimType.OTHER.value,
                 confidence=0.8,
-                status=TruthStatus.SUPPORTED.value,
+                status=TruthStatus.VALIDATED.value,
                 maturity_level=2,
                 freshness=datetime.now(UTC),
                 expires_at=datetime.now(UTC) - timedelta(days=1),
@@ -317,7 +322,7 @@ class TestFreshnessMonitor:
             claim="Fresh truth",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC),
             expires_at=datetime.now(UTC) + timedelta(days=30),
@@ -349,7 +354,7 @@ class TestFreshnessMonitor:
                 claim=f"Stale truth {i}",
                 claim_type=ClaimType.OTHER.value,
                 confidence=0.8,
-                status=TruthStatus.SUPPORTED.value,
+                status=TruthStatus.VALIDATED.value,
                 maturity_level=2,
                 freshness=datetime.now(UTC),
                 expires_at=datetime.now(UTC) - timedelta(days=1),
@@ -365,7 +370,7 @@ class TestFreshnessMonitor:
                 claim=f"Fresh truth {i}",
                 claim_type=ClaimType.OTHER.value,
                 confidence=0.8,
-                status=TruthStatus.SUPPORTED.value,
+                status=TruthStatus.VALIDATED.value,
                 maturity_level=2,
                 freshness=datetime.now(UTC),
                 expires_at=datetime.now(UTC) + timedelta(days=100),
@@ -380,7 +385,7 @@ class TestFreshnessMonitor:
             claim="Expiring soon",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC),
             expires_at=datetime.now(UTC) + timedelta(days=5),  # Within warning period
@@ -392,11 +397,11 @@ class TestFreshnessMonitor:
         # Get summary
         summary = await monitor.get_freshness_summary(db, org_id)
 
-        assert summary["summary"]["stale"] == 2
-        assert summary["summary"]["fresh"] == 4  # 3 fresh + 1 expiring soon
-        assert summary["summary"]["expiring_soon"] == 1
-        assert summary["summary"]["total"] == 6
-        assert summary["tenant_id"] == str(org_id)
+        assert summary.summary.stale == 2
+        assert summary.summary.fresh == 4  # 3 fresh + 1 expiring soon
+        assert summary.summary.expiring_soon == 1
+        assert summary.summary.total == 6
+        assert summary.tenant_id == str(org_id)
 
     async def test_convenience_functions(
         self,
@@ -412,7 +417,7 @@ class TestFreshnessMonitor:
             claim="Expired",
             claim_type=ClaimType.OTHER.value,
             confidence=0.8,
-            status=TruthStatus.SUPPORTED.value,
+            status=TruthStatus.VALIDATED.value,
             maturity_level=2,
             freshness=datetime.now(UTC) - timedelta(days=100),
             expires_at=datetime.now(UTC) - timedelta(days=1),

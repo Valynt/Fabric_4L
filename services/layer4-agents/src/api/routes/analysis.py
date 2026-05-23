@@ -1191,6 +1191,7 @@ async def seed_business_case_lifecycle(
 
         state = BusinessCaseAgentState(
             workflow_id=case_id,
+            tenant_id=tenant_id,
             status=WorkflowStatus.COMPLETED,
             current_node="seeded_validation_lifecycle",
             input_data={"account_id": str(payload.account_id)},

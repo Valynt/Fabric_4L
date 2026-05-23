@@ -49,7 +49,7 @@ def _make_tool_result(data: dict[str, Any] | None = None, *, error: dict[str, An
 
 def _make_state_with_output(**outputs: Any) -> ROIAgentState:
     """Build a minimal ROIAgentState with the given output_data pre-seeded."""
-    return ROIAgentState(
+    return ROIAgentState(tenant_id="test-tenant", 
         workflow_type="roi_calculator",
         status=WorkflowStatus.RUNNING,
         input_data={},

@@ -80,6 +80,7 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
   }
 
   const schedule = target.schedule as Record<string, unknown> | null;
+  const scheduleEnabled = Boolean(schedule?.enabled);
   const rateLimit = target.rateLimit as Record<string, unknown>;
   const compliance = target.compliance as Record<string, unknown>;
   const auth = target.authentication;
@@ -129,11 +130,11 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
 
       {/* Schedule */}
       <Section title="Schedule">
-        <Field label="Enabled" value={schedule?.enabled ? 'Yes' : 'No'} />
-        {schedule?.enabled && (
+        <Field label="Enabled" value={scheduleEnabled ? 'Yes' : 'No'} />
+        {scheduleEnabled && (
           <>
-            <Field label="Cron" value={<span className="font-mono text-[11px]">{String(schedule.cron_expression ?? '—')}</span>} />
-            <Field label="Timezone" value={String(schedule.timezone ?? 'UTC')} />
+            <Field label="Cron" value={<span className="font-mono text-[11px]">{String(schedule?.cron_expression ?? '—')}</span>} />
+            <Field label="Timezone" value={String(schedule?.timezone ?? 'UTC')} />
           </>
         )}
       </Section>

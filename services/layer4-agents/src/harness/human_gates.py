@@ -12,6 +12,25 @@ from __future__ import annotations
 from harness.models import GateStatus, GateType, HarnessTraceEvent, HarnessWorkflowType, HumanGate
 
 
+def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:
+    """Emit approval-wait metric if metrics are initialized."""
+    try:
+        from metrics.prometheus_metrics import get_metrics
+
+        metrics = get_metrics()
+        if metrics and gate.created_at and gate.decided_at:
+            duration = (gate.decided_at - gate.created_at).total_seconds()
+            metrics.observe_approval_wait(
+                duration=duration,
+                gate_type=gate.gate_type.value,
+                action_class="unknown",
+                tenant_id=tenant_id,
+            )
+    except Exception:
+        # Metrics are best-effort; do not fail gate decisions.
+        pass
+
+
 class GateDecisionError(ValueError):
     """Raised when a gate decision operation is invalid."""
 
@@ -127,6 +146,7 @@ class HumanGateManager:
             decision_reason=decision_reason,
         )
         self._gates[gate_id] = updated
+        _record_approval_wait(updated, tenant_id)
 
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
@@ -161,6 +181,7 @@ class HumanGateManager:
             decision_reason=decision_reason,
         )
         self._gates[gate_id] = updated
+        _record_approval_wait(updated, tenant_id)
 
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
@@ -193,6 +214,7 @@ class HumanGateManager:
             decision_reason=decision_reason,
         )
         self._gates[gate_id] = updated
+        _record_approval_wait(updated, tenant_id)
 
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",

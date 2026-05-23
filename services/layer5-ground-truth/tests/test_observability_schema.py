@@ -62,7 +62,7 @@ def _make_truth(status: TruthStatus) -> TruthObject:
         claim_type="efficiency_gain",
         confidence=0.9,
         status=status.value,
-        maturity_level=MaturityLevel.SUPPORTED.value,
+        maturity_level=MaturityLevel.EXTRACTED.value,
         freshness=datetime.now(UTC),
         created_at=datetime.now(UTC),
         updated_at=datetime.now(UTC),
@@ -74,7 +74,7 @@ async def test_invalid_transition_emits_failure_metric_and_structured_warning(
     caplog, monkeypatch
 ) -> None:
     sm = ValidationStateMachine()
-    truth = _make_truth(TruthStatus.SUPPORTED)
+    truth = _make_truth(TruthStatus.VALIDATED)
 
     class DummyMetrics:
         def __init__(self) -> None:
@@ -91,23 +91,23 @@ async def test_invalid_transition_emits_failure_metric_and_structured_warning(
     )
 
     with pytest.raises(InvalidTransitionError):
-        sm._assert_transition(truth, TruthStatus.SUPPORTED)  # noqa: SLF001
+        sm._assert_transition(truth, TruthStatus.VALIDATED)  # noqa: SLF001
 
-    assert metrics.calls == [("supported->supported", "invalid_transition")]
+    assert metrics.calls == [("validated->validated", "invalid_transition")]
     warning = next(
         rec for rec in caplog.records if rec.msg == "validation transition rejected"
     )
     assert warning.request_id is None
     assert warning.tenant_id == str(TEST_ORG_ID)
     assert warning.truth_object_id == str(truth.id)
-    assert warning.transition == "supported->supported"
+    assert warning.transition == "validated->validated"
     assert warning.sync_status == "not_attempted"
 
 
 @pytest.mark.asyncio
 async def test_validation_latency_metric_emitted_on_success(monkeypatch) -> None:
     sm = ValidationStateMachine()
-    truth = _make_truth(TruthStatus.EXTRACTED)
+    truth = _make_truth(TruthStatus.PROPOSED)
 
     class FakeResult:
         rowcount = 1
@@ -140,12 +140,12 @@ async def test_validation_latency_metric_emitted_on_success(monkeypatch) -> None
     await sm._apply_transition(  # noqa: SLF001
         FakeDB(),
         truth,
-        TruthStatus.SUPPORTED,
+        TruthStatus.VALIDATED,
         actor="obs-test",
         actor_type="system",
-        source_count=1,
+        source_count=2,
     )
-    assert metrics.latency_calls == ["extracted->supported"]
+    assert metrics.latency_calls == ["proposed->validated"]
 
 
 @pytest.mark.asyncio
@@ -198,14 +198,14 @@ async def test_sync_partial_failure_emits_retry_and_audit_safe_events(
         claim="claim",
         claim_type="efficiency_gain",
         confidence=0.85,
-        status="approved",
+        status="validated",
         maturity_level=4,
     )
     assert result is None
-    assert ("exception", "approved->kg_sync") in metrics.sync_outcomes
+    assert ("exception", "validated->kg_sync") in metrics.sync_outcomes
     assert any("retrying in" in rec.getMessage() for rec in caplog.records)
     outcome_log = next(rec for rec in caplog.records if rec.msg == "kg sync outcome")
     assert outcome_log.request_id is None
     assert outcome_log.tenant_id == str(TEST_ORG_ID)
-    assert outcome_log.transition == "approved->kg_sync"
+    assert outcome_log.transition == "validated->kg_sync"
     assert outcome_log.sync_status == "failed"

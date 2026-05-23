@@ -191,6 +191,7 @@ export const QK = {
 
   versions: {
     all: ["versions"] as const,
+    list: (accountId?: string) => ["versions", "list", accountId ?? ""] as const,
     detail: (versionId: string) => ["versions", "detail", versionId] as const,
     compare: (versionId: string, compareToVersionId: string) =>
       ["versions", "compare", versionId, compareToVersionId] as const,

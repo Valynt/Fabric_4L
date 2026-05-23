@@ -138,22 +138,46 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         """Return Business Case-specific state type."""
         return BusinessCaseAgentState
 
-    def create_initial_state(self, input_data: dict[str, Any]) -> BusinessCaseAgentState:
+    def create_initial_state(
+        self,
+        input_data: dict[str, Any],
+        *,
+        tenant_id: str,
+        run_id: str | None = None,
+        trace_id: str | None = None,
+        workflow_id: str | None = None,
+    ) -> BusinessCaseAgentState:
         """Create initial state from input data."""
+        from uuid import uuid4
+
+        from ..models.run_envelope import RunEnvelope
+
         case_input = BusinessCaseInputData(**input_data)
-        authenticated_tenant_id = input_data.get("tenant_id")
-        metadata = {"workflow_name": self.name}
-        if authenticated_tenant_id:
-            metadata["authenticated_tenant_id"] = str(authenticated_tenant_id)
+        wf_id = workflow_id or str(uuid4())
+        r_id = run_id or str(uuid4())
+        t_id = trace_id or str(uuid4())
+
+        envelope = RunEnvelope(
+            run_id=r_id,
+            workflow_id=wf_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
+            workflow_type=self.config.workflow_type,
+        )
 
         return BusinessCaseAgentState(
+            workflow_id=wf_id,
+            run_id=r_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
             workflow_type=self.config.workflow_type,
             status=WorkflowStatus.PENDING,
             case_input=case_input,
             input_data=input_data,
             output_data={},
             errors=[],
-            metadata=metadata,
+            metadata={"workflow_name": self.name},
+            run_envelope=envelope,
         )
 
     async def _execute_tool(

@@ -18,6 +18,7 @@ from ..models.truth_object import (
     ClaimType,
     DisputeReason,
     MaturityLevel,
+    RejectionReason,
     SourceType,
     TruthStatus,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "MaturityLevel",
     "ModelCapability",
     "ModelProvider",
+    "RejectionReason",
     "SourceType",
     "TruthStatus",
     # Request models
@@ -315,9 +317,14 @@ class TruthObjectResponse(BaseModel):
     confidence: float = Field(..., ge=0.0, le=1.0)
     status: str
     maturity_level: int
-    approved_by: str | None = None
-    approved_at: datetime | None = None
-    approval_notes: str | None = None
+    validated_by: str | None = None
+    validated_at: datetime | None = None
+    validation_notes: str | None = None
+    rejected_by: str | None = None
+    rejected_at: datetime | None = None
+    rejection_reason: str | None = None
+    superseded_by_id: UUID | None = None
+    superseded_at: datetime | None = None
     freshness: datetime
     expires_at: datetime | None = None
     is_stale: bool
@@ -352,7 +359,7 @@ class TruthObjectSummary(BaseModel):
     maturity_level: int
     is_stale: bool
     source_count: int = 0
-    approved_by: str | None = None
+    validated_by: str | None = None
     freshness: datetime
     created_at: datetime
 
@@ -383,21 +390,21 @@ class ValidateRequest(BaseModel):
     Schema for POST /truths/{id}/validate — trigger a state transition.
 
     action values:
-      advance_supported     — EXTRACTED → SUPPORTED
-      advance_corroborated  — SUPPORTED → CORROBORATED
-      approve               — CORROBORATED → APPROVED (requires actor)
-      dispute               — ANY → DISPUTED (requires dispute_reason)
-      resolve_dispute       — DISPUTED → CORROBORATED
-      operationalize        — APPROVED → maturity 5 (status stays APPROVED)
+      validate         — PROPOSED → VALIDATED (requires evidence + actor)
+      dispute          — ANY → DISPUTED (requires dispute_reason)
+      resolve_dispute  — DISPUTED → VALIDATED
+      reject           — PROPOSED|DISPUTED → REJECTED (requires rejection_reason)
+      supersede        — VALIDATED → SUPERSEDED (requires superseded_by_id)
+      operationalize   — VALIDATED → maturity 5 (status stays VALIDATED)
     """
 
     action: str = Field(
         ...,
         description=(
-            "Transition to apply: advance_supported | advance_corroborated | "
-            "approve | dispute | resolve_dispute | operationalize"
+            "Transition to apply: validate | dispute | resolve_dispute | "
+            "reject | supersede | operationalize"
         ),
-        examples=["approve"],
+        examples=["validate"],
     )
     actor: str = Field(
         ...,
@@ -419,11 +426,23 @@ class ValidateRequest(BaseModel):
         default=None,
         description="Required when action == 'dispute'",
     )
+    rejection_reason: RejectionReason | None = Field(
+        default=None,
+        description="Required when action == 'reject'",
+    )
+    superseded_by_id: UUID | None = Field(
+        default=None,
+        description="Required when action == 'supersede'",
+    )
 
     @model_validator(mode="after")
-    def validate_dispute_fields(self) -> "ValidateRequest":
+    def validate_action_fields(self) -> "ValidateRequest":
         if self.action == "dispute" and not self.dispute_reason:
             raise ValueError("dispute_reason is required when action is 'dispute'")
+        if self.action == "reject" and not self.rejection_reason:
+            raise ValueError("rejection_reason is required when action is 'reject'")
+        if self.action == "supersede" and not self.superseded_by_id:
+            raise ValueError("superseded_by_id is required when action is 'supersede'")
         return self
 
 

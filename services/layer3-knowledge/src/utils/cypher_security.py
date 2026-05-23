@@ -18,11 +18,20 @@ Single source of truth for:
 
 Import hierarchy
 ----------------
-- ``db.query_execution`` imports ``TENANT_OWNED_LABELS`` from here (or keeps
-  its own copy for backward compat — see note below).
+- ``db.query_execution`` imports ``TENANT_OWNED_LABELS`` from here as the
+  canonical registry. No local fallback copy should be maintained.
+- ``security.query_validator`` delegates static validation to
+  ``validate_tenant_scoped_cypher`` and routes execution through
+  ``db.query_execution.TenantQueryExecutor``.
 - ``services.cypher_scope_guard`` re-exports ``validate_tenant_scoped_cypher``
   from here for backward compatibility.
 - ``api.routes.value_packs`` imports the identifier allowlists from here.
+
+Canonical execution path
+------------------------
+All tenant-owned Cypher must pass through ``db.query_execution.TenantQueryExecutor``
+at runtime. This module provides the static validation and label registry that
+``TenantQueryExecutor`` consumes.
 
 Backward compatibility
 ----------------------
@@ -147,7 +156,7 @@ _MATCH_CLAUSE_PATTERN = re.compile(
     r"(.*?)(?=\bOPTIONAL\s+MATCH\b|\bMATCH\b|\bWITH\b|\bRETURN\b|\bUNWIND\b|\bCALL\b|\bORDER\s+BY\b|\bLIMIT\b|\bSKIP\b|$)"
 )
 _NODE_PATTERN = re.compile(
-    r"\(\s*([A-Za-z_][A-Za-z0-9_]*)?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)\s*(\{[^}]*)?"
+    r"\(\s*([A-Za-z_][A-Za-z0-9_]*)?\s*:\s*([A-Za-z_][A-Za-z0-9_]*)(?:\s*:[^{)]+)?\s*(\{[^}]*)?"
 )
 _TENANT_PREDICATE_PATTERN = re.compile(
     r"(?i)\b(?P<alias>[A-Za-z_][A-Za-z0-9_]*)\.tenant_id\s*(?:=|IN)\s*[$A-Za-z_]"

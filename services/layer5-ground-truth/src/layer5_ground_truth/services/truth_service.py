@@ -9,7 +9,7 @@ import logging
 from datetime import UTC, datetime, timedelta
 from uuid import UUID
 
-from sqlalchemy import and_, func, select, update
+from sqlalchemy import and_, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -324,7 +324,6 @@ async def mark_expired_objects(db: AsyncSession, tenant_id: UUID) -> int:
     Returns the number of objects marked expired.
     """
     now = datetime.now(UTC)
-    from sqlalchemy import or_
 
     stmt = (
         select(TruthObject)

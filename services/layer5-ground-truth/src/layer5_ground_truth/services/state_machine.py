@@ -97,7 +97,7 @@ class TransitionConflictError(ValueError):
 ALLOWED_TRANSITIONS: dict[TruthStatus, set[TruthStatus]] = {
     TruthStatus.PROPOSED: {TruthStatus.VALIDATED, TruthStatus.DISPUTED, TruthStatus.REJECTED},
     TruthStatus.VALIDATED: {TruthStatus.DISPUTED, TruthStatus.SUPERSEDED, TruthStatus.EXPIRED},
-    TruthStatus.DISPUTED: {TruthStatus.VALIDATED, TruthStatus.REJECTED},
+    TruthStatus.DISPUTED: {TruthStatus.VALIDATED, TruthStatus.REJECTED, TruthStatus.EXPIRED},
     TruthStatus.REJECTED: set(),
     TruthStatus.SUPERSEDED: set(),
     TruthStatus.EXPIRED: set(),
@@ -347,6 +347,9 @@ class ValidationStateMachine:
         self._assert_transition(truth_object, TruthStatus.EXPIRED)
 
         source_count = await self._count_sources(db, truth_object.id)
+
+        # Also set is_stale for backward compatibility with existing queries
+        truth_object.is_stale = True
 
         return await self._apply_transition(
             db=db,

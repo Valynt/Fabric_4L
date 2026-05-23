@@ -92,7 +92,7 @@ async def test_truth_state_transition_cross_tenant_denied(tenant_aware_client: A
 
     other_transition = await tenant_aware_client.post(
         f"/api/v1/truths/{truth_id}/validate",
-        json={"action": "mark_supported", "reason": "hostile-check"},
+        json={"action": "dispute", "actor": "attacker", "dispute_reason": "other"},
         headers={"X-Test-Tenant": tenant_b},
     )
     assert other_transition.status_code == 404

@@ -72,8 +72,8 @@ export function GovernanceAuditTrail() {
 
           {canExport && (
             <div className="mt-3 flex gap-2">
-              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as Array<Record<string, unknown>>, "csv")}>Export CSV</button>
-              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as Array<Record<string, unknown>>, "json")}>Export JSON</button>
+              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as unknown as Array<Record<string, unknown>>, "csv")}>Export CSV</button>
+              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as unknown as Array<Record<string, unknown>>, "json")}>Export JSON</button>
             </div>
           )}
 

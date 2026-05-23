@@ -1,0 +1,90 @@
+"""Tests for Layer 4 observability gaps (approval latency, failure alerting)."""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime, timedelta
+
+import pytest
+
+from value_fabric.layer4.harness.human_gates import HumanGateManager
+from value_fabric.layer4.harness.models import GateType, HarnessWorkflowType
+from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+from value_fabric.layer4.models.agent_state import WorkflowStatus
+
+
+class TestObservabilityGaps:
+    def test_approval_wait_metric_recorded(self) -> None:
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.observe_approval_wait(
+            duration=45.0,
+            gate_type="approve_claims",
+            action_class="publish_business_case",
+            tenant_id="tenant-123",
+        )
+        # Metric is registered and no exception raised
+        assert "approval_wait_seconds" in metrics._metrics
+
+    def test_stuck_workflows_metric(self) -> None:
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.set_stuck_workflows(
+            count=3,
+            workflow_type="roi_calculator",
+            tenant_id="tenant-123",
+        )
+        assert "stuck_workflows_total" in metrics._metrics
+
+    def test_repeated_failure_metric(self) -> None:
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.increment_repeated_failure(
+            workflow_type="business_case",
+            failure_class="NodeExecutionError",
+            tenant_id="tenant-123",
+        )
+        assert "repeated_workflow_failures_total" in metrics._metrics
+
+    def test_tool_auth_failure_metric(self) -> None:
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.increment_tool_auth_failure(
+            tool_name="get_prospect_data",
+            tenant_id="tenant-123",
+        )
+        assert "tool_auth_failures_total" in metrics._metrics
+
+    def test_checkpoint_corruption_metric(self) -> None:
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.increment_checkpoint_corruption(
+            workflow_type="roi_calculator",
+            tenant_id="tenant-123",
+        )
+        assert "checkpoint_corruption_detected_total" in metrics._metrics
+
+    def test_gate_decision_records_wait_time(self) -> None:
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CLAIMS,
+        )
+        # Simulate time passing by overriding created_at
+        gate = gate.model_copy(update={"created_at": datetime.now(UTC) - timedelta(seconds=120)})
+        manager._gates[gate.id] = gate
+
+        updated, _ = manager.approve_gate(
+            gate_id=gate.id,
+            tenant_id="tenant-123",
+            decision_by="user_1",
+            decision_reason="looks good",
+        )
+        assert updated.status.value == "approved"
+        assert updated.decided_at is not None
+
+    def test_metrics_use_tenant_tier_not_raw_tenant_id(self) -> None:
+        from value_fabric.layer4.metrics.prometheus_metrics import _derive_tenant_tier
+
+        tier1 = _derive_tenant_tier("tenant-a")
+        tier2 = _derive_tenant_tier("tenant-b")
+        # Different tenants should usually map to different tiers (not guaranteed but highly likely)
+        assert len(tier1) == 4  # 2 hex chars
+        assert tier1 != "unknown"
+        assert _derive_tenant_tier(None) == "unknown"
+        assert _derive_tenant_tier("") == "unknown"

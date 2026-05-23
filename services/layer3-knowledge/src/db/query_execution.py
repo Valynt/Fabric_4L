@@ -28,7 +28,13 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from value_fabric.layer3.utils.cypher_security import TENANT_OWNED_LABELS
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
+
+try:
+    from metrics.prometheus_metrics import get_metrics
+except Exception:
+    get_metrics = None  # type: ignore[assignment]
 
 SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
 
@@ -43,68 +49,6 @@ class TenantQueryValidationError(ValueError):
 
 class CypherDepthLimitExceeded(TenantQueryValidationError):
     """Raised when a Cypher query exceeds the maximum allowed traversal depth."""
-
-
-_FALLBACK_TENANT_OWNED_LABELS = {
-    "Account",
-    "Battlecard",
-    "Benchmark",
-    "BenchmarkDataset",
-    "BusinessCase",
-    "Capability",
-    "CaseStudy",
-    "Chunk",
-    "Community",
-    "Company",
-    "Contact",
-    "Competitor",
-    "Customer",
-    "DecisionStep",
-    "DecisionTrace",
-    "Document",
-    "Entity",
-    "Evidence",
-    "Feature",
-    "Formula",
-    "FormulaVersion",
-    "Industry",
-    "Insight",
-    "Model",
-    "Opportunity",
-    "Outcome",
-    "PROVEntity",
-    "PainSignal",
-    "Persona",
-    "Product",
-    "Prospect",
-    "ROICalculation",
-    "ROITemplate",
-    "Segment",
-    "Signal",
-    "Source",
-    "Stakeholder",
-    "UseCase",
-    "ValueDriver",
-    "ValueLever",
-    "ValueModel",
-    "ValuePack",
-    "ValueTree",
-    "Variable",
-}
-
-
-def _load_tenant_owned_labels() -> set[str]:
-    """Load tenant-owned labels from the shared registry with a local fallback."""
-
-    try:
-        from value_fabric.shared.identity.isolation import DEFAULT_TENANT_LABEL_POLICY
-
-        return set(DEFAULT_TENANT_LABEL_POLICY.tenant_labels)
-    except Exception:
-        return set(_FALLBACK_TENANT_OWNED_LABELS)
-
-
-_TENANT_OWNED_LABELS = _load_tenant_owned_labels()
 _CLAUSE_KEYWORD_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE)\b", re.IGNORECASE)
 # Matches variable-length path patterns like [*1..4], [*..5], [*1..], [*3], [*$depth], [*1..$max_depth]
 _VAR_LENGTH_PATH_PATTERN = re.compile(
@@ -142,7 +86,7 @@ def _structural_tenant_scope_errors(query: str, params: Mapping[str, Any]) -> li
 
     for match in _TENANT_LABEL_PATTERN.finditer(query):
         label = match.group("label")
-        if label not in _TENANT_OWNED_LABELS:
+        if label not in TENANT_OWNED_LABELS:
             continue
 
         alias = (match.group("alias") or "").strip()
@@ -158,7 +102,7 @@ def _structural_tenant_scope_errors(query: str, params: Mapping[str, Any]) -> li
 
 
 def _touches_tenant_owned_label(query: str) -> bool:
-    return any(match.group("label") in _TENANT_OWNED_LABELS for match in _TENANT_LABEL_PATTERN.finditer(query))
+    return any(match.group("label") in TENANT_OWNED_LABELS for match in _TENANT_LABEL_PATTERN.finditer(query))
 
 
 @dataclass(frozen=True)
@@ -209,14 +153,49 @@ class TenantQueryExecutor:
         parameters: dict[str, Any] | None,
         context: TenantExecutionContext,
     ) -> Any:
+        import time
+
         params = dict(parameters or {})
         if context.tenant_id:
             params["tenant_id"] = context.tenant_id
             params["_tenant_id"] = context.tenant_id
 
         cls._validate(query=query, params=params, context=context)
+
+        start = time.monotonic()
         coro = run_callable(query, params)
-        return await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+        result = await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+        elapsed = time.monotonic() - start
+
+        metrics = get_metrics() if get_metrics else None
+        if metrics:
+            # Result size
+            try:
+                size = len(result)
+            except Exception:
+                try:
+                    size = len(result.records)
+                except Exception:
+                    size = 0
+            metrics.observe_graph_result_size(
+                size=size, endpoint="tenant_query_executor", operation="run"
+            )
+
+            # Slow query thresholds
+            if elapsed > 10.0:
+                metrics.increment_graph_slow_queries(
+                    operation="run", threshold_bucket=">10s"
+                )
+            elif elapsed > 5.0:
+                metrics.increment_graph_slow_queries(
+                    operation="run", threshold_bucket=">5s"
+                )
+            elif elapsed > 1.0:
+                metrics.increment_graph_slow_queries(
+                    operation="run", threshold_bucket=">1s"
+                )
+
+        return result
 
     @classmethod
     def _validate(cls, query: str, params: Mapping[str, Any], context: TenantExecutionContext) -> None:
@@ -226,16 +205,31 @@ class TenantQueryExecutor:
         # Depth limit check (PERF-001)
         max_depth = cls._extract_max_depth(query, params)
         if max_depth is not None and max_depth > MAX_QUERY_DEPTH:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.observe_graph_traversal_depth(
+                    depth=max_depth, endpoint="tenant_query_executor", operation="validate"
+                )
             raise CypherDepthLimitExceeded(
                 f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"
             )
 
         touches_tenant_data = _touches_tenant_owned_label(query)
         if touches_tenant_data and not context.tenant_id and not context.allow_system_query:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_tenant_isolation_violation(
+                    component="query_execution", violation_type="missing_tenant_context"
+                )
             raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
 
         structural_errors = _structural_tenant_scope_errors(query, params) if touches_tenant_data else []
         if structural_errors and not context.allow_system_query:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_tenant_isolation_violation(
+                    component="query_execution", violation_type="structural_scope"
+                )
             details = ", ".join(structural_errors)
             raise TenantQueryValidationError(
                 f"Denied Cypher query due to missing tenant scoping in tenant-owned path: {details}"

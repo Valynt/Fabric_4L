@@ -350,7 +350,7 @@ export function useAgentEvents({
               ...pageAction.runMetadataIds,
               runId: metadata?.runId ?? currentRunId ?? "unknown-run",
               traceId: metadata?.traceId ?? "unknown-trace",
-              workflowId: metadata?.workflowId,
+              workflowId: metadata?.workflowId ?? "unknown-workflow",
               auditEventId: metadata?.auditEventId ?? "unknown-audit",
               toolCallId: event.toolCallId,
             },

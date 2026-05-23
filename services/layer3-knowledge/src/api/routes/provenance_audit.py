@@ -153,6 +153,7 @@ async def get_provenance(
     description="Query system audit events from Neo4j provenance or API access logs",
 )
 async def list_audit_logs(
+    request: Request,
     source: Literal["all", "provenance", "access"] = Query(
         "all", description="Source: 'provenance', 'access', or 'all'"
     ),
@@ -165,6 +166,11 @@ async def list_audit_logs(
     per_page: int = Query(50, ge=1, le=100, description="Entries per page"),
     app_state: AppState = Depends(get_app_state),
 ):
+    tenant_id = _require_tenant_id_from_context(
+        request,
+        missing_tenant_detail="tenant_id is required for audit log access",
+    )
+
     try:
         entries: list[AuditLogEntry] = []
 
@@ -179,6 +185,7 @@ async def list_audit_logs(
                       AND ($entity_type IS NULL OR a.entity_type = $entity_type)
                       AND ($event_type IS NULL OR a.event_type = $event_type)
                       AND ($agent IS NULL OR a.agent = $agent)
+                      AND a.tenant_id = $tenant_id
                     WITH a
                     WHERE a IS NOT NULL
                     RETURN a.id as id, a.timestamp as timestamp, a.event_type as event_type,
@@ -193,6 +200,7 @@ async def list_audit_logs(
                         "entity_type": entity_type,
                         "event_type": event_type,
                         "agent": agent,
+                        "tenant_id": tenant_id,
                         "skip": (page - 1) * per_page,
                         "limit": per_page,
                     }

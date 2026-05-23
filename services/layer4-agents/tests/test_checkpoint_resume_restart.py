@@ -54,7 +54,7 @@ class RestartTestWorkflow(BaseWorkflow):
         return {"status": "ok", "node": current_node, "tool": tool_name}
 
     def create_initial_state(self, input_data: dict[str, Any]) -> BaseAgentState:
-        return BaseAgentState(
+        return BaseAgentState(tenant_id="test-tenant", 
             workflow_id=input_data.get("workflow_id", "restart-test-wf"),
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PENDING,

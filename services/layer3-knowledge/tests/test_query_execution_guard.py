@@ -63,9 +63,15 @@ def test_extract_max_depth_with_parametrized_start_and_end() -> None:
     assert TenantQueryExecutor._extract_max_depth(query, {"max_depth": 4}) == 4
 
 
-def test_extract_max_depth_returns_none_when_param_missing() -> None:
-    """Unresolvable $param returns None rather than crashing."""
+def test_extract_max_depth_returns_literal_when_param_missing() -> None:
+    """Unresolvable $param is skipped; the literal part is still extracted."""
     query = "MATCH path = (a)-[*1..$missing]->(b) RETURN path"
+    assert TenantQueryExecutor._extract_max_depth(query, {}) == 1
+
+
+def test_extract_max_depth_returns_none_for_pure_param_no_literal() -> None:
+    """Pure $param with no literal fallback returns None when missing."""
+    query = "MATCH path = (a)-[*$missing]->(b) RETURN path"
     assert TenantQueryExecutor._extract_max_depth(query, {}) is None
 
 
@@ -77,4 +83,21 @@ def test_extract_max_depth_raises_when_param_exceeds_limit() -> None:
             query,
             {"depth": MAX_QUERY_DEPTH + 1},
             TenantExecutionContext(tenant_id="tenant-a"),
+        )
+
+
+@pytest.mark.asyncio
+async def test_run_tenant_query_rejects_workflow_label_without_tenant_predicate() -> None:
+    """Workflow must be recognized as a tenant-owned label (regression for missing-label drift)."""
+
+    class FakeSession:
+        async def run(self, query, params):  # pragma: no cover
+            raise AssertionError("unsafe query must be blocked before execution")
+
+    with pytest.raises(TenantQueryValidationError, match="missing tenant scoping"):
+        await run_tenant_query(
+            FakeSession(),
+            "MATCH (w:Workflow) WHERE w.id = $workflow_id RETURN w",
+            {"workflow_id": "wf-1"},
+            tenant_id="tenant-a",
         )

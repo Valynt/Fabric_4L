@@ -570,6 +570,17 @@ class ToolRegistry:
                 detail = getattr(exc, "detail", {"message": str(exc)})
                 code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
                 message = detail.get("message", str(detail)) if isinstance(detail, dict) else str(detail)
+                # Hardening: emit tool auth failure metric
+                try:
+                    from ..metrics.prometheus_metrics import get_metrics
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.increment_tool_auth_failure(
+                            tool_name=tool_name,
+                            tenant_id=str(tenant_id) if tenant_id else "unknown",
+                        )
+                except Exception:
+                    pass
                 return ToolResult.failure(
                     code=code,
                     message=message,

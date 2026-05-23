@@ -80,7 +80,7 @@ class TestCorruptedStateRecovery:
 
         # Pre-populate with valid state to get past initial lookup
         workflow_id = "corrupted-wf"
-        valid_state = BaseAgentState(
+        valid_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -108,7 +108,7 @@ class TestCorruptedStateRecovery:
         workflow_id = "incomplete-wf"
 
         # Create state missing output_data (required field)
-        incomplete_state = BaseAgentState(
+        incomplete_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -139,7 +139,7 @@ class TestCorruptedStateRecovery:
         workflow_id = "partial-wf"
 
         # Save state to state_manager but not to checkpoint
-        partial_state = BaseAgentState(
+        partial_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.RUNNING,
@@ -180,7 +180,7 @@ class TestFailedAgentCalls:
         )
 
         workflow_id = "failing-tool-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -209,7 +209,7 @@ class TestFailedAgentCalls:
         )
 
         workflow_id = "multi-fail-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -242,7 +242,7 @@ class TestCheckpointFailureModes:
         )
 
         workflow_id = "checkpoint-fail-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -278,7 +278,7 @@ class TestCheckpointFailureModes:
         )
 
         workflow_id = "no-checkpoint-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -312,7 +312,7 @@ class TestMissingDependencies:
         )
 
         workflow_id = "no-metadata-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -343,7 +343,7 @@ class TestMissingDependencies:
         )
 
         workflow_id = "deleted-tool-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -376,7 +376,7 @@ class TestPartialResume:
             "node_2": {"result": "more_data"},
         }
 
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -395,7 +395,7 @@ class TestPartialResume:
 
         # Mock workflow that returns merged output
         mock_workflow = Mock()
-        completed_state = BaseAgentState(
+        completed_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.COMPLETED,
@@ -429,7 +429,7 @@ class TestAgentCheckpointSafety:
 
     async def test_agent_checkpoint_preserves_tenant_context(self, state_manager):
         workflow_id = "tenant-checkpoint-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -459,7 +459,7 @@ class TestAgentCheckpointSafety:
 
     async def test_agent_checkpoint_does_not_store_secrets(self, state_manager):
         workflow_id = "secret-checkpoint-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PAUSED,
@@ -484,7 +484,7 @@ class TestAgentCheckpointSafety:
 
     async def test_agent_resume_does_not_repeat_mutation(self, mock_tool_registry, state_manager):
         workflow_id = "mutation-resume-wf"
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.COMPLETED,

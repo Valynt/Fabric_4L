@@ -18,6 +18,7 @@ from langgraph.types import Command
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
+from ..models.reasoning_trace import ReasoningTrace, ToolCallTrace, validate_reasoning_trace
 from ..models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
 from ..tools.registry import ToolRegistry
 
@@ -159,21 +160,99 @@ class BaseWorkflow(ABC):
                         node_config.tool_name, state, node_config.config
                     )
                     updates["output_data"] = {**state.output_data, node_config.id: result}
+                    # Append to node trace log for reasoning trace construction
+                    trace_log = list(state.metadata.get("node_trace_log", []))
+                    trace_log.append({
+                        "node_id": node_config.id,
+                        "node_type": "tool",
+                        "tool_name": node_config.tool_name,
+                        "timestamp": self._now().isoformat(),
+                    })
+                    updates["metadata"] = {**state.metadata, "node_trace_log": trace_log}
 
                 elif node_config.node_type == NodeType.LLM:
                     # LLM node - handled by subclass or agent node
                     result = await self._execute_llm(node_config, state)
                     updates["output_data"] = {**state.output_data, node_config.id: result}
+                    trace_log = list(state.metadata.get("node_trace_log", []))
+                    trace_log.append({
+                        "node_id": node_config.id,
+                        "node_type": "llm",
+                        "timestamp": self._now().isoformat(),
+                    })
+                    updates["metadata"] = {**state.metadata, "node_trace_log": trace_log}
 
                 elif node_config.node_type == NodeType.AGENT:
                     # Agent node - delegates to sub-workflow
                     result = await self._execute_agent(node_config, state)
                     updates["output_data"] = {**state.output_data, node_config.id: result}
+                    trace_log = list(state.metadata.get("node_trace_log", []))
+                    trace_log.append({
+                        "node_id": node_config.id,
+                        "node_type": "agent",
+                        "timestamp": self._now().isoformat(),
+                    })
+                    updates["metadata"] = {**state.metadata, "node_trace_log": trace_log}
 
                 elif node_config.node_type == NodeType.END:
-                    # End node
+                    # End node: construct and validate reasoning trace
                     updates["status"] = WorkflowStatus.COMPLETED
                     updates["completed_at"] = self._now()
+
+                    trace_log = state.metadata.get("node_trace_log", [])
+                    tools_called = [
+                        ToolCallTrace(
+                            tool_name=entry.get("tool_name", "unknown"),
+                            invocation_id=f"{state.run_id or state.workflow_id}:{entry.get('node_id', 'unknown')}",
+                            timestamp=entry.get("timestamp", self._now().isoformat()),
+                        )
+                        for entry in trace_log
+                        if entry.get("node_type") == "tool"
+                    ]
+
+                    # Gather assumptions from metadata if present
+                    assumptions = state.metadata.get("assumptions", [])
+                    if not assumptions:
+                        assumptions = ["No explicit assumptions recorded"]
+
+                    # Gather evidence from metadata if present
+                    evidence = state.metadata.get("evidence_considered", [])
+                    if not evidence:
+                        evidence = ["No explicit evidence recorded"]
+
+                    # Gather output object IDs from output_data
+                    output_object_ids: list[str] = []
+                    for key, val in (state.output_data or {}).items():
+                        if isinstance(val, dict) and "id" in val:
+                            output_object_ids.append(str(val["id"]))
+                        elif isinstance(val, list):
+                            for item in val:
+                                if isinstance(item, dict) and "id" in item:
+                                    output_object_ids.append(str(item["id"]))
+                    if not output_object_ids:
+                        output_object_ids = [f"output:{state.workflow_id}"]
+
+                    reasoning_trace = ReasoningTrace(
+                        inputs_used=list(state.input_data.keys()),
+                        tools_called=tools_called,
+                        evidence_considered=evidence,
+                        assumptions=assumptions,
+                        confidence=state.metadata.get("confidence", 0.8),
+                        output_object_ids=output_object_ids,
+                        run_id=state.run_id or state.workflow_id,
+                        trace_id=state.trace_id or state.workflow_id,
+                    )
+
+                    try:
+                        validate_reasoning_trace(reasoning_trace, strict=False)
+                        updates["reasoning_trace"] = reasoning_trace
+                        updates["output_data"] = {
+                            **state.output_data,
+                            "reasoning_trace": reasoning_trace.model_dump(mode="json"),
+                        }
+                    except ValueError as ve:
+                        updates["errors"] = state.errors + [f"REASONING_TRACE_INVALID: {ve}"]
+                        updates["status"] = WorkflowStatus.FAILED
 
                 return updates
 
@@ -346,6 +425,9 @@ class BaseWorkflow(ABC):
             config["configurable"]["thread_id"] = thread_id
 
         workflow_id = getattr(initial_state, "workflow_id", "unknown")
+        run_id = getattr(initial_state, "run_id", workflow_id)
+        trace_id = getattr(initial_state, "trace_id", workflow_id)
+        tenant_id = getattr(initial_state, "tenant_id", "unknown")
 
         # Build input: Command for resume, state dict for fresh run
         if resume_data is not None:
@@ -353,6 +435,9 @@ class BaseWorkflow(ABC):
             logger.info(
                 "Resuming workflow execution",
                 workflow_id=workflow_id,
+                run_id=run_id,
+                trace_id=trace_id,
+                tenant_id=tenant_id,
                 thread_id=thread_id,
             )
         else:
@@ -360,6 +445,9 @@ class BaseWorkflow(ABC):
             logger.info(
                 "Starting workflow execution",
                 workflow_id=workflow_id,
+                run_id=run_id,
+                trace_id=trace_id,
+                tenant_id=tenant_id,
                 workflow_type=getattr(initial_state, "workflow_type", "unknown"),
                 thread_id=thread_id,
                 recursion_limit=recursion_limit,
@@ -376,7 +464,11 @@ class BaseWorkflow(ABC):
                 return interrupted_state
 
             logger.info(f"Workflow execution completed: {workflow_id}")
-            return self._state_from_dict(result)
+            final_state = self._state_from_dict(result)
+            # Ensure run_envelope is preserved if it was set on initial_state
+            if initial_state.run_envelope is not None and final_state.run_envelope is None:
+                final_state.run_envelope = initial_state.run_envelope
+            return final_state
         except NodeInterrupt:
             logger.info(f"Workflow interrupted by NodeInterrupt: {workflow_id}")
             # Checkpoint already persisted by LangGraph; return structured INTERRUPTED state
@@ -429,14 +521,29 @@ class BaseWorkflow(ABC):
         # silently producing ungoverned LLM calls with run=None.
 
     @abstractmethod
-    def create_initial_state(self, input_data: dict[str, Any]) -> AgentState:
+    def create_initial_state(
+        self,
+        input_data: dict[str, Any],
+        *,
+        tenant_id: str,
+        run_id: str | None = None,
+        trace_id: str | None = None,
+        workflow_id: str | None = None,
+    ) -> AgentState:
         """Create initial state from input data.
 
         Args:
             input_data: Workflow input parameters
+            tenant_id: Required owning tenant identifier
+            run_id: Optional distinct run identifier (generated if absent)
+            trace_id: Optional cross-layer trace identifier (generated if absent)
+            workflow_id: Optional stable workflow instance identifier (generated if absent)
 
         Returns:
             Initial workflow state
+
+        Raises:
+            TenantMissingError: If tenant_id is missing or empty
         """
         pass
 

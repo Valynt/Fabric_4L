@@ -65,7 +65,7 @@ async def _sync(client: Layer3Client, *, tenant_id=TEST_ORG_ID) -> str | None:
         claim="claim",
         claim_type="efficiency_gain",
         confidence=0.91,
-        status="approved",
+        status="validated",
         maturity_level=4,
     )
 

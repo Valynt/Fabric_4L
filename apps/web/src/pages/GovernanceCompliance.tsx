@@ -70,13 +70,13 @@ export default function GovernanceCompliance() {
 
       <div className="grid gap-5 lg:grid-cols-2">
         <SectionCard title="Maturity Ladder Coverage" noPad>
-          <DataTable
+          <DataTable<{ key: string; level: number; name: string; status: string; count: number }>
             columns={[
               {
                 key: "level",
                 header: "Level",
-                render: (value) => (
-                  <span className="font-semibold">L{value}</span>
+                render: (item) => (
+                  <span className="font-semibold">L{item.level}</span>
                 ),
               },
               { key: "name", header: "Name" },

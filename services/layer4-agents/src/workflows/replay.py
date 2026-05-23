@@ -88,7 +88,11 @@ class Layer4WorkflowReplayHarness:
         self._authorize(authz=authz)
 
         ordered_events = sorted(events, key=lambda e: (e.timestamp, e.event_id))
-        state = BaseAgentState(workflow_id=workflow_id, workflow_type=workflow_type)
+        state = BaseAgentState(
+            workflow_id=workflow_id,
+            workflow_type=workflow_type,
+            tenant_id=getattr(authz, "tenant_id", "replay-tenant"),
+        )
         applied: list[str] = []
 
         for event in ordered_events:

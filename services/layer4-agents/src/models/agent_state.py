@@ -13,6 +13,9 @@ from uuid import UUID, uuid4
 from pydantic import BaseModel, ConfigDict, Field, field_serializer, field_validator
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from .reasoning_trace import ReasoningTrace
+from .run_envelope import RunEnvelope
+
 
 class _merge_dictsResult(TypedDictModel):
     pass
@@ -107,11 +110,20 @@ class WorkflowNodeType(str, Enum):
     FAILED = "FAILED"
 
 
+class TenantMissingError(ValueError):
+    """Raised when a workflow is started without required tenant context."""
+
+    pass
+
+
 class BaseAgentState(BaseModel):
     """Base state shared across all workflows.
 
     Attributes:
         workflow_id: Unique identifier for this workflow instance
+        run_id: Distinct execution identifier (separate from workflow_id)
+        trace_id: Cross-layer audit trace identifier
+        tenant_id: Owning tenant — required invariant at workflow start
         workflow_type: Type of workflow being executed
         status: Current execution status
         current_node: Name of the currently executing node
@@ -119,6 +131,8 @@ class BaseAgentState(BaseModel):
         output_data: Accumulated results
         errors: List of errors encountered
         metadata: Additional execution metadata
+        reasoning_trace: Structured reasoning trace for agent outputs
+        run_envelope: Canonical run envelope for lifecycle consistency
         pause_point: Structured pause information when status is PAUSED
         paused_by: User who paused the workflow (if applicable)
         paused_at: When the workflow was paused
@@ -127,6 +141,9 @@ class BaseAgentState(BaseModel):
     """
 
     workflow_id: str = Field(default_factory=lambda: str(uuid4()))
+    run_id: str = Field(default_factory=lambda: str(uuid4()))
+    trace_id: str = Field(default_factory=lambda: str(uuid4()))
+    tenant_id: str = Field(..., description="Owning tenant — required at workflow start")
     workflow_type: WorkflowType
     status: Annotated[WorkflowStatus, _last_value] = WorkflowStatus.PENDING
     current_node: Annotated[str | None, _last_value] = None
@@ -134,6 +151,12 @@ class BaseAgentState(BaseModel):
     output_data: Annotated[dict[str, Any] | None, _merge_dicts] = Field(default_factory=dict)
     errors: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    reasoning_trace: ReasoningTrace | None = Field(
+        default=None, description="Structured reasoning trace validated at output"
+    )
+    run_envelope: RunEnvelope | None = Field(
+        default=None, description="Canonical run envelope for lifecycle consistency"
+    )
     started_at: datetime | None = None
     completed_at: datetime | None = None
 
@@ -144,10 +167,17 @@ class BaseAgentState(BaseModel):
     paused_by: str | None = Field(None, description="User who paused the workflow")
     paused_at: datetime | None = Field(None, description="When workflow was paused")
     resumed_by: str | None = Field(None, description="User who resumed the workflow")
-    resumed_at: datetime | None = Field(None, description="When workflow was resumed")
+    resumed_at: datetime | None = Field(None, description="When the workflow was resumed")
     pause_count: int = Field(default=0, description="Number of times workflow has been paused")
 
     model_config = ConfigDict()
+
+    @field_validator("tenant_id")
+    @classmethod
+    def _tenant_id_required(cls, v: str) -> str:
+        if not v or not v.strip():
+            raise ValueError("tenant_id is required and must be non-empty")
+        return v
 
     @field_serializer("started_at", "completed_at", "paused_at", "resumed_at")
     def serialize_datetime(self, v: datetime | None, _info) -> str | None:

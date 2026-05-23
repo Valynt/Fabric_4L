@@ -32,6 +32,7 @@ from harness.human_gates import (
     HumanGateManager,
 )
 from harness.models import (
+    ActionClass,
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -121,6 +122,7 @@ __all__ = [
     "GateStatus",
     "ValidationState",
     "InitiatedBy",
+    "ActionClass",
     # State machine
     "StateMachine",
     "TransitionError",

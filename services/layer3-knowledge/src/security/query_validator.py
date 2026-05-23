@@ -1,5 +1,10 @@
 """Cypher query validator for tenant isolation enforcement.
 
+.. deprecated::
+    This module is retained for backward compatibility. New code should use
+    ``utils.cypher_security.validate_tenant_scoped_cypher()`` for static
+    validation and ``db.query_execution.TenantQueryExecutor`` for execution.
+
 Scans Cypher queries to detect unscoped reads that could lead to
 cross-tenant data leakage. Enforces mandatory tenant_id filtering
 on all MATCH clauses that access entity nodes.
@@ -32,6 +37,11 @@ import re
 from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, TypedDict
+
+from value_fabric.layer3.utils.cypher_security import (
+    TENANT_OWNED_LABELS,
+    validate_tenant_scoped_cypher,
+)
 
 
 class ValidationFindingPayload(TypedDict):
@@ -100,8 +110,17 @@ class ValidationFinding:
         )
 
 
+# Build dynamic patterns from the canonical tenant-owned label registry.
+_DOMAIN_LABELS = "|".join(re.escape(label) for label in sorted(TENANT_OWNED_LABELS))
+
+
 class QueryValidator:
     """Validate Cypher queries for tenant isolation compliance.
+    
+    .. deprecated::
+        Delegate static checks to ``validate_tenant_scoped_cypher()`` and
+        execution to ``TenantQueryExecutor``. This class is retained only for
+        backward-compatible ``ValidatedNeo4jSession`` wiring.
     
     Scans queries for:
     1. Unscoped Entity MATCH clauses (missing tenant_id)
@@ -125,7 +144,7 @@ class QueryValidator:
     # Pattern to match MATCH clauses for domain nodes
     # Captures: MATCH (e:NodeType ...) -> groups: (node_var, node_type, properties)
     _ENTITY_MATCH_PATTERN = re.compile(
-        r'MATCH\s*\(\s*(\w+)\s*:\s*(Entity|UseCase|ValueDriver|Capability|Persona|Formula|Outcome|PROVEntity|DecisionTrace|DecisionStep)\s*(?:\{([^}]*)\})?\s*\)',
+        r'MATCH\s*\(\s*(\w+)\s*:\s*(' + _DOMAIN_LABELS + r')\s*(?:\{([^}]*)\})?\s*\)',
         re.IGNORECASE | re.DOTALL
     )
     
@@ -143,12 +162,11 @@ class QueryValidator:
     
     # Pattern to detect unscoped MATCH with WHERE
     _UNSCOPED_WHERE_PATTERN = re.compile(
-        r'MATCH\s*\(\s*\w+\s*:\s*(?:Entity|UseCase|ValueDriver|Capability|Persona|Formula|Outcome|PROVEntity|DecisionTrace|DecisionStep)\s*\)\s*WHERE',
+        r'MATCH\s*\(\s*\w+\s*:\s*(' + _DOMAIN_LABELS + r')\s*\)\s*WHERE',
         re.IGNORECASE
     )
 
-    _DOMAIN_LABEL_PATTERN = r"(Entity|UseCase|ValueDriver|Capability|Persona|Formula|Outcome|PROVEntity|DecisionTrace|DecisionStep)"
-    _NODE_TOKEN_PATTERN = re.compile(r"\(\s*(\w+)\s*:\s*" + _DOMAIN_LABEL_PATTERN + r"(?:\s*:[^)]+)?\s*(?:\{([^}]*)\})?\s*\)", re.IGNORECASE | re.DOTALL)
+    _NODE_TOKEN_PATTERN = re.compile(r"\(\s*(\w+)\s*:\s*(" + _DOMAIN_LABELS + r")(?:\s*:[^)]+)?\s*(?:\{([^}]*)\})?\s*\)", re.IGNORECASE | re.DOTALL)
     _WHERE_TENANT_PATTERN = re.compile(r"\b(\w+)\.tenant_id\s*=\s*(?:\$tenant_id|\"[^\"]*\"|'[^']*')", re.IGNORECASE)
     _ADMIN_PATTERN = re.compile(r"\b(CREATE|DROP)\s+(CONSTRAINT|INDEX|DATABASE|USER|ROLE)\b|\bCALL\s+db\.", re.IGNORECASE)
     _WRITE_PATTERN = re.compile(r"\b(CREATE|MERGE|SET|DELETE|DETACH\s+DELETE|REMOVE)\b", re.IGNORECASE)
@@ -211,81 +229,44 @@ class QueryValidator:
     def validate_structural_tenant_scope(self, query: str, query_name: str | None = None) -> list[ValidationFinding]:
         """AST-like structural validation supporting multiline/aliases/subqueries.
 
-        This is intentionally parser-like (token + clause analysis) so we can
-        handle aliased variables and nested CALL blocks during migration.
+        .. deprecated::
+            Delegates to the canonical ``validate_tenant_scoped_cypher``.
         """
-        findings: list[ValidationFinding] = []
-        where_scoped_aliases = {
-            m.group(1).lower()
-            for m in self._WHERE_TENANT_PATTERN.finditer(query)
-        }
-        for match in self._NODE_TOKEN_PATTERN.finditer(query):
-            alias = match.group(1)
-            props = match.group(3) or ""
-            has_tenant_in_props = bool(self._TENANT_ID_PATTERN.search(props))
-            has_tenant_in_where = alias.lower() in where_scoped_aliases
-            if not has_tenant_in_props and not has_tenant_in_where:
-                findings.append(
-                    ValidationFinding(
-                        severity=ValidationSeverity.ERROR,
-                        message=(
-                            f"Domain node alias '{alias}' is not tenant-scoped in "
-                            "properties or WHERE predicate"
-                        ),
-                        line_number=self._estimate_line(query, alias),
-                        pattern=match.group(0),
-                        suggestion=f"Add {{tenant_id: $tenant_id}} or WHERE {alias}.tenant_id = $tenant_id",
-                    )
-                )
-        if self.fail_closed and any(f.severity == ValidationSeverity.ERROR for f in findings):
-            name = query_name or "query"
-            raise UnscopedQueryError(
-                f"Query '{name}' failed structural tenant validation: "
-                + "; ".join(f.message for f in findings if f.severity == ValidationSeverity.ERROR)
+        try:
+            validate_tenant_scoped_cypher(
+                query, tenant_owned_labels=TENANT_OWNED_LABELS, query_name=query_name or "query"
             )
-        return findings
+            return []
+        except ValueError as exc:
+            finding = ValidationFinding(
+                severity=ValidationSeverity.ERROR,
+                message=str(exc),
+                line_number=None,
+                pattern=None,
+                suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
+            )
+            if self.fail_closed:
+                raise UnscopedQueryError(str(exc)) from exc
+            return [finding]
     
     def _check_entity_tenant_scoping(self, query: str, query_name: str) -> None:
         """Check that all domain MATCH clauses include tenant_id.
         
-        Args:
-            query: Cypher query
-            query_name: Query identifier for messages
+        .. deprecated::
+            Delegates to the canonical ``validate_tenant_scoped_cypher``.
         """
-        matches = self._ENTITY_MATCH_PATTERN.findall(query)
-        
-        # Collect aliases that have tenant_id scoped in a WHERE clause
-        where_scoped_aliases = {
-            m.group(1).lower()
-            for m in self._WHERE_TENANT_PATTERN.finditer(query)
-        }
-        
-        for node_var, node_type, properties in matches:
-            # Check if the alias is tenant-scoped via WHERE
-            if node_var.lower() in where_scoped_aliases:
-                continue
-            
-            # Check if properties include tenant_id
-            if not properties:
-                # No properties at all - definitely unscoped
-                self._findings.append(ValidationFinding(
-                    severity=ValidationSeverity.ERROR,
-                    message=f"Domain MATCH (line ~{self._estimate_line(query, 'MATCH')}): "
-                           f"Missing property map - must include {{tenant_id: $tenant_id}}",
-                    line_number=self._estimate_line(query, 'MATCH'),
-                    pattern=f"MATCH ({node_var}:{node_type})",
-                    suggestion=f"Change to: MATCH ({node_var}:{node_type} {{id: $id, tenant_id: $tenant_id}})"
-                ))
-            elif not self._TENANT_ID_PATTERN.search(properties):
-                # Has properties but no tenant_id
-                self._findings.append(ValidationFinding(
-                    severity=ValidationSeverity.ERROR,
-                    message=f"Domain MATCH (line ~{self._estimate_line(query, 'MATCH')}): "
-                           f"Missing tenant_id in property map",
-                    line_number=self._estimate_line(query, 'MATCH'),
-                    pattern=f"MATCH ({node_var}:{node_type} {{{properties}}})",
-                    suggestion=f"Add tenant_id: {node_var}:{node_type} {{{properties}, tenant_id: $tenant_id}}"
-                ))
+        try:
+            validate_tenant_scoped_cypher(
+                query, tenant_owned_labels=TENANT_OWNED_LABELS, query_name=query_name
+            )
+        except ValueError as exc:
+            self._findings.append(ValidationFinding(
+                severity=ValidationSeverity.ERROR,
+                message=str(exc),
+                line_number=None,
+                pattern=None,
+                suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
+            ))
     
     def _check_delete_safety(self, query: str, query_name: str) -> None:
         """Check that DELETE operations have tenant verification.
@@ -408,10 +389,11 @@ class ValidatedNeo4jSession:
         self._session = session
         self._tenant_id = tenant_id
         self._strict = strict
-        self._validator = QueryValidator(fail_closed=strict)
     
     async def run(self, query: str, parameters: dict | None = None, **kwargs) -> object:
         """Run query with validation.
+        
+        Routes execution through ``TenantQueryExecutor`` (canonical path).
         
         Args:
             query: Cypher query
@@ -424,18 +406,32 @@ class ValidatedNeo4jSession:
         Raises:
             UnscopedQueryError: If query fails tenant isolation validation
         """
-        # Validate query
-        if self._strict:
-            self._validator.validate(query, query_name="neo4j_session.run")
-        
-        # Inject tenant_id if not present
+        from value_fabric.layer3.db.query_execution import (
+            TenantExecutionContext,
+            TenantQueryExecutor,
+            TenantQueryValidationError,
+        )
+
         params = parameters or {}
         params.update(kwargs)
         
         if self._tenant_id and 'tenant_id' not in params:
             params['tenant_id'] = self._tenant_id
         
-        return await self._session.run(query, params)
+        context = TenantExecutionContext(
+            tenant_id=self._tenant_id,
+            is_bypass=not self._strict,
+            allow_multi_clause_tenant_query=True,
+        )
+        try:
+            return await TenantQueryExecutor.run(
+                self._session.run,
+                query,
+                params,
+                context=context,
+            )
+        except TenantQueryValidationError as exc:
+            raise UnscopedQueryError(str(exc)) from exc
     
     async def close(self) -> None:
         """Close underlying session."""

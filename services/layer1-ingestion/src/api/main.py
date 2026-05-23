@@ -15,8 +15,7 @@ import os
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
-from urllib.parse import urlparse
+from typing import Any, NoReturn
 from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
@@ -42,9 +41,9 @@ except ImportError as e:
         f"Failed to import from value_fabric.shared. Ensure packages/shared is in PYTHONPATH. Error: {e}"
     ) from e
 
+from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
-from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
@@ -1504,6 +1503,8 @@ async def validate_target(
     if request.validate_robots_txt:
         from ..compliance.robots_checker import RobotsChecker
 
+        from urllib.parse import urlparse
+        parsed = urlparse(test_url)
         checker = RobotsChecker(db)
         domain = parsed.netloc
         robots_result = await checker.check_url(domain, test_url)

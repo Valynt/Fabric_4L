@@ -9,6 +9,9 @@ Coverage:
   - All invalid transitions (must raise InvalidTransitionError)
   - Insufficient evidence guard (InsufficientEvidenceError)
   - Dispute and resolve_dispute flow
+  - Reject flow
+  - Supersede flow
+  - Expire flow
   - Auto-advance behaviour
   - Maturity level advancement
   - Immutable audit event creation
@@ -22,6 +25,7 @@ import pytest
 from layer5_ground_truth.models.truth_object import (
     DisputeReason,
     MaturityLevel,
+    RejectionReason,
     TruthObject,
     TruthSource,
     TruthStatus,
@@ -38,8 +42,9 @@ from tests.conftest import TEST_ORG_ID
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def make_truth(
-    status: TruthStatus = TruthStatus.EXTRACTED,
+    status: TruthStatus = TruthStatus.PROPOSED,
     confidence: float = 0.85,
     maturity: int = MaturityLevel.EXTRACTED.value,
 ) -> TruthObject:
@@ -72,189 +77,110 @@ def make_source(
 
 
 # ---------------------------------------------------------------------------
-# EXTRACTED → SUPPORTED
+# PROPOSED → VALIDATED
 # ---------------------------------------------------------------------------
 
-class TestAdvanceToSupported:
+
+class TestValidate:
     @pytest.mark.asyncio
-    async def test_advances_when_conditions_met(self, db):
-        """Should advance EXTRACTED → SUPPORTED when confidence ≥ 0.5 and 1+ source."""
+    async def test_validates_when_conditions_met(self, db):
+        """Should advance PROPOSED → VALIDATED when confidence ≥ 0.5 and 2+ distinct sources."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.85)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.85)
         db.add(truth)
-        source = make_source(truth.id)
-        db.add(source)
-        await db.flush()
-
-        result = await sm.advance_to_supported(db, truth, actor="test_user")
-
-        assert result.status == TruthStatus.SUPPORTED.value
-        assert result.maturity_level >= MaturityLevel.SUPPORTED.value
-
-    @pytest.mark.asyncio
-    async def test_fails_without_sources(self, db):
-        """Should raise InsufficientEvidenceError when no sources attached."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.85)
-        db.add(truth)
-        await db.flush()
-
-        with pytest.raises(InsufficientEvidenceError, match="at least 1 source"):
-            await sm.advance_to_supported(db, truth)
-
-    @pytest.mark.asyncio
-    async def test_fails_with_low_confidence(self, db):
-        """Should raise InsufficientEvidenceError when confidence < threshold."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.3)
-        db.add(truth)
-        source = make_source(truth.id)
-        db.add(source)
-        await db.flush()
-
-        with pytest.raises(InsufficientEvidenceError, match="confidence"):
-            await sm.advance_to_supported(db, truth)
-
-    @pytest.mark.asyncio
-    async def test_invalid_from_corroborated(self, db):
-        """Cannot advance to SUPPORTED from CORROBORATED."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.CORROBORATED)
-        db.add(truth)
-        await db.flush()
-
-        with pytest.raises(InvalidTransitionError):
-            await sm.advance_to_supported(db, truth)
-
-    @pytest.mark.asyncio
-    async def test_creates_validation_event(self, db):
-        """Transition must create an immutable ValidationEvent record."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.9)
-        db.add(truth)
-        source = make_source(truth.id)
-        db.add(source)
-        await db.flush()
-
-        await sm.advance_to_supported(db, truth, actor="auditor")
-        await db.flush()
-
-        from sqlalchemy import select
-        events = (await db.execute(
-            select(ValidationEvent).where(
-                ValidationEvent.truth_object_id == truth.id,
-                ValidationEvent.to_status == TruthStatus.SUPPORTED.value,
-            )
-        )).scalars().all()
-
-        assert len(events) == 1
-        assert events[0].actor == "auditor"
-        assert events[0].from_status == TruthStatus.EXTRACTED.value
-
-
-# ---------------------------------------------------------------------------
-# SUPPORTED → CORROBORATED
-# ---------------------------------------------------------------------------
-
-class TestAdvanceToCorroborated:
-    @pytest.mark.asyncio
-    async def test_advances_with_two_sources(self, db):
-        """Should advance SUPPORTED → CORROBORATED with ≥ 2 sources."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.SUPPORTED, maturity=MaturityLevel.SUPPORTED.value)
-        db.add(truth)
-        # Create two distinct sources (different types required for corroboration)
         db.add(make_source(truth.id, source_type="call_transcript"))
         db.add(make_source(truth.id, source_type="crm_field"))
         await db.flush()
 
-        result = await sm.advance_to_corroborated(db, truth)
+        result = await sm.validate(db, truth, validated_by="test_user")
 
-        assert result.status == TruthStatus.CORROBORATED.value
-        assert result.maturity_level >= MaturityLevel.CORROBORATED.value
+        assert result.status == TruthStatus.VALIDATED.value
+        assert result.maturity_level >= MaturityLevel.APPROVED.value
+        assert result.validated_by == "test_user"
+        assert result.validated_at is not None
 
     @pytest.mark.asyncio
-    async def test_fails_with_one_source(self, db):
-        """Should raise InsufficientEvidenceError with only 1 source."""
+    async def test_fails_without_enough_sources(self, db):
+        """Should raise InsufficientEvidenceError when fewer than 2 distinct sources."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.SUPPORTED, maturity=MaturityLevel.SUPPORTED.value)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.85)
         db.add(truth)
         db.add(make_source(truth.id))
         await db.flush()
 
         with pytest.raises(InsufficientEvidenceError, match="2 distinct sources"):
-            await sm.advance_to_corroborated(db, truth)
+            await sm.validate(db, truth, validated_by="test_user")
 
     @pytest.mark.asyncio
-    async def test_invalid_from_extracted(self, db):
-        """Cannot skip SUPPORTED and go directly to CORROBORATED."""
+    async def test_fails_with_low_confidence(self, db):
+        """Should raise InsufficientEvidenceError when confidence < threshold."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.3)
+        db.add(truth)
+        db.add(make_source(truth.id, source_type="a"))
+        db.add(make_source(truth.id, source_type="b"))
+        await db.flush()
+
+        with pytest.raises(InsufficientEvidenceError, match="confidence"):
+            await sm.validate(db, truth, validated_by="test_user")
+
+    @pytest.mark.asyncio
+    async def test_invalid_from_validated(self, db):
+        """Cannot validate a truth that is already VALIDATED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
         db.add(truth)
         await db.flush()
 
         with pytest.raises(InvalidTransitionError):
-            await sm.advance_to_corroborated(db, truth)
-
-
-# ---------------------------------------------------------------------------
-# CORROBORATED → APPROVED
-# ---------------------------------------------------------------------------
-
-class TestApprove:
-    @pytest.mark.asyncio
-    async def test_approves_with_human_actor(self, db):
-        """Should advance CORROBORATED → APPROVED with a valid approver."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.CORROBORATED, maturity=MaturityLevel.CORROBORATED.value)
-        db.add(truth)
-        await db.flush()
-
-        result = await sm.approve(db, truth, approved_by="cfo@company.com")
-
-        assert result.status == TruthStatus.APPROVED.value
-        assert result.approved_by == "cfo@company.com"
-        assert result.approved_at is not None
-        assert result.maturity_level >= MaturityLevel.APPROVED.value
+            await sm.validate(db, truth, validated_by="test_user")
 
     @pytest.mark.asyncio
-    async def test_fails_without_approver(self, db):
-        """Should raise ValueError when approved_by is empty."""
+    async def test_creates_validation_event(self, db):
+        """Transition must create an immutable ValidationEvent record."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.CORROBORATED, maturity=MaturityLevel.CORROBORATED.value)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.9)
         db.add(truth)
+        db.add(make_source(truth.id, source_type="a"))
+        db.add(make_source(truth.id, source_type="b"))
         await db.flush()
 
-        with pytest.raises(ValueError, match="approved_by is required"):
-            await sm.approve(db, truth, approved_by="")
-
-    @pytest.mark.asyncio
-    async def test_invalid_from_extracted(self, db):
-        """Cannot approve directly from EXTRACTED."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED)
-        db.add(truth)
+        await sm.validate(db, truth, validated_by="auditor")
         await db.flush()
 
-        with pytest.raises(InvalidTransitionError):
-            await sm.approve(db, truth, approved_by="cfo@company.com")
+        from sqlalchemy import select
+
+        events = (
+            await db.execute(
+                select(ValidationEvent).where(
+                    ValidationEvent.truth_object_id == truth.id,
+                    ValidationEvent.to_status == TruthStatus.VALIDATED.value,
+                )
+            )
+        ).scalars().all()
+
+        assert len(events) == 1
+        assert events[0].actor == "auditor"
+        assert events[0].from_status == TruthStatus.PROPOSED.value
 
 
 # ---------------------------------------------------------------------------
 # Dispute flow
 # ---------------------------------------------------------------------------
 
+
 class TestDisputeFlow:
     @pytest.mark.asyncio
-    async def test_dispute_from_supported(self, db):
-        """Should mark SUPPORTED → DISPUTED."""
+    async def test_dispute_from_proposed(self, db):
+        """Should mark PROPOSED → DISPUTED."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.SUPPORTED, maturity=MaturityLevel.SUPPORTED.value)
+        truth = make_truth(TruthStatus.PROPOSED, maturity=MaturityLevel.EXTRACTED.value)
         db.add(truth)
         await db.flush()
 
         result = await sm.dispute(
-            db, truth,
+            db,
+            truth,
             reason=DisputeReason.CONFLICTING_SOURCES,
             disputed_by="reviewer@company.com",
         )
@@ -264,15 +190,16 @@ class TestDisputeFlow:
         assert result.disputed_by == "reviewer@company.com"
 
     @pytest.mark.asyncio
-    async def test_dispute_from_approved(self, db):
-        """Should allow disputing an APPROVED truth object."""
+    async def test_dispute_from_validated(self, db):
+        """Should allow disputing a VALIDATED truth object."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.APPROVED, maturity=MaturityLevel.APPROVED.value)
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
         db.add(truth)
         await db.flush()
 
         result = await sm.dispute(
-            db, truth,
+            db,
+            truth,
             reason=DisputeReason.STALE_DATA,
             disputed_by="analyst@company.com",
         )
@@ -289,16 +216,17 @@ class TestDisputeFlow:
 
         with pytest.raises(InvalidTransitionError):
             await sm.dispute(
-                db, truth,
+                db,
+                truth,
                 reason=DisputeReason.OTHER,
                 disputed_by="reviewer@company.com",
             )
 
     @pytest.mark.asyncio
-    async def test_resolve_dispute_reverts_to_corroborated(self, db):
-        """Resolving a dispute should revert to CORROBORATED and clear dispute fields."""
+    async def test_resolve_dispute_reverts_to_validated(self, db):
+        """Resolving a dispute should revert to VALIDATED and clear dispute fields."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.DISPUTED, maturity=MaturityLevel.CORROBORATED.value)
+        truth = make_truth(TruthStatus.DISPUTED, maturity=MaturityLevel.APPROVED.value)
         truth.dispute_reason = DisputeReason.CONFLICTING_SOURCES.value
         truth.disputed_by = "analyst@company.com"
         db.add(truth)
@@ -306,50 +234,216 @@ class TestDisputeFlow:
 
         result = await sm.resolve_dispute(db, truth, resolved_by="cfo@company.com")
 
-        assert result.status == TruthStatus.CORROBORATED.value
+        assert result.status == TruthStatus.VALIDATED.value
         assert result.dispute_reason is None
         assert result.disputed_by is None
+
+
+# ---------------------------------------------------------------------------
+# Reject flow
+# ---------------------------------------------------------------------------
+
+
+class TestReject:
+    @pytest.mark.asyncio
+    async def test_reject_from_proposed(self, db):
+        """Should mark PROPOSED → REJECTED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.PROPOSED)
+        db.add(truth)
+        await db.flush()
+
+        result = await sm.reject(
+            db,
+            truth,
+            reason=RejectionReason.INSUFFICIENT_EVIDENCE,
+            rejected_by="reviewer@company.com",
+        )
+
+        assert result.status == TruthStatus.REJECTED.value
+        assert result.rejection_reason == RejectionReason.INSUFFICIENT_EVIDENCE.value
+        assert result.rejected_by == "reviewer@company.com"
+        assert result.rejected_at is not None
+
+    @pytest.mark.asyncio
+    async def test_reject_from_disputed(self, db):
+        """Should mark DISPUTED → REJECTED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.DISPUTED)
+        db.add(truth)
+        await db.flush()
+
+        result = await sm.reject(
+            db,
+            truth,
+            reason=RejectionReason.FACTUALLY_INCORRECT,
+            rejected_by="reviewer@company.com",
+        )
+
+        assert result.status == TruthStatus.REJECTED.value
+
+    @pytest.mark.asyncio
+    async def test_cannot_reject_already_rejected(self, db):
+        """Cannot reject a truth object that is already REJECTED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.REJECTED)
+        db.add(truth)
+        await db.flush()
+
+        with pytest.raises(InvalidTransitionError):
+            await sm.reject(
+                db,
+                truth,
+                reason=RejectionReason.OTHER,
+                rejected_by="reviewer@company.com",
+            )
+
+    @pytest.mark.asyncio
+    async def test_cannot_reject_validated(self, db):
+        """Cannot reject a VALIDATED truth directly (must dispute first)."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.VALIDATED)
+        db.add(truth)
+        await db.flush()
+
+        with pytest.raises(InvalidTransitionError):
+            await sm.reject(
+                db,
+                truth,
+                reason=RejectionReason.OTHER,
+                rejected_by="reviewer@company.com",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Supersede flow
+# ---------------------------------------------------------------------------
+
+
+class TestSupersede:
+    @pytest.mark.asyncio
+    async def test_supersede_from_validated(self, db):
+        """Should mark VALIDATED → SUPERSEDED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
+        db.add(truth)
+        # Create a newer truth object to supersede by
+        newer_truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
+        db.add(newer_truth)
+        await db.flush()
+
+        result = await sm.supersede(
+            db,
+            truth,
+            superseded_by_id=newer_truth.id,
+            superseded_by="system",
+        )
+
+        assert result.status == TruthStatus.SUPERSEDED.value
+        assert result.superseded_by_id == newer_truth.id
+        assert result.superseded_at is not None
+
+    @pytest.mark.asyncio
+    async def test_cannot_supersede_proposed(self, db):
+        """Cannot supersede a PROPOSED truth."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.PROPOSED)
+        db.add(truth)
+        await db.flush()
+
+        with pytest.raises(InvalidTransitionError):
+            await sm.supersede(
+                db,
+                truth,
+                superseded_by_id=uuid.uuid4(),
+                superseded_by="system",
+            )
+
+
+# ---------------------------------------------------------------------------
+# Expire flow
+# ---------------------------------------------------------------------------
+
+
+class TestExpire:
+    @pytest.mark.asyncio
+    async def test_expire_from_validated(self, db):
+        """Should mark VALIDATED → EXPIRED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
+        db.add(truth)
+        await db.flush()
+
+        result = await sm.expire(db, truth)
+
+        assert result.status == TruthStatus.EXPIRED.value
+        assert result.is_stale is True
+
+    @pytest.mark.asyncio
+    async def test_expire_from_disputed(self, db):
+        """Should mark DISPUTED → EXPIRED."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.DISPUTED)
+        db.add(truth)
+        await db.flush()
+
+        result = await sm.expire(db, truth)
+
+        assert result.status == TruthStatus.EXPIRED.value
+
+    @pytest.mark.asyncio
+    async def test_cannot_expire_proposed(self, db):
+        """Cannot expire a PROPOSED truth."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.PROPOSED)
+        db.add(truth)
+        await db.flush()
+
+        with pytest.raises(InvalidTransitionError):
+            await sm.expire(db, truth)
 
 
 # ---------------------------------------------------------------------------
 # Operationalize
 # ---------------------------------------------------------------------------
 
+
 class TestOperationalize:
     @pytest.mark.asyncio
     async def test_advances_maturity_to_5(self, db):
-        """Should advance maturity to OPERATIONALIZED (5) for APPROVED objects."""
+        """Should advance maturity to OPERATIONALIZED (5) for VALIDATED objects."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.APPROVED, maturity=MaturityLevel.APPROVED.value)
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.APPROVED.value)
         db.add(truth)
         await db.flush()
 
         result = await sm.mark_operationalized(
-            db, truth,
+            db,
+            truth,
             trigger="used_in_roi_model",
             triggered_by="system",
             context={"roi_model_id": "roi-001"},
         )
 
         assert result.maturity_level == MaturityLevel.OPERATIONALIZED.value
-        assert result.status == TruthStatus.APPROVED.value  # status unchanged
+        assert result.status == TruthStatus.VALIDATED.value  # status unchanged
 
     @pytest.mark.asyncio
-    async def test_fails_for_non_approved(self, db):
-        """Should raise InvalidTransitionError for non-APPROVED objects."""
+    async def test_fails_for_non_validated(self, db):
+        """Should raise InvalidTransitionError for non-VALIDATED objects."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.CORROBORATED, maturity=MaturityLevel.CORROBORATED.value)
+        truth = make_truth(TruthStatus.PROPOSED, maturity=MaturityLevel.EXTRACTED.value)
         db.add(truth)
         await db.flush()
 
-        with pytest.raises(InvalidTransitionError, match="Only APPROVED"):
+        with pytest.raises(InvalidTransitionError, match="Only VALIDATED"):
             await sm.mark_operationalized(db, truth, trigger="test")
 
     @pytest.mark.asyncio
     async def test_idempotent_if_already_operationalized(self, db):
         """Should not raise if already at OPERATIONALIZED maturity."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.APPROVED, maturity=MaturityLevel.OPERATIONALIZED.value)
+        truth = make_truth(TruthStatus.VALIDATED, maturity=MaturityLevel.OPERATIONALIZED.value)
         db.add(truth)
         await db.flush()
 
@@ -361,58 +455,45 @@ class TestOperationalize:
 # Auto-advance
 # ---------------------------------------------------------------------------
 
+
 class TestAutoAdvance:
     @pytest.mark.asyncio
-    async def test_auto_advances_to_supported_with_one_source(self, db):
-        """Auto-advance should reach SUPPORTED with 1 source + high confidence."""
+    async def test_auto_advances_to_validated_with_two_sources(self, db):
+        """Auto-advance should reach VALIDATED with 2 sources + high confidence."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.9)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.9)
         db.add(truth)
-        db.add(make_source(truth.id))
-        await db.flush()
-
-        result = await sm.auto_advance(db, truth)
-
-        assert result.status == TruthStatus.SUPPORTED.value
-
-    @pytest.mark.asyncio
-    async def test_auto_advances_to_corroborated_with_two_sources(self, db):
-        """Auto-advance should reach CORROBORATED with 2 sources + high confidence."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.9)
-        db.add(truth)
-        # Create two distinct sources (different types required for corroboration)
         db.add(make_source(truth.id, source_type="call_transcript"))
         db.add(make_source(truth.id, source_type="crm_field"))
         await db.flush()
 
         result = await sm.auto_advance(db, truth)
 
-        assert result.status == TruthStatus.CORROBORATED.value
+        assert result.status == TruthStatus.VALIDATED.value
 
     @pytest.mark.asyncio
-    async def test_does_not_auto_approve(self, db):
-        """Auto-advance must never reach APPROVED — that requires human action."""
+    async def test_does_not_auto_validate_with_one_source(self, db):
+        """Auto-advance should not reach VALIDATED with only 1 source."""
         sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=1.0)
-        db.add(truth)
-        for _ in range(5):
-            db.add(make_source(truth.id))
-        await db.flush()
-
-        result = await sm.auto_advance(db, truth)
-
-        assert result.status != TruthStatus.APPROVED.value
-
-    @pytest.mark.asyncio
-    async def test_stays_extracted_with_low_confidence(self, db):
-        """Auto-advance should not advance if confidence is below threshold."""
-        sm = ValidationStateMachine()
-        truth = make_truth(TruthStatus.EXTRACTED, confidence=0.2)
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.9)
         db.add(truth)
         db.add(make_source(truth.id))
         await db.flush()
 
         result = await sm.auto_advance(db, truth)
 
-        assert result.status == TruthStatus.EXTRACTED.value
+        assert result.status == TruthStatus.PROPOSED.value
+
+    @pytest.mark.asyncio
+    async def test_stays_proposed_with_low_confidence(self, db):
+        """Auto-advance should not advance if confidence is below threshold."""
+        sm = ValidationStateMachine()
+        truth = make_truth(TruthStatus.PROPOSED, confidence=0.2)
+        db.add(truth)
+        db.add(make_source(truth.id, source_type="a"))
+        db.add(make_source(truth.id, source_type="b"))
+        await db.flush()
+
+        result = await sm.auto_advance(db, truth)
+
+        assert result.status == TruthStatus.PROPOSED.value

@@ -75,7 +75,7 @@ class SimpleTestWorkflow(BaseWorkflow):
     def create_initial_state(self, input_data: dict[str, Any]):
         """Create initial state."""
         from datetime import UTC
-        return BaseAgentState(
+        return BaseAgentState(tenant_id="test-tenant", 
             workflow_id=input_data.get("workflow_id", f"test-{datetime.now(UTC).timestamp()}"),
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.PENDING,
@@ -123,7 +123,7 @@ class TestResumeWorkflow:
         await state_manager.save_state(workflow_id, existing_state)
 
         mock_workflow = Mock(spec=BaseWorkflow)
-        mock_result = BaseAgentState(
+        mock_result = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.COMPLETED,
@@ -318,7 +318,7 @@ class TestCheckpointIntegration:
         await state_manager.save_state(workflow_id, initial_state)
 
         mock_workflow = Mock(spec=BaseWorkflow)
-        completed_state = BaseAgentState(
+        completed_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=workflow_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.COMPLETED,
@@ -390,7 +390,7 @@ class TestOrchestrationControllerEdgeCases:
 
         # Seed an "orphaned" workflow in state manager (not in _active_workflows)
         orphaned_id = "orphaned-wf-001"
-        orphaned_state = BaseAgentState(
+        orphaned_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=orphaned_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.RUNNING,
@@ -432,7 +432,7 @@ class TestOrchestrationControllerEdgeCases:
         from value_fabric.layer4.models.agent_state import WorkflowStatus
 
         wf_id = "already-interrupted-wf"
-        interrupted_state = BaseAgentState(
+        interrupted_state = BaseAgentState(tenant_id="test-tenant", 
             workflow_id=wf_id,
             workflow_type=TEST_WORKFLOW_TYPE,
             status=WorkflowStatus.INTERRUPTED,

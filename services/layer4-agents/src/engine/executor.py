@@ -38,6 +38,7 @@ from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
+from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
 from ..tools.registry import ToolRegistry
 from ..workflows import WORKFLOW_TYPES, create_workflow
@@ -163,17 +164,18 @@ class OrchestrationController:
         """Build a Layer4EventContext for lifecycle logging.
 
         Falls back to workflow metadata when no explicit tenant_id is provided.
+        Uses distinct run_id and trace_id from the canonical run envelope when available.
         """
+        meta = self._workflow_metadata.get(workflow_id, {})
+        envelope_data = meta.get("run_envelope", {})
+
         kwargs: dict[str, Any] = {
             "request_id": workflow_id,
-            "trace_id": workflow_id,
+            "trace_id": envelope_data.get("trace_id") or workflow_id,
             "tenant_id": tenant_id
-            or str(
-                self._workflow_metadata.get(workflow_id, {}).get("tenant_id")
-                or "unknown"
-            ),
+            or str(meta.get("tenant_id") or "unknown"),
             "workflow_id": workflow_id,
-            "run_id": workflow_id,
+            "run_id": envelope_data.get("run_id") or workflow_id,
             "provider_name": "langgraph",
         }
         if checkpoint_id is not None:
@@ -377,6 +379,7 @@ class OrchestrationController:
         Raises:
             ConcurrencyLimitExceeded: If max concurrent workflows reached (P1-42)
             WorkflowTimeoutError: If workflow exceeds global timeout (P1-25)
+            WorkflowExecutionError: If tenant_id is missing or empty
         """
         ensure_controller_accepts_execution(
             is_shutdown=self._shutdown,
@@ -388,6 +391,12 @@ class OrchestrationController:
             raise WorkflowExecutionError(
                 f"Unknown workflow type: {workflow_type!r}. "
                 f"Supported types: {', '.join(sorted(WORKFLOW_TYPES))}"
+            )
+
+        # HARDENING: Tenant scope is a mandatory workflow-start invariant
+        if not tenant_id or not tenant_id.strip():
+            raise WorkflowExecutionError(
+                "tenant_id is required: workflow start rejected"
             )
 
         if self.checkpoint_saver is None:
@@ -410,10 +419,34 @@ class OrchestrationController:
                 f"Current active: {active_count}. Retry after existing workflows complete."
             )
 
+        # Generate canonical run envelope with distinct IDs
+        from uuid import uuid4
+
+        from ..models.run_envelope import RunEnvelope
+
+        wf_id = workflow_id or str(uuid4())
+        run_id = str(uuid4())
+        trace_id = str(uuid4())
+
         # Create workflow with checkpointing if available
         workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
-        initial_state = workflow.create_initial_state(input_data)
-        workflow_id = workflow_id or initial_state.workflow_id
+        initial_state = workflow.create_initial_state(
+            input_data,
+            tenant_id=tenant_id,
+            run_id=run_id,
+            trace_id=trace_id,
+            workflow_id=wf_id,
+        )
+        workflow_id = wf_id
+
+        envelope = RunEnvelope(
+            run_id=run_id,
+            workflow_id=workflow_id,
+            trace_id=trace_id,
+            tenant_id=tenant_id,
+            workflow_type=workflow_type,
+        )
+        initial_state.run_envelope = envelope
 
         # Store metadata with timeout tracking
         from ..config.settings import settings
@@ -424,6 +457,7 @@ class OrchestrationController:
             "priority": priority.value,
             "started_at": datetime.now(UTC).isoformat(),
             "timeout_seconds": settings.workflow_timeout_seconds,  # P1-25
+            "run_envelope": envelope.model_dump(),
         }
 
         # Schedule workflow execution (Task 2.1: Capture tenant context)
@@ -431,10 +465,10 @@ class OrchestrationController:
             stage="start",
             context=Layer4EventContext(
                 request_id=workflow_id,
-                trace_id=workflow_id,
-                tenant_id=tenant_id or "unknown",
+                trace_id=trace_id,
+                tenant_id=tenant_id,
                 workflow_id=workflow_id,
-                run_id=workflow_id,
+                run_id=run_id,
                 provider_name="langgraph",
             ),
             workflow_type=workflow_type,
@@ -459,9 +493,26 @@ class OrchestrationController:
         await self.scheduler.schedule_task(task)
 
         # P1-25: Wait for completion with global timeout
-        return await self._wait_for_workflow_with_timeout(
+        result = await self._wait_for_workflow_with_timeout(
             workflow_id, timeout_seconds=settings.workflow_timeout_seconds
         )
+
+        # Hardening: validate reasoning trace is present for non-failed workflows
+        if result.status not in {
+            WorkflowStatus.FAILED,
+            WorkflowStatus.CANCELLED,
+        }:
+            if result.reasoning_trace is None:
+                result.status = WorkflowStatus.FAILED
+                result.errors.append("REASONING_TRACE_MISSING: workflow completed without reasoning trace")
+                lifecycle_logger.emit(
+                    stage="reasoning_trace_missing",
+                    context=self._lifecycle_context(workflow_id),
+                    workflow_type=workflow_type,
+                )
+                await self.state_manager.save_state(workflow_id, result)
+
+        return result
 
     async def run(
         self,
@@ -505,10 +556,20 @@ class OrchestrationController:
         if "workflow_type" not in persisted_metadata:
             persisted_metadata["workflow_type"] = self._fmt_enum(state.workflow_type)
 
+        output = dict(state.output_data or {})
+        if state.reasoning_trace is not None:
+            output["reasoning_trace"] = state.reasoning_trace.model_dump(mode="json")
+
+        result_metadata = persisted_metadata
+        if state.run_envelope is not None:
+            result_metadata["run_envelope"] = state.run_envelope.model_dump()
+
         return OrchestrationController_get_resultResult.model_validate({
             "workflow_id": state.workflow_id,
-            "output": dict(state.output_data or {}),
-            "metadata": persisted_metadata,
+            "run_id": state.run_id,
+            "trace_id": state.trace_id,
+            "output": output,
+            "metadata": result_metadata,
             "status": self._fmt_enum(state.status),
             "created_at": self._fmt_dt(state.started_at),
             "started_at": self._fmt_dt(state.started_at),
@@ -674,6 +735,7 @@ class OrchestrationController:
         metadata = dict(state.metadata or {})
         metadata.update(self._workflow_metadata.get(workflow_id, {}))
 
+        envelope_data = metadata.get("run_envelope", {})
         return OrchestrationController_get_workflow_statusResult.model_validate({
             "workflow_id": workflow_id,
             "workflow_type": self._fmt_enum(state.workflow_type),
@@ -689,6 +751,8 @@ class OrchestrationController:
             "user_id": metadata.get("user_id"),
             "priority": metadata.get("priority"),
             "scheduler_status": scheduler_status.get("status") if scheduler_status else None,
+            "run_id": envelope_data.get("run_id") or state.run_id,
+            "trace_id": envelope_data.get("trace_id") or state.trace_id,
         })
 
 
@@ -846,6 +910,8 @@ class OrchestrationController:
         from the last completed node. Supports human-in-the-loop workflows where
         execution pauses for user input/decisions.
 
+        Validates against the canonical ReplayConflictPolicy before resuming.
+
         Args:
             workflow_id: Workflow to resume
             user_id: User initiating resume
@@ -880,6 +946,19 @@ class OrchestrationController:
             raise WorkflowExecutionError(
                 f"Workflow ID mismatch: requested {workflow_id} but state has {state.workflow_id}"
             )
+
+        # Validate against replay-conflict policy
+        resolver = ReplayConflictResolver()
+        try:
+            resolver.validate_resume_attempt(
+                workflow_status=state.status,
+                checkpoint_created_at=state.paused_at or state.started_at,
+                checkpoint_hash=None,
+                expected_hash=None,
+                latest_checkpoint_hash=None,
+            )
+        except ReplayConflictError as rce:
+            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 
         # Merge resume data into state if provided
         # Store in output_data to avoid mutating original input_data
@@ -1323,6 +1402,63 @@ class OrchestrationController:
             exception: Exception that caused failure
         """
         logger.error(f"Task {task.task_id} failed: {exception}")
+
+        # Hardening: emit repeated failure metric
+        try:
+            from ..metrics.prometheus_metrics import get_metrics
+            metrics = get_metrics()
+            if metrics:
+                workflow_type = task.parameters.get("workflow_type", "unknown") if hasattr(task, "parameters") else "unknown"
+                tenant_id = task.tenant_id if hasattr(task, "tenant_id") else "unknown"
+                failure_class = type(exception).__name__
+                metrics.increment_repeated_failure(
+                    workflow_type=workflow_type,
+                    failure_class=failure_class,
+                    tenant_id=tenant_id or "unknown",
+                )
+        except Exception:
+            pass
+
+    async def detect_and_record_stuck_workflows(self, threshold_seconds: int = 600) -> None:
+        """Detect workflows stuck longer than threshold and emit metric.
+
+        Args:
+            threshold_seconds: Time in seconds after which a workflow is considered stuck.
+        """
+        try:
+            from ..metrics.prometheus_metrics import get_metrics
+            metrics = get_metrics()
+            if not metrics:
+                return
+        except Exception:
+            return
+
+        stuck_counts: dict[tuple[str, str], int] = {}
+        for workflow_id, meta in self._workflow_metadata.items():
+            state = await self.state_manager.load_state(workflow_id)
+            if not state:
+                continue
+            if state.status not in {WorkflowStatus.RUNNING, WorkflowStatus.PAUSED, WorkflowStatus.INTERRUPTED}:
+                continue
+            started_at = state.started_at or state.metadata.get("started_at")
+            if not started_at:
+                continue
+            if isinstance(started_at, str):
+                from datetime import datetime as _dt
+                started_at = _dt.fromisoformat(started_at.replace("Z", "+00:00"))
+            elapsed = (datetime.now(UTC) - started_at).total_seconds()
+            if elapsed > threshold_seconds:
+                wf_type = meta.get("workflow_type", "unknown")
+                tenant_id = meta.get("tenant_id", "unknown")
+                key = (wf_type, tenant_id)
+                stuck_counts[key] = stuck_counts.get(key, 0) + 1
+
+        for (wf_type, tenant_id), count in stuck_counts.items():
+            metrics.set_stuck_workflows(
+                count=count,
+                workflow_type=wf_type,
+                tenant_id=tenant_id,
+            )
 
 
 # Backward compatibility alias for route dependency typing.

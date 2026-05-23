@@ -103,8 +103,8 @@ async def create_truth(
         confidence=payload.confidence,
         extraction_job_id=payload.extraction_job_id,
         extraction_model=payload.extraction_model,
-        value=payload.value,
-        applies_to=payload.applies_to,
+        value=payload.value.model_dump() if payload.value else None,
+        applies_to=payload.applies_to.model_dump() if payload.applies_to else None,
         raw_extraction_data=payload.raw_extraction_data,
         sources=sources_data,
     )
@@ -122,24 +122,27 @@ async def create_truth(
     if truth.confidence >= settings.min_confidence_for_validated and truth.status in (
         "validated",
     ):
-        client = get_layer3_client()
-        request_id = getattr(request.state, "trace_id", None)
-        node_id = await client.sync_truth_object(
-            truth_object_id=truth.id,
-            tenant_id=tenant_id,
-            claim=truth.claim,
-            claim_type=truth.claim_type,
-            confidence=truth.confidence,
-            status=truth.status,
-            maturity_level=truth.maturity_level,
-            value=truth.value,
-            applies_to=truth.applies_to,
-            source_count=len(truth.sources),
-            request_id=str(request_id) if request_id else None,
-        )
-        if node_id:
-            truth.kg_node_id = node_id
-            truth.kg_synced_at = datetime.now(UTC)
+        try:
+            client = get_layer3_client()
+            request_id = getattr(request.state, "trace_id", None)
+            node_id = await client.sync_truth_object(
+                truth_object_id=truth.id,
+                tenant_id=tenant_id,
+                claim=truth.claim,
+                claim_type=truth.claim_type,
+                confidence=truth.confidence,
+                status=truth.status,
+                maturity_level=truth.maturity_level,
+                value=truth.value,
+                applies_to=truth.applies_to,
+                source_count=len(truth.sources),
+                request_id=str(request_id) if request_id else None,
+            )
+            if node_id:
+                truth.kg_node_id = node_id
+                truth.kg_synced_at = datetime.now(UTC)
+        except Exception:
+            logger.warning("create_truth_kg_sync_failed", exc_info=True)
 
     return TruthObjectResponse.model_validate(truth)
 
@@ -292,6 +295,8 @@ async def sync_to_kg(
             synced += 1
         else:
             failed += 1
+
+    await db.commit()
 
     return SyncToKgResponse.model_validate(
         {
@@ -498,6 +503,10 @@ async def validate_truth(
             dispute_reason=(
                 payload.dispute_reason.value if payload.dispute_reason else None
             ),
+            rejection_reason=(
+                payload.rejection_reason.value if payload.rejection_reason else None
+            ),
+            superseded_by_id=payload.superseded_by_id,
         )
     except InvalidTransitionError as exc:
         logger.warning("invalid_truth_transition: %s", exc)
@@ -515,7 +524,12 @@ async def validate_truth(
         logger.warning("truth_transition_conflict: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "TRANSITION_CONFLICT", "message": "Conflict during state transition"},
+            detail={
+                "code": "TRANSITION_CONFLICT",
+                "message": "Conflict during state transition",
+                "expected": previous_status,
+                "actual": truth.status if truth else "unknown",
+            },
         )
     except ValueError as exc:
         logger.warning("truth_value_error: %s", exc)
@@ -526,24 +540,27 @@ async def validate_truth(
 
     # Sync to Layer 3 after validation
     if truth.status == "validated":
-        client = get_layer3_client()
-        request_id = getattr(request.state, "trace_id", None)
-        node_id = await client.sync_truth_object(
-            truth_object_id=truth.id,
-            tenant_id=tenant_id,
-            claim=truth.claim,
-            claim_type=truth.claim_type,
-            confidence=truth.confidence,
-            status=truth.status,
-            maturity_level=truth.maturity_level,
-            value=truth.value,
-            applies_to=truth.applies_to,
-            source_count=len(truth.sources),
-            request_id=str(request_id) if request_id else None,
-        )
-        if node_id:
-            truth.kg_node_id = node_id
-            truth.kg_synced_at = datetime.now(UTC)
+        try:
+            client = get_layer3_client()
+            request_id = getattr(request.state, "trace_id", None)
+            node_id = await client.sync_truth_object(
+                truth_object_id=truth.id,
+                tenant_id=tenant_id,
+                claim=truth.claim,
+                claim_type=truth.claim_type,
+                confidence=truth.confidence,
+                status=truth.status,
+                maturity_level=truth.maturity_level,
+                value=truth.value,
+                applies_to=truth.applies_to,
+                source_count=len(truth.sources),
+                request_id=str(request_id) if request_id else None,
+            )
+            if node_id:
+                truth.kg_node_id = node_id
+                truth.kg_synced_at = datetime.now(UTC)
+        except Exception:
+            logger.warning("validate_truth_kg_sync_failed", exc_info=True)
 
     return ValidateResponse(
         truth_object_id=truth.id,

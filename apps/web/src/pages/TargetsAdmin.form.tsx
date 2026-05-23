@@ -3,7 +3,7 @@
  * Uses React Hook Form with Zod validation.
  */
 import { useEffect } from 'react';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type UseFormProps } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Loader2 } from 'lucide-react';
@@ -147,11 +147,10 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
   const updateTarget = useUpdateTarget();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    // Zod v4 + @hookform/resolvers v5 type mismatch — runtime works fine
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    resolver: zodResolver(schema) as any,
+    // @ts-expect-error Zod v4 + @hookform/resolvers v5 type mismatch — runtime works fine
+    resolver: zodResolver(schema),
     defaultValues: existing ? targetToForm(existing) : BASE_DEFAULTS,
-  });
+  } as UseFormProps<FormValues>);
 
   useEffect(() => {
     if (existing) reset(targetToForm(existing));

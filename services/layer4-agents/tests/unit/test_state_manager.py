@@ -24,7 +24,7 @@ from value_fabric.layer4.models.agent_state import (
 
 def _roi_state(workflow_id: str, status: WorkflowStatus = WorkflowStatus.PENDING) -> ROIAgentState:
     """Create a minimal ROIAgentState for testing."""
-    state = ROIAgentState(
+    state = ROIAgentState(tenant_id="test-tenant", 
         workflow_id=workflow_id,
         workflow_type=WorkflowType.ROI_CALCULATOR,
     )

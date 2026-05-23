@@ -5,7 +5,7 @@ from datetime import UTC, datetime
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..config.plans import build_plan_version_payload, get_plan
+from ..config.plans import build_plan_version_payload
 from ..models.billing import BillingPlanVersion, BillingSubscription
 
 

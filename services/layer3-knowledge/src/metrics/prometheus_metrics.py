@@ -241,6 +241,37 @@ class PrometheusMetrics:
         )
 
         # Application info
+        # Graph-specific SLO metrics (GOV-L3-METRICS-001)
+        self._metrics["graph_traversal_depth"] = Histogram(
+            f"{prefix}graph_traversal_depth",
+            "Graph traversal depth distribution",
+            ["endpoint", "operation"],
+            buckets=[1, 2, 3, 5, 7, 10, 15, 20, 30, 50],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_result_size"] = Histogram(
+            f"{prefix}graph_result_size",
+            "Graph query result size",
+            ["endpoint", "operation"],
+            buckets=[0, 1, 5, 10, 25, 50, 100, 250, 500, 1000],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_slow_queries_total"] = Counter(
+            f"{prefix}graph_slow_queries_total",
+            "Slow graph query counter by threshold",
+            ["operation", "threshold_bucket"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["tenant_isolation_violations_total"] = Counter(
+            f"{prefix}tenant_isolation_violations_total",
+            "Tenant isolation violation attempts",
+            ["component", "violation_type"],
+            registry=self.config.registry,
+        )
+
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry
         )
@@ -434,6 +465,46 @@ class PrometheusMetrics:
 
         status = 1 if healthy else 0
         self._metrics["health_status"].labels(component=component).set(status)
+
+    def observe_graph_traversal_depth(
+        self, depth: int, endpoint: str, operation: str
+    ) -> None:
+        """Observe graph traversal depth."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_traversal_depth"].labels(
+            endpoint=endpoint, operation=operation
+        ).observe(depth)
+
+    def observe_graph_result_size(
+        self, size: int, endpoint: str, operation: str
+    ) -> None:
+        """Observe graph query result size."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_result_size"].labels(
+            endpoint=endpoint, operation=operation
+        ).observe(size)
+
+    def increment_graph_slow_queries(
+        self, operation: str, threshold_bucket: str
+    ) -> None:
+        """Increment slow graph query counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_slow_queries_total"].labels(
+            operation=operation, threshold_bucket=threshold_bucket
+        ).inc()
+
+    def increment_tenant_isolation_violation(
+        self, component: str, violation_type: str
+    ) -> None:
+        """Increment tenant isolation violation counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["tenant_isolation_violations_total"].labels(
+            component=component, violation_type=violation_type
+        ).inc()
 
     def get_metrics(self) -> str:
         """Get Prometheus metrics output.

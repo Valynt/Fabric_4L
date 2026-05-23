@@ -29,7 +29,7 @@ export function useCanonicalCaseId(accountId: string | null) {
 
       const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
       const lookupData = lookup.data as Record<string, unknown>;
-      const items = Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? []);
+      const items = (Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
       const existing = (items[0] ?? {}) as CaseRecord;
       const existingCaseId = existing.case_id || existing.id;
       if (existingCaseId) {
@@ -309,7 +309,7 @@ export async function getOrCreateCanonicalCaseId(accountId: string): Promise<str
 
   const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
   const lookupData = lookup.data as Record<string, unknown>;
-  const items = Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? []);
+  const items = (Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? [])) as Array<Record<string, unknown>>;
   const existing = (items[0] ?? {}) as CaseRecord;
   const existingCaseId = existing.case_id || existing.id;
   if (existingCaseId) {

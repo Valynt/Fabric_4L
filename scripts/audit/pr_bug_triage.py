@@ -130,9 +130,10 @@ def scan_diff(diff_text, pr_num, sha, branch):
 
             # Hardcoded secrets (basic heuristic)
             if re.search(r'(?i)(api_key|secret|password|token)\s*=\s*["\'][\w\-]{8,}["\']', content):
+                is_test_file = "test" in (current_file or "").lower()
                 add_finding(
                     "security",
-                    "Critical",
+                    "Low" if is_test_file else "Critical",
                     "Potential hardcoded secret or credential in source code.",
                     refs=[{"file": current_file, "line": line_no}],
                 )
@@ -147,7 +148,7 @@ def scan_diff(diff_text, pr_num, sha, branch):
                 )
 
             # Race condition hints
-            if re.search(r"(?i)(race|concurrent|thread|lock|mutex)", content):
+            if re.search(r"(?i)\b(race|concurrent|thread|lock|mutex)\b", content):
                 add_finding(
                     "concurrency",
                     "Medium",

@@ -285,7 +285,7 @@ async def get_value_tree(
             status_code=400,
             detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
         ) from exc
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=400,
             detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
@@ -363,7 +363,7 @@ async def get_value_tree_paths(
             status_code=400,
             detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
         ) from exc
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=400,
             detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",

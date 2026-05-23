@@ -52,7 +52,7 @@ def runtime_controller():
 
 def _make_state(status: WorkflowStatus) -> BaseAgentState:
     """Build a minimal BaseAgentState for controller tests."""
-    return BaseAgentState(
+    return BaseAgentState(tenant_id="test-tenant", 
         workflow_id="",
         workflow_type=WorkflowType.ORCHESTRATOR,
         status=status,

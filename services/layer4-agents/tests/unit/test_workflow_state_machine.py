@@ -38,7 +38,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_initial_status_is_pending(self):
         """New workflow must start with PENDING status."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         assert state.status == WorkflowStatus.PENDING
         assert state.workflow_id is not None
         assert state.started_at is None
@@ -47,7 +47,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_running_status_transition(self):
         """Workflow can transition from PENDING to RUNNING."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
         state.started_at = datetime.now(timezone.utc)
         
@@ -57,7 +57,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_completed_status_transition(self):
         """Workflow can transition from RUNNING to COMPLETED."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
         state.started_at = datetime.now(timezone.utc)
         
@@ -70,7 +70,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_failed_status_transition(self):
         """Workflow can transition from RUNNING to FAILED."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
         state.started_at = datetime.now(timezone.utc)
         
@@ -85,7 +85,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_paused_status_transition(self):
         """Workflow can transition to PAUSED from RUNNING."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
         
         state.status = WorkflowStatus.PAUSED
@@ -106,7 +106,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_resumed_status_transition(self):
         """Workflow can resume from PAUSED to RUNNING."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.PAUSED
         state.paused_at = datetime.now(timezone.utc)
         state.pause_count = 1
@@ -122,7 +122,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_interrupted_status_for_recovery(self):
         """INTERRUPTED status allows recovery after pod restart."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.INTERRUPTED
         
         # Can resume from interrupted
@@ -135,7 +135,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_cannot_resume_from_completed(self):
         """Completed workflow cannot be resumed."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.COMPLETED
         
         assert not state.can_resume()
@@ -143,7 +143,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_cannot_resume_from_failed(self):
         """Failed workflow cannot be resumed."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.FAILED
         
         assert not state.can_resume()
@@ -151,7 +151,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_pause_summary_generation(self):
         """Pause point summary includes all required fields."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.PAUSED
         state.pause_point = {
             "title": "Review Required",
@@ -175,7 +175,7 @@ class TestWorkflowStatusTransitions:
     @pytest.mark.unit
     def test_no_pause_summary_when_not_paused(self):
         """Pause summary is None when workflow not paused."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         state.status = WorkflowStatus.RUNNING
         
         assert state.get_pause_summary() is None
@@ -195,7 +195,7 @@ class TestROIAgentState:
             company_size="enterprise",
         )
         
-        state = ROIAgentState(
+        state = ROIAgentState(tenant_id="test-tenant", 
             workflow_type=WorkflowType.ROI_CALCULATOR,
             roi_input=input_data,
         )
@@ -217,7 +217,7 @@ class TestROIAgentState:
     @pytest.mark.unit
     def test_roi_state_accumulates_results(self):
         """ROI state accumulates calculation results."""
-        state = ROIAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = ROIAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         result1 = {
             "value_driver_id": "vd-1",
@@ -255,7 +255,7 @@ class TestWhitespaceAgentState:
             analysis_depth="deep",
         )
         
-        state = WhitespaceAgentState(
+        state = WhitespaceAgentState(tenant_id="test-tenant", 
             workflow_type=WorkflowType.WHITESPACE_ANALYSIS,
             whitespace_input=input_data,
         )
@@ -298,7 +298,7 @@ class TestBusinessCaseAgentState:
             output_format="pdf",
         )
         
-        state = BusinessCaseAgentState(
+        state = BusinessCaseAgentState(tenant_id="test-tenant", 
             workflow_type=WorkflowType.BUSINESS_CASE,
             case_input=input_data,
         )
@@ -320,7 +320,7 @@ class TestBusinessCaseAgentState:
     @pytest.mark.unit
     def test_business_case_sections_accumulation(self):
         """Business case accumulates generated sections."""
-        state = BusinessCaseAgentState(workflow_type=WorkflowType.BUSINESS_CASE)
+        state = BusinessCaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.BUSINESS_CASE)
         
         section1 = {
             "title": "Executive Summary",
@@ -413,7 +413,7 @@ class TestStateSerialization:
     def test_datetime_serialization_to_isoformat(self):
         """Datetime fields are serialized to ISO format."""
         now = datetime.now(timezone.utc)
-        state = BaseAgentState(
+        state = BaseAgentState(tenant_id="test-tenant", 
             workflow_type=WorkflowType.ROI_CALCULATOR,
             started_at=now,
             completed_at=now,
@@ -431,7 +431,7 @@ class TestStateSerialization:
     @pytest.mark.unit
     def test_none_datetime_serialization(self):
         """None datetime fields remain None in serialization."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         data = state.model_dump()
         
@@ -441,7 +441,7 @@ class TestStateSerialization:
     @pytest.mark.unit
     def test_state_immutability_via_reducers(self):
         """State updates use reducers for safe mutations."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         # Initial state
         initial_output = state.output_data.copy()
@@ -459,7 +459,7 @@ class TestWorkflowStateEdgeCases:
     @pytest.mark.unit
     def test_multiple_pause_resume_cycles(self):
         """Workflow can handle multiple pause/resume cycles."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         for i in range(3):
             # Pause
@@ -477,7 +477,7 @@ class TestWorkflowStateEdgeCases:
     @pytest.mark.unit
     def test_error_accumulation(self):
         """Workflow can accumulate multiple errors."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         state.errors.append("Error 1")
         state.errors.append("Error 2")
@@ -489,8 +489,8 @@ class TestWorkflowStateEdgeCases:
     @pytest.mark.unit
     def test_empty_workflow_id_generation(self):
         """Workflow ID is auto-generated if not provided."""
-        state1 = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
-        state2 = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state1 = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
+        state2 = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         assert state1.workflow_id is not None
         assert state2.workflow_id is not None
@@ -499,7 +499,7 @@ class TestWorkflowStateEdgeCases:
     @pytest.mark.unit
     def test_metadata_accumulation(self):
         """Metadata can accumulate arbitrary data."""
-        state = BaseAgentState(workflow_type=WorkflowType.ROI_CALCULATOR)
+        state = BaseAgentState(tenant_id="test-tenant", workflow_type=WorkflowType.ROI_CALCULATOR)
         
         state.metadata["step_1"] = "completed"
         state.metadata["step_2"] = {"detail": "value"}

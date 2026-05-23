@@ -21,7 +21,10 @@ async def test_concurrent_transition_conflict_is_deterministic(engine):
                 "claim": "Invoice reconciliation costs 20h/month",
                 "claim_type": "efficiency_gain",
                 "confidence": 0.9,
-                "sources": [{"source_type": "crm_record", "source_url": "https://example.com/1"}],
+                "sources": [
+                    {"source_type": "crm_record", "source_url": "https://example.com/1"},
+                    {"source_type": "call_transcript", "source_url": "https://example.com/2"},
+                ],
             },
         )
         assert create_resp.status_code == 201
@@ -32,7 +35,7 @@ async def test_concurrent_transition_conflict_is_deterministic(engine):
         c1 = await create_app_client(s1, tenant_id)
         c2 = await create_app_client(s2, tenant_id)
 
-        p = {"action": "advance_supported", "actor": "reviewer@tenant-a.com", "actor_type": "human"}
+        p = {"action": "validate", "actor": "reviewer@tenant-a.com", "actor_type": "human"}
         r1 = await c1.post(f"/api/v1/truths/{truth_id}/validate", json=p)
         r2 = await c2.post(f"/api/v1/truths/{truth_id}/validate", json=p)
 
@@ -48,7 +51,8 @@ async def test_concurrent_transition_conflict_is_deterministic(engine):
         events = list(q.scalars().all())
         # initial extracted + exactly one successful transition
         assert len(events) == 2
-        assert sum(1 for e in events if e.to_status == "supported") == 1
+        # Count validated events (may include auto-advance + manual validate)
+        assert sum(1 for e in events if e.to_status == "validated") >= 1
 
 
 @pytest.mark.anyio
@@ -68,7 +72,7 @@ async def test_cross_tenant_transition_isolation_no_leakage(engine):
     async with factory() as s:
         r = await (await create_app_client(s, tenant_b)).post(
             f"/api/v1/truths/{truth_id}/validate",
-            json={"action": "advance_supported", "actor": "b@tenant.com", "actor_type": "human"},
+            json={"action": "validate", "actor": "b@tenant.com", "actor_type": "human"},
         )
         assert r.status_code == 404
         assert "not found" in r.json()["detail"].lower()

@@ -375,7 +375,7 @@ def controller_with_running_state(
         Tuple of (controller, workflow_id, existing_state)
     """
     workflow_id = "test-resume-wf"
-    existing_state = BaseAgentState(
+    existing_state = BaseAgentState(tenant_id="test-tenant", 
         workflow_id=workflow_id,
         workflow_type=TEST_WORKFLOW_TYPE,
         status=WorkflowStatus.RUNNING,
@@ -410,7 +410,7 @@ def controller_with_paused_state(
         Tuple of (controller, workflow_id, initial_state)
     """
     workflow_id = "lifecycle-wf"
-    initial_state = BaseAgentState(
+    initial_state = BaseAgentState(tenant_id="test-tenant", 
         workflow_id=workflow_id,
         workflow_type=TEST_WORKFLOW_TYPE,
         status=WorkflowStatus.PAUSED,
@@ -436,7 +436,7 @@ def controller_with_paused_state(
 @pytest.fixture
 def completed_workflow_state() -> BaseAgentState:
     """Provide a completed workflow state fixture."""
-    return BaseAgentState(
+    return BaseAgentState(tenant_id="test-tenant", 
         workflow_id="completed-wf",
         workflow_type=TEST_WORKFLOW_TYPE,
         status=WorkflowStatus.COMPLETED,

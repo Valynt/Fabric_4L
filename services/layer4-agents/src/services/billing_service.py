@@ -21,7 +21,6 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config.plans import check_entitlement, get_entitlements_response
 from ..models.billing import (
-    BillingPlanVersion,
     BillingCustomer,
     BillingInvoice,
     BillingInvoiceItem,

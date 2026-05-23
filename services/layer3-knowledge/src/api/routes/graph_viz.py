@@ -35,6 +35,11 @@ from ...db.query_execution import (
     CypherDepthLimitExceeded,
 )
 
+try:
+    from ...metrics.prometheus_metrics import get_metrics
+except Exception:
+    get_metrics = None
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["Graph"])
@@ -106,20 +111,24 @@ async def get_full_graph(
         node_ids: set[str] = set()
         node_types: dict[str, int] = {}
 
-        for r in nodes_result:
-            node_type = r.get("type", "Unknown")
+        for r in nodes_result:  # type: ignore[assignment]
+            r_dict: dict[str, Any] = r  # type: ignore[assignment]
+            node_type = r_dict.get("type", "Unknown")
             node_types[node_type] = node_types.get(node_type, 0) + 1
+            node_id = r_dict.get("id")
+            if not node_id:
+                continue
             node = _build_graph_node(
-                node_id=r.get("id"),
-                label=r.get("label") or r.get("id"),
+                node_id=node_id,
+                label=r_dict.get("label") or node_id,
                 node_type=node_type,
-                confidence=r.get("confidence") or 0.8,
-                x=r.get("x"),
-                y=r.get("y"),
-                properties={"name": r.get("label")},
+                confidence=r_dict.get("confidence") or 0.8,
+                x=r_dict.get("x"),
+                y=r_dict.get("y"),
+                properties={"name": r_dict.get("label")},
             )
             nodes.append(node)
-            node_ids.add(r.get("id"))
+            node_ids.add(node_id)
 
         edges_result = await asyncio.wait_for(
             neo4j.execute_query(
@@ -133,15 +142,21 @@ async def get_full_graph(
             timeout=QUERY_TIMEOUT_SECONDS,
         )
 
-        edges = [
-            GraphEdge(
-                source=r.get("source"),
-                target=r.get("target"),
-                type=r.get("rel_type", "RELATED_TO"),
-                weight=r.get("weight") or 1.0,
+        edges = []
+        for r in edges_result:  # type: ignore[assignment]
+            r_dict: dict[str, Any] = r  # type: ignore[assignment]
+            source = r_dict.get("source")
+            target = r_dict.get("target")
+            if not source or not target:
+                continue
+            edges.append(
+                GraphEdge(
+                    source=source,
+                    target=target,
+                    type=r_dict.get("rel_type", "RELATED_TO"),
+                    weight=r_dict.get("weight") or 1.0,
+                )
             )
-            for r in edges_result
-        ]
 
         total_nodes_result = await asyncio.wait_for(
             neo4j.execute_query(
@@ -158,8 +173,8 @@ async def get_full_graph(
             timeout=QUERY_TIMEOUT_SECONDS,
         )
 
-        total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0
-        total_edges = total_edges_result[0].get("total", 0) if total_edges_result else 0
+        total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0  # type: ignore[index]
+        total_edges = total_edges_result[0].get("total", 0) if total_edges_result else 0  # type: ignore[index]
         density = (
             0.0
             if total_nodes <= 1
@@ -180,7 +195,7 @@ async def get_full_graph(
 
     except HTTPException:
         raise
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=400,
             detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
@@ -190,6 +205,12 @@ async def get_full_graph(
         raise HTTPException(
             status_code=500, detail="Failed to retrieve graph"
         )
+    finally:
+        metrics = get_metrics() if get_metrics else None
+        if metrics:
+            metrics.observe_graph_result_size(
+                size=len(nodes), endpoint="/graph", operation="get_full_graph"
+            )
 
 
 @router.get("/entities/{entity_id}/subgraph", response_model=SubgraphResponse)
@@ -218,7 +239,7 @@ async def get_entity_subgraph(
         if not root_result:
             raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
 
-        root_record = root_result[0]
+        root_record: dict[str, Any] = root_result[0]  # type: ignore[index]
 
         subgraph_result = await asyncio.wait_for(
             neo4j.execute_query(
@@ -246,9 +267,10 @@ async def get_entity_subgraph(
             properties={"is_root": True},
         )
 
-        for r in subgraph_result:
-            connected = r.get("connected")
-            rels = r.get("rels", [])
+        for r in subgraph_result:  # type: ignore[assignment]
+            r_dict: dict[str, Any] = r  # type: ignore[assignment]
+            connected = r_dict.get("connected")
+            rels = r_dict.get("rels", [])
 
             if connected and connected.get("id"):
                 conn_id = connected.get("id")
@@ -282,7 +304,7 @@ async def get_entity_subgraph(
         n = len(nodes)
         e = len(edges)
 
-        return SubgraphResponse(
+        response = SubgraphResponse(
             root_entity_id=entity_id,
             nodes=nodes,
             edges=edges,
@@ -296,6 +318,17 @@ async def get_entity_subgraph(
             ),
         )
 
+        metrics = get_metrics() if get_metrics else None
+        if metrics:
+            metrics.observe_graph_traversal_depth(
+                depth=depth, endpoint="/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
+            )
+            metrics.observe_graph_result_size(
+                size=len(nodes), endpoint="/entities/{entity_id}/subgraph", operation="get_entity_subgraph"
+            )
+
+        return response
+
     except HTTPException:
         raise
     except CypherDepthLimitExceeded as exc:
@@ -304,7 +337,7 @@ async def get_entity_subgraph(
             status_code=400,
             detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
         ) from exc
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=400,
             detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
@@ -379,11 +412,15 @@ async def get_query_subgraph(
             rel_filter = ""
             if relationship_types:
                 validated = [r for r in relationship_types if _VALID_REL_TYPE.match(r)]
-                if validated:
-                    rel_filter = (
-                        "AND ALL(r IN relationships(path) WHERE type(r) IN $rel_types)"
+                if not validated:
+                    raise HTTPException(
+                        status_code=400,
+                        detail="No valid relationship types provided",
                     )
-                    query_params["rel_types"] = validated
+                rel_filter = (
+                    "AND ALL(r IN relationships(path) WHERE type(r) IN $rel_types)"
+                )
+                query_params["rel_types"] = validated
 
             subgraph_query = f"""
             MATCH path = (root {{id: $entity_id, tenant_id: $tenant_id}})-[*1..$depth]-(connected {{tenant_id: $tenant_id}})
@@ -400,7 +437,7 @@ async def get_query_subgraph(
             )
 
             if result:
-                record = result[0]
+                record: dict[str, Any] = result[0]  # type: ignore[index]
                 root_data = record.get("root", {})
                 neighbors = record.get("neighbors", [])
                 paths = record.get("paths", [])
@@ -489,10 +526,11 @@ async def get_query_subgraph(
             )
 
             node_ids: set[str] = set()
-            for record in result:
-                seed = record.get("seed")
-                neighbors = record.get("neighbors", [])
-                rels = record.get("rels", [])
+            for record in result:  # type: ignore[assignment]
+                record_dict: dict[str, Any] = record  # type: ignore[assignment]
+                seed = record_dict.get("seed")
+                neighbors = record_dict.get("neighbors", [])
+                rels = record_dict.get("rels", [])
 
                 if seed and seed.get("id") and seed.get("id") not in node_ids:
                     node_ids.add(seed.get("id"))
@@ -538,13 +576,24 @@ async def get_query_subgraph(
         e = len(edges)
         density = 0.0 if n <= 1 else (2 * e) / (n * (n - 1))
 
-        return SubgraphResponse(
+        response = SubgraphResponse(
             root_entity_id=root_id,
             nodes=nodes,
             edges=edges,
             depth=depth,
             stats=GraphStats(total_nodes=n, total_edges=e, density=density),
         )
+
+        metrics = get_metrics() if get_metrics else None
+        if metrics:
+            metrics.observe_graph_traversal_depth(
+                depth=depth, endpoint="/v1/graph/subgraph", operation="get_query_subgraph"
+            )
+            metrics.observe_graph_result_size(
+                size=len(nodes), endpoint="/v1/graph/subgraph", operation="get_query_subgraph"
+            )
+
+        return response
 
     except HTTPException:
         raise
@@ -554,7 +603,7 @@ async def get_query_subgraph(
             status_code=400,
             detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
         ) from exc
-    except asyncio.TimeoutError:
+    except TimeoutError:
         raise HTTPException(
             status_code=400,
             detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",

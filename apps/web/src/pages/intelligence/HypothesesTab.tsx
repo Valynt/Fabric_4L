@@ -173,7 +173,8 @@ export default function HypothesesTab() {
   const generateHypotheses = useGenerateHypotheses();
   const validateHypothesis = useValidateHypothesis();
   const convertHypothesisToTree = useConvertHypothesisToTree();
-  const persistWorkspaceTab = usePersistWorkspaceTab();
+  const persistWorkspaceTab = usePersistWorkspaceTab("hypotheses");
+  const { data: caseId } = useCanonicalCaseId(accountId ?? null);
 
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -419,13 +420,16 @@ export default function HypothesesTab() {
                       onSuccess: (result) => {
                         // If validation promoted drivers, persist the tab state and
                         // deep-link to the driver evidence view with provenance context.
-                        const drivers = result?.promoted_artifacts?.drivers ?? [];
-                        const linkages = result?.promoted_artifacts?.linkages ?? [];
-                        if (drivers.length > 0 && accountId) {
+                        const drivers = (result?.promoted_artifacts?.drivers ?? []) as Array<{ id: string }>;
+                        const linkages = (result?.promoted_artifacts?.linkages ?? []) as Array<{ linkage_id?: string }>;
+                        if (drivers.length > 0 && accountId && caseId) {
                           persistWorkspaceTab.mutate({
-                            accountId,
-                            tab: "drivers",
-                            context: { hypothesisId: h.id },
+                            caseId,
+                            payload: {
+                              account_id: accountId,
+                              tab: "drivers",
+                              context: { hypothesisId: h.id },
+                            },
                           });
                           const query = new URLSearchParams();
                           query.set("driver_id", drivers[0].id);

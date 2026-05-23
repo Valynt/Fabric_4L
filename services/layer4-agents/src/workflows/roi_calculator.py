@@ -166,18 +166,46 @@ class ROICalculatorWorkflow(BaseWorkflow):
         """Return ROI-specific state type."""
         return ROIAgentState
 
-    def create_initial_state(self, input_data: dict[str, Any]) -> ROIAgentState:
+    def create_initial_state(
+        self,
+        input_data: dict[str, Any],
+        *,
+        tenant_id: str,
+        run_id: str | None = None,
+        trace_id: str | None = None,
+        workflow_id: str | None = None,
+    ) -> ROIAgentState:
         """Create initial state from input data."""
+        from uuid import uuid4
+
+        from ..models.run_envelope import RunEnvelope
+
         roi_input = ROIInputData(**input_data)
+        wf_id = workflow_id or str(uuid4())
+        r_id = run_id or str(uuid4())
+        t_id = trace_id or str(uuid4())
+
+        envelope = RunEnvelope(
+            run_id=r_id,
+            workflow_id=wf_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
+            workflow_type=self.config.workflow_type,
+        )
 
         return ROIAgentState(
+            workflow_id=wf_id,
+            run_id=r_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
             workflow_type=self.config.workflow_type,
             status=WorkflowStatus.PENDING,
             roi_input=roi_input,
             input_data=input_data,
             output_data={},
             errors=[],
-            metadata={"workflow_name": self.name, "tenant_id": input_data.get("tenant_id")},
+            metadata={"workflow_name": self.name},
+            run_envelope=envelope,
         )
 
     async def _execute_tool(

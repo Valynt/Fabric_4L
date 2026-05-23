@@ -29,7 +29,8 @@ def make_truth_payload(**overrides) -> dict:
 async def test_truth_create_rejected_without_scope() -> None:
     with pytest.raises(HTTPException) as exc_info:
         await create_truth(
-            TruthObjectCreate(**make_truth_payload()),
+            request=None,
+            payload=TruthObjectCreate(**make_truth_payload()),
             caller=TokenClaims(tenant_id=TEST_ORG_ID, user_id="viewer", roles=["read_only"]),
             db=None,
         )
@@ -49,11 +50,16 @@ async def test_truth_create_allowed_with_scope(monkeypatch: pytest.MonkeyPatch) 
         claim_type=make_truth_payload()["claim_type"],
         value=make_truth_payload()["value"],
         confidence=make_truth_payload()["confidence"],
-        status="extracted",
+        status="proposed",
         maturity_level=1,
-        approved_by=None,
-        approved_at=None,
-        approval_notes=None,
+        validated_by=None,
+        validated_at=None,
+        validation_notes=None,
+        rejected_by=None,
+        rejected_at=None,
+        rejection_reason=None,
+        superseded_by_id=None,
+        superseded_at=None,
         freshness=now,
         expires_at=None,
         is_stale=False,
@@ -80,7 +86,8 @@ async def test_truth_create_allowed_with_scope(monkeypatch: pytest.MonkeyPatch) 
     monkeypatch.setattr("layer5_ground_truth.api.router.get_truth_object", _get_truth_object)
 
     created = await create_truth(
-        TruthObjectCreate(**make_truth_payload()),
+        request=None,
+        payload=TruthObjectCreate(**make_truth_payload()),
         caller=TokenClaims(tenant_id=TEST_ORG_ID, user_id="editor", roles=["content_admin"]),
         db=None,
     )

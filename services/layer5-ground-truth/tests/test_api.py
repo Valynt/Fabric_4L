@@ -11,10 +11,11 @@ Coverage:
   GET    /api/v1/truths/{id}             — get by ID
   POST   /api/v1/truths/{id}/validate    — state transitions
   POST   /api/v1/truths/{id}/sources     — add source
-  GET    /api/v1/truths/{id}/audit       — audit trail
   DELETE /api/v1/truths/{id}             — soft delete
+  GET    /api/v1/truths/{id}/audit       — audit trail
+  POST   /api/v1/truths/sync-kg         — KG sync
   GET    /api/v1/maturity-ladder         — reference endpoint
-  GET    /api/v1/health                  — health check
+  GET    /health                         — health check
 """
 
 import uuid
@@ -30,6 +31,7 @@ ORG_PARAM = f"?tenant_id={TEST_ORG_ID}"
 # POST /api/v1/truths
 # ---------------------------------------------------------------------------
 
+
 class TestCreateTruth:
     @pytest.mark.asyncio
     async def test_creates_truth_object(self, client):
@@ -40,13 +42,27 @@ class TestCreateTruth:
         assert resp.status_code == 201
         data = resp.json()
         assert data["claim"] == payload["claim"]
-        assert data["status"] == "extracted"
+        assert data["status"] == "proposed"
         assert data["maturity_level"] >= 1
         assert uuid.UUID(data["id"])
 
     @pytest.mark.asyncio
     async def test_auto_advances_with_sources(self, client):
-        """Should auto-advance to SUPPORTED when sources are included."""
+        """Should auto-advance to VALIDATED when sources are included."""
+        payload = make_truth_payload(
+            confidence=0.9,
+            sources=[make_source_payload(), make_source_payload(source_url="https://example.com/doc2")],
+        )
+        resp = await client.post(f"/api/v1/truths{ORG_PARAM}", json=payload)
+
+        assert resp.status_code == 201
+        data = resp.json()
+        assert data["status"] == "validated"
+        assert len(data["sources"]) == 2
+
+    @pytest.mark.asyncio
+    async def test_stays_proposed_with_one_source(self, client):
+        """Should stay PROPOSED when only 1 source is included."""
         payload = make_truth_payload(
             confidence=0.9,
             sources=[make_source_payload()],
@@ -55,21 +71,7 @@ class TestCreateTruth:
 
         assert resp.status_code == 201
         data = resp.json()
-        assert data["status"] == "supported"
-        assert len(data["sources"]) == 1
-
-    @pytest.mark.asyncio
-    async def test_auto_advances_to_corroborated_with_two_sources(self, client):
-        """Should auto-advance to CORROBORATED when 2 sources are included."""
-        payload = make_truth_payload(
-            confidence=0.9,
-            sources=[make_source_payload(), make_source_payload(source_url="https://example.com/call/456")],
-        )
-        resp = await client.post(f"/api/v1/truths{ORG_PARAM}", json=payload)
-
-        assert resp.status_code == 201
-        data = resp.json()
-        assert data["status"] == "corroborated"
+        assert data["status"] == "proposed"
 
     @pytest.mark.asyncio
     async def test_validation_error_on_empty_claim(self, client):
@@ -87,19 +89,20 @@ class TestCreateTruth:
 
     @pytest.mark.asyncio
     async def test_creates_initial_validation_event(self, client):
-        """Should create an initial EXTRACTED ValidationEvent."""
+        """Should create an initial PROPOSED ValidationEvent."""
         payload = make_truth_payload()
         resp = await client.post(f"/api/v1/truths{ORG_PARAM}", json=payload)
         assert resp.status_code == 201
         data = resp.json()
         events = data["validation_events"]
         assert len(events) >= 1
-        assert events[0]["to_status"] == "extracted"
+        assert events[0]["to_status"] == "proposed"
 
 
 # ---------------------------------------------------------------------------
 # GET /api/v1/truths
 # ---------------------------------------------------------------------------
+
 
 class TestListTruths:
     @pytest.mark.asyncio
@@ -118,17 +121,17 @@ class TestListTruths:
     @pytest.mark.asyncio
     async def test_filters_by_status(self, client):
         """Should filter by status correctly."""
-        # Create one object that stays EXTRACTED (low confidence)
+        # Create one object that stays PROPOSED (low confidence, no sources)
         await client.post(
             f"/api/v1/truths{ORG_PARAM}",
             json=make_truth_payload(confidence=0.1),
         )
 
-        resp = await client.get(f"/api/v1/truths{ORG_PARAM}&status=extracted")
+        resp = await client.get(f"/api/v1/truths{ORG_PARAM}&status=proposed")
         assert resp.status_code == 200
         data = resp.json()
         for item in data["items"]:
-            assert item["status"] == "extracted"
+            assert item["status"] == "proposed"
 
     @pytest.mark.asyncio
     async def test_pagination(self, client):
@@ -146,6 +149,7 @@ class TestListTruths:
 # ---------------------------------------------------------------------------
 # GET /api/v1/truths/{id}
 # ---------------------------------------------------------------------------
+
 
 class TestGetTruth:
     @pytest.mark.asyncio
@@ -189,36 +193,51 @@ class TestGetTruth:
 # POST /api/v1/truths/{id}/validate
 # ---------------------------------------------------------------------------
 
+
 class TestValidateTruth:
     @pytest.mark.asyncio
-    async def test_approve_flow(self, client):
-        """Full flow: create → add 2 sources → corroborate → approve."""
-        # Create with 2 sources (auto-advances to corroborated)
+    async def test_validate_flow(self, client):
+        """Full flow: create with 2 sources → validated."""
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
             json=make_truth_payload(
                 confidence=0.9,
-                sources=[make_source_payload(), make_source_payload(source_url="https://other.com/doc")],
+                sources=[
+                    make_source_payload(),
+                    make_source_payload(source_url="https://other.com/doc"),
+                ],
             ),
         )
         assert create_resp.status_code == 201
         truth_id = create_resp.json()["id"]
-        assert create_resp.json()["status"] == "corroborated"
+        assert create_resp.json()["status"] == "validated"
 
-        # Approve
+    @pytest.mark.asyncio
+    async def test_manual_validate_from_proposed(self, client):
+        """Manual validate action: PROPOSED → VALIDATED."""
+        # Create with low confidence / no sources so it stays PROPOSED
+        create_resp = await client.post(
+            f"/api/v1/truths{ORG_PARAM}",
+            json=make_truth_payload(
+                confidence=0.5,
+                sources=[],
+            ),
+        )
+        truth_id = create_resp.json()["id"]
+        assert create_resp.json()["status"] == "proposed"
+
         validate_resp = await client.post(
             f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
             json={
-                "action": "approve",
-                "actor": "cfo@company.com",
+                "action": "validate",
+                "actor": "reviewer@company.com",
                 "actor_type": "human",
                 "notes": "Verified against Q3 data",
             },
         )
         assert validate_resp.status_code == 200
         data = validate_resp.json()
-        assert data["new_status"] == "approved"
-        assert data["previous_status"] == "corroborated"
+        assert data["new_status"] == "validated"
 
     @pytest.mark.asyncio
     async def test_dispute_and_resolve(self, client):
@@ -227,7 +246,10 @@ class TestValidateTruth:
             f"/api/v1/truths{ORG_PARAM}",
             json=make_truth_payload(
                 confidence=0.9,
-                sources=[make_source_payload(), make_source_payload(source_url="https://other.com")],
+                sources=[
+                    make_source_payload(),
+                    make_source_payload(source_url="https://other.com"),
+                ],
             ),
         )
         truth_id = create_resp.json()["id"]
@@ -255,21 +277,42 @@ class TestValidateTruth:
             },
         )
         assert resolve_resp.status_code == 200
-        assert resolve_resp.json()["new_status"] == "corroborated"
+        assert resolve_resp.json()["new_status"] == "validated"
+
+    @pytest.mark.asyncio
+    async def test_reject_from_proposed(self, client):
+        """Should reject a proposed truth object."""
+        create_resp = await client.post(
+            f"/api/v1/truths{ORG_PARAM}",
+            json=make_truth_payload(confidence=0.1),
+        )
+        truth_id = create_resp.json()["id"]
+
+        reject_resp = await client.post(
+            f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
+            json={
+                "action": "reject",
+                "actor": "reviewer@company.com",
+                "rejection_reason": "insufficient_evidence",
+                "notes": "Not enough sources to validate",
+            },
+        )
+        assert reject_resp.status_code == 200
+        assert reject_resp.json()["new_status"] == "rejected"
 
     @pytest.mark.asyncio
     async def test_invalid_transition_returns_400(self, client):
         """Should return 400 for an invalid transition."""
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
-            json=make_truth_payload(confidence=0.1),  # stays EXTRACTED
+            json=make_truth_payload(confidence=0.1),
         )
         truth_id = create_resp.json()["id"]
 
-        # Try to approve directly from EXTRACTED
+        # Try to validate directly from PROPOSED without enough evidence
         resp = await client.post(
             f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
-            json={"action": "approve", "actor": "cfo@company.com"},
+            json={"action": "validate", "actor": "reviewer@company.com"},
         )
         assert resp.status_code == 400
 
@@ -288,21 +331,37 @@ class TestValidateTruth:
         )
         assert resp.status_code == 422
 
+    @pytest.mark.asyncio
+    async def test_reject_requires_reason(self, client):
+        """Should return 422 when rejection_reason is missing for reject action."""
+        create_resp = await client.post(
+            f"/api/v1/truths{ORG_PARAM}",
+            json=make_truth_payload(confidence=0.1),
+        )
+        truth_id = create_resp.json()["id"]
+
+        resp = await client.post(
+            f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
+            json={"action": "reject", "actor": "reviewer@company.com"},
+        )
+        assert resp.status_code == 422
+
 
 # ---------------------------------------------------------------------------
 # POST /api/v1/truths/{id}/sources
 # ---------------------------------------------------------------------------
 
+
 class TestAddSource:
     @pytest.mark.asyncio
     async def test_adds_source_and_auto_advances(self, client):
-        """Adding a source should trigger auto-advance to SUPPORTED."""
+        """Adding a source should trigger auto-advance to VALIDATED when threshold met."""
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
             json=make_truth_payload(confidence=0.9),  # no sources initially
         )
         truth_id = create_resp.json()["id"]
-        assert create_resp.json()["status"] == "extracted"
+        assert create_resp.json()["status"] == "proposed"
 
         source_resp = await client.post(
             f"/api/v1/truths/{truth_id}/sources{ORG_PARAM}",
@@ -311,9 +370,19 @@ class TestAddSource:
         assert source_resp.status_code == 201
         assert uuid.UUID(source_resp.json()["id"])
 
-        # Verify status advanced
+        # Still PROPOSED with only 1 source
         get_resp = await client.get(f"/api/v1/truths/{truth_id}{ORG_PARAM}")
-        assert get_resp.json()["status"] == "supported"
+        assert get_resp.json()["status"] == "proposed"
+
+        # Add second source → auto-advance to VALIDATED
+        source_resp2 = await client.post(
+            f"/api/v1/truths/{truth_id}/sources{ORG_PARAM}",
+            json=make_source_payload(source_url="https://other.com/doc"),
+        )
+        assert source_resp2.status_code == 201
+
+        get_resp2 = await client.get(f"/api/v1/truths/{truth_id}{ORG_PARAM}")
+        assert get_resp2.json()["status"] == "validated"
 
     @pytest.mark.asyncio
     async def test_returns_404_for_unknown_truth(self, client):
@@ -330,25 +399,32 @@ class TestAddSource:
 # GET /api/v1/truths/{id}/audit
 # ---------------------------------------------------------------------------
 
+
 class TestAuditTrail:
     @pytest.mark.asyncio
     async def test_returns_all_events(self, client):
         """Audit trail should contain all state transition events."""
-        # Create → add source (triggers advance_to_supported)
+        # Create → add 2 sources (triggers auto-advance to VALIDATED)
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
-            json=make_truth_payload(confidence=0.9, sources=[make_source_payload()]),
+            json=make_truth_payload(
+                confidence=0.9,
+                sources=[
+                    make_source_payload(),
+                    make_source_payload(source_url="https://other.com"),
+                ],
+            ),
         )
         truth_id = create_resp.json()["id"]
 
         resp = await client.get(f"/api/v1/truths/{truth_id}/audit{ORG_PARAM}")
         assert resp.status_code == 200
         events = resp.json()
-        assert len(events) >= 2  # initial EXTRACTED + advance to SUPPORTED
+        assert len(events) >= 2  # initial PROPOSED + advance to VALIDATED
 
         statuses = [e["to_status"] for e in events]
-        assert "extracted" in statuses
-        assert "supported" in statuses
+        assert "proposed" in statuses
+        assert "validated" in statuses
 
     @pytest.mark.asyncio
     async def test_events_are_ordered_chronologically(self, client):
@@ -368,6 +444,7 @@ class TestAuditTrail:
 # ---------------------------------------------------------------------------
 # DELETE /api/v1/truths/{id}
 # ---------------------------------------------------------------------------
+
 
 class TestSoftDelete:
     @pytest.mark.asyncio
@@ -389,6 +466,7 @@ class TestSoftDelete:
 # GET /api/v1/maturity-ladder
 # ---------------------------------------------------------------------------
 
+
 class TestMaturityLadder:
     @pytest.mark.asyncio
     async def test_returns_six_levels(self, client):
@@ -404,6 +482,7 @@ class TestMaturityLadder:
 # ---------------------------------------------------------------------------
 # GET /health
 # ---------------------------------------------------------------------------
+
 
 class TestHealth:
     @pytest.mark.asyncio
@@ -433,19 +512,35 @@ class TestContractShapes:
     async def test_transition_conflict_error_envelope_shape(self, client):
         create_resp = await client.post(
             f"/api/v1/truths{ORG_PARAM}",
-            json=make_truth_payload(confidence=0.9, sources=[make_source_payload(), make_source_payload(source_url="https://conflict.example")]),
+            json=make_truth_payload(
+                confidence=0.9,
+                sources=[
+                    make_source_payload(),
+                    make_source_payload(source_url="https://conflict.example"),
+                ],
+            ),
         )
         truth_id = create_resp.json()["id"]
 
         first = await client.post(
             f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
-            json={"action": "approve", "actor": "reviewer@company.com", "actor_type": "human", "expected_current_status": "corroborated"},
+            json={
+                "action": "dispute",
+                "actor": "reviewer@company.com",
+                "actor_type": "human",
+                "dispute_reason": "conflicting_sources",
+            },
         )
         assert first.status_code == 200
 
         conflict = await client.post(
             f"/api/v1/truths/{truth_id}/validate{ORG_PARAM}",
-            json={"action": "approve", "actor": "reviewer@company.com", "actor_type": "human", "expected_current_status": "corroborated"},
+            json={
+                "action": "dispute",
+                "actor": "reviewer@company.com",
+                "actor_type": "human",
+                "dispute_reason": "conflicting_sources",
+            },
         )
         assert conflict.status_code == 409
         detail = conflict.json()["detail"]

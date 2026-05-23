@@ -21,6 +21,7 @@ from .agent_state import (
     ROIAgentState,
     ROIInputData,
     ROIResult,
+    TenantMissingError,
     WhitespaceAgentState,
     WhitespaceInputData,
     WorkflowStatus,
@@ -63,6 +64,8 @@ from .pain_signal import (
     SignalCategory,
     TrendDirection,
 )
+from .reasoning_trace import ReasoningTrace, ToolCallTrace, validate_reasoning_trace
+from .run_envelope import RunEnvelope
 from .saved_scenario import SavedBusinessCaseScenario
 from .tool_schemas import (
     AssembleDocumentInput,
@@ -136,6 +139,7 @@ __all__ = [
     # Agent State
     "AgentState",
     "BaseAgentState",
+    "TenantMissingError",
     "WorkflowStatus",
     "WorkflowType",
     "ROIAgentState",
@@ -148,6 +152,11 @@ __all__ = [
     "BusinessCaseInputData",
     "BusinessCaseSection",
     "OrchestratorAgentState",
+    # Reasoning Trace & Run Envelope
+    "ReasoningTrace",
+    "ToolCallTrace",
+    "RunEnvelope",
+    "validate_reasoning_trace",
     # Workflow Config
     "WorkflowConfig",
     "NodeConfig",

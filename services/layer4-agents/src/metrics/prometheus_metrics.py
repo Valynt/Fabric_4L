@@ -337,6 +337,45 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # ------------------------------------------------------------------
+        # Hardening observability metrics (approval latency + failure alerting)
+        # ------------------------------------------------------------------
+        self._metrics["approval_wait_seconds"] = Histogram(
+            f"{prefix}approval_wait_seconds",
+            "Time from gate creation to human decision",
+            ["gate_type", "action_class", "tenant_tier"],
+            buckets=self.config.default_buckets,
+            registry=self.config.registry,
+        )
+
+        self._metrics["stuck_workflows_total"] = Gauge(
+            f"{prefix}stuck_workflows_total",
+            "Workflows stuck in RUNNING or WAITING_FOR_HUMAN longer than threshold",
+            ["workflow_type", "tenant_tier"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["repeated_workflow_failures_total"] = Counter(
+            f"{prefix}repeated_workflow_failures_total",
+            "Workflows failing more than threshold times",
+            ["workflow_type", "failure_class", "tenant_tier"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["tool_auth_failures_total"] = Counter(
+            f"{prefix}tool_auth_failures_total",
+            "Tool calls failing due to auth or authorization errors",
+            ["tool_name", "tenant_tier"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["checkpoint_corruption_detected_total"] = Counter(
+            f"{prefix}checkpoint_corruption_detected_total",
+            "Checkpoint hash mismatches or unreadable checkpoints",
+            ["workflow_type", "tenant_tier"],
+            registry=self.config.registry,
+        )
+
     def increment_requests_total(self, method: str, endpoint: str, status_code: int) -> None:
         if self.config.enabled:
             self._metrics["requests_total"].labels(
@@ -502,6 +541,67 @@ class PrometheusMetrics:
             tenant_tier = _derive_tenant_tier(tenant_id)
             self._metrics["crm_salesforce_sync_failed_total"].labels(
                 tenant_tier=tenant_tier, error_type=error_type
+            ).inc()
+
+    def observe_approval_wait(
+        self,
+        duration: float,
+        gate_type: str,
+        action_class: str,
+        tenant_id: str,
+    ) -> None:
+        """Record approval wait time with cardinality-limited labels."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["approval_wait_seconds"].labels(
+                gate_type=gate_type,
+                action_class=action_class,
+                tenant_tier=tenant_tier,
+            ).observe(duration)
+
+    def set_stuck_workflows(
+        self, count: int, workflow_type: str, tenant_id: str
+    ) -> None:
+        """Record stuck workflow gauge with cardinality-limited tenant_tier."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["stuck_workflows_total"].labels(
+                workflow_type=workflow_type,
+                tenant_tier=tenant_tier,
+            ).set(count)
+
+    def increment_repeated_failure(
+        self, workflow_type: str, failure_class: str, tenant_id: str
+    ) -> None:
+        """Record repeated workflow failure with cardinality-limited labels."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["repeated_workflow_failures_total"].labels(
+                workflow_type=workflow_type,
+                failure_class=failure_class,
+                tenant_tier=tenant_tier,
+            ).inc()
+
+    def increment_tool_auth_failure(
+        self, tool_name: str, tenant_id: str
+    ) -> None:
+        """Record tool auth failure with cardinality-limited tenant_tier."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["tool_auth_failures_total"].labels(
+                tool_name=tool_name,
+                tenant_tier=tenant_tier,
+            ).inc()
+
+    def increment_checkpoint_corruption(
+        self, workflow_type: str, tenant_id: str
+    ) -> None:
+        """Record checkpoint corruption detection with cardinality-limited labels."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["checkpoint_corruption_detected_total"].labels(
+                workflow_type=workflow_type,
+                tenant_tier=tenant_tier,
             ).inc()
 
     def observe_crm_salesforce_sync_duration(self, tenant_id: str, duration: float, sync_type: str = "incremental") -> None:

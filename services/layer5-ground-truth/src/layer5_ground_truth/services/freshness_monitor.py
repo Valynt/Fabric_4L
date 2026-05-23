@@ -14,12 +14,13 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
 
-from sqlalchemy import and_, case, func, select, update
+from sqlalchemy import and_, case, func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from ..config import get_settings
-from ..models.truth_object import ClaimType, TruthObject, ValidationEvent
+from ..models.truth_object import ClaimType, TruthObject, TruthStatus
+from ..services.state_machine import ValidationStateMachine
 from .freshness_contracts import FreshnessCheckResponse, FreshnessSummaryResponse
 
 logger = logging.getLogger(__name__)
@@ -132,7 +133,7 @@ class FreshnessMonitor:
         dry_run: bool = False,
     ) -> FreshnessCheckResponse:
         """
-        Query for expired truths and mark them as stale.
+        Query for expired truths and transition them to EXPIRED status.
 
         Args:
             db: Database session
@@ -143,15 +144,16 @@ class FreshnessMonitor:
             Dict with counts: {"checked": int, "marked_stale": int, "already_stale": int}
         """
         now = datetime.now(UTC)
+        sm = ValidationStateMachine()
 
-        # Build query to find non-deleted, non-stale truths that have expired
+        # Build query to find non-deleted, non-expired truths that have passed their TTL
         stmt = (
             select(TruthObject)
             .options(selectinload(TruthObject.sources))
             .where(
                 and_(
                     TruthObject.deleted_at.is_(None),
-                    TruthObject.is_stale.is_(False),
+                    TruthObject.status.notin_([TruthStatus.EXPIRED.value, TruthStatus.REJECTED.value, TruthStatus.SUPERSEDED.value]),
                     TruthObject.expires_at.isnot(None),
                     TruthObject.expires_at < now,
                 )
@@ -170,57 +172,28 @@ class FreshnessMonitor:
                 marked_count += 1
                 continue
 
-            update_result = await db.execute(
-                update(TruthObject)
-                .where(
-                    and_(
-                        TruthObject.id == truth.id,
-                        TruthObject.deleted_at.is_(None),
-                        TruthObject.is_stale.is_(False),
-                    )
+            try:
+                await sm.expire(
+                    db,
+                    truth,
+                    notes=f"Automatically expired: expired at {truth.expires_at.isoformat()}",
                 )
-                .values(is_stale=True, updated_at=now)
-                .execution_options(synchronize_session=False)
-            )
-            if (update_result.rowcount or 0) == 0:
-                logger.info(
-                    "TruthObject %s stale transition skipped; another worker already updated it",
+                marked_count += 1
+            except Exception:
+                logger.warning(
+                    "TruthObject %s expiration skipped; state may have changed",
                     truth.id,
+                    exc_info=True,
                 )
-                continue
-
-            event = ValidationEvent(
-                truth_object_id=truth.id,
-                tenant_id=truth.tenant_id,
-                from_status=truth.status,
-                to_status=truth.status,  # Status doesn't change, just marked stale
-                from_maturity=truth.maturity_level,
-                to_maturity=truth.maturity_level,
-                actor="system:freshness_monitor",
-                actor_type="system",
-                confidence_at_transition=truth.confidence,
-                source_count_at_transition=len(truth.sources)
-                if truth.sources
-                else 0,
-                notes=f"Automatically marked stale: expired at {truth.expires_at.isoformat()}",
-            )
-            db.add(event)
-
-            logger.warning(
-                "TruthObject %s marked stale (expired %s)",
-                truth.id,
-                truth.expires_at.isoformat(),
-            )
-            marked_count += 1
 
         if dry_run:
             logger.info(
-                "[DRY RUN] Found %d expired TruthObjects that would be marked stale",
+                "[DRY RUN] Found %d expired TruthObjects that would be transitioned to EXPIRED",
                 marked_count,
             )
         else:
             logger.info(
-                "Freshness check complete: %d TruthObjects marked stale",
+                "Freshness check complete: %d TruthObjects transitioned to EXPIRED",
                 marked_count,
             )
 

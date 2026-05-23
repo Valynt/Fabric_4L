@@ -12,7 +12,6 @@ All endpoints require ``require_privileged_access`` which enforces:
 from __future__ import annotations
 
 import logging
-from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field

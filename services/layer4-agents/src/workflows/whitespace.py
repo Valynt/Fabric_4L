@@ -102,11 +102,38 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
         """Return Whitespace-specific state type."""
         return WhitespaceAgentState
 
-    def create_initial_state(self, input_data: dict[str, Any]) -> WhitespaceAgentState:
+    def create_initial_state(
+        self,
+        input_data: dict[str, Any],
+        *,
+        tenant_id: str,
+        run_id: str | None = None,
+        trace_id: str | None = None,
+        workflow_id: str | None = None,
+    ) -> WhitespaceAgentState:
         """Create initial state from input data."""
+        from uuid import uuid4
+
+        from ..models.run_envelope import RunEnvelope
+
         whitespace_input = WhitespaceInputData(**input_data)
+        wf_id = workflow_id or str(uuid4())
+        r_id = run_id or str(uuid4())
+        t_id = trace_id or str(uuid4())
+
+        envelope = RunEnvelope(
+            run_id=r_id,
+            workflow_id=wf_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
+            workflow_type=self.config.workflow_type,
+        )
 
         return WhitespaceAgentState(
+            workflow_id=wf_id,
+            run_id=r_id,
+            trace_id=t_id,
+            tenant_id=tenant_id,
             workflow_type=self.config.workflow_type,
             status=WorkflowStatus.PENDING,
             whitespace_input=whitespace_input,
@@ -114,6 +141,7 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
             output_data={},
             errors=[],
             metadata={"workflow_name": self.name},
+            run_envelope=envelope,
         )
 
     async def _execute_tool(

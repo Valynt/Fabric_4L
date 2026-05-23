@@ -520,7 +520,7 @@ class TestBusinessCaseGeneratorWorkflow:
         registry = _make_mock_tool_registry()
         workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
-        state = BusinessCaseAgentState(
+        state = BusinessCaseAgentState(tenant_id="test-tenant", 
             workflow_type="business_case",
             status=WorkflowStatus.RUNNING,
             case_input=None,
@@ -538,7 +538,7 @@ class TestBusinessCaseGeneratorWorkflow:
         registry = _make_mock_tool_registry()
         workflow = BusinessCaseGeneratorWorkflow(tool_registry=registry)
 
-        state = BusinessCaseAgentState(
+        state = BusinessCaseAgentState(tenant_id="test-tenant", 
             workflow_type="business_case",
             status=WorkflowStatus.RUNNING,
             case_input=None,
@@ -877,7 +877,7 @@ class TestOrchestrationControllerWorkflowLifecycle:
             state_manager=state_manager,
         )
 
-        state = ROIAgentState(
+        state = ROIAgentState(tenant_id="test-tenant", 
             workflow_id="wf-result-001",
             input_data={"prospect_id": "p-001", "value_driver_ids": ["vd-001"]},
             output_data={"assemble_document": {"title": "Business Case"}},
@@ -1132,7 +1132,7 @@ class TestOrchestrationControllerErrorPaths:
         from value_fabric.layer4.models.agent_state import ROIAgentState, WorkflowStatus, WorkflowType
         await state_manager.save_state(
             "wf-manual-001",
-            ROIAgentState(
+            ROIAgentState(tenant_id="test-tenant", 
                 workflow_id="wf-manual-001",
                 workflow_type=WorkflowType.ROI_CALCULATOR,
                 status=WorkflowStatus.COMPLETED,

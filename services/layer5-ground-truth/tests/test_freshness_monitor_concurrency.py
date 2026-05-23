@@ -81,8 +81,8 @@ async def test_check_and_mark_stale_skips_event_after_losing_update_race() -> No
         claim="Expired claim",
         claim_type="other",
         confidence=0.8,
-        status="supported",
-        maturity_level=2,
+        status="validated",
+        maturity_level=4,
         is_stale=False,
     )
     expired_truth.id = "11111111-1111-1111-1111-111111111111"
