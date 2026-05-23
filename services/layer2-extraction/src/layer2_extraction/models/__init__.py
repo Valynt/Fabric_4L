@@ -27,6 +27,7 @@ from .operational_signal_extraction import (
     ExtractionMetadata,
     OperationalSignal,
     OperationalSignalExtractionResponse,
+    SignalType,
 )
 from .relationships import (
     BenefitType,
@@ -69,4 +70,5 @@ __all__ = [
     "OperationalSignalExtractionResponse",
     "OperationalSignal",
     "ExtractionMetadata",
+    "SignalType",
 ]

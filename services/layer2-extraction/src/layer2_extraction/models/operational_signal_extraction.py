@@ -2,15 +2,18 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
+
+
+SignalType = Literal["pain", "opportunity", "risk", "trend"]
 
 
 class OperationalSignal(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    signal_type: str
+    signal_type: SignalType
     source_text: str = ""
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     metadata: dict[str, Any] = Field(default_factory=dict)
