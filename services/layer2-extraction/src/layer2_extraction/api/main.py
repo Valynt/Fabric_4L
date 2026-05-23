@@ -61,6 +61,7 @@ from layer2_extraction.integration.pending_ingestion_store import (
     SqlitePendingIngestionStore,
     build_pending_ingestion_store,
 )
+from layer2_extraction.integration.quarantine_store import QuarantineRecord, build_quarantine_store
 from layer2_extraction.metrics import get_metrics
 from layer2_extraction.models import (
     ExtractionResult,
@@ -255,6 +256,23 @@ except Exception as exc:
         os.getenv("PENDING_INGESTION_SQLITE_PATH", "./data/pending_ingestion.db")
     )
 
+
+
+quarantine_store = build_quarantine_store()
+
+
+class QuarantineStatusResponse(BaseModel):
+    job_id: str
+    quarantine_id: str
+    tenant_id: str
+    source_hash: str
+    model_version: str
+    schema_version: str
+    validation_errors: list[str]
+    reason: str
+    review_status: str
+    retry_eligible: bool
+    created_at: datetime
 
 def _compute_overall_status(extraction_status: str, ingestion_status: str) -> str:
     if extraction_status == "failed" or ingestion_status == "failed":
@@ -541,6 +559,29 @@ _VAULT_UNREACHABLE_ERROR = "Vault unreachable — cannot start in production wit
 
 
 # Background task for extraction
+
+async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], reason: str = "validation_error") -> QuarantineRecord:
+    record = QuarantineRecord(
+        quarantine_id=str(uuid4()),
+        job_id=job_id,
+        tenant_id=tenant_id,
+        source_url=source_url,
+        source_hash=content_hash,
+        model_version=os.getenv("LLM_MODEL", "gpt-4o"),
+        schema_version="v1",
+        payload_json=payload,
+        validation_errors=errors,
+        reason=reason,
+    )
+    await quarantine_store.put(record)
+    await _set_pipeline_job(
+        job_id,
+        extraction_status="quarantined",
+        last_error="; ".join(errors),
+        completed_at=datetime.now(UTC),
+    )
+    return record
+
 async def run_extraction(
     job_id: str,
     source_url: str,
@@ -789,8 +830,18 @@ async def run_extraction(
         ]
 
         if errors:
-            # Add errors to result
-            result.errors.extend([f"[ERROR] {e.rule_id}: {e.message}" for e in errors])
+            error_messages = [f"[ERROR] {e.rule_id}: {e.message}" for e in errors]
+            result.errors.extend(error_messages)
+            await _quarantine_validation_failure(
+                tenant_id="system",
+                job_id=job_id,
+                source_url=source_url,
+                source_hash=content_hash,
+                payload=result.model_dump_json(),
+                errors=error_messages,
+                reason="entailment_validation_failed",
+            )
+            return None
         if warnings:
             # Log warnings but continue
             result.errors.extend([f"[WARNING] {w.rule_id}: {w.message}" for w in warnings])
@@ -872,6 +923,8 @@ async def run_extraction(
 
     except Exception as e:
         error_msg = str(e)
+        if "schema validation error" in error_msg.lower():
+            await _quarantine_validation_failure(tenant_id="system", job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
         activity.fail(error_msg)
         await _set_pipeline_job(
             job_id,
@@ -1169,6 +1222,20 @@ async def get_extraction_status(job_id: str):
     return _pipeline_response(job)
 
 
+
+
+async def get_quarantine_status(job_id: str, ctx: RequestContext):
+    tenant_id = str(ctx.tenant_id)
+    record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Quarantine record not found")
+    return QuarantineStatusResponse.model_validate(record.model_dump())
+
+
+async def list_quarantine_jobs(ctx: RequestContext):
+    tenant_id = str(ctx.tenant_id)
+    records = await quarantine_store.list(tenant_id=tenant_id)
+    return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
 async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks):
     """Start a batch extraction job."""
     batch_id = str(uuid4())
