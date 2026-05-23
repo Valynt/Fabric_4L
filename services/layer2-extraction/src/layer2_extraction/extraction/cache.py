@@ -99,25 +99,43 @@ class ExtractionCache:
 
     def _make_key(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         model: str | None = None,
         temperature: float | None = None,
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        payload = f"{text}:{model}:{temperature}:{endpoint}"
+        import json
+        payload = json.dumps(
+            [tenant_id, source_hash, extraction_version, value_pack_id, model, str(temperature), endpoint],
+            separators=(",", ":"),
+        )
         return f"l2_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
 
     async def get(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         model: str | None = None,
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
     ) -> Any | None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(
+            tenant_id,
+            source_hash,
+            extraction_version,
+            value_pack_id,
+            endpoint,
+            model,
+            temperature,
+        )
         if self._redis is not None:
             try:
                 raw = await self._redis.get(key)
@@ -135,7 +153,10 @@ class ExtractionCache:
 
     async def set(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         value: Any,
         model: str | None = None,
@@ -143,7 +164,7 @@ class ExtractionCache:
         ttl: int | None = None,
         context: dict[str, str | None] | None = None,
     ) -> None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:
