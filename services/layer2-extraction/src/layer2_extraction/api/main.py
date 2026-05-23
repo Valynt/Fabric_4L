@@ -234,6 +234,24 @@ class ExtractionArtifacts:
     relationships: list[Relationship]
 
 
+def _resolve_value_pack_scope(extraction_config: dict[str, Any]) -> str:
+    return str(extraction_config.get("value_pack_scope") or extraction_config.get("value_pack") or "default")
+
+
+def _build_idempotency_key(
+    *,
+    tenant_id: str,
+    source_url: str,
+    content_id: str,
+    extraction_config: dict[str, Any],
+) -> str:
+    extraction_version = str(extraction_config.get("extraction_version") or "v1")
+    value_pack_scope = _resolve_value_pack_scope(extraction_config)
+    source_hash = hashlib.sha256(f"{content_id}|{source_url}".encode()).hexdigest()
+    payload = f"{tenant_id}|{source_hash}|{extraction_version}|{value_pack_scope}"
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 # Global job store (Redis-backed if configured, otherwise in-memory)
 job_store: JobStore = build_job_store()
 RETRY_POLL_SECONDS = int(os.getenv("INGESTION_RETRY_POLL_SECONDS", "30"))
@@ -1126,8 +1144,42 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
 async def extract_and_ingest(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
+    ctx: RequestContext,
 ):
     """Start a combined extraction and ingestion pipeline job."""
+    idempotency_key = _build_idempotency_key(
+        tenant_id=ctx.tenant_id,
+        source_url=request.source_url,
+        content_id=request.content_id,
+        extraction_config=request.extraction_config,
+    )
+    existing_job_id = await job_store.get_job_id_for_idempotency_key(idempotency_key)
+    if existing_job_id:
+        existing_job = await job_store.get(existing_job_id, tenant_id=ctx.tenant_id)
+        if existing_job and existing_job.extraction_status == "completed" and existing_job.ingestion_status == "completed":
+            return ExtractAndIngestResponse(
+                job_id=existing_job.job_id,
+                overall_status=existing_job.overall_status,
+                extraction_status=existing_job.extraction_status,
+                ingestion_status=existing_job.ingestion_status,
+                message="Extraction and ingestion already completed for idempotency key",
+            )
+        if existing_job:
+            background_tasks.add_task(
+                run_extract_and_ingest,
+                job_id=existing_job.job_id,
+                source_url=request.source_url,
+                content=request.markdown_content,
+                config=request.extraction_config,
+            )
+            return ExtractAndIngestResponse(
+                job_id=existing_job.job_id,
+                overall_status=existing_job.overall_status,
+                extraction_status=existing_job.extraction_status,
+                ingestion_status=existing_job.ingestion_status,
+                message="Extraction and ingestion retry queued for existing idempotency key",
+            )
+
     job_id = str(uuid4())
 
     await job_store.set(
@@ -1142,8 +1194,10 @@ async def extract_and_ingest(
             last_error=None,
             next_retry_at=None,
             completed_at=None,
+            tenant_id=ctx.tenant_id,
         )
     )
+    await job_store.set_job_id_for_idempotency_key(idempotency_key, job_id)
 
     background_tasks.add_task(
         run_extract_and_ingest,
