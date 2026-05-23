@@ -21,6 +21,7 @@ ENV PATH="/app/.venv/bin:$PATH" \
 
 COPY services/layer3-knowledge/src/ ./src/
 COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer3-knowledge/src/ ./value_fabric/layer3/
 
 RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser && chown -R appuser:appgroup /app

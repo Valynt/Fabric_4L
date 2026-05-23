@@ -21,6 +21,7 @@ RUN uv sync --frozen --no-install-project
 COPY services/layer5-ground-truth/src/ ./src/
 COPY services/layer5-ground-truth/alembic.ini ./
 COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src

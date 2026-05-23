@@ -70,6 +70,7 @@ ENV PLAYWRIGHT_BROWSERS_PATH=/home/appuser/.cache/ms-playwright
 
 COPY services/layer1-ingestion/src/ ./src/
 COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer1-ingestion/alembic.ini ./
 COPY services/layer1-ingestion/migrations/ ./migrations/
 
