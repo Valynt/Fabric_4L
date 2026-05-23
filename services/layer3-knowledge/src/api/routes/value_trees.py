@@ -281,9 +281,15 @@ async def get_value_tree(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
-    except TimeoutError:
-        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(
+            status_code=400,
+            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
+        ) from exc
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=400,
+            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
+        )
     except Exception as e:
         logger.error("Failed to retrieve value tree: %s", e)
         raise HTTPException(
@@ -353,9 +359,15 @@ async def get_value_tree_paths(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
-    except TimeoutError:
-        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(
+            status_code=400,
+            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
+        ) from exc
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=400,
+            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
+        )
     except Exception as e:
         logger.error("Failed to retrieve value tree paths: %s", e)
         raise HTTPException(

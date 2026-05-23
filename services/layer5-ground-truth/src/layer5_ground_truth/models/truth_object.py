@@ -103,18 +103,23 @@ class ClaimType(str, PyEnum):
 
 class TruthStatus(str, PyEnum):
     """
-    Validation state machine — four ordered states.
+    Truth lifecycle state machine — aligned with target trust-governance taxonomy.
 
-    Transitions (forward only, except DISPUTED which can revert):
-      extracted → supported → corroborated → approved
-                                           ↘ disputed (can revert to corroborated)
+    Transitions:
+      proposed → validated | disputed | rejected
+      validated → disputed | superseded | expired
+      disputed → validated | rejected
+      rejected → (terminal)
+      superseded → (terminal)
+      expired → (terminal)
     """
 
-    EXTRACTED = "extracted"  # AI-identified claim, not yet validated
-    SUPPORTED = "supported"  # Has at least one linked source + confidence ≥ threshold
-    CORROBORATED = "corroborated"  # Multiple independent sources confirm the claim
-    APPROVED = "approved"  # Human reviewer has explicitly approved
+    PROPOSED = "proposed"  # AI-identified or ingested claim, not yet validated
+    VALIDATED = "validated"  # Evidence-backed and accepted (human or gated auto)
     DISPUTED = "disputed"  # Flagged as conflicting or unreliable
+    REJECTED = "rejected"  # Human-reviewed and explicitly discarded
+    SUPERSEDED = "superseded"  # Replaced by a newer TruthObject
+    EXPIRED = "expired"  # Past freshness TTL; re-validation required
 
 
 class MaturityLevel(int, PyEnum):
@@ -144,6 +149,15 @@ class DisputeReason(str, PyEnum):
     STALE_DATA = "stale_data"
     METHODOLOGY_FLAW = "methodology_flaw"
     OUT_OF_SCOPE = "out_of_scope"
+    OTHER = "other"
+
+
+class RejectionReason(str, PyEnum):
+    """Reason a truth object was rejected."""
+
+    INSUFFICIENT_EVIDENCE = "insufficient_evidence"
+    OUT_OF_SCOPE = "out_of_scope"
+    FACTUALLY_INCORRECT = "factually_incorrect"
     SUPERSEDED = "superseded"
     OTHER = "other"
 
@@ -219,7 +233,7 @@ class TruthObject(Base):
     status = Column(
         String(32),
         nullable=False,
-        default=TruthStatus.EXTRACTED.value,
+        default=TruthStatus.PROPOSED.value,
         index=True,
         comment="Current validation state — see TruthStatus enum",
     )
@@ -231,22 +245,57 @@ class TruthObject(Base):
     )
 
     # -------------------------------------------------------------------------
-    # Human approval
+    # Human validation
     # -------------------------------------------------------------------------
-    approved_by = Column(
+    validated_by = Column(
         String(255),
         nullable=True,
-        comment="User ID or email of the human reviewer who approved this fact",
+        comment="User ID or email of the human reviewer who validated this fact",
     )
-    approved_at = Column(
+    validated_at = Column(
         DateTime(timezone=True),
         nullable=True,
-        comment="Timestamp of human approval",
+        comment="Timestamp of human validation",
     )
-    approval_notes = Column(
+    validation_notes = Column(
         Text,
         nullable=True,
-        comment="Optional reviewer notes at time of approval",
+        comment="Optional reviewer notes at time of validation",
+    )
+
+    # -------------------------------------------------------------------------
+    # Rejection tracking
+    # -------------------------------------------------------------------------
+    rejected_by = Column(
+        String(255),
+        nullable=True,
+        comment="User ID or email who rejected this fact",
+    )
+    rejected_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp of rejection",
+    )
+    rejection_reason = Column(
+        String(64),
+        nullable=True,
+        comment="Reason for REJECTED status — see RejectionReason enum",
+    )
+
+    # -------------------------------------------------------------------------
+    # Supersession tracking
+    # -------------------------------------------------------------------------
+    superseded_by_id = Column(
+        UUID,
+        ForeignKey("truth_objects.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Reference to the newer TruthObject that supersedes this one",
+    )
+    superseded_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Timestamp when this truth was marked superseded",
     )
 
     # -------------------------------------------------------------------------

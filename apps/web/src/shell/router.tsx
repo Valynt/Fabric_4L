@@ -563,7 +563,7 @@ export const router = createBrowserRouter([
       { path: "/governance/audit/log", element: <ProtectedRoute requiredTier="admin"><GovernanceAuditLogPage /></ProtectedRoute> },
       { path: "/governance/audit/changes", element: <ProtectedRoute requiredTier="admin"><GovernanceChangeHistoryPage /></ProtectedRoute> },
       { path: "/governance/health", element: <ProtectedRoute requiredTier="admin"><HealthMonitorPage /></ProtectedRoute> },
-      { path: "/admin/console", element: <ProtectedRoute requiredTier="admin"><SuperAdminConsolePage /></ProtectedRoute> },
+      { path: "/admin/console", element: <ProtectedRoute requiredTier="admin"><SuperAdminConsolePage /></ProtectedRoute> }, // Backend enforces super_admin role; frontend tier check is minimal guard
       { path: "/governance/reviews/:accountId", element: <ProtectedRoute><ReviewQueuePage /></ProtectedRoute> },
       { path: "/governance/versions/:accountId", element: <ProtectedRoute><VersionHistoryPage /></ProtectedRoute> },
 

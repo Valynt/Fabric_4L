@@ -10,7 +10,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiDelete, apiGet, apiPatch, apiPost } from "@/api/typedClient";
 import { QK } from "./queryKeys";
-import { RETRY_CONFIG, STALE_TIME, withApiError } from "./useApiShared";
+import { BaseApiError, RETRY_CONFIG, STALE_TIME, withApiError } from "./useApiShared";
 import type {
   SignalPromoteRequest,
   SignalRefineRequest,
@@ -49,6 +49,7 @@ export function useValueSignals(
             ...filters,
           },
         }).then((r) => r.data),
+        BaseApiError,
       ),
     enabled: !!accountId,
     staleTime: STALE_TIME.list,
@@ -69,6 +70,7 @@ export function useValueSignal(signalId: string | null) {
         apiGet<ValueSignal>("l2_5", `/api/v1/signals/${signalId}`).then(
           (r) => r.data,
         ),
+        BaseApiError,
       ),
     enabled: !!signalId,
     staleTime: STALE_TIME.detail,
@@ -89,6 +91,7 @@ export function useCreateSignal() {
         apiPost<ValueSignal>("l2_5", "/api/v1/signals", body).then(
           (r) => r.data,
         ),
+        BaseApiError,
       ),
     onSuccess: (signal) => {
       queryClient.invalidateQueries({
@@ -121,6 +124,7 @@ export function useUpdateSignal() {
           `/api/v1/signals/${signalId}`,
           updates,
         ).then((r) => r.data),
+        BaseApiError,
       ),
     onSuccess: (signal) => {
       queryClient.invalidateQueries({
@@ -153,6 +157,7 @@ export function useReviewSignal() {
           `/api/v1/signals/${signalId}/review`,
           body,
         ).then((r) => r.data),
+        BaseApiError,
       ),
     onSuccess: (signal, vars) => {
       queryClient.invalidateQueries({
@@ -185,6 +190,7 @@ export function usePromoteValueSignal() {
           `/api/v1/signals/${signalId}/promote`,
           body,
         ).then((r) => r.data),
+        BaseApiError,
       ),
     onSuccess: (signal, vars) => {
       queryClient.invalidateQueries({
@@ -214,6 +220,7 @@ export function useDeleteSignal() {
         apiDelete<void>("l2_5", `/api/v1/signals/${signalId}`).then(
           () => undefined,
         ),
+        BaseApiError,
       ),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({
@@ -245,6 +252,7 @@ export function useRefineSignals() {
           "/api/v1/signals/refine",
           body,
         ).then((r) => r.data),
+        BaseApiError,
       ),
     onSuccess: (_data, vars) => {
       queryClient.invalidateQueries({

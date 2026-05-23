@@ -9,7 +9,7 @@ Endpoints:
   POST   /truths/{id}/sources       — Add an evidence source
   DELETE /truths/{id}               — Soft-delete a TruthObject
   GET    /truths/{id}/audit         — Get full validation event log
-  POST   /truths/sync-kg            — Trigger Layer 3 KG sync for approved objects
+  POST   /truths/sync-kg            — Trigger Layer 3 KG sync for validated objects
   GET    /maturity-ladder           — Reference: full maturity ladder definition
   GET    /health                    — Health check
 """
@@ -74,9 +74,9 @@ router = APIRouter(prefix="/api/v1", tags=["ground-truth"])
     status_code=status.HTTP_201_CREATED,
     summary="Create a new TruthObject",
     description=(
-        "Create a new evidence-backed factual claim in EXTRACTED state. "
+        "Create a new evidence-backed factual claim in PROPOSED state. "
         "If sources are provided and confidence meets the threshold, the object "
-        "will automatically advance to SUPPORTED or CORROBORATED."
+        "will automatically advance to VALIDATED."
     ),
     responses={
         201: {"description": "TruthObject created successfully"},
@@ -119,10 +119,8 @@ async def create_truth(
 
     # Best-effort KG sync for high-confidence objects
     settings = get_settings()
-    if truth.confidence >= settings.min_confidence_for_supported and truth.status in (
-        "supported",
-        "corroborated",
-        "approved",
+    if truth.confidence >= settings.min_confidence_for_validated and truth.status in (
+        "validated",
     ):
         client = get_layer3_client()
         request_id = getattr(request.state, "trace_id", None)
@@ -217,7 +215,7 @@ async def list_truths(
             maturity_level=t.maturity_level,
             is_stale=t.is_stale,
             source_count=len(t.sources),
-            approved_by=t.approved_by,
+            validated_by=t.validated_by,
             freshness=t.freshness,
             created_at=t.created_at,
         )
@@ -241,9 +239,9 @@ async def list_truths(
 @router.post(
     "/truths/sync-kg",
     response_model=SyncToKgResponse,
-    summary="Sync approved TruthObjects to Layer 3 Knowledge Graph",
+    summary="Sync validated TruthObjects to Layer 3 Knowledge Graph",
     description=(
-        "Triggers a bulk sync of all APPROVED TruthObjects that have not yet "
+        "Triggers a bulk sync of all VALIDATED TruthObjects that have not yet "
         "been synced to the Layer 3 Knowledge Graph."
     ),
 )
@@ -262,7 +260,7 @@ async def sync_to_kg(
         select(TruthObject).where(
             and_(
                 TruthObject.tenant_id == tenant_id,
-                TruthObject.status == "approved",
+                TruthObject.status == "validated",
                 TruthObject.kg_node_id.is_(None),
                 TruthObject.deleted_at.is_(None),
             )
@@ -311,10 +309,10 @@ async def sync_to_kg(
 
 @router.post(
     "/truths/check-stale",
-    summary="Trigger freshness check for stale truths",
+    summary="Trigger freshness check for expired truths",
     description=(
-        "Manually trigger the freshness monitor to check for and mark "
-        "expired TruthObjects as stale. Can be run in dry-run mode to preview."
+        "Manually trigger the freshness monitor to check for and transition "
+        "expired TruthObjects to EXPIRED status. Can be run in dry-run mode to preview."
     ),
     response_model=FreshnessCheckResponse,
     responses={
@@ -322,7 +320,7 @@ async def sync_to_kg(
     },
 )
 async def check_stale(
-    dry_run: bool = Query(default=False, description="Preview only, don't mark stale"),
+    dry_run: bool = Query(default=False, description="Preview only, don't transition to expired"),
     caller: TokenClaims = Depends(get_current_user),
     db: AsyncSession = Depends(get_db_from_context),
 ) -> FreshnessCheckResponse:
@@ -346,8 +344,8 @@ async def check_stale(
 @router.get(
     "/truths/stale",
     response_model=StaleTruthsResponse,
-    summary="List stale TruthObjects",
-    description="Returns all TruthObjects marked as stale for the organization.",
+    summary="List expired TruthObjects",
+    description="Returns all TruthObjects with EXPIRED status for the organization."
 )
 async def list_stale(
     caller: TokenClaims = Depends(get_current_user),
@@ -377,7 +375,7 @@ async def list_stale(
             maturity_level=t.maturity_level,
             is_stale=t.is_stale,
             source_count=len(t.sources),
-            approved_by=t.approved_by,
+            validated_by=t.validated_by,
             freshness=t.freshness,
             created_at=t.created_at,
         )
@@ -461,8 +459,7 @@ async def get_truth(
     summary="Apply a validation state transition",
     description=(
         "Trigger a named validation action on a TruthObject. "
-        "Actions: advance_supported | advance_corroborated | approve | "
-        "dispute | resolve_dispute | operationalize"
+        "Actions: validate | dispute | resolve_dispute | reject | supersede | operationalize"
     ),
     responses={
         200: {"description": "Transition applied successfully"},
@@ -527,8 +524,8 @@ async def validate_truth(
             detail={"code": "INVALID_REQUEST", "message": "Invalid request parameters"},
         )
 
-    # Sync to Layer 3 after approval
-    if truth.status == "approved":
+    # Sync to Layer 3 after validation
+    if truth.status == "validated":
         client = get_layer3_client()
         request_id = getattr(request.state, "trace_id", None)
         node_id = await client.sync_truth_object(
@@ -679,35 +676,35 @@ async def get_maturity_ladder() -> MaturityLadderResponse:
             level=0,
             name="Raw",
             description="Claim captured but not yet processed by any extraction model.",
-            required_status="extracted",
+            required_status="proposed",
             advancement_trigger="Extraction model processes the raw content",
         ),
         MaturityLevelDetail(
             level=1,
             name="Extracted",
             description="AI model has identified and structured the claim from source content.",
-            required_status="extracted",
+            required_status="proposed",
             advancement_trigger="At least 1 source attached AND confidence ≥ threshold",
         ),
         MaturityLevelDetail(
             level=2,
             name="Supported",
             description="Claim has at least one linked evidence source and meets confidence threshold.",
-            required_status="supported",
+            required_status="proposed",
             advancement_trigger="≥ 2 distinct independent sources corroborate the claim",
         ),
         MaturityLevelDetail(
             level=3,
             name="Corroborated",
             description="Multiple independent sources confirm the claim from different angles.",
-            required_status="corroborated",
-            advancement_trigger="Human reviewer explicitly approves the claim",
+            required_status="proposed",
+            advancement_trigger="Human reviewer explicitly validates the claim",
         ),
         MaturityLevelDetail(
             level=4,
-            name="Approved",
+            name="Validated",
             description="A qualified human reviewer has validated and approved the claim.",
-            required_status="approved",
+            required_status="validated",
             advancement_trigger="Claim is referenced in an ROI model, board deck, or business case",
         ),
         MaturityLevelDetail(
@@ -717,7 +714,7 @@ async def get_maturity_ladder() -> MaturityLadderResponse:
                 "Claim has been used in board-level or CFO-facing decisions. "
                 "This is the highest trust level — suitable for executive narratives."
             ),
-            required_status="approved",
+            required_status="validated",
             advancement_trigger="Referenced in downstream business artefact (ROI model, deck, contract)",
         ),
     ]

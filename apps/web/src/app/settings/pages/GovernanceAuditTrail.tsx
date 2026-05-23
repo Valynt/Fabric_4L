@@ -10,7 +10,7 @@ function safeSummary(details: Record<string, unknown>): string {
   return summary.replace(/[<>]/g, "").slice(0, 180);
 }
 
-function exportEntries(entries: Record<string, unknown>[], format: "csv" | "json") {
+function exportEntries(entries: Array<Record<string, unknown>>, format: "csv" | "json") {
   if (!entries.length) return;
   const payload = format === "json"
     ? JSON.stringify(entries, null, 2)
@@ -72,8 +72,8 @@ export function GovernanceAuditTrail() {
 
           {canExport && (
             <div className="mt-3 flex gap-2">
-              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries(data?.entries ?? [], "csv")}>Export CSV</button>
-              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries(data?.entries ?? [], "json")}>Export JSON</button>
+              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as Array<Record<string, unknown>>, "csv")}>Export CSV</button>
+              <button type="button" className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent" onClick={() => exportEntries((data?.entries ?? []) as Array<Record<string, unknown>>, "json")}>Export JSON</button>
             </div>
           )}
 

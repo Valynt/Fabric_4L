@@ -1,34 +1,45 @@
 """
 Validation State Machine for TruthObject lifecycle.
 
-Implements the four-state forward-only machine:
-  extracted → supported → corroborated → approved
-                                       ↘ disputed (can revert to corroborated)
+Implements the target truth-governance taxonomy:
+  proposed → validated | disputed | rejected
+  validated → disputed | superseded | expired
+  disputed → validated | rejected
+  rejected → (terminal)
+  superseded → (terminal)
+  expired → (terminal)
 
 Rules
 -----
-EXTRACTED → SUPPORTED
-  • confidence ≥ settings.min_confidence_for_supported
-  • at least 1 TruthSource attached
+PROPOSED → VALIDATED
+  • confidence ≥ settings.min_confidence_for_validated
+  • at least min_sources_for_validated distinct TruthSource records
 
-SUPPORTED → CORROBORATED
-  • ≥ settings.min_sources_for_corroborated distinct sources
-  • sources must have different (source_type, source_url) pairs
-
-CORROBORATED → APPROVED
-  • requires human actor (actor_type == "human")
-  • approved_by must be set
-
-ANY → DISPUTED
+PROPOSED → DISPUTED
   • can be triggered by any actor
   • requires dispute_reason
 
-DISPUTED → CORROBORATED (revert)
+PROPOSED → REJECTED
+  • human actor only
+  • requires rejection_reason
+
+VALIDATED → DISPUTED
+  • can be triggered by any actor
+  • requires dispute_reason
+
+VALIDATED → SUPERSEDED
+  • requires superseded_by_id (reference to newer TruthObject)
+
+VALIDATED → EXPIRED
+  • triggered by freshness monitor when expires_at is exceeded
+
+DISPUTED → VALIDATED
   • human actor only
   • dispute is resolved
 
-APPROVED → OPERATIONALIZED (maturity only, status stays APPROVED)
-  • triggered when the truth object is referenced in an ROI model or deck
+DISPUTED → REJECTED
+  • human actor only
+  • dispute is rejected
 """
 
 import logging
@@ -46,6 +57,7 @@ from ..models.truth_object import (
     DisputeReason,
     MaturityHistory,
     MaturityLevel,
+    RejectionReason,
     TruthObject,
     TruthSource,
     TruthStatus,
@@ -83,20 +95,22 @@ class TransitionConflictError(ValueError):
 # ---------------------------------------------------------------------------
 
 ALLOWED_TRANSITIONS: dict[TruthStatus, set[TruthStatus]] = {
-    TruthStatus.EXTRACTED: {TruthStatus.SUPPORTED, TruthStatus.DISPUTED},
-    TruthStatus.SUPPORTED: {TruthStatus.CORROBORATED, TruthStatus.DISPUTED},
-    TruthStatus.CORROBORATED: {TruthStatus.APPROVED, TruthStatus.DISPUTED},
-    TruthStatus.APPROVED: {TruthStatus.DISPUTED},
-    TruthStatus.DISPUTED: {TruthStatus.CORROBORATED},  # revert after resolution
+    TruthStatus.PROPOSED: {TruthStatus.VALIDATED, TruthStatus.DISPUTED, TruthStatus.REJECTED},
+    TruthStatus.VALIDATED: {TruthStatus.DISPUTED, TruthStatus.SUPERSEDED, TruthStatus.EXPIRED},
+    TruthStatus.DISPUTED: {TruthStatus.VALIDATED, TruthStatus.REJECTED},
+    TruthStatus.REJECTED: set(),
+    TruthStatus.SUPERSEDED: set(),
+    TruthStatus.EXPIRED: set(),
 }
 
 # Status → maturity level mapping (minimum maturity for a given status)
 STATUS_TO_MATURITY: dict[TruthStatus, MaturityLevel] = {
-    TruthStatus.EXTRACTED: MaturityLevel.EXTRACTED,
-    TruthStatus.SUPPORTED: MaturityLevel.SUPPORTED,
-    TruthStatus.CORROBORATED: MaturityLevel.CORROBORATED,
-    TruthStatus.APPROVED: MaturityLevel.APPROVED,
-    TruthStatus.DISPUTED: MaturityLevel.EXTRACTED,  # maturity does not advance on dispute
+    TruthStatus.PROPOSED: MaturityLevel.EXTRACTED,
+    TruthStatus.VALIDATED: MaturityLevel.APPROVED,
+    TruthStatus.DISPUTED: MaturityLevel.EXTRACTED,
+    TruthStatus.REJECTED: MaturityLevel.EXTRACTED,
+    TruthStatus.SUPERSEDED: MaturityLevel.APPROVED,
+    TruthStatus.EXPIRED: MaturityLevel.APPROVED,
 }
 
 
@@ -121,111 +135,51 @@ class ValidationStateMachine:
     # Public transition methods
     # ------------------------------------------------------------------
 
-    async def advance_to_supported(
+    async def validate(
         self,
         db: AsyncSession,
         truth_object: TruthObject,
-        actor: str | None = None,
+        validated_by: str,
         notes: str | None = None,
     ) -> TruthObject:
         """
-        Advance a TruthObject from EXTRACTED → SUPPORTED.
+        Advance a TruthObject from PROPOSED → VALIDATED.
 
         Requirements:
-          - Current status must be EXTRACTED
-          - confidence ≥ min_confidence_for_supported
-          - At least 1 TruthSource attached
+          - Current status must be PROPOSED
+          - validated_by must be a non-empty string (human reviewer)
+          - confidence ≥ min_confidence_for_validated
+          - at least min_sources_for_validated distinct sources
         """
-        self._assert_transition(truth_object, TruthStatus.SUPPORTED)
+        self._assert_transition(truth_object, TruthStatus.VALIDATED)
 
-        source_count = await self._count_sources(db, truth_object.id)
-        if source_count < 1:
-            raise InsufficientEvidenceError(
-                "Cannot advance to SUPPORTED: at least 1 source is required."
-            )
-        if truth_object.confidence < self._settings.min_confidence_for_supported:
-            raise InsufficientEvidenceError(
-                f"Cannot advance to SUPPORTED: confidence {truth_object.confidence:.2f} "
-                f"is below threshold {self._settings.min_confidence_for_supported:.2f}."
-            )
-
-        return await self._apply_transition(
-            db=db,
-            truth_object=truth_object,
-            new_status=TruthStatus.SUPPORTED,
-            actor=actor or "system",
-            actor_type="system",
-            source_count=source_count,
-            notes=notes,
-        )
-
-    async def advance_to_corroborated(
-        self,
-        db: AsyncSession,
-        truth_object: TruthObject,
-        actor: str | None = None,
-        notes: str | None = None,
-    ) -> TruthObject:
-        """
-        Advance a TruthObject from SUPPORTED → CORROBORATED.
-
-        Requirements:
-          - Current status must be SUPPORTED
-          - ≥ min_sources_for_corroborated distinct sources
-          - Sources must have different (source_type, source_url) pairs
-        """
-        self._assert_transition(truth_object, TruthStatus.CORROBORATED)
+        if not validated_by or not validated_by.strip():
+            raise ValueError("validated_by is required for VALIDATED transition.")
 
         distinct_count = await self._count_distinct_sources(db, truth_object.id)
-        if distinct_count < self._settings.min_sources_for_corroborated:
+        if distinct_count < self._settings.min_sources_for_validated:
             raise InsufficientEvidenceError(
-                f"Cannot advance to CORROBORATED: need "
-                f"{self._settings.min_sources_for_corroborated} distinct sources, "
+                f"Cannot advance to VALIDATED: need "
+                f"{self._settings.min_sources_for_validated} distinct sources, "
                 f"found {distinct_count}."
             )
+        if truth_object.confidence < self._settings.min_confidence_for_validated:
+            raise InsufficientEvidenceError(
+                f"Cannot advance to VALIDATED: confidence {truth_object.confidence:.2f} "
+                f"is below threshold {self._settings.min_confidence_for_validated:.2f}."
+            )
+
+        truth_object.validated_by = validated_by
+        truth_object.validated_at = datetime.now(UTC)
+        truth_object.validation_notes = notes
 
         return await self._apply_transition(
             db=db,
             truth_object=truth_object,
-            new_status=TruthStatus.CORROBORATED,
-            actor=actor or "system",
-            actor_type="system",
-            source_count=distinct_count,
-            notes=notes,
-        )
-
-    async def approve(
-        self,
-        db: AsyncSession,
-        truth_object: TruthObject,
-        approved_by: str,
-        notes: str | None = None,
-    ) -> TruthObject:
-        """
-        Advance a TruthObject from CORROBORATED → APPROVED.
-
-        Requirements:
-          - Current status must be CORROBORATED
-          - approved_by must be a non-empty string (human reviewer)
-        """
-        self._assert_transition(truth_object, TruthStatus.APPROVED)
-
-        if not approved_by or not approved_by.strip():
-            raise ValueError("approved_by is required for APPROVED transition.")
-
-        source_count = await self._count_sources(db, truth_object.id)
-
-        truth_object.approved_by = approved_by
-        truth_object.approved_at = datetime.now(UTC)
-        truth_object.approval_notes = notes
-
-        return await self._apply_transition(
-            db=db,
-            truth_object=truth_object,
-            new_status=TruthStatus.APPROVED,
-            actor=approved_by,
+            new_status=TruthStatus.VALIDATED,
+            actor=validated_by,
             actor_type="human",
-            source_count=source_count,
+            source_count=distinct_count,
             notes=notes,
         )
 
@@ -276,13 +230,13 @@ class ValidationStateMachine:
         notes: str | None = None,
     ) -> TruthObject:
         """
-        Revert a DISPUTED TruthObject back to CORROBORATED after resolution.
+        Revert a DISPUTED TruthObject back to VALIDATED after resolution.
 
         Requirements:
           - Current status must be DISPUTED
           - resolved_by is required (human actor)
         """
-        self._assert_transition(truth_object, TruthStatus.CORROBORATED)
+        self._assert_transition(truth_object, TruthStatus.VALIDATED)
 
         source_count = await self._count_sources(db, truth_object.id)
 
@@ -295,11 +249,113 @@ class ValidationStateMachine:
         return await self._apply_transition(
             db=db,
             truth_object=truth_object,
-            new_status=TruthStatus.CORROBORATED,
+            new_status=TruthStatus.VALIDATED,
             actor=resolved_by,
             actor_type="human",
             source_count=source_count,
             notes=notes or "Dispute resolved.",
+        )
+
+    async def reject(
+        self,
+        db: AsyncSession,
+        truth_object: TruthObject,
+        reason: RejectionReason,
+        rejected_by: str,
+        notes: str | None = None,
+    ) -> TruthObject:
+        """
+        Mark a TruthObject as REJECTED.
+
+        Requirements:
+          - Current status must be PROPOSED or DISPUTED
+          - reason and rejected_by are required
+          - human actor only
+        """
+        self._assert_transition(truth_object, TruthStatus.REJECTED)
+
+        if not reason:
+            raise ValueError("reason is required for REJECTED transition.")
+        if not rejected_by or not rejected_by.strip():
+            raise ValueError("rejected_by is required for REJECTED transition.")
+
+        source_count = await self._count_sources(db, truth_object.id)
+
+        truth_object.rejection_reason = reason.value
+        truth_object.rejected_by = rejected_by
+        truth_object.rejected_at = datetime.now(UTC)
+
+        return await self._apply_transition(
+            db=db,
+            truth_object=truth_object,
+            new_status=TruthStatus.REJECTED,
+            actor=rejected_by,
+            actor_type="human",
+            source_count=source_count,
+            notes=notes,
+        )
+
+    async def supersede(
+        self,
+        db: AsyncSession,
+        truth_object: TruthObject,
+        superseded_by_id: UUID,
+        superseded_by: str,
+        notes: str | None = None,
+    ) -> TruthObject:
+        """
+        Mark a TruthObject as SUPERSEDED by a newer TruthObject.
+
+        Requirements:
+          - Current status must be VALIDATED
+          - superseded_by_id must reference a valid TruthObject
+          - superseded_by is required (human actor)
+        """
+        self._assert_transition(truth_object, TruthStatus.SUPERSEDED)
+
+        if not superseded_by or not superseded_by.strip():
+            raise ValueError("superseded_by is required for SUPERSEDED transition.")
+
+        source_count = await self._count_sources(db, truth_object.id)
+
+        truth_object.superseded_by_id = superseded_by_id
+        truth_object.superseded_at = datetime.now(UTC)
+
+        return await self._apply_transition(
+            db=db,
+            truth_object=truth_object,
+            new_status=TruthStatus.SUPERSEDED,
+            actor=superseded_by,
+            actor_type="human",
+            source_count=source_count,
+            notes=notes or f"Superseded by {superseded_by_id}.",
+        )
+
+    async def expire(
+        self,
+        db: AsyncSession,
+        truth_object: TruthObject,
+        notes: str | None = None,
+    ) -> TruthObject:
+        """
+        Mark a TruthObject as EXPIRED (freshness monitor).
+
+        Requirements:
+          - Current status must be VALIDATED or DISPUTED
+          - System-triggered only
+        """
+        self._assert_transition(truth_object, TruthStatus.EXPIRED)
+
+        source_count = await self._count_sources(db, truth_object.id)
+
+        return await self._apply_transition(
+            db=db,
+            truth_object=truth_object,
+            new_status=TruthStatus.EXPIRED,
+            actor="system:freshness_monitor",
+            actor_type="system",
+            source_count=source_count,
+            notes=notes or f"Automatically expired: expired at {truth_object.expires_at.isoformat() if truth_object.expires_at else 'unknown'}",
         )
 
     async def mark_operationalized(
@@ -317,12 +373,12 @@ class ValidationStateMachine:
         or other downstream business artefact.
 
         Requirements:
-          - Current maturity must be APPROVED (4)
-          - Current status must be APPROVED
+          - Current status must be VALIDATED
+          - Current maturity must be ≥ APPROVED (4)
         """
-        if truth_object.status != TruthStatus.APPROVED.value:
+        if truth_object.status != TruthStatus.VALIDATED.value:
             raise InvalidTransitionError(
-                f"Only APPROVED truth objects can be operationalized, "
+                f"Only VALIDATED truth objects can be operationalized, "
                 f"current status: {truth_object.status}"
             )
         if truth_object.maturity_level >= MaturityLevel.OPERATIONALIZED.value:
@@ -365,30 +421,21 @@ class ValidationStateMachine:
         """
         Attempt automatic advancement based on current evidence.
 
-        Called after a new TruthSource is added. Will advance through
-        EXTRACTED → SUPPORTED → CORROBORATED if thresholds are met.
-        Does NOT advance to APPROVED (requires human actor).
+        Called after a new TruthSource is added. Will advance from
+        PROPOSED → VALIDATED if thresholds are met.
+        Does NOT auto-validate if auto_advance is disabled.
         """
-        if not self._settings.auto_advance_to_supported:
+        if not self._settings.auto_advance_to_validated:
             return truth_object
 
         current = TruthStatus(truth_object.status)
 
-        if current == TruthStatus.EXTRACTED:
+        if current == TruthStatus.PROPOSED:
             try:
-                truth_object = await self.advance_to_supported(
-                    db, truth_object, actor="system:auto_advance"
+                truth_object = await self.validate(
+                    db, truth_object, validated_by="system:auto_advance"
                 )
-                current = TruthStatus.SUPPORTED
-            except (InvalidTransitionError, InsufficientEvidenceError):
-                return truth_object
-
-        if current == TruthStatus.SUPPORTED:
-            try:
-                truth_object = await self.advance_to_corroborated(
-                    db, truth_object, actor="system:auto_advance"
-                )
-            except (InvalidTransitionError, InsufficientEvidenceError):
+            except (InvalidTransitionError, InsufficientEvidenceError, ValueError):
                 pass
 
         return truth_object

@@ -132,20 +132,20 @@ class Settings(BaseSettings):
     layer3_sync_enabled: bool = Field(default=True, alias="LAYER3_SYNC_ENABLED")
 
     # Validation Configuration
-    min_sources_for_corroborated: int = Field(
+    min_sources_for_validated: int = Field(
         default=2,
-        alias="MIN_SOURCES_FOR_CORROBORATED",
-        description="Minimum distinct sources required to advance to CORROBORATED status",
+        alias="MIN_SOURCES_FOR_VALIDATED",
+        description="Minimum distinct sources required to advance to VALIDATED status",
     )
-    min_confidence_for_supported: float = Field(
+    min_confidence_for_validated: float = Field(
         default=0.6,
-        alias="MIN_CONFIDENCE_FOR_SUPPORTED",
-        description="Minimum confidence score to advance from EXTRACTED to SUPPORTED",
+        alias="MIN_CONFIDENCE_FOR_VALIDATED",
+        description="Minimum confidence score to advance from PROPOSED to VALIDATED",
     )
-    auto_advance_to_supported: bool = Field(
+    auto_advance_to_validated: bool = Field(
         default=True,
-        alias="AUTO_ADVANCE_TO_SUPPORTED",
-        description="Automatically advance to SUPPORTED when confidence threshold is met",
+        alias="AUTO_ADVANCE_TO_VALIDATED",
+        description="Automatically advance to VALIDATED when confidence threshold is met",
     )
 
     # Freshness Configuration

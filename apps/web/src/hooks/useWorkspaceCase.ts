@@ -28,7 +28,8 @@ export function useCanonicalCaseId(accountId: string | null) {
       if (stored) return stored;
 
       const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
-      const items = Array.isArray(lookup.data) ? lookup.data : (lookup.data?.items ?? []);
+      const lookupData = lookup.data as Record<string, unknown>;
+      const items = Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? []);
       const existing = (items[0] ?? {}) as CaseRecord;
       const existingCaseId = existing.case_id || existing.id;
       if (existingCaseId) {
@@ -40,7 +41,8 @@ export function useCanonicalCaseId(accountId: string | null) {
         account_id: accountId,
         title: `Account ${accountId} workspace`,
       });
-      const createdCaseId = String(created.data?.case_id ?? created.data?.id ?? '');
+      const createdData = created.data as Record<string, unknown>;
+      const createdCaseId = String(createdData?.case_id ?? createdData?.id ?? '');
       if (!createdCaseId) throw new Error('Unable to create case for account workspace');
       setStoredCaseId(accountId, createdCaseId);
       return createdCaseId;
@@ -295,4 +297,50 @@ export function useApplyWorkspacePageAction() {
       await queryClient.invalidateQueries({ queryKey: ['workspace', 'tab', action.caseId] });
     },
   });
+}
+
+/**
+ * Get or create the canonical case ID for an account (imperative, non-hook).
+ * Mirrors useCanonicalCaseId logic for use in async handlers.
+ */
+export async function getOrCreateCanonicalCaseId(accountId: string): Promise<string> {
+  const stored = getStoredCaseId(accountId);
+  if (stored) return stored;
+
+  const lookup = await apiClient.get('l4', `/analysis/cases?account_id=${encodeURIComponent(accountId)}`);
+  const lookupData = lookup.data as Record<string, unknown>;
+  const items = Array.isArray(lookupData) ? lookupData : (lookupData?.items ?? []);
+  const existing = (items[0] ?? {}) as CaseRecord;
+  const existingCaseId = existing.case_id || existing.id;
+  if (existingCaseId) {
+    setStoredCaseId(accountId, existingCaseId);
+    return existingCaseId;
+  }
+
+  const created = await apiClient.post('l4', '/analysis/cases', {
+    account_id: accountId,
+    title: `Account ${accountId} workspace`,
+  });
+  const createdData = created.data as Record<string, unknown>;
+  const createdCaseId = String(createdData?.case_id ?? createdData?.id ?? '');
+  if (!createdCaseId) throw new Error('Unable to create case for account workspace');
+  setStoredCaseId(accountId, createdCaseId);
+  return createdCaseId;
+}
+
+/**
+ * Persist workspace tab data for a case (imperative, non-hook).
+ * Mirrors usePersistWorkspaceTab mutation logic for use in async handlers.
+ */
+export async function persistWorkspaceTab(caseId: string, tabKey: string, payload: unknown): Promise<unknown> {
+  try {
+    const response = await apiClient.put('l4', `/analysis/cases/${caseId}/workspace/${tabKey}`, payload);
+    return response.data;
+  } catch (error: unknown) {
+    const apiError = error as { statusCode?: number };
+    if (apiError.statusCode === 501) {
+      return { case_id: caseId, tab: tabKey, updated: false, not_implemented: true };
+    }
+    throw error;
+  }
 }

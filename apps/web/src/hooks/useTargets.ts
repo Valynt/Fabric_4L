@@ -234,7 +234,6 @@ function normalizeTargetSummary(api: ApiTargetSummary): TargetSummary {
     lastSuccessAt: api.last_success_at ?? null,
     createdAt: api.created_at,
     updatedAt: api.updated_at,
-    schedule: api.schedule as TargetSchedule | null ?? null,
   };
 }
 

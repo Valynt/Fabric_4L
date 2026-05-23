@@ -34,7 +34,7 @@ async function fetchTenantOverview(
   limit: number,
   offset: number,
 ): Promise<TenantOverviewResponse> {
-  const response = await apiGet<TenantOverviewResponse>("l4", "/admin/tenant-overview", {
+  const response = await apiGet<TenantOverviewResponse>("l4", "/agents/admin/tenant-overview", {
     params: { limit, offset },
   });
   return response.data;

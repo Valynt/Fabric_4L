@@ -106,9 +106,9 @@ def _load_tenant_owned_labels() -> set[str]:
 
 _TENANT_OWNED_LABELS = _load_tenant_owned_labels()
 _CLAUSE_KEYWORD_PATTERN = re.compile(r"\b(MATCH|OPTIONAL\s+MATCH|MERGE|CREATE)\b", re.IGNORECASE)
-# Matches variable-length path patterns like *1..4, *..5, *1.., *3, *11
+# Matches variable-length path patterns like [*1..4], [*..5], [*1..], [*3], [*$depth], [*1..$max_depth]
 _VAR_LENGTH_PATH_PATTERN = re.compile(
-    r"\[\s*(?:[:!]?\s*[A-Za-z_][A-Za-z0-9_]*\s*\|?\s*)*\*\s*(?:(\d+)\s*\.\.\s*(\d+)?|\.\.\s*(\d+)|(\d+)\s*\.\.|(\d+))?\s*\]",
+    r"\[\s*(?:[:!]?\s*[A-Za-z_][A-Za-z0-9_]*\s*\|?\s*)*\*\s*([^]]*?)\s*\]",
     re.IGNORECASE,
 )
 _TENANT_LABEL_PATTERN = re.compile(
@@ -173,16 +173,32 @@ class TenantQueryExecutor:
     """Single query execution wrapper for tenant-scoped Cypher."""
 
     @classmethod
-    def _extract_max_depth(cls, query: str) -> int | None:
+    def _extract_max_depth(cls, query: str, params: Mapping[str, Any]) -> int | None:
         """Return the largest explicit depth bound found in variable-length paths."""
         max_depth: int | None = None
         for match in _VAR_LENGTH_PATH_PATTERN.finditer(query):
-            # Groups: (start_depth, end_depth, dotdot_end_depth, start_only_depth, fixed_depth)
-            for raw in match.groups():
-                if raw is not None:
-                    depth = int(raw)
-                    if max_depth is None or depth > max_depth:
-                        max_depth = depth
+            inner = match.group(1)
+            if not inner:
+                continue
+            # Parse patterns like: "1..4", "..5", "1..", "3", "$depth", "1..$max_depth"
+            parts = inner.split("..")
+            for part in parts:
+                part = part.strip()
+                if not part:
+                    continue
+                depth: int | None = None
+                if part.startswith("$"):
+                    param_name = part[1:]
+                    raw = params.get(param_name)
+                    if isinstance(raw, int):
+                        depth = raw
+                else:
+                    try:
+                        depth = int(part)
+                    except ValueError:
+                        continue
+                if depth is not None and (max_depth is None or depth > max_depth):
+                    max_depth = depth
         return max_depth
 
     @classmethod
@@ -208,7 +224,7 @@ class TenantQueryExecutor:
             return
 
         # Depth limit check (PERF-001)
-        max_depth = cls._extract_max_depth(query)
+        max_depth = cls._extract_max_depth(query, params)
         if max_depth is not None and max_depth > MAX_QUERY_DEPTH:
             raise CypherDepthLimitExceeded(
                 f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"

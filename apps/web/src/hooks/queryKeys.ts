@@ -200,6 +200,7 @@ export const QK = {
   workspace: {
     all: ["workspace"] as const,
     tab: (caseId: string, tab: string) => ["workspace", "tab", caseId, tab] as const,
+    accountTab: (accountId: string, tabKey: string) => ["workspace", "account-tab", accountId, tabKey] as const,
     signalReview: (caseId: string, accountId: string) => ["workspace", "signal-review", caseId, accountId] as const,
     evidenceDecision: (caseId: string, accountId: string) => ["workspace", "evidence-decision", caseId, accountId] as const,
     evidenceDriverLinks: (caseId: string, accountId: string) => ["workspace", "evidence-driver-links", caseId, accountId] as const,

@@ -180,6 +180,11 @@ async def get_full_graph(
 
     except HTTPException:
         raise
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=400,
+            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
+        )
     except Exception as e:
         logger.error("Failed to retrieve graph: %s", e)
         raise HTTPException(
@@ -200,12 +205,15 @@ async def get_entity_subgraph(
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
     try:
-        root_result = await neo4j.execute_query(
-            """
-            MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-            RETURN n.id as id, n.name as label, n.type as type, n.confidence as confidence
-            """,
-            {"entity_id": entity_id, "tenant_id": tenant_id},
+        root_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                """
+                MATCH (n {id: $entity_id, tenant_id: $tenant_id})
+                RETURN n.id as id, n.name as label, n.type as type, n.confidence as confidence
+                """,
+                {"entity_id": entity_id, "tenant_id": tenant_id},
+            ),
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
         if not root_result:
             raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
@@ -338,15 +346,21 @@ async def get_query_subgraph(
         )
 
     neo4j = app_state.neo4j_driver
+    if not neo4j:
+        raise HTTPException(status_code=503, detail="Neo4j not available")
+
     nodes: list[GraphNode | GraphNodeWithLayout] = []
     edges: list[GraphEdge] = []
     root_id = center_entity_id or ""
 
     try:
         if center_entity_id:
-            root_result = await neo4j.execute_query(
-                "MATCH (root {id: $entity_id, tenant_id: $tenant_id}) RETURN root",
-                {"entity_id": center_entity_id, "tenant_id": tenant_id},
+            root_result = await asyncio.wait_for(
+                neo4j.execute_query(
+                    "MATCH (root {id: $entity_id, tenant_id: $tenant_id}) RETURN root",
+                    {"entity_id": center_entity_id, "tenant_id": tenant_id},
+                ),
+                timeout=QUERY_TIMEOUT_SECONDS,
             )
             if not root_result:
                 raise HTTPException(
@@ -459,16 +473,19 @@ async def get_query_subgraph(
                     stats=GraphStats(total_nodes=0, total_edges=0, density=0.0),
                 )
 
-            result = await neo4j.execute_query(
-                """
-                UNWIND $seed_ids as seed_id
-                MATCH (seed {id: seed_id, tenant_id: $tenant_id})
-                OPTIONAL MATCH (seed)-[r]-(neighbor {tenant_id: $tenant_id})
-                WHERE neighbor.id IS NOT NULL
-                RETURN seed, collect(DISTINCT neighbor) as neighbors,
-                       collect(DISTINCT r) as rels
-                """,
-                {"seed_ids": seed_ids[:20], "tenant_id": tenant_id},
+            result = await asyncio.wait_for(
+                neo4j.execute_query(
+                    """
+                    UNWIND $seed_ids as seed_id
+                    MATCH (seed {id: seed_id, tenant_id: $tenant_id})
+                    OPTIONAL MATCH (seed)-[r]-(neighbor {tenant_id: $tenant_id})
+                    WHERE neighbor.id IS NOT NULL
+                    RETURN seed, collect(DISTINCT neighbor) as neighbors,
+                           collect(DISTINCT r) as rels
+                    """,
+                    {"seed_ids": seed_ids[:20], "tenant_id": tenant_id},
+                ),
+                timeout=QUERY_TIMEOUT_SECONDS,
             )
 
             node_ids: set[str] = set()

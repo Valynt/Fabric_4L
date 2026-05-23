@@ -82,7 +82,7 @@ export function useL5MaturityLadder() {
 
 export function useL5TruthAudit(truthId: string | null) {
   return useQuery({
-    queryKey: QK.groundTruth.audit(truthId),
+    queryKey: QK.groundTruth.audit(truthId ?? ''),
     queryFn: () => fetchJson<L5TruthAuditEntry[]>(`/api/v1/truths/${encodeURIComponent(truthId || '')}/audit`),
     enabled: Boolean(truthId),
     staleTime: STALE_TIME.activity,

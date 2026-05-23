@@ -751,33 +751,7 @@ class Layer3Client:
                     tenant_id=tenant_id, error_code=ERR_LAYER3_HTTP_CLIENT
                 ),
             )
-            payload = resp.json()
-            if not isinstance(payload, dict):
-                raise ValidationError.from_exception_data(
-                    "Layer3EntityContext",
-                    [
-                        {
-                            "type": "dict_type",
-                            "loc": ("response",),
-                            "msg": "Layer 3 entity context must be an object",
-                            "input": payload,
-                        }
-                    ],
-                )
-            response_tenant = payload.get("tenant_id")
-            if response_tenant is not None and str(response_tenant) != request_tenant:
-                logger.warning(
-                    "Layer 3 entity context tenant mismatch",
-                    extra={
-                        "error_code": ERR_LAYER3_CONTRACT_INVALID,
-                        "request_id": None,
-                        "tenant_id": request_tenant,
-                        "entity_id": entity_id,
-                        "response_tenant_id": str(response_tenant),
-                    },
-                )
-                return None
-            return payload
+            return None
         except httpx.HTTPError as exc:
             logger.warning(
                 "Layer 3 entity context HTTP client failure",

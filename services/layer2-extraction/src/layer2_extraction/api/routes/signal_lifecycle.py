@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ConfigDict
 
 from layer2_extraction.models.signal_lifecycle import OperationalSignalLifecycleRecord, SignalLifecycleActor
@@ -46,7 +50,8 @@ async def supersede_signal(signal_id: str, body: TransitionRequest, request: Req
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Signal not found") from exc
     except InvalidLifecycleTransitionError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        logger.warning("Invalid signal supersede transition: %s", exc)
+        raise HTTPException(status_code=409, detail="Invalid lifecycle transition") from exc
 
 
 @router.post("/{signal_id}/merge", response_model=OperationalSignalLifecycleRecord)
@@ -58,4 +63,5 @@ async def merge_signal(signal_id: str, body: TransitionRequest, request: Request
     except KeyError as exc:
         raise HTTPException(status_code=404, detail="Signal not found") from exc
     except InvalidLifecycleTransitionError as exc:
-        raise HTTPException(status_code=409, detail=str(exc)) from exc
+        logger.warning("Invalid signal merge transition: %s", exc)
+        raise HTTPException(status_code=409, detail="Invalid lifecycle transition") from exc

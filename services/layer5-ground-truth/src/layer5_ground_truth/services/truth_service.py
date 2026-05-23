@@ -18,6 +18,7 @@ from ..models.truth_object import (
     ClaimType,
     DisputeReason,
     MaturityLevel,
+    RejectionReason,
     TruthObject,
     TruthSource,
     TruthStatus,
@@ -49,7 +50,7 @@ async def create_truth_object(
     created_by: str | None = None,
 ) -> TruthObject:
     """
-    Create a new TruthObject in EXTRACTED state and optionally attach sources.
+    Create a new TruthObject in PROPOSED state and optionally attach sources.
 
     If sources are provided and auto_advance is enabled, the state machine
     will attempt to advance the status automatically.
@@ -68,7 +69,7 @@ async def create_truth_object(
         extraction_job_id=extraction_job_id,
         extraction_model=extraction_model,
         raw_extraction_data=raw_extraction_data,
-        status=TruthStatus.EXTRACTED.value,
+        status=TruthStatus.PROPOSED.value,
         maturity_level=MaturityLevel.EXTRACTED.value,
         freshness=datetime.now(UTC),
         expires_at=expires_at,
@@ -81,7 +82,7 @@ async def create_truth_object(
         truth_object_id=truth.id,
         tenant_id=tenant_id,
         from_status=None,
-        to_status=TruthStatus.EXTRACTED.value,
+        to_status=TruthStatus.PROPOSED.value,
         from_maturity=None,
         to_maturity=MaturityLevel.EXTRACTED.value,
         actor=created_by or "system",
@@ -262,24 +263,17 @@ async def validate_truth_object(
     actor_type: str = "human",
     notes: str | None = None,
     dispute_reason: str | None = None,
+    rejection_reason: str | None = None,
+    superseded_by_id: str | None = None,
 ) -> TruthObject:
     """
     Apply a named validation action to a TruthObject.
 
-    Actions: advance_supported | advance_corroborated | approve |
-             dispute | resolve_dispute
+    Actions: validate | dispute | resolve_dispute | reject | supersede | operationalize
     """
-    if action == "advance_supported":
-        return await _state_machine.advance_to_supported(
-            db, truth_object, actor=actor, notes=notes
-        )
-    elif action == "advance_corroborated":
-        return await _state_machine.advance_to_corroborated(
-            db, truth_object, actor=actor, notes=notes
-        )
-    elif action == "approve":
-        return await _state_machine.approve(
-            db, truth_object, approved_by=actor, notes=notes
+    if action == "validate":
+        return await _state_machine.validate(
+            db, truth_object, validated_by=actor, notes=notes
         )
     elif action == "dispute":
         reason = (
@@ -291,6 +285,20 @@ async def validate_truth_object(
     elif action == "resolve_dispute":
         return await _state_machine.resolve_dispute(
             db, truth_object, resolved_by=actor, notes=notes
+        )
+    elif action == "reject":
+        reason = (
+            RejectionReason(rejection_reason) if rejection_reason else RejectionReason.OTHER
+        )
+        return await _state_machine.reject(
+            db, truth_object, reason=reason, rejected_by=actor, notes=notes
+        )
+    elif action == "supersede":
+        from uuid import UUID as UUID_CLS
+        if not superseded_by_id:
+            raise ValueError("superseded_by_id is required for supersede action")
+        return await _state_machine.supersede(
+            db, truth_object, superseded_by_id=UUID_CLS(superseded_by_id), superseded_by=actor, notes=notes
         )
     elif action == "operationalize":
         return await _state_machine.mark_operationalized(
@@ -309,35 +317,54 @@ async def validate_truth_object(
 # ---------------------------------------------------------------------------
 
 
-async def mark_stale_objects(db: AsyncSession, tenant_id: UUID) -> int:
+async def mark_expired_objects(db: AsyncSession, tenant_id: UUID) -> int:
     """
-    Mark all TruthObjects past their expires_at date as stale using bulk UPDATE.
+    Transition all TruthObjects past their expires_at date to EXPIRED status.
 
-    Returns the number of objects marked stale.
+    Returns the number of objects marked expired.
     """
     now = datetime.now(UTC)
-    result = await db.execute(
-        update(TruthObject)
+    from sqlalchemy import or_
+
+    stmt = (
+        select(TruthObject)
+        .options(selectinload(TruthObject.sources))
         .where(
             and_(
                 TruthObject.tenant_id == tenant_id,
                 TruthObject.deleted_at.is_(None),
-                TruthObject.is_stale.is_(False),
+                TruthObject.status.in_([TruthStatus.VALIDATED.value, TruthStatus.DISPUTED.value]),
+                TruthObject.expires_at.isnot(None),
                 TruthObject.expires_at <= now,
             )
         )
-        .values(is_stale=True, updated_at=now)
-        .returning(TruthObject.id)
     )
-    affected_ids = result.scalars().all()
-    count = len(affected_ids)
+    result = await db.execute(stmt)
+    expired_truths = result.scalars().all()
+
+    expired_count = 0
+    for truth in expired_truths:
+        try:
+            await _state_machine.expire(
+                db,
+                truth,
+                notes=f"Automatically expired: expired at {truth.expires_at.isoformat()}",
+            )
+            expired_count += 1
+        except Exception:
+            logger.warning(
+                "Failed to expire TruthObject %s (status=%s)",
+                truth.id,
+                truth.status,
+                exc_info=True,
+            )
 
     logger.info(
-        "Marked %d TruthObjects as stale for org %s",
-        count,
+        "Marked %d TruthObjects as expired for org %s",
+        expired_count,
         tenant_id,
     )
-    return count
+    return expired_count
 
 
 # ---------------------------------------------------------------------------

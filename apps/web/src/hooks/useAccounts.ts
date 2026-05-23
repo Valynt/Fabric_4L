@@ -238,7 +238,7 @@ async function fetchAccountActivity(accountId: string, sinceDays: number = 90): 
     account_id: data.account_id,
     total_count: data.total_count,
     summary: data.summary ?? '',
-    interactions: data.interactions.map((i) => ({
+    interactions: data.interactions.map((i: {id: string; type: string; date: string; subject?: string; duration_minutes?: number; notes?: string; outcome?: string}) => ({
       id: i.id,
       type: i.type,
       date: i.date,

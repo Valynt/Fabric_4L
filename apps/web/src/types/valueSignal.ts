@@ -120,6 +120,7 @@ export interface SignalCard {
   review_notes?: string;
   reviewed_at?: string;
   reviewed_by?: string;
+  validation_notes?: string;
 }
 
 // ---------------------------------------------------------------------------

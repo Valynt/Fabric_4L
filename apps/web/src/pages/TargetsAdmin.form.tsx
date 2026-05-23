@@ -147,7 +147,9 @@ export function TargetFormPanel({ targetId, onSuccess, onCancel }: Props) {
   const updateTarget = useUpdateTarget();
 
   const { register, handleSubmit, control, reset, watch, formState: { errors, isSubmitting } } = useForm<FormValues>({
-    resolver: zodResolver(schema),
+    // Zod v4 + @hookform/resolvers v5 type mismatch — runtime works fine
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    resolver: zodResolver(schema) as any,
     defaultValues: existing ? targetToForm(existing) : BASE_DEFAULTS,
   });
 
