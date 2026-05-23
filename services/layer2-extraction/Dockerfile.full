@@ -20,6 +20,7 @@ RUN uv sync --frozen --no-install-project
 COPY services/layer2-extraction/src/ ./src/
 COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
+COPY examples/canonical/ ./canonical/
 COPY services/layer2-extraction/src/layer2_extraction/ ./value_fabric/layer2/
 
 ENV PATH="/app/.venv/bin:$PATH"
