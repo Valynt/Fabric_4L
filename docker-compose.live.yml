@@ -81,7 +81,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 10
-      start_period: 60s
     deploy:
       resources:
         limits:
@@ -165,7 +164,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 10s
     deploy:
       resources:
         limits:
@@ -207,7 +205,6 @@ services:
         limits:
           cpus: '0.5'
           memory: '512MiB'
-      start_period: 20s
 
   # ---------------------------------------------------------------------------
   # Layer 2: Extraction Service (internal container port 8000)
@@ -250,7 +247,6 @@ services:
         limits:
           cpus: '2.0'
           memory: '2GiB'
-      start_period: 10s
 
   # ---------------------------------------------------------------------------
   # Layer 3: Knowledge Graph Service (internal container port 8001)
@@ -278,7 +274,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 10s
     deploy:
       resources:
         limits:
@@ -368,7 +363,6 @@ services:
         limits:
           cpus: '4.0'
           memory: '4GiB'
-      start_period: 15s
 
   # ---------------------------------------------------------------------------
   # Layer 5: Ground Truth Service (internal container port 8005)
@@ -400,7 +394,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 20s
     deploy:
       resources:
         limits:
@@ -471,7 +464,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 5
-      start_period: 5s
     deploy:
       resources:
         limits:
@@ -521,7 +513,6 @@ services:
       interval: 15s
       timeout: 5s
       retries: 10
-      start_period: 20s
 
   live-seed:
     profiles: ["seed"]
