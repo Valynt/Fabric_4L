@@ -74,11 +74,11 @@ components:
         name: layer1
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer1-ingestion
+        gitApplicationPath: .
         dockerCompose:
             build:
-                context: ./services/layer1-ingestion
-                dockerfile: ./Dockerfile.live
+                context: .
+                dockerfile: ./services/layer1-ingestion/Dockerfile.live
                 args:
                     INSTALL_PLAYWRIGHT_BROWSERS: 'false'
             environment:
@@ -114,7 +114,7 @@ components:
         name: layer1-worker
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer1-ingestion
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -146,7 +146,7 @@ components:
         name: layer2
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer2-extraction
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -188,7 +188,7 @@ components:
         name: layer3
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer3-knowledge
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -220,7 +220,7 @@ components:
         name: layer4
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer4-agents
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -277,7 +277,7 @@ components:
         name: layer5
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer5-ground-truth
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -316,7 +316,7 @@ components:
         name: layer5-migrate
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer5-ground-truth
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
@@ -349,7 +349,7 @@ components:
         name: layer6
         gitRepo: 'https://github.com/bmsull560/Fabric_4L.git'
         gitBranch: main
-        gitApplicationPath: services/layer6-benchmarks
+        gitApplicationPath: .
         dockerCompose:
             build:
                 context: .
