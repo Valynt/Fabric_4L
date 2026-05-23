@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
+from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from value_fabric.shared.error_handling import register_exception_handlers
@@ -113,6 +114,38 @@ def create_app() -> FastAPI:
             "version": "0.1.0",
             "environment": settings.environment,
         }
+
+    # Readiness check
+    @app.get("/ready", include_in_schema=False)
+    async def ready() -> dict[str, Any]:
+        """Readiness check for Kubernetes probes."""
+        try:
+            # Check database connectivity
+            from ..database import db_session
+            async with db_session() as session:
+                await session.execute(text("SELECT 1"))
+
+            # Check L3 client connectivity
+            l3_client = get_l3_client()
+            # Simple connectivity check - verify client is initialized
+            if l3_client is None:
+                raise RuntimeError("L3 client not initialized")
+
+            return {
+                "status": "ready",
+                "service": "layer2-5-signal-refinery",
+                "checks": {
+                    "database": "ok",
+                    "l3_client": "ok",
+                },
+            }
+        except Exception as exc:
+            logger.error("Readiness check failed: %s", exc)
+            return {
+                "status": "not_ready",
+                "service": "layer2-5-signal-refinery",
+                "error": str(exc),
+            }
 
     # Metrics stub
     @app.get("/metrics", include_in_schema=False)

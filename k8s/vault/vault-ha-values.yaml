@@ -123,7 +123,7 @@ containerSecurityContext:
   capabilities:
     drop:
       - ALL
-  readOnlyRootFilesystem: false  # Vault needs to write to /vault/file
+  readOnlyRootFilesystem: true  # Read-only root for security; specific writable paths mounted below
 
 # Liveness and readiness probes
 livenessProbe:
@@ -166,16 +166,26 @@ extraEnv:
     value: "json"
 
 # Extra volumes for TLS certificates
+# IMPORTANT: TLS is REQUIRED for production. The secret must exist before deployment.
+# Create the secret with: kubectl create secret tls vault-tls --cert=tls.crt --key=tls.key -n vault
 extraVolumes:
   - name: vault-tls
     secret:
       secretName: vault-tls
-      optional: true
+      optional: false
+  - name: vault-file
+    emptyDir: {}
 
 extraVolumeMounts:
   - name: vault-tls
     mountPath: /vault/tls
     readOnly: true
+  - name: vault-data
+    mountPath: /vault/data
+    readOnly: false
+  - name: vault-file
+    mountPath: /vault/file
+    readOnly: false
 
 # Init containers for TLS setup (if needed)
 initContainers:

@@ -559,10 +559,28 @@ services:
       - POOL_MODE=transaction
       - MAX_CLIENT_CONN=100
       - DEFAULT_POOL_SIZE=25
-      - PGBOUNCER_USERLIST=${POSTGRES_USER:?POSTGRES_USER is required} ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - PGBOUNCER_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - PGBOUNCER_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     command: >
       sh -c "
-      echo \"$$PGBOUNCER_USERLIST\" > /etc/pgbouncer/userlist.txt &&
+      # Validate and sanitize credentials before writing userlist.txt
+      if [ -z \"$$PGBOUNCER_USER\" ] || [ -z \"$$PGBOUNCER_PASSWORD\" ]; then
+        echo 'ERROR: PGBOUNCER_USER and PGBOUNCER_PASSWORD must be set'
+        exit 1
+      fi
+      # Check for invalid characters that could break userlist format
+      if echo \"$$PGBOUNCER_USER\" | grep -q '[\"\\'\"]'; then
+        echo 'ERROR: PGBOUNCER_USER contains invalid characters'
+        exit 1
+      fi
+      if echo \"$$PGBOUNCER_PASSWORD\" | grep -q '[\"\\'\"]'; then
+        echo 'ERROR: PGBOUNCER_PASSWORD contains invalid characters'
+        exit 1
+      fi
+      # Write userlist.txt in PgBouncer format: \"username\" \"md5hash\"
+      # Using plain text for Docker Compose; production should use md5
+      printf '%s %s\n' \"$$PGBOUNCER_USER\" \"$$PGBOUNCER_PASSWORD\" > /etc/pgbouncer/userlist.txt &&
+      chmod 600 /etc/pgbouncer/userlist.txt &&
       pgbouncer /etc/pgbouncer/pgbouncer.ini
       "
     depends_on:
@@ -658,16 +676,47 @@ services:
       - backup  # Only start with --profile backup
     command: >
       sh -c "
+      set -e
       BACKUP_DIR=/backups/postgres
       mkdir -p $$BACKUP_DIR
       TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      echo 'Starting PostgreSQL backup at $$TIMESTAMP'
+      
       # Backup application databases only (exclude system databases)
-      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql
-      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql
-      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql
-      # Keep last 7 days of backups
+      # Track success of each backup
+      BACKUP_SUCCESS=true
+      
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup ingestion database'
+        exit 1
+      fi
+      
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup extraction database'
+        exit 1
+      fi
+      
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql || BACKUP_SUCCESS=false
+      if [ \"$$BACKUP_SUCCESS\" = false ]; then
+        echo 'ERROR: Failed to backup ground_truth database'
+        exit 1
+      fi
+      
+      # Verify backup files exist and are non-empty
+      for db in ingestion extraction ground_truth; do
+        BACKUP_FILE=\"$$BACKUP_DIR/backup_$$db_$$TIMESTAMP.sql\"
+        if [ ! -s \"$$BACKUP_FILE\" ]; then
+          echo \"ERROR: Backup file $$BACKUP_FILE is empty or does not exist\"
+          exit 1
+        fi
+        echo \"Verified: $$BACKUP_FILE ($$(wc -c < \"$$BACKUP_FILE\") bytes)\"
+      done
+      
+      # Keep last 7 days of backups (only after successful backup)
       find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
-      echo 'Backup completed: backup_$$TIMESTAMP.sql'
+      echo 'Backup completed successfully at $$TIMESTAMP'
       "
     environment:
       - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
@@ -693,20 +742,44 @@ services:
       - backup  # Only start with --profile backup
     command: >
       sh -c "
+      set -e
       BACKUP_DIR=/backups/neo4j
       mkdir -p $$BACKUP_DIR
       TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
-      # Wait for Neo4j to be ready
-      until cypher-shell -a neo4j:7687 -u neo4j -p $${NEO4J_PASSWORD} 'RETURN 1'; do
-        echo 'Waiting for Neo4j...'
+      echo 'Starting Neo4j backup at $$TIMESTAMP'
+      
+      # Wait for Neo4j to be ready with timeout
+      MAX_WAIT=300
+      WAIT_TIME=0
+      until cypher-shell -a neo4j:7687 -u neo4j -p $${NEO4J_PASSWORD} 'RETURN 1' 2>/dev/null; do
+        if [ $$WAIT_TIME -ge $$MAX_WAIT ]; then
+          echo 'ERROR: Timeout waiting for Neo4j to be ready'
+          exit 1
+        fi
+        echo 'Waiting for Neo4j... ($$WAIT_TIME/$$MAX_WAIT seconds)'
         sleep 5
+        WAIT_TIME=$$((WAIT_TIME + 5))
       done
+      echo 'Neo4j is ready, starting backup'
+      
       # Perform backup using neo4j-admin with --from flag for consistency
       # Use --fallback-to-full if incremental backup fails
-      neo4j-admin database dump neo4j --from=/data --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true --fallback-to-full=true
-      # Keep last 7 days of backups
+      if ! neo4j-admin database dump neo4j --from=/data --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true --fallback-to-full=true; then
+        echo 'ERROR: Neo4j backup failed'
+        exit 1
+      fi
+      
+      # Verify backup directory exists and is non-empty
+      BACKUP_PATH=\"$$BACKUP_DIR/backup_$$TIMESTAMP\"
+      if [ ! -d \"$$BACKUP_PATH\" ] || [ -z \"\$(ls -A $$BACKUP_PATH)\" ]; then
+        echo \"ERROR: Backup directory $$BACKUP_PATH is empty or does not exist\"
+        exit 1
+      fi
+      echo \"Verified: $$BACKUP_PATH\"
+      
+      # Keep last 7 days of backups (only after successful backup)
       find $$BACKUP_DIR -name 'backup_*' -mtime +7 -delete
-      echo 'Backup completed: backup_$$TIMESTAMP'
+      echo 'Neo4j backup completed successfully at $$TIMESTAMP'
       "
     environment:
       - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}

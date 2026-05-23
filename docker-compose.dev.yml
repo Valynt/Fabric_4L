@@ -94,6 +94,27 @@ services:
       timeout: 5s
       retries: 3
 
+  # MinIO S3-compatible object storage (local development)
+  minio:
+    image: minio/minio:latest
+    container_name: vf-dev-minio
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API
+      - "9001:9001"  # Console
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio-data:/data
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   redis:
     image: redis:7-alpine
     container_name: vf-dev-redis
@@ -320,6 +341,7 @@ volumes:
   dev-neo4j-data:
   dev-keycloak-data:
   qdrant-data:
+  minio-data:
 
 networks:
   dev-network:

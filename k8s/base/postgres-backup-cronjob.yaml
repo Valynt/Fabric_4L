@@ -1,0 +1,62 @@
+# PostgreSQL Backup CronJob
+# Runs daily at 2 AM UTC
+# Backs up application databases (ingestion, extraction, ground_truth)
+# Retains backups for 7 days
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: value-fabric
+  labels:
+    app: postgres-backup
+    component: database
+spec:
+  schedule: "0 2 * * *"  # Daily at 2 AM UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 3
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: postgres-backup
+              image: postgres:15-alpine
+              command:
+                - sh
+                - -c
+                - |
+                  BACKUP_DIR=/backups/postgres
+                  mkdir -p $$BACKUP_DIR
+                  TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+                  
+                  # Backup application databases only
+                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ingestion > $$BACKUP_DIR/backup_ingestion_$$TIMESTAMP.sql
+                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d extraction > $$BACKUP_DIR/backup_extraction_$$TIMESTAMP.sql
+                  PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d ground_truth > $$BACKUP_DIR/backup_ground_truth_$$TIMESTAMP.sql
+                  
+                  # Keep last 7 days of backups
+                  find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
+                  
+                  echo "Backup completed: $$TIMESTAMP"
+              env:
+                - name: POSTGRES_USER
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: username
+                - name: POSTGRES_PASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-credentials
+                      key: password
+              volumeMounts:
+                - name: postgres-backups
+                  mountPath: /backups
+          volumes:
+            - name: postgres-backups
+              persistentVolumeClaim:
+                claimName: postgres-backup-pvc
