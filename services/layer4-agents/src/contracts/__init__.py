@@ -11,7 +11,7 @@ Agent ownership:
   NarrativeArtifact  ← owned by NarrativeAgent
 
 Import from here:
-    from value_fabric.layer4_agents.src.contracts import (
+    from value_fabric.layer4.contracts import (
         EntityRef, ContextArtifact, ValueModelArtifact,
         IntegrityArtifact, NarrativeArtifact,
     )

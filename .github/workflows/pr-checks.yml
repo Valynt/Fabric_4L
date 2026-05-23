@@ -166,6 +166,20 @@ jobs:
       - name: Enforce secure error envelope gate
         run: python scripts/ci/check_secure_error_envelope.py
 
+      - name: API contract stability enforcement
+        run: |
+          python scripts/ci/standardize_deprecation_markers.py --check
+          python scripts/ci/sync_deprecation_register.py --check
+
+      - name: OpenAPI linting with Spectral
+        run: |
+          npm install -g @stoplight/spectral-cli
+          spectral lint contracts/openapi/*.json --ruleset .spectral.yaml
+
+      - name: Run error envelope consistency contract tests
+        run: |
+          pip install pytest
+          pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
 
       - name: Tenant boundary static runtime enforcement
         run: |

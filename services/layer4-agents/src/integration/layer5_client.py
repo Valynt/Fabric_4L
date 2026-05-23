@@ -242,7 +242,7 @@ class Layer5GroundTruthClient:
 
         except Exception as exc:
             logger.warning("Layer 5 sync-kg failed (non-blocking): %s", exc)
-            return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({"error": str(exc), "synced": 0, "failed": 0})
+            return Layer5GroundTruthClient_sync_validated_truthsResult.model_validate({"error": "Layer 5 sync failed", "detail": None, "synced": 0, "failed": 0})
 
     # ------------------------------------------------------------------
     # Submit a new TruthObject
@@ -332,7 +332,7 @@ class Layer5GroundTruthClient:
 
         except Exception as exc:
             logger.warning("Layer 5 submit_truth failed: %s", exc)
-            return Layer5GroundTruthClient_submit_truthResult.model_validate({"error": str(exc)})
+            return Layer5GroundTruthClient_submit_truthResult.model_validate({"error": "Layer 5 submit truth failed", "detail": None})
 
     # ------------------------------------------------------------------
     # Query TruthObjects
@@ -383,7 +383,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 list_truths failed: %s", exc)
-            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": str(exc), "items": [], "total": 0})
+            return Layer5GroundTruthClient_list_truthsResult.model_validate({"error": "Layer 5 list truths failed", "items": [], "total": 0})
 
     async def validate_truth(
         self,
@@ -417,7 +417,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 validate_truth failed for %s: %s", truth_id, exc)
-            return Layer5GroundTruthClient_validate_truthResult.model_validate({"error": str(exc), "truth_object_id": truth_id})
+            return Layer5GroundTruthClient_validate_truthResult.model_validate({"error": "Layer 5 validate truth failed", "truth_object_id": truth_id})
 
     # ------------------------------------------------------------------
     # Proxy Methods for Frontend Governance
@@ -447,7 +447,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 get_truth failed for %s: %s", truth_id, exc)
-            return Layer5GroundTruthClient_get_truthResult.model_validate({"error": str(exc)})
+            return Layer5GroundTruthClient_get_truthResult.model_validate({"error": "Layer 5 get truth failed"})
 
     async def get_truth_audit(
         self,
@@ -473,7 +473,7 @@ class Layer5GroundTruthClient:
             return {"events": resp.json()}
         except Exception as exc:
             logger.warning("Layer 5 get_truth_audit failed for %s: %s", truth_id, exc)
-            return Layer5GroundTruthClient_get_truth_auditResult.model_validate({"error": str(exc), "events": []})
+            return Layer5GroundTruthClient_get_truth_auditResult.model_validate({"error": "Layer 5 get truth audit failed", "events": []})
 
     async def get_freshness_summary(
         self,
@@ -497,7 +497,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 get_freshness_summary failed: %s", exc)
-            return Layer5GroundTruthClient_get_freshness_summaryResult.model_validate({"error": str(exc)})
+            return Layer5GroundTruthClient_get_freshness_summaryResult.model_validate({"error": "Layer 5 get freshness summary failed"})
 
     async def get_stale_truths(
         self,
@@ -525,7 +525,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 get_stale_truths failed: %s", exc)
-            return Layer5GroundTruthClient_get_stale_truthsResult.model_validate({"error": str(exc)})
+            return Layer5GroundTruthClient_get_stale_truthsResult.model_validate({"error": "Layer 5 get stale truths failed"})
 
     async def get_maturity_ladder(
         self,
@@ -549,7 +549,7 @@ class Layer5GroundTruthClient:
             return resp.json()
         except Exception as exc:
             logger.warning("Layer 5 get_maturity_ladder failed: %s", exc)
-            return Layer5GroundTruthClient_get_maturity_ladderResult.model_validate({"error": str(exc)})
+            return Layer5GroundTruthClient_get_maturity_ladderResult.model_validate({"error": "Layer 5 get maturity ladder failed"})
 
     # ------------------------------------------------------------------
     # Lifecycle

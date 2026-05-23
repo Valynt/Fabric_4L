@@ -1,12 +1,3 @@
-# Launch monitoring entrypoint for Prometheus, Alertmanager, Grafana, and Jaeger.
-#
-# Usage:
-#   docker compose -f docker-compose.monitoring.yml config
-#   docker compose -f docker-compose.monitoring.yml up -d
-#
-# Start this before T-0 traffic movement so launch dashboards and alert routing
-# have a baseline.
-
 name: fabric4l-monitoring
 
 x-from-full: &from-full
@@ -17,26 +8,65 @@ services:
     extends:
       <<: *from-full
       service: prometheus
-
   alertmanager:
     extends:
       <<: *from-full
       service: alertmanager
-
   grafana:
     extends:
       <<: *from-full
       service: grafana
-
   jaeger:
     extends:
       <<: *from-full
       service: jaeger
 
+  # Log aggregation (local dev parity with K8s)
+  loki:
+    image: grafana/loki:3.2.1
+    container_name: value-fabric-loki
+    command:
+      - -config.file=/etc/loki/local-config.yaml
+    expose:
+      - "3100"
+    volumes:
+      - ./monitoring/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - ./monitoring/alerting/loki-rules.yml:/loki/rules/fake/rules.yml:ro
+      - loki-data:/loki
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3100/ready"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Log shipping (local dev parity with K8s Fluent Bit DaemonSet)
+  fluent-bit:
+    image: fluent/fluent-bit:3.1
+    container_name: value-fabric-fluent-bit
+    command:
+      - /fluent-bit/bin/fluent-bit
+      - -c
+      - /fluent-bit/etc/fluent-bit.conf
+    volumes:
+      - ./monitoring/fluent-bit/fluent-bit.conf:/fluent-bit/etc/fluent-bit.conf:ro
+      - /var/log:/var/log:ro
+      # Docker container logs on Linux; harmless on Windows/Docker Desktop
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+    depends_on:
+      loki:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+
 volumes:
   grafana-data:
   alertmanager-data:
   jaeger-data:
+  loki-data:
 
 networks:
   value-fabric-network:

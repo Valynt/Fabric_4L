@@ -23,14 +23,8 @@ import time
 
 import pytest
 
-# Lazy import for optional dependency
-try:
-    from fastapi import FastAPI, HTTPException, Request
-    from fastapi.testclient import TestClient
-    _FASTAPI_AVAILABLE = True
-except ImportError:
-    _FASTAPI_AVAILABLE = False
-    TestClient = None  # type: ignore[assignment,misc]
+from fastapi import FastAPI, HTTPException, Request
+from fastapi.testclient import TestClient
 
 # ---------------------------------------------------------------------------
 # Module-level JWT configuration
@@ -66,9 +60,6 @@ os.environ.setdefault("ALLOW_LEGACY_TEST_TENANT_IDS", "true")
 @pytest.fixture(scope="module")
 def _adversarial_app():
     """Minimal FastAPI app with real GovernanceMiddleware for adversarial tests."""
-    if not _FASTAPI_AVAILABLE:
-        pytest.skip("fastapi not installed")
-
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
     app = FastAPI()
@@ -101,8 +92,6 @@ def client(_adversarial_app):
     Overrides the security conftest ``client`` fixture which points at the
     Layer 1 ingestion app and does not expose /api/v1/entities.
     """
-    if not _FASTAPI_AVAILABLE:
-        pytest.skip("fastapi not installed")
     return TestClient(_adversarial_app)
 
 

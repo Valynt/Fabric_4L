@@ -11,6 +11,7 @@ from neo4j.exceptions import (
     ServiceUnavailable,
     TransientError,
 )
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
@@ -99,7 +100,7 @@ class SchemaInitializer:
         except (ClientError, DatabaseError) as e:
             logger.warning(
                 "Failed to detect Neo4j edition, assuming community",
-                extra={"error": str(e), "error_type": type(e).__name__},
+                extra={"error_code": "NEO4J_EDITION_DETECTION_ERROR", "error": sanitize_log_error(e), "error_type": type(e).__name__},
             )
             return "community"
 
@@ -186,21 +187,21 @@ class SchemaInitializer:
                 return
             logger.error(
                 f"Client error creating {item_type} {name}",
-                extra={"name": name, "item_type": item_type, "error": str(e)},
+                extra={"name": name, "item_type": item_type, "error_code": "NEO4J_CLIENT_ERROR", "error": sanitize_log_error(e)},
                 exc_info=True,
             )
             raise
         except (ConfigurationError, DatabaseError) as e:
             logger.error(
                 f"Database error creating {item_type} {name}",
-                extra={"name": name, "item_type": item_type, "error": str(e)},
+                extra={"name": name, "item_type": item_type, "error_code": "NEO4J_DATABASE_ERROR", "error": sanitize_log_error(e)},
                 exc_info=True,
             )
             raise
         except (TransientError, ServiceUnavailable) as e:
             logger.warning(
                 f"Transient error creating {item_type} {name}, retry may be needed",
-                extra={"name": name, "item_type": item_type, "error": str(e)},
+                extra={"name": name, "item_type": item_type, "error_code": "NEO4J_TRANSIENT_ERROR", "error": sanitize_log_error(e)},
             )
             raise
 

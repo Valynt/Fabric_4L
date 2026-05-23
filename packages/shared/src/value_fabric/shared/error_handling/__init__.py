@@ -14,7 +14,7 @@ from .handlers import (
     install_error_response_openapi,
     register_exception_handlers,
 )
-from .helpers import build_error_detail
+from .helpers import build_error_detail, sanitize_log_error
 from .middleware import get_request_id, RequestIDMiddleware
 from .models import ErrorCode, ErrorEnvelope, ErrorDetail, ErrorResponse
 
@@ -33,6 +33,7 @@ __all__ = [
     "RateLimitError",
     "register_exception_handlers",
     "RequestIDMiddleware",
+    "sanitize_log_error",
     "ServiceUnavailableError",
     "ValidationError",
     "ValueFabricException",

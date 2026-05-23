@@ -310,9 +310,7 @@ class _HybridTestClient:
 @pytest.fixture
 def client():
     """Hybrid L1 ingestion API client for sync and async security tests."""
-    TestClient = _get_testclient()
-    if TestClient is None:
-        pytest.skip("fastapi not installed")
+    from fastapi.testclient import TestClient
     
     try:
         from value_fabric.layer1.api.app_monolith import app

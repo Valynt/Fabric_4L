@@ -11,12 +11,7 @@ pytestmark = [pytest.mark.security, pytest.mark.tenant_boundary]
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
-# Lazy imports for optional dependencies
-try:
-    from fastapi import HTTPException, Request
-except ImportError:
-    HTTPException = None
-    Request = None
+from fastapi import HTTPException, Request
 
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
@@ -318,11 +313,8 @@ class TestAdminConsoleEndpoint:
     @pytest.fixture
     def admin_console_app(self, super_admin_context):
         """Minimal FastAPI app with the admin console router and injected context."""
-        try:
-            from fastapi import FastAPI
-            from starlette.middleware.base import BaseHTTPMiddleware
-        except ImportError:
-            pytest.skip("fastapi not installed")
+        from fastapi import FastAPI
+        from starlette.middleware.base import BaseHTTPMiddleware
 
         class _InjectContextMiddleware(BaseHTTPMiddleware):
             def __init__(self, app, context=None):
@@ -367,10 +359,7 @@ class TestAdminConsoleEndpoint:
     @pytest.fixture
     def admin_console_client(self, admin_console_app):
         """TestClient for the admin console app."""
-        try:
-            from fastapi.testclient import TestClient
-        except ImportError:
-            pytest.skip("fastapi not installed")
+        from fastapi.testclient import TestClient
         return TestClient(admin_console_app)
 
     def test_tenant_overview_emits_cross_tenant_access_audit(
@@ -409,10 +398,7 @@ class TestAdminConsoleEndpoint:
         self, admin_console_app, super_admin_context
     ):
         """Verify the endpoint rejects requests without X-Privileged-Reason."""
-        try:
-            from fastapi.testclient import TestClient
-        except ImportError:
-            pytest.skip("fastapi not installed")
+        from fastapi.testclient import TestClient
 
         # Use a fresh app without the injected context so we can test the
         # dependency in isolation via a simple route.

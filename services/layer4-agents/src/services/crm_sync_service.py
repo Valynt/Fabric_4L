@@ -17,6 +17,7 @@ from uuid import UUID
 
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..metrics import get_metrics
@@ -80,15 +81,6 @@ def _log_sync_event(
     if extra:
         payload.update(extra)
     logger.info("crm_sync_event: %s", payload)
-
-
-def _redacted_error(error: str) -> str:
-    """Remove potential secrets from error strings before logging."""
-    redacted = error
-    for pattern in ["Bearer ", "access_token", "refresh_token", "api_key"]:
-        if pattern in redacted.lower():
-            redacted = f"[REDACTED: contains {pattern}]"
-    return redacted
 
 
 class SyncTruncatedError(Exception):
@@ -188,7 +180,7 @@ class CRMSyncService:
                     stats["errors"].append(f"{prospect_id}: SYNC_TRUNCATED_ERROR")
                     logger.warning(
                         "Sync truncated for account %s from %s: %s",
-                        prospect_id, provider.value, _redacted_error("SYNC_TRUNCATED_ERROR"),
+                        prospect_id, provider.value, sanitize_log_error("SYNC_TRUNCATED_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
                 except Exception as e:
@@ -196,7 +188,7 @@ class CRMSyncService:
                     stats["errors"].append(f"{prospect_id}: SYNC_ERROR")
                     logger.error(
                         "Failed to sync account %s from %s: %s",
-                        prospect_id, provider.value, _redacted_error("SYNC_ERROR"),
+                        prospect_id, provider.value, sanitize_log_error("SYNC_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
 
@@ -265,7 +257,7 @@ class CRMSyncService:
             })
             logger.error(
                 "CRM sync failed for %s: %s",
-                provider.value, _redacted_error(str(e)),
+                provider.value, sanitize_log_error(e),
                 extra={"tenant_id": tenant_id, "provider": provider.value},
             )
             stats["errors"].append(str(e))

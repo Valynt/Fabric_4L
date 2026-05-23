@@ -34,6 +34,7 @@ from ..crawler.smart_router import RouteType, SmartRouter
 if TYPE_CHECKING:
     from ..crawler.httpx_crawler import FastPathResult
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.error_handling import sanitize_log_error
 
 from ..shared.config import settings
 from ..shared.database import get_db_session
@@ -209,8 +210,8 @@ def process_scraping_job(self, job_id: str):
         return process_scraping_jobResult.model_validate({"success": True, "job_id": str(job_id), "task_id": result.id})
 
     except Exception as exc:
-        logger.error("Pipeline orchestration failed", job_id=str(job_id), error=str(exc))
-        _fail_job(job_id, str(exc), PipelineStage.INIT)
+        logger.error("Pipeline orchestration failed", job_id=str(job_id), error_code="PIPELINE_ORCHESTRATION_ERROR", error=sanitize_log_error(exc))
+        _fail_job(job_id, sanitize_log_error(exc)[:200], PipelineStage.INIT)
         raise self.retry(exc=exc, countdown=60)
 
 
@@ -334,14 +335,14 @@ def compliance_check_stage(self, job_id: UUID):
         # Propagate Celery retry exceptions directly; don't wrap them
         if "Retry" in type(exc).__name__:
             raise
-        logger.error("Compliance check failed", job_id=str(job_id), error=str(exc))
+        logger.error("Compliance check failed", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(exc))
         try:
             with get_db_session() as error_session:
                 _update_stage(
-                    error_session, job_id, PipelineStage.COMPLIANCE_CHECK, "FAILED", str(exc)
+                    error_session, job_id, PipelineStage.COMPLIANCE_CHECK, "FAILED", sanitize_log_error(exc)[:200]
                 )
         except Exception as update_exc:
-            logger.error("Failed to update stage status", job_id=str(job_id), error=str(update_exc))
+            logger.error("Failed to update stage status", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(update_exc))
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -579,9 +580,9 @@ def browser_crawl_stage(self, prev_result: dict):
             })
 
     except Exception as exc:
-        logger.error("Smart crawl failed", job_id=str(job_id), error=str(exc))
+        logger.error("Smart crawl failed", job_id=str(job_id), error_code="SMART_CRAWL_ERROR", error=sanitize_log_error(exc))
         for stage in (PipelineStage.BROWSER_LAUNCH, PipelineStage.NAVIGATION, PipelineStage.CONTENT_CAPTURE):
-            _update_stage(get_db_session(), job_id, stage, "FAILED", str(exc))
+            _update_stage(get_db_session(), job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -703,8 +704,8 @@ def ai_extraction_stage(self, prev_result: dict):
     except Exception as exc:
         if "Retry" in type(exc).__name__:
             raise
-        logger.error("AI extraction failed", job_id=str(job_id), error=str(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.AI_EXTRACTION, "FAILED", str(exc))
+        logger.error("AI extraction failed", job_id=str(job_id), error_code="AI_EXTRACTION_ERROR", error=sanitize_log_error(exc))
+        _update_stage(get_db_session(), job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -792,8 +793,8 @@ def post_processing_stage(self, prev_result: dict):
             return post_processing_stageResult.model_validate({"success": True, "job_id": str(job_id)})
 
     except Exception as exc:
-        logger.error("Post-processing failed", job_id=str(job_id), error=str(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.POST_PROCESSING, "FAILED", str(exc))
+        logger.error("Post-processing failed", job_id=str(job_id), error_code="POST_PROCESSING_ERROR", error=sanitize_log_error(exc))
+        _update_stage(get_db_session(), job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -913,8 +914,8 @@ def validation_stage(self, prev_result: dict):
             return validation_stageResult.model_validate({"success": True, "job_id": str(job_id)})
 
     except Exception as exc:
-        logger.error("Validation failed", job_id=str(job_id), error=str(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.VALIDATION, "FAILED", str(exc))
+        logger.error("Validation failed", job_id=str(job_id), error_code="VALIDATION_ERROR", error=sanitize_log_error(exc))
+        _update_stage(get_db_session(), job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -1056,8 +1057,8 @@ def storage_stage(self, prev_result: dict):
             return storage_stageResult.model_validate({"success": True, "job_id": str(job_id)})
 
     except Exception as exc:
-        logger.error("Storage failed", job_id=str(job_id), error=str(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.STORAGE, "FAILED", str(exc))
+        logger.error("Storage failed", job_id=str(job_id), error_code="STORAGE_ERROR", error=sanitize_log_error(exc))
+        _update_stage(get_db_session(), job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -1175,9 +1176,9 @@ def notification_stage(prev_result: dict):
             return notification_stageResult.model_validate({"success": True, "job_id": str(job_id), "error": None})
 
     except Exception as exc:
-        logger.error("Notification stage failed", job_id=str(job_id), error=str(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.NOTIFICATION, "FAILED", str(exc))
-        return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": str(exc)})
+        logger.error("Notification stage failed", job_id=str(job_id), error_code="NOTIFICATION_ERROR", error=sanitize_log_error(exc))
+        _update_stage(get_db_session(), job_id, PipelineStage.NOTIFICATION, "FAILED", sanitize_log_error(exc)[:200])
+        return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": "Notification stage failed"})
 
 
 # =============================================================================
@@ -1246,7 +1247,8 @@ def dispatch_outbox_event(self, event_id: str):
         logger.error(
             "EventOutbox dispatch failed",
             event_id=event_id,
-            error=str(exc),
+            error_code="NOTIFICATION_ERROR",
+            error=sanitize_log_error(exc),
             attempt=self.request.retries + 1,
         )
 
@@ -1260,7 +1262,7 @@ def dispatch_outbox_event(self, event_id: str):
                 )
                 if event:
                     event.attempts = (event.attempts or 0) + 1
-                    event.last_error = str(exc)
+                    event.last_error = sanitize_log_error(exc)[:200]
 
                     if event.attempts >= MAX_DISPATCH_ATTEMPTS:
                         event.status = OutboxStatus.DEAD_LETTER.value
@@ -1280,7 +1282,8 @@ def dispatch_outbox_event(self, event_id: str):
             logger.error(
                 "Failed to record outbox dispatch error",
                 event_id=event_id,
-                error=str(inner_exc),
+                error_code="NOTIFICATION_ERROR",
+                error=sanitize_log_error(inner_exc),
             )
 
         # Retry with exponential backoff.
@@ -1562,14 +1565,15 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
             "Crawl failed",
             job_id=job_id,
             url=url,
-            error=str(exc),
+            error_code="SMART_CRAWL_ERROR",
+            error=sanitize_log_error(exc),
             exc_info=True,
         )
 
         # Try to save error decision if we have a decision record
         if "decision_record" in locals():
             decision_record.error_type = type(exc).__name__
-            decision_record.error_message = str(exc)[:500]  # Truncate long messages
+            decision_record.error_message = sanitize_log_error(exc)[:500]  # Truncate long messages
             try:
                 asyncio.run(decision_repo.save(decision_record))
             except Exception:

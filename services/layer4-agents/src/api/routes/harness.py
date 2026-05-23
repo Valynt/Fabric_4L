@@ -18,6 +18,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated, require_content_admin
 
@@ -152,7 +153,7 @@ async def get_run(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
     return RunResponse.from_domain(run)
 
@@ -181,7 +182,7 @@ async def transition_run(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
     except Exception:
         logger.exception("Unexpected error transitioning run %s", run_id)
@@ -209,7 +210,7 @@ async def cancel_run(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     if run.current_state.is_terminal:
@@ -226,7 +227,7 @@ async def cancel_run(
             human_override=True,
         )
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
     except Exception:
         logger.exception("Error cancelling run %s", run_id)
@@ -254,7 +255,7 @@ async def list_checkpoints(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     checkpoints = await registry.get_checkpoints(run_id, ctx.tenant_id)
@@ -280,7 +281,7 @@ async def get_latest_checkpoint(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     checkpoints = await registry.get_checkpoints(run_id, ctx.tenant_id)
@@ -311,7 +312,7 @@ async def list_gates(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     gates = await registry.list_gates_for_run(run_id, ctx.tenant_id)
@@ -339,7 +340,7 @@ async def create_gate(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     gate = await registry.create_human_gate(
@@ -372,7 +373,7 @@ async def decide_gate(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Gate {gate_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     decision_map = {
@@ -394,7 +395,7 @@ async def decide_gate(
             decision_reason=body.decision_reason,
         )
     except (ValueError, HarnessRegistryError) as exc:
-        logger.warning("harness_gate_decision_error", error=str(exc))
+        logger.warning("harness_gate_decision_error", error_code="HARNESS_GATE_DECISION_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=400, detail="Invalid gate decision request")
 
     return GateResponse.from_domain(updated_gate)
@@ -422,7 +423,7 @@ async def validate_claims(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     domain_requests = [
@@ -440,7 +441,7 @@ async def validate_claims(
     try:
         results = await registry.validate_claims(ctx.tenant_id, domain_requests, run_id=run_id)
     except HarnessRegistryError as exc:
-        logger.warning("harness_validation_error", error=str(exc))
+        logger.warning("harness_validation_error", error_code="HARNESS_VALIDATION_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=400, detail="Claim validation failed")
 
     summary = aggregate_validation_results(results)
@@ -476,7 +477,7 @@ async def get_run_validation(
     except KeyError:
         raise HTTPException(status_code=404, detail=f"Run {run_id} not found")
     except HarnessRegistryError as exc:
-        logger.warning("harness_registry_error", error=str(exc))
+        logger.warning("harness_registry_error", error_code="HARNESS_REGISTRY_ERROR", error=sanitize_log_error(exc))
         raise HTTPException(status_code=403, detail="Harness registry access denied")
 
     # Retrieve stored validation results from the SQL registry if available.

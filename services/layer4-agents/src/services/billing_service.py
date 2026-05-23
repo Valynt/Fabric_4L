@@ -14,6 +14,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import sanitize_log_error
 
 logger = logging.getLogger(__name__)
 
@@ -136,8 +137,8 @@ class BillingService:
                     sync_status = "synced"
                 except (StripeNotConfiguredError, StripeError) as e:
                     sync_status = "failed"
-                    sync_error = str(e)
-                    logger.warning("Stripe customer creation failed", extra={"customer_id": customer_id, "tenant_id": tenant_id, "error_code": "STRIPE_CUSTOMER_ERROR", "error": str(e)})
+                    sync_error = sanitize_log_error(e)
+                    logger.warning("Stripe customer creation failed", extra={"customer_id": customer_id, "tenant_id": tenant_id, "error_code": "STRIPE_CUSTOMER_ERROR", "error": sync_error})
 
                 # Create local customer record first; Stripe sync state is explicit
                 customer = BillingCustomer(
@@ -181,7 +182,7 @@ class BillingService:
                             "stripe_customer_id": stripe_customer_id,
                             "customer_id": customer_id,
                             "error_code": "STRIPE_ORPHAN_ERROR",
-                            "error": str(e),
+                            "error": sanitize_log_error(e),
                             "action_required": "Reconcile Stripe customer or delete if unused",
                         }
                     )
@@ -241,7 +242,7 @@ class BillingService:
                 synced += 1
             except (StripeNotConfiguredError, StripeError) as e:
                 customer.stripe_sync_status = "failed"
-                customer.stripe_sync_error = str(e)
+                customer.stripe_sync_error = sanitize_log_error(e)
                 failed += 1
 
         backlog = len(customers) - synced
@@ -399,6 +400,7 @@ class BillingService:
         except ValueError as e:
             raise ValueError(f"Invalid payload: {e}") from e
         except (TypeError, KeyError) as e:
+            # Branching on error message is fragile; TODO: use structured exception codes from Stripe SDK if available.
             if "signature" in str(e).lower():
                 raise ValueError(f"Invalid signature: {e}") from e
             raise ValueError(f"Malformed webhook payload: {e}") from e

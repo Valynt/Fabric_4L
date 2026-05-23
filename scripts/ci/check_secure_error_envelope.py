@@ -30,9 +30,7 @@ ALLOWLIST = (
     # Tracing internals use traceback.format_exc for observability
     "/tracing/",
     # Logger extra fields are internal-only and never reach HTTP clients
-    "/services/billing_service.py",
     "/tools/files.py",
-    "/schema/initializer.py",
     "/api/routes/crm_webhooks.py",
     "/api/routes/signals.py",
     "/api/websocket/routes.py",
@@ -42,7 +40,6 @@ ALLOWLIST = (
     "/retrieval/vector_store.py",
     "/database.py",
     # Internal service-to-service client contracts are not external HTTP leaks
-    "/integration/layer5_client.py",
     "/services/agent_tools.py",
     "/services/company_knowledge_service.py",
     "/services/conversation.py",
@@ -65,8 +62,8 @@ ALLOWLIST = (
     "/services/case_study_service.py",
     # L2 extraction internals
     "/layer2_extraction/api/main.py",
-    # L1 task notification internals
-    "/shared/tasks.py",
+    # L1 task notification internals (fixed 2026-05-22)
+    # "/shared/tasks.py",
     # OIDC audit event details are internal logging
     "/tenants/api/routes/oidc.py",
     # Prospect route details are internal logging

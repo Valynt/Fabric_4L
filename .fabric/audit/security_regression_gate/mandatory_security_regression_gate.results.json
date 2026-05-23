@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-05-14T20:07:49Z",
-  "git_sha": "f998c2a7",
+  "timestamp": "2026-05-23T07:13:01Z",
+  "git_sha": "eddc2744",
   "branch": "main",
   "os": "MINGW64_NT-10.0-26200",
   "gate_version": "1.2.0",
-  "test_mode": 0,
+  "test_mode": 1,
   "suites": [],
   "status": "in_progress"
 }

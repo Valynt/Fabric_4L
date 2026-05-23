@@ -1,0 +1,84 @@
+# Log-based Alerting Rules for Value Fabric
+# Evaluated by Loki Ruler (LogQL)
+# Loaded via: ./monitoring/loki/local-config.yaml -> ruler.storage.local.directory
+#
+# Dev/staging thresholds; tighten in rules-production.yml if duplicated there.
+
+groups:
+  - name: value-fabric-log-alerts
+    interval: 1m
+    rules:
+      # LogPattern: Error spike across any layer
+      - alert: LogErrorSpike
+        expr: |
+          sum by (layer, service) (
+            rate({job="fluent-bit"} |= "ERROR" [5m])
+          ) > 0.5
+        for: 5m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Log error spike in {{ $labels.service }}"
+          description: "ERROR log rate is above 0.5/sec for 5 minutes in layer {{ $labels.layer }}."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/log-error-spike.md"
+
+      # LogPattern: Panic / unhandled exception
+      - alert: LogPanicDetected
+        expr: |
+          sum by (layer, service) (
+            rate({job="fluent-bit"} |~ "panic|PANIC|FATAL|UnhandledException" [1m])
+          ) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Panic/FATAL detected in {{ $labels.service }}"
+          description: "A panic or fatal exception was observed in {{ $labels.service }} logs."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/log-panic-detected.md"
+
+      # LogPattern: Tenant isolation failure keywords
+      - alert: LogTenantIsolationFailure
+        expr: |
+          sum by (layer, service) (
+            rate({job="fluent-bit"} |~ "cross.tenant|tenant.isolation|unauthorized.tenant|forbidden.tenant" [5m])
+          ) > 0
+        for: 2m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Tenant isolation anomaly in {{ $labels.service }}"
+          description: "Cross-tenant or unauthorized tenant access patterns detected in logs."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/tenant-isolation-failure.md"
+
+      # LogPattern: Database connection pool exhaustion
+      - alert: LogDatabasePoolExhaustion
+        expr: |
+          sum by (layer, service) (
+            rate({job="fluent-bit"} |~ "pool.exhausted|connection.timeout|too.many.connections|FATAL:.*connection" [5m])
+          ) > 0
+        for: 3m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "DB pool exhaustion suspected in {{ $labels.service }}"
+          description: "Database connection pool exhaustion or fatal connection errors observed in logs."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/database-pool-exhaustion.md"
+
+      # LogPattern: Authentication / authorization anomaly
+      - alert: LogAuthAnomaly
+        expr: |
+          sum by (layer, service) (
+            rate({job="fluent-bit"} |~ "InvalidToken|SignatureVerification|TokenExpired|AccessDenied|RBAC.denied" [5m])
+          ) > 1
+        for: 5m
+        labels:
+          severity: warning
+          team: security
+        annotations:
+          summary: "Auth anomaly in {{ $labels.service }}"
+          description: "Authentication/authorization failure rate is above 1/sec for 5 minutes."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/auth-anomaly.md"

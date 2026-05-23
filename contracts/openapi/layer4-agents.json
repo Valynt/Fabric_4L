@@ -4816,7 +4816,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/tenant/context": {
@@ -11198,7 +11201,9 @@
           }
         },
         "x-deprecated-removal-date": "2026-08-01",
-        "x-canonical-path": "/v1/tenants/current/settings"
+        "x-canonical-path": "/v1/tenants/current/settings",
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecation-owner": "platform-team"
       },
       "patch": {
         "tags": [
@@ -11275,7 +11280,9 @@
           }
         },
         "x-deprecated-removal-date": "2026-08-01",
-        "x-canonical-path": "/v1/tenants/current/settings"
+        "x-canonical-path": "/v1/tenants/current/settings",
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/auth/register": {
@@ -11354,7 +11361,9 @@
           }
         },
         "x-deprecated-removal-date": "2026-07-01",
-        "x-canonical-path": "/v1/tenants/register"
+        "x-canonical-path": "/v1/tenants/register",
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/prospects/{prospect_id}/context": {

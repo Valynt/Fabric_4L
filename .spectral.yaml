@@ -1,0 +1,151 @@
+# Spectral OpenAPI linting configuration for Fabric_4L
+# Based on the API Contract Stability Guidelines in docs/api-contract-stability.md
+
+extends:
+  - spectral:oas
+  - spectral:recommended
+
+rules:
+  # Require deprecation metadata for deprecated endpoints
+  deprecation-metadata-complete:
+    description: Deprecated endpoints must have complete deprecation metadata
+    severity: error
+    given: "$.paths[*][*][?(@.deprecated === true)]"
+    then:
+      - field: x-deprecated-since
+        function: truthy
+      - field: x-deprecated-removal-date
+        function: truthy
+      - field: x-deprecation-owner
+        function: truthy
+
+  # Require deprecation metadata for deprecated schemas
+  schema-deprecation-metadata-complete:
+    description: Deprecated schemas must have complete deprecation metadata
+    severity: error
+    given: "$.components.schemas[?(@.deprecated === true)]"
+    then:
+      - field: x-deprecated-since
+        function: truthy
+      - field: x-deprecated-removal-date
+        function: truthy
+      - field: x-deprecation-owner
+        function: truthy
+
+  # Ensure error responses use canonical error envelope
+  error-response-canonical:
+    description: Error responses should reference canonical ErrorResponse schema
+    severity: warning
+    given: "$.paths[*][*].responses[?(@.code >= 400 && @.code < 600)].content.application/json.schema"
+    then:
+      - field: $ref
+        function: pattern
+        functionOptions:
+          match: "ErrorResponse|HTTPValidationError"
+
+  # Require operation IDs for all endpoints
+  operation-id-required:
+    description: All endpoints must have operationId for client generation
+    severity: error
+    given: "$.paths[*][*]"
+    then:
+      - field: operationId
+        function: truthy
+
+  # Require descriptions for all endpoints
+  endpoint-description-required:
+    description: All endpoints must have descriptions
+    severity: warning
+    given: "$.paths[*][*]"
+    then:
+      - field: description
+        function: truthy
+
+  # Require descriptions for all schemas
+  schema-description-required:
+    description: All schemas must have descriptions
+    severity: warning
+    given: "$.components.schemas[*]"
+    then:
+      - field: description
+        function: truthy
+
+  # Ensure API version follows semantic versioning
+  api-version-semver:
+    description: API version should follow semantic versioning (e.g., 1.0.0)
+    severity: error
+    given: "$.info.version"
+    then:
+      - function: pattern
+        functionOptions:
+          match: "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+
+  # Require title for all schemas
+  schema-title-required:
+    description: All schemas must have titles
+    severity: warning
+    given: "$.components.schemas[*]"
+    then:
+      - field: title
+        function: truthy
+
+  # Disallow example fields in schemas (use examples instead)
+  no-example-field:
+    description: Use 'examples' instead of 'example' for schema examples
+    severity: warning
+    given: "$.components.schemas[*]"
+    then:
+      - field: example
+        function: falsy
+
+  # Ensure all paths start with /api/v1
+  path-versioning:
+    description: All paths should start with /api/v1 for versioning
+    severity: error
+    given: "$.paths[*]~"
+    then:
+      - function: pattern
+        functionOptions:
+          match: "^/api/v1"
+
+  # Require summary for all endpoints
+  endpoint-summary-required:
+    description: All endpoints should have summaries
+    severity: warning
+    given: "$.paths[*][*]"
+    then:
+      - field: summary
+        function: truthy
+
+  # Ensure tags are defined
+  tags-defined:
+    description: All tags used in endpoints must be defined in global tags
+    severity: error
+    given: "$.paths[*][*].tags[*]"
+    then:
+      - function: definedTags
+      - functionOptions:
+          definedTags: "$.tags"
+
+  # Require contact information
+  contact-info:
+    description: API should have contact information
+    severity: warning
+    given: "$.info"
+    then:
+      - field: contact
+        function: truthy
+
+  # Require license information
+  license-info:
+    description: API should have license information
+    severity: warning
+    given: "$.info"
+    then:
+      - field: license
+        function: truthy
+
+  # Disable some default rules that don't fit our use case
+  operation-description: off
+  operation-tag-defined: off
+  path-declaration-must-exist: off

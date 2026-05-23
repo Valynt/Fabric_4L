@@ -15,6 +15,21 @@ from .exceptions import (
 from .models import ErrorCode
 
 
+def sanitize_log_error(error: BaseException | str, /) -> str:
+    """Remove potential secrets from error strings before logging.
+
+    Scrubbable patterns:
+      - Bearer tokens
+      - access_token / refresh_token
+      - api_key
+    """
+    redacted = str(error) if isinstance(error, BaseException) else error
+    for pattern in ("Bearer ", "access_token", "refresh_token", "api_key"):
+        if pattern in redacted.lower():
+            return f"[REDACTED: contains {pattern}]"
+    return redacted
+
+
 def build_error_detail(
     *,
     message: str,

@@ -17,6 +17,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import sanitize_log_error
 
 # Customer ID validation pattern (alphanumeric, underscore, hyphen; 1-64 chars after prefix)
 CUSTOMER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
@@ -1401,7 +1402,7 @@ async def create_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_value_error", error=str(e))
+        logger.warning("invoice_value_error", error_code="INVOICE_VALUE_ERROR", error=sanitize_log_error(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
@@ -1533,7 +1534,7 @@ async def add_invoice_item(
 
 
     except ValueError as e:
-        logger.warning("invoice_item_value_error", error=str(e))
+        logger.warning("invoice_item_value_error", error_code="INVOICE_ITEM_VALUE_ERROR", error=sanitize_log_error(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
@@ -1572,7 +1573,7 @@ async def finalize_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_finalize_value_error", error=str(e))
+        logger.warning("invoice_finalize_value_error", error_code="INVOICE_FINALIZE_VALUE_ERROR", error=sanitize_log_error(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
@@ -1606,7 +1607,7 @@ async def void_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_void_value_error", error=str(e))
+        logger.warning("invoice_void_value_error", error_code="INVOICE_VOID_VALUE_ERROR", error=sanitize_log_error(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
@@ -1712,7 +1713,7 @@ async def record_charge(
 
 
     except ValueError as e:
-        logger.warning("charge_value_error", error=str(e))
+        logger.warning("charge_value_error", error_code="CHARGE_VALUE_ERROR", error=sanitize_log_error(e))
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")

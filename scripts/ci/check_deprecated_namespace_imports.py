@@ -19,6 +19,11 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCAN_ROOTS = (Path("services"), Path("value_fabric"), Path("tests"), Path("scripts"), Path("docs"))
 DEPRECATED_PREFIXES = ("value_fabric.layer1_ingestion", "value_fabric.layer3_knowledge")
+SKIP_DIRS = {
+    "__pycache__", ".venv", "venv", ".pytest_cache", "node_modules",
+    ".git", ".tmp", "archive", ".hypothesis", ".ruff_cache", ".mypy_cache",
+    ".uv-cache-local",
+}
 BASELINE_PATH = Path("docs/reference/deprecated-namespace-import-baseline.json")
 ALLOWLIST = {
     Path("tests/ci/test_deprecated_namespace_imports.py"),
@@ -57,6 +62,8 @@ def _iter_python_files(repo_root: Path) -> list[Path]:
         if not abs_root.exists():
             continue
         for file_path in abs_root.rglob("*.py"):
+            if any(part in SKIP_DIRS for part in file_path.parts):
+                continue
             rel = file_path.relative_to(repo_root)
             if rel in ALLOWLIST:
                 continue
@@ -89,6 +96,9 @@ def _categorize_path(rel_path: str) -> str:
 
 def _scan_file(file_path: Path, repo_root: Path) -> list[DeprecatedImport]:
     source = file_path.read_text(encoding="utf-8", errors="ignore")
+    # Fast pre-filter: skip AST parsing if no deprecated prefix appears in the source text.
+    if not any(prefix in source for prefix in DEPRECATED_PREFIXES):
+        return []
     try:
         tree = ast.parse(source, filename=str(file_path))
     except SyntaxError:

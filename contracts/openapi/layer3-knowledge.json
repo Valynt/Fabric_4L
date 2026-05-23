@@ -6993,7 +6993,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/query/graph": {
@@ -7035,7 +7038,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/query/graph/stream": {
@@ -7075,7 +7081,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/query/search": {
@@ -7117,7 +7126,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/search": {
@@ -7159,7 +7171,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     },
     "/v1/search/hybrid": {
@@ -7201,7 +7216,10 @@
             }
           }
         },
-        "deprecated": true
+        "deprecated": true,
+        "x-deprecated-since": "2026-05-23",
+        "x-deprecated-removal-date": "2026-11-19",
+        "x-deprecation-owner": "platform-team"
       }
     }
   },
