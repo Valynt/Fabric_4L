@@ -21,6 +21,7 @@ const PersonalSecurity = lazy(() => import("@/app/settings/pages/PersonalSecurit
 const PersonalPreferences = lazy(() => import("@/app/settings/pages/PersonalPreferences").then(m => ({ default: m.PersonalPreferences })));
 const PersonalNotifications = lazy(() => import("@/app/settings/pages/PersonalNotifications").then(m => ({ default: m.PersonalNotifications })));
 const PersonalSessions = lazy(() => import("@/app/settings/pages/PersonalSessions").then(m => ({ default: m.PersonalSessions })));
+const PersonalActivity = lazy(() => import("@/app/settings/pages/PersonalActivity").then(m => ({ default: m.PersonalActivity })));
 
 // Settings pages — Account & Billing
 const BillingWorkspace = lazy(() => import("@/app/settings/pages/BillingWorkspace").then(m => ({ default: m.BillingWorkspace })));
@@ -119,7 +120,7 @@ const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 
 // ── Workflow ──
-const ProspectSetup = lazy(() => import("@/workflow/pages/ProspectSetup"));
+const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 const WorkflowIntelligence = lazy(() => import("@/workflow/pages/Intelligence"));
 const AIModel = lazy(() => import("@/workflow/pages/AIModel"));
 const WorkflowDriverTree = lazy(() => import("@/workflow/pages/DriverTree"));
@@ -136,7 +137,7 @@ function ProspectSetupWithNav() {
   const prospectSetup = useProspectSetupAccountCreate();
   const setSelectedAccountId = useAccountContextStore((state) => state.setSelectedAccountId);
 
-  const handleCreateSetup: ComponentProps<typeof ProspectSetup>["onCreateSetup"] = async (payload) => {
+  const handleCreateSetup: ComponentProps<typeof ProspectSetupPage>["onCreateSetup"] = async (payload) => {
     try {
       return await prospectSetup.createSetup(payload);
     } catch (error) {
@@ -146,7 +147,8 @@ function ProspectSetupWithNav() {
   };
 
   return (
-    <ProspectSetup
+    <ProspectSetupPage
+      mode="workflow"
       onNavigateToWorkspace={(path, accountId) => {
         setSelectedAccountId(accountId);
         navigateTo(workspacePath(accountId, "signals"));
@@ -611,6 +613,7 @@ export const router = createBrowserRouter([
           { path: "/personal/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
           { path: "/personal/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
           { path: "/personal/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },
+          { path: "/personal/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings" } },
         ],
       },
 

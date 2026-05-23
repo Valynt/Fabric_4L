@@ -15,7 +15,7 @@ const BASE_URL =
   process.env.PLAYWRIGHT_BACKEND_URL ??
   'http://localhost:8004';
 
-const E2E_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
+const E2E_TENANT_ID = process.env.BACKEND_E2E_TENANT_ID || '00000000-0000-4000-e2e0-000000000001';
 
 const HEADERS: Record<string, string> = {
   'Content-Type': 'application/json',

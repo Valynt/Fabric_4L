@@ -147,35 +147,16 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 |---|---|---|---|---|
 | `apps/web/src/services/sessionService.ts` (`getSessionSnapshot`/`persistSession` family) | `SessionMeta` APIs in `apps/web/src/services/sessionService.ts` | **Removed on 2026-05-18** (no runtime callers) | Low | Completed in Sprint 6 (2026-05-18) |
 | `apps/web/src/hooks/useAgentStream.ts` | `apps/web/src/agui/useAgentEvents.ts` | `apps/web/src/agui/useAgentEvents.ts` (default actions helper) | Medium | Sprint 7 AG-UI convergence |
-<<<<<<< HEAD
 | `apps/web/src/navigation/navHelpers.ts` | `apps/web/src/navigation/navigationService.ts` | `GlobalLayout`, `MobileNavigation`, `MobilePersistentSidebar`, `TieredNav` | Medium | Sprint 7 navigation unification |
-=======
-| `apps/web/src/navigation/navHelpers.ts` | `apps/web/src/navigation/navigationService.ts` | **Removed on 2026-05-19** (callers migrated; file deleted) | Low | Completed in Sprint 6 (2026-05-19) |
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 | `apps/web/src/components/ui/fabric/LoadingSkeleton.tsx` | `apps/web/src/components/ui/skeleton.tsx`, `apps/web/src/components/ui/SkeletonViews.tsx` | `apps/web/src/components/ui/fabric/index.ts` and downstream fabric imports | Low | Sprint 7 UI primitive migration |
 | `apps/web/src/components/blocks/SectionCard.tsx` (`subtitle` alias) | `description` prop on same component | Pages still passing `subtitle` (e.g., `pages/value-case/ValueCasePage.tsx`) | Low | Sprint 7 card-prop cleanup |
 | `apps/web/src/hooks/useApiShared.ts` (legacy stale-time aliases) | Canonical `STALE_TIME` keys in same module | shared hook consumers across `apps/web/src/hooks/` | Medium | Sprint 8 hooks API freeze |
 | `apps/web/src/config/auth.ts` (legacy Microsoft option) | Canonical auth provider configuration in same module | auth config consumers via `authProviders` | Medium | Sprint 8 tenant config migration |
 | `apps/web/src/stores/userTierStore.ts` (legacy redirects) | canonical route map in same store/module | navigation flows that still hit legacy routes | Medium | Sprint 8 route canonicalization |
-<<<<<<< HEAD
 | `apps/web/src/stores/index.ts` (`Entity` re-export alias) | `EntityData` from `apps/web/src/hooks/useEntities.ts` (already re-exported in same file) | Ontology Browser and other store-index consumers importing `Entity` from `@/stores` | Low | Sprint 7 store export cleanup |
 
 ## Frontend Compatibility Shim Migration Runbook
 
-=======
-
-## Frontend Compatibility Shim Migration Runbook
-
-### Alias-to-Canonical API Migration
-
-- Start with the compatibility registry row and copy the canonical replacement path into your task notes.
-- Use `rg -n "<shim symbol or import path>" apps/web/src` to enumerate all direct and transitive callers.
-- Migrate one feature slice at a time (component + hook + tests) to reduce blast radius and ease rollback.
-- After each slice, run targeted checks (`pnpm --dir apps/web test -- <suite>` and shim registry check) before deleting shim exports.
-- Only remove the shim once callers are zero and the registry row is updated to a dated removal record.
-
-
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 1. **Identify shim usage**: run `rg -n "<alias-or-deprecated-api>" apps/web/src` and collect all callsites.
 2. **Switch to canonical API**: replace alias imports/props/hooks with canonical path from this registry, then update nearby tests in the same feature slice.
 3. **Verify no remaining callers**: rerun `rg` to confirm zero callsites outside approved shim files.

@@ -24,12 +24,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 from logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_tenant_context
 
 logger = get_logger(__name__)
 

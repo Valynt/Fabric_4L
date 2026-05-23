@@ -17,8 +17,6 @@ import pytest
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
-
 from app.core.audit import AuditMiddleware, MUTATING_METHODS
 from app.main import app
 from fastapi.testclient import TestClient

@@ -111,7 +111,6 @@ def _contract_service_gate(request: pytest.FixtureRequest):
     (which use live-service client fixtures). Static architecture tests always
     check service availability regardless of mock mode.
     """
-<<<<<<< HEAD
     if "contract_static_no_service" in request.keywords:
         return
 
@@ -139,36 +138,6 @@ def _contract_service_gate(request: pytest.FixtureRequest):
         "Required contract services are unavailable in local/non-strict mode. "
         f"Missing: {missing_services}"
     )
-=======
-    is_service_required = "service_required" in request.keywords
-    is_static = "contract_static" in request.keywords
-
-    if not is_service_required and not is_static:
-        return
-
-    # mock mode only bypasses live-service tests, not static architecture checks
-    if is_service_required and os.getenv("CONTRACT_TEST_MODE") == "mock":
-        return
-
-    # For static tests, bypass mock_mode and check actual connectivity.
-    # mock_mode is set by individual test files (e.g. CONTRACT_TEST_MODE=mock)
-    # and should not suppress architecture/parity checks.
-    if is_static:
-        mock_mode, missing_services, strict_mode = _evaluate_services_availability(
-            env={k: v for k, v in os.environ.items() if k != "CONTRACT_TEST_MODE"}
-        )
-    else:
-        mock_mode, missing_services, strict_mode = _evaluate_services_availability()
-        if mock_mode:
-            return
-    if missing_services:
-        if strict_mode:
-            pytest.fail(
-                "Contract test strict mode enabled and required services are unavailable. "
-                f"Missing: {missing_services}"
-            )
-        pytest.skip(f"Required services unavailable: {missing_services}")
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 def _is_truthy(value: str | None) -> bool:
     """Return True when an environment flag is set to a truthy value."""

@@ -14,6 +14,11 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from ...api.dependencies import AppState, _extract_tenant_id, get_app_state
+from ...db.query_execution import (
+    MAX_QUERY_DEPTH,
+    QUERY_TIMEOUT_SECONDS,
+    CypherDepthLimitExceeded,
+)
 
 router = APIRouter()
 
@@ -132,8 +137,8 @@ async def get_value_tree(
         if not tenant_id:
             raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
 
-        # Clamp depth
-        max_depth = max(1, min(max_depth, 4))
+        # Clamp depth to global limit
+        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
 
         # Verify entity exists with mandatory tenant filtering
         root_query = """
@@ -170,7 +175,8 @@ async def get_value_tree(
             """
 
         path_result = await neo4j.execute_query(
-            path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
+            path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id},
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         # Collect nodes and edges
@@ -264,6 +270,10 @@ async def get_value_tree(
 
     except HTTPException:
         raise
+    except CypherDepthLimitExceeded as exc:
+        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+    except TimeoutError:
+        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve value tree: {str(e)}"
@@ -295,7 +305,7 @@ async def get_value_tree_paths(
         if not tenant_id:
             raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
 
-        max_depth = max(1, min(max_depth, 4))
+        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
 
         if direction == "upward":
             query = """
@@ -311,7 +321,8 @@ async def get_value_tree_paths(
             """
 
         result = await neo4j.execute_query(
-            query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
+            query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id},
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         paths = []
@@ -327,6 +338,10 @@ async def get_value_tree_paths(
 
     except HTTPException:
         raise
+    except CypherDepthLimitExceeded as exc:
+        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+    except TimeoutError:
+        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         raise HTTPException(
             status_code=500, detail=f"Failed to retrieve paths: {str(e)}"

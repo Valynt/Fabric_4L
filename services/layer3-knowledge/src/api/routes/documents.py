@@ -12,10 +12,10 @@ from datetime import datetime, timedelta
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
+from value_fabric.shared.error_handling import build_error_detail
 
 from ...api.dependencies import AppState, get_app_state
 from ...api.models import DocumentExportRequest, DocumentExportResponse
-from value_fabric.shared.error_handling import build_error_detail
 
 logger = logging.getLogger(__name__)
 

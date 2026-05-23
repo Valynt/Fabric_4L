@@ -2,11 +2,18 @@
 
 import logging
 import os
+from typing import Any
 from urllib.parse import urlparse
 
-from pydantic import ConfigDict, Field, field_validator, model_validator
-from pydantic_settings import BaseSettings
-from value_fabric.shared.secrets import load_infisical_secrets
+from pydantic import Field, field_validator, model_validator
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+try:
+    from value_fabric.shared.secrets import load_infisical_secrets
+except ImportError:
+    def load_infisical_secrets() -> None:
+        """No-op fallback if shared package not available."""
+        pass
 
 logger = logging.getLogger(__name__)
 
@@ -84,7 +91,7 @@ def validate_exact_cors_origins(origins: list[str], *, production_like: bool) ->
     return origins
 
 
-def build_cors_policy(origins: list[str], *, production_like: bool) -> dict[str, object]:
+def build_cors_policy(origins: list[str], *, production_like: bool) -> dict[str, Any]:
     safe_origins = validate_exact_cors_origins(origins, production_like=production_like)
     return {
         "allow_origins": safe_origins,
@@ -312,7 +319,7 @@ class Settings(BaseSettings):
     pipeline_stage_timeout_seconds: int = Field(default=300, description="Timeout per pipeline stage")
     max_pipeline_retries: int = Field(default=3, description="Max retries per pipeline stage")
 
-    model_config = ConfigDict(populate_by_name=True)
+    model_config = SettingsConfigDict(populate_by_name=True)
 
 
 # Global settings instance

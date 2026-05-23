@@ -29,6 +29,8 @@ from ...api.dependencies import (
 )
 from ...api.dependencies_tenant_secured import (
     Neo4jTenantSessionSecured as Neo4jTenantSession,
+)
+from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
 from ...api.exception_mapping import map_exception_to_http_error

@@ -15,15 +15,14 @@ from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, Field, field_validator
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 from logging_config import get_logger
 
 from ...agents.scenario_engine import VariableAdjustment, scenario_engine
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.routes.formula_governance import STATUS_DRAFT, STATUS_UNDER_REVIEW
-from value_fabric.shared.identity.context import RequestContext
-from value_fabric.shared.identity.dependencies import require_tenant_context
-
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key, require_admin_role
 

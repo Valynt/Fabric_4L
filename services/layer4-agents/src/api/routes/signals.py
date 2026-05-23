@@ -277,7 +277,7 @@ async def setup_prospect(
 
         raise HTTPException(
             status_code=500,
-            detail=f"Signal detection failed: {str(e)}",
+            detail="Signal detection failed",
         )
 
 
@@ -323,7 +323,7 @@ async def get_account_signals(
         )
         raise HTTPException(
             status_code=500,
-            detail=f"Failed to retrieve signals: {str(e)}",
+            detail="Failed to retrieve signals",
         )
 
 
@@ -399,7 +399,8 @@ async def signal_stream_websocket(
     - stream_complete: All signals processed
 
     Authentication: JWT must be supplied via the ``Sec-WebSocket-Protocol``
-    header in the format ``token,<jwt>``. Query-parameter tokens are rejected
+    header in canonical format ``base64url.bearer.authorization, <jwt>``.
+    Query-parameter tokens are rejected
     to prevent credential logging by proxies.
 
     Args:
@@ -431,21 +432,22 @@ async def signal_stream_websocket(
     protocol_header = websocket.headers.get("sec-websocket-protocol", "")
     ws_token: str | None = None
     if protocol_header:
-        parts = protocol_header.split(",")
-        if len(parts) >= 2 and parts[0].strip().lower() == "token":
-            ws_token = parts[1].strip()
-        elif len(parts) == 1:
-            ws_token = parts[0].strip()
+        parts = [p.strip() for p in protocol_header.split(",")]
+        if len(parts) >= 2 and parts[0].lower() == "base64url.bearer.authorization":
+            ws_token = parts[1] or None
 
     if not ws_token:
-        logger.warning("Signals WebSocket rejected: no token", extra=_log)
-        await websocket.close(code=1008, reason="Authentication required")
+        logger.warning(
+            "Signals WebSocket rejected: missing/invalid Sec-WebSocket-Protocol bearer header",
+            extra={"auth_code": "AUTH_HEADER_INVALID_OR_MISSING", **_log},
+        )
+        await websocket.close(code=1008, reason='{"code":"AUTH_HEADER_INVALID_OR_MISSING"}')
         return
 
     try:
         payload = decode_jwt(ws_token)
         if not payload:
-            await websocket.close(code=1008, reason="Authentication failed")
+            await websocket.close(code=1008, reason='{"code":"AUTH_TOKEN_INVALID"}')
             return
         # decode_jwt returns TokenClaims (dataclass) or dict depending on version
         if isinstance(payload, dict):
@@ -456,12 +458,12 @@ async def signal_stream_websocket(
             user_id = getattr(payload, "sub", None) or getattr(payload, "user_id", None)
 
         if not tenant_id:
-            await websocket.close(code=1008, reason="Authentication failed")
+            await websocket.close(code=1008, reason='{"code":"AUTH_TENANT_CLAIM_INVALID"}')
             return
         tenant_id = str(tenant_id)
     except Exception:
         logger.warning("Signals WebSocket JWT decode failed", extra=_log)
-        await websocket.close(code=1008, reason="Authentication failed")
+        await websocket.close(code=1008, reason='{"code":"AUTH_TOKEN_DECODE_FAILED"}')
         return
 
     # Bind tenant context to the log dict now that we have it

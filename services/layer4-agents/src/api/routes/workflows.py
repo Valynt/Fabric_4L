@@ -13,11 +13,11 @@ import asyncio
 import json
 import logging
 from datetime import UTC, datetime
-from typing import Literal
+from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import StreamingResponse
-from pydantic import BaseModel, ConfigDict, Field, JsonValue, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -29,8 +29,7 @@ from ..common.audit import emit_route_audit
 from ..common.errors import raise_normalized_with_log
 from ..schemas.workflow_progress import WorkflowProgressSchema, normalize_workflow_progress
 
-
-JsonObject = dict[str, JsonValue]
+JsonObject = dict[str, Any]
 
 
 WorkflowStatusValue = Literal["pending", "running", "paused", "interrupted", "completed", "failed", "cancelled"]
@@ -38,10 +37,20 @@ WorkflowStatusValue = Literal["pending", "running", "paused", "interrupted", "co
 WorkflowErrorValue = str | JsonObject
 
 
+class WorkflowOutput(BaseModel):
+    """Structured workflow output envelope for completed workflow results."""
+
+    data: Any = Field(default_factory=dict)
+    summary: str | None = None
+    artifacts: list[JsonObject] = Field(default_factory=list)
+    metrics: JsonObject = Field(default_factory=dict)
+    model_config = ConfigDict(extra="allow")
+
+
 class WorkflowResultResponse(BaseModel):
     workflow_id: str
     status: WorkflowStatusValue
-    output: JsonObject | None = None
+    output: WorkflowOutput | None = None
     errors: list[WorkflowErrorValue] = Field(default_factory=list)
     completed_at: str | None = None
 
@@ -657,9 +666,11 @@ async def resume_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=404, detail=str(exc))
+            logger.warning("workflow_resume_value_error", error=str(exc))
+            raise HTTPException(status_code=404, detail="Workflow not found")
         if isinstance(exc, WorkflowExecutionError):
-            raise HTTPException(status_code=400, detail=str(exc))
+            logger.warning("workflow_resume_execution_error", error=str(exc))
+            raise HTTPException(status_code=400, detail="Workflow resume failed")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -737,7 +748,8 @@ async def pause_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            raise HTTPException(status_code=404, detail=str(exc))
+            logger.warning("workflow_pause_value_error", error=str(exc))
+            raise HTTPException(status_code=404, detail="Workflow not found")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -877,7 +889,8 @@ async def archive_workflow(
     try:
         result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
     except PermissionError as e:
-        raise HTTPException(status_code=403, detail=str(e))
+        logger.warning("workflow_archive_permission_denied", error=str(e))
+        raise HTTPException(status_code=403, detail="Permission denied to archive workflow")
 
     if result is None:
         raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")

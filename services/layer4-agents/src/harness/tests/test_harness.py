@@ -37,8 +37,6 @@ from harness import (
     GateType,
     HarnessCheckpoint,
     HarnessRegistry,
-    HarnessRegistryError,
-    RunNotFoundError,
     HarnessRun,
     HarnessRunStatus,
     HarnessState,
@@ -47,6 +45,7 @@ from harness import (
     HumanGateManager,
     InitiatedBy,
     MockValidator,
+    RunNotFoundError,
     StateMachine,
     TelemetryEmitter,
     TerminalStateError,
@@ -1507,7 +1506,7 @@ class TestAPIBehavior:
 def test_adr_content() -> None:
     """ADR document exists and contains key decisions."""
     # Navigate from tests/ to repo root: tests -> harness -> src -> layer4-agents -> services -> output
-    adr_path = Path(__file__).parent.parent.parent.parent.parent.parent / "docs" / "architecture" / "adr-001-harness.md"
+    adr_path = Path(__file__).parent.parent.parent.parent.parent.parent / "docs" / "architecture" / "ADR-001-fabric-harness-as-the-governed-execution-spine-for-agentic-value-workflows.md"
     assert adr_path.exists(), f"ADR document should exist at {adr_path}"
     content = adr_path.read_text()
     assert "L4 remains the orchestration layer" in content

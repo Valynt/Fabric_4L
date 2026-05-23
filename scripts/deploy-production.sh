@@ -405,6 +405,70 @@ for secret in "${REQUIRED_SECRETS[@]}"; do
 done
 
 # ---------------------------------------------------------------------------
+# Phase 5.5 — Database migrations
+# ---------------------------------------------------------------------------
+phase "Phase 5.5 — Database migrations"
+
+# Run migrations BEFORE deploying application pods so the schema is
+# compatible with the new code. Each layer with a database runs its
+# Alembic migration in a one-shot Kubernetes Job using the target image.
+MIGRATION_LAYERS=(
+  "layer1-ingestion:8001"
+  "layer2-extraction:8002"
+  "layer3-knowledge:8003"
+  "layer4-agents:8004"
+  "layer5-ground-truth:8005"
+)
+
+MIGRATION_ERRORS=()
+for entry in "${MIGRATION_LAYERS[@]}"; do
+  layer="${entry%%:*}"
+  job_name="${layer//-/_}-migrate-${RELEASE_TAG//:/-}"
+  job_name="${job_name//\//-}"
+
+  info "Running migration job for $layer ..."
+
+  # Create a one-shot migration job using the target image
+  cat <<EOF | kubectl apply -f - >/dev/null 2>&1 || true
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: ${job_name}
+  namespace: ${NAMESPACE}
+  labels:
+    app: ${layer}
+    migration: "true"
+    release-tag: "${RELEASE_TAG}"
+spec:
+  ttlSecondsAfterFinished: 3600
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: migrate
+          image: ${REGISTRY}/${layer}:${RELEASE_TAG}
+          command: ["python", "-m", "alembic", "upgrade", "head"]
+          envFrom:
+            - secretRef:
+                name: ${layer}-db-credentials
+EOF
+
+  # Wait for job completion (5 minute timeout per layer)
+  if kubectl wait --for=condition=complete job/${job_name} -n "$NAMESPACE" --timeout=300s >/dev/null 2>&1; then
+    pass "$layer: migration succeeded"
+  else
+    fail "$layer: migration failed or timed out"
+    MIGRATION_ERRORS+=("$layer")
+    # Print job logs for debugging
+    kubectl logs job/${job_name} -n "$NAMESPACE" --tail=50 2>/dev/null || true
+  fi
+done
+
+if [[ ${#MIGRATION_ERRORS[@]} -gt 0 ]]; then
+  gate_fail "Database migrations failed for: ${MIGRATION_ERRORS[*]} — fix schema issues before deploying"
+fi
+
+# ---------------------------------------------------------------------------
 # Dry-run exit point
 # ---------------------------------------------------------------------------
 if [[ "$DRY_RUN" == "true" ]]; then

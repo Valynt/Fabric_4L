@@ -15,8 +15,6 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ...api.dependencies import (
-    AppState,
-    get_app_state,
     get_centrality_analyzer,
     get_community_detector,
     get_graph_rag,

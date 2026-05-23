@@ -44,6 +44,7 @@ from typing import Any
 import structlog
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
 from ..db.query_execution import run_validated_query
 
 

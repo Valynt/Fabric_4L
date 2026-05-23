@@ -22,7 +22,7 @@ const ExtractionStatusResponseSchema = z.object({
   completed_at: z.string().nullable(),
 });
 
-const ExtractedEntitySchema = z.object({
+export const ExtractedEntitySchema = z.object({
   entity_id: z.string(),
   type: z.string(),
   name: z.string(),
@@ -37,10 +37,13 @@ const ExtractedEntitySchema = z.object({
     source_url: z.string().nullable(),
     trace_id: z.string().nullable(),
   }).optional(),
-  attributes: z.record(z.string(), z.any()).optional(),
+  attributes: z.record(z.string(), z.unknown()).optional().refine(
+    (value) => value === undefined || Object.values(value).every((item) => item !== undefined),
+    'attributes values must be defined when provided'
+  ),
 });
 
-const ExtractionResultsResponseSchema = z.object({
+export const ExtractionResultsResponseSchema = z.object({
   summary: z.object({
     job_id: z.string(),
     total_entities: z.number(),

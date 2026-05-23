@@ -18,6 +18,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    ForeignKeyConstraint,
     Index,
     Numeric,
     String,
@@ -69,8 +70,11 @@ class BillingCustomer(Base):
     __tablename__ = "billing_customers"
 
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # App user_id
-    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, primary_key=True, index=True)
     stripe_customer_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
+    stripe_sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
+    stripe_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    stripe_sync_attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     email: Mapped[str] = mapped_column(String(255), nullable=False)
     name: Mapped[str | None] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
@@ -107,9 +111,7 @@ class BillingSubscription(Base):
 
     id: Mapped[str] = mapped_column(String(100), primary_key=True)
     tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
-    customer_id: Mapped[str] = mapped_column(
-        String(100), ForeignKey("billing_customers.id", ondelete="CASCADE"), nullable=False
-    )
+    customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     plan_id: Mapped[str] = mapped_column(String(50), nullable=False, default=PlanId.FREE)
     plan_version_id: Mapped[str | None] = mapped_column(
@@ -130,7 +132,8 @@ class BillingSubscription(Base):
     customer: Mapped[BillingCustomer] = relationship(back_populates="subscriptions")
 
     __table_args__ = (
-        Index("ix_billing_subscriptions_customer", "customer_id"),
+        ForeignKeyConstraint(["tenant_id", "customer_id"], ["billing_customers.tenant_id", "billing_customers.id"], ondelete="CASCADE"),
+        Index("ix_billing_subscriptions_customer", "tenant_id", "customer_id"),
         Index("ix_billing_subscriptions_status", "status"),
         Index("ix_billing_subscriptions_plan", "plan_id"),
         Index("ix_billing_subscriptions_tenant", "tenant_id"),
@@ -218,7 +221,7 @@ class BillingUsageEvent(Base):
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     # Customer attribution
-    customer_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Event identification (idempotency key)
     event_id: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -249,10 +252,11 @@ class BillingUsageEvent(Base):
     processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
+        ForeignKeyConstraint(["tenant_id", "customer_id"], ["billing_customers.tenant_id", "billing_customers.id"], ondelete="CASCADE"),
         # Idempotency: event_id + tenant_id must be unique
         UniqueConstraint("tenant_id", "event_id", name="uq_billing_usage_events_tenant_event"),
         # Query optimization indexes
-        Index("ix_billing_usage_events_customer_timestamp", "customer_id", "timestamp"),
+        Index("ix_billing_usage_events_customer_timestamp", "tenant_id", "customer_id", "timestamp"),
         Index("ix_billing_usage_events_status_created", "status", "created_at"),
     )
 
@@ -288,7 +292,7 @@ class BillingInvoice(Base):
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     # Customer attribution
-    customer_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Stripe IDs (nullable for offline invoices)
     stripe_invoice_id: Mapped[str | None] = mapped_column(String(100), nullable=True, index=True)
@@ -340,6 +344,7 @@ class BillingInvoice(Base):
     )
 
     __table_args__ = (
+        ForeignKeyConstraint(["tenant_id", "customer_id"], ["billing_customers.tenant_id", "billing_customers.id"], ondelete="CASCADE"),
         UniqueConstraint("tenant_id", "invoice_number", name="uq_billing_invoices_tenant_number"),
         Index("ix_billing_invoices_tenant_status", "tenant_id", "status"),
         Index("ix_billing_invoices_tenant_period", "tenant_id", "period_start", "period_end"),
@@ -455,7 +460,7 @@ class BillingCharge(Base):
     tenant_id: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
 
     # Customer attribution
-    customer_id: Mapped[str] = mapped_column(String(100), nullable=False, index=True)
+    customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Optional invoice link
     invoice_id: Mapped[str | None] = mapped_column(
@@ -503,6 +508,8 @@ class BillingCharge(Base):
     invoice: Mapped[BillingInvoice | None] = relationship("BillingInvoice", back_populates="charges")
 
     __table_args__ = (
+        ForeignKeyConstraint(["tenant_id", "customer_id"], ["billing_customers.tenant_id", "billing_customers.id"], ondelete="CASCADE"),
+        Index("ix_billing_charges_tenant_customer", "tenant_id", "customer_id"),
         Index("ix_billing_charges_tenant_status", "tenant_id", "status"),
         Index("ix_billing_charges_tenant_created", "tenant_id", "created_at"),
         Index("ix_billing_charges_stripe_id", "stripe_charge_id"),

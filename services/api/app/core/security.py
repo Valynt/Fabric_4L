@@ -1,5 +1,8 @@
 import base64
 import binascii
+import hashlib
+import logging
+import secrets
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -13,6 +16,9 @@ from pydantic import BaseModel
 from app.core.config import get_settings
 from app.core.database import db
 from app.models.schemas import User
+
+logger = logging.getLogger(__name__)
+
 
 # ---------------------------------------------------------------------------
 # Brute-force / account lockout constants (F-05)
@@ -33,11 +39,74 @@ _AUTH_REQUIRED = "authentication_required"
 class TokenPayload(BaseModel):
     sub: str
     tenant_id: str
+    jti: str
     exp: datetime | None = None
     iat: datetime | None = None
     nbf: datetime | None = None
     iss: str
     aud: str | list[str]
+    impersonated_by: str | None = None
+    impersonation_session_id: str | None = None
+    impersonation_reason: str | None = None
+
+
+
+
+def _revocation_key(tenant_id: str, jti: str) -> str:
+    return f"auth:revoked:{tenant_id}:{jti}"
+
+
+def revoke_token(*, tenant_id: str, jti: str, fingerprint_hash: str, expires_at_ts: int) -> None:
+    """Add a token to the revocation denylist with TTL.
+
+    Uses Redis when available; falls back to in-memory only in dev/test.
+    """
+    key = _revocation_key(tenant_id, jti)
+    try:
+        from app.core.redis_client import get_redis_client
+        r = get_redis_client()
+        if r is not None:
+            ttl = max(0, expires_at_ts - int(datetime.now(UTC).timestamp()))
+            if ttl > 0:
+                r.setex(key, ttl, fingerprint_hash)
+            return
+    except Exception as exc:
+        logger.warning("Redis revoke_token failed, falling back to memory: %s", exc)
+
+    # Fallback in-memory (dev/test only)
+    _REVOKED_TOKEN_STORE[key] = (fingerprint_hash, expires_at_ts)
+
+
+def is_token_revoked(tenant_id: str, jti: str, fingerprint_hash: str) -> bool:
+    """Check if a token is in the revocation denylist.
+
+    Uses Redis when available; falls back to in-memory only in dev/test.
+    """
+    key = _revocation_key(tenant_id, jti)
+    try:
+        from app.core.redis_client import get_redis_client
+        r = get_redis_client()
+        if r is not None:
+            stored = r.get(key)
+            if stored is None:
+                return False
+            return stored == fingerprint_hash
+    except Exception as exc:
+        logger.warning("Redis is_token_revoked failed, falling back to memory: %s", exc)
+
+    # Fallback in-memory (dev/test only)
+    record = _REVOKED_TOKEN_STORE.get(key)
+    if record is None:
+        return False
+    now_ts = int(datetime.now(UTC).timestamp())
+    if record[1] <= now_ts:
+        _REVOKED_TOKEN_STORE.pop(key, None)
+        return False
+    return record[0] == fingerprint_hash
+
+
+# Dev/test fallback store (never used in production when Redis is configured)
+_REVOKED_TOKEN_STORE: dict[str, tuple[str, int]] = {}
 
 
 def _auth_error(status_code: int, *, error_code: str, message: str) -> HTTPException:
@@ -155,9 +224,11 @@ def create_access_token(
     else:
         expire = issued_at + timedelta(minutes=settings.access_token_expire_minutes)
     iat_ts = int(issued_at.timestamp())
+    token_jti = secrets.token_urlsafe(16)
     payload = {
         "sub": subject,
         "tenant_id": tenant_id,
+        "jti": token_jti,
         "iat": iat_ts,
         "nbf": iat_ts,
         "exp": int(expire.timestamp()),
@@ -239,6 +310,9 @@ def decode_token(token: str) -> TokenPayload | None:
         tenant_id = data.get("tenant_id")
         if not isinstance(tenant_id, str) or not tenant_id.strip():
             return None
+        jti = data.get("jti")
+        if not isinstance(jti, str) or not jti.strip():
+            return None
         if not isinstance(data.get("iss"), str) or not data["iss"].strip():
             return None
         if data.get("aud") in (None, "", []):
@@ -246,6 +320,7 @@ def decode_token(token: str) -> TokenPayload | None:
         return TokenPayload(
             sub=data["sub"].strip(),
             tenant_id=tenant_id.strip(),
+            jti=jti.strip(),
             exp=data.get("exp"),
             iat=data.get("iat"),
             nbf=data.get("nbf"),
@@ -300,6 +375,13 @@ def require_authenticated(
             status.HTTP_401_UNAUTHORIZED,
             error_code="AUTH_INVALID_TOKEN",
             message="Invalid token.",
+        )
+    token_fingerprint = hashlib.sha256(raw.encode("utf-8")).hexdigest()
+    if is_token_revoked(payload.tenant_id, payload.jti, token_fingerprint):
+        raise _auth_error(
+            status.HTTP_401_UNAUTHORIZED,
+            error_code="AUTH_TOKEN_REVOKED",
+            message="Token has been revoked.",
         )
     return payload
 

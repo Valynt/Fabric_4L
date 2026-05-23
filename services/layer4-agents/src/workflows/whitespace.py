@@ -13,7 +13,6 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..agents.base import AgentResult
 from ..harness.prompt_registry import get_prompt_registry
 from ..metrics import get_metrics
-from ..metrics.llm_cost_calculator import LLMCostCalculator
 from ..models.agent_state import (
     GapAnalysis,
     WhitespaceAgentState,

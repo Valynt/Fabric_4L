@@ -79,3 +79,16 @@ Allowed exceptions are limited to:
 - static checker tests and fixtures only
 
 There are no non-production runtime exceptions for these patterns outside the allowlist.
+
+
+## ADR Numbering Policy
+
+Architecture Decision Records use a single canonical filename and header format:
+
+- Filename: `ADR-###-slug.md`
+- H1 header: `# ADR-###: Title`
+- Sequence policy: IDs are contiguous across ADR directories (currently `docs/explanations/adr/` and `docs/architecture/`).
+
+Legacy ADR IDs are normalized during migration by reindexing to the next available sequential ID and preserving the original title/decision content.
+
+CI enforcement: `python scripts/ci/check_adr_numbering.py` fails if IDs are duplicated, sequence IDs are missing, or filename/header IDs drift.

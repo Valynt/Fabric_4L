@@ -13,7 +13,12 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from ...api.dependencies import AppState, get_app_state, get_graph_rag, get_hybrid_search
+from ...api.dependencies import (
+    AppState,
+    get_app_state,
+    get_graph_rag,
+    get_hybrid_search,
+)
 from ...api.dependencies_tenant_secured import require_request_tenant_id
 from ...api.models import (
     GraphEdge,
@@ -22,6 +27,11 @@ from ...api.models import (
     GraphResponse,
     GraphStats,
     SubgraphResponse,
+)
+from ...db.query_execution import (
+    MAX_QUERY_DEPTH,
+    QUERY_TIMEOUT_SECONDS,
+    CypherDepthLimitExceeded,
 )
 
 logger = logging.getLogger(__name__)
@@ -160,7 +170,7 @@ async def get_full_graph(
     except Exception as e:
         logger.error("Failed to retrieve graph: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve graph: {str(e)}"
+            status_code=500, detail="Failed to retrieve graph"
         )
 
 
@@ -168,7 +178,7 @@ async def get_full_graph(
 async def get_entity_subgraph(
     entity_id: str,
     tenant_id: str = Depends(require_request_tenant_id),
-    depth: int = 2,
+    depth: int = Query(2, ge=1, le=MAX_QUERY_DEPTH, description=f"Traversal depth (1-{MAX_QUERY_DEPTH})"),
     app_state: AppState = Depends(get_app_state),
 ) -> SubgraphResponse:
     """Return a subgraph centred on the specified entity (tenant-scoped)."""
@@ -176,7 +186,7 @@ async def get_entity_subgraph(
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
-    depth = max(1, min(depth, 5))
+    depth = max(1, min(depth, MAX_QUERY_DEPTH))
 
     try:
         root_result = await neo4j.execute_query(
@@ -198,6 +208,7 @@ async def get_entity_subgraph(
             RETURN root, connected, relationships(path) as rels, length(path) as path_length
             """,
             {"entity_id": entity_id, "depth": depth, "tenant_id": tenant_id},
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         nodes_map: dict[str, GraphNode | GraphNodeWithLayout] = {}
@@ -266,10 +277,14 @@ async def get_entity_subgraph(
 
     except HTTPException:
         raise
+    except CypherDepthLimitExceeded as exc:
+        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+    except TimeoutError:
+        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500, detail="Failed to retrieve subgraph"
         )
 
 
@@ -281,7 +296,7 @@ async def get_query_subgraph(
     tenant_id: str = Depends(require_request_tenant_id),
     query: str | None = Query(None, description="Search query to find matching entities"),
     center_entity_id: str | None = Query(None, description="Center entity ID for expansion mode"),
-    depth: int = Query(2, ge=1, le=3, description="Traversal depth (1-3)"),
+    depth: int = Query(2, ge=1, le=MAX_QUERY_DEPTH, description=f"Traversal depth (1-{MAX_QUERY_DEPTH})"),
     limit: int = Query(100, ge=1, le=500, description="Max nodes to return"),
     entity_types: list[str] | None = Query(None, description="Filter by entity types"),
     relationship_types: list[str] | None = Query(None, description="Filter by relationship types"),
@@ -345,7 +360,7 @@ async def get_query_subgraph(
                    collect(DISTINCT rels) as paths, max(hops) as max_hops
             LIMIT $limit
             """
-            result = await neo4j.execute_query(subgraph_query, query_params)
+            result = await neo4j.execute_query(subgraph_query, query_params, timeout=QUERY_TIMEOUT_SECONDS)
 
             if result:
                 record = result[0]
@@ -493,8 +508,12 @@ async def get_query_subgraph(
 
     except HTTPException:
         raise
+    except CypherDepthLimitExceeded as exc:
+        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+    except TimeoutError:
+        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         logger.error("Failed to retrieve subgraph: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve subgraph: {str(e)}"
+            status_code=500, detail="Failed to retrieve subgraph"
         )

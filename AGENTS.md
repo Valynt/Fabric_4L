@@ -2,6 +2,8 @@
 
 > Practical commands and directory map for AI agents and contributors.
 > For full architectural rules and governance, see the sections below.
+>
+> **Note:** For the autonomous agent fleet registry defining cross-agent coordination, see `.windsurf/AGENTS.md`.
 
 ---
 
@@ -1046,5 +1048,5 @@ Optimize for long-term platform integrity over short-term patching.
 - [Agent Architecture](docs/AGENTS.md)
 - [Frontend Governance Contract](DESIGN.md) — required reading before modifying `apps/web/`
 - [Layer 4 Agents Service](services/layer4-agents/README.md)
-- [ADR-001: Six-Layer Architecture](docs/explanations/adr/ADR-001-six-layer-architecture.md)
+- [ADR-002: Six-Layer Architecture](docs/explanations/adr/ADR-002-six-layer-architecture.md)
 - [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md)

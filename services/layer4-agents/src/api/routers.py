@@ -10,6 +10,7 @@ from fastapi.responses import JSONResponse
 from ..config.settings import settings
 from ..feature_flags.api import feature_flags_router
 from ..registry.api.routes import router as models_router
+from ..services.stripe_client import StripeNotConfiguredError
 from ..tenants.api import (
     admin_router,
     api_keys_router,
@@ -33,7 +34,6 @@ from .routes import (
 )
 from .routes import audit as audit_router
 from .routes.billing import router as billing_router
-from ..services.stripe_client import StripeNotConfiguredError
 from .routes.c1 import router as c1_router
 from .routes.checkpoints import checkpoint_router
 from .routes.company_knowledge import router as company_knowledge_router

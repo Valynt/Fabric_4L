@@ -10,20 +10,12 @@ const shimMarkers = [
   /backward compatibility/i,
   /compatibility shim/i,
   /legacy compatibility shims/i,
-<<<<<<< HEAD
   /\bre-exports?\b.*\b(compatibility|legacy|deprecated)\b/i,
-=======
-  /re-export.*backward compatibility/i,
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 ];
 const ignoredPatterns = [
   /re-exports?\s+the\s+intelligence\s+workspace/i,
   /re-export\s+types?\s+for\s+convenience/i,
   /re-export\s+from\s+.*for\s+convenience/i,
-<<<<<<< HEAD
-=======
-  /re-export\s+for\s+convenience/i,
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 ];
 
 function walk(dir) {
@@ -38,13 +30,7 @@ function walk(dir) {
 }
 
 const registryRaw = fs.readFileSync(registryPath, 'utf8');
-<<<<<<< HEAD
 const registeredPaths = new Set([...registryRaw.matchAll(/`(apps\/web\/src\/[^`]+)`/g)].map((m) => m[1]));
-=======
-const registeredPaths = new Set(
-  [...registryRaw.matchAll(/^\|\s*COMPAT-\S+\s*\|\s*`(apps\/web\/src\/[^`]+)`/gm)].map((m) => m[1])
-);
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 const findings = [];
 for (const file of walk(srcRoot)) {

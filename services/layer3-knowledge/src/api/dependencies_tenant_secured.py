@@ -400,19 +400,3 @@ def require_request_tenant_id(request: Request) -> str:
 # Backward-compatible aliases for route type hints
 Neo4jTenantSession = Neo4jTenantSessionSecured
 Neo4jTenantValidatedSession = Neo4jTenantSessionSecured
-Neo4jTenantSession = Neo4jTenantSessionSecured
-get_neo4j_with_tenant = get_neo4j_secured
-
-
-async def create_neo4j_tenant_session(tenant_id: str | None) -> Neo4jTenantSessionSecured:
-    """Create a secured tenant-scoped Neo4j session from explicit tenant_id."""
-    if not tenant_id:
-        raise ValueError("tenant_id is required for tenant-scoped sessions")
-    from db.driver import get_driver
-
-    driver = await get_driver()
-    return Neo4jTenantSessionSecured(
-        driver=driver,
-        tenant_id=str(tenant_id),
-        strict_validation=True,
-    )

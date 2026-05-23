@@ -23,6 +23,8 @@ CUSTOMER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 # Known Stripe webhook IP ranges (CIDR notation)
 # Source: https://stripe.com/docs/ips
+# NOTE: Stripe may update these IP ranges periodically. Review and update quarterly
+# or when webhook rejections increase. Consider automating via Stripe API in future.
 STRIPE_WEBHOOK_IPS = [
     # Primary webhook IPs (US East)
     ipaddress.ip_network("3.18.12.63/32"),
@@ -41,6 +43,10 @@ STRIPE_WEBHOOK_IPS = [
 
 # Allow disabling IP check in development (never in production)
 STRIPE_WEBHOOK_SKIP_IP_CHECK = os.environ.get("STRIPE_WEBHOOK_SKIP_IP_CHECK", "").lower() in ("true", "1", "yes")
+
+# SECURITY: Prevent IP check bypass in production
+if os.environ.get("ENVIRONMENT") == "production" and STRIPE_WEBHOOK_SKIP_IP_CHECK:
+    raise RuntimeError("STRIPE_WEBHOOK_SKIP_IP_CHECK cannot be enabled in production")
 
 
 def _is_stripe_webhook_ip(client_ip: str) -> bool:
@@ -109,9 +115,10 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ...services.billing_service import BillingService
 from ...services.overage_service import OverageService
-from ...services.stripe_client import StripeError, StripeNotConfiguredError
+from ...services.stripe_client import StripeError
 from ...services.usage_service import UsageService, UsageValidationError
 from ..common.db import get_route_db
+
 
 class get_subscriptionResult(TypedDictModel):
     cancel_at_period_end: bool
@@ -236,6 +243,11 @@ class record_chargeResult(TypedDictModel):
     status: Any
     stripe_charge_id: Any
 
+class reconcile_invoiceResult(TypedDictModel):
+    invoice_id: Any
+    mismatch_count: Any
+    mismatches: Any
+
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
@@ -340,7 +352,96 @@ async def get_subscription(
     })
 
 
-@router.post("/checkout")
+class CheckoutResponse(BaseModel):
+    session_id: str
+    checkout_url: str
+
+
+class PortalResponse(BaseModel):
+    portal_url: str
+
+
+class CancelSubscriptionResponse(BaseModel):
+    canceled: bool
+    cancel_at_period_end: bool
+    current_period_end: str | None
+    subscription_id: str
+
+
+class UpdatePlanResponse(BaseModel):
+    previous_plan_id: str
+    subscription_id: str
+    updated: bool
+
+
+class ReactivateSubscriptionResponse(BaseModel):
+    reactivated: bool
+    subscription_id: str
+
+
+class EntitlementsResponse(BaseModel):
+    plan_id: str
+    plan_name: str
+    features: dict[str, Any]
+
+
+class UsageSummaryResponse(BaseModel):
+    customer_id: str
+    metric_name: str
+    total_quantity: float
+    event_count: int
+    period_start: str | None
+    period_end: str | None
+
+
+class UsageEventResponse(BaseModel):
+    id: str
+    event_id: str
+    event_name: str
+    metric_name: str
+    quantity: float
+    unit: str
+    timestamp: str
+    status: str
+    metadata: dict[str, Any] | None
+
+
+class UsageSyncResponse(BaseModel):
+    synced: int
+    failed: int
+    error: str | None
+
+
+class LimitsCheckResponse(BaseModel):
+    allowed: bool
+    customer_id: str
+    metric_name: str
+    quantity: float
+    limit: float | None
+    current_usage: float | None
+    remaining: float | None
+
+
+class RevenueSummaryResponse(BaseModel):
+    total_revenue_cents: int
+    total_revenue_dollars: str
+    invoice_count: int
+    charge_count: int
+    period_start: str
+    period_end: str
+
+
+class CustomerBalanceResponse(BaseModel):
+    customer_id: str
+    open_invoices_cents: int
+    open_invoices_dollars: str
+    lifetime_paid_cents: int
+    lifetime_paid_dollars: str
+    balance_cents: int
+    balance_dollars: str
+
+
+@router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout(
     request: CheckoutRequest,
     customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
@@ -370,11 +471,11 @@ async def create_checkout(
         logger.warning(f"Checkout creation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Checkout creation failed",
         ) from e
 
 
-@router.post("/portal")
+@router.post("/portal", response_model=PortalResponse)
 async def create_portal(
     request: PortalRequest,
     customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
@@ -402,7 +503,144 @@ async def create_portal(
         logger.warning(f"Portal creation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Portal creation failed",
+        ) from e
+
+
+@router.get("/invoices/{invoice_id}/reconciliation", response_model=reconcile_invoiceResult)
+async def reconcile_invoice(
+    invoice_id: str,
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Reconcile usage ledger against invoice line items."""
+    service = BillingService(db)
+    try:
+        return await service.reconcile_invoice_usage(context.tenant_id, invoice_id)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+
+
+# ============================================================================
+# Subscription Lifecycle Endpoints
+# ============================================================================
+
+class CancelSubscriptionRequest(BaseModel):
+    cancel_immediately: bool = Field(False, description="Cancel immediately vs at period end")
+
+
+class UpdatePlanRequest(BaseModel):
+    plan_id: str = Field(..., description="Target plan (pro, enterprise)")
+
+
+@router.post("/subscription/cancel", response_model=CancelSubscriptionResponse)
+async def cancel_subscription(
+    request: CancelSubscriptionRequest,
+    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Cancel a customer's subscription.
+
+    Args:
+        customer_id: Internal customer/user ID
+        request: Cancellation options
+
+    Returns:
+        Cancellation result with period end date
+    """
+    service = BillingService(db)
+    tenant_id = context.tenant_id
+
+    try:
+        result = await service.cancel_subscription(
+            customer_id=customer_id,
+            tenant_id=tenant_id,
+            cancel_immediately=request.cancel_immediately,
+        )
+        return {
+            "canceled": result["canceled"],
+            "cancel_at_period_end": result["cancel_at_period_end"],
+            "current_period_end": result["current_period_end"].isoformat() if result["current_period_end"] else None,
+            "subscription_id": result["subscription_id"],
+        }
+    except ValueError as e:
+        logger.warning(f"Subscription cancellation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subscription cancellation failed",
+        ) from e
+
+
+@router.post("/subscription/update-plan", response_model=UpdatePlanResponse)
+async def update_subscription_plan(
+    request: UpdatePlanRequest,
+    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Update a customer's subscription plan.
+
+    Args:
+        customer_id: Internal customer/user ID
+        request: Target plan details
+
+    Returns:
+        Update result with previous and current plan
+    """
+    service = BillingService(db)
+    tenant_id = context.tenant_id
+
+    try:
+        result = await service.update_subscription_plan(
+            customer_id=customer_id,
+            new_plan_id=request.plan_id,
+            tenant_id=tenant_id,
+        )
+        return {
+            "previous_plan_id": result["previous_plan_id"],
+            "subscription_id": result["subscription_id"],
+            "updated": result["updated"],
+        }
+    except ValueError as e:
+        logger.warning(f"Plan update failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Plan update failed",
+        ) from e
+
+
+@router.post("/subscription/reactivate", response_model=ReactivateSubscriptionResponse)
+async def reactivate_subscription(
+    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    db: AsyncSession = Depends(get_route_db),
+    context: RequestContext = Depends(require_authenticated),
+) -> dict[str, Any]:
+    """Reactivate a subscription scheduled to cancel at period end.
+
+    Args:
+        customer_id: Internal customer/user ID
+
+    Returns:
+        Reactivation result
+    """
+    service = BillingService(db)
+    tenant_id = context.tenant_id
+
+    try:
+        result = await service.reactivate_subscription(
+            customer_id=customer_id,
+            tenant_id=tenant_id,
+        )
+        return {
+            "reactivated": result["reactivated"],
+            "subscription_id": result["subscription_id"],
+        }
+    except ValueError as e:
+        logger.warning(f"Subscription reactivation failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Subscription reactivation failed",
         ) from e
 
 
@@ -410,7 +648,7 @@ async def create_portal(
 # Entitlement Endpoints
 # ============================================================================
 
-@router.get("/entitlements")
+@router.get("/entitlements", response_model=EntitlementsResponse)
 async def get_entitlements(
     customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
     db: AsyncSession = Depends(get_route_db),
@@ -428,7 +666,7 @@ async def get_entitlements(
     return await service.get_entitlements(customer_id)
 
 
-@router.get("/check-feature")
+@router.get("/check-feature", response_model=check_featureResult)
 async def check_feature(
     customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
     feature_id: str = Query(..., min_length=1, max_length=64),
@@ -457,7 +695,7 @@ async def check_feature(
 # Customer Management
 # ============================================================================
 
-@router.post("/sync-customer")
+@router.post("/sync-customer", response_model=sync_customerResult)
 async def sync_customer(
     request: CustomerSyncRequest,
     customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
@@ -498,7 +736,7 @@ async def sync_customer(
 # Webhook Endpoint
 # ============================================================================
 
-@router.post("/webhook", status_code=status.HTTP_200_OK)
+@router.post("/webhook", response_model=stripe_webhookResult, status_code=status.HTTP_200_OK)
 async def stripe_webhook(
     request: Request,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
@@ -571,7 +809,7 @@ async def stripe_webhook(
 # Usage Metering Endpoints
 # ============================================================================
 
-@router.post("/events")
+@router.post("/events", response_model=ingest_usage_eventResult)
 async def ingest_usage_event(
     request: UsageEventRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -592,8 +830,17 @@ async def ingest_usage_event(
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
+    overage_service = OverageService(db, tenant_id=tenant_id)
     
     try:
+        quota_result = await overage_service.validate_request(
+            customer_id=request.customer_id,
+            metric_name=request.metric_name,
+            requested_quantity=request.quantity,
+        )
+        if not quota_result["allowed"]:
+            _raise_quota_exceeded(request.metric_name, quota_result)
+
         event = await service.ingest_event(
             event_id=request.event_id,
             customer_id=request.customer_id,
@@ -632,7 +879,7 @@ async def ingest_usage_event(
         )
 
 
-@router.post("/events/batch")
+@router.post("/events/batch", response_model=ingest_usage_batchResult)
 async def ingest_usage_batch(
     request: UsageBatchRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -652,8 +899,23 @@ async def ingest_usage_batch(
     tenant_id = context.tenant_id
     
     service = UsageService(db, tenant_id=tenant_id)
+    overage_service = OverageService(db, tenant_id=tenant_id)
     
     try:
+        projected_usage: dict[tuple[str, str], float] = {}
+        for event in request.events:
+            key = (event.customer_id, event.metric_name)
+            projected_usage[key] = projected_usage.get(key, 0.0) + event.quantity
+
+        for (customer_id, metric_name), total_requested in projected_usage.items():
+            quota_result = await overage_service.validate_request(
+                customer_id=customer_id,
+                metric_name=metric_name,
+                requested_quantity=total_requested,
+            )
+            if not quota_result["allowed"]:
+                _raise_quota_exceeded(metric_name, quota_result)
+
         # Convert Pydantic models to dicts for the service
         events_data = [event.model_dump() for event in request.events]
         result = await service.ingest_batch(events_data)
@@ -680,7 +942,7 @@ async def ingest_usage_batch(
         )
 
 
-@router.get("/usage/{customer_id}/summary")
+@router.get("/usage/{customer_id}/summary", response_model=UsageSummaryResponse)
 async def get_usage_summary(
     customer_id: str,
     metric_name: str,
@@ -726,7 +988,7 @@ async def get_usage_summary(
         )
 
 
-@router.get("/usage/{customer_id}/events")
+@router.get("/usage/{customer_id}/events", response_model=list[UsageEventResponse])
 async def list_usage_events(
     customer_id: str,
     metric_name: str | None = None,
@@ -792,7 +1054,7 @@ async def list_usage_events(
         )
 
 
-@router.post("/usage/{customer_id}/sync")
+@router.post("/usage/{customer_id}/sync", response_model=UsageSyncResponse)
 async def sync_usage_to_stripe(
     customer_id: str,
     metric_name: str | None = None,
@@ -857,7 +1119,7 @@ async def sync_usage_to_stripe(
 # Overage Detection & Limits
 # ============================================================================
 
-@router.get("/limits/{customer_id}")
+@router.get("/limits/{customer_id}", response_model=get_usage_limitsResult)
 async def get_usage_limits(
     customer_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -917,7 +1179,7 @@ async def get_usage_limits(
         )
 
 
-@router.post("/limits/{customer_id}/check")
+@router.post("/limits/{customer_id}/check", response_model=LimitsCheckResponse)
 async def check_request_allowed(
     customer_id: str,
     metric_name: str,
@@ -951,17 +1213,7 @@ async def check_request_allowed(
         result = await service.validate_request(customer_id, metric_name, quantity)
         
         if not result["allowed"]:
-            raise HTTPException(
-                status_code=status.HTTP_402_PAYMENT_REQUIRED,
-                detail={
-                    "error": result["error"],
-                    "metric": metric_name,
-                    "limit": result["limit"],
-                    "current_usage": result["current_usage"],
-                    "overage": result["overage"],
-                    "upgrade_required": True,
-                },
-            )
+            _raise_quota_exceeded(metric_name, result)
         
         return result
         
@@ -975,7 +1227,7 @@ async def check_request_allowed(
         )
 
 
-@router.get("/plans/{plan_id}/limits")
+@router.get("/plans/{plan_id}/limits", response_model=get_plan_limitsResult)
 async def get_plan_limits(
     plan_id: str,
 ) -> dict[str, Any]:
@@ -1049,7 +1301,7 @@ class RecordChargeRequest(BaseModel):
     description: str | None = Field(None, description="Charge description")
 
 
-@router.get("/invoices")
+@router.get("/invoices", response_model=list_invoicesResult)
 async def list_invoices(
     customer_id: str | None = Query(None),
     status: str | None = Query(None),
@@ -1109,7 +1361,7 @@ async def list_invoices(
         )
 
 
-@router.post("/invoices")
+@router.post("/invoices", response_model=create_invoiceResult)
 async def create_invoice(
     request: CreateInvoiceRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -1148,7 +1400,8 @@ async def create_invoice(
 
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning("invoice_value_error", error=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
         raise HTTPException(
@@ -1157,7 +1410,7 @@ async def create_invoice(
         )
 
 
-@router.get("/invoices/{invoice_id}")
+@router.get("/invoices/{invoice_id}", response_model=get_invoiceResult)
 async def get_invoice(
     invoice_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -1241,7 +1494,7 @@ async def get_invoice(
         )
 
 
-@router.post("/invoices/{invoice_id}/items")
+@router.post("/invoices/{invoice_id}/items", response_model=add_invoice_itemResult)
 async def add_invoice_item(
     invoice_id: str,
     request: AddInvoiceItemRequest,
@@ -1279,7 +1532,8 @@ async def add_invoice_item(
 
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning("invoice_item_value_error", error=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
         raise HTTPException(
@@ -1288,7 +1542,7 @@ async def add_invoice_item(
         )
 
 
-@router.post("/invoices/{invoice_id}/finalize")
+@router.post("/invoices/{invoice_id}/finalize", response_model=finalize_invoiceResult)
 async def finalize_invoice(
     invoice_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -1317,7 +1571,8 @@ async def finalize_invoice(
 
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning("invoice_finalize_value_error", error=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
         raise HTTPException(
@@ -1326,7 +1581,7 @@ async def finalize_invoice(
         )
 
 
-@router.post("/invoices/{invoice_id}/void")
+@router.post("/invoices/{invoice_id}/void", response_model=void_invoiceResult)
 async def void_invoice(
     invoice_id: str,
     reason: str | None = Query(None, description="Void reason"),
@@ -1350,7 +1605,8 @@ async def void_invoice(
 
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning("invoice_void_value_error", error=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
         raise HTTPException(
@@ -1363,7 +1619,7 @@ async def void_invoice(
 # Charge Management
 # ============================================================================
 
-@router.get("/charges")
+@router.get("/charges", response_model=list_chargesResult)
 async def list_charges(
     customer_id: str | None = Query(None),
     invoice_id: str | None = Query(None),
@@ -1420,7 +1676,7 @@ async def list_charges(
         )
 
 
-@router.post("/charges")
+@router.post("/charges", response_model=record_chargeResult)
 async def record_charge(
     request: RecordChargeRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -1455,7 +1711,8 @@ async def record_charge(
 
 
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+        logger.warning("charge_value_error", error=str(e))
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")
         raise HTTPException(
@@ -1468,7 +1725,7 @@ async def record_charge(
 # Reporting
 # ============================================================================
 
-@router.get("/reports/revenue")
+@router.get("/reports/revenue", response_model=RevenueSummaryResponse)
 async def get_revenue_summary(
     period_start: datetime,
     period_end: datetime,
@@ -1495,7 +1752,7 @@ async def get_revenue_summary(
         )
 
 
-@router.get("/customers/{customer_id}/balance")
+@router.get("/customers/{customer_id}/balance", response_model=CustomerBalanceResponse)
 async def get_customer_balance(
     customer_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -1519,3 +1776,18 @@ async def get_customer_balance(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Failed to retrieve customer balance",
         )
+def _raise_quota_exceeded(metric_name: str, result: dict[str, Any]) -> None:
+    """Raise a standardized hard-limit response for quota failures."""
+    raise HTTPException(
+        status_code=status.HTTP_402_PAYMENT_REQUIRED,
+        detail={
+            "error": "quota_exceeded",
+            "message": result.get("error", f"Usage limit exceeded for {metric_name}"),
+            "metric": metric_name,
+            "limit": result.get("limit"),
+            "current_usage": result.get("current_usage"),
+            "requested": result.get("requested"),
+            "overage": result.get("overage"),
+            "upgrade_required": True,
+        },
+    )

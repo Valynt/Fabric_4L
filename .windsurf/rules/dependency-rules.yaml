@@ -49,6 +49,7 @@ rules:
       exemptions:
         - "tests/**/*.py"
         - "services/layer*/tests/**/*.py"
+        - "value_fabric/layer*/**/*.py"
       allowed_patterns:
         - "layer1": ["shared"]
         - "layer2": ["layer1", "shared"]
@@ -75,6 +76,7 @@ rules:
       files:
         - "shared/identity/**/*.py"
         - "packages/shared/src/value_fabric/shared/identity/**/*.py"
+        - "value_fabric/shared/identity/**/*.py"
       forbidden_imports:
         - "layer*"
         - "value_fabric.layer*"
@@ -102,3 +104,22 @@ rules:
       message: "Domain pack importing from another domain pack. Use shared/ for cross-domain logic."
       required_verification:
         - "pack_dependency_check"
+
+  - id: DR-005
+    name: root-tests-exempt-from-layer-order
+    severity: block
+    description: >
+      Root tests/ directory is exempt from layer-import-order rules. Cross-layer integration tests
+      legitimately import from multiple layers to test integration boundaries.
+    rationale: >
+      Integration tests at the root level need to import across layers to verify end-to-end behavior.
+      This is intentional and should not trigger DR-002 violations.
+    trigger:
+      type: import_violation
+      files:
+        - "tests/**/*.py"
+      action:
+        type: allow
+        message: "Root tests/ are exempt from layer-order restrictions for integration testing."
+        required_verification:
+          - "integration_test_check"

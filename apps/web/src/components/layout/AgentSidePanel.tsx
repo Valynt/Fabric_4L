@@ -10,7 +10,7 @@ export function AgentSidePanel({
   onMinimize,
 }: AgentSidePanelProps) {
   return (
-    <aside className="hidden h-screen min-w-[360px] max-w-[420px] border-l bg-background shadow-xl md:flex md:flex-col">
+    <aside aria-label="Agent assistant panel" className="hidden h-screen min-w-[360px] max-w-[420px] border-l bg-background shadow-xl md:flex md:flex-col">
       <div className="flex h-14 shrink-0 items-center justify-between border-b px-4">
         <div className="flex items-center gap-2">
           <div className="inline-flex h-8 w-8 items-center justify-center rounded-md bg-primary text-primary-foreground">

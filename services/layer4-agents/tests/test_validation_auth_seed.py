@@ -22,7 +22,7 @@ from value_fabric.layer4.tenants.models.user import User
 from value_fabric.shared.identity.context import RequestContext
 
 
-TENANT_ID = UUID("00000000-0000-4000-e2e0-000000000001")
+TENANT_ID = UUID(os.environ.get("BACKEND_E2E_TENANT_ID", "00000000-0000-4000-e2e0-000000000001"))
 
 
 class FakeDb:
@@ -126,7 +126,7 @@ async def test_validation_auth_seed_rejects_cross_tenant_payload(
 
     response = await _post_auth_seed(
         app,
-        body={"tenant_id": "00000000-0000-4000-e2e0-000000000002"},
+        body={"tenant_id": os.environ.get("BACKEND_E2E_TENANT_BETA_ID", "00000000-0000-4000-e2e0-000000000002")},
     )
 
     assert response.status_code == 403

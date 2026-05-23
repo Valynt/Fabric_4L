@@ -1,6 +1,8 @@
 # Windsurf Agent Fleet Runtime Configuration
 # Aligns with production-grade architecture blueprint:
 # - Circuit breakers, state machines, context budgets, memory tiers, MCP gateway
+#
+# Platform Contract: All agents must adhere to canonical patterns in packages/platform-contract/CONTRACT.md
 
 # -----------------------------------------------------------------------------
 # Auto Review

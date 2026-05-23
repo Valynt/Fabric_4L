@@ -14,6 +14,7 @@ dependencies = [
     "httpx>=0.27.0",
     "openai>=1.30.0",
     "prometheus-client>=0.21.0",
+    "redis>=5.0.0",
 ]
 
 [project.optional-dependencies]
@@ -29,6 +30,20 @@ dev = [
 asyncio_mode = "auto"
 testpaths = ["app/tests"]
 pythonpath = [".", "../..", "../../packages/shared/src"]
+
+[tool.coverage.run]
+source = ["app"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 75
 
 [tool.mypy]
 python_version = "3.11"

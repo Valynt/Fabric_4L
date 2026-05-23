@@ -51,7 +51,7 @@ All test and script imports remain as `value_fabric.layer4.*` because:
   - Documents the direct import blocker (relative imports fail)
 
 ### Documentation Updates
-- `docs/architecture/adr-027-layer3-canonical-path.md`: Updated status, decision, options, consequences, migration status
+- `docs/architecture/ADR-021-layer-3-canonical-runtime-path.md`: Updated status, decision, options, consequences, migration status
 - `docs/reference/layer-runtime-path-governance.md`: Updated layer path matrix to service-first canonical model
 
 ## Test Results

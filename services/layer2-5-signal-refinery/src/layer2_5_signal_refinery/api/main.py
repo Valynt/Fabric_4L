@@ -15,6 +15,7 @@ from typing import Any
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..clients.l3_graph_client import get_l3_client
@@ -52,18 +53,12 @@ def _add_governance_middleware(app: FastAPI) -> None:
         add_security_middleware(app, config=security_config)
         app.add_middleware(CORSMiddleware, **resolve_cors_policy().as_kwargs())
         logger.info("Governance middleware loaded from value_fabric.shared")
-    except ImportError:
-        logger.warning(
-            "value_fabric.shared not available — running without governance middleware. "
-            "This is only acceptable in isolated test environments."
-        )
-        app.add_middleware(
-            CORSMiddleware,
-            allow_origins=["*"],
-            allow_credentials=True,
-            allow_methods=["*"],
-            allow_headers=["*"],
-        )
+    except ImportError as exc:
+        raise RuntimeError(
+            "FATAL: value_fabric.shared is required for secure CORS configuration. "
+            "Running without governance middleware is not permitted. "
+            "Install the shared package or set CORS_ORIGINS explicitly."
+        ) from exc
 
 
 # ---------------------------------------------------------------------------
@@ -104,6 +99,7 @@ def create_app() -> FastAPI:
     )
 
     _add_governance_middleware(app)
+    register_exception_handlers(app)
 
     # Routes
     app.include_router(signals_router)

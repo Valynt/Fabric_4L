@@ -1,3 +1,4 @@
+import { E2E_SEED_PRIVILEGED_REASON, E2E_SEED_TENANT_SLUG } from './seed-constants';
 /**
  * Auth Helpers for Playwright Contract Tests
  *
@@ -23,8 +24,10 @@ export interface TestUserInfo {
   tenantSlug: string;
 }
 
-export const BACKEND_E2E_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
-const BACKEND_E2E_USER_ID = '00000000-0000-4000-e2e0-0000000000a1';
+export const BACKEND_E2E_TENANT_ID =
+  process.env.BACKEND_E2E_TENANT_ID || '00000000-0000-4000-e2e0-000000000001';
+const BACKEND_E2E_USER_ID =
+  process.env.BACKEND_E2E_USER_ID || '00000000-0000-4000-e2e0-0000000000a1';
 
 /**
  * Default test user — admin role for maximum access in contract tests.
@@ -34,7 +37,7 @@ export const DEFAULT_TEST_USER: TestUserInfo = {
   id: 'test-user-e2e',
   email: 'e2e@valuefabric.test',
   role: 'admin',
-  tenantId: 'tenant-e2e-001',
+  tenantId: E2E_SEED_TENANT_SLUG,
   tenantSlug: 'e2e-test',
 };
 
@@ -153,7 +156,7 @@ async function seedBackendIntegratedSession(page: Page, user: TestUserInfo): Pro
       'Content-Type': 'application/json',
       'X-Tenant-ID': requestUser.tenantId,
       'X-Service-Auth': serviceSecret,
-      'X-Privileged-Reason': 'playwright-backend-validation-seed',
+      'X-Privileged-Reason': E2E_SEED_PRIVILEGED_REASON,
     },
     data: {
       user_id: requestUser.id,

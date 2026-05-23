@@ -20,11 +20,44 @@ import logging
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
+from pydantic import BaseModel
 from value_fabric.shared.identity import RequestContext, require_authenticated
 
-from ...api.dependencies_tenant_secured import Neo4jTenantSessionSecured as Neo4jTenantSession, get_neo4j_secured as get_neo4j_with_tenant
+from ...api.dependencies_tenant_secured import (
+    Neo4jTenantSessionSecured as Neo4jTenantSession,
+)
+from ...api.dependencies_tenant_secured import (
+    get_neo4j_secured as get_neo4j_with_tenant,
+)
 
 logger = logging.getLogger(__name__)
+
+class SignalNode(BaseModel):
+    id: str
+    tenant_id: str
+    account_id: str
+    type: str
+    content: str
+    confidence: float
+    trust_score: float | None = None
+    lifecycle_state: str | None = None
+    impact_area: str | None = None
+    created_at: str | None = None
+    updated_at: str | None = None
+
+
+class SignalListResponse(BaseModel):
+    items: list[SignalNode]
+    total: int
+    limit: int
+    offset: int
+
+
+class SignalRelatedResponse(BaseModel):
+    value_drivers: list[Any]
+    personas: list[Any]
+    accounts: list[Any]
+
 
 router = APIRouter(
     prefix="/api/v1/graph/signals",
@@ -103,7 +136,7 @@ def _node_to_dict(node: Any) -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-@router.post("", status_code=status.HTTP_201_CREATED)
+@router.post("", response_model=SignalNode, status_code=status.HTTP_201_CREATED)
 async def persist_signal(
     body: dict[str, Any],
     _ctx: RequestContext = Depends(require_authenticated),
@@ -161,7 +194,7 @@ async def persist_signal(
 # ---------------------------------------------------------------------------
 
 
-@router.get("")
+@router.get("", response_model=SignalListResponse)
 async def list_graph_signals(
     account_id: str = Query(...),
     lifecycle_states: list[str] | None = Query(None),
@@ -212,7 +245,7 @@ async def list_graph_signals(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{signal_id}")
+@router.get("/{signal_id}", response_model=SignalNode)
 async def get_graph_signal(
     signal_id: str,
     _ctx: RequestContext = Depends(require_authenticated),
@@ -243,7 +276,7 @@ async def get_graph_signal(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/{signal_id}/related")
+@router.get("/{signal_id}/related", response_model=SignalRelatedResponse)
 async def get_signal_related(
     signal_id: str,
     _ctx: RequestContext = Depends(require_authenticated),

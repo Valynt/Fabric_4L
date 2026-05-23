@@ -546,9 +546,10 @@ class ToolRegistry:
         try:
             tool = self.get(tool_name)
         except ToolNotFoundError as e:
+            logger.warning("tool_not_found", error=str(e))
             return ToolResult.failure(
                 code="TOOL_NOT_FOUND",
-                message=str(e),
+                message="Tool not found",
                 recoverable=False,
             )
 

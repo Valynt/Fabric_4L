@@ -395,9 +395,10 @@ async def create_or_update_integration(
         return IntegrationStatusResponse(**response_data)
 
     except IntegrationValidationError as e:
+        logger.warning("integration_validation_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid integration request",
         )
 
 
@@ -496,14 +497,16 @@ async def trigger_sync(
         return SyncTriggerResponse(**result)
 
     except IntegrationNotFoundError as e:
+        logger.warning("integration_not_found", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail="Integration not found",
         )
     except IntegrationValidationError as e:
+        logger.warning("integration_validation_error", error=str(e))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid integration request",
         )
 
 

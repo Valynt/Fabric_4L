@@ -167,7 +167,7 @@ python_classes = "Test*"
 python_functions = "test_*"
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
-pythonpath = ["src", "../.."]
+pythonpath = ["src", "../..", "../../packages/shared/src"]
 
 [tool.coverage.run]
 source = ["src"]
@@ -181,3 +181,4 @@ exclude_lines = [
     "raise NotImplementedError",
     "if __name__ == .__main__.:",
 ]
+fail_under = 70

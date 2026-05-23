@@ -22,6 +22,7 @@ from app.routers import (
     governance,
     hypotheses,
     intelligence,
+    privacy,
     realization,
     reviews,
     value_cases,
@@ -63,9 +64,22 @@ def _assert_bcrypt_available() -> None:
         ) from exc
 
 
+def _assert_database_ready() -> None:
+    """Fail fast if the database is unreachable or misconfigured."""
+    from app.core.database import create_database
+
+    try:
+        create_database()
+    except Exception as exc:
+        raise RuntimeError(
+            f"FATAL: Database initialization failed: {exc}"
+        ) from exc
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _assert_bcrypt_available()
+    _assert_database_ready()
     validate_production_safety()
     if settings.seed_demo_data:
         seed_all()
@@ -96,6 +110,7 @@ app.include_router(reviews.router, prefix="/v1")
 app.include_router(versioning.router, prefix="/v1")
 app.include_router(realization.router, prefix="/v1")
 app.include_router(agents.router, prefix="/v1")
+app.include_router(privacy.router, prefix="/v1")
 
 # Audit logging for all state-changing requests
 app.add_middleware(AuditMiddleware)

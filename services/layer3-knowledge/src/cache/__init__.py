@@ -1,25 +1,27 @@
-"""Allowed service-local exception for Layer 3 service wrapper.
+"""Cache package initialization.
 
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Cache package initialization.
+Re-exports from value_fabric.shared.infrastructure.cache during migration.
 """
 
-from ..cache.aiocache_adapter import AiocacheCacheAdapter
-from ..cache.factory import CacheProviderName, build_cache_port
-from ..cache.ports import CachePort, LegacyCacheAdapter, as_cache_port
-from ..cache.redis_cache import (
+from value_fabric.shared.infrastructure.cache import (
+    AiocacheCacheAdapter,
     CacheConfig,
     CacheKey,
     CacheManager,
+    CacheParityMismatch,
+    CachePort,
+    CacheProviderName,
+    LegacyCacheAdapter,
     RedisCache,
     RequestDeduplicator,
+    ShadowCacheComparator,
+    as_cache_port,
+    build_cache_port,
     cache_result,
     get_cache_manager,
     get_request_deduplicator,
     initialize_cache,
 )
-from ..cache.shadow import CacheParityMismatch, ShadowCacheComparator
 
 __all__ = [
     "CacheConfig",

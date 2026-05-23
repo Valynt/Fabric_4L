@@ -43,8 +43,8 @@ const REPORT_JSON =
 const STRICT_SEED =
   process.argv.includes('--strict') || /^(1|true|yes|on)$/i.test(process.env.SEED_STRICT ?? 'false');
 
-const E2E_TENANT_ID = '00000000-0000-4000-e2e0-000000000001';
-const E2E_TENANT_BETA_ID = '00000000-0000-4000-e2e0-000000000002';
+const E2E_TENANT_ID = process.env.BACKEND_E2E_TENANT_ID || '00000000-0000-4000-e2e0-000000000001';
+const E2E_TENANT_BETA_ID = process.env.BACKEND_E2E_TENANT_BETA_ID || '00000000-0000-4000-e2e0-000000000002';
 const E2E_ADMIN_USER_ID = 'e2e-admin-user';
 const E2E_REVIEWER_USER_ID = 'e2e-reviewer-user';
 const E2E_READ_ONLY_USER_ID = 'e2e-read-only-user';

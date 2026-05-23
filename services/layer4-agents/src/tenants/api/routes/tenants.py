@@ -12,7 +12,10 @@ POST   /v1/tenants/{tenant_id}/status       — change status with reason
 
 from __future__ import annotations
 
+import logging
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
@@ -220,7 +223,8 @@ async def api_suspend_tenant(
             db, tenant_id, "suspended", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        logger.warning("tenant_suspend_conflict", error=str(e))
+        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
     tenant = await get_tenant(db, tenant_id)
@@ -242,7 +246,8 @@ async def api_activate_tenant(
             db, tenant_id, "active", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        logger.warning("tenant_activate_conflict", error=str(e))
+        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
     tenant = await get_tenant(db, tenant_id)
@@ -265,7 +270,8 @@ async def api_change_tenant_status(
             db, tenant_id, target_status, reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        raise HTTPException(status_code=409, detail=str(e))
+        logger.warning("tenant_status_change_conflict", error=str(e))
+        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
         raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
     tenant = await get_tenant(db, tenant_id)

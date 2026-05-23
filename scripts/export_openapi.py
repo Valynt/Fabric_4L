@@ -136,15 +136,6 @@ class _MockLanggraphCheckpoint:
     class AsyncPostgresSaver:
         pass
 
-<<<<<<< HEAD
-=======
-import sys
-sys.modules["langgraph"] = type("MockModule", (), {})()
-sys.modules["langgraph.checkpoint"] = type("MockModule", (), {})()
-sys.modules["langgraph.checkpoint.base"] = type("MockModule", (), {"BaseCheckpointSaver": _MockLanggraphCheckpoint.BaseCheckpointSaver})()
-sys.modules["langgraph.checkpoint.postgres"] = type("MockModule", (), {})()
-sys.modules["langgraph.checkpoint.postgres.aio"] = type("MockModule", (), {"AsyncPostgresSaver": _MockLanggraphCheckpoint.AsyncPostgresSaver})()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 class _MockStateGraph:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -168,20 +159,12 @@ class _MockStateGraph:
     async def ainvoke(self, value: Any, *args: Any, **kwargs: Any) -> Any:
         return value
 
-<<<<<<< HEAD
-=======
-sys.modules["langgraph.graph"] = type("MockModule", (), {"StateGraph": _MockStateGraph})()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 class _MockAsyncGraphDatabase:
     @staticmethod
     def driver(*args: Any, **kwargs: Any) -> Any:
         return None
 
-<<<<<<< HEAD
-=======
-sys.modules["neo4j"] = type("MockModule", (), {"AsyncGraphDatabase": _MockAsyncGraphDatabase})()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 class _MockS3Client:
     def put_object(self, *args: Any, **kwargs: Any) -> dict[str, str]:
@@ -190,43 +173,23 @@ class _MockS3Client:
     def generate_presigned_url(self, *args: Any, **kwargs: Any) -> str:
         return "https://example.com/mock"
 
-<<<<<<< HEAD
-=======
-class _MockBoto3:
-    @staticmethod
-    def client(*args: Any, **kwargs: Any) -> _MockS3Client:
-        return _MockS3Client()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 class _MockConfig:
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         pass
 
-<<<<<<< HEAD
-=======
-sys.modules["botocore"] = type("MockModule", (), {})()
-sys.modules["botocore.client"] = type("MockModule", (), {"BaseClient": _MockS3Client})()
-sys.modules["botocore.config"] = type("MockModule", (), {"Config": _MockConfig})()
-sys.modules["boto3"] = _MockBoto3()
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 def _mock_retry(*args: Any, **kwargs: Any) -> Any:
     def decorator(func: Any) -> Any:
         return func
-<<<<<<< HEAD
 
     return decorator
 
 
-=======
-    return decorator
-
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 def _mock_policy(*args: Any, **kwargs: Any) -> Any:
     return None
 
 
-<<<<<<< HEAD
 def _install_email_validator_shim() -> None:
     """Keep Pydantic EmailStr schema generation working in slim export envs."""
 
@@ -307,38 +270,6 @@ def _install_openapi_dependency_shims(spec: OpenApiExportSpec) -> None:
     _install_common_openapi_dependency_shims()
     if spec.output_filename == "layer4-agents.json":
         _install_layer4_openapi_dependency_shims()
-=======
-from pydantic import networks as _pydantic_networks
-
-class _MockEmailParts:
-    def __init__(self, email: str) -> None:
-        self.normalized = email
-        self.local_part = email.split("@", 1)[0]
-
-
-class _MockEmailValidator:
-    class EmailNotValidError(ValueError):
-        pass
-
-    @staticmethod
-    def validate_email(email: str, check_deliverability: bool = False) -> _MockEmailParts:
-        return _MockEmailParts(email)
-
-_pydantic_networks.email_validator = _MockEmailValidator
-_pydantic_networks.import_email_validator = lambda: None
-
-sys.modules["tenacity"] = type(
-    "MockModule",
-    (),
-    {
-        "retry": _mock_retry,
-        "retry_if_exception_type": _mock_policy,
-        "stop_after_attempt": _mock_policy,
-        "wait_exponential": _mock_policy,
-    },
-)()
-
->>>>>>> 315e84c14c9306363c718c22c8cb7a292d514eee
 
 
 def _spec_by_output(output_filename: str) -> OpenApiExportSpec:

@@ -27,18 +27,24 @@ from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
-from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
-from value_fabric.shared.identity.middleware import GovernanceMiddleware
-from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
-from value_fabric.shared.identity.vault_check import is_vault_healthy
-from value_fabric.shared.models.typed_dict import TypedDictModel
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-# Hard imports - fail fast if security components unavailable
-from value_fabric.shared.security import SecurityConfig, add_security_middleware
+try:
+    from value_fabric.shared.error_handling import register_exception_handlers
+    from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
+    from value_fabric.shared.identity.vault_check import is_vault_healthy
+    from value_fabric.shared.models.typed_dict import TypedDictModel
+    from value_fabric.shared.security import SecurityConfig, add_security_middleware
+    from value_fabric.shared.startup import reject_insecure_bypass_in_production
+except ImportError as e:
+    raise ImportError(
+        f"Failed to import from value_fabric.shared. Ensure packages/shared is in PYTHONPATH. Error: {e}"
+    ) from e
 
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
+from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
@@ -94,6 +100,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 reject_insecure_bypass_in_production(service_name="layer1-ingestion", settings=settings)
+
+
+def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
+    return {
+        "error": "url_validation_failed",
+        "reason_code": reason_code,
+        "message": "URL blocked by compliance policy",
+    }
 
 # =============================================================================
 # DEPRECATION REGISTER
@@ -222,6 +236,7 @@ _security_config_l1 = SecurityConfig.from_env(
     strict_mode=True,
 )
 add_security_middleware(app, config=_security_config_l1)
+register_exception_handlers(app)
 
 # GovernanceMiddleware â€” verifies JWTs and resolves tenant/user context (mandatory)
 redis_rate_limiter = None
@@ -479,12 +494,12 @@ class CreateTargetRequest(BaseModel):
     url: str = Field(..., description="Target URL")
     target_type: TargetType = TargetType.SINGLE_PAGE
     crawl_path: CrawlPath = CrawlPath.BROWSER  # HTTPX Fast Path selection
-    extraction_config: ExtractionConfigInput = Field(default_factory=ExtractionConfigInput)
-    browser_config: BrowserConfigInput = Field(default_factory=BrowserConfigInput)
+    extraction_config: ExtractionConfigInput = Field(default_factory=lambda: ExtractionConfigInput())
+    browser_config: BrowserConfigInput = Field(default_factory=lambda: BrowserConfigInput())
     schedule: ScheduleInput | None = None
-    rate_limit: RateLimitInput = Field(default_factory=RateLimitInput)
-    compliance: ComplianceInput = Field(default_factory=ComplianceInput)
-    proxy_config: ProxyConfigInput = Field(default_factory=ProxyConfigInput)
+    rate_limit: RateLimitInput = Field(default_factory=lambda: RateLimitInput())
+    compliance: ComplianceInput = Field(default_factory=lambda: ComplianceInput())
+    proxy_config: ProxyConfigInput = Field(default_factory=lambda: ProxyConfigInput())
     authentication: AuthenticationInput | None = None
     tags: list[str] = []
 
@@ -1083,9 +1098,12 @@ async def create_target(
 ):
     """Create a new scraping target."""
     # Validate URL
-    parsed = urlparse(request.url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="URL must use http/https protocol")
+    try:
+        validated = validate_url_safety(
+            request.url, allowlist_domains=request.compliance.domain_allowlist
+        )
+    except URLSafetyError as exc:
+        raise HTTPException(status_code=400, detail=_url_safety_error_payload(exc.reason_code)) from exc
 
     # Validate extraction schema if method requires LLM
     if (
@@ -1175,7 +1193,7 @@ async def create_target(
     target = create_scraping_target(
         tenant_id=org_id,
         name=request.name,
-        url=request.url,
+        url=validated.normalized_url,
         target_type=request.target_type,
         created_by=user_id,
         description=request.description,
@@ -1422,9 +1440,14 @@ async def validate_target(
 
     # Validate URL
     test_url = request.test_url or target.url
-    parsed = urlparse(test_url)
-    if parsed.scheme not in ("http", "https"):
-        errors.append(ValidationError(field="url", message="URL must use http/https protocol"))
+    try:
+        validate_url_safety(test_url, allowlist_domains=(target.compliance or {}).get("domain_allowlist"))
+    except URLSafetyError as exc:
+        errors.append(
+            ValidationError(
+                field="url", message=f"URL blocked by compliance policy ({exc.reason_code})"
+            )
+        )
 
     # Validate extraction schema
     if request.validate_schema and target.extraction_config.get("extraction_schema"):
@@ -2849,7 +2872,8 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        components["database"] = ComponentHealth(status="unhealthy", message=str(e))
+        logger.error("health_check_database_failed", error=str(e))
+        components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
 
     # Queue check (Redis)
     try:
@@ -3041,7 +3065,8 @@ async def legacy_health_check():
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "database", "status": "unhealthy", "error": str(e)})
+        logger.error("health_check_database_failed", error=str(e))
+        dependencies.append({"name": "database", "status": "unhealthy", "error": "Database connection failed"})
         overall_status = "degraded"
     finally:
         db.close()
@@ -3057,7 +3082,8 @@ async def legacy_health_check():
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        dependencies.append({"name": "redis", "status": "degraded", "error": str(e)})
+        logger.error("health_check_redis_failed", error=str(e))
+        dependencies.append({"name": "redis", "status": "degraded", "error": "Redis connection failed"})
         overall_status = "degraded"
 
     return legacy_health_checkResult.model_validate({

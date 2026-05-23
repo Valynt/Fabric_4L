@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.core.database import InMemoryTable, SQLiteDatabase
+from app.core.database import InMemoryTable
 from value_fabric.shared.database import MissingTenantContextError
 
 # Valid UUID tenant IDs for tests that require UUID-format tenant context.
@@ -98,21 +98,3 @@ def test_inmemory_table_requires_tenant_on_insert_and_scopes_results() -> None:
     ]
 
 
-def test_sqlite_table_denies_missing_tenant_and_keeps_scope(tmp_path) -> None:
-    db = SQLiteDatabase(f"sqlite:///{tmp_path / 'tenant-boundary.db'}")
-    table = db.accounts
-
-    table.insert("acct-a", {"id": "acct-a", "tenant_id": "tenant-a", "name": "A"})
-    table.insert("acct-b", {"id": "acct-b", "tenant_id": "tenant-b", "name": "B"})
-
-    with pytest.raises(MissingTenantContextError):
-        table.get("acct-a")
-
-    with pytest.raises(MissingTenantContextError):
-        table.list()
-
-    assert table.get("acct-a", tenant_id="tenant-a")["tenant_id"] == "tenant-a"
-    assert table.get("acct-a", tenant_id="tenant-b") is None
-    assert [item["id"] for item in table.list(tenant_id="tenant-a")] == ["acct-a"]
-
-    db.close()

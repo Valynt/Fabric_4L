@@ -84,6 +84,65 @@ class TemplateCreateRequest(BaseModel):
     applicable_products: list[str] = Field(default_factory=list)
 
 
+class ROICalculationResult(BaseModel):
+    total_benefit_year1: float
+    total_benefit_3year: float
+    total_cost_year1: float
+    total_cost_3year: float
+    net_benefit_year1: float
+    net_benefit_3year: float
+    roi_pct_year1: float
+    roi_pct_3year: float
+    payback_months: float
+    npv: float
+    irr: float
+    benefit_breakdown: dict[str, Any]
+    cost_breakdown: dict[str, Any]
+
+
+class ROICalculateResponse(BaseModel):
+    status: str
+    scenario: str
+    time_horizon_months: int
+    discount_rate: float
+    results: ROICalculationResult
+    calculation_id: str | None = None
+
+
+class ROICompareResponse(BaseModel):
+    scenarios: dict[str, Any]
+    best_scenario: str | None = None
+    summary: dict[str, Any] | None = None
+
+
+class ROITemplateResponse(BaseModel):
+    id: str
+    name: str
+    description: str
+    category: str
+    input_schema: dict[str, Any]
+    default_assumptions: dict[str, Any]
+    applicable_industries: list[str]
+    applicable_products: list[str]
+
+
+class ROICalculationRecord(BaseModel):
+    id: str
+    account_id: str | None
+    template_id: str | None
+    inputs: dict[str, Any]
+    outputs: dict[str, Any]
+    scenario_name: str
+    time_horizon_months: int
+    discount_rate: float
+    created_at: str
+
+
+class ROIBenchmarkResponse(BaseModel):
+    industry: str
+    benchmarks: dict[str, Any]
+
+
 # ---------------------------------------------------------------------------
 # Helper
 # ---------------------------------------------------------------------------
@@ -99,7 +158,7 @@ def _get_neo4j_driver(request: Request):
 # ---------------------------------------------------------------------------
 
 
-@router.post("/calculate")
+@router.post("/calculate", response_model=ROICalculateResponse)
 async def calculate_roi(
     body: ROICalculateRequest,
     request: Request,
@@ -174,7 +233,7 @@ async def calculate_roi(
     return response
 
 
-@router.post("/compare")
+@router.post("/compare", response_model=ROICompareResponse)
 async def compare_scenarios(
     body: ScenarioCompareRequest,
     request: Request,
@@ -214,7 +273,7 @@ async def compare_scenarios(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/templates")
+@router.get("/templates", response_model=list[ROITemplateResponse])
 async def list_templates(
     request: Request,
     category: str | None = Query(None),
@@ -234,7 +293,7 @@ async def list_templates(
     )
 
 
-@router.post("/templates")
+@router.post("/templates", response_model=ROITemplateResponse)
 async def create_template(
     body: TemplateCreateRequest,
     request: Request,
@@ -266,7 +325,7 @@ async def create_template(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/calculations")
+@router.get("/calculations", response_model=list[ROICalculationRecord])
 async def list_calculations(
     request: Request,
     account_id: str | None = Query(None),
@@ -285,7 +344,7 @@ async def list_calculations(
     )
 
 
-@router.get("/calculations/{calc_id}")
+@router.get("/calculations/{calc_id}", response_model=ROICalculationRecord)
 async def get_calculation(
     calc_id: str,
     request: Request,
@@ -308,7 +367,7 @@ async def get_calculation(
 # ---------------------------------------------------------------------------
 
 
-@router.get("/benchmarks/{industry}")
+@router.get("/benchmarks/{industry}", response_model=ROIBenchmarkResponse)
 async def get_industry_benchmarks(
     industry: str,
     request: Request,

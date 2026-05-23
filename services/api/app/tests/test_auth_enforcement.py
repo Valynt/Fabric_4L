@@ -260,7 +260,7 @@ class TestProductionSecretGuard:
         monkeypatch.setenv("ENVIRONMENT", "production")
         monkeypatch.setenv("SECRET_KEY", "a-sufficiently-long-production-secret-value-xyz")
         monkeypatch.setenv("MOCK_PERSISTENCE", "false")
-        monkeypatch.setenv("DATABASE_URL", "sqlite:////var/lib/fabric_4l/api.db")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://fabric:secret@postgres:5432/fabric")
         monkeypatch.setenv("LLM_PROVIDER", "openai")
         monkeypatch.setenv("SEED_DEMO_DATA", "false")
         monkeypatch.setenv("CORS_ORIGINS", "https://app.example.com")
@@ -326,3 +326,35 @@ class TestTenantClaimRequired:
         with TestClient(app) as client:
             response = client.get("/v1/accounts", headers={"Authorization": f"Bearer {token}"})
         assert response.status_code == 401
+
+
+def test_revoked_token_returns_401() -> None:
+    from app.core.security import decode_token
+    import hashlib
+
+    token = mint_token(tenant_id=TENANT_ALPHA)
+    payload = decode_token(token)
+    assert payload is not None
+    revoke_token(
+        tenant_id=payload.tenant_id,
+        jti=payload.jti,
+        fingerprint_hash=hashlib.sha256(token.encode("utf-8")).hexdigest(),
+        expires_at_ts=int((datetime.now(UTC) + timedelta(minutes=30)).timestamp()),
+    )
+    with TestClient(app) as client:
+        response = client.get("/v1/accounts", headers={"Authorization": f"Bearer {token}"})
+    assert response.status_code == 401
+    assert response.json()["detail"]["error_code"] == "AUTH_TOKEN_REVOKED"
+
+
+def test_cross_tenant_token_header_misuse_uses_jwt_tenant() -> None:
+    token = mint_token(tenant_id=TENANT_ALPHA)
+    with TestClient(app) as client:
+        response = client.get(
+            "/v1/accounts",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "X-Tenant-ID": TENANT_BETA,
+            },
+        )
+    assert response.status_code == 200

@@ -2,20 +2,25 @@
 
 Source of truth for all agents operating in the Value Fabric monorepo. Every agent has a defined role, allowed skills, forbidden paths, side-effect policy, and required context.
 
+> **Note:** This file defines the autonomous agent fleet for cross-agent coordination. For the contributor guide for humans and AI agents working in the repo, see the root `AGENTS.md` file.
+>
+> **Platform Contract:** All agents must adhere to the canonical patterns defined in `packages/platform-contract/CONTRACT.md`. This contract is enforced by CI and violations block merge.
+
 ---
 
 ## Fleet Overview
 
 | Agent | Role | Primary Skills | Side-Effect Policy | Risk Level |
 |-------|------|---------------|-------------------|------------|
-| `code-reviewer` | Static analysis & security review | contract-enforcement-auditor, test-quality-auditor, dead-code-sweeper | `read-only` | Low |
-| `docs-writer` | Technical documentation | technical_documentation, fumadocs, research_web | `read-only` | Low |
+| `code-reviewer` | Static analysis & security review | contract-enforcement-auditor, security-auditor, test-quality-auditor, dead-code-sweeper | `read-only` | Low |
+| `docs-writer` | Technical documentation | technical-documentation, fumadocs, cleanup-docs | `read-only` | Low |
 | `test-assurance` | Autonomous test authoring | autonomous-test-assurance, pytest, playwright, gate-hardening | `read-write-test` | Medium |
-| `deprecation-migrator` | Anti-pattern remediation | deprecation-migrator, refactor-skill, test-quality-auditor | `read-write` | Medium |
+| `deprecation-migrator` | Anti-pattern remediation | deprecation-migrator, test-quality-auditor | `read-write` | Medium |
 | `dead-code-sweeper` | Dead code removal | dead-code-sweeper, test-quality-auditor | `read-write` | Medium |
 | `drift-assessor` | Architecture drift detection | contract-enforcement-auditor, orchestration, structured-outputs | `read-only` | Low |
 | `facade-connector` | Frontend-backend wiring | facade-page-connector, dil-hook-scaffolder, shadcn-fabric | `read-write` | Medium |
 | `ui-drift` | UI consistency enforcement | frontend-audit-refactor, shadcn-fabric, playwright | `read-write` | Medium |
+| `infrastructure-operator` | Environment & infrastructure management | bunnyshell, observability-setup, load-testing, siem-integration, gate-hardening, drift-assessment | `exec` | Medium |
 
 ---
 
@@ -27,6 +32,7 @@ Source of truth for all agents operating in the Value Fabric monorepo. Every age
 
 **Allowed Skills:**
 - `contract-enforcement-auditor`
+- `security-auditor`
 - `test-quality-auditor`
 - `dead-code-sweeper` (audit mode only — no deletions)
 - `structured-outputs`
@@ -185,6 +191,36 @@ Source of truth for all agents operating in the Value Fabric monorepo. Every age
 **Side-Effect Policy:** `read-only`
 - Outputs: drift reports, gap matrices, recommendations
 - May NOT modify code
+
+---
+
+### `infrastructure-operator`
+
+**Purpose:** Manage Bunnyshell cloud environments for development, staging, and production deployments.
+
+**Allowed Skills:**
+- `bunnyshell`
+- `gate-hardening`
+- `drift-assessment`
+
+**Forbidden Paths:**
+- Production infrastructure configs without approval
+- Security-sensitive secrets management
+
+**Context Requirements:**
+- Bunnyshell CLI configuration
+- Environment inventory
+- Current deployment state
+
+**Side-Effect Policy:** `exec`
+- May execute bns CLI commands
+- May modify environment configurations
+- May deploy/stop/start environments
+
+**Circuit Breaker:**
+- Max deployment retries: 3
+- Max environment creation failures: 1
+- After failure: produce environment report and halt
 
 ---
 

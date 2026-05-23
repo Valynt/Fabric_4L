@@ -12,6 +12,7 @@ from decimal import Decimal
 from typing import Any
 
 from neo4j import AsyncDriver
+
 from ..db.query_execution import run_validated_query
 
 try:

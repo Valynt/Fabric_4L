@@ -19,7 +19,6 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..harness.prompt_registry import get_prompt_registry
-from ..services.llm_output_parser import parse_llm_json
 from ..messaging.signal_events import (
     ErrorCategory,
     SignalCompletedEvent,
@@ -29,6 +28,7 @@ from ..messaging.signal_events import (
 )
 from ..models.pain_signal import EvidenceMatch, PainSignal, SignalCategory, TrendDirection
 from ..services.governed_llm_client import GovernedLLMClient
+from ..services.llm_output_parser import parse_llm_json
 from ..services.llm_provider import get_llm_provider
 from .base import AgentCapability, AgentResult, BaseAgent
 
@@ -341,7 +341,7 @@ class SignalDetectionAgent(BaseAgent):
                 event = SignalFailedEvent(
                     prospect_id=prospect_data.get("account_id", ""),
                     error_category=ErrorCategory.UNKNOWN,
-                    error_message=str(e),
+                    error_message="Signal detection failed",
                     retryable=False,
                 )
                 await self._emit_event(event)

@@ -1,6 +1,8 @@
 # Hard Constraints (Blockers)
 # These rules block execution. They are evaluated by the policy engine BEFORE any code is written.
 # If any hard constraint triggers, the agent halts immediately.
+#
+# Platform Contract: These rules enforce patterns defined in packages/platform-contract/CONTRACT.md
 
 rules:
   - id: HC-001
@@ -35,6 +37,7 @@ rules:
       type: file_change
       files:
         - "shared/identity/**/*"
+        - "packages/shared/src/value_fabric/shared/identity/**/*"
     action:
       type: block
       message: "Modifications to shared/identity/ require explicit security review and 2 approvals."

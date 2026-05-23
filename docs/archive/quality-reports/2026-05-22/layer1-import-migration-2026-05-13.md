@@ -68,7 +68,7 @@ These are explicitly retained per ADR-027.
 
 ### 4. ADR-027 migration status update
 
-**File:** `docs/architecture/adr-027-layer3-canonical-path.md`
+**File:** `docs/architecture/ADR-021-layer-3-canonical-runtime-path.md`
 
 - Layer 1 status updated from "In Progress" to "Compliant"
 - Notes: production migrated, CI gate active, tests legacy, shim retained

@@ -12,7 +12,9 @@ from functools import lru_cache
 from typing import Any
 
 from neo4j import AsyncDriver
+
 from ..db.query_execution import run_validated_query
+from .embedding_errors import EmbeddingProviderUnavailableError
 
 logger = logging.getLogger(__name__)
 
@@ -325,9 +327,18 @@ class EvidenceSearchService:
         Returns:
             Embedding vector (384 dimensions)
         """
-        model = _get_embedding_model()
-        embedding = await asyncio.to_thread(model.encode, text)
-        return embedding.tolist()
+        try:
+            model = _get_embedding_model()
+            embedding = await asyncio.to_thread(model.encode, text)
+            return embedding.tolist()
+        except Exception as exc:
+            raise EmbeddingProviderUnavailableError(
+                "Embedding provider unavailable",
+                provider="sentence-transformers",
+                failure_cause=exc.__class__.__name__,
+                retry_after_seconds=30,
+                retry_hint="retry_with_backoff",
+            ) from exc
 
     def _generate_reasoning(
         self,

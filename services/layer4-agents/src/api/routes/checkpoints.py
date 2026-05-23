@@ -277,7 +277,7 @@ async def get_checkpoint_state(
     except Exception as e:
         logger.error(f"Error retrieving checkpoint {checkpoint_id}: {e}")
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve checkpoint state: {str(e)}"
+            status_code=500, detail="Failed to retrieve checkpoint state"
         )
 
 
@@ -366,7 +366,7 @@ async def compare_checkpoints(
         raise
     except Exception as e:
         logger.error(f"Error comparing checkpoints: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to compare checkpoints: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to compare checkpoints")
 
 
 @checkpoint_router.post(
@@ -436,7 +436,7 @@ async def resume_from_checkpoint(
         raise
     except Exception as e:
         logger.error(f"Error resuming from checkpoint: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to resume from checkpoint: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to resume from checkpoint")
 
 
 # ============================================================================

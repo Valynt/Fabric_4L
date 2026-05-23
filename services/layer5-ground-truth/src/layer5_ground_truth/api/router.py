@@ -45,7 +45,6 @@ from .schemas import (
     AddSourceRequest,
     FreshnessCheckResponse,
     FreshnessSummaryResponse,
-    HealthResponse,
     MaturityLadderResponse,
     MaturityLevelDetail,
     TruthObjectCreate,
@@ -59,20 +58,6 @@ from .schemas import (
     ValidateResponse,
     ValidationEventResponse,
 )
-
-
-class sync_to_kgResult(TypedDictModel):
-    failed: Any
-    synced: Any
-    total_pending: Any
-
-
-class list_staleResult(TypedDictModel):
-    has_more: bool
-    items: Any
-    limit: Any
-    offset: Any
-    total: Any
 
 
 logger = logging.getLogger(__name__)
@@ -307,18 +292,13 @@ async def sync_to_kg(
         else:
             failed += 1
 
-    return sync_to_kgResult.model_validate(
+    return SyncToKgResponse.model_validate(
         {
             "synced": synced,
             "failed": failed,
             "total_pending": len(pending),
         }
     )
-    return SyncToKgResponse.model_validate({
-        "synced": synced,
-        "failed": failed,
-        "total_pending": len(pending),
-    })
 
 
 # ---------------------------------------------------------------------------
@@ -401,7 +381,7 @@ async def list_stale(
         for t in items
     ]
 
-    return list_staleResult.model_validate(
+    return StaleTruthsResponse.model_validate(
         {
             "items": summaries,
             "total": total,
@@ -410,13 +390,6 @@ async def list_stale(
             "has_more": (offset + limit) < total,
         }
     )
-    return StaleTruthsResponse.model_validate({
-        "items": summaries,
-        "total": total,
-        "limit": limit,
-        "offset": offset,
-        "has_more": (offset + limit) < total,
-    })
 
 
 # ---------------------------------------------------------------------------
@@ -527,24 +500,28 @@ async def validate_truth(
             ),
         )
     except InvalidTransitionError as exc:
+        logger.warning("invalid_truth_transition", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_TRANSITION", "message": str(exc)},
+            detail={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"},
         )
     except InsufficientEvidenceError as exc:
+        logger.warning("insufficient_evidence", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INSUFFICIENT_EVIDENCE", "message": str(exc)},
+            detail={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"},
         )
     except TransitionConflictError as exc:
+        logger.warning("truth_transition_conflict", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "TRANSITION_CONFLICT", "message": str(exc)},
+            detail={"code": "TRANSITION_CONFLICT", "message": "Conflict during state transition"},
         )
     except ValueError as exc:
+        logger.warning("truth_value_error", error=str(exc))
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "INVALID_REQUEST", "message": str(exc)},
+            detail={"code": "INVALID_REQUEST", "message": "Invalid request parameters"},
         )
 
     # Sync to Layer 3 after approval

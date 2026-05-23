@@ -73,6 +73,23 @@ src/
 | `POST /v1/analysis/whitespace` | Gap analysis |
 | `POST /v1/cases` | Generate business case |
 
+### WebSocket authentication (header-only)
+
+Layer 4 WebSocket endpoints are **header-auth only**. Clients must provide JWTs
+using the `Sec-WebSocket-Protocol` header in canonical bearer format:
+
+```text
+Sec-WebSocket-Protocol: base64url.bearer.authorization, <jwt>
+```
+
+Security constraints:
+
+- Query-parameter tokens such as `?token=<jwt>` are rejected.
+- Missing or malformed `Sec-WebSocket-Protocol` auth headers are rejected with
+  policy-violation close code `1008`.
+- Tenant ownership is validated after authentication (workflow/prospect must
+  belong to the authenticated tenant).
+
 ## Workflows
 
 1. **ROICalculator**: Calculates ROI from formulas with prospect data

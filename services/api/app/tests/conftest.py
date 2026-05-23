@@ -10,6 +10,7 @@ Provides:
 from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
+import secrets
 
 import pytest
 import jwt
@@ -27,13 +28,13 @@ TEST_AUDIENCE = "value-fabric-services"
 TENANT_ALPHA = "11111111-1111-4111-8111-111111111111"
 TENANT_BETA = "22222222-2222-4222-8222-222222222222"
 
-# Default to in-memory persistence with demo seed data and mock LLM for all
+# Default to in-memory persistence with demo seed data and Layer 4 delegated LLM for all
 # unit/integration tests. Tests that need production-like behaviour must
 # override these env vars explicitly.
 import os as _os
 _os.environ.setdefault("MOCK_PERSISTENCE", "true")
 _os.environ.setdefault("SEED_DEMO_DATA", "true")
-_os.environ.setdefault("LLM_PROVIDER", "mock")
+_os.environ.setdefault("LLM_PROVIDER", "layer4")
 
 
 def _clear_singletons() -> None:
@@ -71,7 +72,8 @@ def mint_token(
         "aud": TEST_AUDIENCE,
         "iat": int(datetime.now(UTC).timestamp()),
         "nbf": int(datetime.now(UTC).timestamp()),
-        "exp": expire,
+        "exp": int(expire.timestamp()),
+        "jti": secrets.token_urlsafe(16),
     }
     return jwt.encode(payload, TEST_SECRET, algorithm=TEST_ALGORITHM)
 

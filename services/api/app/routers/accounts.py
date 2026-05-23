@@ -1,3 +1,5 @@
+from datetime import UTC, datetime, timedelta
+import hashlib
 import secrets
 from typing import Any
 
@@ -7,6 +9,8 @@ from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
 from app.models.schemas import Account
+
+_SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
@@ -76,9 +80,12 @@ async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_req
     # Python's built-in hash() is non-cryptographic, seed-randomized per process,
     # and produces only ~20 bits of effective entropy after modulo — do not use it.
     raw_token = secrets.token_urlsafe(32)
-    # TODO(F-25): persist hashlib.sha256(raw_token.encode()).hexdigest() + expiry
-    # in a ShareLink table so the token can be validated and revoked server-side.
-    # The hash must never be returned to the caller — only the raw token is returned once.
+    token_fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
+    expires_at = datetime.now(UTC) + timedelta(days=7)
+    _SHARE_LINKS[(tenant_id, account_id)] = {
+        "fingerprint_hash": token_fingerprint_hash,
+        "expires_at_ts": int(expires_at.timestamp()),
+    }
     return {"share_token": raw_token, "account_id": account_id, "role": "read_only"}
 
 
@@ -87,4 +94,5 @@ async def revoke_share_link(account_id: str, tenant_id: str = Depends(tenant_req
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
+    _SHARE_LINKS.pop((tenant_id, account_id), None)
     return {"revoked": True, "account_id": account_id}

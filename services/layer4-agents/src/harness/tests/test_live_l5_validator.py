@@ -785,8 +785,6 @@ class TestEnvVarAbsentFallback:
     @pytest.mark.asyncio
     async def test_missing_layer5_url_uses_unavailable_validator(self, monkeypatch):
         """When LAYER5_GROUND_TRUTH_URL is unset, validation returns INSUFFICIENT_EVIDENCE."""
-        import os
-        from unittest.mock import AsyncMock, MagicMock
 
         # Remove both env vars to simulate missing config
         monkeypatch.delenv("LAYER5_GROUND_TRUTH_URL", raising=False)
@@ -795,7 +793,7 @@ class TestEnvVarAbsentFallback:
         # make_live_l5_registry still constructs a client (with default URL),
         # but the validator's health() will fail → falls back to UnavailableValidator.
         # We test the fallback path via ValidationHook directly.
-        from harness.validation_hooks import UnavailableValidator, ValidationHook
+        from harness.validation_hooks import ValidationHook
 
         hook = ValidationHook(primary_validator=None)
         req = ClaimValidationRequest(

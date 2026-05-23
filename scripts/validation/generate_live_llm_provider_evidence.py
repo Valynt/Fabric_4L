@@ -249,7 +249,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--provider-mode", default="sandbox", choices=("sandbox", "live"))
     parser.add_argument("--provider-name", default="openai", choices=("openai",))
     parser.add_argument("--model", default=os.getenv("OPENAI_MODEL", "gpt-4o-mini"))
-    parser.add_argument("--tenant-id", default="00000000-0000-4000-e2e0-000000000001")
+    parser.add_argument("--tenant-id", default=os.getenv("BACKEND_E2E_TENANT_ID", "00000000-0000-4000-e2e0-000000000001"))
     parser.add_argument("--account-id", default="acct-meridian-001")
     parser.add_argument("--workflow-run-id", default="live-llm-evidence-workflow")
     parser.add_argument("--actor", default="ai-platform-validation-runner")

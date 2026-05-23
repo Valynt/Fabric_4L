@@ -26,6 +26,9 @@ anyio>=4.0.0
 # Mocking for HTTP requests (enables CI contract tests without running services)
 respx>=0.20.0
 
+# Pact contract testing (consumer + provider verification)
+pact-python>=2.2.0
+
 # HTML parsing (layer1-ingestion dependency needed by XXE security tests)
 beautifulsoup4>=4.12.0
 rdflib>=7.0.0
