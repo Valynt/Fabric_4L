@@ -19,6 +19,12 @@ from jsonschema import Draft7Validator
 
 from ..compliance.pii_scanner import PIIScanner
 from ..compliance.robots_checker import RobotsChecker
+from ..compliance.url_safety import (
+    URLSafetyError,
+    enforce_rebinding_protection,
+    log_url_compliance_event,
+    validate_url_safety,
+)
 from ..crawler.decision_store import CrawlDecisionRecord, CrawlDecisionRepository
 from ..crawler.httpx_crawler import HttpxCrawler
 from ..crawler.playwright_crawler import CrawlResult, PlaywrightCrawler
@@ -246,6 +252,33 @@ def compliance_check_stage(self, job_id: UUID):
             # Get target configuration
             config = job.configuration
             url = config.get("url", "")
+            target = session.query(ScrapingTarget).filter(ScrapingTarget.id == job.target_id).first()
+            compliance_allowlist = ((target.compliance or {}) if target else {}).get("domain_allowlist")
+            try:
+                safety_result = validate_url_safety(url, allowlist_domains=compliance_allowlist)
+                log_url_compliance_event(
+                    session,
+                    tenant_id=job.tenant_id,
+                    job_id=job.id,
+                    target_id=job.target_id,
+                    request_url=url,
+                    reason_code="URL_ALLOWED",
+                    action="ALLOWED",
+                )
+                config["url"] = safety_result.normalized_url
+            except URLSafetyError as exc:
+                log_url_compliance_event(
+                    session,
+                    tenant_id=job.tenant_id,
+                    job_id=job.id,
+                    target_id=job.target_id,
+                    request_url=url,
+                    reason_code=exc.reason_code,
+                    action="BLOCKED",
+                )
+                session.commit()
+                raise ValueError("URL blocked by compliance policy") from exc
+
             compliance_config = config.get("compliance", {})
 
             # Check robots.txt
@@ -1554,8 +1587,10 @@ async def _execute_fast_path(url: str) -> "FastPathResult":
     Returns:
         FastPathResult with content and metadata
     """
+    result = validate_url_safety(url)
+    enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
     async with HttpxCrawler() as crawler:
-        return await crawler.fetch(url)
+        return await crawler.fetch(result.normalized_url)
 
 
 async def _crawl_browser(url: str, browser_config: dict) -> "CrawlResult":
@@ -1570,9 +1605,11 @@ async def _crawl_browser(url: str, browser_config: dict) -> "CrawlResult":
     """
     from crawler.crawler_config import CrawlerConfig
     cfg = CrawlerConfig(headless=browser_config.get("headless", True))
+    result = validate_url_safety(url)
+    enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
     async with PlaywrightCrawler(config=cfg) as crawler:
         return await crawler.crawl_url(
-            url=url,
+            url=result.normalized_url,
             wait_for_selector=browser_config.get("wait_for_selector"),
             wait_for_timeout=browser_config.get("wait_timeout", 30000),
             scroll_page=True,
