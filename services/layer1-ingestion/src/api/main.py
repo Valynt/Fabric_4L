@@ -97,13 +97,14 @@ class _UnavailableTask:
 
     def delay(self, *args: Any, **kwargs: Any) -> None:
         job_id = str(args[0]) if args else None
-        logger.exception(
+        logger.error(
             "background_task_unavailable",
             task_name=self.task_name,
             job_id=job_id,
             correlation_id=job_id,
             error_type=type(self.import_error).__name__,
             error=str(self.import_error),
+            exc_info=self.import_error,
         )
         raise HTTPException(
             status_code=503,
