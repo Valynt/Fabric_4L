@@ -575,17 +575,41 @@ def validate_jwt_secret_strength() -> None:
 def validate_jwt_config() -> None:
     """Validate JWT configuration for the current environment.
 
-    Checks that JWT_SECRET meets minimum strength requirements and that
-    JWT_ALGORITHM (if set) is an approved value.  This is the canonical
-    entry point for JWT configuration validation; it delegates to
-    validate_jwt_secret_strength() for secret-strength checks and adds
-    algorithm-safety checks.
+    Checks that JWT_SECRET, JWT_ISSUER, and JWT_AUDIENCE are present in
+    production-like environments, that JWT_SECRET meets minimum strength
+    requirements, and that JWT_ALGORITHM (if set) is an approved value.
+    This is the canonical entry point for JWT configuration validation.
 
     Raises:
         ValueError: If JWT configuration is unsafe for the current environment
     """
+    # Check presence of required JWT config in production-like environments
+    if is_production_like_environment():
+        jwt_secret = os.getenv("JWT_SECRET", "")
+        if not jwt_secret:
+            raise ValueError(
+                "JWT_SECRET is required in production-like environments. "
+                "Authentication cannot operate without a signing secret."
+            )
+
+        jwt_issuer = os.getenv("JWT_ISSUER", "")
+        if not jwt_issuer:
+            raise ValueError(
+                "JWT_ISSUER is required in production-like environments. "
+                "The issuer claim is required for token validation."
+            )
+
+        jwt_audience = os.getenv("JWT_AUDIENCE", "")
+        if not jwt_audience:
+            raise ValueError(
+                "JWT_AUDIENCE is required in production-like environments. "
+                "The audience claim is required for token validation."
+            )
+
+    # Check secret strength
     validate_jwt_secret_strength()
 
+    # Check algorithm safety
     algorithm = os.getenv("JWT_ALGORITHM", "HS256")
     if algorithm not in _APPROVED_JWT_ALGORITHMS:
         raise ValueError(
@@ -724,12 +748,6 @@ def get_startup_summary() -> dict[str, Any]:
         summary["warnings"].insert(0, "WARNING")
     
     return summary
-
-
-# Compatibility alias — imported by value_fabric.shared.identity.dependencies.
-# validate_jwt_secret_strength() is the canonical implementation; this alias
-# preserves the name used by legacy callers without duplicating logic.
-validate_jwt_config = validate_jwt_secret_strength
 
 
 def _get_rls_status(database_url: str) -> str:

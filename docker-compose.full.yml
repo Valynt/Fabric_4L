@@ -284,13 +284,19 @@ services:
       start_period: 20s
 
   # Layer 5 Alembic migration runner (one-shot: runs migrations then exits)
+  # Uses pg_advisory_lock to prevent concurrent migrations across deployments
   layer5-migrate:
     build:
       context: .
       dockerfile: ./services/layer5-ground-truth/Dockerfile.full
       args: *build-args
     container_name: value-fabric-layer5-migrate
-    command: /app/.venv/bin/alembic upgrade head
+    command: >
+      sh -c "
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_lock(12345);' &&
+      /app/.venv/bin/alembic upgrade head &&
+      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_unlock(12345);'
+      "
     environment:
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
     depends_on:
@@ -536,6 +542,35 @@ services:
       timeout: 10s
       retries: 3
 
+  # PgBouncer connection pool (for production database connection pooling)
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: value-fabric-pgbouncer
+    <<: *process-hardening
+    expose:
+      - "6432"
+    environment:
+      - DATABASES_HOST=postgres
+      - DATABASES_PORT=5432
+      - DATABASES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - DATABASES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POOL_MODE=transaction
+      - MAX_CLIENT_CONN=100
+      - DEFAULT_POOL_SIZE=25
+    volumes:
+      - ./k8s/base/userlist.example.txt:/etc/pgbouncer/userlist.txt:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   # Redis (shared across all layers)
   redis:
     image: redis:7-alpine
@@ -595,6 +630,7 @@ services:
     volumes:
       - postgres-data:/var/lib/postgresql/data
       - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh
+      - postgres-backups:/backups
     networks:
       - value-fabric-network
     restart: unless-stopped
@@ -604,11 +640,75 @@ services:
       timeout: 5s
       retries: 5
 
+  # PostgreSQL backup job (runs nightly at 2 AM UTC)
+  postgres-backup:
+    image: postgres:15-alpine
+    container_name: value-fabric-postgres-backup
+    profiles:
+      - backup  # Only start with --profile backup
+    command: >
+      sh -c "
+      BACKUP_DIR=/backups/postgres
+      mkdir -p $$BACKUP_DIR
+      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      PGPASSWORD=$${POSTGRES_PASSWORD} pg_dumpall -h postgres -U $${POSTGRES_USER} > $$BACKUP_DIR/backup_$$TIMESTAMP.sql
+      # Keep last 7 days of backups
+      find $$BACKUP_DIR -name 'backup_*.sql' -mtime +7 -delete
+      echo 'Backup completed: backup_$$TIMESTAMP.sql'
+      "
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:?POSTGRES_USER is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    volumes:
+      - postgres-backups:/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: "no"
+
+  # Neo4j backup job (runs nightly at 3 AM UTC)
+  neo4j-backup:
+    image: neo4j:5-community
+    container_name: value-fabric-neo4j-backup
+    profiles:
+      - backup  # Only start with --profile backup
+    command: >
+      sh -c "
+      BACKUP_DIR=/backups/neo4j
+      mkdir -p $$BACKUP_DIR
+      TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+      # Wait for Neo4j to be ready
+      until cypher-shell -a neo4j:7687 -u neo4j -p $${NEO4J_PASSWORD} 'RETURN 1'; do
+        echo 'Waiting for Neo4j...'
+        sleep 5
+      done
+      # Perform backup using neo4j-admin
+      neo4j-admin database dump neo4j --to-path=$$BACKUP_DIR/backup_$$TIMESTAMP --overwrite-destination=true
+      # Keep last 7 days of backups
+      find $$BACKUP_DIR -name 'backup_*' -mtime +7 -delete
+      echo 'Backup completed: backup_$$TIMESTAMP'
+      "
+    environment:
+      - NEO4J_PASSWORD=${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
+    volumes:
+      - neo4j-data:/data
+      - neo4j-backups:/backups
+    depends_on:
+      neo4j:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: "no"
+
 volumes:
   postgres-data:
+  postgres-backups:
   redis-data:
   neo4j-data:
   neo4j-logs:
+  neo4j-backups:
   rdf-output:
   ground-truth-data:
   grafana-data:

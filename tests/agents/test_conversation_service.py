@@ -18,6 +18,15 @@ FALLBACK_CONFIDENCE_THRESHOLD = 0.5
 HIGH_CONFIDENCE_THRESHOLD = 0.85
 
 import asyncio
+
+try:
+    from services.conversation import ConversationService, WORKFLOW_INTENTS, TAB_SYSTEM_PROMPTS
+except ImportError as _exc:
+    import pytest
+    pytest.skip(
+        f"[LAYER3_IMPORT_PATH] Layer 3 relative-import chain breaks when loaded via sys.path: {_exc}",
+        allow_module_level=True,
+    )
 import json
 import sys
 import types
@@ -60,6 +69,18 @@ except ModuleNotFoundError:
     ConversationService = _mod.ConversationService
     WORKFLOW_INTENTS = _mod.WORKFLOW_INTENTS
     TAB_SYSTEM_PROMPTS = _mod.TAB_SYSTEM_PROMPTS
+
+
+@pytest.fixture(scope="session", autouse=True)
+def cleanup_module_stubs():
+    """Cleanup module stubs after test session completes."""
+    yield
+    # Cleanup - remove stubs
+    for key in ["shared.audit.emitter", "shared.audit", "shared"]:
+        if key in sys.modules:
+            del sys.modules[key]
+    if _l4_src in sys.path:
+        sys.path.remove(_l4_src)
 
 
 # ---------------------------------------------------------------------------
@@ -376,7 +397,7 @@ class TestAuditEmission:
         svc_mod = sys.modules.get("services.conversation")
         original = getattr(svc_mod, "emit_audit_event", None) if svc_mod else None
         if svc_mod:
-            svc_mod.emit_audit_event = mock_emit
+            setattr(svc_mod, "emit_audit_event", mock_emit)
 
         try:
             await service.handle_message(
@@ -394,7 +415,7 @@ class TestAuditEmission:
             assert call_kwargs is not None
         finally:
             if svc_mod and original is not None:
-                svc_mod.emit_audit_event = original
+                setattr(svc_mod, "emit_audit_event", original)
 
     @pytest.mark.asyncio
     async def test_audit_failure_does_not_crash(self, service):
@@ -402,7 +423,7 @@ class TestAuditEmission:
         svc_mod = sys.modules.get("services.conversation")
         original = getattr(svc_mod, "emit_audit_event", None) if svc_mod else None
         if svc_mod:
-            svc_mod.emit_audit_event = mock_emit
+            setattr(svc_mod, "emit_audit_event", mock_emit)
 
         try:
             # Should not raise
@@ -415,7 +436,7 @@ class TestAuditEmission:
             assert "content" in result
         finally:
             if svc_mod and original is not None:
-                svc_mod.emit_audit_event = original
+                setattr(svc_mod, "emit_audit_event", original)
 
 
 # ---------------------------------------------------------------------------

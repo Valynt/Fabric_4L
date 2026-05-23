@@ -48,8 +48,7 @@ ROOT_SECURITY_TESTS=(
   tests/security/test_auth_session_hijacking.py
   tests/security/test_csrf_comprehensive.py
   tests/security/test_auth_rate_limiting.py
-  # Note: test_jwt_config_validation.py tests behavior not yet implemented
-  # tests/security/test_jwt_config_validation.py
+  tests/security/test_jwt_config_validation.py
   tests/security/test_tenant_boundary_fails_closed.py
   tests/security/test_cross_tenant_api.py
   tests/security/test_tenant_mismatch.py

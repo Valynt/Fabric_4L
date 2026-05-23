@@ -21,22 +21,59 @@ CURRENT_CONTRACT_VERSION = "v2.4"
 # HTTP methods to check for deprecation
 HTTP_METHODS = ["get", "post", "put", "delete", "patch"]
 
+# Default deprecation register structure
+DEFAULT_REGISTER = {
+    "schema_version": "1.0",
+    "current_contract_version": CURRENT_CONTRACT_VERSION,
+    "entries": [],
+}
+
+# OpenAPI spec files to process
+LAYER_SPECS = [
+    "layer1-ingestion.json",
+    "layer2-extraction.json",
+    "layer3-knowledge.json",
+    "layer4-agents.json",
+    "layer5-ground-truth.json",
+    "layer6-benchmarks.json",
+]
+
+# Placeholder value for missing metadata
+UNKNOWN_VALUE = "unknown"
+
 
 def is_version_string(value: str) -> bool:
-    """Check if a value is a version string (e.g., 'v2.5') rather than a date."""
-    return value.startswith("v") and value[1:].replace(".", "").isdigit()
+    """Check if a value is a version string (e.g., 'v2.5') rather than a date.
+    
+    Version strings start with 'v' followed by digits and optional dots.
+    """
+    if not value.startswith("v"):
+        return False
+    # Remove 'v' and check if remaining chars are digits/dots
+    version_part = value[1:]
+    if not version_part:
+        return False
+    return version_part.replace(".", "").isdigit()
 
 
 def is_field_level_deprecation(key: str) -> bool:
-    """Check if a deprecation key is for a field (not endpoint or schema)."""
+    """Check if a deprecation key is for a field (not endpoint or schema).
+    
+    Field-level deprecations are manually curated and contain '.properties.' in the key.
+    """
     return ".properties." in key
 
 
 def is_removal_target_valid(entry: dict[str, Any], now: datetime) -> bool:
-    """Check if a removal target is still valid (not yet reached)."""
-    removal_target = entry.get("removal_target", "unknown")
+    """Check if a removal target is still valid (not yet reached).
     
-    if removal_target == "unknown":
+    Version strings (e.g., 'v2.5') are always considered valid since removal
+    happens when that version is released. Date strings are checked against
+    the current time.
+    """
+    removal_target = entry.get("removal_target", UNKNOWN_VALUE)
+    
+    if removal_target == UNKNOWN_VALUE:
         return False
     
     # Version strings are always considered valid (removed when version is released)
@@ -77,10 +114,10 @@ def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:
                     "type": "endpoint",
                     "path": path,
                     "method": method.upper(),
-                    "introduction_version": operation.get("x-deprecated-since", "unknown"),
-                    "removal_target": operation.get("x-deprecated-removal-date", "unknown"),
+                    "introduction_version": operation.get("x-deprecated-since", UNKNOWN_VALUE),
+                    "removal_target": operation.get("x-deprecated-removal-date", UNKNOWN_VALUE),
                     "replacement": operation.get("x-deprecation-replacement", "none"),
-                    "owner": operation.get("x-deprecation-owner", "unknown"),
+                    "owner": operation.get("x-deprecation-owner", UNKNOWN_VALUE),
                     "description": operation.get("description", ""),
                 }
                 deprecations.append(deprecation)
@@ -93,10 +130,10 @@ def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:
                 "type": "schema",
                 "path": f"components/schemas/{schema_name}",
                 "method": "N/A",
-                "introduction_version": schema.get("x-deprecated-since", "unknown"),
-                "removal_target": schema.get("x-deprecated-removal-date", "unknown"),
+                "introduction_version": schema.get("x-deprecated-since", UNKNOWN_VALUE),
+                "removal_target": schema.get("x-deprecated-removal-date", UNKNOWN_VALUE),
                 "replacement": schema.get("x-deprecation-replacement", "none"),
-                "owner": schema.get("x-deprecation-owner", "unknown"),
+                "owner": schema.get("x-deprecation-owner", UNKNOWN_VALUE),
                 "description": schema.get("description", ""),
             }
             deprecations.append(deprecation)
@@ -107,27 +144,19 @@ def extract_deprecations_from_spec(spec_path: Path) -> list[dict[str, Any]]:
 def load_deprecation_register() -> dict[str, Any]:
     """Load the current deprecation register.
     
-    Returns default structure if file does not exist.
+    Returns default structure if file does not exist or cannot be read.
     """
     register_path = Path(__file__).parent.parent.parent / "contracts" / "deprecations" / "generated-contract-deprecations.json"
     
     if not register_path.exists():
-        return {
-            "schema_version": "1.0",
-            "current_contract_version": CURRENT_CONTRACT_VERSION,
-            "entries": [],
-        }
+        return DEFAULT_REGISTER.copy()
     
     try:
         with open(register_path) as f:
             return json.load(f)
     except (json.JSONDecodeError, IOError) as e:
         print(f"Error reading deprecation register: {e}")
-        return {
-            "schema_version": "1.0",
-            "current_contract_version": CURRENT_CONTRACT_VERSION,
-            "entries": [],
-        }
+        return DEFAULT_REGISTER.copy()
 
 
 def save_deprecation_register(register: dict[str, Any]) -> bool:
@@ -174,25 +203,18 @@ def sync_deprecation_register(register: dict[str, Any], all_deprecations: list[d
     return register
 
 
-def main():
+def main() -> None:
+    """Main entry point for the deprecation register sync script."""
     parser = argparse.ArgumentParser(description="Sync deprecation register with OpenAPI specs")
     parser.add_argument("--check", action="store_true", help="Check if register is in sync")
     parser.add_argument("--update", action="store_true", help="Update the register")
     args = parser.parse_args()
     
     contracts_dir = Path(__file__).parent.parent.parent / "contracts" / "openapi"
-    layers = [
-        "layer1-ingestion.json",
-        "layer2-extraction.json",
-        "layer3-knowledge.json",
-        "layer4-agents.json",
-        "layer5-ground-truth.json",
-        "layer6-benchmarks.json",
-    ]
     
     all_deprecations = []
     
-    for layer_file in layers:
+    for layer_file in LAYER_SPECS:
         spec_path = contracts_dir / layer_file
         if not spec_path.exists():
             print(f"⚠️  {layer_file} not found, skipping")

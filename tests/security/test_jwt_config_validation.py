@@ -26,7 +26,6 @@ pytestmark = [
 class TestProductionJWTSecretValidation:
     """P0: Production requires strong JWT secrets."""
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_requires_jwt_secret(self):
         """P0: Production startup fails without JWT_SECRET."""
         with patch.dict(os.environ, {
@@ -37,7 +36,7 @@ class TestProductionJWTSecretValidation:
         }, clear=False):
             # Import and test the validation function
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -48,7 +47,6 @@ class TestProductionJWTSecretValidation:
             except ImportError as exc:
                 raise AssertionError("Required shared.identity.dependencies import is unavailable") from exc
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_rejects_weak_jwt_secret(self):
         """P0: Production startup fails with weak JWT_SECRET (<32 chars)."""
         with patch.dict(os.environ, {
@@ -58,7 +56,7 @@ class TestProductionJWTSecretValidation:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -69,7 +67,6 @@ class TestProductionJWTSecretValidation:
             except ImportError as exc:
                 raise AssertionError("Required shared.identity.dependencies import is unavailable") from exc
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_rejects_31_char_secret(self):
         """P0: 31-character secret is rejected (need 32+)."""
         with patch.dict(os.environ, {
@@ -79,7 +76,7 @@ class TestProductionJWTSecretValidation:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -97,7 +94,7 @@ class TestProductionJWTSecretValidation:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise
                 validate_jwt_config()
@@ -108,7 +105,6 @@ class TestProductionJWTSecretValidation:
 class TestProductionJWTIssuerValidation:
     """P0: Production requires JWT issuer."""
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_requires_jwt_issuer(self):
         """P0: Production startup fails without JWT_ISSUER."""
         with patch.dict(os.environ, {
@@ -118,7 +114,7 @@ class TestProductionJWTIssuerValidation:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -129,7 +125,6 @@ class TestProductionJWTIssuerValidation:
             except ImportError as exc:
                 raise AssertionError("Required shared.identity.dependencies import is unavailable") from exc
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_rejects_missing_issuer(self):
         """P0: Production startup fails when JWT_ISSUER not set."""
         # Remove JWT_ISSUER from environment
@@ -141,7 +136,7 @@ class TestProductionJWTIssuerValidation:
         
         with patch.dict(os.environ, env_copy, clear=True):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -154,7 +149,6 @@ class TestProductionJWTIssuerValidation:
 class TestProductionJWTAudienceValidation:
     """P0: Production requires JWT audience."""
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_production_requires_jwt_audience(self):
         """P0: Production startup fails without JWT_AUDIENCE."""
         with patch.dict(os.environ, {
@@ -164,7 +158,7 @@ class TestProductionJWTAudienceValidation:
             "JWT_AUDIENCE": "",  # Empty
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 with pytest.raises(ValueError) as exc_info:
                     validate_jwt_config()
@@ -186,7 +180,7 @@ class TestDevelopmentEnvironment:
             "JWT_SECRET": "",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise in development
                 validate_jwt_config()
@@ -200,7 +194,7 @@ class TestDevelopmentEnvironment:
             "JWT_SECRET": "weak",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise in development
                 validate_jwt_config()
@@ -211,7 +205,6 @@ class TestDevelopmentEnvironment:
 class TestStagingEnvironment:
     """Staging environment should match production validation."""
 
-    @pytest.mark.xfail(reason="validate_jwt_config implementation only checks secret strength, not presence. Test expects behavior not yet implemented.")
     def test_staging_requires_jwt_secret(self):
         """P0: Staging should validate like production."""
         with patch.dict(os.environ, {
@@ -221,7 +214,7 @@ class TestStagingEnvironment:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Staging should enforce production-like validation
                 with pytest.raises(ValueError) as exc_info:
@@ -244,7 +237,7 @@ class TestEdgeCases:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise - special chars should be fine
                 validate_jwt_config()
@@ -260,7 +253,7 @@ class TestEdgeCases:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise
                 validate_jwt_config()
@@ -276,7 +269,7 @@ class TestEdgeCases:
             "JWT_AUDIENCE": "test-audience",
         }, clear=False):
             try:
-                from value_fabric.shared.identity.dependencies import validate_jwt_config
+                from value_fabric.shared.security.config import validate_jwt_config
                 
                 # Should not raise or crash
                 validate_jwt_config()

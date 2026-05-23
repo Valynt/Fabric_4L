@@ -77,6 +77,23 @@ services:
       timeout: 5s
       retries: 3
 
+  # Qdrant vector database (local alternative to Pinecone for development)
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: vf-dev-qdrant
+    ports:
+      - "6333:6333"  # HTTP API
+      - "6334:6334"  # gRPC API
+    volumes:
+      - qdrant-data:/qdrant/storage
+    networks:
+      - dev-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:6333/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
   redis:
     image: redis:7-alpine
     container_name: vf-dev-redis
@@ -302,6 +319,7 @@ volumes:
   dev-redis-data:
   dev-neo4j-data:
   dev-keycloak-data:
+  qdrant-data:
 
 networks:
   dev-network:

@@ -75,6 +75,11 @@ services:
       <<: *from-full
       service: redis
 
+  pgbouncer:
+    extends:
+      <<: *from-full
+      service: pgbouncer
+
   postgres:
     extends:
       <<: *from-full
@@ -82,9 +87,11 @@ services:
 
 volumes:
   postgres-data:
+  postgres-backups:
   redis-data:
   neo4j-data:
   neo4j-logs:
+  neo4j-backups:
   rdf-output:
   ground-truth-data:
 
