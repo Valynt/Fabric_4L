@@ -303,8 +303,8 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./services/layer4-agents/Dockerfile.full
       args: *id001
     container_name: vf-live-layer4
     ports:

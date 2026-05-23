@@ -17,7 +17,8 @@ Node labels covered:
 
 For each label this migration creates:
 1. A NOT NULL existence constraint on tenant_id (prevents nodes without the
-   property from being written).
+   property from being written) — skipped on Neo4j Community Edition because
+   property existence constraints require Enterprise Edition.
 2. A btree index on tenant_id alone for fast tenant-scoped MATCH lookups.
 
 All statements use IF NOT EXISTS so the migration is fully idempotent.
@@ -130,6 +131,20 @@ class TenantIdConstraintMigration:
         self._user = user or os.getenv("NEO4J_USER", "neo4j")
         self._password = password or os.getenv("NEO4J_PASSWORD", "")
 
+    async def _detect_edition(self, driver: Any) -> str:
+        """Detect Neo4j edition (community or enterprise)."""
+        try:
+            async with driver.session() as session:
+                result = await session.run(
+                    "CALL dbms.components() YIELD edition RETURN edition"
+                )
+                record = await result.single()
+                if record:
+                    return str(record["edition"]).lower()
+        except Exception as exc:
+            logger.warning("Could not detect Neo4j edition: %s", exc)
+        return "unknown"
+
     async def run(self, dry_run: bool = False) -> MigrationResult:
         """Execute (or simulate) the migration."""
         if dry_run:
@@ -146,12 +161,24 @@ class TenantIdConstraintMigration:
         async with AsyncGraphDatabase.driver(
             self._uri, auth=(self._user, self._password)
         ) as driver:
+            edition = await self._detect_edition(driver)
+            is_community = edition == "community"
+
+            if is_community:
+                logger.warning(
+                    "Neo4j Community Edition detected. Skipping property existence "
+                    "constraints (Enterprise-only) and creating indexes only."
+                )
+
             async with driver.session() as session:
                 for label in _LABELS:
-                    for stmt_type, cypher in [
-                        ("constraint", _constraint_cypher(label)),
+                    statements: list[tuple[str, str]] = [
                         ("index", _index_cypher(label)),
-                    ]:
+                    ]
+                    if not is_community:
+                        statements.insert(0, ("constraint", _constraint_cypher(label)))
+
+                    for stmt_type, cypher in statements:
                         step = await self._execute_step(
                             session, label, stmt_type, cypher
                         )
@@ -164,7 +191,7 @@ class TenantIdConstraintMigration:
                             result.failed += 1
                             result.status = "partial"
 
-        if result.failed == len(_LABELS) * 2:
+        if result.failed and result.failed == len(result.steps):
             result.status = "failed"
 
         return result
