@@ -233,11 +233,14 @@ def get_engine() -> AsyncEngine:
         def _on_pool_checkin(dbapi_conn, connection_record) -> None:
             start = connection_record.info.pop("pool_checkout_start", None)
             if start is not None:
-                from metrics.prometheus_metrics import get_metrics
+                try:
+                    from metrics.prometheus_metrics import get_metrics
 
-                metrics = get_metrics()
-                if metrics is not None:
-                    metrics.observe_db_pool_wait(time.perf_counter() - start)
+                    metrics = get_metrics()
+                    if metrics is not None:
+                        metrics.observe_db_pool_wait(time.perf_counter() - start)
+                except Exception:
+                    logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
         _setup_sqlite_uuid_handling(settings.database_url)
     return _engine
