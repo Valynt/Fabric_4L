@@ -37,7 +37,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: '1GiB'
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
@@ -61,7 +61,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
 
   neo4j:
@@ -84,7 +84,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
+          cpus: '0.75'
           memory: '2GiB'
 
   minio:
@@ -106,7 +106,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
 
   minio-init:
@@ -167,7 +167,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: '1GiB'
 
   layer1-worker:
@@ -203,7 +203,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
@@ -245,7 +245,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '2.0'
+          cpus: '1.0'
           memory: '2GiB'
 
   # ---------------------------------------------------------------------------
@@ -277,7 +277,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.5'
+          cpus: '0.5'
           memory: '2GiB'
 
   layer3-neo4j-migrate:
@@ -311,7 +311,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
@@ -361,8 +361,8 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '4.0'
-          memory: '4GiB'
+          cpus: '1.5'
+          memory: '2GiB'
 
   # ---------------------------------------------------------------------------
   # Layer 5: Ground Truth Service (internal container port 8005)
@@ -397,7 +397,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: '1GiB'
 
   layer5-migrate:
@@ -431,7 +431,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
@@ -467,7 +467,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '1.0'
+          cpus: '0.5'
           memory: '1GiB'
 
   # ---------------------------------------------------------------------------
@@ -495,7 +495,7 @@ services:
     deploy:
       resources:
         limits:
-          cpus: '0.5'
+          cpus: '0.25'
           memory: '512MiB'
     volumes:
       - ./apps/web:/app
