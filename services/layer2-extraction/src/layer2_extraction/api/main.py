@@ -54,6 +54,8 @@ from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
 from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
+from layer2_extraction.integration.layer1_ingestion_adapter import build_layer1_ingestion_adapter
+from layer2_extraction.integration.layer1_ingestion_adapter import build_layer1_ingestion_adapter
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
     PendingIngestionRecord,
@@ -151,9 +153,7 @@ def get_relationship_extractor():
 class ExtractRequest(BaseModel):
     """Request body for extraction endpoint."""
 
-    content_id: str = Field(..., description="ID of content to extract from (from Layer 1)")
-    source_url: str = Field(..., description="URL of source document")
-    markdown_content: str = Field(..., description="Markdown content to extract from")
+    ingestion_id: str = Field(..., description="Layer 1 ingestion record ID")
     extraction_config: dict = Field(
         default_factory=lambda: {
             "entity_types": ["Capability", "UseCase", "Persona", "ValueDriver"],
@@ -237,6 +237,7 @@ job_store: JobStore = build_job_store()
 RETRY_POLL_SECONDS = int(os.getenv("INGESTION_RETRY_POLL_SECONDS", "30"))
 RETRY_BASE_SECONDS = int(os.getenv("INGESTION_RETRY_BASE_SECONDS", "60"))
 MAX_INGESTION_RETRIES = int(os.getenv("INGESTION_MAX_RETRIES", "5"))
+layer1_ingestion_adapter = build_layer1_ingestion_adapter()
 _UNSET = object()
 
 try:
@@ -1084,7 +1085,7 @@ async def metrics_endpoint(request: Request):
         )
 
 
-async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
+async def extract(request: ExtractRequest, background_tasks: BackgroundTasks, http_request: Request):
     """Start an extraction job.
 
     Extracts entities and relationships from provided Markdown content
@@ -1107,12 +1108,17 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
         )
     )
 
-    # Queue extraction as background task
+    tenant_id = getattr(getattr(http_request.state, "governance_context", None), "tenant_id", None)
+    record = await layer1_ingestion_adapter.resolve_or_raise(
+        ingestion_id=request.ingestion_id,
+        tenant_id=str(tenant_id) if tenant_id is not None else None,
+    )
+
     background_tasks.add_task(
         run_extraction,
         job_id=job_id,
-        source_url=request.source_url,
-        content=request.markdown_content,
+        source_url=record.source_url,
+        content=record.markdown_content,
         config=request.extraction_config,
     )
 
@@ -1124,6 +1130,7 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
 async def extract_and_ingest(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
+    http_request: Request,
 ):
     """Start a combined extraction and ingestion pipeline job."""
     job_id = str(uuid4())
@@ -1143,11 +1150,17 @@ async def extract_and_ingest(
         )
     )
 
+    tenant_id = getattr(getattr(http_request.state, "governance_context", None), "tenant_id", None)
+    record = await layer1_ingestion_adapter.resolve_or_raise(
+        ingestion_id=request.ingestion_id,
+        tenant_id=str(tenant_id) if tenant_id is not None else None,
+    )
+
     background_tasks.add_task(
         run_extract_and_ingest,
         job_id=job_id,
-        source_url=request.source_url,
-        content=request.markdown_content,
+        source_url=record.source_url,
+        content=record.markdown_content,
         config=request.extraction_config,
     )
 
@@ -1169,19 +1182,25 @@ async def get_extraction_status(job_id: str):
     return _pipeline_response(job)
 
 
-async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks):
+async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, http_request: Request):
     """Start a batch extraction job."""
     batch_id = str(uuid4())
     job_ids = []
 
+    tenant_id = getattr(getattr(http_request.state, "governance_context", None), "tenant_id", None)
+
     for req in requests:
+        record = await layer1_ingestion_adapter.resolve_or_raise(
+            ingestion_id=req.ingestion_id,
+            tenant_id=str(tenant_id) if tenant_id is not None else None,
+        )
         job_id = str(uuid4())
         job_ids.append(job_id)
         background_tasks.add_task(
             run_extraction,
             job_id=job_id,
-            source_url=req.source_url,
-            content=req.markdown_content,
+            source_url=record.source_url,
+            content=record.markdown_content,
             config=req.extraction_config,
         )
 
