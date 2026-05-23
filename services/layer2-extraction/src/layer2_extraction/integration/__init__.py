@@ -32,4 +32,17 @@ __all__ = [
     "SqlitePendingIngestionStore",
     "build_job_store",
     "build_pending_ingestion_store",
+    "InMemoryQuarantineStore",
+    "QuarantineRecord",
+    "QuarantineStore",
+    "SqliteQuarantineStore",
+    "build_quarantine_store",
 ]
+
+from layer2_extraction.integration.quarantine_store import (
+    InMemoryQuarantineStore,
+    QuarantineRecord,
+    QuarantineStore,
+    SqliteQuarantineStore,
+    build_quarantine_store,
+)
