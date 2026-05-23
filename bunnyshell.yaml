@@ -444,16 +444,16 @@ components:
                 - '-c'
                 - |-
                     create_db() {
-                      if PGPASSWORD="$POSTGRES_PASSWORD" psql -h postgres -U "$POSTGRES_USER" -d postgres <<EOF
-                    SELECT format('CREATE DATABASE %I', '$1')
+                      if PGPASSWORD="$$POSTGRES_PASSWORD" psql -h postgres -U "$$POSTGRES_USER" -d postgres <<EOF
+                    SELECT format('CREATE DATABASE %I', '$$1')
                     WHERE NOT EXISTS (
-                      SELECT 1 FROM pg_database WHERE datname = '$1'
-                    ) \gexec
+                      SELECT 1 FROM pg_database WHERE datname = '$$1'
+                    ) \\gexec
                     EOF
                       then
-                        echo "$1 created or already exists"
+                        echo "$$1 created or already exists"
                       else
-                        echo "ERROR creating $1" >&2
+                        echo "ERROR creating $$1" >&2
                         exit 1
                       fi
                     }
