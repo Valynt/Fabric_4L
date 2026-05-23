@@ -20,9 +20,13 @@ ehthumbs.db
 .env
 .env.dev
 .env.local
+.env.live
 .env.*.local
 .local/secrets/
 .local/**/*.env
+
+# Bunnyshell CLI binary
+.bunny/
 
 # Kubernetes secrets (use External Secrets Operator in production)
 k8s/secrets.yml

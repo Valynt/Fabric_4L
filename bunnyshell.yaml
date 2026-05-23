@@ -425,11 +425,7 @@ components:
             entrypoint:
                 - /bin/sh
                 - '-c'
-                - |-
-                     until /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do
-                      echo 'waiting for minio';
-                      sleep 2;
-                    done; /usr/bin/mc mb myminio/layer1-raw-html || true; /usr/bin/mc anonymous set none myminio/layer1-raw-html || true; exit 0; 
+                - 'until /usr/bin/mc config host add myminio http://minio:9000 ${MINIO_ROOT_USER} ${MINIO_ROOT_PASSWORD}; do echo "waiting for minio"; sleep 2; done; /usr/bin/mc mb myminio/layer1-raw-html || true; /usr/bin/mc anonymous set none myminio/layer1-raw-html || true; exit 0' 
             image: 'minio/mc:latest'
             deploy:
                 resources:
