@@ -21,6 +21,16 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from layer2_extraction.integration.job_store import build_job_store
 
+from layer2_extraction.integration.signal_review_store import (
+    ReviewedSignalRecord,
+    SignalReviewStatus,
+    build_signal_review_store,
+)
+from layer2_extraction.models import (
+    ReviewedSignalResponse,
+    SignalReviewDecisionRequest,
+)
+
 
 class EntitySourceSpan(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -138,3 +148,77 @@ async def get_extraction_results(
         summary=summary,
         entities=entities,
     )
+
+
+def route_signals_for_review(
+    *,
+    signals: list[dict[str, Any]],
+    confidence_threshold: float,
+    tenant_id: str,
+    account_id: str,
+    value_pack_id: str,
+    extraction_job_id: str,
+) -> tuple[list[dict[str, Any]], list[ReviewedSignalRecord]]:
+    approved: list[dict[str, Any]] = []
+    queued: list[ReviewedSignalRecord] = []
+    for signal in signals:
+        confidence = float(signal.get("confidence", 0.0))
+        if confidence >= confidence_threshold:
+            approved.append(signal)
+            continue
+        queued.append(
+            ReviewedSignalRecord(
+                tenant_id=tenant_id,
+                account_id=account_id,
+                value_pack_id=value_pack_id,
+                extraction_job_id=extraction_job_id,
+                signal_type=str(signal.get("signal_type", "unknown")),
+                source_text=str(signal.get("source_text", "")),
+                confidence=confidence,
+                metadata=dict(signal.get("metadata", {})),
+                evidence_links=list(signal.get("evidence_links", [])),
+            )
+        )
+    return approved, queued
+
+
+async def approve_reviewed_signal(
+    review_id: str,
+    request: Request,
+    payload: SignalReviewDecisionRequest,
+) -> ReviewedSignalResponse:
+    tenant_id = request.state.governance_context.tenant_id
+    store = build_signal_review_store()
+    try:
+        record = await store.transition(
+            review_id,
+            tenant_id=tenant_id,
+            status=SignalReviewStatus.APPROVED,
+            reviewed_by=payload.reviewed_by,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Reviewed signal not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ReviewedSignalResponse.model_validate(record.model_dump())
+
+
+async def reject_reviewed_signal(
+    review_id: str,
+    request: Request,
+    payload: SignalReviewDecisionRequest,
+) -> ReviewedSignalResponse:
+    tenant_id = request.state.governance_context.tenant_id
+    store = build_signal_review_store()
+    try:
+        record = await store.transition(
+            review_id,
+            tenant_id=tenant_id,
+            status=SignalReviewStatus.REJECTED,
+            reviewed_by=payload.reviewed_by,
+        )
+    except KeyError as exc:
+        raise HTTPException(status_code=404, detail="Reviewed signal not found") from exc
+    except ValueError as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return ReviewedSignalResponse.model_validate(record.model_dump())
