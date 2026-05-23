@@ -31,6 +31,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..shared.config import settings
 from ..shared.database import get_db_session
+from ..shared.security_validation import redact_log_event_data
 from ..shared.models import (
     AccountIntelligencePacket,
     ComplianceEventType,
@@ -117,6 +118,25 @@ class notification_stageResult(TypedDictModel):
     error: Any
     job_id: Any
     success: bool
+
+structlog.configure(
+    processors=[
+        structlog.stdlib.filter_by_level,
+        structlog.stdlib.add_logger_name,
+        structlog.stdlib.add_log_level,
+        structlog.stdlib.PositionalArgumentsFormatter(),
+        structlog.processors.TimeStamper(fmt="iso"),
+        structlog.processors.StackInfoRenderer(),
+        structlog.processors.format_exc_info,
+        redact_log_event_data,
+        structlog.processors.UnicodeDecoder(),
+        structlog.processors.JSONRenderer(),
+    ],
+    context_class=dict,
+    logger_factory=structlog.stdlib.LoggerFactory(),
+    wrapper_class=structlog.stdlib.BoundLogger,
+    cache_logger_on_first_use=True,
+)
 
 logger = structlog.get_logger()
 

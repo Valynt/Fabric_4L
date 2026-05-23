@@ -80,6 +80,19 @@ celery -A src.shared.tasks worker --loglevel=info
 7. Ready for Layer 2 extraction
 ```
 
+## Connector Credential Contract
+
+Layer 1 connectors **must not** accept inline secrets in request payloads (for example `password`, `token`, `api_key`, `client_secret`, or similar auth/config fields).
+
+Use only approved credential references via `authentication.credentials_ref` using one of these URI schemes:
+
+- `vault://...`
+- `aws-sm://...`
+- `gcp-sm://...`
+- `azure-kv://...`
+
+Validation rejects non-reference credential material and malformed references at request validation time.
+
 ## API Endpoints
 
 ### Crawl Operations

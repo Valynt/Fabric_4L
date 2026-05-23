@@ -24,7 +24,7 @@ import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
@@ -46,6 +46,11 @@ from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import get_db_from_context_sync
+from ..shared.security_validation import (
+    contains_inline_secret_material,
+    is_valid_credential_reference,
+    redact_log_event_data,
+)
 from ..shared.models import (
     AccountIntelligencePacket,
     AuthenticationType,
@@ -88,6 +93,7 @@ structlog.configure(
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
         structlog.processors.format_exc_info,
+        redact_log_event_data,
         structlog.processors.UnicodeDecoder(),
         structlog.processors.JSONRenderer(),
     ],
@@ -473,12 +479,33 @@ class ProxyConfigInput(BaseModel):
 class AuthenticationInput(BaseModel):
     """Authentication configuration."""
 
+    model_config = ConfigDict(extra="forbid")
+
     type: AuthenticationType = AuthenticationType.NONE
     credentials_ref: str | None = None
+
+    @field_validator("credentials_ref")
+    @classmethod
+    def validate_credentials_ref(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not is_valid_credential_reference(value):
+            raise ValueError(
+                "credentials_ref must be an approved secret reference ID (e.g. vault://..., aws-sm://..., gcp-sm://..., azure-kv://...)"
+            )
+        return value
+
+    @model_validator(mode="after")
+    def ensure_ref_for_authenticated_connectors(self) -> "AuthenticationInput":
+        if self.type != AuthenticationType.NONE and not self.credentials_ref:
+            raise ValueError("credentials_ref is required when authentication type is not 'none'")
+        return self
 
 
 class CreateTargetRequest(BaseModel):
     """Request to create a scraping target."""
+
+    model_config = ConfigDict(extra="forbid")
 
     name: str = Field(..., min_length=1, max_length=255)
     description: str | None = None
@@ -498,6 +525,8 @@ class CreateTargetRequest(BaseModel):
 class UpdateTargetRequest(BaseModel):
     """Request to update a scraping target."""
 
+    model_config = ConfigDict(extra="forbid")
+
     name: str | None = Field(None, min_length=1, max_length=255)
     description: str | None = None
     target_type: TargetType | None = None
@@ -511,6 +540,17 @@ class UpdateTargetRequest(BaseModel):
     authentication: AuthenticationInput | None = None
     tags: list[str] | None = None
     status: TargetStatus | None = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_inline_secrets(cls, data: Any) -> Any:
+        auth_payload = (data or {}).get("authentication") if isinstance(data, dict) else None
+        if contains_inline_secret_material(auth_payload):
+            raise ValueError("Inline authentication secrets are forbidden. Use credentials_ref.")
+        for section in ("extraction_config", "browser_config", "proxy_config"):
+            if contains_inline_secret_material((data or {}).get(section, {})):
+                raise ValueError(f"Inline secrets are forbidden in {section}. Use credentials_ref.")
+        return data
 
 
 class ScrapingTargetSummary(BaseModel):
