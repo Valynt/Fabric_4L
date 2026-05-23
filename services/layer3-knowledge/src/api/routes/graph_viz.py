@@ -278,9 +278,10 @@ async def get_entity_subgraph(
     except HTTPException:
         raise
     except CypherDepthLimitExceeded as exc:
-        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+        logger.warning("Cypher depth limit exceeded for %s: %s", entity_id, exc)
+        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
     except TimeoutError:
-        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
         raise HTTPException(
@@ -509,9 +510,10 @@ async def get_query_subgraph(
     except HTTPException:
         raise
     except CypherDepthLimitExceeded as exc:
-        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+        logger.warning("Cypher depth limit exceeded: %s", exc)
+        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
     except TimeoutError:
-        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
         logger.error("Failed to retrieve subgraph: %s", e)
         raise HTTPException(

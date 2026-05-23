@@ -117,7 +117,7 @@ async def list_audit_logs(
     # bind_name) pairs only — all caller-supplied values flow through
     # bind parameters, never string interpolation, so the composed
     # ``where_sql`` cannot carry attacker payload.
-    _ALLOWED_CLAUSES: frozenset[str] = frozenset({
+    _allowed_clauses: frozenset[str] = frozenset({
         "tenant_id = :tenant_id",
         "timestamp >= :from_date",
         "timestamp <= :to_date",
@@ -152,7 +152,7 @@ async def list_audit_logs(
     # Defense in depth: assert every composed clause came from the allowlist
     # so a future edit cannot accidentally introduce an interpolated value.
     for clause in clauses:
-        if clause not in _ALLOWED_CLAUSES:
+        if clause not in _allowed_clauses:
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="Internal error composing audit query",

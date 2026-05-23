@@ -5,6 +5,9 @@ import { QK } from './queryKeys';
 import { STALE_TIME, withApiError, BaseApiError } from './useApiShared';
 import { L4_ANALYSIS_PREFIX } from '@/lib/apiConfig';
 import { POLL_INTERVALS } from './usePolling';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useDocuments');
 
 export class DocumentApiError extends BaseApiError {
   constructor(message: string, statusCode?: number, responseData?: unknown) {
@@ -74,6 +77,9 @@ export function useDocumentExport() {
       const response = await apiPost<DocumentExportResponse>('l3', '/documents/export', request);
       return response.data;
     },
+    onError: (error) => {
+      log.error('DocumentExport failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -108,6 +114,9 @@ export function useBusinessCaseExport() {
         manifest?: Record<string, unknown>;
       }>('l4', `${L4_ANALYSIS_PREFIX}/cases/${caseId}/export?format=${format}`);
       return response.data;
+    },
+    onError: (error) => {
+      log.error('BusinessCaseExport failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -145,6 +154,9 @@ export function useRegenerateBusinessCase() {
         }
       );
       return normalizeBusinessCase(response.data);
+    },
+    onError: (error) => {
+      log.error('RegenerateBusinessCase failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

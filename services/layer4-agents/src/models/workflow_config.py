@@ -98,6 +98,8 @@ class WorkflowConfig(BaseModel):
         edges: List of edge configurations
         entry_point: Starting node ID
         global_config: Global workflow settings
+        interrupt_before: Nodes to interrupt before (native LangGraph HITL)
+        interrupt_after: Nodes to interrupt after (native LangGraph HITL)
     """
 
     workflow_type: str
@@ -113,6 +115,8 @@ class WorkflowConfig(BaseModel):
             "enable_tracing": True,
         }
     )
+    interrupt_before: list[str] | None = None
+    interrupt_after: list[str] | None = None
 
     @field_validator("edges")
     @classmethod

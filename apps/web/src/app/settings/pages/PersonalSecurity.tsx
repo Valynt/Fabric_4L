@@ -5,9 +5,9 @@ export function PersonalSecurity() {
         <h3 className="text-sm font-semibold">Password</h3>
         <p className="text-xs text-muted-foreground">Update your password and manage recovery options.</p>
         <div className="mt-4 space-y-3 max-w-md">
-          <input type="password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Current password" />
-          <input type="password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="New password" />
-          <input type="password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Confirm new password" />
+          <input type="password" aria-label="Current password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Current password" />
+          <input type="password" aria-label="New password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="New password" />
+          <input type="password" aria-label="Confirm new password" className="h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Confirm new password" />
           <button type="button" className="inline-flex h-9 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:opacity-90">Update password</button>
         </div>
       </section>

@@ -3,21 +3,27 @@ import hashlib
 import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Account
+from app.models.schemas import Account, PaginatedResponse
 
 _SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
 
-@router.get("", response_model=list[Account])
-async def list_accounts(tenant_id: str = Depends(tenant_required)):
-    return db.accounts.list(tenant_id=tenant_id)
+@router.get("", response_model=PaginatedResponse[Account])
+async def list_accounts(
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.accounts.list(tenant_id=tenant_id, limit=limit, offset=offset)
+    total = len(db.accounts.list(tenant_id=tenant_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("", response_model=Account, status_code=201)

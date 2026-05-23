@@ -3,10 +3,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
-from unittest.mock import AsyncMock
 
 import pytest
+
+from value_fabric.layer4.engine.executor import OrchestrationController
+from value_fabric.layer4.engine.state_manager import StateManager
+from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
+from value_fabric.layer4.tools.registry import ToolRegistry
 
 
 def _load_service_code() -> str:
@@ -33,94 +36,77 @@ def test_tenant_a_cannot_mutate_tenant_b_patterns_present() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Runtime controller-level hostile tests
+# Runtime controller-level hostile tests (no mocks — real controller + state)
 # ---------------------------------------------------------------------------
 
-class FakeStateManager:
-    """Minimal fake state manager for hostile controller tests."""
-
-    def __init__(self):
-        self._states: dict[str, Any] = {}
-
-    async def load_state(self, workflow_id: str):
-        return self._states.get(workflow_id)
-
-    async def save_state(self, workflow_id: str, state) -> None:
-        self._states[workflow_id] = state
-
-    async def list_workflows(self) -> list[str]:
-        return list(self._states.keys())
-
-    async def list_active_workflows(self) -> list[str]:
-        return [wid for wid, s in self._states.items() if s.status.value in ("running", "pending")]
-
-
 @pytest.fixture
-def hostile_controller():
-    from value_fabric.layer4.engine.executor import OrchestrationController
-    from value_fabric.layer4.tools.registry import ToolRegistry
-
-    registry = AsyncMock(spec=ToolRegistry)
+def runtime_controller():
+    """Real OrchestrationController with in-memory StateManager for runtime tests."""
+    registry = ToolRegistry()
     controller = OrchestrationController(
         tool_registry=registry,
-        state_manager=FakeStateManager(),
+        state_manager=StateManager(),
     )
     return controller
 
 
+def _make_state(status: WorkflowStatus) -> BaseAgentState:
+    """Build a minimal BaseAgentState for controller tests."""
+    return BaseAgentState(
+        workflow_id="",
+        workflow_type=WorkflowType.ORCHESTRATOR,
+        status=status,
+    )
+
+
 @pytest.mark.asyncio
-async def test_archive_workflow_rejects_cross_tenant(hostile_controller):
+async def test_archive_workflow_rejects_cross_tenant(runtime_controller):
     """archive_workflow must raise PermissionError when tenant_id does not match."""
     wf_id = "wf-tenant-a-001"
-    state = AsyncMock()
+    state = _make_state(WorkflowStatus.COMPLETED)
     state.metadata = {"archived": False}
-    state.status.value = "completed"
 
     # Seed the controller's metadata and state manager
-    hostile_controller._workflow_metadata[wf_id] = {"tenant_id": "tenant-a"}
-    await hostile_controller.state_manager.save_state(wf_id, state)
+    runtime_controller._workflow_metadata[wf_id] = {"tenant_id": "tenant-a"}
+    await runtime_controller.state_manager.save_state(wf_id, state)
 
     with pytest.raises(PermissionError, match="belongs to tenant"):
-        await hostile_controller.archive_workflow(wf_id, tenant_id="tenant-b")
+        await runtime_controller.archive_workflow(wf_id, tenant_id="tenant-b")
 
 
 @pytest.mark.asyncio
-async def test_list_active_workflows_filters_cross_tenant(hostile_controller):
+async def test_list_active_workflows_filters_cross_tenant(runtime_controller):
     """list_active_workflows must not return workflows from other tenants."""
     # Create workflow for tenant-a
-    state_a = AsyncMock()
-    state_a.status.value = "running"
+    state_a = _make_state(WorkflowStatus.RUNNING)
     state_a.metadata = {"archived": False}
-    hostile_controller._workflow_metadata["wf-a"] = {"tenant_id": "tenant-a"}
-    await hostile_controller.state_manager.save_state("wf-a", state_a)
+    runtime_controller._workflow_metadata["wf-a"] = {"tenant_id": "tenant-a"}
+    await runtime_controller.state_manager.save_state("wf-a", state_a)
 
     # Create workflow for tenant-b
-    state_b = AsyncMock()
-    state_b.status.value = "running"
+    state_b = _make_state(WorkflowStatus.RUNNING)
     state_b.metadata = {"archived": False}
-    hostile_controller._workflow_metadata["wf-b"] = {"tenant_id": "tenant-b"}
-    await hostile_controller.state_manager.save_state("wf-b", state_b)
+    runtime_controller._workflow_metadata["wf-b"] = {"tenant_id": "tenant-b"}
+    await runtime_controller.state_manager.save_state("wf-b", state_b)
 
-    results = await hostile_controller.list_active_workflows(tenant_id="tenant-a")
+    results = await runtime_controller.list_active_workflows(tenant_id="tenant-a")
     assert len(results) == 1
     assert results[0].get("workflow_id") == "wf-a"
 
 
 @pytest.mark.asyncio
-async def test_list_workflows_filters_cross_tenant(hostile_controller):
+async def test_list_workflows_filters_cross_tenant(runtime_controller):
     """list_workflows must not return workflows from other tenants."""
-    state_a = AsyncMock()
-    state_a.status.value = "completed"
+    state_a = _make_state(WorkflowStatus.COMPLETED)
     state_a.metadata = {"archived": False}
-    hostile_controller._workflow_metadata["wf-a"] = {"tenant_id": "tenant-a"}
-    await hostile_controller.state_manager.save_state("wf-a", state_a)
+    runtime_controller._workflow_metadata["wf-a"] = {"tenant_id": "tenant-a"}
+    await runtime_controller.state_manager.save_state("wf-a", state_a)
 
-    state_b = AsyncMock()
-    state_b.status.value = "completed"
+    state_b = _make_state(WorkflowStatus.COMPLETED)
     state_b.metadata = {"archived": False}
-    hostile_controller._workflow_metadata["wf-b"] = {"tenant_id": "tenant-b"}
-    await hostile_controller.state_manager.save_state("wf-b", state_b)
+    runtime_controller._workflow_metadata["wf-b"] = {"tenant_id": "tenant-b"}
+    await runtime_controller.state_manager.save_state("wf-b", state_b)
 
-    results = await hostile_controller.list_workflows(tenant_id="tenant-a")
+    results = await runtime_controller.list_workflows(tenant_id="tenant-a")
     assert len(results) == 1
     assert results[0].get("tenant_id") == "tenant-a"

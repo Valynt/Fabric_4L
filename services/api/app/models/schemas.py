@@ -1,7 +1,18 @@
 from datetime import UTC, datetime
-from typing import Any, Literal
+from typing import Any, Generic, Literal, TypeVar
 
 from pydantic import BaseModel, Field
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Standard paginated list response."""
+
+    items: list[T]
+    total: int
+    limit: int
+    offset: int
 
 # ============================================================================
 # Shared primitives
@@ -450,3 +461,35 @@ class AgentRun(BaseModel):
     review_required: bool = False
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class WorkflowResponse(BaseModel):
+    """Compatibility response for frontend workflow routes."""
+
+    workflow_id: str
+    workflow_instance_id: str
+    id: str
+    name: str
+    workflow_type: str
+    status: Literal["pending", "running", "paused", "completed", "failed", "cancelled"] = "pending"
+    progress: int = 0
+    progress_percentage: int = 0
+    created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    started_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+    completed_at: str | None = None
+    result: dict[str, Any] | None = None
+    input: dict[str, Any] | None = None
+    tenant_id: str
+
+
+class RealizationVarianceResponse(BaseModel):
+    plan_id: str
+    projected: float = 0.0
+    actual: float = 0.0
+    variance: float = 0.0
+
+
+class RealizationRecommendationsResponse(BaseModel):
+    plan_id: str
+    recommendations: list[str] = Field(default_factory=list)

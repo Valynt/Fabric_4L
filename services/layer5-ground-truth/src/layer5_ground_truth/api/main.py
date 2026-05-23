@@ -19,9 +19,9 @@ from pathlib import Path
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer5_ground_truth import __version__
-from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from ..shared_bootstrap import (
     SecurityConfig,

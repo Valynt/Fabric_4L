@@ -143,7 +143,6 @@ class TestQueryValidator:
         
         assert "WHERE" in str(exc_info.value) or "Missing property map" in str(exc_info.value)
     
-    @pytest.mark.skip(reason="WHERE clause tenant check not yet implemented - requires parser enhancement")
     def test_valid_where_clause_with_tenant(self, validator):
         """WHERE clause with explicit tenant_id check passes.
         

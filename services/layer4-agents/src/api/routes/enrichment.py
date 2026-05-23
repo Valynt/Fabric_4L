@@ -131,10 +131,11 @@ async def enrich_account(
             try:
                 sources = [EnrichmentSource(s) for s in request.sources]
             except ValueError as e:
+                logger.warning("Invalid enrichment source: %s", e)
                 raise HTTPException(
                     status_code=400,
-                    detail=f"Invalid source: {e}. Valid sources: {[s.value for s in EnrichmentSource]}",
-                )
+                    detail="Invalid enrichment source",
+                ) from e
 
         force = request.force if request else False
         result = await orchestrator.enrich_account(account_id, sources=sources, force=force)

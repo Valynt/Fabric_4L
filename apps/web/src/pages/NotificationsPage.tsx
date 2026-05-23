@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/states';
 import { useCreateNotification, useMarkNotificationRead, useNotifications } from '@/hooks/useNotifications';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
 import { safeAsync } from '@/lib/async';
+import { toast } from 'sonner';
 
 export default function NotificationsPage() {
   const [title, setTitle] = useState('');
@@ -26,15 +27,19 @@ export default function NotificationsPage() {
     const trimmedType = type.trim();
     if (!trimmedTitle || !trimmedMessage || !trimmedType) return;
 
-    await createNotification.mutateAsync({
-      type: trimmedType,
-      title: trimmedTitle,
-      message: trimmedMessage,
-      account_id: accountId.trim() || undefined,
-      subject_type: 'notification',
-    });
-    setTitle('');
-    setMessage('');
+    try {
+      await createNotification.mutateAsync({
+        type: trimmedType,
+        title: trimmedTitle,
+        message: trimmedMessage,
+        account_id: accountId.trim() || undefined,
+        subject_type: 'notification',
+      });
+      setTitle('');
+      setMessage('');
+    } catch {
+      toast.error('Failed to create notification. Please try again.');
+    }
   };
 
   return (

@@ -347,5 +347,8 @@ export function useCreateEntity() {
         predicate: (query) => Array.isArray(query.queryKey) && query.queryKey[0] === QK.entities.all[0] && query.queryKey[1] === 'search',
       });
     },
+    onError: (error) => {
+      log.error('CreateEntity mutation failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }

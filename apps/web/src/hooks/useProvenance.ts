@@ -3,6 +3,9 @@ import { apiGet } from "@/api/typedClient";
 import type { l3 } from "@/api/generated";
 import { QK } from "./queryKeys";
 import { RETRY_CONFIG, STALE_TIME } from "./useApiShared";
+import { createLogger } from "@/lib/telemetry";
+
+const log = createLogger("useProvenance");
 import {
   parseAuditLogResponse,
   parseProvenanceTrail,
@@ -91,6 +94,9 @@ export function useExportProvenance() {
         `/provenance/${encodeURIComponent(entityId)}?format=${format}`
       );
       return response.data;
+    },
+    onError: (error) => {
+      log.error('ExportProvenance failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

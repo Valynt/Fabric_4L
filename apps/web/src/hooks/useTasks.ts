@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
 import { safeAsync } from '@/lib/async';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useTasks');
 
 export type TaskStatus = 'open' | 'in_progress' | 'completed';
 
@@ -71,6 +74,9 @@ export function useCreateTask() {
     onSuccess: () => {
       safeAsync(queryClient.invalidateQueries({ queryKey: QK.tasks.all }), "tasks.invalidate");
     },
+    onError: (error) => {
+      log.error('CreateTask failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -83,6 +89,9 @@ export function useUpdateTask() {
     },
     onSuccess: () => {
       safeAsync(queryClient.invalidateQueries({ queryKey: QK.tasks.all }), "tasks.invalidate");
+    },
+    onError: (error) => {
+      log.error('UpdateTask failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

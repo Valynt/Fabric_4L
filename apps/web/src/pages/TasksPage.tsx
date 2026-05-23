@@ -8,6 +8,7 @@ import { EmptyState } from '@/components/states';
 import { useCreateTask, useTasks, useUpdateTask, type TaskRecord } from '@/hooks/useTasks';
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
 import { safeAsync } from '@/lib/async';
+import { toast } from 'sonner';
 
 function TaskStatusBadge({ status }: { status: TaskRecord['status'] }) {
   if (status === 'completed') return <StatusBadge status="completed" />;
@@ -29,13 +30,17 @@ export default function TasksPage() {
     event.preventDefault();
     const trimmedTitle = title.trim();
     if (!trimmedTitle) return;
-    await createTask.mutateAsync({
-      title: trimmedTitle,
-      assignee: assignee.trim() || undefined,
-      stage: stage.trim() || undefined,
-      account_id: accountId.trim() || undefined,
-    });
-    setTitle('');
+    try {
+      await createTask.mutateAsync({
+        title: trimmedTitle,
+        assignee: assignee.trim() || undefined,
+        stage: stage.trim() || undefined,
+        account_id: accountId.trim() || undefined,
+      });
+      setTitle('');
+    } catch {
+      toast.error('Failed to create task. Please try again.');
+    }
   };
 
   return (

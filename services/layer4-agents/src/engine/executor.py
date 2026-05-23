@@ -20,6 +20,7 @@ from typing import Any
 from uuid import UUID
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.errors import NodeInterrupt
 
 from ..models.agent_state import AgentState, WorkflowStatus
 
@@ -738,7 +739,12 @@ class OrchestrationController:
         user_id: str,
         reason: str | None = None,
     ) -> bool:
-        """Pause a running or queued workflow and persist a resumable state."""
+        """Pause a running or queued workflow and persist a resumable state.
+
+        Uses WorkflowStatus.INTERRUPTED (native LangGraph HITL semantics) instead
+        of the legacy PAUSED status. The checkpoint is persisted by the
+        checkpointer; StateManager holds a mirror for API compatibility.
+        """
         state = await self.state_manager.load_state(workflow_id)
         if not state:
             raise ValueError(f"Workflow {workflow_id} not found")
@@ -752,8 +758,8 @@ class OrchestrationController:
                 f"Workflow {workflow_id} is {state.status.value} and cannot be paused"
             )
 
-        if state.status == WorkflowStatus.PAUSED:
-            raise ValueError(f"Workflow {workflow_id} is already paused")
+        if state.status == WorkflowStatus.INTERRUPTED:
+            raise ValueError(f"Workflow {workflow_id} is already interrupted")
 
         await self.scheduler.cancel_task(f"wf-{workflow_id}")
         await self.scheduler.cancel_task(workflow_id)
@@ -764,12 +770,12 @@ class OrchestrationController:
                 running.cancel()
 
         paused_at = datetime.now(UTC)
-        state.status = WorkflowStatus.PAUSED
+        state.status = WorkflowStatus.INTERRUPTED
         state.paused_at = paused_at
         state.paused_by = user_id
         state.pause_count = (state.pause_count or 0) + 1
         state.pause_point = {
-            "title": "Workflow paused",
+            "title": "Workflow interrupted",
             "reason": reason or "Manual pause requested",
             "severity": "info",
             "node": state.current_node,
@@ -780,7 +786,7 @@ class OrchestrationController:
         state.metadata["paused_by"] = user_id
         state.metadata["paused_at"] = paused_at.isoformat()
         await self.state_manager.save_state(workflow_id, state)
-        logger.info("Paused workflow %s at node %s", workflow_id, state.current_node)
+        logger.info("Interrupted workflow %s at node %s", workflow_id, state.current_node)
         tenant_id = str(
             (state.metadata or {}).get("tenant_id")
             or self._workflow_metadata.get(workflow_id, {}).get("tenant_id")
@@ -789,7 +795,7 @@ class OrchestrationController:
         lifecycle_logger.emit(
             stage="checkpoint",
             context=self._lifecycle_context(
-                workflow_id, tenant_id=tenant_id, checkpoint_id=str(state.current_node or "paused")
+                workflow_id, tenant_id=tenant_id, checkpoint_id=str(state.current_node or "interrupted")
             ),
         )
         return True
@@ -898,10 +904,13 @@ class OrchestrationController:
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
         metadata["resumed_by"] = user_id
 
-        # Resume execution - LangGraph will load from checkpoint via thread_id
-        # The workflow continues from where it left off
+        # Resume execution using native LangGraph Command(resume=...).
+        # The checkpoint already holds the latest state; we only need the
+        # thread_id and optional user decision data.
         try:
-            result = await workflow.run(state, thread_id=workflow_id)
+            result = await workflow.run(
+                state, thread_id=workflow_id, resume_data=resume_data
+            )
         except WorkflowExecutionError:
             raise
         except Exception as e:
@@ -1148,6 +1157,16 @@ class OrchestrationController:
                 timeout=settings.workflow_timeout_seconds,
             )
             await self.state_manager.save_state(workflow_id, result)
+
+            # Native LangGraph HITL interrupt: checkpoint already persisted
+            if result.status == WorkflowStatus.INTERRUPTED:
+                lifecycle_logger.emit(
+                    stage="checkpoint",
+                    context=self._lifecycle_context(workflow_id),
+                    checkpoint_id=str(result.current_node or "interrupted"),
+                )
+                return result
+
             lifecycle_logger.emit(
                 stage="completion",
                 context=self._lifecycle_context(workflow_id),
@@ -1169,6 +1188,13 @@ class OrchestrationController:
             raise WorkflowExecutionError(
                 f"Workflow {workflow_id} exceeded global timeout of {settings.workflow_timeout_seconds}s"
             ) from exc
+        except NodeInterrupt:
+            # Native LangGraph HITL - checkpoint already persisted by checkpointer
+            paused = await self.state_manager.load_state(workflow_id)
+            if paused:
+                paused.status = WorkflowStatus.INTERRUPTED
+                await self.state_manager.save_state(workflow_id, paused)
+            raise
         except asyncio.CancelledError:
             await persist_interruption_if_needed(
                 state_manager=self.state_manager,
@@ -1230,6 +1256,7 @@ class OrchestrationController:
                 WorkflowStatus.COMPLETED,
                 WorkflowStatus.FAILED,
                 WorkflowStatus.CANCELLED,
+                WorkflowStatus.INTERRUPTED,
             ]:
                 return state
 
@@ -1252,6 +1279,7 @@ class OrchestrationController:
                 WorkflowStatus.COMPLETED,
                 WorkflowStatus.FAILED,
                 WorkflowStatus.CANCELLED,
+                WorkflowStatus.INTERRUPTED,
             ]:
                 return state
 

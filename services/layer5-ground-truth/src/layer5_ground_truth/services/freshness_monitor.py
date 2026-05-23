@@ -17,10 +17,10 @@ from uuid import UUID
 from sqlalchemy import and_, case, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
+
 from ..config import get_settings
 from ..models.truth_object import ClaimType, TruthObject, ValidationEvent
 from .freshness_contracts import FreshnessCheckResponse, FreshnessSummaryResponse
-
 
 logger = logging.getLogger(__name__)
 

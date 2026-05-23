@@ -17,6 +17,7 @@ import {
   STALE_TIME,
   RETRY_CONFIG,
 } from "./useApiShared";
+import { createLogger } from "@/lib/telemetry";
 import {
   parseBulkImportResponse,
   parseCaseStudy,
@@ -136,6 +137,8 @@ export class EvidenceApiError extends BaseApiError {
   }
 }
 
+const log = createLogger("useEvidence");
+
 // ── Fetch Functions ────────────────────────────────────────────────────────
 
 function buildEvidenceParams(filters: CaseStudyListFilters): string {
@@ -247,6 +250,9 @@ export function useCreateCaseStudy() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
     },
+    onError: (error) => {
+      log.error('CreateCaseStudy failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -269,6 +275,9 @@ export function useUpdateCaseStudy() {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
       queryClient.invalidateQueries({ queryKey: QK.evidence.detail(id) });
     },
+    onError: (error) => {
+      log.error('UpdateCaseStudy failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -284,6 +293,9 @@ export function useDeleteCaseStudy() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
+    },
+    onError: (error) => {
+      log.error('DeleteCaseStudy failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -302,6 +314,9 @@ export function useBulkImportCaseStudies() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
     },
+    onError: (error) => {
+      log.error('BulkImportCaseStudies failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -318,6 +333,9 @@ export function useEvidenceSearch() {
         limit: params.limit,
       });
       return parseEvidenceSearchResponse(response.data);
+    },
+    onError: (error) => {
+      log.error('EvidenceSearch failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -370,6 +388,9 @@ export function useLinkEvidence() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
     },
+    onError: (error) => {
+      log.error('LinkEvidence failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -387,6 +408,9 @@ export function useUnlinkEvidence() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.evidence.all });
+    },
+    onError: (error) => {
+      log.error('UnlinkEvidence failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

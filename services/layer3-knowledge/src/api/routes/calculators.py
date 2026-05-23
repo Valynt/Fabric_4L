@@ -7,9 +7,12 @@ Reason: Calculator API routes for Layer 3 Knowledge Graph.
 Provides endpoints for value lever configuration and value case persistence.
 """
 
+import logging
 from datetime import datetime
 
 from fastapi import APIRouter, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
@@ -120,7 +123,8 @@ async def get_value_levers(
                 }
             )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            logger.error("Database error in levers query: %s", e)
+            raise HTTPException(status_code=500, detail="Database error")
 
 
 @router.post("/value-cases", response_model=ValueCaseResponse, status_code=201)
@@ -174,7 +178,8 @@ async def create_value_case(
                 metadata=case_data.metadata,
             )
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            logger.error("Database error creating value case: %s", e)
+            raise HTTPException(status_code=500, detail="Database error")
 
 
 @router.get("/value-cases/{case_id}", response_model=ValueCaseResponse)
@@ -214,7 +219,8 @@ async def get_value_case(
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            logger.error("Database error retrieving value case %s: %s", case_id, e)
+            raise HTTPException(status_code=500, detail="Database error")
 
 
 @router.put("/value-cases/{case_id}", response_model=ValueCaseResponse)
@@ -265,4 +271,5 @@ async def update_value_case(
         except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            logger.error("Database error updating value case %s: %s", case_id, e)
+            raise HTTPException(status_code=500, detail="Database error")

@@ -437,7 +437,7 @@ function EventsTab() {
         <div key={job.id} className="flex items-center gap-3 px-4 py-3 text-[13px]">
           <Activity size={14} className="text-muted-foreground shrink-0" />
           <span className="font-medium truncate flex-1">{job.domain}</span>
-          <StatusBadge status={job.status} size="sm" />
+          <StatusBadge status={job.status} />
           {job.pagesProcessed != null && (
             <span className="text-muted-foreground text-[12px] hidden sm:block">{job.pagesProcessed} pages</span>
           )}

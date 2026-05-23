@@ -132,7 +132,7 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
           >
             <RefreshCw size={10}/> Test
           </button>
-          <button className="p-1.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-700 transition-colors">
+          <button className="p-1.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-700 transition-colors" aria-label="Binding settings">
             <Settings size={12}/>
           </button>
         </div>
@@ -448,15 +448,16 @@ function VariableRegistryContent() {
                       <td className="px-3 py-3"><ValidationIcon status={v.validation_status}/></td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View">
+                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View" aria-label="View variable">
                             <Eye size={13}/>
                           </button>
-                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit">
+                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit" aria-label="Edit variable">
                             <Edit3 size={13}/>
                           </button>
                           <button
                             className="p-1.5 rounded hover:bg-blue-50 text-neutral-400 hover:text-blue-600 disabled:opacity-50"
                             title="Test binding"
+                            aria-label="Test variable binding"
                             disabled={activeTestVariableId === v.variable_id}
                             onClick={(e) => {
                               e.stopPropagation();
@@ -465,7 +466,7 @@ function VariableRegistryContent() {
                           >
                             <RefreshCw size={13} className={cn(activeTestVariableId === v.variable_id && "animate-spin")} />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete">
+                          <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete" aria-label="Delete variable">
                             <Trash2 size={13}/>
                           </button>
                         </div>

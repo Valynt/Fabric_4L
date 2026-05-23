@@ -12,6 +12,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch } from '@/api/typedClient';
 import { QK } from './queryKeys';
 import { withApiError, PlatformSettingsApiError, STALE_TIME, RETRY_CONFIG } from './useApiShared';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('usePlatformSettings');
 
 // ── Types ───────────────────────────────────────────────────────────────────
 
@@ -226,6 +229,9 @@ export function useUpdatePlatformSettings() {
     mutationFn: (payload) => withApiError(updatePlatformSettings(payload), PlatformSettingsApiError),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.platform.settings });
+    },
+    onError: (error) => {
+      log.error('UpdatePlatformSettings failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

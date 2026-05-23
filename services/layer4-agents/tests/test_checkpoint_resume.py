@@ -179,7 +179,7 @@ class TestResumeWorkflow:
         existing_state.input_data = {"original": "data"}
         await state_manager.save_state(workflow_id, existing_state)
 
-        async def mock_run(state, thread_id):
+        async def mock_run(state, thread_id, resume_data=None, **kwargs):
             return state
 
         mock_workflow = Mock(spec=BaseWorkflow)
@@ -352,7 +352,7 @@ class TestCheckpointIntegration:
         existing_state.output_data = {"resume_count": 0}
         await state_manager.save_state(workflow_id, existing_state)
 
-        async def mock_run(state, thread_id):
+        async def mock_run(state, thread_id, resume_data=None, **kwargs):
             return state
 
         mock_workflow = Mock(spec=BaseWorkflow)
@@ -427,15 +427,15 @@ class TestOrchestrationControllerEdgeCases:
             )
 
     @pytest.mark.asyncio
-    async def test_pause_already_paused_workflow_raises(self, state_manager):
-        """Pause on an already-paused workflow must raise ValueError."""
+    async def test_pause_already_interrupted_workflow_raises(self, state_manager):
+        """Pause on an already-interrupted workflow must raise ValueError."""
         from value_fabric.layer4.models.agent_state import WorkflowStatus
 
-        wf_id = "already-paused-wf"
-        paused_state = BaseAgentState(
+        wf_id = "already-interrupted-wf"
+        interrupted_state = BaseAgentState(
             workflow_id=wf_id,
             workflow_type=TEST_WORKFLOW_TYPE,
-            status=WorkflowStatus.PAUSED,
+            status=WorkflowStatus.INTERRUPTED,
             input_data={},
             output_data={},
             errors=[],
@@ -444,10 +444,10 @@ class TestOrchestrationControllerEdgeCases:
             tool_registry=ToolRegistry(),
             state_manager=state_manager,
         )
-        await state_manager.save_state(wf_id, paused_state)
+        await state_manager.save_state(wf_id, interrupted_state)
         controller._workflow_metadata[wf_id] = {}
 
-        with pytest.raises(ValueError, match="already paused"):
+        with pytest.raises(ValueError, match="already interrupted"):
             await controller.pause_workflow(wf_id, user_id="test-user")
 
     @pytest.mark.asyncio

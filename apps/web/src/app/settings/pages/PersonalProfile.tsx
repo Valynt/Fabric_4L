@@ -6,20 +6,20 @@ export function PersonalProfile() {
         <p className="text-xs text-muted-foreground">Name, avatar, email, and account identity.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium">Full name</label>
-            <input className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Your name" />
+            <label htmlFor="full-name" className="text-xs font-medium">Full name</label>
+            <input id="full-name" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Your name" />
           </div>
           <div>
-            <label className="text-xs font-medium">Email</label>
-            <input className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="you@company.com" />
+            <label htmlFor="email" className="text-xs font-medium">Email</label>
+            <input id="email" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="you@company.com" />
           </div>
           <div>
-            <label className="text-xs font-medium">Title</label>
-            <input className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Job title" />
+            <label htmlFor="title" className="text-xs font-medium">Title</label>
+            <input id="title" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Job title" />
           </div>
           <div>
-            <label className="text-xs font-medium">Default workspace</label>
-            <input className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Primary workspace" />
+            <label htmlFor="default-workspace" className="text-xs font-medium">Default workspace</label>
+            <input id="default-workspace" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm" placeholder="Primary workspace" />
           </div>
         </div>
       </section>
@@ -42,16 +42,16 @@ export function PersonalProfile() {
         <p className="text-xs text-muted-foreground">Theme, localization, and notifications.</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div>
-            <label className="text-xs font-medium">Theme</label>
-            <select className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm">
+            <label htmlFor="theme" className="text-xs font-medium">Theme</label>
+            <select id="theme" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm">
               <option>System</option>
               <option>Light</option>
               <option>Dark</option>
             </select>
           </div>
           <div>
-            <label className="text-xs font-medium">Language</label>
-            <select className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm">
+            <label htmlFor="language" className="text-xs font-medium">Language</label>
+            <select id="language" className="mt-1 h-9 w-full rounded-md border bg-background px-3 text-sm">
               <option>English</option>
               <option>Spanish</option>
               <option>German</option>

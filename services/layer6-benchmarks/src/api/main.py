@@ -299,7 +299,8 @@ async def readiness_check() -> readiness_checkResult:
         validate_layer6_startup_settings()
         checks["config"] = {"status": "ok"}
     except Exception as exc:
-        checks["config"] = {"status": "failed", "detail": str(exc)}
+        logger.error("Layer 6 startup settings validation failed: %s", exc)
+        checks["config"] = {"status": "failed", "detail": "Configuration validation failed"}
 
     if _benchmark_repo is None and _neo4j_startup_error:
         neo4j_status = {"status": "unhealthy", "error": _neo4j_startup_error}
@@ -325,7 +326,8 @@ async def readiness_check() -> readiness_checkResult:
                 "datasets_loaded": dataset_count,
             }
         except Exception as exc:
-            checks["benchmark_store"] = {"status": "failed", "detail": str(exc)}
+            logger.error("Benchmark store check failed: %s", exc)
+            checks["benchmark_store"] = {"status": "failed", "detail": "Benchmark store check failed"}
 
     checks["startup"] = {
         "status": "ok" if _neo4j_startup_error is None else "failed",

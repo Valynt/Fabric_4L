@@ -535,6 +535,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                         newInputs[idx].value = e.target.value;
                         setTestInputs(newInputs);
                       }}
+                      aria-label={`${input.label} test value`}
                       className="font-semibold text-foreground bg-transparent border-b border-border focus:border-primary outline-none text-right w-32"
                     />
                   </div>

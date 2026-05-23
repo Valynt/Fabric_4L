@@ -258,6 +258,7 @@ export function LoginForm({
                       <a
                         href="#"
                         className="ml-auto text-sm underline-offset-2 hover:underline text-muted-foreground"
+                        aria-label="Forgot your password?"
                       >
                         Forgot your password?
                       </a>
@@ -323,7 +324,7 @@ export function LoginForm({
               {/* Sign up link */}
               <div className="text-center text-sm">
                 Don&apos;t have an account?{" "}
-                <a href="/signup" data-testid="link-to-signup" className="underline underline-offset-4">
+                <a href="/signup" data-testid="link-to-signup" className="underline underline-offset-4" aria-label="Sign up">
                   Sign up
                 </a>
               </div>
@@ -334,8 +335,8 @@ export function LoginForm({
 
       {/* Footer */}
       <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 hover:[&_a]:text-primary">
-        By clicking continue, you agree to our <a href="#">Terms of Service</a>{" "}
-        and <a href="#">Privacy Policy</a>.
+        By clicking continue, you agree to our <a href="#" aria-label="Terms of Service">Terms of Service</a>{" "}
+        and <a href="#" aria-label="Privacy Policy">Privacy Policy</a>.
       </div>
     </div>
   )
@@ -529,7 +530,7 @@ export function SignupForm({
               {/* Sign in link */}
               <div className="text-center text-sm">
                 Already have an account?{" "}
-                <a href="/login" className="underline underline-offset-4">
+                <a href="/login" className="underline underline-offset-4" aria-label="Sign in">
                   Sign in
                 </a>
               </div>

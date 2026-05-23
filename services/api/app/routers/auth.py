@@ -106,7 +106,8 @@ async def signup(payload: SignupRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        logger.warning("Password strength validation failed: %s", exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
 
     # Cross-tenant email uniqueness check — requires explicit allow_system_scope
     # so the bypass cannot be triggered by an arbitrary caller passing "system".
@@ -281,7 +282,8 @@ async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(exc))
+        logger.warning("Password strength validation failed: %s", exc)
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
 
     users = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if not users:

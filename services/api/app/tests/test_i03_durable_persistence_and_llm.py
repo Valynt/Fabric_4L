@@ -38,7 +38,7 @@ def test_production_like_settings_reject_demo_seed_data_even_with_durable_databa
 
 
 def test_production_like_settings_reject_mock_llm_even_when_override_is_true():
-    with pytest.raises(Exception, match="llm_provider=mock is disabled"):
+    with pytest.raises(Exception, match="llm_provider must be set to layer4"):
         Settings(
             app_env="production",
             mock_persistence=False,
@@ -52,7 +52,6 @@ def test_production_like_settings_reject_mock_llm_even_when_override_is_true():
 
 
 def test_create_llm_provider_rejects_mock_provider_in_production_like_environment(monkeypatch):
-def test_orchestrator_execute_step_requires_layer4_delegation(monkeypatch):
 
     from app.services import agent_orchestrator
 

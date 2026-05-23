@@ -11,12 +11,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import os
 import secrets
 import time
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from uuid import UUID
+
+logger = logging.getLogger(__name__)
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response
 from sqlalchemy import select
@@ -245,8 +248,9 @@ async def oidc_login(
     try:
         metadata = await oidc_client.discover(oidc_config.issuer_url)
     except Exception as exc:
+        logger.warning("OIDC provider discovery failed: %s", exc)
         raise HTTPException(
-            status_code=502, detail=f"Failed to discover OIDC provider: {exc}"
+            status_code=502, detail="Failed to discover OIDC provider"
         ) from exc
 
     state = _generate_state()
@@ -394,8 +398,9 @@ async def oidc_callback(
             outcome=AuditOutcome.FAILURE,
             details={"reason": "token_exchange_failed", "error": str(exc)},
         )
+        logger.warning("OIDC token verification failed: %s", exc)
         raise HTTPException(
-            status_code=502, detail=f"OIDC token verification failed: {exc}"
+            status_code=502, detail="OIDC token verification failed"
         ) from exc
 
     # Validate nonce — always required; a missing nonce is treated as a mismatch.

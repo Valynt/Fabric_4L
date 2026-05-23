@@ -1,10 +1,10 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import ReviewComment, ReviewRequest
+from app.models.schemas import PaginatedResponse, ReviewComment, ReviewRequest
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Reviews"])
 
@@ -21,15 +21,21 @@ async def create_review_request(
     return review
 
 
-@router.get("/reviews", response_model=list[ReviewRequest])
+@router.get("/reviews", response_model=PaginatedResponse[ReviewRequest])
 async def list_review_requests(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
-    return db.review_requests.list(
+    items = db.review_requests.list(
         tenant_id=tenant_id,
         filter_fn=lambda r: r.account_id == account_id,
+        limit=limit,
+        offset=offset,
     )
+    total = len(db.review_requests.list(tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/reviews/{review_id}", response_model=ReviewRequest)
@@ -77,16 +83,22 @@ async def create_review_comment(
     return comment
 
 
-@router.get("/reviews/{review_id}/comments", response_model=list[ReviewComment])
+@router.get("/reviews/{review_id}/comments", response_model=PaginatedResponse[ReviewComment])
 async def list_review_comments(
     account_id: str,
     review_id: str,
     tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
     review = db.review_requests.get(review_id, tenant_id=tenant_id)
     if not review or review.account_id != account_id:
         raise HTTPException(status_code=404, detail="Review request not found")
-    return db.review_comments.list(
+    items = db.review_comments.list(
         tenant_id=tenant_id,
         filter_fn=lambda c: c.review_id == review_id,
+        limit=limit,
+        offset=offset,
     )
+    total = len(db.review_comments.list(tenant_id=tenant_id, filter_fn=lambda c: c.review_id == review_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)

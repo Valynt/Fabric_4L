@@ -294,9 +294,10 @@ def get_db_with_tenant(
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
+        logger.warning("Tenant context validation failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid tenant context",
         ) from e
 
     session = SessionLocal()
@@ -342,9 +343,10 @@ def get_db_from_context(
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
+        logger.warning("Tenant context validation failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid tenant context",
         ) from e
 
     session = SessionLocal()
@@ -439,9 +441,10 @@ def get_db_from_context_sync(
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
+        logger.warning("Tenant context validation failed: %s", e)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail="Invalid tenant context",
         ) from e
 
     # Create session with RLS context
@@ -492,9 +495,10 @@ def get_db_with_optional_tenant_sync(
             try:
                 tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
+                logger.warning("Tenant context validation failed: %s", e)
                 raise HTTPException(
                     status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=str(e),
+                    detail="Invalid tenant context",
                 ) from e
             session.execute(
                 text("SET LOCAL app.tenant_id = :tenant_id"),

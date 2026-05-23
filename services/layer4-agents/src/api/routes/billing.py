@@ -518,7 +518,8 @@ async def reconcile_invoice(
     try:
         return await service.reconcile_invoice_usage(context.tenant_id, invoice_id)
     except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e)) from e
+        logger.warning("Invoice reconciliation failed: %s", e)
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found or cannot be reconciled") from e
 
 
 # ============================================================================

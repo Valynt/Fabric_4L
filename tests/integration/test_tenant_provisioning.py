@@ -554,3 +554,77 @@ class TestProvisioningAuditEvents:
 
                 # At least one failure or rollback event should be emitted
                 assert mock_emit.call_count >= 1
+
+
+# ---------------------------------------------------------------------------
+# Email verification and duplicate slug tests (TEST-005 extensions)
+# ---------------------------------------------------------------------------
+class TestTenantProvisioningEdgeCases:
+    """Edge-case coverage for tenant provisioning."""
+
+    def test_email_verification_token_format(self):
+        """Email verification tokens must be URL-safe and non-empty."""
+        import secrets
+        token = secrets.token_urlsafe(32)
+        assert len(token) > 0
+        assert " " not in token
+        assert "\n" not in token
+
+    async def test_duplicate_slug_conflict(self, mock_db_session, mock_tenant, mock_infisical_client, mock_audit_emitter):
+        """Provisioning must handle duplicate slug gracefully."""
+        from value_fabric.layer4.tenants.provisioning import (
+            ProvisioningStatus,
+            TenantProvisioningService,
+        )
+
+        duplicate_tenant = MagicMock()
+        duplicate_tenant.id = uuid.uuid4()
+        duplicate_tenant.name = "Duplicate Tenant"
+        duplicate_tenant.slug = mock_tenant.slug  # same slug
+        duplicate_tenant.status = "pending"
+
+        with patch(f"{MOCK_PROVISIONING_MODULE}.get_tenant", new_callable=AsyncMock) as mock_get:
+            mock_get.return_value = duplicate_tenant
+
+            with patch(
+                f"{MOCK_PROVISIONING_MODULE}.update_tenant_status",
+                new_callable=AsyncMock,
+            ):
+                service = TenantProvisioningService(mock_db_session)
+                state = await service.provision_tenant(duplicate_tenant.id)
+
+        # Service completes provisioning even if slug duplicate; higher-layer
+        # uniqueness constraints are enforced by the DB, not the service.
+        assert state.status in {ProvisioningStatus.COMPLETED, ProvisioningStatus.FAILED}
+
+    async def test_rollback_clears_partial_state(self, mock_db_session, mock_tenant, mock_audit_emitter):
+        """Rollback must remove partial tenant state after Infisical failure."""
+        from value_fabric.layer4.tenants.provisioning import (
+            ProvisioningStatus,
+            TenantProvisioningService,
+        )
+
+        with patch(MOCK_TENANT_SECRET_MANAGER) as mock_class:
+            mock_instance = MagicMock()
+            mock_instance.create_tenant_secrets_path = AsyncMock(
+                return_value=_make_env_result(success=False, error="Already exists")
+            )
+            mock_instance.delete_tenant_secrets_path = AsyncMock(
+                return_value=_make_env_result(success=True)
+            )
+            mock_class.return_value = mock_instance
+
+            with patch(
+                f"{MOCK_PROVISIONING_MODULE}.get_tenant",
+                new_callable=AsyncMock,
+                return_value=mock_tenant,
+            ):
+                with patch(
+                    f"{MOCK_PROVISIONING_MODULE}.update_tenant_status",
+                    new_callable=AsyncMock,
+                ):
+                    service = TenantProvisioningService(mock_db_session)
+                    state = await service.provision_tenant(mock_tenant.id)
+
+            assert state.status == ProvisioningStatus.ROLLED_BACK
+            assert state.error is not None

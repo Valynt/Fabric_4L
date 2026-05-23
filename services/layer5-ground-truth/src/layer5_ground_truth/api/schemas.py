@@ -14,18 +14,19 @@ from uuid import UUID
 from pydantic import BaseModel, Field, JsonValue, field_validator, model_validator
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-# Re-export enums so API consumers only need to import from schemas
-from ..services.freshness_contracts import (
-    FreshnessCheckResponse,
-    FreshnessCounts,
-    FreshnessSummaryResponse,
-)
 from ..models.truth_object import (
     ClaimType,
     DisputeReason,
     MaturityLevel,
     SourceType,
     TruthStatus,
+)
+
+# Re-export enums so API consumers only need to import from schemas
+from ..services.freshness_contracts import (
+    FreshnessCheckResponse,
+    FreshnessCounts,
+    FreshnessSummaryResponse,
 )
 
 __all__ = [

@@ -1,19 +1,26 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import ROICalculation, Scenario
+from app.models.schemas import PaginatedResponse, ROICalculation, Scenario
 from app.services.roi_service import calculate_roi
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Calculator"])
 
 
-@router.get("/scenarios", response_model=list[Scenario])
-async def list_scenarios(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+@router.get("/scenarios", response_model=PaginatedResponse[Scenario])
+async def list_scenarios(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
+    total = len(db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("/scenarios", response_model=Scenario, status_code=201)

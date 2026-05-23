@@ -8,9 +8,12 @@ Provides endpoints for traversing and retrieving the 4-layer value tree:
 - Capability -> UseCase -> Persona -> ValueDriver
 """
 
+import logging
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+
+logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field
 
 from ...api.dependencies import AppState, _extract_tenant_id, get_app_state
@@ -271,13 +274,15 @@ async def get_value_tree(
     except HTTPException:
         raise
     except CypherDepthLimitExceeded as exc:
-        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+        logger.warning("Cypher depth limit exceeded: %s", exc)
+        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
     except TimeoutError:
-        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
+        logger.error("Failed to retrieve value tree: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve value tree: {str(e)}"
-        )
+            status_code=500, detail="Failed to retrieve value tree"
+        ) from e
 
 
 @router.get(
@@ -339,10 +344,12 @@ async def get_value_tree_paths(
     except HTTPException:
         raise
     except CypherDepthLimitExceeded as exc:
-        raise HTTPException(status_code=400, detail={"detail": str(exc), "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"})
+        logger.warning("Cypher depth limit exceeded: %s", exc)
+        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
     except TimeoutError:
-        raise HTTPException(status_code=400, detail={"detail": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
     except Exception as e:
+        logger.error("Failed to retrieve value tree paths: %s", e)
         raise HTTPException(
-            status_code=500, detail=f"Failed to retrieve paths: {str(e)}"
-        )
+            status_code=500, detail="Failed to retrieve paths"
+        ) from e

@@ -107,14 +107,14 @@ describe('EntityBrowser Contract Tests', () => {
         availableSources: ['test-source'],
       };
 
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: mockEntities,
         isLoading: false,
         error: null,
         refetch: vi.fn(),
       });
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -138,15 +138,15 @@ describe('EntityBrowser Contract Tests', () => {
         error: null,
         refetch: vi.fn(),
       });
-      (useEntities as any).mockImplementation(mockUseEntities);
+      vi.mocked(useEntities).mockImplementation(mockUseEntities);
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
 
       // Set up store with filters
-      (useEntityUIStore as any).mockReturnValue({
+      vi.mocked(useEntityUIStore).mockReturnValue({
         ...mockStore,
         searchQuery: 'AI',
         selectedType: 'Capability',
@@ -173,9 +173,9 @@ describe('EntityBrowser Contract Tests', () => {
         error: null,
         refetch: vi.fn(),
       });
-      (useEntities as any).mockImplementation(mockUseEntities);
+      vi.mocked(useEntities).mockImplementation(mockUseEntities);
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -208,9 +208,9 @@ describe('EntityBrowser Contract Tests', () => {
         },
         isLoading: false,
       });
-      (useEntity as any).mockImplementation(mockUseEntity);
+      vi.mocked(useEntity).mockImplementation(mockUseEntity);
 
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: {
           results: [{ id: 'ent-1', name: 'Detail Entity', type: 'Capability', domain: 'IT', status: 'pending', confidence: 0.75, confidenceLabel: 'medium', updatedAt: '2026-04-18T12:00:00Z' }],
           totalCount: 1,
@@ -227,7 +227,7 @@ describe('EntityBrowser Contract Tests', () => {
       });
 
       // Set selected entity
-      (useEntityUIStore as any).mockReturnValue({
+      vi.mocked(useEntityUIStore).mockReturnValue({
         ...mockStore,
         selectedEntityId: 'ent-1',
       });
@@ -246,7 +246,7 @@ describe('EntityBrowser Contract Tests', () => {
 
   describe('Edge States', () => {
     it('should display empty state when no entities', async () => {
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: {
           results: [],
           totalCount: 0,
@@ -262,7 +262,7 @@ describe('EntityBrowser Contract Tests', () => {
         refetch: vi.fn(),
       });
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -273,14 +273,14 @@ describe('EntityBrowser Contract Tests', () => {
     });
 
     it('should display error state on API failure', async () => {
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: undefined,
         isLoading: false,
         error: { message: 'Failed to fetch entities', response: { data: { detail: 'Connection error' } } },
         refetch: vi.fn(),
       });
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -292,14 +292,14 @@ describe('EntityBrowser Contract Tests', () => {
     });
 
     it('should display loading state', async () => {
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: undefined,
         isLoading: true,
         error: null,
         refetch: vi.fn(),
       });
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -312,7 +312,7 @@ describe('EntityBrowser Contract Tests', () => {
 
   describe('Filter Domain/Status Usage', () => {
     it('should populate domain filter from available_domains API field', async () => {
-      (useEntities as any).mockReturnValue({
+      vi.mocked(useEntities).mockReturnValue({
         data: {
           results: [],
           totalCount: 5,
@@ -328,7 +328,7 @@ describe('EntityBrowser Contract Tests', () => {
         refetch: vi.fn(),
       });
 
-      (useEntity as any).mockReturnValue({
+      vi.mocked(useEntity).mockReturnValue({
         data: null,
         isLoading: false,
       });
@@ -377,14 +377,14 @@ describe('No Derivation Verification', () => {
       availableSources: [],
     };
 
-    (useEntities as any).mockReturnValue({
+    vi.mocked(useEntities).mockReturnValue({
       data: mockEntities,
       isLoading: false,
       error: null,
       refetch: vi.fn(),
     });
 
-    (useEntity as any).mockReturnValue({
+    vi.mocked(useEntity).mockReturnValue({
       data: null,
       isLoading: false,
     });

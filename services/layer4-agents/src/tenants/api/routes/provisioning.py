@@ -288,10 +288,11 @@ async def webhook_provisioning(
     try:
         payload = WebhookProvisioningRequest(**json.loads(body))
     except Exception as e:
+        logger.warning("Invalid webhook payload: %s", e)
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Invalid webhook payload: {e}",
-        )
+            detail="Invalid webhook payload",
+        ) from e
 
     # Validate timestamp (replay protection)
     now = int(time.time())

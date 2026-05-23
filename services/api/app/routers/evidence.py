@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Evidence
+from app.models.schemas import Evidence, PaginatedResponse
 from app.services.pii_detection_service import pii_summary
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Evidence"])
 
 
-@router.get("/evidence", response_model=list[Evidence])
-async def list_evidence(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return db.evidence.list(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id)
+@router.get("/evidence", response_model=PaginatedResponse[Evidence])
+async def list_evidence(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.evidence.list(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id, limit=limit, offset=offset)
+    total = len(db.evidence.list(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("/evidence/match", response_model=Evidence, status_code=201)

@@ -473,23 +473,24 @@ function FormulaGovernanceContent() {
                 <td className="px-3 py-3 text-neutral-400">{formatDate(f.updated_at)}</td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View">
+                    <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View" aria-label="View formula">
                       <Eye size={13}/>
                     </button>
-                    <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit">
+                    <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit" aria-label="Edit formula">
                       <Edit3 size={13}/>
                     </button>
                     {f.status === "draft" && (
                       <button
                         className="p-1.5 rounded hover:bg-blue-50 text-neutral-400 hover:text-blue-600"
                         title="Submit for Review"
+                        aria-label="Submit formula for review"
                         onClick={() => submitMutation.mutate(f.id)}
                         disabled={submitMutation.isPending}
                       >
                         <Send size={13}/>
                       </button>
                     )}
-                    <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete">
+                    <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete" aria-label="Delete formula">
                       <Trash2 size={13}/>
                     </button>
                   </div>

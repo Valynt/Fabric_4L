@@ -249,7 +249,7 @@ describe("Formula Builder Logic", () => {
     });
 
     it("should return default for unknown source", () => {
-      expect(getSourceTypeColor("Unknown" as any)).toBe(
+      expect(getSourceTypeColor("Unknown" as string)).toBe(
         "bg-neutral-50 text-neutral-600"
       );
     });
@@ -265,7 +265,7 @@ describe("Formula Builder Logic", () => {
     });
 
     it("should return default for unknown type", () => {
-      expect(getVariableTypeColor("Unknown" as any)).toBe(
+      expect(getVariableTypeColor("Unknown" as string)).toBe(
         "bg-neutral-100 text-neutral-600"
       );
     });

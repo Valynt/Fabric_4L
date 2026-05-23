@@ -319,6 +319,9 @@ export function useCreateWorkflow() {
       queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
       queryClient.invalidateQueries({ queryKey: QK.workflows.history() });
     },
+    onError: (error) => {
+      log.error('CreateWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -339,6 +342,9 @@ export function useCancelWorkflow() {
       await new Promise(resolve => setTimeout(resolve, CANCEL_DELAY_MS));
       await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
       await queryClient.invalidateQueries({ queryKey: QK.workflows.history() });
+    },
+    onError: (error) => {
+      log.error('CancelWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -439,6 +445,9 @@ export function usePauseWorkflow() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
     },
+    onError: (error) => {
+      log.error('PauseWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -454,6 +463,9 @@ export function useResumeWorkflow() {
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: QK.workflows.active() });
+    },
+    onError: (error) => {
+      log.error('ResumeWorkflow failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

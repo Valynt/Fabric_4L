@@ -12,7 +12,9 @@ from collections.abc import Callable
 from typing import Any
 
 from langgraph.checkpoint.base import BaseCheckpointSaver
+from langgraph.errors import GraphInterrupt, NodeInterrupt
 from langgraph.graph import StateGraph
+from langgraph.types import Command
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
@@ -175,6 +177,10 @@ class BaseWorkflow(ABC):
 
                 return updates
 
+            except (GraphInterrupt, NodeInterrupt):
+                # Native LangGraph HITL interrupts must bubble up so the
+                # checkpointer can persist state and the caller can handle it.
+                raise
             except Exception as e:
                 # Handle error
                 error_msg = f"Node {node_config.id} failed: {str(e)}"
@@ -292,6 +298,10 @@ class BaseWorkflow(ABC):
             compile_kwargs = {}
             if self.checkpoint_saver:
                 compile_kwargs["checkpointer"] = self.checkpoint_saver
+            if self.config.interrupt_before:
+                compile_kwargs["interrupt_before"] = self.config.interrupt_before
+            if self.config.interrupt_after:
+                compile_kwargs["interrupt_after"] = self.config.interrupt_after
 
             self._compiled_graph = self._graph.compile(**compile_kwargs)
 
@@ -302,6 +312,7 @@ class BaseWorkflow(ABC):
         initial_state: AgentState,
         thread_id: str | None = None,
         recursion_limit: int | None = None,
+        resume_data: Any = None,
         **kwargs,
     ) -> AgentState:
         """Execute the workflow.
@@ -310,6 +321,7 @@ class BaseWorkflow(ABC):
             initial_state: Starting workflow state
             thread_id: Optional thread ID for checkpointing
             recursion_limit: Maximum recursion steps (default: DEFAULT_RECURSION_LIMIT)
+            resume_data: Optional resume value for native LangGraph HITL resume
             **kwargs: Additional run parameters
 
         Returns:
@@ -334,18 +346,43 @@ class BaseWorkflow(ABC):
             config["configurable"]["thread_id"] = thread_id
 
         workflow_id = getattr(initial_state, "workflow_id", "unknown")
-        logger.info(
-            "Starting workflow execution",
-            workflow_id=workflow_id,
-            workflow_type=getattr(initial_state, "workflow_type", "unknown"),
-            thread_id=thread_id,
-            recursion_limit=recursion_limit,
-        )
+
+        # Build input: Command for resume, state dict for fresh run
+        if resume_data is not None:
+            input_val: Any = Command(resume=resume_data)
+            logger.info(
+                "Resuming workflow execution",
+                workflow_id=workflow_id,
+                thread_id=thread_id,
+            )
+        else:
+            input_val = initial_state.model_dump()
+            logger.info(
+                "Starting workflow execution",
+                workflow_id=workflow_id,
+                workflow_type=getattr(initial_state, "workflow_type", "unknown"),
+                thread_id=thread_id,
+                recursion_limit=recursion_limit,
+            )
 
         try:
-            result = await compiled.ainvoke(initial_state.model_dump(), config=config, **kwargs)
+            result = await compiled.ainvoke(input_val, config=config, **kwargs)
+
+            # Detect native LangGraph interrupt (e.g. from interrupt() or interrupt_before/after)
+            if isinstance(result, dict) and "__interrupt__" in result:
+                logger.info(f"Workflow interrupted: {workflow_id}")
+                interrupted_state = self._state_from_dict(result)
+                interrupted_state.status = WorkflowStatus.INTERRUPTED
+                return interrupted_state
+
             logger.info(f"Workflow execution completed: {workflow_id}")
             return self._state_from_dict(result)
+        except NodeInterrupt:
+            logger.info(f"Workflow interrupted by NodeInterrupt: {workflow_id}")
+            # Checkpoint already persisted by LangGraph; return structured INTERRUPTED state
+            interrupted_state = initial_state.model_copy()
+            interrupted_state.status = WorkflowStatus.INTERRUPTED
+            return interrupted_state
         except Exception as e:
             logger.error(f"Workflow execution failed: {workflow_id}: {e}", exc_info=True)
             raise

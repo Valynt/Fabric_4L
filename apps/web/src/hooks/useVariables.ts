@@ -201,6 +201,9 @@ export function useValidateVariable() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.variables.all });
     },
+    onError: (error) => {
+      log.error('ValidateVariable failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -215,6 +218,9 @@ export function useTestVariableBinding() {
         throw new VariableApiError(formatZodError(parsed.error, 'test binding response'));
       }
       return parsed.data;
+    },
+    onError: (error) => {
+      log.error('TestVariableBinding failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

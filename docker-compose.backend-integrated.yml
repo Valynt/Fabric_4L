@@ -25,7 +25,7 @@ services:
       POSTGRES_DB: ingestion
       POSTGRES_MULTIPLE_DATABASES: ingestion,layer2_extraction,ground_truth,layer4_agents
       POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
-      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_HOST_AUTH_METHOD: scram-sha-256
     volumes:
       - bi-postgres-data:/var/lib/postgresql/data
       - ./scripts/db/init-multiple-dbs.sh:/docker-entrypoint-initdb.d/init-multiple-dbs.sh

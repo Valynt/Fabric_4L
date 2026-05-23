@@ -317,7 +317,7 @@ async def list_models(
             )
         except Exception as e:
             logger.error(f"Failed to list models: {e}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error") from e
 
 
 @router.get(
@@ -368,7 +368,7 @@ async def get_folder_counts(
             return FoldersResponse(folders=folders)
         except Exception as e:
             logger.error(f"Failed to get folder counts: {e}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error") from e
 
 
 @router.get(
@@ -422,7 +422,7 @@ async def get_model_detail(
             raise
         except Exception as e:
             logger.error(f"Failed to get model detail: {e}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error") from e
 
 
 @router.post(
@@ -492,7 +492,7 @@ async def create_model(
                 raise HTTPException(status_code=500, detail="Failed to create model")
         except Exception as e:
             logger.error(f"Failed to create model: {e}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error") from e
 
 
 @router.delete(
@@ -548,4 +548,4 @@ async def delete_model(
             raise
         except Exception as e:
             logger.error(f"Failed to delete model: {e}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+            raise HTTPException(status_code=500, detail="Database error") from e

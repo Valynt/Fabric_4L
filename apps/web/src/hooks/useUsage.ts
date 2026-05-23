@@ -2,6 +2,9 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 import { apiGet, apiPost } from '@/api/typedClient';
 import { withApiError, BaseApiError, STALE_TIME } from './useApiShared';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useUsage');
 
 // ============================================================================
 // Types
@@ -134,6 +137,9 @@ export function useCheckLimits(customerId: string) {
       queryClient.invalidateQueries({
         queryKey: usageKeys.summary(customerId),
       });
+    },
+    onError: (error) => {
+      log.error('CheckLimits failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 

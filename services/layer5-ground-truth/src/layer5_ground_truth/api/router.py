@@ -31,7 +31,6 @@ from ..services.state_machine import (
     InvalidTransitionError,
     TransitionConflictError,
 )
-from ..services.freshness_monitor import FreshnessCheckResponse, FreshnessSummaryResponse
 from ..services.truth_service import (
     add_source,
     create_truth_object,
@@ -47,9 +46,9 @@ from .schemas import (
     FreshnessSummaryResponse,
     MaturityLadderResponse,
     MaturityLevelDetail,
-    TruthObjectCreate,
     StaleTruthsResponse,
     SyncToKgResponse,
+    TruthObjectCreate,
     TruthObjectListResponse,
     TruthObjectResponse,
     TruthObjectSummary,
@@ -58,7 +57,6 @@ from .schemas import (
     ValidateResponse,
     ValidationEventResponse,
 )
-
 
 logger = logging.getLogger(__name__)
 

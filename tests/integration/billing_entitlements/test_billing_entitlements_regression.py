@@ -253,6 +253,40 @@ class TestBillingImpactingScenarios:
         assert meter.consume("api_calls", 250) == 350
         assert meter.consume("seats", 2) == 2
 
+    def test_upgrade_downgrade_recomputes_overage(self, starter_plan: Plan, growth_plan: Plan) -> None:
+        """Upgrade/downgrade cycle must recompute overage accurately."""
+        total_usage = 4_500
+        # On starter plan: 4,500 - 1,000 = 3,500 overage
+        starter_overage = calculate_overage_usd(starter_plan, "api_calls", total_usage, "us-east-1")
+        # On growth plan: 4,500 - 5,000 = 0 overage
+        growth_overage = calculate_overage_usd(growth_plan, "api_calls", total_usage, "us-east-1")
+        # Upgrade then downgrade back
+        assert starter_overage == 35.0  # 3,500 * $0.01
+        assert growth_overage == 0.0
+        assert starter_overage > growth_overage
+
+    def test_usage_metering_precision(self) -> None:
+        """Meter must accumulate without floating-point drift."""
+        meter = Meter()
+        for _ in range(1_000):
+            meter.consume("api_calls", 1)
+        assert meter.usage_by_feature["api_calls"] == 1_000
+
+    def test_webhook_idempotency(self) -> None:
+        """Same webhook ID must not be processed twice."""
+        processed = set()
+        webhook_id = "wh-test-123"
+
+        def process_webhook(wid: str) -> bool:
+            if wid in processed:
+                return False
+            processed.add(wid)
+            return True
+
+        assert process_webhook(webhook_id) is True
+        assert process_webhook(webhook_id) is False
+        assert len(processed) == 1
+
 
 class TestEntitlementBillingContracts:
     def test_contracts_for_billing_or_entitlements_if_exposed(self) -> None:

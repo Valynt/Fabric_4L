@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
@@ -15,6 +16,8 @@ from value_fabric.shared.identity.permissions import Permission
 
 from ...database import get_db_from_context
 from ..service import ModelRegistryService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/models", tags=["Model Registry"])
 

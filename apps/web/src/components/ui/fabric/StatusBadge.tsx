@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import { logWarn } from "@/lib/telemetry";
 import { cn } from "@/lib/utils";
 import type { ReactNode } from "react";
 
@@ -59,7 +60,7 @@ export function StatusBadge({ children, variant = "default", status, className }
   // `status` shorthand: resolve label and variant from the status map.
   // `status` takes precedence over `variant` — passing both is a misuse of the API.
   if (process.env.NODE_ENV !== "production" && status !== undefined && variant !== "default") {
-    console.warn(
+    logWarn(
       `StatusBadge: \`variant="${variant}"\` is ignored when \`status\` is provided. ` +
         "Use either \`status\` or \`variant\`+\`children\`, not both."
     );

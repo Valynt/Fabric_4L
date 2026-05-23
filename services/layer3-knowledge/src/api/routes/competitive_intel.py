@@ -216,7 +216,7 @@ async def update_competitor(
     try:
         safe_updates, _, _ = _COMPETITOR_UPDATER.build("c", raw_updates)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        raise HTTPException(status_code=422, detail="Invalid competitor update fields") from exc
 
     if not safe_updates:
         raise HTTPException(status_code=422, detail="No valid fields in update")

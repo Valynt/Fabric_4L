@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
 import { safeAsync } from '@/lib/async';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useComments');
 
 export interface CommentRecord {
   id: string;
@@ -60,6 +63,9 @@ export function useCreateComment() {
     },
     onSuccess: () => {
       safeAsync(queryClient.invalidateQueries({ queryKey: QK.comments.all }), "comments.invalidate");
+    },
+    onError: (error) => {
+      log.error('CreateComment failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

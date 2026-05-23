@@ -41,7 +41,7 @@ vi.mock("@/hooks/useHypotheses", () => ({
 
 describe("hypothesis validation to driver flow", () => {
   it("validates a hypothesis, persists drivers, and deep-links to driver tree with provenance", async () => {
-    validateMutateMock.mockImplementation((_vars: unknown, opts: { onSuccess?: (result: any) => void }) => {
+    validateMutateMock.mockImplementation((_vars: unknown, opts: { onSuccess?: (result: Record<string, unknown>) => void }) => {
       opts.onSuccess?.({
         status: "updated",
         hypothesis: { id: "hyp-1", account_id: "acc-1" },

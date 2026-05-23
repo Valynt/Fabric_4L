@@ -2,6 +2,9 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiGet, apiPatch, apiPost } from '@/api/typedClient';
 import { QK } from './queryKeys';
 import { safeAsync } from '@/lib/async';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useNotifications');
 
 export interface NotificationRecord {
   id: string;
@@ -64,6 +67,9 @@ export function useCreateNotification() {
     onSuccess: () => {
       safeAsync(queryClient.invalidateQueries({ queryKey: QK.notifications.all }), "notifications.invalidate");
     },
+    onError: (error) => {
+      log.error('CreateNotification failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -76,6 +82,9 @@ export function useMarkNotificationRead() {
     },
     onSuccess: () => {
       safeAsync(queryClient.invalidateQueries({ queryKey: QK.notifications.all }), "notifications.invalidate");
+    },
+    onError: (error) => {
+      log.error('MarkNotificationRead failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

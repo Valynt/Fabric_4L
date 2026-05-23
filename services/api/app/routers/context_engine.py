@@ -1,15 +1,21 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Formula, ValuePack
+from app.models.schemas import Formula, PaginatedResponse, ValuePack
 
 router = APIRouter(prefix="/context-engine", tags=["Context Engine"])
 
 
-@router.get("/value-packs", response_model=list[ValuePack])
-async def list_value_packs(tenant_id: str = Depends(tenant_required)):
-    return db.value_packs.list()
+@router.get("/value-packs", response_model=PaginatedResponse[ValuePack])
+async def list_value_packs(
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.value_packs.list(limit=limit, offset=offset)
+    total = len(db.value_packs.list())
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/value-packs/{value_pack_id}", response_model=ValuePack)
@@ -20,9 +26,15 @@ async def get_value_pack(value_pack_id: str, tenant_id: str = Depends(tenant_req
     return pack
 
 
-@router.get("/formulas", response_model=list[Formula])
-async def list_formulas(tenant_id: str = Depends(tenant_required)):
-    return db.formulas.list()
+@router.get("/formulas", response_model=PaginatedResponse[Formula])
+async def list_formulas(
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.formulas.list(limit=limit, offset=offset)
+    total = len(db.formulas.list())
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/formulas/{formula_id}", response_model=Formula)
@@ -33,9 +45,13 @@ async def get_formula(formula_id: str, tenant_id: str = Depends(tenant_required)
     return formula
 
 
-@router.get("/benchmarks")
-async def list_benchmarks(tenant_id: str = Depends(tenant_required)):
-    return {"benchmarks": []}
+@router.get("/benchmarks", response_model=PaginatedResponse[dict])
+async def list_benchmarks(
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    return PaginatedResponse(items=[], total=0, limit=limit, offset=offset)
 
 
 @router.get("/ontology")

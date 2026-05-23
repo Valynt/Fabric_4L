@@ -1,17 +1,24 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Signal, Stakeholder
+from app.models.schemas import PaginatedResponse, Signal, Stakeholder
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Intelligence"])
 legacy_router = APIRouter(prefix="/intelligence/account/{account_id}", tags=["Intelligence"])
 
 
-@router.get("/signals", response_model=list[Signal])
-async def list_signals(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+@router.get("/signals", response_model=PaginatedResponse[Signal])
+async def list_signals(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
+    total = len(db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.post("/signals/extract", response_model=Signal, status_code=201)
@@ -30,9 +37,16 @@ async def extract_signal(
     return signal
 
 
-@router.get("/stakeholders", response_model=list[Stakeholder])
-async def list_stakeholders(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+@router.get("/stakeholders", response_model=PaginatedResponse[Stakeholder])
+async def list_stakeholders(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
+    total = len(db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/ontology-match")
@@ -67,9 +81,14 @@ async def get_enrichment(account_id: str, tenant_id: str = Depends(tenant_requir
     }
 
 
-@legacy_router.get("/signals", response_model=list[Signal])
-async def list_signals_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await list_signals(account_id=account_id, tenant_id=tenant_id)
+@legacy_router.get("/signals", response_model=PaginatedResponse[Signal])
+async def list_signals_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    return await list_signals(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
 
 
 @legacy_router.post("/signals/extract", response_model=Signal, status_code=201)
@@ -79,9 +98,14 @@ async def extract_signal_legacy(
     return await extract_signal(account_id=account_id, signal=signal, tenant_id=tenant_id)
 
 
-@legacy_router.get("/stakeholders", response_model=list[Stakeholder])
-async def list_stakeholders_legacy(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return await list_stakeholders(account_id=account_id, tenant_id=tenant_id)
+@legacy_router.get("/stakeholders", response_model=PaginatedResponse[Stakeholder])
+async def list_stakeholders_legacy(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    return await list_stakeholders(account_id=account_id, tenant_id=tenant_id, limit=limit, offset=offset)
 
 
 @legacy_router.get("/ontology-match")

@@ -5,6 +5,9 @@ import { STALE_TIME } from './useApiShared';
 import { POLL_INTERVALS } from './usePolling';
 import { parseIngestionAggregation, parseIngestionJobs, type ApiIngestionJobDto, type ApiComplianceLogDto } from '@/types/api';
 import type { l1 } from '@/api/generated';
+import { createLogger } from '@/lib/telemetry';
+
+const log = createLogger('useIngestion');
 
 export interface IngestionJob {
   id: string;
@@ -273,6 +276,9 @@ export function useSubmitDomain() {
       queryClient.invalidateQueries({ queryKey: QK.ingestion.recent() });
       queryClient.invalidateQueries({ queryKey: QK.ingestion.stats() });
     },
+    onError: (error) => {
+      log.error('SubmitDomain failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -426,6 +432,9 @@ export function useCancelJob() {
       queryClient.invalidateQueries({ queryKey: QK.ingestion.detail(jobId) });
       queryClient.invalidateQueries({ queryKey: QK.ingestion.all });
     },
+    onError: (error) => {
+      log.error('CancelJob failed', { error: error instanceof Error ? error.message : String(error) });
+    },
   });
 }
 
@@ -439,6 +448,9 @@ export function useRetryJob() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.ingestion.all });
+    },
+    onError: (error) => {
+      log.error('RetryJob failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }
@@ -480,6 +492,9 @@ export function useBatchOperation() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: QK.ingestion.all });
+    },
+    onError: (error) => {
+      log.error('BatchOperation failed', { error: error instanceof Error ? error.message : String(error) });
     },
   });
 }

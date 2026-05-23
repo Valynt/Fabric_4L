@@ -8,7 +8,7 @@ from fastapi.responses import StreamingResponse
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import AgentRun
+from app.models.schemas import AgentRun, WorkflowResponse
 from app.services.agent_orchestrator import orchestrator
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
@@ -73,7 +73,7 @@ async def cancel_agent_run(run_id: str, tenant_id: str = Depends(tenant_required
     return orchestrator.cancel_run(run_id)
 
 
-@router.post("/workflows", status_code=201)
+@router.post("/workflows", response_model=WorkflowResponse, status_code=201)
 async def create_workflow(payload: dict[str, Any], tenant_id: str = Depends(tenant_required)):
     run = orchestrator.create_run(
         tenant_id=tenant_id,
@@ -84,7 +84,7 @@ async def create_workflow(payload: dict[str, Any], tenant_id: str = Depends(tena
     return _run_to_workflow_payload(run)
 
 
-@router.get("/workflows/active")
+@router.get("/workflows/active", response_model=list[WorkflowResponse])
 async def list_active_workflows(tenant_id: str = Depends(tenant_required)):
     active_like_statuses = {"pending", "running", "paused", "interrupted"}
     runs = db.agent_runs.list(tenant_id=tenant_id)
@@ -92,7 +92,7 @@ async def list_active_workflows(tenant_id: str = Depends(tenant_required)):
     return workflows
 
 
-@router.get("/workflows/{id}")
+@router.get("/workflows/{id}", response_model=WorkflowResponse)
 async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
@@ -100,7 +100,7 @@ async def get_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     return _run_to_workflow_payload(run)
 
 
-@router.delete("/workflows/{id}")
+@router.delete("/workflows/{id}", response_model=WorkflowResponse)
 async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
@@ -109,7 +109,7 @@ async def cancel_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     return _run_to_workflow_payload(cancelled)
 
 
-@router.post("/workflows/{id}/pause")
+@router.post("/workflows/{id}/pause", response_model=WorkflowResponse)
 async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:
@@ -120,7 +120,7 @@ async def pause_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     return _run_to_workflow_payload(run)
 
 
-@router.post("/workflows/{id}/resume")
+@router.post("/workflows/{id}/resume", response_model=WorkflowResponse)
 async def resume_workflow(id: str, tenant_id: str = Depends(tenant_required)):
     run = db.agent_runs.get(id, tenant_id=tenant_id)
     if not run:

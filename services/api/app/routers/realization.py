@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
+from app.models.schemas import ROICalculation, RealizationRecommendationsResponse, RealizationVarianceResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Realization"])
 
 
-@router.post("/realization-plans")
+@router.post("/realization-plans", response_model=ROICalculation)
 async def create_realization_plan(
     account_id: str,
     plan: dict[str, Any],
@@ -21,7 +22,7 @@ async def create_realization_plan(
     return plan
 
 
-@router.get("/realization-plans")
+@router.get("/realization-plans", response_model=list[ROICalculation])
 async def list_realization_plans(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
@@ -32,7 +33,7 @@ async def list_realization_plans(
     )
 
 
-@router.patch("/realization-plans/{plan_id}/actuals")
+@router.patch("/realization-plans/{plan_id}/actuals", response_model=ROICalculation)
 async def update_actuals(
     account_id: str,
     plan_id: str,
@@ -46,7 +47,7 @@ async def update_actuals(
     return updated
 
 
-@router.get("/realization-plans/{plan_id}/variance")
+@router.get("/realization-plans/{plan_id}/variance", response_model=RealizationVarianceResponse)
 async def get_variance(
     account_id: str,
     plan_id: str,
@@ -63,7 +64,7 @@ async def get_variance(
     }
 
 
-@router.get("/realization-plans/{plan_id}/recommendations")
+@router.get("/realization-plans/{plan_id}/recommendations", response_model=RealizationRecommendationsResponse)
 async def get_recommendations(
     account_id: str,
     plan_id: str,

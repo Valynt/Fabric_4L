@@ -1,10 +1,10 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import AccountVersionSnapshot
+from app.models.schemas import AccountVersionSnapshot, PaginatedResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Versioning"])
 
@@ -21,15 +21,21 @@ async def create_snapshot(
     return snapshot
 
 
-@router.get("/snapshots", response_model=list[AccountVersionSnapshot])
+@router.get("/snapshots", response_model=PaginatedResponse[AccountVersionSnapshot])
 async def list_snapshots(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
 ):
-    return db.snapshots.list(
+    items = db.snapshots.list(
         tenant_id=tenant_id,
         filter_fn=lambda s: s.account_id == account_id,
+        limit=limit,
+        offset=offset,
     )
+    total = len(db.snapshots.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/snapshots/{snapshot_id}", response_model=AccountVersionSnapshot)

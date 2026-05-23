@@ -36,6 +36,7 @@ services:
 volumes:
   grafana-data:
   alertmanager-data:
+  jaeger-data:
 
 networks:
   value-fabric-network:

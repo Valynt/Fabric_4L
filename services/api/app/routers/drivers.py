@@ -1,18 +1,25 @@
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import ValueDriver
+from app.models.schemas import PaginatedResponse, ValueDriver
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Driver Tree"])
 
 
-@router.get("/drivers", response_model=list[ValueDriver])
-async def list_drivers(account_id: str, tenant_id: str = Depends(tenant_required)):
-    return db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id)
+@router.get("/drivers", response_model=PaginatedResponse[ValueDriver])
+async def list_drivers(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id, limit=limit, offset=offset)
+    total = len(db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/value-tree")

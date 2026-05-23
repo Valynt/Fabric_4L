@@ -509,7 +509,7 @@ services:
       timeout: 10s
       retries: 3
 
-  # Task 62: Distributed Tracing - Jaeger all-in-one
+  # Task 62: Distributed Tracing - Jaeger with Badger persistent storage
   jaeger:
     image: jaegertracing/all-in-one:1.50
     container_name: value-fabric-jaeger
@@ -520,6 +520,13 @@ services:
       - "14268"  # Jaeger thrift
     environment:
       - COLLECTOR_OTLP_ENABLED=true
+      - SPAN_STORAGE_TYPE=badger
+      - BADGER_EPHEMERAL=false
+      - BADGER_DIRECTORY_VALUE=/badger/data
+      - BADGER_DIRECTORY_KEY=/badger/key
+      - BADGER_SPAN_STORE_TTL=336h  # 14 days retention (>7 days required)
+    volumes:
+      - jaeger-data:/badger
     networks:
       - value-fabric-network
     restart: unless-stopped
@@ -606,6 +613,7 @@ volumes:
   ground-truth-data:
   grafana-data:
   alertmanager-data:
+  jaeger-data:
 
 networks:
   value-fabric-network:

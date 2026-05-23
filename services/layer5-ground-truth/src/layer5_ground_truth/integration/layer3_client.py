@@ -21,8 +21,6 @@ from pydantic import ValidationError
 
 from metrics.prometheus_metrics import get_metrics
 
-from metrics.prometheus_metrics import get_metrics
-
 from ..config import get_settings
 
 logger = logging.getLogger(__name__)
@@ -166,13 +164,13 @@ class Layer3Client:
             client = self._get_client()
             resp = await client.get(f"{self._base_url}/health", headers=self._headers)
             return resp.status_code == 200
-        except httpx.TimeoutException as exc:
+        except httpx.TimeoutException:
             logger.debug(
                 "layer3_ping_timeout",
                 extra=_log_context(tenant_id=None, error_code=ERR_LAYER3_TIMEOUT),
             )
             return False
-        except httpx.RequestError as exc:
+        except httpx.RequestError:
             logger.debug(
                 "layer3_ping_http_client_error",
                 extra=_log_context(tenant_id=None, error_code=ERR_LAYER3_HTTP_CLIENT),
@@ -367,7 +365,7 @@ class Layer3Client:
                     ),
                 )
                 return None
-            except httpx.TimeoutException as exc:
+            except httpx.TimeoutException:
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt
                     logger.warning(
@@ -640,7 +638,7 @@ class Layer3Client:
                     exc.response.status_code,
                 )
                 return False
-            except httpx.TimeoutException as exc:
+            except httpx.TimeoutException:
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt
                     await asyncio.sleep(wait_time)
@@ -649,14 +647,14 @@ class Layer3Client:
                     "layer3_link_timeout",
                     extra=_log_context(
                         tenant_id=None,
-                        request_id=request_id,
+                        request_id=None,
                         error_code=ERR_LAYER3_TIMEOUT,
                         sync_status="timeout",
                         attempt=attempt + 1,
                     ),
                 )
                 return False
-            except httpx.RequestError as exc:
+            except httpx.RequestError:
                 if attempt < max_retries - 1:
                     wait_time = 2**attempt
                     await asyncio.sleep(wait_time)
@@ -665,7 +663,7 @@ class Layer3Client:
                     "layer3_link_http_client_error",
                     extra=_log_context(
                         tenant_id=None,
-                        request_id=request_id,
+                        request_id=None,
                         error_code=ERR_LAYER3_HTTP_CLIENT,
                         sync_status="failed",
                         attempt=attempt + 1,
@@ -704,7 +702,7 @@ class Layer3Client:
                     "layer3_entity_context_contract_invalid",
                     extra=_log_context(
                         tenant_id=tenant_id,
-                        request_id=request_id,
+                        request_id=None,
                         error_code=ERR_LAYER3_CONTRACT_INVALID,
                         sync_status="contract_invalid",
                     ),
@@ -716,7 +714,7 @@ class Layer3Client:
                     "layer3_entity_context_tenant_mismatch",
                     extra=_log_context(
                         tenant_id=tenant_id,
-                        request_id=request_id,
+                        request_id=None,
                         error_code=ERR_LAYER3_TENANT_MISMATCH,
                         sync_status="tenant_mismatch",
                     ),
@@ -740,18 +738,19 @@ class Layer3Client:
                 ),
             )
             return None
-        except httpx.TimeoutException as exc:
+        except httpx.TimeoutException:
             logger.debug(
                 "layer3_entity_context_timeout",
                 extra=_log_context(tenant_id=tenant_id, error_code=ERR_LAYER3_TIMEOUT),
             )
             return None
-        except httpx.RequestError as exc:
+        except httpx.RequestError:
             logger.debug(
                 "layer3_entity_context_http_client_error",
                 extra=_log_context(
                     tenant_id=tenant_id, error_code=ERR_LAYER3_HTTP_CLIENT
                 ),
+            )
             payload = resp.json()
             if not isinstance(payload, dict):
                 raise ValidationError.from_exception_data(
@@ -770,7 +769,7 @@ class Layer3Client:
                 logger.warning(
                     "Layer 3 entity context tenant mismatch",
                     extra={
-                        "error_code": L3_ERR_CONTRACT,
+                        "error_code": ERR_LAYER3_CONTRACT_INVALID,
                         "request_id": None,
                         "tenant_id": request_tenant,
                         "entity_id": entity_id,
@@ -779,23 +778,11 @@ class Layer3Client:
                 )
                 return None
             return payload
-        except httpx.TimeoutException as exc:
-            logger.warning(
-                "Layer 3 entity context fetch timed out",
-                extra={
-                    "error_code": L3_ERR_TIMEOUT,
-                    "request_id": None,
-                    "tenant_id": request_tenant,
-                    "entity_id": entity_id,
-                },
-            )
-            logger.debug("Layer 3 timeout details for entity %s: %s", entity_id, exc)
-            return None
         except httpx.HTTPError as exc:
             logger.warning(
                 "Layer 3 entity context HTTP client failure",
                 extra={
-                    "error_code": L3_ERR_HTTP_CLIENT,
+                    "error_code": ERR_LAYER3_HTTP_CLIENT,
                     "request_id": None,
                     "tenant_id": request_tenant,
                     "entity_id": entity_id,
@@ -803,27 +790,12 @@ class Layer3Client:
             )
             logger.debug("Layer 3 HTTP client failure for entity %s: %s", entity_id, exc)
             return None
-        except ValidationError as exc:
-            logger.warning(
-                "Layer 3 entity context contract validation failed",
-                extra={
-                    "error_code": L3_ERR_CONTRACT,
-                    "request_id": None,
-                    "tenant_id": request_tenant,
-                    "entity_id": entity_id,
-                },
-            )
-            logger.debug("Layer 3 contract validation details for entity %s: %s", entity_id, exc)
-            return None
-        except Exception as exc:
-            logger.debug("Layer 3 entity context fetch failed for %s: %s", entity_id, exc)
-            return None
-        except (json.JSONDecodeError, ValueError) as exc:
+        except json.JSONDecodeError as exc:
             logger.warning(
                 "layer3_entity_context_contract_invalid_json",
                 extra=_log_context(
                     tenant_id=tenant_id,
-                    request_id=request_id,
+                    request_id=None,
                     error_code=ERR_LAYER3_CONTRACT_INVALID,
                     sync_status="contract_invalid",
                 ),
@@ -834,7 +806,7 @@ class Layer3Client:
             logger.warning(
                 "Layer 3 entity context contract validation failed",
                 extra={
-                    "error_code": L3_ERR_CONTRACT,
+                    "error_code": ERR_LAYER3_CONTRACT_INVALID,
                     "request_id": None,
                     "tenant_id": request_tenant,
                     "entity_id": entity_id,

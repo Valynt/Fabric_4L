@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import GovernanceGate, ReviewDecision
+from app.models.schemas import GovernanceGate, PaginatedResponse, ReviewDecision
 
 router = APIRouter(prefix="/governance", tags=["Governance"])
 
@@ -35,9 +35,15 @@ async def create_review_decision(
     return decision
 
 
-@router.get("/prod-gates", response_model=list[GovernanceGate])
-async def list_prod_gates(tenant_id: str = Depends(tenant_required)):
-    return db.governance_gates.list(tenant_id=tenant_id)
+@router.get("/prod-gates", response_model=PaginatedResponse[GovernanceGate])
+async def list_prod_gates(
+    tenant_id: str = Depends(tenant_required),
+    limit: int = Query(50, ge=1, le=1000),
+    offset: int = Query(0, ge=0),
+):
+    items = db.governance_gates.list(tenant_id=tenant_id, limit=limit, offset=offset)
+    total = len(db.governance_gates.list(tenant_id=tenant_id))
+    return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/audit-log")

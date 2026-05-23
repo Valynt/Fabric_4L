@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import Response
 
@@ -9,6 +11,7 @@ from app.models.schemas import DSARRequestCreate
 from app.services import dsar_service
 from app.core.database import db
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/privacy", tags=["Privacy"])
 
 
@@ -20,7 +23,8 @@ async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenan
     try:
         complete = dsar_service.reconcile_package(refreshed)
     except ValueError as exc:
-        raise HTTPException(status_code=422, detail=str(exc))
+        logger.warning("DSAR reconciliation failed: %s", exc)
+        raise HTTPException(status_code=422, detail="Invalid DSAR request") from exc
     return {"request": complete, "download_url": dsar_service.issue_download_url(package)}
 
 
@@ -40,5 +44,6 @@ async def download_dsar_package(package_id: str, token: str = Query(...), tenant
     try:
         dsar_service.validate_download_access(package, requester_user_id=auth.sub, token=token)
     except PermissionError as exc:
-        raise HTTPException(status_code=403, detail=str(exc))
+        logger.warning("DSAR download access denied: %s", exc)
+        raise HTTPException(status_code=403, detail="Access denied") from exc
     return Response(content=dsar_service.serialize_package(package), media_type='application/json')

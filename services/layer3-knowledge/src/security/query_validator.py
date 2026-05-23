@@ -254,7 +254,17 @@ class QueryValidator:
         """
         matches = self._ENTITY_MATCH_PATTERN.findall(query)
         
+        # Collect aliases that have tenant_id scoped in a WHERE clause
+        where_scoped_aliases = {
+            m.group(1).lower()
+            for m in self._WHERE_TENANT_PATTERN.finditer(query)
+        }
+        
         for node_var, node_type, properties in matches:
+            # Check if the alias is tenant-scoped via WHERE
+            if node_var.lower() in where_scoped_aliases:
+                continue
+            
             # Check if properties include tenant_id
             if not properties:
                 # No properties at all - definitely unscoped

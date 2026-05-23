@@ -118,6 +118,7 @@ const ReviewQueuePage = lazy(() => import("@/pages/ReviewQueuePage"));
 const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage"));
 const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies"));
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
+const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole"));
 
 // ── Workflow ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
@@ -562,6 +563,7 @@ export const router = createBrowserRouter([
       { path: "/governance/audit/log", element: <ProtectedRoute requiredTier="admin"><GovernanceAuditLogPage /></ProtectedRoute> },
       { path: "/governance/audit/changes", element: <ProtectedRoute requiredTier="admin"><GovernanceChangeHistoryPage /></ProtectedRoute> },
       { path: "/governance/health", element: <ProtectedRoute requiredTier="admin"><HealthMonitorPage /></ProtectedRoute> },
+      { path: "/admin/console", element: <ProtectedRoute requiredTier="admin"><SuperAdminConsolePage /></ProtectedRoute> },
       { path: "/governance/reviews/:accountId", element: <ProtectedRoute><ReviewQueuePage /></ProtectedRoute> },
       { path: "/governance/versions/:accountId", element: <ProtectedRoute><VersionHistoryPage /></ProtectedRoute> },
 

@@ -25,10 +25,6 @@ from uuid import UUID
 import jwt
 from fastapi import Depends, HTTPException, Request, status
 from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
-from value_fabric.shared.identity.fallback_telemetry import (
-    enforce_fallback_enabled,
-    record_fallback_usage,
-)
 from value_fabric.shared.identity.permissions import (
     Role,
     get_role_permissions,

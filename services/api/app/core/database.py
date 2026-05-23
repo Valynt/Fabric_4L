@@ -138,6 +138,8 @@ class InMemoryTable(Generic[T]):
         filter_fn: Callable[[T], bool] | None = None,
         *,
         allow_system_scope: bool = False,
+        limit: int | None = None,
+        offset: int | None = None,
     ) -> builtins.list[T]:
         normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="list")
         with self._lock:
@@ -153,6 +155,10 @@ class InMemoryTable(Generic[T]):
                 items = [i for i in items if self._get_tenant_id(i) == normalized_tenant_id]
         if filter_fn:
             items = [i for i in items if filter_fn(i)]
+        if offset:
+            items = items[offset:]
+        if limit is not None:
+            items = items[:limit]
         return items
 
     def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
