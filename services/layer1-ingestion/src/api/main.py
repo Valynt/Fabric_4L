@@ -95,7 +95,7 @@ class _UnavailableTask:
         self.task_name = task_name
         self.import_error = import_error
 
-    def delay(self, *args: Any, **kwargs: Any) -> None:
+    def delay(self, *args: Any, **kwargs: Any) -> "NoReturn":
         job_id = str(args[0]) if args else None
         logger.error(
             "background_task_unavailable",
