@@ -19,11 +19,7 @@ services:
       resources:
         limits:
           cpus: '0.5'
-<<<<<<< HEAD
           memory: '1GiB'
-=======
-          memory: 1GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
     healthcheck:
       test:
       - CMD-SHELL
@@ -51,12 +47,8 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
 
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   neo4j:
     image: neo4j:5-community
     container_name: vf-live-neo4j
@@ -80,12 +72,8 @@ services:
       resources:
         limits:
           cpus: '0.75'
-<<<<<<< HEAD
           memory: '2GiB'
 
-=======
-          memory: 2GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   minio:
     image: minio/minio:latest
     container_name: vf-live-minio
@@ -110,12 +98,8 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
 
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   minio-init:
     image: minio/mc:latest
     container_name: vf-live-minio-init
@@ -168,12 +152,8 @@ services:
       resources:
         limits:
           cpus: '0.5'
-<<<<<<< HEAD
           memory: '1GiB'
 
-=======
-          memory: 1GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer1-worker:
     build:
       context: .
@@ -207,15 +187,11 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 2: Extraction Service (internal container port 8000)
   # ---------------------------------------------------------------------------
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer2:
     build:
       context: .
@@ -256,15 +232,11 @@ services:
       resources:
         limits:
           cpus: '1.0'
-<<<<<<< HEAD
           memory: '2GiB'
 
   # ---------------------------------------------------------------------------
   # Layer 3: Knowledge Graph Service (internal container port 8001)
   # ---------------------------------------------------------------------------
-=======
-          memory: 2GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer3:
     build:
       context: .
@@ -296,12 +268,8 @@ services:
       resources:
         limits:
           cpus: '0.5'
-<<<<<<< HEAD
           memory: '2GiB'
 
-=======
-          memory: 2GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer3-neo4j-migrate:
     build:
       context: .
@@ -328,15 +296,11 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 4: Agents Service (public host port 8004)
   # ---------------------------------------------------------------------------
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer4:
     build:
       context: ./services/layer4-agents
@@ -386,15 +350,11 @@ services:
       resources:
         limits:
           cpus: '1.5'
-<<<<<<< HEAD
           memory: '2GiB'
 
   # ---------------------------------------------------------------------------
   # Layer 5: Ground Truth Service (internal container port 8005)
   # ---------------------------------------------------------------------------
-=======
-          memory: 2GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer5:
     build:
       context: .
@@ -430,12 +390,8 @@ services:
       resources:
         limits:
           cpus: '0.5'
-<<<<<<< HEAD
           memory: '1GiB'
 
-=======
-          memory: 1GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer5-migrate:
     build:
       context: .
@@ -461,15 +417,11 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
 
   # ---------------------------------------------------------------------------
   # Layer 6: Benchmarks Service (internal container port 8006)
   # ---------------------------------------------------------------------------
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   layer6:
     build:
       context: .
@@ -505,15 +457,11 @@ services:
       resources:
         limits:
           cpus: '0.5'
-<<<<<<< HEAD
           memory: '1GiB'
 
   # ---------------------------------------------------------------------------
   # Frontend — Live Workflow Validation UI (public host port 3001)
   # ---------------------------------------------------------------------------
-=======
-          memory: 1GiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
   frontend:
     build:
       context: .
@@ -537,11 +485,7 @@ services:
       resources:
         limits:
           cpus: '0.25'
-<<<<<<< HEAD
           memory: '512MiB'
-=======
-          memory: 512MiB
->>>>>>> 7fc95774fcc29fcc5a1d7bdf926d4df6b78f7ce6
     volumes:
     - ./apps/web:/app
     - /app/node_modules
