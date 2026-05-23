@@ -1,6 +1,7 @@
-"""Plan and feature configuration for billing.
+"""Plan and feature configuration for billing bootstrap defaults.
 
-Defines available plans, their entitlements, and usage limits for overage detection.
+This module is intended for defaults/bootstrapping only.
+Production billing should use persisted, versioned plan configuration.
 """
 
 from __future__ import annotations
@@ -313,4 +314,29 @@ def get_entitlements_response(plan_id: str) -> dict[str, Any]:
         "features": features,
     })
 
+
+def build_plan_version_payload(plan_id: str) -> dict[str, Any]:
+    """Serialize in-code defaults into a persisted plan-version payload."""
+    plan = get_plan(plan_id)
+    if not plan:
+        raise ValueError(f"Unknown plan_id: {plan_id}")
+
+    usage_limits = {
+        metric_name: {
+            "metric_name": limit.metric_name,
+            "included_amount": limit.included_amount,
+            "period": limit.period,
+            "overage_rate": limit.overage_rate,
+            "hard_limit": limit.hard_limit,
+            "warning_threshold": limit.warning_threshold,
+        }
+        for metric_name, limit in plan.usage_limits.items()
+    }
+    return {
+        "plan_id": plan.id,
+        "plan_name": plan.name,
+        "description": plan.description,
+        "features": sorted(plan.features),
+        "usage_limits": usage_limits,
+    }
 
