@@ -13,6 +13,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 from datetime import datetime
 
+pytestmark = [pytest.mark.chaos, pytest.mark.slow]
+
 
 class TestLLMProviderUnavailable:
     """Verify behavior when LLM providers are unavailable."""
@@ -20,11 +22,14 @@ class TestLLMProviderUnavailable:
     @pytest.mark.asyncio
     async def test_openai_api_error_returns_structured_failure(self):
         """When OpenAI API returns error, system returns structured failure.
-        
+
         Security: Error must not expose API keys or internal retry logic.
         Safety: Caller must know the LLM call failed.
         """
-        from openai import APIError, APITimeoutError
+        try:
+            from openai import APIError, APITimeoutError
+        except ImportError:
+            pytest.skip("OpenAI not installed")
         
         mock_client = AsyncMock()
         mock_client.chat.completions.create = AsyncMock(
@@ -80,10 +85,13 @@ class TestLLMProviderUnavailable:
     @pytest.mark.asyncio
     async def test_llm_timeout_returns_explicit_timeout_error(self):
         """When LLM call times out, explicit timeout error is returned.
-        
+
         Caller must be able to distinguish timeout from other failures for retry logic.
         """
-        from openai import APITimeoutError
+        try:
+            from openai import APITimeoutError
+        except ImportError:
+            pytest.skip("OpenAI not installed")
         
         mock_client = AsyncMock()
         mock_client.chat.completions.create = AsyncMock(

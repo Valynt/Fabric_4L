@@ -549,7 +549,7 @@ gates-validate-policy: ## Validate gate policy schema, profile existence, and ar
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
 	@if [ ! -d tests/chaos ] || [ -z "$$(find tests/chaos -name 'test_*.py' -print -quit)" ]; then \
-		echo "❌ PLACEHOLDER: No chaos tests implemented (0 test files)."; \
+		echo "❌ No chaos test files found in tests/chaos/"; \
 		exit 1; \
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
@@ -568,7 +568,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 gate-agent: ## Gate: agent provenance and behavior regression
 	@echo "→ Gate: Agent"
 	@if [ ! -d tests/agents ] || [ -z "$$(find tests/agents -name 'test_*.py' -print -quit)" ]; then \
-		echo "❌ PLACEHOLDER: No agent tests implemented."; \
+		echo "❌ No agent test files found in tests/agents/"; \
 		exit 1; \
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
@@ -579,7 +579,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 gate-obs: ## Gate: observability, metrics, and SLO validation
 	@echo "→ Gate: Observability"
 	@if [ ! -d tests/performance ] || [ -z "$$(find tests/performance -name 'test_*.py' -print -quit)" ]; then \
-		echo "❌ PLACEHOLDER: No performance tests implemented."; \
+		echo "❌ No performance test files found in tests/performance/"; \
 		exit 1; \
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
@@ -590,7 +590,7 @@ gate-obs: ## Gate: observability, metrics, and SLO validation
 gate-release-policy: ## Gate: release policy compliance
 	@echo "→ Gate: Release Policy"
 	@if [ ! -d tests/release ] || [ -z "$$(find tests/release -name 'test_*.py' -print -quit)" ]; then \
-		echo "❌ PLACEHOLDER: No release-policy tests implemented."; \
+		echo "❌ No release-policy test files found in tests/release/"; \
 		exit 1; \
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)

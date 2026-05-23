@@ -16,6 +16,8 @@ import sqlalchemy
 from sqlalchemy.exc import OperationalError, DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
+pytestmark = [pytest.mark.chaos]
+
 
 class TestDatabaseConnectionFailure:
     """Verify system behavior when database connection fails."""

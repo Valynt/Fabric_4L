@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy import text
 
-pytestmark = [pytest.mark.performance, pytest.mark.integration]
+pytestmark = [pytest.mark.performance, pytest.mark.integration, pytest.mark.requires_postgres]
 
 
 class TestConnectionPoolExhaustion:

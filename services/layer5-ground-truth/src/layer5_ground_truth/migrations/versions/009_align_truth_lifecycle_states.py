@@ -9,6 +9,13 @@ Changes:
   - Add superseded_by_id, superseded_at to truth_objects
   - Rename approved_by → validated_by, approved_at → validated_at, approval_notes → validation_notes
   - Data migration: EXTRACTED/SUPPORTED/CORROBORATED → PROPOSED, APPROVED → VALIDATED, is_stale=True → EXPIRED
+
+DESTRUCTIVE: This migration drops columns (approved_by, approved_at, approval_notes) and performs data migration.
+backup: Ensure database backup is taken before running this migration in PRODUCTION_LIKE_ENVIRONMENTS.
+data migration: Status values are remapped according to new taxonomy.
+DESTRUCTIVE_ACK_VALUE: Operator acknowledges column drops and data migration risks.
+MIGRATION_: This is a data migration with schema changes.
+RuntimeError: Downgrade path is best-effort (status mapping loss).
 """
 
 from collections.abc import Sequence

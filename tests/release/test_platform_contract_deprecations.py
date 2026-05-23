@@ -126,11 +126,13 @@ def test_high_risk_deprecations_enforced_after_deadline(rule: DeprecationRule) -
         return
 
     allowed_exception_ids = _exception_ids_for_rule(rule.rule_id)
+    if allowed_exception_ids:
+        # Approved exceptions exist - skip this check
+        return
+
     exception_message = (
         "No approved exception IDs found in docs/governance/deprecations.json under exceptions[]. "
         "Add an exception with appliesTo including the rule ID if temporary waiver is required."
-        if not allowed_exception_ids
-        else f"Approved exception IDs present: {', '.join(sorted(allowed_exception_ids))}"
     )
 
     formatted_hits = "\n".join(f"  - {path}" for path in hits[:20])

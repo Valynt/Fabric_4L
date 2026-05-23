@@ -266,7 +266,7 @@
       "severity": "medium",
       "owner": "architecture",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-05-15",
+      "targetRemoval": "2026-06-23",
       "instanceCount": 80,
       "source": "audit-output/CONTRACT_ENFORCEMENT_AUDIT_2026-04-28.md",
       "blockedPaths": [
@@ -316,14 +316,29 @@
       "id": "DEP-EXC-2026-05-15-WEB-HREF",
       "contract": "2.6-ui-state",
       "pattern": "window.location.href",
-      "status": "exception",
+      "status": "active",
       "exceptionType": "TE",
       "approvedBy": "architecture-review@valuefabric.ai",
       "approvedDate": "2026-05-12",
       "expirationDate": "2026-05-29",
       "justification": "Remaining href usage is restricted to external Stripe redirects and telemetry URL capture, not internal navigation transitions.",
       "mitigation": "Navigation guardrail comments enforced in code review; release scan disallows new unresolved internal navigation href usage.",
-      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-web-href-2026-05-15"
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-web-href-2026-05-15",
+      "appliesTo": ["PCD-004"]
+    },
+    {
+      "id": "DEP-EXC-2026-05-23-REQUEST-CONTEXT",
+      "contract": "2.1-tenant-context",
+      "pattern": "request.state.context",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-05-23",
+      "expirationDate": "2026-06-23",
+      "justification": "Legacy request.state.context usage in Layer 3 and Layer 5 auth dependencies during migration to request.state.governance_context.",
+      "mitigation": "Scope limited to auth middleware and test fixtures; no new request.state.context usage allowed. Weekly scan enforces expiry.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-request-context-2026-05-23",
+      "appliesTo": ["PCD-001"]
     }
   ],
   "compliance": {

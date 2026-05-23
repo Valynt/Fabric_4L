@@ -76,7 +76,7 @@ jobs:
       - name: Run smoke tests
         id: smoke
         run: |
-          python scripts/smoke/production_smoke.py \
+          python docs/runbooks/operational/production_smoke.py \
             --l2-url http://localhost:8002 \
             --l3-url http://localhost:8003 \
             --l4-url http://localhost:8004 \

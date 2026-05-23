@@ -51,8 +51,12 @@ htmlcov/
 **/blob-report/
 **/.playwright-artifacts*/
 
-# CI runtime artifacts
-artifacts/
+# CI runtime artifacts — keep directory skeleton, ignore generated files
+artifacts/*
+!artifacts/*/
+!artifacts/*/.gitkeep
+# Ignore all contents of artifacts subdirectories
+artifacts/**/*
 
 # Node.js (if used at root)
 node_modules/

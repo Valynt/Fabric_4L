@@ -19,6 +19,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = [pytest.mark.performance, pytest.mark.slow]
+
 pytestmark = [pytest.mark.slow]
 
 from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
@@ -81,7 +83,7 @@ class TestHybridSearchParallelization:
 
         # Execute search
         start_time = time.monotonic()
-        await search.search("test query", top_k=10)
+        await search.search("test query", tenant_id="test-tenant", top_k=10)
         total_time = time.monotonic() - start_time
 
         # With parallel execution, total time should be ~max(50ms, 80ms, 30ms) = 80ms
@@ -111,7 +113,7 @@ class TestHybridSearchParallelization:
         search._vector_search = failing_vector
 
         # Search should still complete with BM25 and graph results
-        results = await search.search("test query", top_k=10)
+        results = await search.search("test query", tenant_id="test-tenant", top_k=10)
 
         # Should get merged results (not empty)
         assert len(results) > 0
@@ -163,14 +165,15 @@ class TestGraphRAGBatching:
         engine.vector_store.search = AsyncMock(return_value=mock_vector_results)
 
         # Call the method
-        with patch.object(engine, "_get_driver", return_value=mock_driver):
+        with patch.object(engine, "_get_driver", return_value=mock_driver), \
+             patch.object(engine, "_resolve_tenant_id", return_value="test-tenant"):
             # Need to properly mock the session context manager
             mock_session_cm = AsyncMock()
             mock_session_cm.__aenter__ = AsyncMock(return_value=mock_session)
             mock_session_cm.__aexit__ = AsyncMock(return_value=False)
             mock_driver.session = MagicMock(return_value=mock_session_cm)
 
-            await engine._find_seed_entities("test query", None, 10)
+            await engine._find_seed_entities("test query", "test-tenant", 10)
 
         # Should make exactly 1 batched query, not 3 individual queries
         unwind_queries = [q for q in query_calls if q.get("has_unwind")]
