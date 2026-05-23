@@ -88,5 +88,5 @@ groups:
           owner: platform-sre
         annotations:
           summary: "Sustained DB pool utilization above 80%"
-          description: "Connection pool utilization has stayed above 80% for 10m on Layer 4 and/or Layer 5."
+          description: "Connection pool utilization has stayed above 80% for 10m. Value: {{ $value | printf \"%.2f\" }}. Check Layer 4 (layer4_db_pool_active_connections / layer4_db_pool_size) and Layer 5 (layer5_db_pool_active_connections / layer5_db_pool_size) to identify the affected layer."
           runbook_url: "https://docs.valuefabric.internal/runbooks/database/pool-utilization"
