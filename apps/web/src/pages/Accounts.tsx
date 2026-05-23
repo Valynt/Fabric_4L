@@ -258,6 +258,18 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
     );
   }
 
+  if (isLoading) {
+    return (
+      <RightRailPanel
+        title="Account Details"
+        onClose={onClose}
+        isLoading
+      >
+        <>{/* Loading skeleton rendered by RightRailPanel */}</>
+      </RightRailPanel>
+    );
+  }
+
   if (!account) {
     return (
       <RightRailPanel
@@ -722,13 +734,11 @@ function Accounts() {
           {/* Account Detail Panel */}
           {selectedAccountId && (
             <div className="col-span-1 md:col-span-3">
-              <div className="bg-card border border-border rounded-lg md:h-[calc(100vh-200px)] md:sticky md:top-8">
-                <AccountDetailPanel
-                  accountId={selectedAccountId}
-                  onClose={() => handleSelectAccount(null)}
-                  onLaunchIntelligence={(id) => navigateTo('intelligence-signals', { accountId: id })}
-                />
-              </div>
+              <AccountDetailPanel
+                accountId={selectedAccountId}
+                onClose={() => handleSelectAccount(null)}
+                onLaunchIntelligence={(id) => navigateTo('intelligence-signals', { accountId: id })}
+              />
             </div>
           )}
         </div>

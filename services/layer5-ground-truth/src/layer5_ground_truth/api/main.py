@@ -291,7 +291,28 @@ async def layer3_security_exception_handler(
         "layer3_security_policy_error",
         extra=_request_correlation_context(request, error_code=exc.error_code),
     )
-    return _layer3_error_response(request, exc)
+    # Use canonical error envelope format
+    try:
+        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+        from value_fabric.shared.error_handling.handlers import get_request_trace_id
+
+        request_id = get_request_trace_id(request)
+        error_envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=exc.error_code,
+                message=exc.message,
+                request_id=request_id,
+                details=exc.details if hasattr(exc, 'details') else None,
+            )
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_envelope.model_dump(),
+            headers={"X-Request-ID": request_id},
+        )
+    except ImportError:
+        # Fallback to old format if shared package not available
+        return _layer3_error_response(request, exc)
 
 
 async def layer3_operational_exception_handler(
@@ -302,7 +323,28 @@ async def layer3_operational_exception_handler(
         "layer3_operational_error",
         extra=_request_correlation_context(request, error_code=exc.error_code),
     )
-    return _layer3_error_response(request, exc)
+    # Use canonical error envelope format
+    try:
+        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+        from value_fabric.shared.error_handling.handlers import get_request_trace_id
+
+        request_id = get_request_trace_id(request)
+        error_envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=exc.error_code,
+                message=exc.message,
+                request_id=request_id,
+                details=exc.details if hasattr(exc, 'details') else None,
+            )
+        )
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=error_envelope.model_dump(),
+            headers={"X-Request-ID": request_id},
+        )
+    except ImportError:
+        # Fallback to old format if shared package not available
+        return _layer3_error_response(request, exc)
 
 
 # ---------------------------------------------------------------------------
@@ -485,59 +527,105 @@ def create_app() -> FastAPI:
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-        detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
-        error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
-        ctx = getattr(request.state, "governance_context", None)
-        tenant_id = (
-            str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
-            request.headers.get("X-Tenant-ID")
-        )
-        request_id = request.headers.get("X-Request-ID")
-        is_security_error = exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
-        logger.warning(
-            "security error response" if is_security_error else "operational http error response",
-            extra={
-                "error_code": error_code,
-                "request_id": request_id,
-                "tenant_id": tenant_id,
-                "path": request.url.path,
-                "status_code": exc.status_code,
-            },
-        )
-        return JSONResponse(
-            status_code=exc.status_code,
-            content={
-                "error": "security_error" if is_security_error else "operational_error",
-                "error_code": error_code,
-                "message": detail.get("message") or detail.get("detail") or str(exc.detail),
-            },
-        )
+        # Use canonical error envelope format
+        try:
+            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+            from value_fabric.shared.error_handling.handlers import get_request_trace_id
+
+            request_id = get_request_trace_id(request)
+            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            message = detail.get("message") or detail.get("detail") or str(exc.detail)
+
+            error_envelope = ErrorEnvelope(
+                error=ErrorDetail(
+                    code=error_code,
+                    message=message,
+                    request_id=request_id,
+                    details=None,
+                )
+            )
+            return JSONResponse(
+                status_code=exc.status_code,
+                content=error_envelope.model_dump(),
+                headers={"X-Request-ID": request_id},
+            )
+        except ImportError:
+            # Fallback to old format if shared package not available
+            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
+            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            ctx = getattr(request.state, "governance_context", None)
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
+                request.headers.get("X-Tenant-ID")
+            )
+            request_id = request.headers.get("X-Request-ID")
+            is_security_error = exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
+            logger.warning(
+                "security error response" if is_security_error else "operational http error response",
+                extra={
+                    "error_code": error_code,
+                    "request_id": request_id,
+                    "tenant_id": tenant_id,
+                    "path": request.url.path,
+                    "status_code": exc.status_code,
+                },
+            )
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": "security_error" if is_security_error else "operational_error",
+                    "error_code": error_code,
+                    "message": detail.get("message") or detail.get("detail") or str(exc.detail),
+                },
+            )
 
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
-        request_id = request.headers.get("X-Request-ID")
-        ctx = getattr(request.state, "governance_context", None)
-        tenant_id = (
-            str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
-            request.headers.get("X-Tenant-ID")
-        )
-        logger.exception(
-            "unhandled operational error",
-            extra={
-                "error_code": "L5_UNHANDLED_ERROR",
-                "request_id": request_id,
-                "tenant_id": tenant_id,
-                "path": request.url.path,
-            },
-        )
-        return JSONResponse(
-            status_code=500,
-            content={
-                "error": "operational_error",
-                "error_code": "L5_UNHANDLED_ERROR",
-                "message": "Internal server error",
-            },
-        )
+        # Use canonical error envelope format
+        try:
+            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+            from value_fabric.shared.error_handling.handlers import get_request_trace_id
+
+            request_id = get_request_trace_id(request)
+            error_envelope = ErrorEnvelope(
+                error=ErrorDetail(
+                    code="INTERNAL_ERROR",
+                    message="An unexpected error occurred. Please try again or contact support.",
+                    request_id=request_id,
+                    details=None,
+                )
+            )
+            return JSONResponse(
+                status_code=500,
+                content=error_envelope.model_dump(),
+                headers={"X-Request-ID": request_id},
+            )
+        except ImportError:
+            # Fallback to old format if shared package not available
+            request_id = request.headers.get("X-Request-ID")
+            ctx = getattr(request.state, "governance_context", None)
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
+                request.headers.get("X-Tenant-ID")
+            )
+            logger.exception(
+                "unhandled operational error",
+                extra={
+                    "error_code": "L5_UNHANDLED_ERROR",
+                    "request_id": request_id,
+                    "tenant_id": tenant_id,
+                    "path": request.url.path,
+                },
+            )
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "operational_error",
+                    "error_code": "L5_UNHANDLED_ERROR",
+                    "message": "Internal server error",
+                },
+            )
 
     class _AppStateRateLimiterProxy:
         def __init__(self, application: FastAPI):

@@ -19,9 +19,14 @@ from pathlib import Path
 
 import pytest
 
-pytestmark = [pytest.mark.performance, pytest.mark.slow]
+pytestmark = [pytest.mark.performance, pytest.mark.slow, pytest.mark.requires_infra]
 
-pytestmark = [pytest.mark.slow]
+# Timing threshold constants (configurable for different CI environments)
+PARALLEL_EXECUTION_MAX_TIME_MS = 150  # Maximum time for parallel execution (150ms)
+PARALLEL_SEARCH_DELAYS = {"bm25": 0.05, "vector": 0.08, "graph": 0.03}  # Simulated delays in seconds
+DEDUPLICATION_PERFORMANCE_MULTIPLIER = 10  # Set should be at least 10x faster than list
+SUBGRAPH_P95_MAX_TIME_MS = 100  # 95th percentile subgraph query budget
+LAYOUT_CALCULATION_MAX_TIME_MS = 10  # Layout calculation budget
 
 from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
 from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
@@ -57,7 +62,7 @@ class TestHybridSearchParallelization:
 
         # Track when each search starts and completes
         execution_log = []
-        delays = {"bm25": 0.05, "vector": 0.08, "graph": 0.03}
+        delays = PARALLEL_SEARCH_DELAYS
 
         async def tracked_bm25(*args, **kwargs):
             execution_log.append(("bm25_start", time.monotonic()))
@@ -88,7 +93,7 @@ class TestHybridSearchParallelization:
 
         # With parallel execution, total time should be ~max(50ms, 80ms, 30ms) = 80ms
         # With sequential execution, it would be ~50+80+30 = 160ms
-        assert total_time < 0.15, f"Expected <150ms for parallel, got {total_time*1000:.0f}ms"
+        assert total_time < PARALLEL_EXECUTION_MAX_TIME_MS / 1000, f"Expected <{PARALLEL_EXECUTION_MAX_TIME_MS}ms for parallel, got {total_time*1000:.0f}ms"
 
         # Verify all three searches started before any completed
         start_events = [e for e in execution_log if "_start" in e[0]]
@@ -274,7 +279,7 @@ class TestRelationshipDeduplication:
 
         # Set should be significantly faster for large N
         # For 1000 items with 30% duplicates, set should be ~100x faster
-        assert set_time < list_time / 10, \
+        assert set_time < list_time / DEDUPLICATION_PERFORMANCE_MULTIPLIER, \
             f"Set ({set_time*1000:.2f}ms) should be much faster than list ({list_time*1000:.2f}ms)"
 
 
@@ -302,7 +307,7 @@ class TestResponseTimeSLAs:
         p95 = sorted(latencies)[int(len(latencies) * 0.95) - 1]
 
         assert len(results) == 100
-        assert p95 < 100, f"Subgraph p95 {p95:.2f}ms exceeded 100ms budget"
+        assert p95 < SUBGRAPH_P95_MAX_TIME_MS, f"Subgraph p95 {p95:.2f}ms exceeded {SUBGRAPH_P95_MAX_TIME_MS}ms budget"
 
     def test_layout_calculation_performance(self):
         """Verify graph layout calculation remains O(n) and source-backed."""
@@ -343,7 +348,7 @@ class TestResponseTimeSLAs:
         positioned = calculate_layout(nodes, "circular")
         elapsed = time.perf_counter() - start
 
-        assert elapsed < 0.01, f"Layout took {elapsed*1000:.1f}ms, expected <10ms"
+        assert elapsed < LAYOUT_CALCULATION_MAX_TIME_MS / 1000, f"Layout took {elapsed*1000:.1f}ms, expected <{LAYOUT_CALCULATION_MAX_TIME_MS}ms"
         assert len(positioned) == 500
 
 

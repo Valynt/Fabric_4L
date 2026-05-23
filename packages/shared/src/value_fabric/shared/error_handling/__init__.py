@@ -16,13 +16,15 @@ from .handlers import (
 )
 from .helpers import build_error_detail
 from .middleware import get_request_id, RequestIDMiddleware
-from .models import ErrorCode, ErrorResponse
+from .models import ErrorCode, ErrorEnvelope, ErrorDetail, ErrorResponse
 
 __all__ = [
     "AuthenticationError",
     "AuthorizationError",
     "canonical_error_response_schema",
     "ErrorCode",
+    "ErrorEnvelope",
+    "ErrorDetail",
     "ErrorResponse",
     "build_error_detail",
     "get_request_id",

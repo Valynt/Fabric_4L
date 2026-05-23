@@ -12,6 +12,11 @@ Covers:
 
 from __future__ import annotations
 
+# Confidence threshold constants
+WORKFLOW_CONFIDENCE_THRESHOLD = 0.7
+FALLBACK_CONFIDENCE_THRESHOLD = 0.5
+HIGH_CONFIDENCE_THRESHOLD = 0.85
+
 import asyncio
 import json
 import sys
@@ -95,7 +100,7 @@ class TestHeuristicClassification:
     def test_value_analysis_intent(self, service):
         result = service._heuristic_classify("What's the ROI for this deal?")
         assert result["intent"] == "value_analysis"
-        assert result["confidence"] >= 0.7
+        assert result["confidence"] >= WORKFLOW_CONFIDENCE_THRESHOLD
 
     def test_competitive_intel_intent(self, service):
         result = service._heuristic_classify("How do we compare versus Competitor X?")
@@ -116,7 +121,7 @@ class TestHeuristicClassification:
     def test_general_question_fallback(self, service):
         result = service._heuristic_classify("Hello, how are you?")
         assert result["intent"] == "general_question"
-        assert result["confidence"] == 0.50
+        assert result["confidence"] == FALLBACK_CONFIDENCE_THRESHOLD
 
     def test_all_intents_return_required_fields(self, service):
         messages = [
@@ -301,7 +306,7 @@ class TestHandleMessage:
         service_with_agents.conversation_agent.execute = AsyncMock(
             side_effect=[
                 # classify_intent
-                {"intent": "value_analysis", "confidence": 0.85, "entities": {}},
+                {"intent": "value_analysis", "confidence": HIGH_CONFIDENCE_THRESHOLD, "entities": {}},
                 # gather_context
                 {"context_data": {"account": {"name": "Test"}}, "sources": []},
             ]
@@ -324,7 +329,7 @@ class TestHandleMessage:
     async def test_workflow_not_triggered_below_confidence(self, service_with_agents):
         service_with_agents.conversation_agent.execute = AsyncMock(
             side_effect=[
-                {"intent": "value_analysis", "confidence": 0.5, "entities": {}},
+                {"intent": "value_analysis", "confidence": FALLBACK_CONFIDENCE_THRESHOLD, "entities": {}},
                 {"context_data": {}, "sources": []},
             ]
         )
@@ -336,7 +341,7 @@ class TestHandleMessage:
             tenant_id="tenant-1",
         )
 
-        # Workflow should NOT be triggered at 0.5 confidence (threshold is 0.7)
+        # Workflow should NOT be triggered at FALLBACK_CONFIDENCE_THRESHOLD (threshold is WORKFLOW_CONFIDENCE_THRESHOLD)
         assert result["metadata"].get("workflow_triggered") is not True
 
     @pytest.mark.asyncio

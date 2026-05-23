@@ -43,8 +43,18 @@ export function HorizontalTabWrapper({
   className 
 }: HorizontalTabWrapperProps) {
   const [searchParams, setSearchParams] = useSearchParams();
-  const activeTab = searchParams.get('tab') || defaultTab || tabs[0]?.id;
   
+  // Handle empty tabs array gracefully
+  if (tabs.length === 0) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn('HorizontalTabWrapper: tabs array is empty. No tabs will be rendered.');
+    }
+    return null;
+  }
+  
+  const activeTab = searchParams.get('tab') || defaultTab || tabs[0].id;
+  
+  // Find active tab config, fallback to first tab if not found
   const activeTabConfig = tabs.find(t => t.id === activeTab) || tabs[0];
   
   const tabItems: TabItem[] = tabs.map(tab => ({
@@ -53,7 +63,7 @@ export function HorizontalTabWrapper({
   }));
   
   const handleTabChange = (id: string) => {
-    setSearchParams({ tab: id });
+    setSearchParams(prev => ({ ...prev, tab: id }));
   };
   
   return (
@@ -65,7 +75,7 @@ export function HorizontalTabWrapper({
         orientation="horizontal"
       />
       <div key={activeTab} className="animate-in fade-in duration-200">
-        {activeTabConfig?.content}
+        {activeTabConfig.content}
       </div>
     </div>
   );

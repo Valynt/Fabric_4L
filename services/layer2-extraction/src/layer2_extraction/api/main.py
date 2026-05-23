@@ -114,6 +114,15 @@ lifespan = create_lifespan(
 
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_app(lifespan=lifespan)
+
+# Register canonical error envelope handlers from shared package
+try:
+    from value_fabric.shared.error_handling import register_exception_handlers
+    register_exception_handlers(app)
+except ImportError:
+    # Fallback: shared package not available, handlers will be added elsewhere
+    pass
+
 app.include_router(signal_lifecycle_router)
 
 # Extraction configuration constants

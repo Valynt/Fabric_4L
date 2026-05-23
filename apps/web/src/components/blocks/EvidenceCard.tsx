@@ -44,6 +44,8 @@ export function EvidenceCard({
   onClick,
   className 
 }: EvidenceCardProps) {
+  // Validate confidence is in valid range
+  const clampedConfidence = Math.max(0, Math.min(1, confidence));
   const cardContent = (
     <SectionCard
       noPad
@@ -60,7 +62,7 @@ export function EvidenceCard({
           <div className="flex items-center gap-2 flex-shrink-0">
             <StatusBadge status={validated ? "completed" : "processing"} />
             <span className="text-xs text-muted-foreground font-medium">
-              {Math.round(confidence * 100)}%
+              {Math.round(clampedConfidence * 100)}%
             </span>
           </div>
         </div>
@@ -68,7 +70,7 @@ export function EvidenceCard({
           {claim}
         </p>
         <div className="text-xs text-muted-foreground">
-          {formatDate(timestamp)}
+          {timestamp ? formatDate(timestamp) : "—"}
         </div>
       </div>
     </SectionCard>

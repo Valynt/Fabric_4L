@@ -232,6 +232,13 @@ _security_config_l6 = SecurityConfig.from_env(
 )
 add_security_middleware(app, config=_security_config_l6)
 
+# Register global exception handlers to prevent stack traces and sensitive data leaks
+try:
+    from value_fabric.shared.error_handling import register_exception_handlers
+    register_exception_handlers(app)
+except ImportError:
+    logger.warning("Shared error handling not available - exception handlers not registered")
+
 try:
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware

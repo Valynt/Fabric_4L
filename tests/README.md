@@ -1,85 +1,53 @@
-# Tests Quick Start: Infra-backed + Default No-Infra Coverage
+# Test Suite Guide
 
-This repository intentionally supports two complementary test workflows:
+## Quick Reference
 
-1. **Infra-backed suite** for full integration/security confidence.
-2. **Default no-infra fallback suite** so core behavioral/contract checks still run when Postgres/Redis/Neo4j are not available.
-
-## 1) Default local loop (no infra required)
-
-Run this first for fast feedback:
-
+### Fast path — no infrastructure required
 ```bash
-pytest tests/contract/test_no_infra_adapter_contracts.py -q
+# Unit, contract, security, and tenant-isolation tests (CI gate)
+pytest tests/ -m "unit or contract or security or tenant_boundary"
 ```
 
-This validates infra-gating contracts using mocks/fakes (startup commands, skip messaging, and probe adapter behavior) without requiring running services.
-
-## 2) Bring up infrastructure for full coverage
-
-Start dependencies:
-
+### Exclude infrastructure-dependent tests
 ```bash
-docker compose up -d postgres redis neo4j
+# Run everything that does not need live Postgres/Redis/Neo4j
+pytest tests/ -m "not requires_infra"
 ```
 
-Then run the standard test flow:
-
+### Chaos / performance tests only
 ```bash
-make verify
+pytest tests/chaos tests/performance -v
 ```
 
-For agent/skill changes, also run:
-
+### Full infrastructure-backed suite
+Requires the Docker Compose dev stack:
 ```bash
-make evals
+docker compose -f docker-compose.dev.yml up -d
+pytest tests/ -m "requires_infra or chaos or performance or slow"
 ```
 
-## Infra-gated test behavior
+## Markers
 
-When infra is unavailable locally, tests that require those dependencies are skipped with high-visibility reasons that include:
+| Marker | Meaning |
+|---|---|
+| `unit` | Fast, no I/O |
+| `contract` | OpenAPI / schema contract tests |
+| `security` | OWASP / tenant-boundary tests |
+| `tenant_boundary` | Cross-tenant isolation regression |
+| `chaos` | Failure-mode / degradation tests |
+| `performance` | Connection pool / SLO benchmarks |
+| `slow` | >1 s or heavy deps |
+| `requires_postgres` | Needs live PostgreSQL |
+| `requires_redis` | Needs live Redis |
+| `requires_neo4j` | Needs live Neo4j |
+| `requires_infra` | Umbrella: any live infrastructure dependency |
+| `quarantine` | Temporarily isolated (stale imports, etc.) |
 
-- The exact startup command.
-- Affected test categories (what coverage you are losing).
+## Infrastructure skip behavior
 
-At the end of the run, pytest prints an **infra-gated skip coverage** summary that reports skip counts by dependency:
+- **Locally**: tests skip with `[INFRA_GATE:...]` messages when services are down.
+- **CI** (`CI=true`): missing required infrastructure is a hard failure.
 
-- Postgres
-- Redis
-- Neo4j
+## Layer 3 import-path note
 
-This makes missing local/CI coverage explicit.
-
-## Suggested daily workflow
-
-1. `pytest tests/contract/test_no_infra_adapter_contracts.py -q`
-2. `docker compose up -d postgres redis neo4j`
-3. `make verify`
-4. (If applicable) `make evals`
-
-
-## Contract test environment contract (CI vs local)
-
-`tests/contract/conftest.py` enforces service-availability behavior using explicit environment flags:
-
-- `CONTRACT_TEST_MODE=mock` → bypasses live service health checks (explicit mocked path).
-- Strict/fail-closed mode is enabled when any of these are truthy: `CI`, `GITHUB_ACTIONS`, `CONTRACT_TEST_ENFORCE`, or `CONTRACT_TEST_STRICT`.
-- Local default (none of the strict flags set) remains developer-friendly: missing Layer 3/4/5 services cause contract tests to skip instead of fail.
-
-### Required CI contract-test job settings
-
-For CI jobs that expect live services, set:
-
-```bash
-CI=true
-CONTRACT_TEST_ENFORCE=1
-```
-
-For CI jobs that intentionally run mocked contract tests, set:
-
-```bash
-CI=true
-CONTRACT_TEST_MODE=mock
-```
-
-This keeps mocked behavior explicit and auditable in workflow configuration rather than relying on implicit defaults.
+A subset of `tests/layer3/` and `tests/security/` tests that import directly from `value_fabric.layer3.*` route modules are currently skipped via `[LAYER3_IMPORT_PATH]` because those modules use direct `logging_config` imports that conflict with the multi-layer `sys.path` layout. They are **not** skipped because of missing Postgres/Redis/Neo4j.

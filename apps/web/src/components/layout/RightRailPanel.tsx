@@ -45,7 +45,7 @@ export function RightRailPanel({
 }: RightRailPanelProps) {
   return (
     <div className={cn(
-      "h-full flex flex-col bg-card border border-border rounded-lg md:h-[calc(100vh-200px)] md:sticky md:top-8",
+      "h-full flex flex-col bg-card border border-border rounded-lg md:h-[calc(100vh-8rem)] md:sticky md:top-8",
       className
     )}>
       {/* Header */}
