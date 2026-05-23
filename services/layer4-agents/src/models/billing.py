@@ -114,6 +114,9 @@ class BillingSubscription(Base):
     customer_id: Mapped[str] = mapped_column(String(100), nullable=False)
     stripe_subscription_id: Mapped[str | None] = mapped_column(String(100), unique=True, nullable=True)
     plan_id: Mapped[str] = mapped_column(String(50), nullable=False, default=PlanId.FREE)
+    plan_version_id: Mapped[str | None] = mapped_column(
+        String(100), ForeignKey("billing_plan_versions.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     status: Mapped[str] = mapped_column(
         String(50), nullable=False, default=SubscriptionStatus.INCOMPLETE
     )
@@ -174,6 +177,29 @@ class BillingWebhookEvent(Base):
 
     def __repr__(self) -> str:
         return f"<BillingWebhookEvent(id={self.id}, type={self.type})>"
+
+
+class BillingPlanVersion(Base):
+    """Versioned, auditable billing plan configuration."""
+
+    __tablename__ = "billing_plan_versions"
+
+    id: Mapped[str] = mapped_column(String(100), primary_key=True)
+    tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    plan_id: Mapped[str] = mapped_column(String(50), nullable=False, index=True)
+    version: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    effective_from: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, index=True)
+    effective_to: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True, index=True)
+    features: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    usage_limits: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    config_signature: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    created_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
+
+    __table_args__ = (
+        UniqueConstraint("tenant_id", "plan_id", "version", name="uq_billing_plan_versions_scope_plan_version"),
+        Index("ix_billing_plan_versions_scope_effective", "tenant_id", "plan_id", "effective_from"),
+    )
 
 
 class BillingUsageEvent(Base):

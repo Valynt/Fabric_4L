@@ -44,6 +44,7 @@ except ImportError as e:
 
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
+from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..shared.config import is_production_like_environment, settings
 from ..shared.database import get_db_from_context_sync
 from ..shared.models import (
@@ -75,8 +76,48 @@ from ..shared.models import (
     create_scraping_job,
     create_scraping_target,
 )
-from ..shared.tasks import cleanup_old_content, process_scraping_job
 from ..skills import get_skill
+
+
+def _build_task_unavailable_detail() -> dict[str, str]:
+    return {
+        "code": "SERVICE_UNAVAILABLE",
+        "message": (
+            "Background processing is temporarily unavailable. "
+            "Please retry shortly or contact support if the issue persists."
+        ),
+    }
+
+
+class _UnavailableTask:
+    """Fail closed when task infrastructure is unavailable."""
+
+    def __init__(self, task_name: str, import_error: ImportError) -> None:
+        self.task_name = task_name
+        self.import_error = import_error
+
+    def delay(self, *args: Any, **kwargs: Any) -> "NoReturn":
+        job_id = str(args[0]) if args else None
+        logger.error(
+            "background_task_unavailable",
+            task_name=self.task_name,
+            job_id=job_id,
+            correlation_id=job_id,
+            error_type=type(self.import_error).__name__,
+            error=str(self.import_error),
+            exc_info=self.import_error,
+        )
+        raise HTTPException(
+            status_code=503,
+            detail=_build_task_unavailable_detail(),
+        )
+
+
+try:
+    from ..shared.tasks import cleanup_old_content, process_scraping_job
+except ImportError as exc:
+    cleanup_old_content = _UnavailableTask("cleanup_old_content", exc)
+    process_scraping_job = _UnavailableTask("process_scraping_job", exc)
 
 # Configure logging
 structlog.configure(
@@ -99,6 +140,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 reject_insecure_bypass_in_production(service_name="layer1-ingestion", settings=settings)
+
+
+def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
+    return {
+        "error": "url_validation_failed",
+        "reason_code": reason_code,
+        "message": "URL blocked by compliance policy",
+    }
 
 # =============================================================================
 # DEPRECATION REGISTER
@@ -1089,9 +1138,12 @@ async def create_target(
 ):
     """Create a new scraping target."""
     # Validate URL
-    parsed = urlparse(request.url)
-    if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="URL must use http/https protocol")
+    try:
+        validated = validate_url_safety(
+            request.url, allowlist_domains=request.compliance.domain_allowlist
+        )
+    except URLSafetyError as exc:
+        raise HTTPException(status_code=400, detail=_url_safety_error_payload(exc.reason_code)) from exc
 
     # Validate extraction schema if method requires LLM
     if (
@@ -1181,7 +1233,7 @@ async def create_target(
     target = create_scraping_target(
         tenant_id=org_id,
         name=request.name,
-        url=request.url,
+        url=validated.normalized_url,
         target_type=request.target_type,
         created_by=user_id,
         description=request.description,
@@ -1428,9 +1480,14 @@ async def validate_target(
 
     # Validate URL
     test_url = request.test_url or target.url
-    parsed = urlparse(test_url)
-    if parsed.scheme not in ("http", "https"):
-        errors.append(ValidationError(field="url", message="URL must use http/https protocol"))
+    try:
+        validate_url_safety(test_url, allowlist_domains=(target.compliance or {}).get("domain_allowlist"))
+    except URLSafetyError as exc:
+        errors.append(
+            ValidationError(
+                field="url", message=f"URL blocked by compliance policy ({exc.reason_code})"
+            )
+        )
 
     # Validate extraction schema
     if request.validate_schema and target.extraction_config.get("extraction_schema"):

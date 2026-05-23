@@ -76,6 +76,7 @@ from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 from ..shared_bootstrap import verify_metrics_access
 from .app_factory import create_app
 from .lifespan import create_lifespan
+from .routes.signal_lifecycle import router as signal_lifecycle_router
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +113,7 @@ lifespan = create_lifespan(
 
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_app(lifespan=lifespan)
+app.include_router(signal_lifecycle_router)
 
 # Extraction configuration constants
 DEFAULT_CHUNK_SIZE = 2000
