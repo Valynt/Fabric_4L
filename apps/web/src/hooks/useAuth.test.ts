@@ -11,6 +11,13 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { createWrapper, createWrapperWithRouterPath } from '../test-utils';
 import { useAuth, useRequireAuth, useAuthRedirect } from './useAuth';
 import { useAuthContext, type UserInfo } from '../contexts/AuthContext';
+import {
+  authContextFixtures,
+  userFixtures,
+  csrfFixtures,
+  pathFixtures,
+} from '../test/fixtures/authFixtures';
+import { setupCookieMock, csrfCookieHelpers } from '../test/utils/cookieMock';
 
 // Mock react-router-dom at top level
 const mockNavigate = vi.fn();
@@ -34,59 +41,40 @@ vi.mock('../contexts/AuthContext', async () => {
 const mockedUseAuthContext = vi.mocked(useAuthContext);
 
 describe('useAuth', () => {
+  let cookieMock: ReturnType<typeof setupCookieMock>;
+
   beforeEach(() => {
     localStorage.clear();
     sessionStorage.clear();
     vi.clearAllMocks();
+    cookieMock = setupCookieMock();
   });
 
   afterEach(() => {
     vi.resetAllMocks();
+    cookieMock.uninstall();
   });
 
   describe('getCsrfHeaders', () => {
     it('returns X-CSRF-Token header when cookie is present', () => {
-      mockedUseAuthContext.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: null,
-        accessToken: null,
-        initiateLogin: vi.fn(),
-        handleCallback: vi.fn(),
-        logout: vi.fn(),
-        refreshToken: vi.fn(),
-      });
+      mockedUseAuthContext.mockReturnValue(authContextFixtures.authenticated());
 
-      // Set the CSRF cookie
-      Object.defineProperty(document, 'cookie', {
-        writable: true,
-        value: 'vf_csrf_token=test-csrf-abc123',
-      });
+      // Set the CSRF cookie using the cookie mock utility
+      csrfCookieHelpers.setCsrfToken(csrfFixtures.validToken, cookieMock);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useAuth(), { wrapper });
 
       expect(result.current.getCsrfHeaders()).toEqual({
-        'X-CSRF-Token': 'test-csrf-abc123',
+        'X-CSRF-Token': csrfFixtures.validToken,
       });
-
-      // Restore
-      Object.defineProperty(document, 'cookie', { writable: true, value: '' });
     });
 
     it('returns empty object when CSRF cookie is absent', () => {
-      mockedUseAuthContext.mockReturnValue({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        accessToken: null,
-        initiateLogin: vi.fn(),
-        handleCallback: vi.fn(),
-        logout: vi.fn(),
-        refreshToken: vi.fn(),
-      });
+      mockedUseAuthContext.mockReturnValue(authContextFixtures.unauthenticated());
 
-      Object.defineProperty(document, 'cookie', { writable: true, value: '' });
+      // Ensure no CSRF token is set
+      csrfCookieHelpers.clearCsrfToken(cookieMock);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -95,16 +83,7 @@ describe('useAuth', () => {
     });
 
     it('getAuthHeaders is no longer exposed — auth is cookie-based', () => {
-      mockedUseAuthContext.mockReturnValue({
-        isAuthenticated: false,
-        isLoading: false,
-        user: null,
-        accessToken: null,
-        initiateLogin: vi.fn(),
-        handleCallback: vi.fn(),
-        logout: vi.fn(),
-        refreshToken: vi.fn(),
-      });
+      mockedUseAuthContext.mockReturnValue(authContextFixtures.unauthenticated());
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -115,29 +94,10 @@ describe('useAuth', () => {
 
   describe('auth state exposure', () => {
     it('exposes all auth context values', () => {
-      const mockUser: UserInfo = {
-        id: 'user-1',
-        email: 'test@example.com',
-        role: 'standard',
-        tenantId: 'tenant-1',
-        tenantSlug: 'test-tenant',
-      };
+      const mockUser = userFixtures.standard();
+      const authState = authContextFixtures.authenticated(mockUser);
 
-      const mockLogout = vi.fn();
-      const mockInitiateLogin = vi.fn();
-      const mockHandleCallback = vi.fn();
-      const mockRefreshToken = vi.fn();
-
-      mockedUseAuthContext.mockReturnValue({
-        isAuthenticated: true,
-        isLoading: false,
-        user: mockUser,
-        accessToken: null,
-        initiateLogin: mockInitiateLogin,
-        handleCallback: mockHandleCallback,
-        logout: mockLogout,
-        refreshToken: mockRefreshToken,
-      });
+      mockedUseAuthContext.mockReturnValue(authState);
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -146,23 +106,14 @@ describe('useAuth', () => {
       expect(result.current.isLoading).toBe(false);
       expect(result.current.user).toEqual(mockUser);
       expect(result.current.accessToken).toBeNull();
-      expect(result.current.logout).toBe(mockLogout);
-      expect(result.current.initiateLogin).toBe(mockInitiateLogin);
-      expect(result.current.handleCallback).toBe(mockHandleCallback);
-      expect(result.current.refreshToken).toBe(mockRefreshToken);
+      expect(result.current.logout).toBe(authState.logout);
+      expect(result.current.initiateLogin).toBe(authState.initiateLogin);
+      expect(result.current.handleCallback).toBe(authState.handleCallback);
+      expect(result.current.refreshToken).toBe(authState.refreshToken);
     });
 
     it('handles loading state', () => {
-      mockedUseAuthContext.mockReturnValue({
-        isAuthenticated: false,
-        isLoading: true,
-        user: null,
-        accessToken: null,
-        initiateLogin: vi.fn(),
-        handleCallback: vi.fn(),
-        logout: vi.fn(),
-        refreshToken: vi.fn(),
-      });
+      mockedUseAuthContext.mockReturnValue(authContextFixtures.loading());
 
       const wrapper = createWrapper();
       const { result } = renderHook(() => useAuth(), { wrapper });
@@ -184,46 +135,21 @@ describe('useRequireAuth', () => {
   });
 
   it('redirects to login when not authenticated and not loading', async () => {
-    mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: false,
-      user: null,
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
-      logout: vi.fn(),
-      refreshToken: vi.fn(),
-    });
+    mockedUseAuthContext.mockReturnValue(authContextFixtures.unauthenticated());
 
-    const wrapper = createWrapperWithRouterPath('/protected');
+    const wrapper = createWrapperWithRouterPath(pathFixtures.protected);
     renderHook(() => useRequireAuth(), { wrapper });
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/login?wfStep=0', expect.anything());
+      expect(mockNavigate).toHaveBeenCalledWith(pathFixtures.login, expect.anything());
     });
   });
 
   it('does not redirect when authenticated', async () => {
-    const mockUser: UserInfo = {
-      id: 'user-1',
-      email: 'test@example.com',
-      role: 'standard',
-      tenantId: 'tenant-1',
-      tenantSlug: 'test-tenant',
-    };
+    const mockUser = userFixtures.standard();
+    mockedUseAuthContext.mockReturnValue(authContextFixtures.authenticated(mockUser));
 
-    mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      user: mockUser,
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
-      logout: vi.fn(),
-      refreshToken: vi.fn(),
-    });
-
-    const wrapper = createWrapperWithRouterPath('/protected');
+    const wrapper = createWrapperWithRouterPath(pathFixtures.protected);
     renderHook(() => useRequireAuth(), { wrapper });
 
     // Verify navigation is not triggered (with timeout for effect to run)
@@ -233,18 +159,9 @@ describe('useRequireAuth', () => {
   });
 
   it('does not redirect while auth state is loading', async () => {
-    mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: true,
-      user: null,
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
-      logout: vi.fn(),
-      refreshToken: vi.fn(),
-    });
+    mockedUseAuthContext.mockReturnValue(authContextFixtures.loading());
 
-    const wrapper = createWrapperWithRouterPath('/protected');
+    const wrapper = createWrapperWithRouterPath(pathFixtures.protected);
     renderHook(() => useRequireAuth(), { wrapper });
 
     // Verify navigation is not triggered while loading (with timeout for effect to run)
@@ -254,48 +171,24 @@ describe('useRequireAuth', () => {
   });
 
   it('waits for loading to complete before checking auth', async () => {
-    const mockUser: UserInfo = {
-      id: 'user-1',
-      email: 'test@example.com',
-      role: 'standard',
-      tenantId: 'tenant-1',
-      tenantSlug: 'test-tenant',
-    };
+    const mockUser = userFixtures.standard();
 
     // Start with loading state
-    mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: true,
-      user: null,
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
-      logout: vi.fn(),
-      refreshToken: vi.fn(),
-    });
+    mockedUseAuthContext.mockReturnValue(authContextFixtures.loading());
 
-    const wrapper = createWrapperWithRouterPath('/protected');
+    const wrapper = createWrapperWithRouterPath(pathFixtures.protected);
     const { rerender } = renderHook(() => useRequireAuth(), { wrapper });
 
     // Initially should not redirect (still loading)
     expect(mockNavigate).not.toHaveBeenCalled();
 
     // Simulate auth state resolving to unauthenticated
-    mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: false,
-      isLoading: false,
-      user: null,
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
-      logout: vi.fn(),
-      refreshToken: vi.fn(),
-    });
+    mockedUseAuthContext.mockReturnValue(authContextFixtures.unauthenticated());
 
     rerender();
 
     await waitFor(() => {
-      expect(mockNavigate).toHaveBeenCalledWith('/login?wfStep=0', expect.anything());
+      expect(mockNavigate).toHaveBeenCalledWith(pathFixtures.login, expect.anything());
     });
   });
 });
@@ -314,15 +207,10 @@ describe('useAuthRedirect', () => {
   });
 
   it('handleUnauthorized clears auth and redirects to login', () => {
+    const mockUser = userFixtures.standard({ tenantId: 't1', tenantSlug: 'tenant' });
     mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      user: { id: 'user-1', email: 'test@example.com', role: 'standard', tenantId: 't1', tenantSlug: 'tenant' },
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
+      ...authContextFixtures.authenticated(mockUser),
       logout: mockLogout,
-      refreshToken: vi.fn(),
     });
 
     const wrapper = createWrapper();
@@ -331,19 +219,14 @@ describe('useAuthRedirect', () => {
     result.current.handleUnauthorized();
 
     expect(mockLogout).toHaveBeenCalled();
-    expect(mockNavigate).toHaveBeenCalledWith('/login?wfStep=0', expect.anything());
+    expect(mockNavigate).toHaveBeenCalledWith(pathFixtures.login, expect.anything());
   });
 
   it('handleUnauthorized can be called multiple times', () => {
+    const mockUser = userFixtures.standard({ tenantId: 't1', tenantSlug: 'tenant' });
     mockedUseAuthContext.mockReturnValue({
-      isAuthenticated: true,
-      isLoading: false,
-      user: { id: 'user-1', email: 'test@example.com', role: 'standard', tenantId: 't1', tenantSlug: 'tenant' },
-      accessToken: null,
-      initiateLogin: vi.fn(),
-      handleCallback: vi.fn(),
+      ...authContextFixtures.authenticated(mockUser),
       logout: mockLogout,
-      refreshToken: vi.fn(),
     });
 
     const wrapper = createWrapper();
@@ -355,6 +238,6 @@ describe('useAuthRedirect', () => {
 
     expect(mockLogout).toHaveBeenCalledTimes(3);
     expect(mockNavigate).toHaveBeenCalledTimes(3);
-    expect(mockNavigate).toHaveBeenCalledWith('/login?wfStep=0', expect.anything());
+    expect(mockNavigate).toHaveBeenCalledWith(pathFixtures.login, expect.anything());
   });
 });

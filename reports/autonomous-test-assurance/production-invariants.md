@@ -1,6 +1,6 @@
 # Production Invariants
 
-Generated: 2026-05-22
+Generated: 2026-05-23 (Autonomous Test Assurance Agent - Phase 2 Extraction)
 Source: Code analysis + contract.md + runtime patterns
 
 ## Tenant Isolation
@@ -137,3 +137,13 @@ Source: Code analysis + contract.md + runtime patterns
 8. **P1**: Neo4j unavailability → returns 503
 9. **P2**: Empty tenant_id in context → rejected with 400
 10. **P2**: Malformed tenant_id → rejected by validation
+
+## Phase 2 Extraction Updates (2026-05-23)
+- **DB Session Pattern**: `SET LOCAL app.tenant_id` enforced in L4/L5 database.py
+- **Tenant Context**: RequestContext from value_fabric.shared.identity.context
+- **Auth Middleware**: GovernanceMiddleware validates JWT/headers
+- **Validation**: Pydantic BaseModel schemas for request/response
+- **Error Handling**: HTTPException with 401/403/404/503 status codes
+- **RLS Policies**: PostgreSQL Row-Level Security with tenant_id::text = current_setting('app.tenant_id', true)
+- **Fail-Closed**: MissingTenantContextError raised when tenant context absent
+- **Privileged Access**: X-Privileged-Reason header for admin bypass with audit logging

@@ -6,6 +6,7 @@
  * duplication and ensure consistency across auth-related tests.
  */
 
+import { vi } from 'vitest';
 import type { UserInfo } from '@/contexts/AuthContext';
 
 // ---------------------------------------------------------------------------
@@ -32,7 +33,8 @@ export interface AuthContextState {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserInfo | null;
-  accessToken: string | null;
+  /** @deprecated Token is in the httpOnly cookie; always null. */
+  accessToken: null;
   initiateLogin: ReturnType<typeof import('vitest').vi.fn>;
   handleCallback: ReturnType<typeof import('vitest').vi.fn>;
   logout: ReturnType<typeof import('vitest').vi.fn>;
@@ -47,13 +49,11 @@ export interface AuthContextState {
 export function createAuthContextMock(
   overrides: Partial<AuthContextState> = {}
 ): AuthContextState {
-  const { vi } = require('vitest');
-
   return {
     isAuthenticated: false,
     isLoading: false,
     user: null,
-    accessToken: null,
+    accessToken: null, // Always null - token is in httpOnly cookie
     initiateLogin: vi.fn(),
     handleCallback: vi.fn(),
     logout: vi.fn(),

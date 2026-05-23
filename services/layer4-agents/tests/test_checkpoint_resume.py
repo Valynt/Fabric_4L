@@ -7,7 +7,6 @@ Verifies state persistence across interruptions and container restarts.
 from __future__ import annotations
 
 import os
-from datetime import datetime
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
@@ -17,72 +16,19 @@ from value_fabric.layer4.config.checkpoint import CheckpointConfig, CheckpointCo
 from value_fabric.layer4.engine.executor import OrchestrationController, WorkflowExecutionError
 from value_fabric.layer4.engine.state_manager import StateManager
 from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
-from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig, NodeType
 from value_fabric.layer4.tools.registry import ToolRegistry
-from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowConfig
-from value_fabric.shared.models.typed_dict import TypedDictModel
-
-
-class SimpleTestWorkflow__execute_toolResult(TypedDictModel):
-    node: Any
-    status: str
-    tool: Any | None = None
+from value_fabric.layer4.workflows.base import BaseWorkflow
 
 # Reuse fixtures from conftest.py: mock_checkpoint_saver, mock_tool_registry,
 # state_manager, orchestrator_with_checkpoint, controller_with_running_state,
-# controller_with_paused_state, completed_workflow_state
+# controller_with_paused_state, completed_workflow_state, simple_test_workflow,
+# setup_workflow_metadata
+
+# Import helper from conftest
+from conftest import setup_workflow_metadata
 
 # Test constants
 TEST_WORKFLOW_TYPE = "roi_calculator"
-
-
-class SimpleTestWorkflow(BaseWorkflow):
-    """Simple workflow for testing checkpoint/resume."""
-
-    def __init__(self, tool_registry, checkpoint_saver=None, pause_after_node: str | None = None):
-        """Initialize with optional pause point."""
-        config = WorkflowConfig(
-            workflow_type=TEST_WORKFLOW_TYPE,
-            name="Test Workflow",
-            description="Simple workflow for testing",
-            nodes=[
-                NodeConfig(id="start", name="Start", node_type=NodeType.TOOL, tool_name="test_tool"),
-                NodeConfig(id="middle", name="Middle", node_type=NodeType.TOOL, tool_name="test_tool"),
-                NodeConfig(id="end", name="End", node_type=NodeType.END),
-            ],
-            edges=[
-                EdgeConfig(source="start", target="middle"),
-                EdgeConfig(source="middle", target="end"),
-            ],
-            entry_point="start"
-        )
-        super().__init__(config, tool_registry, checkpoint_saver)
-        self.pause_after_node = pause_after_node
-        self.executed_nodes: list = []
-
-    async def _execute_tool(self, tool_name: str, state, config: dict) -> dict[str, Any]:
-        """Track node execution."""
-        current_node = state.current_node
-        self.executed_nodes.append(current_node)
-
-        # Simulate pause after specified node
-        if self.pause_after_node and current_node == self.pause_after_node:
-            state.status = WorkflowStatus.PENDING
-            return SimpleTestWorkflow__execute_toolResult.model_validate({"status": "paused", "node": current_node})
-
-        return SimpleTestWorkflow__execute_toolResult.model_validate({"status": "completed", "node": current_node, "tool": tool_name})
-
-    def create_initial_state(self, input_data: dict[str, Any], *, tenant_id: str | None = None):
-        """Create initial state."""
-        from datetime import UTC
-        return BaseAgentState(tenant_id=tenant_id or "test-tenant",
-            workflow_id=input_data.get("workflow_id", f"test-{datetime.now(UTC).timestamp()}"),
-            workflow_type=TEST_WORKFLOW_TYPE,
-            status=WorkflowStatus.PENDING,
-            input_data=input_data,
-            output_data={},
-            errors=[]
-        )
 
 
 @pytest.mark.unit
@@ -90,9 +36,9 @@ class TestCheckpointPersistence:
     """Test that workflow state persists across interruptions."""
 
     @pytest.mark.asyncio
-    async def test_checkpoint_saver_stores_state(self, mock_checkpoint_saver, mock_tool_registry):
+    async def test_checkpoint_saver_stores_state(self, simple_test_workflow, mock_checkpoint_saver):
         """Verify checkpoint saver receives state during workflow execution."""
-        workflow = SimpleTestWorkflow(mock_tool_registry, mock_checkpoint_saver)
+        workflow = simple_test_workflow()
         initial_state = workflow.create_initial_state({"test": "data"}, tenant_id="test-tenant")
         workflow_id = initial_state.workflow_id
 
@@ -102,9 +48,9 @@ class TestCheckpointPersistence:
         assert workflow_id in mock_checkpoint_saver.checkpoints
 
     @pytest.mark.asyncio
-    async def test_workflow_without_checkpoint_saver_runs_normally(self, mock_tool_registry):
+    async def test_workflow_without_checkpoint_saver_runs_normally(self, simple_test_workflow):
         """Workflow functions without checkpointing (backward compatibility)."""
-        workflow = SimpleTestWorkflow(mock_tool_registry, checkpoint_saver=None)
+        workflow = simple_test_workflow(checkpoint_saver=None)
         initial_state = workflow.create_initial_state({"test": "data"}, tenant_id="test-tenant")
 
         result = await workflow.run(initial_state, thread_id="test-wf-1")
@@ -154,7 +100,7 @@ class TestResumeWorkflow:
             tool_registry=mock_tool_registry,
             state_manager=state_manager
         )
-        controller._workflow_metadata[workflow_id] = {"workflow_type": TEST_WORKFLOW_TYPE}
+        setup_workflow_metadata(controller, workflow_id)
 
         with pytest.raises(WorkflowExecutionError):
             await controller.resume_workflow(workflow_id=workflow_id, user_id="test-user")
@@ -419,7 +365,7 @@ class TestOrchestrationControllerEdgeCases:
             state_manager=state_manager,
         )
         await state_manager.save_state(completed_workflow_state.workflow_id, completed_workflow_state)
-        controller._workflow_metadata[completed_workflow_state.workflow_id] = {}
+        setup_workflow_metadata(controller, completed_workflow_state.workflow_id)
 
         with pytest.raises(ValueError, match="cannot be paused"):
             await controller.pause_workflow(
@@ -445,7 +391,7 @@ class TestOrchestrationControllerEdgeCases:
             state_manager=state_manager,
         )
         await state_manager.save_state(wf_id, interrupted_state)
-        controller._workflow_metadata[wf_id] = {}
+        setup_workflow_metadata(controller, wf_id)
 
         with pytest.raises(ValueError, match="already interrupted"):
             await controller.pause_workflow(wf_id, user_id="test-user")
@@ -460,7 +406,7 @@ class TestOrchestrationControllerEdgeCases:
         await state_manager.save_state(
             completed_workflow_state.workflow_id, completed_workflow_state
         )
-        controller._workflow_metadata[completed_workflow_state.workflow_id] = {}
+        setup_workflow_metadata(controller, completed_workflow_state.workflow_id)
 
         with pytest.raises(WorkflowExecutionError, match="cannot be resumed"):
             await controller.resume_workflow(

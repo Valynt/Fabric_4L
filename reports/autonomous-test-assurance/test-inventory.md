@@ -1,6 +1,6 @@
 # Test Inventory
 
-Generated: 2026-05-22
+Generated: 2026-05-23 (Autonomous Test Assurance Agent - Phase 1 Discovery)
 
 ## Backend Tests
 
@@ -102,3 +102,12 @@ Generated: 2026-05-22
 - Layer 3 graph visualization security boundaries
 - Query execution guard for tenant fail-closed behavior
 - Cross-tenant access prevention in Neo4j queries
+
+### Phase 1 Discovery Updates (2026-05-23)
+- **Services Discovered**: layer1-ingestion, layer2-extraction, layer2-5-signal-refinery, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, api-gateway
+- **Frontend**: apps/web (React/Vite/Vitest/Playwright)
+- **Test Count**: 45+ Python test files, 57+ TypeScript test files, 58+ TSX test files
+- **API Routes**: FastAPI @router decorators across L4, L5, L6
+- **Auth Dependencies**: Depends(require_tenant_admin), Depends(require_authenticated), Depends(require_privileged_access)
+- **Contract Enforcement**: docs/contract.md defines 6 canonical contracts (tenant context, DB session, middleware, agent output, error handling, frontend hooks)
+- **CI Workflows**: 58+ GitHub workflows covering security, contract compliance, integration tests, smoke gates

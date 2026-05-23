@@ -166,22 +166,25 @@ class TestToolMetadataContract:
 
     async def test_metadata_includes_execution_time(self):
         """ToolResult.metadata should include execution_time_ms."""
+        from unittest.mock import patch
+
         class TimedTool(BaseTool):
             async def execute(self, input_data: dict) -> ToolResult:
                 import time
-                start = time.time()
-                time.sleep(0.01)  # Simulate work
-                execution_time_ms = int((time.time() - start) * 1000)
-                return ToolResult.success(
-                    data={"result": "timed"},
-                    metadata={"execution_time_ms": execution_time_ms},
-                )
+                # Mock time to be deterministic - simulate 15ms execution
+                with patch.object(time, 'time', side_effect=[0.0, 0.015]):
+                    start = time.time()
+                    execution_time_ms = int((time.time() - start) * 1000)
+                    return ToolResult.success(
+                        data={"result": "timed"},
+                        metadata={"execution_time_ms": execution_time_ms},
+                    )
 
         tool = TimedTool()
         result = await tool.execute({})
         assert result.metadata is not None
         assert "execution_time_ms" in result.metadata
-        assert result.metadata["execution_time_ms"] >= EXECUTION_TIME_MS_THRESHOLD
+        assert result.metadata["execution_time_ms"] == 15
 
     async def test_metadata_includes_trace_id(self):
         """ToolResult.metadata should include trace_id for observability."""

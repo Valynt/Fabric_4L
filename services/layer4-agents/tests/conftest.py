@@ -444,3 +444,98 @@ def completed_workflow_state() -> BaseAgentState:
         output_data={},
         errors=[]
     )
+
+
+# ── SimpleTestWorkflow Fixture ─────────────────────────────────────────────
+# Extracted from test_checkpoint_resume.py to reduce duplication
+
+from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig, NodeType
+from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowConfig
+from value_fabric.shared.models.typed_dict import TypedDictModel
+
+
+class SimpleTestWorkflow__execute_toolResult(TypedDictModel):
+    node: Any
+    status: str
+    tool: Any | None = None
+
+
+class SimpleTestWorkflow(BaseWorkflow):
+    """Simple workflow for testing checkpoint/resume.
+
+    This workflow tracks node execution in self.executed_nodes and can
+    optionally pause after a specified node for testing resume scenarios.
+    """
+
+    def __init__(self, tool_registry, checkpoint_saver=None, pause_after_node: str | None = None):
+        """Initialize with optional pause point."""
+        config = WorkflowConfig(
+            workflow_type=TEST_WORKFLOW_TYPE,
+            name="Test Workflow",
+            description="Simple workflow for testing",
+            nodes=[
+                NodeConfig(id="start", name="Start", node_type=NodeType.TOOL, tool_name="test_tool"),
+                NodeConfig(id="middle", name="Middle", node_type=NodeType.TOOL, tool_name="test_tool"),
+                NodeConfig(id="end", name="End", node_type=NodeType.END),
+            ],
+            edges=[
+                EdgeConfig(source="start", target="middle"),
+                EdgeConfig(source="middle", target="end"),
+            ],
+            entry_point="start"
+        )
+        super().__init__(config, tool_registry, checkpoint_saver)
+        self.pause_after_node = pause_after_node
+        self.executed_nodes: list = []
+
+    async def _execute_tool(self, tool_name: str, state, config: dict) -> dict[str, Any]:
+        """Track node execution."""
+        current_node = state.current_node
+        self.executed_nodes.append(current_node)
+
+        # Simulate pause after specified node
+        if self.pause_after_node and current_node == self.pause_after_node:
+            state.status = WorkflowStatus.PENDING
+            return SimpleTestWorkflow__execute_toolResult.model_validate({"status": "paused", "node": current_node})
+
+        return SimpleTestWorkflow__execute_toolResult.model_validate({"status": "completed", "node": current_node, "tool": tool_name})
+
+    def create_initial_state(self, input_data: dict[str, Any], *, tenant_id: str | None = None):
+        """Create initial state."""
+        return BaseAgentState(tenant_id=tenant_id or "test-tenant",
+            workflow_id=input_data.get("workflow_id", f"test-{datetime.now(UTC).timestamp()}"),
+            workflow_type=TEST_WORKFLOW_TYPE,
+            status=WorkflowStatus.PENDING,
+            input_data=input_data,
+            output_data={},
+            errors=[]
+        )
+
+
+@pytest.fixture
+def simple_test_workflow(mock_tool_registry, mock_checkpoint_saver):
+    """Provide SimpleTestWorkflow instance for checkpoint/resume testing.
+
+    Returns a factory function that accepts optional checkpoint_saver and pause_after_node parameters.
+    Usage:
+        workflow = simple_test_workflow(pause_after_node="middle")
+        workflow = simple_test_workflow(checkpoint_saver=None)
+    """
+    def _make_workflow(checkpoint_saver=None, pause_after_node: str | None = None):
+        if checkpoint_saver is None:
+            checkpoint_saver = mock_checkpoint_saver
+        return SimpleTestWorkflow(mock_tool_registry, checkpoint_saver, pause_after_node)
+    return _make_workflow
+
+
+def setup_workflow_metadata(controller: OrchestrationController, workflow_id: str, workflow_type: str = TEST_WORKFLOW_TYPE):
+    """Helper to set up workflow metadata for testing.
+
+    This encapsulates the implementation detail of _workflow_metadata access,
+    making tests more maintainable if the internal structure changes.
+    """
+    from datetime import UTC, datetime
+    controller._workflow_metadata[workflow_id] = {
+        "workflow_type": workflow_type,
+        "started_at": datetime.now(UTC).isoformat()
+    }

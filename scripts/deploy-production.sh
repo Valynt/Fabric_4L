@@ -415,6 +415,7 @@ phase "Phase 5.5 — Database migrations"
 MIGRATION_LAYERS=(
   "layer1-ingestion:8001"
   "layer2-extraction:8002"
+  "layer2-5-signal-refinery:8007"
   "layer3-knowledge:8003"
   "layer4-agents:8004"
   "layer5-ground-truth:8005"

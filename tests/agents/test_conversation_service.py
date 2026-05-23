@@ -30,11 +30,20 @@ import pytest
 # Add canonical Layer 4 path and stub external dependencies
 # ---------------------------------------------------------------------------
 
+# Constants for module paths and stub names
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_L4_SRC = _REPO_ROOT / "services" / "layer4-agents" / "src"
+_CONVERSATION_PATH = _L4_SRC / "services" / "conversation.py"
+_STUB_MODULE_NAMES = [
+    "shared.audit.emitter",
+    "shared.audit",
+    "shared",
+    "services.conversation",
+]
+
 # Add canonical Layer 4 path to sys.path for import resolution
-_repo_root = Path(__file__).resolve().parent.parent.parent
-_l4_src = _repo_root / "services" / "layer4-agents" / "src"
-if str(_l4_src) not in sys.path:
-    sys.path.insert(0, str(_l4_src))
+if str(_L4_SRC) not in sys.path:
+    sys.path.insert(0, str(_L4_SRC))
 
 # Stub external dependencies (minimal - only what ConversationService needs)
 # ConversationService imports from value_fabric.shared.audit, which is not available
@@ -51,16 +60,15 @@ sys.modules.setdefault("shared", types.ModuleType("shared"))
 # file directly, bypassing Python's package resolution mechanism.
 import importlib.util
 
-_conversation_path = _l4_src / "services" / "conversation.py"
-if not _conversation_path.exists():
+if not _CONVERSATION_PATH.exists():
     pytest.skip(
-        f"[LAYER4_IMPORT_PATH] conversation.py not found at {_conversation_path}",
+        f"[LAYER4_IMPORT_PATH] conversation.py not found at {_CONVERSATION_PATH}",
         allow_module_level=True,
     )
 
 spec = importlib.util.spec_from_file_location(
     "services.conversation",
-    _conversation_path,
+    _CONVERSATION_PATH,
 )
 if spec is None or spec.loader is None:
     pytest.skip(
@@ -88,16 +96,11 @@ def cleanup_module_stubs():
     """Cleanup module stubs after test session completes."""
     yield
     # Cleanup - remove stubs
-    for key in [
-        "shared.audit.emitter",
-        "shared.audit",
-        "shared",
-        "services.conversation",
-    ]:
+    for key in _STUB_MODULE_NAMES:
         if key in sys.modules:
             del sys.modules[key]
-    if str(_l4_src) in sys.path:
-        sys.path.remove(str(_l4_src))
+    if str(_L4_SRC) in sys.path:
+        sys.path.remove(str(_L4_SRC))
 
 
 # ---------------------------------------------------------------------------

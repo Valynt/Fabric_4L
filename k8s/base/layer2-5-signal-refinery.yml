@@ -20,6 +20,28 @@ spec:
         layer: layer2-5
         component: signal-refinery
     spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: init-db
+          image: busybox:1.36
+          command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: init-tmp
+              mountPath: /tmp
+      volumes:
+        - name: init-tmp
+          emptyDir: {}
       containers:
         - name: layer2-5-signal-refinery
           image: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery:main
@@ -34,12 +56,22 @@ spec:
             - name: DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: layer1-db-credentials
+                  name: layer2-5-db-credentials
                   key: DATABASE_URL
             - name: LAYER3_BASE_URL
-              value: "http://layer3-knowledge:8000"
+              value: "http://layer3-knowledge:8001"
             - name: LAYER4_BASE_URL
               value: "http://layer4-agents:8000"
+            - name: LAYER3_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: layer2-5-secrets
+                  key: LAYER3_API_KEY
+            - name: LAYER4_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: layer2-5-secrets
+                  key: LAYER4_API_KEY
             - name: LOG_LEVEL
               value: "info"
           livenessProbe:
