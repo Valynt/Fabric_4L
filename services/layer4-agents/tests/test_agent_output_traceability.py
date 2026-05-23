@@ -26,6 +26,15 @@ pytestmark = [
 ]
 
 
+# Constants for test data
+UUID_LENGTH = 36
+LARGE_TOKEN_COUNT = 100000
+DEFAULT_TOKEN_COUNT = 150
+DEFAULT_COMPLETION_COUNT = 300
+TOTAL_TOKENS = 450
+GOVERNANCE_CONFIDENCE_THRESHOLD = 0.4
+
+
 class TestAgentResultTraceabilityFields:
     """POSITIVE: Validate AgentResult includes required traceability fields."""
 
@@ -49,7 +58,7 @@ class TestAgentResultTraceabilityFields:
             trace_id=trace_id,
         )
         assert result.trace_id == trace_id
-        assert len(result.trace_id) == 36  # UUID format
+        assert len(result.trace_id) == UUID_LENGTH  # UUID format
 
     def test_model_used_field_exists(self):
         """AgentResult must have model_used field."""
@@ -142,8 +151,8 @@ class TestAgentResultTokenUsageValidation:
 
     def test_total_tokens_calculation(self):
         """Total tokens should be prompt_tokens + completion_tokens."""
-        prompt_tokens = 150
-        completion_tokens = 300
+        prompt_tokens = DEFAULT_TOKEN_COUNT
+        completion_tokens = DEFAULT_COMPLETION_COUNT
         result = AgentResult(
             payload={"result": "test"},
             workflow_type="test_workflow",
@@ -152,7 +161,7 @@ class TestAgentResultTokenUsageValidation:
             completion_tokens=completion_tokens,
         )
         total_tokens = result.prompt_tokens + result.completion_tokens
-        assert total_tokens == 450
+        assert total_tokens == TOTAL_TOKENS
 
     def test_token_counts_are_non_negative(self):
         """Token counts must be non-negative."""
@@ -168,8 +177,8 @@ class TestAgentResultTokenUsageValidation:
 
     def test_large_token_counts_handled(self):
         """AgentResult should handle large token counts."""
-        large_prompt = 100000
-        large_completion = 200000
+        large_prompt = LARGE_TOKEN_COUNT
+        large_completion = LARGE_TOKEN_COUNT * 2
         result = AgentResult(
             payload={"result": "test"},
             workflow_type="test_workflow",
@@ -282,7 +291,7 @@ class TestAgentResultGovernanceAndTraceability:
             workflow_type="test_workflow",
             tenant_id=str(uuid4()),
             trace_id=trace_id,
-            confidence=0.3,  # Low confidence triggers governance
+            confidence=GOVERNANCE_CONFIDENCE_THRESHOLD - 0.1,  # Low confidence triggers governance
         )
         assert result.trace_id == trace_id
 
@@ -300,15 +309,15 @@ class TestAgentResultGovernanceAndTraceability:
 
     def test_token_counts_preserved_after_governance(self):
         """Token counts should be preserved after governance rule application."""
-        prompt_tokens = 150
-        completion_tokens = 300
+        prompt_tokens = DEFAULT_TOKEN_COUNT
+        completion_tokens = DEFAULT_COMPLETION_COUNT
         result = AgentResult(
             payload={"result": "test"},
             workflow_type="test_workflow",
             tenant_id=str(uuid4()),
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
-            confidence=0.3,  # Low confidence triggers governance
+            confidence=GOVERNANCE_CONFIDENCE_THRESHOLD - 0.1,  # Low confidence triggers governance
         )
         assert result.prompt_tokens == prompt_tokens
         assert result.completion_tokens == completion_tokens

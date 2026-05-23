@@ -1,0 +1,15 @@
+# Pod Disruption Budget for Layer 2.5 Signal Refinery
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: layer2-5-signal-refinery
+  namespace: value-fabric
+  labels:
+    app: layer2-5-signal-refinery
+    layer: layer2-5
+    component: signal-refinery
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: layer2-5-signal-refinery

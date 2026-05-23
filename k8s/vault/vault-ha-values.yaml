@@ -180,15 +180,28 @@ extraVolumeMounts:
   - name: vault-tls
     mountPath: /vault/tls
     readOnly: true
-  - name: vault-data
-    mountPath: /vault/data
-    readOnly: false
   - name: vault-file
     mountPath: /vault/file
     readOnly: false
 
 # Init containers for TLS setup (if needed)
 initContainers:
+  # Validate required environment variables before Vault starts
+  - name: env-validator
+    image: busybox:1.36
+    command: ["/bin/sh", "-c"]
+    args:
+      - |
+        # Validate required environment variables for AWS KMS auto-unseal
+        if [ -z "$VAULT_AWS_KMS_KEY_ID" ]; then
+          echo "ERROR: VAULT_AWS_KMS_KEY_ID is required for auto-unseal"
+          exit 1
+        fi
+        if [ -z "$VAULT_AWS_REGION" ]; then
+          echo "ERROR: VAULT_AWS_REGION is required for auto-unseal"
+          exit 1
+        fi
+        echo "Environment validation passed"
   # Uncomment if using cert-manager for TLS
   # - name: cert-manager
   #   image: cert-manager/cert-manager-controller:v1.13.0

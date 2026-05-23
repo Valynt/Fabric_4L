@@ -26,6 +26,13 @@ pytestmark = [
 ]
 
 
+# Constants for test data
+UUID_LENGTH = 36
+LARGE_DATA_SIZE = 1000
+LONG_ERROR_CODE_LENGTH = 500
+LONG_ERROR_MESSAGE_LENGTH = 10000
+
+
 class TestToolResultSuccessStructure:
     """POSITIVE: Validate ToolResult.success() produces correct structure."""
 
@@ -183,7 +190,7 @@ class TestToolResultMetadataRequirements:
             data={"result": "value"}, metadata={"trace_id": trace_id}
         )
         assert result.metadata is not None
-        assert len(result.metadata["trace_id"]) == 36  # UUID format
+        assert len(result.metadata["trace_id"]) == UUID_LENGTH  # UUID format
 
     def test_metadata_execution_time_ms_present(self):
         """ToolResult metadata should include execution_time_ms when available."""
@@ -250,10 +257,10 @@ class TestToolResultEdgeCases:
 
     def test_large_data_handled(self):
         """ToolResult.success() handles large data structures."""
-        large_data = {"items": [i for i in range(1000)]}
+        large_data = {"items": [i for i in range(LARGE_DATA_SIZE)]}
         result = ToolResult.success(data=large_data)
         assert result.data == large_data
-        assert len(result.data["items"]) == 1000
+        assert len(result.data["items"]) == LARGE_DATA_SIZE
 
     def test_special_characters_in_error_message(self):
         """ToolResult.failure() handles special characters in messages."""
@@ -271,14 +278,14 @@ class TestToolResultEdgeCases:
 
     def test_very_long_error_code(self):
         """ToolResult.failure() handles very long error codes."""
-        long_code = "A" * 500
+        long_code = "A" * LONG_ERROR_CODE_LENGTH
         result = ToolResult.failure(code=long_code, message="Test error")
         assert result.error is not None
         assert result.error["code"] == long_code
 
     def test_very_long_error_message(self):
         """ToolResult.failure() handles very long error messages."""
-        long_message = "E" * 10000
+        long_message = "E" * LONG_ERROR_MESSAGE_LENGTH
         result = ToolResult.failure(code="TEST_ERROR", message=long_message)
         assert result.error is not None
         assert result.error["message"] == long_message

@@ -53,6 +53,7 @@ resources:
   - neo4j.yml
   - layer1-ingestion.yml
   - layer2-extraction.yml
+  - layer2-5-signal-refinery.yml
   - layer3-knowledge.yml
   - layer4-agents.yml
   - layer5-ground-truth.yml
@@ -67,11 +68,15 @@ resources:
   # envsubst processing at deploy time.
   - alertmanager-secrets.yml
   - tenant-safety.yml
+  # Backup CronJobs (Phase 1)
+  - postgres-backup-cronjob.yaml
+  - neo4j-backup-cronjob.yaml
   # Network policies for zero-trust segmentation
   - network-policies/
   # Horizontal pod autoscaling
   - hpa/layer1-ingestion-hpa.yml
   - hpa/layer2-extraction-hpa.yml
+  - hpa/layer2-5-signal-refinery-hpa.yml
   - hpa/layer3-knowledge-hpa.yml
   - hpa/layer4-agents-hpa.yml
   - hpa/layer5-ground-truth-hpa.yml
@@ -84,6 +89,7 @@ resources:
   - pdb/pgbouncer-pdb.yml
   - pdb/layer1-ingestion-pdb.yml
   - pdb/layer2-extraction-pdb.yml
+  - pdb/layer2-5-signal-refinery-pdb.yml
   - pdb/layer3-knowledge-pdb.yml
   - pdb/layer4-agents-pdb.yml
   - pdb/layer5-ground-truth-pdb.yml

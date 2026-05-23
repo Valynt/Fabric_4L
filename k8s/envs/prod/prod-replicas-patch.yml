@@ -17,6 +17,14 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  name: layer2-5-signal-refinery
+  namespace: value-fabric
+spec:
+  replicas: 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
   name: layer3-knowledge
   namespace: value-fabric
 spec:

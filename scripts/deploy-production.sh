@@ -429,6 +429,7 @@ for entry in "${MIGRATION_LAYERS[@]}"; do
   info "Running migration job for $layer ..."
 
   # Create a one-shot migration job using the target image
+  # Uses pg_advisory_lock to ensure only one migration runs at a time
   cat <<EOF | kubectl apply -f - >/dev/null 2>&1 || true
 apiVersion: batch/v1
 kind: Job
@@ -447,7 +448,35 @@ spec:
       containers:
         - name: migrate
           image: ${REGISTRY}/${layer}:${RELEASE_TAG}
-          command: ["python", "-m", "alembic", "upgrade", "head"]
+          command: ["python", "-c"]
+          args:
+            - |
+              import subprocess
+              import sys
+              import os
+              # Use pg_advisory_lock to prevent concurrent migrations
+              # Lock ID 1234567890 is a shared lock for all database migrations
+              lock_result = subprocess.run([
+                  "python", "-c",
+                  """
+                  import psycopg2
+                  import os
+                  conn = psycopg2.connect(os.environ['DATABASE_URL'])
+                  conn.autocommit = True
+                  cur = conn.cursor()
+                  cur.execute('SELECT pg_advisory_lock(1234567890)')
+                  print('LOCK_ACQUIRED')
+                  cur.close()
+                  conn.close()
+                  """
+              ], capture_output=True, text=True)
+              if 'LOCK_ACQUIRED' not in lock_result.stdout:
+                  print(f'Failed to acquire advisory lock: {lock_result.stderr}', file=sys.stderr)
+                  sys.exit(1)
+              # Run migration
+              result = subprocess.run(['python', '-m', 'alembic', 'upgrade', 'head'])
+              # Release lock automatically on connection close
+              sys.exit(result.returncode)
           envFrom:
             - secretRef:
                 name: ${layer}-db-credentials

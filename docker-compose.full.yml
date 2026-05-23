@@ -110,6 +110,35 @@ services:
       retries: 3
       start_period: 10s
 
+  # Layer 2.5: Signal Refinery Service
+  layer2-5-signal-refinery:
+    build:
+      context: .
+      dockerfile: ./services/layer2-5-signal-refinery/Dockerfile
+      args: *build-args
+    container_name: value-fabric-layer2-5
+    <<: *app-hardening
+    expose:
+      - "8007"
+    environment:
+      - ENVIRONMENT=production
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/signal_refinery
+      - LAYER3_BASE_URL=http://layer3-knowledge:8001
+      - LAYER4_BASE_URL=http://layer4-agents:8000
+      - LOG_LEVEL=info
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8007/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
   # Layer 3: Neo4j Knowledge Graph
   neo4j:
     image: neo4j:5-community
@@ -285,6 +314,7 @@ services:
 
   # Layer 5 Alembic migration runner (one-shot: runs migrations then exits)
   # Uses pg_advisory_lock to prevent concurrent migrations across deployments
+  # Lock ID is derived from database name to avoid conflicts between services
   layer5-migrate:
     build:
       context: .
@@ -293,9 +323,18 @@ services:
     container_name: value-fabric-layer5-migrate
     command: >
       sh -c "
-      trap 'PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c \"SELECT pg_advisory_unlock(12345);\"' EXIT
-      PGPASSWORD=${POSTGRES_PASSWORD} psql -h postgres -U ${POSTGRES_USER} -d ground_truth -c 'SELECT pg_advisory_lock(12345);'
+      # Derive lock ID from database name for service-specific locking
+      DB_NAME='ground_truth'
+      LOCK_ID=$$(echo -n \"$$DB_NAME-migration\" | md5sum | cut -d' ' -f1 | head -c 10)
+      LOCK_NUMERIC=$$(printf '%d' \"0x$$LOCK_ID\")
+      trap 'PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d $$DB_NAME -c \"SELECT pg_advisory_unlock($$LOCK_NUMERIC);\" EXIT INT TERM
+      echo \"Acquiring migration lock for $$DB_NAME (ID: $$LOCK_NUMERIC)\"
+      PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -d $$DB_NAME -c \"SELECT pg_advisory_lock($$LOCK_NUMERIC);\" || { echo 'Failed to acquire lock'; exit 1; }
+      echo 'Lock acquired, running migrations'
       /app/.venv/bin/alembic upgrade head
+      MIGRATION_EXIT_CODE=$$?
+      echo 'Migrations completed with exit code:' $$MIGRATION_EXIT_CODE
+      exit $$MIGRATION_EXIT_CODE
       "
     environment:
       - DATABASE_URL_SYNC=postgresql+psycopg2://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
@@ -590,7 +629,7 @@ services:
       - value-fabric-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 && psql -h postgres -U ${POSTGRES_USER} -d postgres -c 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "pg_isready -h localhost -p 6432 || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 3

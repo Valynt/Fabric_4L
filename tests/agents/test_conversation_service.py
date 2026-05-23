@@ -31,44 +31,54 @@ import pytest
 # ---------------------------------------------------------------------------
 
 # Add canonical Layer 4 path to sys.path for import resolution
-# Use Path for cleaner path handling (improvement over os.path)
 _repo_root = Path(__file__).resolve().parent.parent.parent
 _l4_src = _repo_root / "services" / "layer4-agents" / "src"
 if str(_l4_src) not in sys.path:
     sys.path.insert(0, str(_l4_src))
 
-# Stub external dependencies
+# Stub external dependencies (minimal - only what ConversationService needs)
+# ConversationService imports from value_fabric.shared.audit, which is not available
+# in the test environment, so we stub the audit emitter function.
 _audit_emitter = types.ModuleType("shared.audit.emitter")
 _audit_emitter.emit_audit_event = AsyncMock()
 sys.modules.setdefault("shared.audit.emitter", _audit_emitter)
 sys.modules.setdefault("shared.audit", types.ModuleType("shared.audit"))
 sys.modules.setdefault("shared", types.ModuleType("shared"))
 
-# Try standard import first
-try:
-    from services.conversation import ConversationService, WORKFLOW_INTENTS, TAB_SYSTEM_PROMPTS
-except ModuleNotFoundError:
-    # Fallback to direct file loading if package structure doesn't resolve
-    import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        "services.conversation",
-        _l4_src / "services" / "conversation.py",
-    )
-    if spec and spec.loader:
-        _mod = importlib.util.module_from_spec(spec)
-        sys.modules["services.conversation"] = _mod
-        spec.loader.exec_module(_mod)
-        ConversationService = _mod.ConversationService
-        WORKFLOW_INTENTS = _mod.WORKFLOW_INTENTS
-        TAB_SYSTEM_PROMPTS = _mod.TAB_SYSTEM_PROMPTS
-    else:
-        pytest.skip(
-            "[LAYER4_IMPORT_PATH] Layer 4 import failed - package structure issue",
-            allow_module_level=True,
-        )
-except ImportError as _exc:
+# Load conversation.py directly using importlib to bypass relative import issues.
+# ConversationService uses relative imports (e.g., "from value_fabric.shared.audit")
+# which fail when the module is loaded via sys.path. Using importlib.util loads the
+# file directly, bypassing Python's package resolution mechanism.
+import importlib.util
+
+_conversation_path = _l4_src / "services" / "conversation.py"
+if not _conversation_path.exists():
     pytest.skip(
-        f"[LAYER4_IMPORT_PATH] Layer 4 import failed: {_exc}",
+        f"[LAYER4_IMPORT_PATH] conversation.py not found at {_conversation_path}",
+        allow_module_level=True,
+    )
+
+spec = importlib.util.spec_from_file_location(
+    "services.conversation",
+    _conversation_path,
+)
+if spec is None or spec.loader is None:
+    pytest.skip(
+        "[LAYER4_IMPORT_PATH] Could not load conversation.py spec",
+        allow_module_level=True,
+    )
+_conversation_mod = importlib.util.module_from_spec(spec)
+sys.modules["services.conversation"] = _conversation_mod
+spec.loader.exec_module(_conversation_mod)
+
+# Validate that the expected exports exist
+try:
+    ConversationService = _conversation_mod.ConversationService
+    WORKFLOW_INTENTS = _conversation_mod.WORKFLOW_INTENTS
+    TAB_SYSTEM_PROMPTS = _conversation_mod.TAB_SYSTEM_PROMPTS
+except AttributeError as _exc:
+    pytest.skip(
+        f"[LAYER4_IMPORT_PATH] ConversationService missing expected exports: {_exc}",
         allow_module_level=True,
     )
 

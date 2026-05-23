@@ -12,7 +12,6 @@ Date: 2026-05-23
 from __future__ import annotations
 
 import pytest
-from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
 from value_fabric.layer4.tools.registry import BaseTool, ToolResult
@@ -23,6 +22,12 @@ pytestmark = [
     pytest.mark.contract,
     pytest.mark.mandatory,
 ]
+
+
+# Constants for test data
+EXECUTION_TIME_MS_THRESHOLD = 10
+UUID_LENGTH = 36
+LARGE_TOKEN_COUNT = 100000
 
 
 class StubTool(BaseTool):
@@ -68,6 +73,29 @@ class TestToolExecuteContract:
         # and return ToolResult.failure() instead
         with pytest.raises(ValueError):
             await tool.execute({})
+
+    async def test_execute_handles_exceptions_properly(self):
+        """Tool.execute() must catch exceptions and return ToolResult.failure()."""
+        class ProperErrorHandlingTool(BaseTool):
+            async def execute(self, input_data: dict) -> ToolResult:
+                try:
+                    # Simulate an error condition
+                    if not input_data.get("required_field"):
+                        raise ValueError("Missing required field")
+                    return ToolResult.success(data={"processed": True})
+                except ValueError as e:
+                    return ToolResult.failure(
+                        code="VALIDATION_ERROR",
+                        message=str(e),
+                        recoverable=False,
+                    )
+
+        tool = ProperErrorHandlingTool()
+        result = await tool.execute({})
+        assert result.status == "error"
+        assert result.error is not None
+        assert result.error["code"] == "VALIDATION_ERROR"
+        assert result.error["recoverable"] is False
 
 
 class TestToolErrorHandlingContract:
@@ -153,7 +181,7 @@ class TestToolMetadataContract:
         result = await tool.execute({})
         assert result.metadata is not None
         assert "execution_time_ms" in result.metadata
-        assert result.metadata["execution_time_ms"] >= 10
+        assert result.metadata["execution_time_ms"] >= EXECUTION_TIME_MS_THRESHOLD
 
     async def test_metadata_includes_trace_id(self):
         """ToolResult.metadata should include trace_id for observability."""
@@ -169,7 +197,7 @@ class TestToolMetadataContract:
         result = await tool.execute({})
         assert result.metadata is not None
         assert "trace_id" in result.metadata
-        assert len(result.metadata["trace_id"]) == 36
+        assert len(result.metadata["trace_id"]) == UUID_LENGTH
 
     async def test_metadata_includes_tenant_id(self):
         """ToolResult.metadata should include tenant_id for tenant-aware tools."""

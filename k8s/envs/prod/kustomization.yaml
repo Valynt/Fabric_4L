@@ -9,6 +9,13 @@ resources:
   - ../../external-secrets/vault-database-dynamic.yml
   - ../../external-secrets/neo4j-secrets.yaml
   - ../../external-secrets/pgbouncer-secrets.yaml
+  - ../../external-secrets/layer1-secrets.yaml
+  - ../../external-secrets/layer2-secrets.yaml
+  - ../../external-secrets/layer2-5-secrets.yaml
+  - ../../external-secrets/layer3-secrets.yaml
+  - ../../external-secrets/layer4-secrets.yaml
+  - ../../external-secrets/layer5-secrets.yaml
+  - ../../external-secrets/layer6-secrets.yaml
   - ../../operators
   - ../../monitoring/placeholder-secret-scanner-cronjob.yaml
   - ../../monitoring/thanos.yml
@@ -38,6 +45,9 @@ images:
     # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+  - name: services/layer2-5-signal-refinery
+    newName: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery
     # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge

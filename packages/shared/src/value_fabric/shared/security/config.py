@@ -565,7 +565,7 @@ def validate_jwt_secret_strength() -> None:
             f"(256 bits) to resist brute-force attacks. "
             f"Generate a strong secret: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
         )
-    elif not is_development() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
+    elif is_development() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
         logger.warning(
             "JWT_SECRET is only %d characters. "
             "Production-like environments require at least %d characters.",

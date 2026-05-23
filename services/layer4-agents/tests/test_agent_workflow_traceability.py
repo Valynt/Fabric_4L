@@ -25,6 +25,14 @@ pytestmark = [
 ]
 
 
+# Constants for test data
+UUID_LENGTH = 36
+DEFAULT_TOKEN_COUNT = 150
+DEFAULT_COMPLETION_COUNT = 300
+TOTAL_TOKENS = 450
+LOW_CONFIDENCE = 0.1
+
+
 class TestWorkflowTracePropagation:
     """POSITIVE: Validate trace_id propagates through workflow phases."""
 
@@ -108,13 +116,13 @@ class TestWorkflowPhaseTraceability:
             workflow_type="test_workflow",
             tenant_id=str(uuid4()),
             trace_id=trace_id,
-            prompt_tokens=150,
-            completion_tokens=300,
+            prompt_tokens=DEFAULT_TOKEN_COUNT,
+            completion_tokens=DEFAULT_COMPLETION_COUNT,
             metadata={"phase": "execution"},
         )
         assert result.trace_id == trace_id
-        assert result.prompt_tokens == 150
-        assert result.completion_tokens == 300
+        assert result.prompt_tokens == DEFAULT_TOKEN_COUNT
+        assert result.completion_tokens == DEFAULT_COMPLETION_COUNT
 
     def test_validation_phase_includes_trace_id(self):
         """Validation phase should include trace_id."""
@@ -140,7 +148,7 @@ class TestWorkflowErrorTraceability:
             workflow_type="test_workflow",
             tenant_id=str(uuid4()),
             trace_id=trace_id,
-            confidence=0.1,  # Low confidence triggers degraded state
+            confidence=LOW_CONFIDENCE,  # Low confidence triggers degraded state
         )
         assert result.trace_id == trace_id
         assert result.degraded_reason is not None
@@ -154,7 +162,7 @@ class TestWorkflowErrorTraceability:
             tenant_id=str(uuid4()),
             model_used=model_used,
             llm_enrichment=True,
-            confidence=0.1,
+            confidence=LOW_CONFIDENCE,
         )
         assert result.model_used == model_used
 
@@ -164,13 +172,13 @@ class TestWorkflowErrorTraceability:
             payload={"error": "test error"},
             workflow_type="test_workflow",
             tenant_id=str(uuid4()),
-            prompt_tokens=150,
-            completion_tokens=300,
+            prompt_tokens=DEFAULT_TOKEN_COUNT,
+            completion_tokens=DEFAULT_COMPLETION_COUNT,
             llm_enrichment=True,
-            confidence=0.1,
+            confidence=LOW_CONFIDENCE,
         )
-        assert result.prompt_tokens == 150
-        assert result.completion_tokens == 300
+        assert result.prompt_tokens == DEFAULT_TOKEN_COUNT
+        assert result.completion_tokens == DEFAULT_COMPLETION_COUNT
 
 
 class TestWorkflowReproducibility:
@@ -211,8 +219,8 @@ class TestWorkflowReproducibility:
 
     def test_token_counts_enable_cost_reproducibility(self):
         """Token counts enable cost calculation reproducibility."""
-        prompt_tokens = 150
-        completion_tokens = 300
+        prompt_tokens = DEFAULT_TOKEN_COUNT
+        completion_tokens = DEFAULT_COMPLETION_COUNT
         result = AgentResult(
             payload={"result": "test"},
             workflow_type="test_workflow",
@@ -222,7 +230,7 @@ class TestWorkflowReproducibility:
             model_used="gpt-4o-2024-05-13",
         )
         total_tokens = result.prompt_tokens + result.completion_tokens
-        assert total_tokens == 450
+        assert total_tokens == TOTAL_TOKENS
         # Exact counts enable cost reproducibility
 
 

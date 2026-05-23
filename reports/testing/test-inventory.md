@@ -11,7 +11,7 @@ Collection Status: **4623 tests collected, 0 collection errors**
 | layer1-ingestion | 12 test files | 3 test files | 2 test files + layer1_security_invariants.py | N/A |
 | layer2-extraction | 4 test files | 2 test files | 1 test file + layer2_security_invariants.py (NEW) | N/A |
 | layer3-knowledge | 14 test files | 4 test files | 3 test files + layer3_security_invariants.py (NEW) | N/A |
-| layer4-agents | 25+ test files | 5 test files | 8 test files + layer4_security_invariants.py | N/A |
+| layer4-agents | 28+ test files | 5 test files | 8 test files + layer4_security_invariants.py | N/A |
 | layer5-ground-truth | 3 test files | 1 test file | 1 test file | N/A |
 | layer6-benchmarks | 2 test files | N/A | layer6_security_invariants.py (NEW) | N/A |
 | tests/ (shared) | ~40 test files | 10 test files | 52 test files + 5 P0 security tests | 3 test files |
@@ -19,6 +19,13 @@ Collection Status: **4623 tests collected, 0 collection errors**
 | packs (7 packs) | 21 test files | Formula/ontology tests | Pack integrity | N/A |
 | sdk/python | 7 test files | Integration tests | N/A | N/A |
 | services/api | 10 test files | Auth/governance tests | Production safety | N/A |
+
+**New Tests Added (Phase 4 - P0 Critical Gaps):**
+- layer4-agents: test_tool_output_structure_validation.py (34 tests)
+- layer4-agents: test_tool_execution_contract.py (19 tests)
+- layer4-agents: test_agent_output_traceability.py (30 tests)
+- layer4-agents: test_agent_workflow_traceability.py (18 tests)
+- **Total New Tests: 101 tests across 4 files**
 
 ## Frontend Tests
 | Category | Count | Framework |
