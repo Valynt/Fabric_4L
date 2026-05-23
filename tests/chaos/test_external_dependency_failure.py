@@ -18,6 +18,8 @@ import httpx
 from httpx import ConnectError, TimeoutException, HTTPStatusError
 from value_fabric.shared.security.redaction import redact_credentials
 
+pytestmark = [pytest.mark.chaos]
+
 
 class TestExternalAPIFailure:
     """Verify behavior when external APIs fail."""

@@ -59,6 +59,7 @@ import { cn } from "@/lib/utils";
 import { formatDate, formatCurrency } from "@/lib/formatters";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
+import { PageShell, RightRailPanel } from "@/components";
 
 const PROVIDER_COLORS: Record<CRMProvider, { bg: string; text: string; border: string }> = {
   salesforce: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
@@ -245,33 +246,29 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
 
   if (!accountId) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
-        <Building2 size={48} className="mb-4 opacity-20" />
-        <p className="text-[14px]">Select an account to view details</p>
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="p-5 space-y-4">
-        <Skeleton className="h-6 w-32" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-3/4" />
-        <div className="space-y-3 pt-4">
-          <Skeleton className="h-12 w-full" />
-          <Skeleton className="h-12 w-full" />
+      <RightRailPanel
+        title="Account Details"
+        onClose={onClose}
+      >
+        <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
+          <Building2 size={48} className="mb-4 opacity-20" />
+          <p className="text-[14px]">Select an account to view details</p>
         </div>
-      </div>
+      </RightRailPanel>
     );
   }
 
   if (!account) {
     return (
-      <div className="p-5 text-center">
-        <AlertCircle size={32} className="mx-auto mb-2 text-destructive" />
-        <p className="text-[12px] text-muted-foreground">Failed to load account details</p>
-      </div>
+      <RightRailPanel
+        title="Account Details"
+        onClose={onClose}
+      >
+        <div className="text-center">
+          <AlertCircle size={32} className="mx-auto mb-2 text-destructive" />
+          <p className="text-[12px] text-muted-foreground">Failed to load account details</p>
+        </div>
+      </RightRailPanel>
     );
   }
 
@@ -279,195 +276,186 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
   const totalOpportunityValue =
     account.opportunities?.reduce((sum, opp) => sum + (opp.value || 0), 0) || 0;
 
-  return (
-    <div className="h-full flex flex-col">
-      {/* Header */}
-      <div className="p-5 border-b border-border">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <span
-              className={cn(
-                "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border mb-2",
-                providerStyle.bg,
-                providerStyle.text,
-                providerStyle.border
-              )}
-            >
-              {getProviderLabel(account.provider)}
-            </span>
-            <h3 className="text-[16px] font-bold text-foreground leading-tight">{account.name}</h3>
-            <p className="text-[12px] text-muted-foreground mt-0.5">{account.domain}</p>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
-          >
-            <X size={16} />
-          </button>
-        </div>
-      </div>
-
-      {/* Details */}
-      <div className="flex-1 overflow-y-auto p-5 space-y-5">
-        {/* Sync Status */}
-        <div className="flex items-center gap-2">
-          <StatusBadge status={getSyncStatusBadge(account.sync_status)} />
-          <span className="text-[12px] text-muted-foreground">Synced {formatDate(account.last_synced_at)}</span>
-        </div>
-
-        {/* Metadata */}
-        <div className="space-y-3">
-          {account.industry && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground">Industry</span>
-              <span className="font-medium">{account.industry}</span>
-            </div>
-          )}
-          {account.region && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground">Region</span>
-              <span className="font-medium uppercase">{account.region}</span>
-            </div>
-          )}
-          {account.segment && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground">Segment</span>
-              <span className="font-medium">{account.segment}</span>
-            </div>
-          )}
-          {account.stage && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground">Stage</span>
-              <span className="font-medium">{account.stage}</span>
-            </div>
-          )}
-          {account.headquarters && (
-            <div className="flex items-center justify-between text-[12px]">
-              <span className="text-muted-foreground flex items-center gap-1">
-                <Globe size={12} />
-                Location
-              </span>
-              <span className="font-medium">{account.headquarters}</span>
-            </div>
-          )}
-        </div>
-
-        {/* Stats Grid */}
-        <div className="grid grid-cols-2 gap-3 pt-2">
-          <div className="bg-muted/50 rounded-lg p-3">
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <DollarSign size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Pipeline</span>
-            </div>
-            <p className="text-[16px] font-bold">{formatCurrency(totalOpportunityValue)}</p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3">
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <Briefcase size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Opportunities</span>
-            </div>
-            <p className="text-[16px] font-bold">{account.opportunities?.length || 0}</p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3">
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <Users size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Employees</span>
-            </div>
-            <p className="text-[16px] font-bold">{account.employees?.toLocaleString() || "—"}</p>
-          </div>
-          <div className="bg-muted/50 rounded-lg p-3">
-            <div className="flex items-center gap-1 text-muted-foreground mb-1">
-              <DollarSign size={12} />
-              <span className="text-[10px] uppercase tracking-wide">Revenue</span>
-            </div>
-            <p className="text-[16px] font-bold">{formatCurrency(account.annual_revenue)}</p>
-          </div>
-        </div>
-
-        {/* Owner */}
-        {account.owner_name && (
-          <div className="pt-2">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Account Owner</p>
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <span className="text-[12px] font-semibold text-primary">
-                  {account.owner_name.charAt(0).toUpperCase()}
-                </span>
-              </div>
-              <span className="text-[13px] font-medium">{account.owner_name}</span>
-            </div>
-          </div>
-        )}
-
-        <div className="rounded-lg border border-border bg-card p-4">
-          <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
-            <Activity size={14} />
-            Value Realization
-          </div>
-          <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-            {account.name} is ready for baseline metrics, outcome tracking, actual value capture, and renewal narrative planning once an approved business case is converted.
-          </p>
-          <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-            <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Baseline metrics</span>
-            <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Outcomes</span>
-            <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Actual value</span>
-            <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Renewal narrative</span>
-          </div>
-        </div>
-
-        {/* Opportunities List */}
-        {account.opportunities && account.opportunities.length > 0 && (
-          <div className="pt-2">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Opportunities</p>
-            <div className="space-y-2">
-              {account.opportunities.slice(0, 3).map((opp) => (
-                <div key={opp.provider_opportunity_id} className="bg-muted/30 rounded-lg p-3">
-                  <p className="text-[12px] font-medium truncate">{opp.name}</p>
-                  <div className="flex items-center justify-between mt-1">
-                    <span className="text-[11px] text-muted-foreground">{opp.stage}</span>
-                    <span className="text-[12px] font-semibold">{formatCurrency(opp.value)}</span>
-                  </div>
-                </div>
-              ))}
-              {account.opportunities.length > 3 && (
-                <p className="text-[11px] text-muted-foreground text-center">
-                  +{account.opportunities.length - 3} more
-                </p>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Actions */}
-      <div className="p-5 border-t border-border bg-muted/30">
-        <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-3">Actions</p>
-        <div className="flex items-center gap-2">
-          <Btn variant="primary" className="flex-1" onClick={() => {
-            if (accountId && onLaunchIntelligence) onLaunchIntelligence(accountId);
-          }}>
-            <FileText size={14} className="mr-1" />
-            Launch Intelligence
-          </Btn>
-          <Btn
-            variant="outline"
-            onClick={() => refreshAccount.mutate(account.id)}
-            disabled={refreshAccount.isPending}
-          >
-            {refreshAccount.isPending ? (
-              <Loader2 size={14} className="mr-1 animate-spin" />
-            ) : (
-              <RefreshCw size={14} className="mr-1" />
-            )}
-            Refresh
-          </Btn>
-          <Btn variant="ghost">
-            <Activity size={14} className="mr-1" />
-            Traces
-          </Btn>
-        </div>
-      </div>
+  const status = (
+    <div className="flex items-center gap-2">
+      <StatusBadge status={getSyncStatusBadge(account.sync_status)} />
+      <span className="text-[12px] text-muted-foreground">Synced {formatDate(account.last_synced_at)}</span>
     </div>
+  );
+
+  const footer = (
+    <div className="flex items-center gap-2">
+      <Btn variant="primary" className="flex-1" onClick={() => {
+        if (accountId && onLaunchIntelligence) onLaunchIntelligence(accountId);
+      }}>
+        <FileText size={14} className="mr-1" />
+        Launch Intelligence
+      </Btn>
+      <Btn
+        variant="outline"
+        onClick={() => refreshAccount.mutate(account.id)}
+        disabled={refreshAccount.isPending}
+      >
+        {refreshAccount.isPending ? (
+          <Loader2 size={14} className="mr-1 animate-spin" />
+        ) : (
+          <RefreshCw size={14} className="mr-1" />
+        )}
+        Refresh
+      </Btn>
+      <Btn variant="ghost">
+        <Activity size={14} className="mr-1" />
+        Traces
+      </Btn>
+    </div>
+  );
+
+  return (
+    <RightRailPanel
+      title={account.name}
+      status={status}
+      onClose={onClose}
+      footer={footer}
+      isLoading={isLoading}
+    >
+      {/* Provider Badge */}
+      <div className="mb-4">
+        <span
+          className={cn(
+            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border",
+            providerStyle.bg,
+            providerStyle.text,
+            providerStyle.border
+          )}
+        >
+          {getProviderLabel(account.provider)}
+        </span>
+        <p className="text-[12px] text-muted-foreground mt-1">{account.domain}</p>
+      </div>
+
+      {/* Metadata */}
+      <div className="space-y-3 mb-4">
+        {account.industry && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-muted-foreground">Industry</span>
+            <span className="font-medium">{account.industry}</span>
+          </div>
+        )}
+        {account.region && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-muted-foreground">Region</span>
+            <span className="font-medium uppercase">{account.region}</span>
+          </div>
+        )}
+        {account.segment && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-muted-foreground">Segment</span>
+            <span className="font-medium">{account.segment}</span>
+          </div>
+        )}
+        {account.stage && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-muted-foreground">Stage</span>
+            <span className="font-medium">{account.stage}</span>
+          </div>
+        )}
+        {account.headquarters && (
+          <div className="flex items-center justify-between text-[12px]">
+            <span className="text-muted-foreground flex items-center gap-1">
+              <Globe size={12} />
+              Location
+            </span>
+            <span className="font-medium">{account.headquarters}</span>
+          </div>
+        )}
+      </div>
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 gap-3 mb-4">
+        <div className="bg-muted/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-muted-foreground mb-1">
+            <DollarSign size={12} />
+            <span className="text-[10px] uppercase tracking-wide">Pipeline</span>
+          </div>
+          <p className="text-[16px] font-bold">{formatCurrency(totalOpportunityValue)}</p>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-muted-foreground mb-1">
+            <Briefcase size={12} />
+            <span className="text-[10px] uppercase tracking-wide">Opportunities</span>
+          </div>
+          <p className="text-[16px] font-bold">{account.opportunities?.length || 0}</p>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-muted-foreground mb-1">
+            <Users size={12} />
+            <span className="text-[10px] uppercase tracking-wide">Employees</span>
+          </div>
+          <p className="text-[16px] font-bold">{account.employees?.toLocaleString() || "—"}</p>
+        </div>
+        <div className="bg-muted/50 rounded-lg p-3">
+          <div className="flex items-center gap-1 text-muted-foreground mb-1">
+            <DollarSign size={12} />
+            <span className="text-[10px] uppercase tracking-wide">Revenue</span>
+          </div>
+          <p className="text-[16px] font-bold">{formatCurrency(account.annual_revenue)}</p>
+        </div>
+      </div>
+
+      {/* Owner */}
+      {account.owner_name && (
+        <div className="mb-4">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Account Owner</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+              <span className="text-[12px] font-semibold text-primary">
+                {account.owner_name.charAt(0).toUpperCase()}
+              </span>
+            </div>
+            <span className="text-[13px] font-medium">{account.owner_name}</span>
+          </div>
+        </div>
+      )}
+
+      <div className="rounded-lg border border-border bg-card p-4 mb-4">
+        <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+          <Activity size={14} />
+          Value Realization
+        </div>
+        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+          {account.name} is ready for baseline metrics, outcome tracking, actual value capture, and renewal narrative planning once an approved business case is converted.
+        </p>
+        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+          <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Baseline metrics</span>
+          <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Outcomes</span>
+          <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Actual value</span>
+          <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Renewal narrative</span>
+        </div>
+      </div>
+
+      {/* Opportunities List */}
+      {account.opportunities && account.opportunities.length > 0 && (
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Opportunities</p>
+          <div className="space-y-2">
+            {account.opportunities.slice(0, 3).map((opp) => (
+              <div key={opp.provider_opportunity_id} className="bg-muted/30 rounded-lg p-3">
+                <p className="text-[12px] font-medium truncate">{opp.name}</p>
+                <div className="flex items-center justify-between mt-1">
+                  <span className="text-[11px] text-muted-foreground">{opp.stage}</span>
+                  <span className="text-[12px] font-semibold">{formatCurrency(opp.value)}</span>
+                </div>
+              </div>
+            ))}
+            {account.opportunities.length > 3 && (
+              <p className="text-[11px] text-muted-foreground text-center">
+                +{account.opportunities.length - 3} more
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+    </RightRailPanel>
   );
 }
 
@@ -562,7 +550,7 @@ function Accounts() {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="max-w-[1600px] mx-auto px-6 py-8">
+      <PageShell>
         {/* Header */}
         <PageHeader
           title="Accounts"
@@ -744,7 +732,7 @@ function Accounts() {
             </div>
           )}
         </div>
-      </div>
+      </PageShell>
       {/* Account Intake Modal */}
       <AccountIntakeModal
         open={intakeOpen}

@@ -62,7 +62,7 @@ class OpenApiExportSpec:
 EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
     OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "api/app_monolith.py", "layer1-ingestion.json"),
     OpenApiExportSpec("Layer 2", "layer2-extraction", "layer2_extraction", "layer2_extraction/api/main.py", "layer2-extraction.json"),
-    OpenApiExportSpec("Layer 3", "layer3-knowledge", "layer3_knowledge", "api/app_monolith.py", "layer3-knowledge.json"),
+    OpenApiExportSpec("Layer 3", "layer3-knowledge", "layer3_knowledge", "api/main.py", "layer3-knowledge.json"),
     OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "api/main.py", "layer4-agents.json"),
     OpenApiExportSpec("Layer 5", "layer5-ground-truth", "layer5_ground_truth", "layer5_ground_truth/api/main.py", "layer5-ground-truth.json"),
     OpenApiExportSpec(
@@ -95,7 +95,7 @@ EXPORT_ENV: dict[str, str] = {
     "JWT_SECRET_KEY": "openapi-export-local-secret-with-32-characters",
     "DATABASE_URL": "postgresql://fabric_export:fabric_export_secret@localhost:5432/value_fabric",
     "DATABASE_URL_SYNC": "postgresql://fabric_export:fabric_export_secret@localhost:5432/value_fabric",
-    "CORS_ORIGINS": "http://localhost:5173",
+    "CORS_ORIGINS": '["http://localhost:5173"]',
     "S3_ACCESS_KEY": "fabric_export_access_key",
     "S3_SECRET_KEY": "fabric_export_secret_key",
     "MINIO_ACCESS_KEY": "fabric_export_access_key",
@@ -378,7 +378,7 @@ def _export_service_in_process(spec: OpenApiExportSpec) -> bool:
     for key, value in EXPORT_ENV.items():
         os.environ.setdefault(key, value)
 
-    for path in (spec.src_path, SHARED_SRC, REPO_ROOT):
+    for path in (spec.src_path, spec.src_path.parent, SHARED_SRC, REPO_ROOT):
         sys.path.insert(0, str(path))
 
     _install_openapi_dependency_shims(spec)

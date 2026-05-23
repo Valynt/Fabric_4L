@@ -268,3 +268,28 @@ class EntityDeduplicator:
             merged = self._merge_entities(cluster_entities)
             result.append(merged)
         return result
+
+
+async def deduplicate_entities(
+    entities: dict[str, list[Any]],
+    *,
+    api_key: str | None,
+    similarity_threshold: float,
+    relationships: list[Any],
+    enable_coreference: bool,
+) -> dict[str, list[Any]]:
+    """Deduplicate entities across all types.
+
+    Returns a dict mapping entity type to deduplicated list.
+    """
+    deduplicator = EntityDeduplicator(
+        similarity_threshold=similarity_threshold,
+        api_key=api_key,
+    )
+    result: dict[str, list[Any]] = {}
+    for entity_type, entity_list in entities.items():
+        if entity_list:
+            result[entity_type] = deduplicator.deduplicate(entity_list)
+        else:
+            result[entity_type] = []
+    return result

@@ -2,7 +2,24 @@ import uuid
 
 import pytest
 
-from tests.conftest import TEST_ORG_ID, make_source_payload, make_truth_payload
+TEST_ORG_ID = uuid.UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
+
+
+def make_truth_payload():
+    return {
+        "claim": "Cross-tenant isolation test claim",
+        "claim_type": "metric",
+        "confidence": 0.95,
+        "organization_id": str(TEST_ORG_ID),
+    }
+
+
+def make_source_payload():
+    return {
+        "url": "https://example.com/source",
+        "source_type": "document",
+        "excerpt": "Test excerpt for cross-tenant isolation",
+    }
 
 
 @pytest.mark.asyncio

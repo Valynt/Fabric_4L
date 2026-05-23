@@ -752,3 +752,8 @@ class SchemaVersion(BaseModel):
     comment: str | None = None
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+
+# Union type for any ontology entity handled by the deduplication pipeline.
+# Required for type-safe entity collection processing.
+OntologyEntity = Capability | UseCase | Persona | ValueDriver | Feature

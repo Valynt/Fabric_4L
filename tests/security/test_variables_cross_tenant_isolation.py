@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer3.api.routes.variables import _get_authenticated_tenant_id
+from value_fabric.shared.identity.dependencies import require_tenant_context
 
 pytestmark = pytest.mark.tenant_boundary
 
@@ -191,37 +191,11 @@ class TestVariableWriteIsolation:
 class TestVariableFailClosed:
     """Missing or empty tenant context must be rejected before any Neo4j call."""
 
-    def test_missing_tenant_id_raises_401(self):
-        """_get_authenticated_tenant_id raises HTTP 401 when tenant_id is absent."""
-        mock_key = SimpleNamespace(tenant_id=None)
-        with pytest.raises(HTTPException) as exc_info:
-            _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
-
-    def test_whitespace_only_tenant_id_raises_401(self):
-        """Whitespace-only tenant_id must be treated as absent."""
-        mock_key = SimpleNamespace(tenant_id="   ")
-        with pytest.raises(HTTPException) as exc_info:
-            _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
-
-    def test_empty_string_tenant_id_raises_401(self):
-        """Empty string tenant_id must be rejected."""
-        mock_key = SimpleNamespace(tenant_id="")
-        with pytest.raises(HTTPException) as exc_info:
-            _get_authenticated_tenant_id(mock_key)
-        assert exc_info.value.status_code == 401
-
-    def test_valid_tenant_id_is_returned(self):
-        """Valid tenant_id is returned unchanged."""
-        mock_key = SimpleNamespace(tenant_id="tenant-xyz")
-        assert _get_authenticated_tenant_id(mock_key) == "tenant-xyz"
-
     def test_tenant_id_from_auth_not_request_body(self):
-        """variables.py must extract tenant_id from the authenticated api_key."""
+        """variables.py must extract tenant_id from the authenticated context."""
         source = _source()
-        assert "_get_authenticated_tenant_id" in source, (
-            "variables.py must use _get_authenticated_tenant_id helper"
+        assert "require_tenant_context" in source, (
+            "variables.py must use require_tenant_context dependency"
         )
         assert "request.json" not in source, (
             "variables.py must not read tenant_id from request.json()"

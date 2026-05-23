@@ -132,10 +132,10 @@ _PATHS_TO_ADD = [
     # NOTE: Do NOT add packages/shared/src here — it shadows stdlib `secrets`.
     # The shared package is importable as `value_fabric.shared.identity`, etc.
     # via the namespace package setup.
-    str(_PROJECT_ROOT / "services" / "layer4-agents" / "src"),
     str(_PROJECT_ROOT / "services" / "layer3-knowledge" / "src"),
     str(_PROJECT_ROOT / "services" / "layer1-ingestion" / "src"),
     str(_PROJECT_ROOT / "packages" / "platform-contract" / "src" / "python"),
+    str(_PROJECT_ROOT / "services" / "layer4-agents" / "src"),
 ]
 for p in _PATHS_TO_ADD:
     if p not in sys.path:
@@ -436,6 +436,31 @@ def require_docker():
     if os.getenv("CI") == "true":
         pytest.fail(make_infra_ci_failure_reason("docker"))
     pytest.skip(make_infra_skip_reason("docker"))
+
+
+# ---------------------------------------------------------------------------
+# Module-level skip helper
+# ---------------------------------------------------------------------------
+
+def skip_if_infra_unavailable(*deps: str) -> None:
+    """Module-level guard: skip entire module if listed deps are unreachable.
+
+    Usage at top of a test module::
+        skip_if_infra_unavailable("postgres", "neo4j")
+    """
+    for dep in deps:
+        checker = {
+            "postgres": _check_postgres,
+            "redis": _check_redis,
+            "neo4j": _check_neo4j,
+            "docker": _check_docker,
+        }.get(dep)
+        if checker is None:
+            continue
+        if not checker():
+            if os.getenv("CI") == "true":
+                pytest.fail(make_infra_ci_failure_reason(dep))
+            pytest.skip(make_infra_skip_reason(dep), allow_module_level=True)
 
 
 # ---------------------------------------------------------------------------

@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "Value Fabric - Knowledge Graph & Semantic Layer",
-    "description": "\n    ## Layer 3: Knowledge Graph & Semantic Layer API\n    \n    The Value Fabric Knowledge Graph API provides intelligent semantic search, \n    graph-based retrieval, and analytics capabilities for enterprise AI workflows.\n    \n    ### Key Features\n    - **GraphRAG Retrieval**: Context-aware graph-based question answering\n    - **Hybrid Search**: Combined vector, keyword, and graph traversal search\n    - **Entity Analytics**: Community detection, centrality analysis, and similarity metrics\n    - **Schema Management**: Dynamic Neo4j schema initialization and monitoring\n    - **Real-time Ingestion**: RDF/OWL data ingestion with provenance tracking\n    \n    ### Architecture\n    - **Database**: Neo4j 5.x for graph storage and relationships\n    - **Vector Store**: Pinecone for semantic similarity search\n    - **Embeddings**: OpenAI text-embedding-3-large (768 dimensions)\n    - **Analytics**: NetworkX for graph algorithms and community detection\n    \n    ### Authentication & Security\n    - Rate limiting (configurable per endpoint)\n    - Input validation and sanitization\n    - Request tracking with unique IDs\n    - Comprehensive security headers\n    \n    ### Getting Started\n    1. Explore the `/health` endpoint to verify service status\n    2. Check `/v1/schema/status` to ensure database schema is ready\n    3. Try `/v1/search` for basic entity discovery\n    4. Use `/v1/graphrag` for complex question answering\n    \n    ### Rate Limits\n    - Default: 100 requests/minute, 200 burst\n    - Health endpoints: 300 requests/minute\n    - Search endpoints: 200 requests/minute  \n    - Schema operations: 10-60 requests/minute\n    \n    Check response headers `X-RateLimit-*` for current limits.\n    ",
+    "description": "\n## Layer 3: Knowledge Graph & Semantic Layer API\n\nProvides intelligent semantic search, graph-based retrieval, and analytics\ncapabilities for enterprise AI workflows.\n",
     "contact": {
       "name": "Value Fabric Team",
       "email": "value-fabric@example.com"
@@ -20,145 +20,41 @@
           "Health"
         ],
         "summary": "Basic Health Check",
-        "description": "Perform a basic health check of the service and its dependencies.\n    \n    This endpoint checks:\n    - Neo4j database connectivity\n    - Overall service status\n    - Basic system metrics\n    - Schema validation status\n    \n    Returns a simplified health status suitable for load balancers and monitoring systems.\n    \n    **Response Headers:**\n    - `X-RateLimit-*`: Current rate limiting information\n    - `X-API-Version`: API version used\n    - `X-Supported-Versions`: Supported API versions\n    \n    **Status Codes:**\n    - `200`: Service is healthy\n    - `503`: Service or dependencies are unhealthy",
+        "description": "Check service health and Neo4j connectivity.",
         "operationId": "health_check_health_get",
         "responses": {
           "200": {
-            "description": "Service is healthy",
+            "description": "Service health payload",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/HealthResponse"
-                },
-                "example": {
-                  "status": "healthy",
-                  "version": "1.0.0",
-                  "timestamp": "2024-01-01T12:00:00.000Z",
-                  "uptime_seconds": 3600.0,
-                  "dependencies": [
-                    {
-                      "name": "neo4j",
-                      "status": "healthy",
-                      "response_time_ms": 15.5,
-                      "details": {
-                        "uri": "bolt://localhost:7687",
-                        "database": "neo4j"
-                      }
-                    }
-                  ],
-                  "metrics": {
-                    "uptime_seconds": 3600.0,
-                    "memory_usage_mb": 1024.5,
-                    "cpu_percent": 25.0,
-                    "active_connections": 10,
-                    "total_requests": 1500,
-                    "error_rate_percent": 0.1
-                  },
-                  "neo4j": {
-                    "status": "healthy",
-                    "database": "neo4j",
-                    "uri": "bolt://localhost:7687"
-                  },
-                  "schema_status": {
-                    "constraints": {
-                      "expected": 10,
-                      "found": 10,
-                      "missing": []
-                    },
-                    "indexes": {
-                      "expected": 15,
-                      "found": 15,
-                      "missing": []
-                    },
-                    "valid": true
-                  }
                 }
               }
             }
           },
           "503": {
-            "description": "Service or dependencies are unhealthy",
+            "description": "Service unavailable"
+          }
+        }
+      }
+    },
+    "/health/detailed": {
+      "get": {
+        "tags": [
+          "Health"
+        ],
+        "summary": "Detailed Health Check",
+        "description": "Get detailed health information with system info and configuration.",
+        "operationId": "detailed_health_check_health_detailed_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "example": {
-                  "status": "unhealthy",
-                  "version": "1.0.0",
-                  "timestamp": "2024-01-01T12:00:00.000Z",
-                  "uptime_seconds": 3600.0,
-                  "dependencies": [
-                    {
-                      "name": "neo4j",
-                      "status": "unhealthy",
-                      "error": "Connection timeout",
-                      "details": {
-                        "uri": "bolt://localhost:7687",
-                        "database": "neo4j"
-                      }
-                    }
-                  ],
-                  "metrics": {
-                    "uptime_seconds": 3600.0,
-                    "memory_usage_mb": 1024.5,
-                    "cpu_percent": 25.0,
-                    "active_connections": 0,
-                    "total_requests": 1500,
-                    "error_rate_percent": 5.2
-                  },
-                  "neo4j": {
-                    "status": "unhealthy",
-                    "database": "neo4j",
-                    "uri": "bolt://localhost:7687",
-                    "error": "Connection timeout"
-                  },
-                  "schema_status": {
-                    "constraints": {
-                      "expected": 10,
-                      "found": 8,
-                      "missing": [
-                        "constraint_1",
-                        "constraint_2"
-                      ]
-                    },
-                    "indexes": {
-                      "expected": 15,
-                      "found": 15,
-                      "missing": []
-                    },
-                    "valid": false
-                  }
+                "schema": {
+                  "$ref": "#/components/schemas/DetailedHealthResponse"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ready": {
-      "get": {
-        "summary": "Ready",
-        "operationId": "ready_ready_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/metrics": {
-      "get": {
-        "summary": "Metrics",
-        "operationId": "metrics_metrics_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }
@@ -514,7 +410,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/CreateFormulaRequest"
+                "$ref": "#/components/schemas/Body_create_formula_v1_formulas_post"
               }
             }
           }
@@ -613,7 +509,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateFormulaRequest"
+                "$ref": "#/components/schemas/Body_update_formula_v1_formulas__formula_id__patch"
               }
             }
           }
@@ -664,6 +560,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2176,11 +2089,6 @@
         "summary": "Search Variables",
         "description": "Search variables by context.",
         "operationId": "search_variables_v1_variables_get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "industry",
@@ -2285,6 +2193,23 @@
             "description": "Only active variables"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2309,9 +2234,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Missing tenant context"
           }
         }
       },
@@ -2319,17 +2241,12 @@
         "summary": "Create Variable",
         "description": "Register a new variable definition. Requires authentication.",
         "operationId": "create_variable_v1_variables_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "requestBody": {
           "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VariableCreateRequest"
+                "$ref": "#/components/schemas/Body_create_variable_v1_variables_post"
               }
             }
           }
@@ -2354,9 +2271,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Missing tenant context"
           }
         }
       }
@@ -2366,57 +2280,6 @@
         "summary": "Get Variable",
         "description": "Get variable definition by ID.",
         "operationId": "get_variable_v1_variables__variable_id__get",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
-        "parameters": [
-          {
-            "name": "variable_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Variable Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VariableDetail"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Missing tenant context"
-          }
-        }
-      },
-      "put": {
-        "summary": "Update Variable",
-        "description": "Update variable definition. Requires authentication.",
-        "operationId": "update_variable_v1_variables__variable_id__put",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "variable_id",
@@ -2429,11 +2292,18 @@
           }
         ],
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/VariableUpdateRequest"
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
               }
             }
           }
@@ -2458,23 +2328,13 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Missing tenant context"
           }
         }
-      }
-    },
-    "/v1/variables/{variable_id}/resolve": {
-      "post": {
-        "summary": "Resolve Variable",
-        "description": "Resolve variable value for given context.",
-        "operationId": "resolve_variable_v1_variables__variable_id__resolve_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
+      },
+      "put": {
+        "summary": "Update Variable",
+        "description": "Update variable definition. Requires authentication.",
+        "operationId": "update_variable_v1_variables__variable_id__put",
         "parameters": [
           {
             "name": "variable_id",
@@ -2491,7 +2351,57 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ResolveRequest"
+                "$ref": "#/components/schemas/Body_update_variable_v1_variables__variable_id__put"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VariableDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/variables/{variable_id}/resolve": {
+      "post": {
+        "summary": "Resolve Variable",
+        "description": "Resolve variable value for given context.",
+        "operationId": "resolve_variable_v1_variables__variable_id__resolve_post",
+        "parameters": [
+          {
+            "name": "variable_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Variable Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_resolve_variable_v1_variables__variable_id__resolve_post"
               }
             }
           }
@@ -2516,9 +2426,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Missing tenant context"
           }
         }
       }
@@ -2528,11 +2435,6 @@
         "summary": "Validate Value",
         "description": "Validate value against variable rules.",
         "operationId": "validate_value_v1_variables__variable_id__validate_post",
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ],
         "parameters": [
           {
             "name": "variable_id",
@@ -2549,7 +2451,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValidateRequest"
+                "$ref": "#/components/schemas/Body_validate_value_v1_variables__variable_id__validate_post"
               }
             }
           }
@@ -2574,9 +2476,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Missing tenant context"
           }
         }
       }
@@ -2586,6 +2485,23 @@
         "summary": "Get Variable Stats",
         "description": "Return aggregate statistics for the variable registry.",
         "operationId": "get_variable_stats_v1_variables_stats_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2597,15 +2513,17 @@
               }
             }
           },
-          "401": {
-            "description": "Missing tenant context"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/variables/bindings": {
@@ -2613,6 +2531,23 @@
         "summary": "List Source Bindings",
         "description": "List data source binding configurations and their health status.",
         "operationId": "list_source_bindings_v1_variables_bindings_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2628,15 +2563,17 @@
               }
             }
           },
-          "401": {
-            "description": "Missing tenant context"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
-        },
-        "security": [
-          {
-            "HTTPBearer": []
-          }
-        ]
+        }
       }
     },
     "/v1/models": {
@@ -2760,6 +2697,23 @@
             "description": "Results to skip"
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Models retrieved successfully",
@@ -2801,7 +2755,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ModelCreateRequest"
+                "$ref": "#/components/schemas/Body_create_model_v1_models_post"
               }
             }
           }
@@ -2838,6 +2792,23 @@
         "summary": "Get Model Folder Counts",
         "description": "Returns folder counts for the sidebar navigation.",
         "operationId": "get_folder_counts_v1_models_folders_get",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -2845,6 +2816,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FoldersResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -2871,6 +2852,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Model retrieved successfully",
@@ -2918,6 +2916,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Model deleted successfully",
@@ -2951,14 +2966,14 @@
         }
       }
     },
-    "/v1/v1/entities": {
+    "/v1/entities/": {
       "get": {
         "tags": [
           "Entities"
         ],
         "summary": "List Entities",
         "description": "List entities with optional filtering and pagination.\n\nThis is the canonical entity browser endpoint per the Value Fabric API spec.\nReturns high-quality entity summaries with consistent field naming.",
-        "operationId": "list_entities_v1_v1_entities_get",
+        "operationId": "list_entities_v1_entities__get",
         "parameters": [
           {
             "name": "search_text",
@@ -3090,14 +3105,14 @@
         }
       }
     },
-    "/v1/v1/entities/{entity_id}": {
+    "/v1/entities/{entity_id}": {
       "get": {
         "tags": [
           "Entities"
         ],
         "summary": "Get Entity Detail",
         "description": "Get detailed information about a specific entity.\n\nReturns complete entity details including properties, provenance,\nand optionally related entities and their relationships.",
-        "operationId": "get_entity_detail_v1_v1_entities__entity_id__get",
+        "operationId": "get_entity_detail_v1_entities__entity_id__get",
         "parameters": [
           {
             "name": "entity_id",
@@ -3157,14 +3172,14 @@
         }
       }
     },
-    "/v1/v1/entities/query": {
+    "/v1/entities/query": {
       "post": {
         "tags": [
           "Entities"
         ],
         "summary": "Query Entities",
         "description": "Query entities using Cypher-like filter conditions.\n\nSupports complex filtering with multiple conditions, logical operators,\nand custom sorting.",
-        "operationId": "query_entities_v1_v1_entities_query_post",
+        "operationId": "query_entities_v1_entities_query_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -3199,14 +3214,14 @@
         }
       }
     },
-    "/v1/v1/entity/traverse": {
+    "/v1/entities/traverse": {
       "post": {
         "tags": [
           "Entities"
         ],
         "summary": "Traverse Value Tree",
         "description": "Traverse the value tree starting from a root entity.\n\nPerforms graph traversal to find value-related entities and their\nrelationships, returning a structured tree representation.",
-        "operationId": "traverse_value_tree_v1_v1_entity_traverse_post",
+        "operationId": "traverse_value_tree_v1_entities_traverse_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -4966,7 +4981,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ROICalculateResponse"
+                }
               }
             }
           },
@@ -5006,7 +5023,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ROICompareResponse"
+                }
               }
             }
           },
@@ -5093,7 +5112,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ROITemplateResponse"
+                  },
+                  "title": "Response List Templates V1 Roi Templates Get"
+                }
               }
             }
           },
@@ -5131,7 +5156,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ROITemplateResponse"
+                }
               }
             }
           },
@@ -5202,7 +5229,13 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ROICalculationRecord"
+                  },
+                  "title": "Response List Calculations V1 Roi Calculations Get"
+                }
               }
             }
           },
@@ -5243,7 +5276,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ROICalculationRecord"
+                }
               }
             }
           },
@@ -5284,7 +5319,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/ROIBenchmarkResponse"
+                }
               }
             }
           },
@@ -5583,14 +5620,14 @@
         ]
       }
     },
-    "/v1/v1/calculators/levers": {
+    "/v1/calculators/levers": {
       "get": {
         "tags": [
           "calculators"
         ],
         "summary": "Get Value Levers",
         "description": "Get value lever configuration for value calculations.\n\nReturns tenant-scoped lever configurations filtered by industry/company size.",
-        "operationId": "get_value_levers_v1_v1_calculators_levers_get",
+        "operationId": "get_value_levers_v1_calculators_levers_get",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5625,14 +5662,14 @@
         }
       }
     },
-    "/v1/v1/calculators/value-cases": {
+    "/v1/calculators/value-cases": {
       "post": {
         "tags": [
           "calculators"
         ],
         "summary": "Create Value Case",
         "description": "Create a new value case with scenarios and calculations.",
-        "operationId": "create_value_case_v1_v1_calculators_value_cases_post",
+        "operationId": "create_value_case_v1_calculators_value_cases_post",
         "requestBody": {
           "content": {
             "application/json": {
@@ -5667,14 +5704,14 @@
         }
       }
     },
-    "/v1/v1/calculators/value-cases/{case_id}": {
+    "/v1/calculators/value-cases/{case_id}": {
       "get": {
         "tags": [
           "calculators"
         ],
         "summary": "Get Value Case",
         "description": "Get a value case by ID.",
-        "operationId": "get_value_case_v1_v1_calculators_value_cases__case_id__get",
+        "operationId": "get_value_case_v1_calculators_value_cases__case_id__get",
         "parameters": [
           {
             "name": "case_id",
@@ -5715,7 +5752,7 @@
         ],
         "summary": "Update Value Case",
         "description": "Update an existing value case.",
-        "operationId": "update_value_case_v1_v1_calculators_value_cases__case_id__put",
+        "operationId": "update_value_case_v1_calculators_value_cases__case_id__put",
         "parameters": [
           {
             "name": "case_id",
@@ -5745,1048 +5782,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/ValueCaseResponse"
                 }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/health/detailed": {
-      "get": {
-        "tags": [
-          "Health"
-        ],
-        "summary": "Detailed Health Check",
-        "description": "Perform a comprehensive health check with detailed system information.\n    \n    This endpoint provides complete health information including:\n    - All dependency status with response times\n    - Detailed system metrics and resource usage\n    - Configuration information (non-sensitive)\n    - System information and platform details\n    - Full schema validation results\n    \n    Use this endpoint for detailed diagnostics and troubleshooting.\n    \n    **Response Headers:**\n    - `X-RateLimit-*`: Current rate limiting information\n    \n    **Status Codes:**\n    - `200`: Detailed health information returned\n    - `503`: Service or dependencies are unhealthy",
-        "operationId": "detailed_health_check_health_detailed_get",
-        "responses": {
-          "200": {
-            "description": "Detailed health information",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/DetailedHealthResponse"
-                },
-                "example": {
-                  "status": "healthy",
-                  "version": "1.0.0",
-                  "timestamp": "2024-01-01T12:00:00.000Z",
-                  "uptime_seconds": 3600.0,
-                  "dependencies": [
-                    {
-                      "name": "neo4j",
-                      "status": "healthy",
-                      "response_time_ms": 15.5,
-                      "details": {
-                        "uri": "bolt://localhost:7687",
-                        "database": "neo4j"
-                      }
-                    },
-                    {
-                      "name": "pinecone",
-                      "status": "healthy",
-                      "response_time_ms": 25.2,
-                      "details": {
-                        "index": "value-fabric"
-                      }
-                    }
-                  ],
-                  "metrics": {
-                    "uptime_seconds": 3600.0,
-                    "memory_usage_mb": 1024.5,
-                    "cpu_percent": 25.0,
-                    "active_connections": 10,
-                    "total_requests": 1500,
-                    "error_rate_percent": 0.1
-                  },
-                  "neo4j": {
-                    "status": "healthy",
-                    "database": "neo4j",
-                    "uri": "bolt://localhost:7687"
-                  },
-                  "schema_status": {
-                    "constraints": {
-                      "expected": 10,
-                      "found": 10,
-                      "missing": []
-                    },
-                    "indexes": {
-                      "expected": 15,
-                      "found": 15,
-                      "missing": []
-                    },
-                    "valid": true
-                  },
-                  "system_info": {
-                    "platform": "Windows-10-10.0.19041-SP0",
-                    "python_version": "3.11.0",
-                    "cpu_count": 8,
-                    "memory_total_gb": 16.0,
-                    "disk_usage_gb": 250.5
-                  },
-                  "configuration": {
-                    "api_host": "0.0.0.0",
-                    "api_port": 8001,
-                    "log_level": "INFO",
-                    "log_format": "json",
-                    "neo4j_database": "neo4j",
-                    "neo4j_max_pool_size": 50,
-                    "pinecone_configured": true
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/graphrag": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Graph Rag Legacy Alias",
-        "operationId": "graph_rag_legacy_alias_v1_graphrag_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GraphRAGQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GraphRAGResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/query/graph": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Graph Rag Query Aliases",
-        "operationId": "graph_rag_query_aliases_v1_query_graph_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GraphRAGQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GraphRAGResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/query": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Graph Rag Query Aliases",
-        "operationId": "graph_rag_query_aliases_v1_query_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GraphRAGQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GraphRAGResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/query/graph/stream": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Graph Rag Query Stream Alias",
-        "operationId": "graph_rag_query_stream_alias_v1_query_graph_stream_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/GraphRAGQuery"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/search": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Hybrid Search Aliases",
-        "operationId": "hybrid_search_aliases_v1_search_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
-    "/v1/search/hybrid": {
-      "post": {
-        "tags": [
-          "compatibility"
-        ],
-        "summary": "Hybrid Search Aliases",
-        "operationId": "hybrid_search_aliases_v1_search_hybrid_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SearchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SearchResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "deprecated": true
-      }
-    },
-    "/v1/schema/status": {
-      "get": {
-        "tags": [
-          "Schema"
-        ],
-        "summary": "Get Schema Status",
-        "description": "Retrieve the current status of Neo4j schema elements.\n    \n    This endpoint checks:\n    - Constraint creation and validation\n    - Index creation and status\n    - Overall schema health\n    - Missing elements that need attention\n    \n    Use this endpoint to verify database schema integrity before operations.\n    \n    **Response Headers:**\n    - `X-RateLimit-*`: Current rate limiting information\n    \n    **Status Codes:**\n    - `200`: Schema status retrieved successfully\n    - `503`: Database connection issues",
-        "operationId": "get_schema_status_v1_schema_status_get",
-        "responses": {
-          "200": {
-            "description": "Schema status retrieved successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaStatus"
-                },
-                "example": {
-                  "constraints": {
-                    "expected": 10,
-                    "found": 10,
-                    "missing": []
-                  },
-                  "indexes": {
-                    "expected": 15,
-                    "found": 15,
-                    "missing": []
-                  },
-                  "valid": true
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/schema/init": {
-      "post": {
-        "summary": "Init Schema",
-        "description": "Initialize or reinitialize schema.",
-        "operationId": "init_schema_v1_schema_init_post",
-        "parameters": [
-          {
-            "name": "drop_existing",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Drop Existing"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/schema/statistics": {
-      "get": {
-        "summary": "Get Schema Statistics",
-        "description": "Get database statistics.",
-        "operationId": "get_schema_statistics_v1_schema_statistics_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SchemaStatistics"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ingest": {
-      "post": {
-        "summary": "Ingest Rdf",
-        "description": "Ingest RDF data from Layer 2 extraction pipeline.",
-        "operationId": "ingest_rdf_v1_ingest_post",
-        "parameters": [
-          {
-            "name": "X-Tenant-ID",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Tenant-Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/IngestRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/IngestResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ingest/status/{source_id}": {
-      "get": {
-        "summary": "Get Sync Status",
-        "description": "Get synchronization status for a source.",
-        "operationId": "get_sync_status_v1_ingest_status__source_id__get",
-        "parameters": [
-          {
-            "name": "source_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Source Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SyncStatusResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ingest/{source_id}": {
-      "delete": {
-        "summary": "Delete Source",
-        "description": "Delete all data from a source.",
-        "operationId": "delete_source_v1_ingest__source_id__delete",
-        "parameters": [
-          {
-            "name": "source_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Source Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analytics/communities": {
-      "post": {
-        "summary": "Detect Communities",
-        "description": "Detect communities in the knowledge graph.",
-        "operationId": "detect_communities_v1_analytics_communities_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CommunityDetectionRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CommunityDetectionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analytics/centrality": {
-      "post": {
-        "summary": "Calculate Centrality",
-        "description": "Calculate centrality metrics for entities.",
-        "operationId": "calculate_centrality_v1_analytics_centrality_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CentralityRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/CentralityResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analytics/similar": {
-      "post": {
-        "summary": "Find Similar Entities",
-        "description": "Find similar entities using multiple methods.",
-        "operationId": "find_similar_entities_v1_analytics_similar_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SimilarityRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SimilarityResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/analytics/compare": {
-      "post": {
-        "summary": "Compare Entities",
-        "description": "Compare two entities and return similarity metrics.",
-        "operationId": "compare_entities_v1_analytics_compare_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/EntityComparisonRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/EntityComparisonResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/batch/entities": {
-      "post": {
-        "summary": "Batch Entity Operations",
-        "description": "Execute batch entity operations (create/update/delete).\n\nReduces round-trips for bulk operations from the frontend.\nSupports atomic mode where all operations succeed or all fail.",
-        "operationId": "batch_entity_operations_v1_batch_entities_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchEntityRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BatchEntityResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/batch/analytics": {
-      "post": {
-        "summary": "Batch Analytics",
-        "description": "Execute batch analytics on multiple entities.\n\nRuns analytics (centrality, community context) on each entity's\nneighborhood subgraph efficiently.",
-        "operationId": "batch_analytics_v1_batch_analytics_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/BatchAnalyticsRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/BatchAnalyticsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/value-tree-projection": {
-      "post": {
-        "summary": "Value Tree Projection",
-        "description": "Execute value tree projection agent for traversal and semantic matching.",
-        "operationId": "value_tree_projection_v1_agents_value_tree_projection_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/whitespace-analysis": {
-      "post": {
-        "summary": "Whitespace Analysis",
-        "description": "Execute whitespace analysis agent for gap identification and account planning.",
-        "operationId": "whitespace_analysis_v1_agents_whitespace_analysis_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/roi-calculation": {
-      "post": {
-        "summary": "Roi Calculation",
-        "description": "Execute ROI calculation agent for formula execution and sensitivity analysis.",
-        "operationId": "roi_calculation_v1_agents_roi_calculation_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/narrative-synthesis": {
-      "post": {
-        "summary": "Narrative Synthesis",
-        "description": "Execute narrative synthesis agent for report generation.",
-        "operationId": "narrative_synthesis_v1_agents_narrative_synthesis_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/provenance-tracking": {
-      "post": {
-        "summary": "Provenance Tracking",
-        "description": "Execute provenance tracking agent for lineage and decision traces.",
-        "operationId": "provenance_tracking_v1_agents_provenance_tracking_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "additionalProperties": true,
-                "type": "object",
-                "title": "Request"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/agents/workflow": {
-      "post": {
-        "summary": "Agent Workflow",
-        "description": "Execute multi-agent workflow for end-to-end business case generation.\n\nSupported workflows:\n- whitespace_analysis: Gap identification -> Account plan\n- business_case: Opportunity eval -> ROI calc -> Narrative synthesis",
-        "operationId": "agent_workflow_v1_agents_workflow_post",
-        "parameters": [
-          {
-            "name": "workflow_type",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Workflow Type"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "title": "Context"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
@@ -7016,19 +6011,19 @@
         }
       }
     },
-    "/v1/documents/export": {
+    "/v1/ingest": {
       "post": {
         "tags": [
-          "Documents"
+          "Ingestion"
         ],
-        "summary": "Export Document",
-        "description": "Generate PDF from business case via L4 DocumentExportTool",
-        "operationId": "export_document_v1_documents_export_post",
+        "summary": "Ingest Rdf",
+        "description": "Ingest RDF data from the Layer 2 extraction pipeline.",
+        "operationId": "ingest_rdf_v1_ingest_post",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/DocumentExportRequest"
+                "$ref": "#/components/schemas/IngestRequest"
               }
             }
           },
@@ -7040,7 +6035,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/DocumentExportResponse"
+                  "$ref": "#/components/schemas/IngestResponse"
                 }
               }
             }
@@ -7058,14 +6053,632 @@
         }
       }
     },
-    "/graph": {
+    "/v1/ingest/status/{source_id}": {
       "get": {
         "tags": [
+          "Ingestion"
+        ],
+        "summary": "Get Sync Status",
+        "description": "Get synchronisation status for a source.",
+        "operationId": "get_sync_status_v1_ingest_status__source_id__get",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncStatusResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/ingest/{source_id}": {
+      "delete": {
+        "tags": [
+          "Ingestion"
+        ],
+        "summary": "Delete Source",
+        "description": "Delete all data for a source.",
+        "operationId": "delete_source_v1_ingest__source_id__delete",
+        "parameters": [
+          {
+            "name": "source_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Delete Source V1 Ingest  Source Id  Delete"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/communities": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Detect Communities",
+        "description": "Detect communities in the knowledge graph.",
+        "operationId": "detect_communities_v1_analytics_communities_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunityDetectionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityDetectionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/centrality": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Calculate Centrality",
+        "description": "Calculate centrality metrics for entities.",
+        "operationId": "calculate_centrality_v1_analytics_centrality_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CentralityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CentralityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/similar": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Find Similar Entities",
+        "description": "Find similar entities using multiple methods.",
+        "operationId": "find_similar_entities_v1_analytics_similar_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SimilarityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SimilarityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/analytics/compare": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Compare Entities",
+        "description": "Compare two entities and return similarity metrics.",
+        "operationId": "compare_entities_v1_analytics_compare_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EntityComparisonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EntityComparisonResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/batch/entities": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Batch Entity Operations",
+        "description": "Execute batch entity operations (create/update/delete).\n\nSupports atomic mode where all operations succeed or all fail.\nIn atomic mode, snapshots are taken before each mutation so that\nupdates and deletes can be reversed if a later operation fails.",
+        "operationId": "batch_entity_operations_v1_batch_entities_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchEntityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchEntityResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/batch/analytics": {
+      "post": {
+        "tags": [
+          "Analytics"
+        ],
+        "summary": "Batch Analytics",
+        "description": "Execute batch analytics on multiple entities.",
+        "operationId": "batch_analytics_v1_batch_analytics_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BatchAnalyticsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchAnalyticsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/value-tree-projection": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Value Tree Projection",
+        "description": "Execute value tree projection agent for traversal and semantic matching.",
+        "operationId": "value_tree_projection_v1_agents_value_tree_projection_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Value Tree Projection V1 Agents Value Tree Projection Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/whitespace-analysis": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Whitespace Analysis",
+        "description": "Execute whitespace analysis agent for gap identification and account planning.",
+        "operationId": "whitespace_analysis_v1_agents_whitespace_analysis_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Whitespace Analysis V1 Agents Whitespace Analysis Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/roi-calculation": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Roi Calculation",
+        "description": "Execute ROI calculation agent for formula execution and sensitivity analysis.",
+        "operationId": "roi_calculation_v1_agents_roi_calculation_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Roi Calculation V1 Agents Roi Calculation Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/narrative-synthesis": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Narrative Synthesis",
+        "description": "Execute narrative synthesis agent for report generation.",
+        "operationId": "narrative_synthesis_v1_agents_narrative_synthesis_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Narrative Synthesis V1 Agents Narrative Synthesis Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/provenance-tracking": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Provenance Tracking",
+        "description": "Execute provenance tracking agent for lineage and decision traces.",
+        "operationId": "provenance_tracking_v1_agents_provenance_tracking_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "additionalProperties": true,
+                "type": "object",
+                "title": "Body"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "title": "Response Provenance Tracking V1 Agents Provenance Tracking Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/agents/workflow": {
+      "post": {
+        "tags": [
+          "Agents"
+        ],
+        "summary": "Agent Workflow",
+        "description": "Execute multi-agent workflow for end-to-end business case generation.\n\nSupported workflows:\n- ``whitespace_analysis``: Gap identification \u2192 Account plan\n- ``business_case``: Opportunity eval \u2192 ROI calc \u2192 Narrative synthesis",
+        "operationId": "agent_workflow_v1_agents_workflow_post",
+        "parameters": [
+          {
+            "name": "workflow_type",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Workflow Type"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Agent Workflow V1 Agents Workflow Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph": {
+      "get": {
+        "tags": [
+          "Graph",
           "Graph"
         ],
         "summary": "Get Full Graph",
-        "description": "Returns the complete knowledge graph with nodes, edges, and statistics for visualization.",
-        "operationId": "get_full_graph_graph_get",
+        "description": "Return the complete knowledge graph for visualisation (tenant-scoped).",
+        "operationId": "get_full_graph_v1_graph_get",
         "parameters": [
           {
             "name": "limit",
@@ -7080,51 +6693,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Graph data retrieved successfully",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GraphResponse"
-                },
-                "example": {
-                  "nodes": [
-                    {
-                      "id": "cap-1",
-                      "label": "CRM Integration",
-                      "type": "Capability",
-                      "confidence": 0.95
-                    },
-                    {
-                      "id": "uc-1",
-                      "label": "Pipeline Forecast",
-                      "type": "UseCase",
-                      "confidence": 0.88
-                    }
-                  ],
-                  "edges": [
-                    {
-                      "source": "cap-1",
-                      "target": "uc-1",
-                      "type": "ENABLES",
-                      "weight": 1.0
-                    }
-                  ],
-                  "stats": {
-                    "total_nodes": 8532,
-                    "total_edges": 24156,
-                    "node_types": {
-                      "Capability": 2847,
-                      "UseCase": 1923
-                    },
-                    "communities": 47,
-                    "density": 0.03
-                  }
                 }
               }
             }
-          },
-          "503": {
-            "description": "Database unavailable"
           },
           "422": {
             "description": "Validation Error",
@@ -7139,14 +6715,14 @@
         }
       }
     },
-    "/entities/{entity_id}/subgraph": {
+    "/v1/entities/{entity_id}/subgraph": {
       "get": {
         "tags": [
           "Graph"
         ],
         "summary": "Get Entity Subgraph",
-        "description": "Returns a subgraph centered on the specified entity with connected nodes up to the specified depth.",
-        "operationId": "get_entity_subgraph_entities__entity_id__subgraph_get",
+        "description": "Return a subgraph centred on the specified entity (tenant-scoped).",
+        "operationId": "get_entity_subgraph_v1_entities__entity_id__subgraph_get",
         "parameters": [
           {
             "name": "entity_id",
@@ -7163,58 +6739,25 @@
             "required": false,
             "schema": {
               "type": "integer",
+              "maximum": 10,
+              "minimum": 1,
+              "description": "Traversal depth (1-10)",
               "default": 2,
               "title": "Depth"
-            }
+            },
+            "description": "Traversal depth (1-10)"
           }
         ],
         "responses": {
           "200": {
-            "description": "Subgraph retrieved successfully",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SubgraphResponse"
-                },
-                "example": {
-                  "root_entity_id": "cap-1",
-                  "nodes": [
-                    {
-                      "id": "cap-1",
-                      "label": "CRM Integration",
-                      "type": "Capability"
-                    },
-                    {
-                      "id": "uc-1",
-                      "label": "Pipeline Forecast",
-                      "type": "UseCase"
-                    }
-                  ],
-                  "edges": [
-                    {
-                      "source": "cap-1",
-                      "target": "uc-1",
-                      "type": "ENABLES"
-                    }
-                  ],
-                  "depth": 2,
-                  "stats": {
-                    "total_nodes": 15,
-                    "total_edges": 22,
-                    "node_types": {
-                      "Capability": 1,
-                      "UseCase": 3
-                    }
-                  }
                 }
               }
             }
-          },
-          "404": {
-            "description": "Entity not found"
-          },
-          "503": {
-            "description": "Database unavailable"
           },
           "422": {
             "description": "Validation Error",
@@ -7234,8 +6777,8 @@
         "tags": [
           "Graph"
         ],
-        "summary": "Get Query-Based Subgraph",
-        "description": "Returns a coherent subgraph based on a search query or centered on a specific entity. Returns both nodes and edges in a single call.",
+        "summary": "Get Query Subgraph",
+        "description": "Return a coherent subgraph based on a query or centre entity (tenant-scoped).\n\n**Query mode**: provide ``query`` to search for entities; returns subgraph\nwith matching nodes + 1-hop neighbours.\n\n**Centre mode**: provide ``center_entity_id`` to expand N hops from that node.",
         "operationId": "get_query_subgraph_v1_graph_subgraph_get",
         "parameters": [
           {
@@ -7280,13 +6823,13 @@
             "required": false,
             "schema": {
               "type": "integer",
-              "maximum": 3,
+              "maximum": 10,
               "minimum": 1,
-              "description": "Traversal depth (1-3)",
+              "description": "Traversal depth (1-10)",
               "default": 2,
               "title": "Depth"
             },
-            "description": "Traversal depth (1-3)"
+            "description": "Traversal depth (1-10)"
           },
           {
             "name": "limit",
@@ -7347,43 +6890,14 @@
         ],
         "responses": {
           "200": {
-            "description": "Subgraph retrieved successfully",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/SubgraphResponse"
-                },
-                "example": {
-                  "root_entity_id": "",
-                  "nodes": [
-                    {
-                      "id": "cap-1",
-                      "label": "AI Processing",
-                      "type": "Capability"
-                    }
-                  ],
-                  "edges": [
-                    {
-                      "source": "cap-1",
-                      "target": "uc-1",
-                      "type": "ENABLES"
-                    }
-                  ],
-                  "depth": 2,
-                  "stats": {
-                    "node_count": 10,
-                    "edge_count": 15,
-                    "density": 0.33
-                  }
                 }
               }
             }
-          },
-          "400": {
-            "description": "Invalid parameters - query or center_entity_id required"
-          },
-          "500": {
-            "description": "Internal server error"
           },
           "422": {
             "description": "Validation Error",
@@ -7396,6 +6910,298 @@
             }
           }
         }
+      }
+    },
+    "/v1/documents/export": {
+      "post": {
+        "tags": [
+          "Documents"
+        ],
+        "summary": "Export Document",
+        "description": "Export a business case to PDF via the Layer 4 DocumentExportTool.",
+        "operationId": "export_document_v1_documents_export_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DocumentExportRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DocumentExportResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graphrag": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Graph Rag Legacy Alias",
+        "operationId": "graph_rag_legacy_alias_v1_graphrag_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphRAGQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphRAGResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/v1/query/graph": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Graph Rag Query Aliases",
+        "operationId": "graph_rag_query_aliases_v1_query_graph_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphRAGQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GraphRAGResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/v1/query/graph/stream": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Graph Rag Query Stream Alias",
+        "operationId": "graph_rag_query_stream_alias_v1_query_graph_stream_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GraphRAGQuery"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/v1/query/search": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Hybrid Search Aliases",
+        "operationId": "hybrid_search_aliases_v1_query_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/v1/search": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Hybrid Search Aliases",
+        "operationId": "hybrid_search_aliases_v1_search_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
+      }
+    },
+    "/v1/search/hybrid": {
+      "post": {
+        "tags": [
+          "compatibility"
+        ],
+        "summary": "Hybrid Search Aliases",
+        "operationId": "hybrid_search_aliases_v1_search_hybrid_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SearchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SearchResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "deprecated": true
       }
     }
   },
@@ -8144,6 +7950,50 @@
         ],
         "title": "Body_apply_pack_v1_packs__pack_id__apply_post"
       },
+      "Body_create_formula_v1_formulas_post": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/CreateFormulaRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_create_formula_v1_formulas_post"
+      },
+      "Body_create_model_v1_models_post": {
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/ModelCreateRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "data"
+        ],
+        "title": "Body_create_model_v1_models_post"
+      },
       "Body_create_pack_v1_packs_post": {
         "properties": {
           "request": {
@@ -8165,6 +8015,28 @@
           "request"
         ],
         "title": "Body_create_pack_v1_packs_post"
+      },
+      "Body_create_variable_v1_variables_post": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/VariableCreateRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_create_variable_v1_variables_post"
       },
       "Body_execute_pack_v1_packs__pack_id__execute_post": {
         "properties": {
@@ -8210,6 +8082,50 @@
         ],
         "title": "Body_fork_pack_v1_packs__pack_id__fork_post"
       },
+      "Body_resolve_variable_v1_variables__variable_id__resolve_post": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/ResolveRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_resolve_variable_v1_variables__variable_id__resolve_post"
+      },
+      "Body_update_formula_v1_formulas__formula_id__patch": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/UpdateFormulaRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_update_formula_v1_formulas__formula_id__patch"
+      },
       "Body_update_pack_v1_packs__pack_id__put": {
         "properties": {
           "request": {
@@ -8231,6 +8147,50 @@
           "request"
         ],
         "title": "Body_update_pack_v1_packs__pack_id__put"
+      },
+      "Body_update_variable_v1_variables__variable_id__put": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/VariableUpdateRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_update_variable_v1_variables__variable_id__put"
+      },
+      "Body_validate_value_v1_variables__variable_id__validate_post": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/ValidateRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_validate_value_v1_variables__variable_id__validate_post"
       },
       "BulkImportRequest": {
         "properties": {
@@ -10876,10 +10836,7 @@
               }
             ],
             "title": "Formula Id",
-            "description": "Deprecated alias of id. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "description": "Alias for id (frontend compatibility)"
           },
           "name": {
             "type": "string",
@@ -10992,7 +10949,7 @@
           "output_unit"
         ],
         "title": "FormulaMetadata",
-        "description": "Metadata for a registered formula.\n\nVersioned policy:\n- v2.3 and earlier: emit canonical 'id' plus deprecated alias 'formula_id'.\n- v2.4 warning window: alias remains deprecated and monitored.\n- v2.5 and later: remove 'formula_id' alias and keep only 'id'."
+        "description": "Metadata for a registered formula."
       },
       "FormulaSummary": {
         "properties": {
@@ -11116,7 +11073,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Canonical relationship type/label"
+            "description": "Relationship type/label (legacy: use 'relationship_type')"
           },
           "weight": {
             "type": "number",
@@ -11130,13 +11087,6 @@
             "type": "object",
             "title": "Properties",
             "description": "Additional edge properties"
-          },
-          "relationship_type": {
-            "type": "string",
-            "deprecated": true,
-            "description": "Deprecated alias of type. Removal target: v2.5 (2026-10-01).",
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
           }
         },
         "type": "object",
@@ -11155,53 +11105,29 @@
             "title": "Id",
             "description": "Unique node identifier"
           },
-          "label": {
+          "name": {
             "type": "string",
-            "title": "Label",
-            "description": "Deprecated alias of name. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "title": "Name",
+            "description": "Display label"
           },
-          "type": {
+          "entity_type": {
             "type": "string",
-            "title": "Type",
-            "description": "Deprecated alias of entity_type. Removal target: v2.5 (2026-10-01).",
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "title": "Entity Type",
+            "description": "Node type"
           },
-          "confidence": {
+          "confidence_score": {
             "type": "number",
             "maximum": 1.0,
             "minimum": 0.0,
-            "title": "Confidence",
-            "description": "Deprecated alias of confidence_score. Removal target: v2.5 (2026-10-01).",
-            "default": 0.8,
-            "deprecated": true,
-            "x-deprecation-target-version": "v2.5",
-            "x-deprecation-target-date": "2026-10-01"
+            "title": "Confidence Score",
+            "description": "Confidence score",
+            "default": 0.8
           },
           "properties": {
             "additionalProperties": true,
             "type": "object",
             "title": "Properties",
             "description": "Additional node properties"
-          },
-          "name": {
-            "type": "string",
-            "description": "Display label"
-          },
-          "entity_type": {
-            "type": "string",
-            "description": "Node type"
-          },
-          "confidence_score": {
-            "type": "number",
-            "minimum": 0.0,
-            "maximum": 1.0,
-            "default": 0.8,
-            "description": "Confidence score"
           }
         },
         "type": "object",
@@ -11211,7 +11137,7 @@
           "entity_type"
         ],
         "title": "GraphNode",
-        "description": "Node in the knowledge graph.\n\nVersioned policy:\n- v2.3 and earlier: emit canonical fields plus deprecated aliases (label/type/confidence).\n- v2.4 warning window: aliases remain deprecated and monitored.\n- v2.5 and later: remove deprecated aliases and emit only canonical fields (name/entity_type/confidence_score)."
+        "description": "Node in the knowledge graph.\n\nCanonical fields are name/entity_type/confidence_score.\nLegacy aliases label/type/confidence are emitted for one deprecation window."
       },
       "GraphNodeWithLayout": {
         "properties": {
@@ -11220,22 +11146,22 @@
             "title": "Id",
             "description": "Unique node identifier"
           },
-          "label": {
+          "name": {
             "type": "string",
-            "title": "Label",
-            "description": "Display label (legacy: use 'name')"
+            "title": "Name",
+            "description": "Display label"
           },
-          "type": {
+          "entity_type": {
             "type": "string",
-            "title": "Type",
-            "description": "Node type (legacy: use 'entity_type')"
+            "title": "Entity Type",
+            "description": "Node type"
           },
-          "confidence": {
+          "confidence_score": {
             "type": "number",
             "maximum": 1.0,
             "minimum": 0.0,
-            "title": "Confidence",
-            "description": "Confidence score (legacy: use 'confidence_score')",
+            "title": "Confidence Score",
+            "description": "Confidence score",
             "default": 0.8
           },
           "properties": {
@@ -11284,8 +11210,8 @@
         "type": "object",
         "required": [
           "id",
-          "label",
-          "type"
+          "name",
+          "entity_type"
         ],
         "title": "GraphNodeWithLayout",
         "description": "Graph node with visualization layout coordinates.\n\nUse this model only for endpoints that intentionally return\npre-computed layout positions (e.g., full graph export).\nFor subgraph and query responses, use plain GraphNode and\ncompute layout client-side."
@@ -11681,7 +11607,7 @@
             "title": "Tenant Id",
             "description": "Optional tenant hint for compatibility; authenticated tenant context is authoritative and any provided value must match it",
             "examples": [
-              "tenant-abc123"
+              "12345678-1234-1234-1234-123456789abc"
             ]
           }
         },
@@ -12934,6 +12860,33 @@
         "title": "PackUpdateRequest",
         "description": "Request to update a Value Pack."
       },
+      "Permission": {
+        "type": "string",
+        "enum": [
+          "read:health",
+          "read:metrics",
+          "read:schema",
+          "read:search",
+          "read:graphrag",
+          "read:analytics",
+          "read:ingestion",
+          "read:agents",
+          "read:models",
+          "write:models",
+          "admin:models",
+          "write:ingestion",
+          "write:extraction",
+          "write:schema",
+          "write:analytics",
+          "write:agents",
+          "admin:api_keys",
+          "admin:users",
+          "admin:tenants",
+          "admin:system"
+        ],
+        "title": "Permission",
+        "description": "Fine-grained permissions enforced at endpoint level."
+      },
       "PortfolioSummaryResponse": {
         "properties": {
           "total_products": {
@@ -13544,6 +13497,25 @@
         "title": "ProvenanceTrailResponse",
         "description": "Full provenance trail for an entity."
       },
+      "ROIBenchmarkResponse": {
+        "properties": {
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "benchmarks": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Benchmarks"
+          }
+        },
+        "type": "object",
+        "required": [
+          "industry",
+          "benchmarks"
+        ],
+        "title": "ROIBenchmarkResponse"
+      },
       "ROICalculateRequest": {
         "properties": {
           "annual_revenue": {
@@ -13674,6 +13646,286 @@
         "title": "ROICalculateRequest",
         "description": "Request to calculate ROI."
       },
+      "ROICalculateResponse": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "scenario": {
+            "type": "string",
+            "title": "Scenario"
+          },
+          "time_horizon_months": {
+            "type": "integer",
+            "title": "Time Horizon Months"
+          },
+          "discount_rate": {
+            "type": "number",
+            "title": "Discount Rate"
+          },
+          "results": {
+            "$ref": "#/components/schemas/ROICalculationResult"
+          },
+          "calculation_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Calculation Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "status",
+          "scenario",
+          "time_horizon_months",
+          "discount_rate",
+          "results"
+        ],
+        "title": "ROICalculateResponse"
+      },
+      "ROICalculationRecord": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Account Id"
+          },
+          "template_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Template Id"
+          },
+          "inputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Inputs"
+          },
+          "outputs": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Outputs"
+          },
+          "scenario_name": {
+            "type": "string",
+            "title": "Scenario Name"
+          },
+          "time_horizon_months": {
+            "type": "integer",
+            "title": "Time Horizon Months"
+          },
+          "discount_rate": {
+            "type": "number",
+            "title": "Discount Rate"
+          },
+          "created_at": {
+            "type": "string",
+            "title": "Created At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "account_id",
+          "template_id",
+          "inputs",
+          "outputs",
+          "scenario_name",
+          "time_horizon_months",
+          "discount_rate",
+          "created_at"
+        ],
+        "title": "ROICalculationRecord"
+      },
+      "ROICalculationResult": {
+        "properties": {
+          "total_benefit_year1": {
+            "type": "number",
+            "title": "Total Benefit Year1"
+          },
+          "total_benefit_3year": {
+            "type": "number",
+            "title": "Total Benefit 3Year"
+          },
+          "total_cost_year1": {
+            "type": "number",
+            "title": "Total Cost Year1"
+          },
+          "total_cost_3year": {
+            "type": "number",
+            "title": "Total Cost 3Year"
+          },
+          "net_benefit_year1": {
+            "type": "number",
+            "title": "Net Benefit Year1"
+          },
+          "net_benefit_3year": {
+            "type": "number",
+            "title": "Net Benefit 3Year"
+          },
+          "roi_pct_year1": {
+            "type": "number",
+            "title": "Roi Pct Year1"
+          },
+          "roi_pct_3year": {
+            "type": "number",
+            "title": "Roi Pct 3Year"
+          },
+          "payback_months": {
+            "type": "number",
+            "title": "Payback Months"
+          },
+          "npv": {
+            "type": "number",
+            "title": "Npv"
+          },
+          "irr": {
+            "type": "number",
+            "title": "Irr"
+          },
+          "benefit_breakdown": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Benefit Breakdown"
+          },
+          "cost_breakdown": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Cost Breakdown"
+          }
+        },
+        "type": "object",
+        "required": [
+          "total_benefit_year1",
+          "total_benefit_3year",
+          "total_cost_year1",
+          "total_cost_3year",
+          "net_benefit_year1",
+          "net_benefit_3year",
+          "roi_pct_year1",
+          "roi_pct_3year",
+          "payback_months",
+          "npv",
+          "irr",
+          "benefit_breakdown",
+          "cost_breakdown"
+        ],
+        "title": "ROICalculationResult"
+      },
+      "ROICompareResponse": {
+        "properties": {
+          "scenarios": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Scenarios"
+          },
+          "best_scenario": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Best Scenario"
+          },
+          "summary": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Summary"
+          }
+        },
+        "type": "object",
+        "required": [
+          "scenarios"
+        ],
+        "title": "ROICompareResponse"
+      },
+      "ROITemplateResponse": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "category": {
+            "type": "string",
+            "title": "Category"
+          },
+          "input_schema": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Input Schema"
+          },
+          "default_assumptions": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Default Assumptions"
+          },
+          "applicable_industries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Applicable Industries"
+          },
+          "applicable_products": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Applicable Products"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "category",
+          "input_schema",
+          "default_assumptions",
+          "applicable_industries",
+          "applicable_products"
+        ],
+        "title": "ROITemplateResponse"
+      },
       "RelationshipPreview": {
         "properties": {
           "relationship_type": {
@@ -13711,6 +13963,217 @@
         ],
         "title": "RelationshipPreview",
         "description": "Lightweight relationship for preview lists in entity detail."
+      },
+      "RequestContext": {
+        "properties": {
+          "tenant_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "uuid"
+              },
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Id"
+          },
+          "user_id": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "User Id"
+          },
+          "roles": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Roles"
+          },
+          "api_key_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Api Key Id"
+          },
+          "permissions": {
+            "anyOf": [
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Permission"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "array",
+                "uniqueItems": true
+              },
+              {
+                "items": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Permission"
+                    },
+                    {
+                      "type": "string"
+                    }
+                  ]
+                },
+                "type": "array"
+              }
+            ],
+            "title": "Permissions"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source",
+            "default": "jwt_claim"
+          },
+          "raw": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Raw"
+          },
+          "auth_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Auth Source"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "org_id": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Org Id"
+          },
+          "workspace_id": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          },
+          "tenant_role": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tenant Role"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
+          },
+          "isolation_tier": {
+            "type": "string",
+            "title": "Isolation Tier",
+            "default": "shared"
+          },
+          "service_account_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Service Account Id"
+          },
+          "service_account_scopes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Service Account Scopes"
+          },
+          "accessed_tenant_ids": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "uniqueItems": true,
+            "title": "Accessed Tenant Ids"
+          },
+          "privileged_session_start": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Privileged Session Start"
+          },
+          "impersonator_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonator Id"
+          },
+          "_locked": {
+            "type": "boolean",
+            "title": "Locked",
+            "default": false
+          }
+        },
+        "type": "object",
+        "title": "RequestContext",
+        "description": "Identity context carried by a single request.\n\n``RequestContext`` is deliberately shared by L1-L5 governance code.  It\npreserves tenant scoping and trace propagation while supporting legacy\ncallers that still pass ``source`` and newer middleware that passes the\nexplicit ``auth_source`` field."
       },
       "ResolveRequest": {
         "properties": {
@@ -14035,65 +14498,6 @@
         "title": "ScenarioResponse",
         "description": "Response from scenario calculation."
       },
-      "SchemaStatistics": {
-        "properties": {
-          "nodes": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Nodes"
-          },
-          "relationships": {
-            "additionalProperties": {
-              "type": "integer"
-            },
-            "type": "object",
-            "title": "Relationships"
-          },
-          "total_nodes": {
-            "type": "integer",
-            "title": "Total Nodes"
-          },
-          "total_relationships": {
-            "type": "integer",
-            "title": "Total Relationships"
-          }
-        },
-        "type": "object",
-        "required": [
-          "nodes",
-          "relationships",
-          "total_nodes",
-          "total_relationships"
-        ],
-        "title": "SchemaStatistics"
-      },
-      "SchemaStatus": {
-        "properties": {
-          "constraints": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Constraints"
-          },
-          "indexes": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Indexes"
-          },
-          "valid": {
-            "type": "boolean",
-            "title": "Valid"
-          }
-        },
-        "type": "object",
-        "required": [
-          "constraints",
-          "indexes",
-          "valid"
-        ],
-        "title": "SchemaStatus"
-      },
       "SearchRequest": {
         "properties": {
           "query": {
@@ -14415,7 +14819,7 @@
           "API_PORT": {
             "type": "integer",
             "title": "Api Port",
-            "default": 8001
+            "default": 8003
           },
           "API_WORKERS": {
             "type": "integer",
@@ -14560,6 +14964,19 @@
             "type": "integer",
             "title": "Neo4J Max Pool Size",
             "default": 50
+          },
+          "JWT_SECRET": {
+            "type": "string",
+            "title": "Jwt Secret",
+            "default": ""
+          },
+          "CORS_ORIGINS": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Cors Origins",
+            "default": []
           },
           "PINECONE_API_KEY": {
             "anyOf": [
@@ -16945,6 +17362,18 @@
             "title": "Required",
             "description": "Whether variable is required",
             "default": true
+          },
+          "category": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Category",
+            "description": "Variable category (Financial, Operational, Efficiency, Quality). When set, used directly for filtering. When None, category is inferred from the variable name via keyword patterns."
           }
         },
         "type": "object",
@@ -17504,63 +17933,6 @@
         ],
         "title": "ValueTreeResponse",
         "description": "Complete value tree response."
-      },
-      "EntityContextResponse": {
-        "title": "EntityContextResponse",
-        "type": "object",
-        "properties": {
-          "entity_id": {
-            "title": "Entity Id",
-            "type": "string"
-          },
-          "center": {
-            "title": "Center",
-            "type": "object"
-          },
-          "neighbors": {
-            "title": "Neighbors",
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "relationships": {
-            "title": "Relationships",
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "entity_count": {
-            "title": "Entity Count",
-            "type": "integer"
-          },
-          "relationship_count": {
-            "title": "Relationship Count",
-            "type": "integer"
-          },
-          "pagination": {
-            "anyOf": [
-              {
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "default": null,
-            "description": "Pagination info: {has_more, next_cursor, returned_count}",
-            "title": "Pagination"
-          }
-        },
-        "required": [
-          "entity_id",
-          "center",
-          "neighbors",
-          "relationships",
-          "entity_count",
-          "relationship_count"
-        ]
       }
     },
     "securitySchemes": {
@@ -17573,43 +17945,51 @@
   "tags": [
     {
       "name": "Health",
-      "description": "Service health monitoring and diagnostics"
+      "description": "Service health monitoring"
     },
     {
       "name": "Schema",
-      "description": "Database schema management and validation"
+      "description": "Database schema management"
     },
     {
       "name": "Search",
-      "description": "Entity search and discovery endpoints"
+      "description": "Entity search and discovery"
     },
     {
       "name": "GraphRAG",
-      "description": "Graph-based question answering and retrieval"
+      "description": "Graph-based question answering"
     },
     {
       "name": "Analytics",
-      "description": "Graph analytics and community detection"
+      "description": "Graph analytics"
     },
     {
       "name": "Ingestion",
-      "description": "Data ingestion and synchronization"
+      "description": "Data ingestion and synchronisation"
     },
     {
       "name": "Value Trees",
-      "description": "Value tree traversal and exploration"
+      "description": "Value tree traversal"
     },
     {
       "name": "Formulas",
-      "description": "Formula evaluation and variable registry"
+      "description": "Formula evaluation"
     },
     {
       "name": "Graph",
-      "description": "Graph visualization endpoints"
+      "description": "Graph visualisation"
     },
     {
       "name": "Models",
-      "description": "Value model management and organization"
+      "description": "Value model management"
+    },
+    {
+      "name": "Agents",
+      "description": "Agentic workflow endpoints"
+    },
+    {
+      "name": "Documents",
+      "description": "Document export"
     }
   ]
 }

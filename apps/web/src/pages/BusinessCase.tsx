@@ -27,6 +27,7 @@ import {
 import { useNavigation } from "@/hooks";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
 import { cn } from "@/lib/utils";
 
 function metadataString(metadata: Record<string, unknown> | undefined, keys: string[]): string {
@@ -344,7 +345,7 @@ export default function BusinessCase() {
   ]);
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell>
       <PageHeader
         breadcrumbs={[{ label: "Agent Workflows" }, { label: "Business Cases" }]}
         title={businessCase.title || "Business Case"}
@@ -572,6 +573,6 @@ export default function BusinessCase() {
           </ul>
         </SectionCard>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -34,6 +34,8 @@ except ImportError:
         def __init__(self, redis_client=None):
             self.redis_client = redis_client
 
+pytestmark = [pytest.mark.chaos, pytest.mark.requires_redis]
+
 
 class TestRedisCacheFailure:
     """Verify system behavior when Redis cache fails."""

@@ -32,6 +32,13 @@ export type { TabItem, TabNavProps } from "./TabNav";
 export { TopTabNav } from "./TopTabNav";
 export type { TopTabItem, TopTabNavProps } from "./TopTabNav";
 
+export { HorizontalTabWrapper } from "./HorizontalTabWrapper";
+export type { TabConfig, HorizontalTabWrapperProps } from "./HorizontalTabWrapper";
+
+// ── Evidence & Provenance ─────────────────────────────────────────────────
+export { EvidenceCard } from "./EvidenceCard";
+export type { EvidenceCardProps } from "./EvidenceCard";
+
 // ── Value Model ──────────────────────────────────────────────────────────
 export { ModelInputsTracker } from "./ModelInputsTracker";
 export type { InputStatus, ModelInput, ModelInputsTrackerProps } from "./ModelInputsTracker";

@@ -55,11 +55,63 @@ class ErrorCode(str, Enum):
     SOURCE_VERIFICATION_ERROR = "SOURCE_VERIFICATION_ERROR"
 
 
-class ErrorResponse(BaseModel):
-    """Standardized error response model for all API errors.
+class ErrorDetail(BaseModel):
+    """Detailed error information for the canonical error envelope.
+
+    This model provides the nested error structure with request_id
+    for correlation and optional sanitized details.
+    """
+
+    code: ErrorCode = Field(..., description="Machine-readable error code")
+    message: str = Field(..., description="Human-readable error message")
+    request_id: str = Field(..., description="Request ID for support correlation")
+    details: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Optional additional error context (sanitized in production)",
+    )
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "code": "ENTITY_NOT_FOUND",
+                "message": "The requested entity was not found",
+                "request_id": "req_abc123def456",
+                "details": {"entity_type": "Company", "entity_id": "12345"},
+            }
+        }
+    )
+
+
+class ErrorEnvelope(BaseModel):
+    """Canonical error response envelope for all API errors.
 
     This model ensures consistent error responses across all layers,
     with security-conscious design (no stack traces in production).
+    The nested structure provides a clear separation between the envelope
+    and the error details.
+    """
+
+    error: ErrorDetail = Field(..., description="Error details")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "error": {
+                    "code": "ENTITY_NOT_FOUND",
+                    "message": "The requested entity was not found",
+                    "request_id": "req_abc123def456",
+                    "details": {"entity_type": "Company", "entity_id": "12345"},
+                }
+            }
+        }
+    )
+
+
+class ErrorResponse(BaseModel):
+    """Legacy flat error response model for backward compatibility.
+
+    This model is deprecated in favor of ErrorEnvelope but kept
+    for migration purposes. New code should use ErrorEnvelope.
     """
 
     code: ErrorCode = Field(..., description="Machine-readable error code")
@@ -79,4 +131,23 @@ class ErrorResponse(BaseModel):
                 "details": {"entity_type": "Company", "entity_id": "12345"},
             }
         }
+    )
+
+
+def error_response_to_envelope(error_response: ErrorResponse) -> ErrorEnvelope:
+    """Convert legacy ErrorResponse to canonical ErrorEnvelope.
+
+    Args:
+        error_response: Legacy flat error response
+
+    Returns:
+        ErrorEnvelope with nested structure, mapping trace_id to request_id
+    """
+    return ErrorEnvelope(
+        error=ErrorDetail(
+            code=error_response.code,
+            message=error_response.message,
+            request_id=error_response.trace_id,
+            details=error_response.details,
+        )
     )

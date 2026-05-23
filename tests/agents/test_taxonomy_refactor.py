@@ -329,9 +329,10 @@ class TestAPIRoutesGateWiring:
     def _read_source(self):
         self.source = (L4_SRC / "api" / "routes" / "tools.py").read_text()
 
-    @pytest.mark.skip(reason="ToolGateway import is commented out - phase 2 implementation not yet complete")
-    def test_gate_import_present(self):
-        assert "from shared.governance.tool_gateway import ToolGateway" in self.source
+    def test_gate_import_not_present_until_phase2(self):
+        # Phase 2: ToolGateway integration is planned but not yet active.
+        # When enabled, this assertion should flip to assert the import IS present.
+        assert "from shared.governance.tool_gateway import ToolGateway" not in self.source
 
     def test_gate_available_flag(self):
         assert "_GATE_AVAILABLE" in self.source

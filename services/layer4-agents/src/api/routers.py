@@ -104,12 +104,23 @@ def register_routers(app: FastAPI) -> None:
     async def _stripe_not_configured_handler(
         request: Request, exc: StripeNotConfiguredError
     ) -> JSONResponse:
+        # Use canonical error envelope format
+        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+        from value_fabric.shared.error_handling.handlers import get_request_trace_id
+
+        request_id = get_request_trace_id(request)
+        error_envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code="BILLING_NOT_CONFIGURED",
+                message="Stripe is not configured. Set STRIPE_SECRET_KEY to enable billing.",
+                request_id=request_id,
+                details=None,
+            )
+        )
         return JSONResponse(
             status_code=402,
-            content={
-                "error": "billing_not_configured",
-                "message": "Stripe is not configured. Set STRIPE_SECRET_KEY to enable billing.",
-            },
+            content=error_envelope.model_dump(),
+            headers={"X-Request-ID": request_id},
         )
 
     app.include_router(c1_router, prefix="/v1", tags=["c1"])

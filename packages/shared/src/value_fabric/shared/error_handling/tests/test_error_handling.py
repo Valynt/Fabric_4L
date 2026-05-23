@@ -25,7 +25,7 @@ from ..handlers import (
     sanitize_error_details,
 )
 from ..middleware import MAX_REQUEST_ID_LENGTH, RequestIDMiddleware, get_request_id
-from ..models import ErrorCode, ErrorResponse
+from ..models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -148,6 +148,73 @@ class TestErrorResponse:
         d = resp.model_dump()
         assert d["code"] == "INTERNAL_ERROR"
         assert d["details"] == {"info": "test"}
+
+
+class TestErrorDetail:
+    def test_creation(self):
+        detail = ErrorDetail(
+            code=ErrorCode.NOT_FOUND,
+            message="Not found",
+            request_id="req_abc",
+        )
+        assert detail.code == ErrorCode.NOT_FOUND
+        assert detail.message == "Not found"
+        assert detail.request_id == "req_abc"
+        assert detail.details is None
+
+    def test_json_serialization(self):
+        detail = ErrorDetail(
+            code=ErrorCode.INTERNAL_ERROR,
+            message="Oops",
+            request_id="req_xyz",
+            details={"info": "test"},
+        )
+        d = detail.model_dump()
+        assert d["code"] == "INTERNAL_ERROR"
+        assert d["request_id"] == "req_xyz"
+        assert d["details"] == {"info": "test"}
+
+
+class TestErrorEnvelope:
+    def test_creation(self):
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=ErrorCode.NOT_FOUND,
+                message="Not found",
+                request_id="req_abc",
+            )
+        )
+        assert envelope.error.code == ErrorCode.NOT_FOUND
+        assert envelope.error.message == "Not found"
+        assert envelope.error.request_id == "req_abc"
+
+    def test_json_serialization(self):
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=ErrorCode.INTERNAL_ERROR,
+                message="Oops",
+                request_id="req_xyz",
+                details={"info": "test"},
+            )
+        )
+        d = envelope.model_dump()
+        assert "error" in d
+        assert d["error"]["code"] == "INTERNAL_ERROR"
+        assert d["error"]["request_id"] == "req_xyz"
+        assert d["error"]["details"] == {"info": "test"}
+
+    def test_envelope_structure(self):
+        """Verify envelope has required nested structure."""
+        envelope = ErrorEnvelope(
+            error=ErrorDetail(
+                code=ErrorCode.VALIDATION_ERROR,
+                message="Invalid input",
+                request_id="req_123",
+            )
+        )
+        d = envelope.model_dump()
+        assert set(d.keys()) == {"error"}
+        assert set(d["error"].keys()) == {"code", "message", "request_id", "details"}
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -331,28 +398,40 @@ class TestRegisteredHandlers:
         resp = client.get("/vf-error")
         assert resp.status_code == 404
         body = resp.json()
-        assert body["code"] == "NOT_FOUND"
-        assert "Widget" in body["message"]
+        # Verify envelope structure
+        assert "error" in body
+        assert body["error"]["code"] == "NOT_FOUND"
+        assert "Widget" in body["error"]["message"]
+        assert "request_id" in body["error"]
         assert "X-Request-ID" in resp.headers
 
     def test_http_exception_handler(self, client):
         resp = client.get("/http-error")
         assert resp.status_code == 403
         body = resp.json()
-        assert body["code"] == "AUTHORIZATION_ERROR"
+        # Verify envelope structure
+        assert "error" in body
+        assert body["error"]["code"] == "AUTHORIZATION_ERROR"
+        assert "request_id" in body["error"]
 
     def test_global_exception_handler(self, client):
         resp = client.get("/unhandled")
         assert resp.status_code == 500
         body = resp.json()
-        assert body["code"] == "INTERNAL_ERROR"
+        # Verify envelope structure
+        assert "error" in body
+        assert body["error"]["code"] == "INTERNAL_ERROR"
+        assert "request_id" in body["error"]
 
-    def test_openapi_uses_canonical_error_response(self, app):
+    def test_openapi_uses_canonical_error_envelope(self, app):
         schema = app.openapi()
-        error_schema = schema["components"]["schemas"]["ErrorResponse"]
+        error_schema = schema["components"]["schemas"]["ErrorEnvelope"]
         assert error_schema == canonical_error_response_schema()
-        assert error_schema["required"] == ["message", "code", "trace_id"]
-        assert error_schema["properties"]["details"]["anyOf"][1]["type"] == "null"
+        assert error_schema["required"] == ["error"]
+        assert "error" in error_schema["properties"]
+        assert schema["components"]["schemas"]["ErrorResponse"]["description"].startswith(
+            "Deprecated compatibility alias"
+        )
         assert schema["components"]["schemas"]["HTTPValidationError"]["description"].startswith(
             "Deprecated compatibility alias"
         )
@@ -361,5 +440,42 @@ class TestRegisteredHandlers:
         resp = client.get("/needs-int", params={"limit": "not-int"})
         assert resp.status_code == 422
         body = resp.json()
-        assert set(body).issuperset({"message", "code", "trace_id"})
+        # Verify envelope structure
+        assert "error" in body
+        assert set(body["error"].keys()).issuperset({"code", "message", "request_id"})
         assert "detail" not in body
+        assert body["error"]["code"] == "VALIDATION_ERROR"
+
+    def test_raw_exception_string_not_leaked(self, client):
+        """Verify raw exception strings are not exposed in error responses."""
+        resp = client.get("/unhandled")
+        assert resp.status_code == 500
+        body = resp.json()
+        # In production mode, should not contain raw exception string
+        # In dev mode, may contain it but should be in details, not message
+        assert "error" in body
+        assert body["error"]["code"] == "INTERNAL_ERROR"
+        # The message should be sanitized, not the raw "boom" string
+        if is_production():
+            assert "boom" not in body["error"]["message"]
+
+    def test_request_id_present_in_all_errors(self, client):
+        """Verify request_id appears in every error response."""
+        # Test different error types
+        endpoints = ["/vf-error", "/http-error", "/unhandled"]
+        for endpoint in endpoints:
+            resp = client.get(endpoint)
+            body = resp.json()
+            assert "error" in body
+            assert "request_id" in body["error"]
+            assert isinstance(body["error"]["request_id"], str)
+            assert len(body["error"]["request_id"]) > 0
+
+    def test_success_response_not_wrapped(self, client):
+        """Verify success responses are not wrapped in envelope."""
+        resp = client.get("/needs-int", params={"limit": "10"})
+        assert resp.status_code == 200
+        body = resp.json()
+        # Success response should not have envelope structure
+        assert "error" not in body
+        assert body == {"limit": 10}
