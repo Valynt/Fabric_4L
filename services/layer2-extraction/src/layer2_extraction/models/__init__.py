@@ -28,6 +28,13 @@ from .operational_signal_extraction import (
     OperationalSignal,
     OperationalSignalExtractionResponse,
 )
+from .signal_lifecycle import (
+    OperationalSignalLifecycleRecord,
+    SignalLifecycleActor,
+    SignalLifecycleMetadata,
+    SignalLifecycleStatus,
+    SignalLineage,
+)
 from .relationships import (
     BenefitType,
     DriverType,
@@ -69,4 +76,9 @@ __all__ = [
     "OperationalSignalExtractionResponse",
     "OperationalSignal",
     "ExtractionMetadata",
+    "OperationalSignalLifecycleRecord",
+    "SignalLifecycleActor",
+    "SignalLifecycleMetadata",
+    "SignalLifecycleStatus",
+    "SignalLineage",
 ]
