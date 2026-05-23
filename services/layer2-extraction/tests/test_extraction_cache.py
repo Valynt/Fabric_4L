@@ -103,8 +103,26 @@ class TestExtractionCacheInMemory:
         cache = ExtractionCache()
         await cache.set("tenant-a", "source-hash-a", "v1", "value-pack-default", "entities", "result A")
         await cache.set("tenant-a", "source-hash-b", "v1", "value-pack-default", "entities", "result B")
-        assert await cache.get("tenant-a", "source-hash-a", "v1", "value-pack-default", "entities") == "result A"
-        assert await cache.get("tenant-a", "source-hash-b", "v1", "value-pack-default", "entities") == "result B"
+        assert (
+            await cache.get(
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
+                "entities",
+            )
+            == "result A"
+        )
+        assert (
+            await cache.get(
+                "tenant-a",
+                "source-hash-b",
+                "v1",
+                "value-pack-default",
+                "entities",
+            )
+            == "result B"
+        )
 
     @pytest.mark.asyncio
     async def test_different_models_have_different_keys(self):
