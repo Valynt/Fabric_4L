@@ -111,6 +111,11 @@ async def create_truth(
 
     # Reload with eager-loaded relationships for the response
     truth = await get_truth_object(db, truth.id, tenant_id)
+    if truth is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Truth object not found after creation",
+        )
 
     # Best-effort KG sync for high-confidence objects
     settings = get_settings()
@@ -498,25 +503,25 @@ async def validate_truth(
             ),
         )
     except InvalidTransitionError as exc:
-        logger.warning("invalid_truth_transition", error=str(exc))
+        logger.warning("invalid_truth_transition: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_TRANSITION", "message": "Invalid state transition for truth object"},
         )
     except InsufficientEvidenceError as exc:
-        logger.warning("insufficient_evidence", error=str(exc))
+        logger.warning("insufficient_evidence: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"},
         )
     except TransitionConflictError as exc:
-        logger.warning("truth_transition_conflict", error=str(exc))
+        logger.warning("truth_transition_conflict: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
             detail={"code": "TRANSITION_CONFLICT", "message": "Conflict during state transition"},
         )
     except ValueError as exc:
-        logger.warning("truth_value_error", error=str(exc))
+        logger.warning("truth_value_error: %s", exc)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail={"code": "INVALID_REQUEST", "message": "Invalid request parameters"},

@@ -11,6 +11,7 @@ import os
 import pickle
 from collections import OrderedDict
 from typing import Any
+from layer2_extraction.metrics import get_metrics
 
 LLM_CACHE_TTL_SECONDS = int(os.getenv("LLM_CACHE_TTL_SECONDS", "3600"))
 
@@ -85,6 +86,18 @@ class ExtractionCache:
     @staticmethod
     def _log_cache_failure(operation: str, exc: Exception, context: dict[str, str | None] | None = None) -> None:
         context = context or {}
+        metrics = get_metrics()
+        if metrics:
+            metrics.record_cache_failure(
+                failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
+                tenant_id=context.get("tenant_id") or "unknown",
+                ingestion_id=context.get("ingestion_id") or "unknown",
+                extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "unknown",
+                model_version=context.get("model_version") or "unknown",
+                schema_version=context.get("schema_version") or "unknown",
+                value_pack_id=context.get("value_pack_id") or "unknown",
+                operation=operation,
+            )
         logger.warning(
             "Cache operation failed; continuing without cache",
             exc_info=exc,
@@ -99,25 +112,43 @@ class ExtractionCache:
 
     def _make_key(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         model: str | None = None,
         temperature: float | None = None,
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        payload = f"{text}:{model}:{temperature}:{endpoint}"
+        import json
+        payload = json.dumps(
+            [tenant_id, source_hash, extraction_version, value_pack_id, model, str(temperature), endpoint],
+            separators=(",", ":"),
+        )
         return f"l2_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
 
     async def get(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         model: str | None = None,
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
     ) -> Any | None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(
+            tenant_id,
+            source_hash,
+            extraction_version,
+            value_pack_id,
+            endpoint,
+            model,
+            temperature,
+        )
         if self._redis is not None:
             try:
                 raw = await self._redis.get(key)
@@ -135,7 +166,10 @@ class ExtractionCache:
 
     async def set(
         self,
-        text: str,
+        tenant_id: str,
+        source_hash: str,
+        extraction_version: str,
+        value_pack_id: str,
         endpoint: str,
         value: Any,
         model: str | None = None,
@@ -143,7 +177,7 @@ class ExtractionCache:
         ttl: int | None = None,
         context: dict[str, str | None] | None = None,
     ) -> None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:

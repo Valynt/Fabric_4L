@@ -8,6 +8,7 @@ Provides endpoints for traversing and retrieving the 4-layer value tree:
 - Capability -> UseCase -> Persona -> ValueDriver
 """
 
+import asyncio
 import logging
 from typing import Any, Literal
 
@@ -131,7 +132,7 @@ async def get_value_tree(
     - **max_depth**: Maximum traversal depth (1-4)
     """
     try:
-        neo4j = app_state.neo4j_manager
+        neo4j = app_state.neo4j_driver
         if not neo4j:
             raise HTTPException(status_code=503, detail="Neo4j not available")
 
@@ -148,7 +149,10 @@ async def get_value_tree(
         MATCH (n {id: $entity_id, tenant_id: $tenant_id})
         RETURN n.id as id, n.name as label, n.type as type, n.confidence as confidence
         """
-        root_result = await neo4j.execute_query(root_query, {"entity_id": entity_id, "tenant_id": tenant_id})
+        root_result = await asyncio.wait_for(
+            neo4j.execute_query(root_query, {"entity_id": entity_id, "tenant_id": tenant_id}),
+            timeout=QUERY_TIMEOUT_SECONDS,
+        )
         if not root_result:
             raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
 
@@ -177,8 +181,10 @@ async def get_value_tree(
                    length(path) as path_length
             """
 
-        path_result = await neo4j.execute_query(
-            path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id},
+        path_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
+            ),
             timeout=QUERY_TIMEOUT_SECONDS,
         )
 
@@ -301,7 +307,7 @@ async def get_value_tree_paths(
 ) -> list[dict[str, Any]]:
     """Get all value tree paths from a starting entity."""
     try:
-        neo4j = app_state.neo4j_manager
+        neo4j = app_state.neo4j_driver
         if not neo4j:
             raise HTTPException(status_code=503, detail="Neo4j not available")
 
@@ -325,8 +331,10 @@ async def get_value_tree_paths(
                    length(path) as path_length
             """
 
-        result = await neo4j.execute_query(
-            query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id},
+        result = await asyncio.wait_for(
+            neo4j.execute_query(
+                query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
+            ),
             timeout=QUERY_TIMEOUT_SECONDS,
         )
 

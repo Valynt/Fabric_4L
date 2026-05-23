@@ -5,11 +5,14 @@ using native structured LLM outputs with Pydantic model validation for
 compile-time type safety and automatic schema enforcement.
 """
 
+import logging
 import math
+import time
 from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
+from layer2_extraction.metrics import get_metrics
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 # Type variable for generic extraction
@@ -17,6 +20,7 @@ T = TypeVar("T", bound=BaseModel)
 
 # System prompt used across all entity extraction operations
 SYSTEM_PROMPT = "You are an enterprise ontology extractor. Be precise and conservative."
+logger = logging.getLogger(__name__)
 
 from layer2_extraction.models import (
     Capability,
@@ -39,6 +43,7 @@ from layer2_extraction.models.extraction_response import (
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
 from .prompt_loader import render_entity_prompt, render_relationship_prompt
+from .security_guard import enforce_untrusted_output_policy, preprocess_source_content
 
 
 class LLMExtractionError(Exception):
@@ -349,6 +354,7 @@ class EntityExtractor:
         response_model: type[BaseModel],
         entity_attr: str,
         endpoint: str,
+        telemetry_context: dict[str, str] | None = None,
     ) -> list[T]:
         """Generic entity extraction with structured outputs.
 
@@ -365,12 +371,21 @@ class EntityExtractor:
         Returns:
             List of extracted entities meeting confidence threshold
         """
+        preprocessed = preprocess_source_content(text)
         prompt = render_entity_prompt(
             entity_type=entity_type,
-            text=text,
+            text=preprocessed.delimited_content,
             confidence_threshold=confidence_threshold,
         )
 
+        context = telemetry_context or {}
+        model_version = context.get("model_version", self.model)
+        schema_version = context.get("schema_version", "unknown")
+        value_pack_id = context.get("value_pack_id", "unknown")
+        tenant_id = context.get("tenant_id", "unknown")
+        ingestion_id = context.get("ingestion_id", "unknown")
+        metrics = get_metrics()
+        start = time.perf_counter()
         try:
             response, _ = await self.client.chat_completion_structured(
                 messages=[
@@ -383,18 +398,27 @@ class EntityExtractor:
                 temperature=0.0,
             )
 
+            latency = time.perf_counter() - start
+            if metrics:
+                metrics.record_model_latency(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint, latency_seconds=latency)
             entities: list[T] = []
             entities_list: list[T] = getattr(response, entity_attr, [])
+            enforce_untrusted_output_policy(entities_list)
             for entity in entities_list:
                 if entity.confidence >= confidence_threshold:
                     entity.extraction_job_id = extraction_job_id
                     if hasattr(entity, "source_refs"):
                         entity.source_refs = [source_url]
                     entities.append(entity)
+                    if metrics:
+                        metrics.record_confidence(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, entity_type=entity_type, confidence=float(entity.confidence))
 
             return entities
 
         except ValidationError as e:
+            if metrics:
+                metrics.record_schema_validation_failure(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint)
+            logger.warning("Schema validation failure during extraction", extra={"tenant_id": tenant_id, "ingestion_id": ingestion_id, "extraction_job_id": extraction_job_id, "model_version": model_version, "schema_version": schema_version, "value_pack_id": value_pack_id, "endpoint": endpoint})
             raise LLMExtractionError(
                 f"Failed to extract {entity_type}s - schema validation error: {e}"
             ) from e
@@ -402,7 +426,7 @@ class EntityExtractor:
             raise LLMExtractionError(f"Failed to extract {entity_type}s: {e}") from e
 
     async def extract_entities(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float = 0.8
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float = 0.8, telemetry_context: dict[str, str] | None = None
     ) -> dict[str, list[BaseModel]]:
         """Extract all entity types from text.
 
@@ -427,78 +451,78 @@ class EntityExtractor:
 
         # Extract each entity type
         results["capabilities"] = await self._extract_capabilities(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
         results["use_cases"] = await self._extract_use_cases(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
         results["personas"] = await self._extract_personas(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
         results["value_drivers"] = await self._extract_value_drivers(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
         results["value_metrics"] = await self._extract_value_metrics(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
         results["features"] = await self._extract_features(
-            text, source_url, extraction_job_id, confidence_threshold
+            text, source_url, extraction_job_id, confidence_threshold, telemetry_context
         )
 
         return results
 
     async def _extract_capabilities(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[Capability]:
         """Extract capabilities from text using structured outputs."""
         return await self._extract_entities_generic(
             "capability", text, source_url, extraction_job_id, confidence_threshold,
-            CapabilityExtractionResponse, "capabilities", "extract_capabilities"
+            CapabilityExtractionResponse, "capabilities", "extract_capabilities", telemetry_context
         )
 
     async def _extract_use_cases(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[UseCase]:
         """Extract use cases from text using structured outputs."""
         return await self._extract_entities_generic(
             "usecase", text, source_url, extraction_job_id, confidence_threshold,
-            UseCaseExtractionResponse, "use_cases", "extract_use_cases"
+            UseCaseExtractionResponse, "use_cases", "extract_use_cases", telemetry_context
         )
 
     async def _extract_personas(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[Persona]:
         """Extract personas from text using structured outputs."""
         return await self._extract_entities_generic(
             "persona", text, source_url, extraction_job_id, confidence_threshold,
-            PersonaExtractionResponse, "personas", "extract_personas"
+            PersonaExtractionResponse, "personas", "extract_personas", telemetry_context
         )
 
     async def _extract_value_drivers(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[ValueDriver]:
         """Extract value drivers from text using structured outputs."""
         return await self._extract_entities_generic(
             "valuedriver", text, source_url, extraction_job_id, confidence_threshold,
-            ValueDriverExtractionResponse, "value_drivers", "extract_value_drivers"
+            ValueDriverExtractionResponse, "value_drivers", "extract_value_drivers", telemetry_context
         )
 
     async def _extract_features(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[Feature]:
         """Extract features from text using structured outputs."""
         return await self._extract_entities_generic(
             "feature", text, source_url, extraction_job_id, confidence_threshold,
-            FeatureExtractionResponse, "features", "extract_features"
+            FeatureExtractionResponse, "features", "extract_features", telemetry_context
         )
 
     async def _extract_value_metrics(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float, telemetry_context: dict[str, str] | None = None
     ) -> list[ValueMetric]:
         """Extract value metrics (KPIs) from text using structured outputs."""
         return await self._extract_entities_generic(
             "valuemetric", text, source_url, extraction_job_id, confidence_threshold,
-            ValueMetricExtractionResponse, "value_metrics", "extract_value_metrics"
+            ValueMetricExtractionResponse, "value_metrics", "extract_value_metrics", telemetry_context
         )
 
 
@@ -551,8 +575,17 @@ class RelationshipExtractor:
         if total_entities < 2:
             return []
 
-        prompt = render_relationship_prompt(text=text, entities=entities)
+        preprocessed = preprocess_source_content(text)
+        prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
+        context = telemetry_context or {}
+        model_version = context.get("model_version", self.model)
+        schema_version = context.get("schema_version", "unknown")
+        value_pack_id = context.get("value_pack_id", "unknown")
+        tenant_id = context.get("tenant_id", "unknown")
+        ingestion_id = context.get("ingestion_id", "unknown")
+        metrics = get_metrics()
+        start = time.perf_counter()
         try:
             response, _ = await self.client.chat_completion_structured(
                 messages=[
@@ -568,6 +601,7 @@ class RelationshipExtractor:
                 temperature=0.0,
             )
 
+            enforce_untrusted_output_policy(response.relationships)
             relationships = []
             for rel in response.relationships:
                 if rel.confidence >= confidence_threshold:
@@ -579,6 +613,9 @@ class RelationshipExtractor:
             return relationships
 
         except ValidationError as e:
+            if metrics:
+                metrics.record_schema_validation_failure(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint)
+            logger.warning("Schema validation failure during extraction", extra={"tenant_id": tenant_id, "ingestion_id": ingestion_id, "extraction_job_id": extraction_job_id, "model_version": model_version, "schema_version": schema_version, "value_pack_id": value_pack_id, "endpoint": endpoint})
             raise LLMExtractionError(f"Failed to extract relationships - schema validation error: {e}")
         except Exception as e:
             raise LLMExtractionError(f"Failed to extract relationships: {e}")

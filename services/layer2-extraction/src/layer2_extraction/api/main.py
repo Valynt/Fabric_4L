@@ -61,6 +61,7 @@ from layer2_extraction.integration.pending_ingestion_store import (
     SqlitePendingIngestionStore,
     build_pending_ingestion_store,
 )
+from layer2_extraction.integration.quarantine_store import QuarantineRecord, build_quarantine_store
 from layer2_extraction.metrics import get_metrics
 from layer2_extraction.models import (
     ExtractionResult,
@@ -76,6 +77,7 @@ from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 from ..shared_bootstrap import verify_metrics_access
 from .app_factory import create_app
 from .lifespan import create_lifespan
+from .routes.signal_lifecycle import router as signal_lifecycle_router
 
 logger = logging.getLogger(__name__)
 
@@ -112,6 +114,7 @@ lifespan = create_lifespan(
 
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_app(lifespan=lifespan)
+app.include_router(signal_lifecycle_router)
 
 # Extraction configuration constants
 DEFAULT_CHUNK_SIZE = 2000
@@ -232,6 +235,24 @@ class ExtractionArtifacts:
     relationships: list[Relationship]
 
 
+def _resolve_value_pack_scope(extraction_config: dict[str, Any]) -> str:
+    return str(extraction_config.get("value_pack_scope") or extraction_config.get("value_pack") or "default")
+
+
+def _build_idempotency_key(
+    *,
+    tenant_id: str,
+    source_url: str,
+    content_id: str,
+    extraction_config: dict[str, Any],
+) -> str:
+    extraction_version = str(extraction_config.get("extraction_version") or "v1")
+    value_pack_scope = _resolve_value_pack_scope(extraction_config)
+    source_hash = hashlib.sha256(f"{content_id}|{source_url}".encode()).hexdigest()
+    payload = f"{tenant_id}|{source_hash}|{extraction_version}|{value_pack_scope}"
+    return hashlib.sha256(payload.encode()).hexdigest()
+
+
 # Global job store (Redis-backed if configured, otherwise in-memory)
 job_store: JobStore = build_job_store()
 RETRY_POLL_SECONDS = int(os.getenv("INGESTION_RETRY_POLL_SECONDS", "30"))
@@ -255,6 +276,23 @@ except Exception as exc:
         os.getenv("PENDING_INGESTION_SQLITE_PATH", "./data/pending_ingestion.db")
     )
 
+
+
+quarantine_store = build_quarantine_store()
+
+
+class QuarantineStatusResponse(BaseModel):
+    job_id: str
+    quarantine_id: str
+    tenant_id: str
+    source_hash: str
+    model_version: str
+    schema_version: str
+    validation_errors: list[str]
+    reason: str
+    review_status: str
+    retry_eligible: bool
+    created_at: datetime
 
 def _compute_overall_status(extraction_status: str, ingestion_status: str) -> str:
     if extraction_status == "failed" or ingestion_status == "failed":
@@ -541,6 +579,29 @@ _VAULT_UNREACHABLE_ERROR = "Vault unreachable — cannot start in production wit
 
 
 # Background task for extraction
+
+async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], reason: str = "validation_error") -> QuarantineRecord:
+    record = QuarantineRecord(
+        quarantine_id=str(uuid4()),
+        job_id=job_id,
+        tenant_id=tenant_id,
+        source_url=source_url,
+        source_hash=content_hash,
+        model_version=os.getenv("LLM_MODEL", "gpt-4o"),
+        schema_version="v1",
+        payload_json=payload,
+        validation_errors=errors,
+        reason=reason,
+    )
+    await quarantine_store.put(record)
+    await _set_pipeline_job(
+        job_id,
+        extraction_status="quarantined",
+        last_error="; ".join(errors),
+        completed_at=datetime.now(UTC),
+    )
+    return record
+
 async def run_extraction(
     job_id: str,
     source_url: str,
@@ -585,6 +646,14 @@ async def run_extraction(
         )
 
     await _set_pipeline_job(job_id, extraction_status="running")
+    telemetry_context = {
+        "tenant_id": str(config.get("tenant_id", "unknown")),
+        "ingestion_id": str(config.get("ingestion_id", "unknown")),
+        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", "unknown"))),
+        "schema_version": str(config.get("schema_version", "unknown")),
+        "value_pack_id": str(config.get("value_pack_id", "default")),
+    }
+    metrics = get_metrics()
 
     # Broadcast pipeline start
     await _ws_manager.broadcast_stage_start(
@@ -655,6 +724,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold,
+                telemetry_context=telemetry_context,
             )
 
             # Collect entities
@@ -789,8 +859,18 @@ async def run_extraction(
         ]
 
         if errors:
-            # Add errors to result
-            result.errors.extend([f"[ERROR] {e.rule_id}: {e.message}" for e in errors])
+            error_messages = [f"[ERROR] {e.rule_id}: {e.message}" for e in errors]
+            result.errors.extend(error_messages)
+            await _quarantine_validation_failure(
+                tenant_id="system",
+                job_id=job_id,
+                source_url=source_url,
+                source_hash=content_hash,
+                payload=result.model_dump_json(),
+                errors=error_messages,
+                reason="entailment_validation_failed",
+            )
+            return None
         if warnings:
             # Log warnings but continue
             result.errors.extend([f"[WARNING] {w.rule_id}: {w.message}" for w in warnings])
@@ -857,6 +937,17 @@ async def run_extraction(
             relationships_extracted=len(activity.output_relationships),
             completed_at=datetime.now(UTC) if mark_pipeline_complete else None,
         )
+        if metrics:
+            metrics.record_extraction_outcome(
+                status="success",
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+            )
+        logger.info("Extraction completed", extra={**telemetry_context, "extraction_job_id": job_id})
 
         # Broadcast extraction-only completion (if not going to ingestion)
         if mark_pipeline_complete:
@@ -872,6 +963,8 @@ async def run_extraction(
 
     except Exception as e:
         error_msg = str(e)
+        if "schema validation error" in error_msg.lower():
+            await _quarantine_validation_failure(tenant_id="system", job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
         activity.fail(error_msg)
         await _set_pipeline_job(
             job_id,
@@ -879,6 +972,26 @@ async def run_extraction(
             last_error=error_msg,
             completed_at=datetime.now(UTC),
         )
+        if metrics:
+            metrics.record_extraction_outcome(
+                status="failure",
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+            )
+            metrics.record_retry(
+                tenant_id=telemetry_context["tenant_id"],
+                ingestion_id=telemetry_context["ingestion_id"],
+                extraction_job_id=job_id,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                value_pack_id=telemetry_context["value_pack_id"],
+                endpoint="run_extraction",
+            )
+        logger.error("Extraction failed", extra={**telemetry_context, "extraction_job_id": job_id})
 
         # Broadcast extraction failure
         await _ws_manager.broadcast_error(
@@ -1124,8 +1237,42 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
 async def extract_and_ingest(
     request: ExtractRequest,
     background_tasks: BackgroundTasks,
+    ctx: RequestContext,
 ):
     """Start a combined extraction and ingestion pipeline job."""
+    idempotency_key = _build_idempotency_key(
+        tenant_id=ctx.tenant_id,
+        source_url=request.source_url,
+        content_id=request.content_id,
+        extraction_config=request.extraction_config,
+    )
+    existing_job_id = await job_store.get_job_id_for_idempotency_key(idempotency_key)
+    if existing_job_id:
+        existing_job = await job_store.get(existing_job_id, tenant_id=ctx.tenant_id)
+        if existing_job and existing_job.extraction_status == "completed" and existing_job.ingestion_status == "completed":
+            return ExtractAndIngestResponse(
+                job_id=existing_job.job_id,
+                overall_status=existing_job.overall_status,
+                extraction_status=existing_job.extraction_status,
+                ingestion_status=existing_job.ingestion_status,
+                message="Extraction and ingestion already completed for idempotency key",
+            )
+        if existing_job:
+            background_tasks.add_task(
+                run_extract_and_ingest,
+                job_id=existing_job.job_id,
+                source_url=request.source_url,
+                content=request.markdown_content,
+                config=request.extraction_config,
+            )
+            return ExtractAndIngestResponse(
+                job_id=existing_job.job_id,
+                overall_status=existing_job.overall_status,
+                extraction_status=existing_job.extraction_status,
+                ingestion_status=existing_job.ingestion_status,
+                message="Extraction and ingestion retry queued for existing idempotency key",
+            )
+
     job_id = str(uuid4())
 
     await job_store.set(
@@ -1140,8 +1287,10 @@ async def extract_and_ingest(
             last_error=None,
             next_retry_at=None,
             completed_at=None,
+            tenant_id=ctx.tenant_id,
         )
     )
+    await job_store.set_job_id_for_idempotency_key(idempotency_key, job_id)
 
     background_tasks.add_task(
         run_extract_and_ingest,
@@ -1169,6 +1318,20 @@ async def get_extraction_status(job_id: str):
     return _pipeline_response(job)
 
 
+
+
+async def get_quarantine_status(job_id: str, ctx: RequestContext):
+    tenant_id = str(ctx.tenant_id)
+    record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
+    if record is None:
+        raise HTTPException(status_code=404, detail="Quarantine record not found")
+    return QuarantineStatusResponse.model_validate(record.model_dump())
+
+
+async def list_quarantine_jobs(ctx: RequestContext):
+    tenant_id = str(ctx.tenant_id)
+    records = await quarantine_store.list(tenant_id=tenant_id)
+    return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
 async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks):
     """Start a batch extraction job."""
     batch_id = str(uuid4())

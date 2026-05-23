@@ -7,6 +7,7 @@ from the authenticated request context (fail-closed on missing context).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
 from typing import Any
@@ -87,15 +88,18 @@ async def get_full_graph(
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
     try:
-        nodes_result = await neo4j.execute_query(
-            """
-            MATCH (n {tenant_id: $tenant_id})
-            WHERE n.id IS NOT NULL
-            RETURN n.id as id, n.name as label, n.type as type,
-                   n.confidence as confidence, n.x as x, n.y as y
-            LIMIT $limit
-            """,
-            {"tenant_id": tenant_id, "limit": limit},
+        nodes_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                """
+                MATCH (n {tenant_id: $tenant_id})
+                WHERE n.id IS NOT NULL
+                RETURN n.id as id, n.name as label, n.type as type,
+                       n.confidence as confidence, n.x as x, n.y as y
+                LIMIT $limit
+                """,
+                {"tenant_id": tenant_id, "limit": limit},
+            ),
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         nodes: list[GraphNode | GraphNodeWithLayout] = []
@@ -117,13 +121,16 @@ async def get_full_graph(
             nodes.append(node)
             node_ids.add(r.get("id"))
 
-        edges_result = await neo4j.execute_query(
-            """
-            MATCH (a {tenant_id: $tenant_id})-[r]->(b {tenant_id: $tenant_id})
-            WHERE a.id IN $node_ids AND b.id IN $node_ids
-            RETURN a.id as source, b.id as target, type(r) as rel_type, r.weight as weight
-            """,
-            {"tenant_id": tenant_id, "node_ids": list(node_ids)},
+        edges_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                """
+                MATCH (a {tenant_id: $tenant_id})-[r]->(b {tenant_id: $tenant_id})
+                WHERE a.id IN $node_ids AND b.id IN $node_ids
+                RETURN a.id as source, b.id as target, type(r) as rel_type, r.weight as weight
+                """,
+                {"tenant_id": tenant_id, "node_ids": list(node_ids)},
+            ),
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         edges = [
@@ -136,13 +143,19 @@ async def get_full_graph(
             for r in edges_result
         ]
 
-        total_nodes_result = await neo4j.execute_query(
-            "MATCH (n {tenant_id: $tenant_id}) RETURN count(n) as total",
-            {"tenant_id": tenant_id},
+        total_nodes_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                "MATCH (n {tenant_id: $tenant_id}) RETURN count(n) as total",
+                {"tenant_id": tenant_id},
+            ),
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
-        total_edges_result = await neo4j.execute_query(
-            "MATCH (:Entity {tenant_id: $tenant_id})-[r]->(:Entity {tenant_id: $tenant_id}) RETURN count(r) as total",
-            {"tenant_id": tenant_id},
+        total_edges_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                "MATCH (:Entity {tenant_id: $tenant_id})-[r]->(:Entity {tenant_id: $tenant_id}) RETURN count(r) as total",
+                {"tenant_id": tenant_id},
+            ),
+            timeout=QUERY_TIMEOUT_SECONDS,
         )
 
         total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0
@@ -186,8 +199,6 @@ async def get_entity_subgraph(
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
-    depth = max(1, min(depth, MAX_QUERY_DEPTH))
-
     try:
         root_result = await neo4j.execute_query(
             """
@@ -201,13 +212,15 @@ async def get_entity_subgraph(
 
         root_record = root_result[0]
 
-        subgraph_result = await neo4j.execute_query(
-            """
-            MATCH path = (root {id: $entity_id, tenant_id: $tenant_id})-[*1..$depth]-(connected {tenant_id: $tenant_id})
-            WHERE root.id IS NOT NULL AND connected.id IS NOT NULL
-            RETURN root, connected, relationships(path) as rels, length(path) as path_length
-            """,
-            {"entity_id": entity_id, "depth": depth, "tenant_id": tenant_id},
+        subgraph_result = await asyncio.wait_for(
+            neo4j.execute_query(
+                """
+                MATCH path = (root {id: $entity_id, tenant_id: $tenant_id})-[*1..$depth]-(connected {tenant_id: $tenant_id})
+                WHERE root.id IS NOT NULL AND connected.id IS NOT NULL
+                RETURN root, connected, relationships(path) as rels, length(path) as path_length
+                """,
+                {"entity_id": entity_id, "depth": depth, "tenant_id": tenant_id},
+            ),
             timeout=QUERY_TIMEOUT_SECONDS,
         )
 
@@ -279,9 +292,15 @@ async def get_entity_subgraph(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded for %s: %s", entity_id, exc)
-        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
-    except TimeoutError:
-        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(
+            status_code=400,
+            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
+        ) from exc
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=400,
+            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
+        )
     except Exception as e:
         logger.error("Failed to retrieve subgraph for %s: %s", entity_id, e)
         raise HTTPException(
@@ -361,7 +380,10 @@ async def get_query_subgraph(
                    collect(DISTINCT rels) as paths, max(hops) as max_hops
             LIMIT $limit
             """
-            result = await neo4j.execute_query(subgraph_query, query_params, timeout=QUERY_TIMEOUT_SECONDS)
+            result = await asyncio.wait_for(
+                neo4j.execute_query(subgraph_query, query_params),
+                timeout=QUERY_TIMEOUT_SECONDS,
+            )
 
             if result:
                 record = result[0]
@@ -511,9 +533,15 @@ async def get_query_subgraph(
         raise
     except CypherDepthLimitExceeded as exc:
         logger.warning("Cypher depth limit exceeded: %s", exc)
-        raise HTTPException(status_code=400, detail={"message": "Query depth limit exceeded", "code": "CYPHER_DEPTH_LIMIT_EXCEEDED"}) from exc
-    except TimeoutError:
-        raise HTTPException(status_code=400, detail={"message": "Query timed out after 30s", "code": "CYPHER_TIMEOUT"})
+        raise HTTPException(
+            status_code=400,
+            detail="Query depth limit exceeded (code: CYPHER_DEPTH_LIMIT_EXCEEDED)",
+        ) from exc
+    except asyncio.TimeoutError:
+        raise HTTPException(
+            status_code=400,
+            detail="Query timed out after 30s (code: CYPHER_TIMEOUT)",
+        )
     except Exception as e:
         logger.error("Failed to retrieve subgraph: %s", e)
         raise HTTPException(

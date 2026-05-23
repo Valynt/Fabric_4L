@@ -330,6 +330,65 @@ async def test_extract_and_ingest_kickoff_contract(async_client, monkeypatch: py
 
 
 @pytest.mark.asyncio
+async def test_extract_and_ingest_identical_request_reuses_completed_job(
+    async_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    async def fake_pipeline_runner(job_id: str, source_url: str, content: str, config: dict) -> None:
+        await api_main._set_pipeline_job(
+            job_id,
+            extraction_status="completed",
+            ingestion_status="completed",
+            completed_at=real_datetime(2026, 1, 1, 0, 0, 1),
+        )
+
+    monkeypatch.setattr(api_main, "run_extract_and_ingest", fake_pipeline_runner)
+
+    first = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    assert first.status_code == 200
+    first_job = first.json()["job_id"]
+
+    second = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    assert second.status_code == 200
+    second_body = second.json()
+
+    assert second_body["job_id"] == first_job
+    assert second_body["ingestion_status"] == "completed"
+    assert "already completed" in second_body["message"]
+
+
+@pytest.mark.asyncio
+async def test_extract_and_ingest_identical_request_retry_keeps_same_job_linkage(
+    async_client, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    runs: list[str] = []
+
+    async def fake_pipeline_runner(job_id: str, source_url: str, content: str, config: dict) -> None:
+        runs.append(job_id)
+        if len(runs) == 1:
+            await api_main._set_pipeline_job(job_id, extraction_status="completed", ingestion_status="queued")
+        else:
+            await api_main._set_pipeline_job(
+                job_id,
+                extraction_status="completed",
+                ingestion_status="completed",
+                completed_at=real_datetime(2026, 1, 1, 0, 0, 2),
+            )
+
+    monkeypatch.setattr(api_main, "run_extract_and_ingest", fake_pipeline_runner)
+
+    first = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    first_job = first.json()["job_id"]
+    assert first.json()["ingestion_status"] == "pending"
+
+    second = await async_client.post("/v1/extract-and-ingest", json=request_payload())
+    second_body = second.json()
+
+    assert second_body["job_id"] == first_job
+    assert "retry queued" in second_body["message"]
+    assert runs == [first_job, first_job]
+
+
+@pytest.mark.asyncio
 async def test_status_endpoint_reports_staged_pipeline_transitions(
     async_client, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -618,6 +677,5 @@ async def test_cross_layer_extract_ingest_status_flow(
     assert status_body["extraction_status"] == "completed"
     assert status_body["ingestion_status"] == "completed"
     assert status_body["completed_at"] is not None
-
 
 

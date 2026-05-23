@@ -17,6 +17,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config.plans import Plan, get_plan
 from ..models.billing import BillingSubscription, BillingUsageEvent, UsageEventStatus
+from .plan_version_service import PlanVersionService
 
 
 class OverageService_validate_requestResult(TypedDictModel):
@@ -68,6 +69,7 @@ class OverageService:
     def __init__(self, db: AsyncSession, tenant_id: str | None = None):
         self.db = db
         self.tenant_id = tenant_id
+        self.plan_versions = PlanVersionService(db, tenant_id=tenant_id)
 
     def _get_period_dates(self, period: str) -> tuple[datetime, datetime]:
         """Get start and end dates for a billing period.
@@ -193,7 +195,29 @@ class OverageService:
                 period_end=datetime.now(UTC),
             )
 
-        limit = plan.get_usage_limit(metric_name)
+        # Prefer persisted, effective plan version limits for billing reproducibility
+        subscription_query = select(BillingSubscription).where(
+            BillingSubscription.tenant_id == self.tenant_id,
+            BillingSubscription.customer_id == customer_id,
+            BillingSubscription.status.in_(["active", "trialing"]),
+        ).order_by(BillingSubscription.created_at.desc())
+        subscription = (await self.db.execute(subscription_query)).scalar_one_or_none()
+        effective_plan_version = await self.plan_versions.get_subscription_plan_version(subscription, datetime.now(UTC))
+        if effective_plan_version:
+            serialized = (effective_plan_version.usage_limits or {}).get(metric_name)
+            if serialized:
+                class _Limit:
+                    pass
+                limit = _Limit()
+                limit.period = serialized.get("period", "monthly")
+                limit.included_amount = float(serialized.get("included_amount", 0.0))
+                limit.warning_threshold = float(serialized.get("warning_threshold", 80.0))
+                limit.hard_limit = bool(serialized.get("hard_limit", False))
+                limit.overage_rate = float(serialized.get("overage_rate", 0.0))
+            else:
+                limit = None
+        else:
+            limit = plan.get_usage_limit(metric_name)
         if not limit:
             # No limit configured for this metric
             return UsageCheckResult(
@@ -384,5 +408,4 @@ class OverageService:
             }
             for metric_name, limit in plan.usage_limits.items()
         })
-
 
