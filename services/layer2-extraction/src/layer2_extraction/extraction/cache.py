@@ -127,7 +127,15 @@ class ExtractionCache:
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
     ) -> Any | None:
-        key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
+        key = self._make_key(
+            tenant_id,
+            source_hash,
+            extraction_version,
+            value_pack_id,
+            endpoint,
+            model,
+            temperature,
+        )
         if self._redis is not None:
             try:
                 raw = await self._redis.get(key)
