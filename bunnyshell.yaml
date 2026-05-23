@@ -436,9 +436,6 @@ components:
         kind: Service
         name: postgres-init
         dockerCompose:
-            depends_on:
-                postgres:
-                    condition: service_healthy
             environment:
                 POSTGRES_USER: '${POSTGRES_USER}'
                 POSTGRES_PASSWORD: '${POSTGRES_PASSWORD}'
