@@ -8,6 +8,8 @@ from unittest.mock import AsyncMock, patch
 
 from layer2_extraction.extraction.cache import ExtractionCache, _InMemoryLRUCache
 
+DEFAULT_SCOPE = ("tenant-a", "source-hash-a", "v1", "value-pack-default")
+
 
 # ---------------------------------------------------------------------------
 # _InMemoryLRUCache (internal)
@@ -56,15 +58,15 @@ class TestExtractionCacheInMemory:
     @pytest.mark.asyncio
     async def test_get_returns_none_on_cache_miss(self):
         cache = ExtractionCache()  # no redis_url → in-memory fallback
-        result = await cache.get("some text", "entities")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
         assert result is None
 
     @pytest.mark.asyncio
     async def test_set_and_get_round_trip(self):
         cache = ExtractionCache()
         value = {"entities": ["A", "B"]}
-        await cache.set("some text", "entities", value)
-        retrieved = await cache.get("some text", "entities")
+        await cache.set(*DEFAULT_SCOPE, "entities", value)
+        retrieved = await cache.get(*DEFAULT_SCOPE, "entities")
         assert retrieved == value
 
     @pytest.mark.asyncio
@@ -78,39 +80,57 @@ class TestExtractionCacheInMemory:
             return {"result": "expensive"}
 
         # First call — miss
-        cached = await cache.get("text", "endpoint")
+        cached = await cache.get(*DEFAULT_SCOPE, "endpoint")
         if cached is None:
             result = await expensive_fn()
-            await cache.set("text", "endpoint", result)
+            await cache.set(*DEFAULT_SCOPE, "endpoint", result)
 
         # Second call — hit
-        cached = await cache.get("text", "endpoint")
+        cached = await cache.get(*DEFAULT_SCOPE, "endpoint")
         assert cached == {"result": "expensive"}
         assert call_count == 1  # expensive_fn called only once
 
     @pytest.mark.asyncio
     async def test_different_endpoints_have_different_keys(self):
         cache = ExtractionCache()
-        await cache.set("text", "entities", {"type": "entities"})
-        await cache.set("text", "relationships", {"type": "relationships"})
-        assert await cache.get("text", "entities") == {"type": "entities"}
-        assert await cache.get("text", "relationships") == {"type": "relationships"}
+        await cache.set(*DEFAULT_SCOPE, "entities", {"type": "entities"})
+        await cache.set(*DEFAULT_SCOPE, "relationships", {"type": "relationships"})
+        assert await cache.get(*DEFAULT_SCOPE, "entities") == {"type": "entities"}
+        assert await cache.get(*DEFAULT_SCOPE, "relationships") == {"type": "relationships"}
 
     @pytest.mark.asyncio
-    async def test_different_texts_have_different_keys(self):
+    async def test_different_source_hashes_have_different_keys(self):
         cache = ExtractionCache()
-        await cache.set("text A", "entities", "result A")
-        await cache.set("text B", "entities", "result B")
-        assert await cache.get("text A", "entities") == "result A"
-        assert await cache.get("text B", "entities") == "result B"
+        await cache.set("tenant-a", "source-hash-a", "v1", "value-pack-default", "entities", "result A")
+        await cache.set("tenant-a", "source-hash-b", "v1", "value-pack-default", "entities", "result B")
+        assert (
+            await cache.get(
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
+                "entities",
+            )
+            == "result A"
+        )
+        assert (
+            await cache.get(
+                "tenant-a",
+                "source-hash-b",
+                "v1",
+                "value-pack-default",
+                "entities",
+            )
+            == "result B"
+        )
 
     @pytest.mark.asyncio
     async def test_different_models_have_different_keys(self):
         cache = ExtractionCache()
-        await cache.set("text", "entities", "gpt4", model="gpt-4")
-        await cache.set("text", "entities", "gpt4mini", model="gpt-4o-mini")
-        assert await cache.get("text", "entities", model="gpt-4") == "gpt4"
-        assert await cache.get("text", "entities", model="gpt-4o-mini") == "gpt4mini"
+        await cache.set(*DEFAULT_SCOPE, "entities", "gpt4", model="gpt-4")
+        await cache.set(*DEFAULT_SCOPE, "entities", "gpt4mini", model="gpt-4o-mini")
+        assert await cache.get(*DEFAULT_SCOPE, "entities", model="gpt-4") == "gpt4"
+        assert await cache.get(*DEFAULT_SCOPE, "entities", model="gpt-4o-mini") == "gpt4mini"
 
     @pytest.mark.asyncio
     async def test_close_does_not_raise_without_redis(self):
@@ -121,19 +141,19 @@ class TestExtractionCacheInMemory:
 class TestExtractionCacheMakeKey:
     def test_same_inputs_produce_same_key(self):
         cache = ExtractionCache()
-        k1 = cache._make_key("text", "entities", model="gpt-4", temperature=0.0)
-        k2 = cache._make_key("text", "entities", model="gpt-4", temperature=0.0)
+        k1 = cache._make_key(*DEFAULT_SCOPE, "entities", model="gpt-4", temperature=0.0)
+        k2 = cache._make_key(*DEFAULT_SCOPE, "entities", model="gpt-4", temperature=0.0)
         assert k1 == k2
 
     def test_key_starts_with_l2_cache_prefix(self):
         cache = ExtractionCache()
-        key = cache._make_key("text", "entities")
+        key = cache._make_key(*DEFAULT_SCOPE, "entities")
         assert key.startswith("l2_cache:")
 
     def test_different_temperatures_produce_different_keys(self):
         cache = ExtractionCache()
-        k1 = cache._make_key("text", "entities", temperature=0.0)
-        k2 = cache._make_key("text", "entities", temperature=0.5)
+        k1 = cache._make_key(*DEFAULT_SCOPE, "entities", temperature=0.0)
+        k2 = cache._make_key(*DEFAULT_SCOPE, "entities", temperature=0.5)
         assert k1 != k2
 
 
@@ -146,11 +166,11 @@ class TestExtractionCacheFailureBehavior:
         with patch("redis.asyncio.from_url", return_value=mock_redis):
             cache = ExtractionCache(redis_url="redis://localhost:6379")
 
-        cache._fallback.set(cache._make_key("text", "entities"), {"ok": True})
+        cache._fallback.set(cache._make_key(*DEFAULT_SCOPE, "entities"), {"ok": True})
         caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
 
         result = await cache.get(
-            "text",
+            *DEFAULT_SCOPE,
             "entities",
             context={"tenant_id": "tenant-a", "job_id": "job-1", "correlation_id": "corr-1"},
         )
@@ -170,13 +190,13 @@ class TestExtractionCacheFailureBehavior:
 
         caplog.set_level(logging.WARNING, logger="layer2_extraction.extraction.cache")
         await cache.set(
-            "text",
+            *DEFAULT_SCOPE,
             "entities",
             {"fallback": "written"},
             context={"tenant_id": "tenant-a", "job_id": "job-2", "correlation_id": "corr-2"},
         )
 
-        result = await cache.get("text", "entities")
+        result = await cache.get(*DEFAULT_SCOPE, "entities")
         assert result == {"fallback": "written"}
         assert "Cache operation failed; continuing without cache" in caplog.text
         assert any(getattr(record, "operation", None) == "write" for record in caplog.records)
@@ -210,7 +230,10 @@ class TestExtractionCacheFailureBehavior:
 
         async def core_extraction(text: str, endpoint: str):
             cached = await cache.get(
-                text,
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
                 endpoint,
                 context={"tenant_id": "tenant-a", "job_id": "job-read", "correlation_id": "corr-read"},
             )
@@ -218,7 +241,10 @@ class TestExtractionCacheFailureBehavior:
                 return cached
             computed = {"entities": ["alpha"]}
             await cache.set(
-                text,
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
                 endpoint,
                 computed,
                 context={"tenant_id": "tenant-a", "job_id": "job-read", "correlation_id": "corr-read"},
@@ -243,7 +269,10 @@ class TestExtractionCacheFailureBehavior:
 
         async def core_extraction(text: str, endpoint: str):
             cached = await cache.get(
-                text,
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
                 endpoint,
                 context={"tenant_id": "tenant-a", "job_id": "job-write", "correlation_id": "corr-write"},
             )
@@ -251,7 +280,10 @@ class TestExtractionCacheFailureBehavior:
                 return cached
             computed = {"entities": ["beta"]}
             await cache.set(
-                text,
+                "tenant-a",
+                "source-hash-a",
+                "v1",
+                "value-pack-default",
                 endpoint,
                 computed,
                 context={"tenant_id": "tenant-a", "job_id": "job-write", "correlation_id": "corr-write"},
@@ -262,3 +294,21 @@ class TestExtractionCacheFailureBehavior:
         result = await core_extraction("text", "entities")
         assert result == {"entities": ["beta"]}
         assert any(getattr(record, "operation", None) == "write" for record in caplog.records)
+
+    @pytest.mark.asyncio
+    async def test_cache_keys_are_distinct_across_tenant_version_and_value_pack_scopes(self):
+        cache = ExtractionCache()
+        scope_a = ("tenant-a", "shared-source-hash", "v1", "value-pack-default")
+        scope_b = ("tenant-b", "shared-source-hash", "v1", "value-pack-default")
+        scope_c = ("tenant-a", "shared-source-hash", "v2", "value-pack-default")
+        scope_d = ("tenant-a", "shared-source-hash", "v1", "value-pack-retail")
+
+        await cache.set(*scope_a, "entities", "result-a")
+        await cache.set(*scope_b, "entities", "result-b")
+        await cache.set(*scope_c, "entities", "result-c")
+        await cache.set(*scope_d, "entities", "result-d")
+
+        assert await cache.get(*scope_a, "entities") == "result-a"
+        assert await cache.get(*scope_b, "entities") == "result-b"
+        assert await cache.get(*scope_c, "entities") == "result-c"
+        assert await cache.get(*scope_d, "entities") == "result-d"
