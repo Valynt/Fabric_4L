@@ -20,6 +20,7 @@ from layer2_extraction.models.extraction_response import (
 )
 from layer2_extraction.models.ontology import Capability
 from layer2_extraction.models.relationships import PredicateType, Relationship
+from layer2_extraction.models.version_manifest import VersionManifest
 
 
 def _response_with_logprobs(logprobs: list[float]):
@@ -112,7 +113,10 @@ async def test_entity_extractor_uses_structured_output():
         return_value=(mock_response, None),
     ) as mock_structured:
         result = await extractor._extract_capabilities(
-            "test text", "http://test.com", "job-123", 0.8
+            "test text", "http://test.com", "job-123", 0.8,
+            version_manifest=VersionManifest(
+                prompt_version="p1", schema_version="s1", model_version="m1", extraction_version="e1", value_pack_version="vp1"
+            ),
         )
 
         # Verify structured output method was called
@@ -126,6 +130,15 @@ async def test_entity_extractor_uses_structured_output():
         assert result[0].name == "Test Capability"
         assert result[0].confidence == 0.95
         assert result[0].extraction_job_id == "job-123"
+        assert result[0].version_manifest is not None
+        assert result[0].version_manifest.prompt_version == "p1"
+
+
+def test_version_manifest_requires_non_empty_fields():
+    with pytest.raises(ValidationError):
+        VersionManifest(
+            prompt_version="", schema_version="s1", model_version="m1", extraction_version="e1", value_pack_version="vp1"
+        )
 
 
 @pytest.mark.asyncio
@@ -152,6 +165,22 @@ async def test_entity_extractor_filters_by_confidence_threshold():
         # Only high confidence should remain
         assert len(result) == 1
         assert result[0].name == "High Conf"
+
+
+@pytest.mark.asyncio
+async def test_entity_extractor_keeps_version_manifest_stable_per_run():
+    extractor = EntityExtractor(api_key="test-key")
+    vm = VersionManifest(
+        prompt_version="p2", schema_version="s2", model_version="m2", extraction_version="e2", value_pack_version="vp2"
+    )
+    c1 = Capability(name="C1", description="Capability number one", confidence=0.9)
+    c2 = Capability(name="C2", description="Capability number two", confidence=0.91)
+    mock_response = CapabilityExtractionResponse(capabilities=[c1, c2])
+    with patch.object(extractor.client, "chat_completion_structured", return_value=(mock_response, None)):
+        result = await extractor._extract_capabilities("test", "http://test.com", "job-1", 0.8, version_manifest=vm)
+    assert len(result) == 2
+    assert result[0].version_manifest == vm
+    assert result[1].version_manifest == vm
 
 
 @pytest.mark.asyncio

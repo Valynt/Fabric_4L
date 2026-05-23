@@ -12,6 +12,7 @@ from layer2_extraction.api.routes.extraction import (
     ExtractionResultSummary,
     ExtractionResultsResponse,
 )
+from layer2_extraction.models.version_manifest import VersionManifest
 
 
 @pytest.fixture
@@ -245,7 +246,10 @@ def test_extracted_entity_validation():
         provenance=EntityProvenance(
             extraction_job_id="job-1",
             source_url="https://example.com",
-            trace_id="trace-1"
+            trace_id="trace-1",
+            version_manifest=VersionManifest(
+                prompt_version="p1", schema_version="s1", model_version="m1", extraction_version="e1", value_pack_version="vp1"
+            ),
         ),
         attributes={"key": "value"}
     )
@@ -256,6 +260,21 @@ def test_extracted_entity_validation():
     assert entity.confidence == 0.92
     assert entity.source_span.document_id == "doc-1"
     assert entity.provenance.extraction_job_id == "job-1"
+
+
+def test_entity_provenance_contract_metadata_shape():
+    provenance = EntityProvenance(
+        extraction_job_id="job-2",
+        source_url="https://example.com",
+        trace_id="trace-2",
+        version_manifest=VersionManifest(
+            prompt_version="p2", schema_version="s2", model_version="m2", extraction_version="e2", value_pack_version="vp2"
+        ),
+    )
+    assert provenance.version_manifest is not None
+    assert provenance.version_manifest.model_dump().keys() == {
+        "prompt_version", "schema_version", "model_version", "extraction_version", "value_pack_version"
+    }
 
 
 def test_extracted_entity_confidence_validation():

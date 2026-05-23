@@ -36,6 +36,7 @@ from layer2_extraction.models.extraction_response import (
     ValueDriverExtractionResponse,
     ValueMetricExtractionResponse,
 )
+from layer2_extraction.models.version_manifest import VersionManifest
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
 from .prompt_loader import render_entity_prompt, render_relationship_prompt
@@ -349,6 +350,7 @@ class EntityExtractor:
         response_model: type[BaseModel],
         entity_attr: str,
         endpoint: str,
+        version_manifest: VersionManifest | None = None,
     ) -> list[T]:
         """Generic entity extraction with structured outputs.
 
@@ -390,6 +392,8 @@ class EntityExtractor:
                     entity.extraction_job_id = extraction_job_id
                     if hasattr(entity, "source_refs"):
                         entity.source_refs = [source_url]
+                    if hasattr(entity, "version_manifest"):
+                        entity.version_manifest = version_manifest
                     entities.append(entity)
 
             return entities
@@ -402,7 +406,8 @@ class EntityExtractor:
             raise LLMExtractionError(f"Failed to extract {entity_type}s: {e}") from e
 
     async def extract_entities(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float = 0.8
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float = 0.8,
+        version_manifest: VersionManifest | None = None,
     ) -> dict[str, list[BaseModel]]:
         """Extract all entity types from text.
 
@@ -428,77 +433,89 @@ class EntityExtractor:
         # Extract each entity type
         results["capabilities"] = await self._extract_capabilities(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
         results["use_cases"] = await self._extract_use_cases(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
         results["personas"] = await self._extract_personas(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
         results["value_drivers"] = await self._extract_value_drivers(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
         results["value_metrics"] = await self._extract_value_metrics(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
         results["features"] = await self._extract_features(
             text, source_url, extraction_job_id, confidence_threshold
+            , version_manifest
         )
 
         return results
 
     async def _extract_capabilities(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[Capability]:
         """Extract capabilities from text using structured outputs."""
         return await self._extract_entities_generic(
             "capability", text, source_url, extraction_job_id, confidence_threshold,
-            CapabilityExtractionResponse, "capabilities", "extract_capabilities"
+            CapabilityExtractionResponse, "capabilities", "extract_capabilities", version_manifest
         )
 
     async def _extract_use_cases(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[UseCase]:
         """Extract use cases from text using structured outputs."""
         return await self._extract_entities_generic(
             "usecase", text, source_url, extraction_job_id, confidence_threshold,
-            UseCaseExtractionResponse, "use_cases", "extract_use_cases"
+            UseCaseExtractionResponse, "use_cases", "extract_use_cases", version_manifest
         )
 
     async def _extract_personas(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[Persona]:
         """Extract personas from text using structured outputs."""
         return await self._extract_entities_generic(
             "persona", text, source_url, extraction_job_id, confidence_threshold,
-            PersonaExtractionResponse, "personas", "extract_personas"
+            PersonaExtractionResponse, "personas", "extract_personas", version_manifest
         )
 
     async def _extract_value_drivers(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[ValueDriver]:
         """Extract value drivers from text using structured outputs."""
         return await self._extract_entities_generic(
             "valuedriver", text, source_url, extraction_job_id, confidence_threshold,
-            ValueDriverExtractionResponse, "value_drivers", "extract_value_drivers"
+            ValueDriverExtractionResponse, "value_drivers", "extract_value_drivers", version_manifest
         )
 
     async def _extract_features(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[Feature]:
         """Extract features from text using structured outputs."""
         return await self._extract_entities_generic(
             "feature", text, source_url, extraction_job_id, confidence_threshold,
-            FeatureExtractionResponse, "features", "extract_features"
+            FeatureExtractionResponse, "features", "extract_features", version_manifest
         )
 
     async def _extract_value_metrics(
-        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float
+        self, text: str, source_url: str, extraction_job_id: str, confidence_threshold: float,
+        version_manifest: VersionManifest | None = None,
     ) -> list[ValueMetric]:
         """Extract value metrics (KPIs) from text using structured outputs."""
         return await self._extract_entities_generic(
             "valuemetric", text, source_url, extraction_job_id, confidence_threshold,
-            ValueMetricExtractionResponse, "value_metrics", "extract_value_metrics"
+            ValueMetricExtractionResponse, "value_metrics", "extract_value_metrics", version_manifest
         )
 
 
@@ -531,6 +548,7 @@ class RelationshipExtractor:
         source_url: str,
         extraction_job_id: str,
         confidence_threshold: float = 0.75,
+        version_manifest: VersionManifest | None = None,
     ) -> list[Relationship]:
         """Extract relationships between identified entities using structured outputs.
 
@@ -574,6 +592,7 @@ class RelationshipExtractor:
                     # Add provenance metadata
                     rel.source_url = source_url
                     rel.extraction_job_id = extraction_job_id
+                    rel.version_manifest = version_manifest
                     relationships.append(rel)
 
             return relationships

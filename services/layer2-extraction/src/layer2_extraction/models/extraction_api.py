@@ -14,6 +14,7 @@ from layer2_extraction.models.ontology import (
     ValueDriver,
 )
 from layer2_extraction.models.relationships import Relationship
+from layer2_extraction.models.version_manifest import VersionManifest
 
 
 class ExtractionRequest(BaseModel):
@@ -25,6 +26,7 @@ class ExtractionRequest(BaseModel):
     content_id: str = ""
     markdown_content: str = ""
     extraction_config: dict[str, Any] = Field(default_factory=dict)
+    version_manifest: VersionManifest | None = None
 
 
 class ExtractionResult(BaseModel):
@@ -40,6 +42,7 @@ class ExtractionResult(BaseModel):
     relationships: list[Relationship] = Field(default_factory=list)
     extraction_cost_usd: float = 0.0
     chunks_processed: int = 0
+    version_manifest: VersionManifest | None = None
 
     def get_all_entities(self) -> list[Any]:
         return (

@@ -6,6 +6,7 @@ Uses Redis when available, with an in-memory LRU fallback for local dev.
 from __future__ import annotations
 
 import hashlib
+import json
 import logging
 import os
 import pickle
@@ -103,10 +104,12 @@ class ExtractionCache:
         endpoint: str,
         model: str | None = None,
         temperature: float | None = None,
+        version_manifest: dict[str, str] | None = None,
     ) -> str:
         model = model or os.getenv("EXTRACTION_MODEL", "gpt-4o-mini")
         temperature = temperature if temperature is not None else 0.0
-        payload = f"{text}:{model}:{temperature}:{endpoint}"
+        version_manifest_payload = json.dumps(version_manifest or {}, sort_keys=True)
+        payload = f"{text}:{model}:{temperature}:{endpoint}:{version_manifest_payload}"
         return f"l2_cache:{hashlib.sha256(payload.encode()).hexdigest()}"
 
     async def get(
@@ -116,8 +119,9 @@ class ExtractionCache:
         model: str | None = None,
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
+        version_manifest: dict[str, str] | None = None,
     ) -> Any | None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(text, endpoint, model, temperature, version_manifest)
         if self._redis is not None:
             try:
                 raw = await self._redis.get(key)
@@ -142,8 +146,9 @@ class ExtractionCache:
         temperature: float | None = None,
         ttl: int | None = None,
         context: dict[str, str | None] | None = None,
+        version_manifest: dict[str, str] | None = None,
     ) -> None:
-        key = self._make_key(text, endpoint, model, temperature)
+        key = self._make_key(text, endpoint, model, temperature, version_manifest)
         ttl = ttl or self._default_ttl
         if self._redis is not None:
             try:

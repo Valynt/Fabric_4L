@@ -66,6 +66,7 @@ from layer2_extraction.models import (
     ExtractionResult,
     Relationship,
 )
+from layer2_extraction.models.version_manifest import DEFAULT_VERSION_MANIFEST, VersionManifest
 from layer2_extraction.output.provenance import (
     ExtractionStep,
     get_provenance_tracker,
@@ -560,6 +561,10 @@ async def run_extraction(
     """
     tracker = get_provenance_tracker()
 
+    version_manifest = VersionManifest.model_validate(
+        config.get("version_manifest", DEFAULT_VERSION_MANIFEST.model_dump())
+    )
+
     # Calculate content hash for provenance
     content_hash = hashlib.sha256(content.encode()).hexdigest()
 
@@ -655,6 +660,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold,
+                version_manifest=version_manifest,
             )
 
             # Collect entities
@@ -668,6 +674,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold - RELATIONSHIP_CONFIDENCE_OFFSET,
+                version_manifest=version_manifest,
             )
             all_relationships.extend(relationships)
 
@@ -772,6 +779,7 @@ async def run_extraction(
             value_drivers=deduplicated.get("value_drivers", []),  # type: ignore[arg-type]
             features=deduplicated.get("features", []),  # type: ignore[arg-type]
             chunks_processed=len(chunks),
+            version_manifest=version_manifest,
         )
 
         # Run entailment validation

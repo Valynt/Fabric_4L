@@ -7,6 +7,7 @@ from enum import Enum
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+from layer2_extraction.models.version_manifest import VersionManifest
 
 
 class ImpactLevel(str, Enum):
@@ -76,6 +77,7 @@ class Relationship(BaseModel):
     evidence_text: str = ""
     source_url: str = ""
     extraction_job_id: str = ""
+    version_manifest: VersionManifest | None = None
 
     # Relationship property fields
     impact_level: Any | None = None

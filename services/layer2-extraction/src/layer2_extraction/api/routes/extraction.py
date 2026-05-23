@@ -18,6 +18,7 @@ from unittest.mock import Mock
 
 from fastapi import HTTPException, Request
 from pydantic import BaseModel, ConfigDict, Field
+from layer2_extraction.models.version_manifest import VersionManifest
 
 from layer2_extraction.integration.job_store import build_job_store
 
@@ -36,6 +37,7 @@ class EntityProvenance(BaseModel):
     extraction_job_id: str
     source_url: str = ""
     trace_id: str = ""
+    version_manifest: VersionManifest | None = None
 
 
 class ExtractedEntity(BaseModel):
@@ -107,6 +109,10 @@ async def get_extraction_results(
 
     entities: list[ExtractedEntity] = []
     for e in raw_entities:
+        entity_version_manifest = getattr(e, "version_manifest", None)
+        if not isinstance(entity_version_manifest, (dict, VersionManifest)):
+            entity_version_manifest = None
+
         entities.append(
             ExtractedEntity(
                 entity_id=getattr(e, "id", getattr(e, "entity_id", "")),
@@ -124,6 +130,7 @@ async def get_extraction_results(
                     extraction_job_id=job_id,
                     source_url=str(getattr(e, "source_url", "")),
                     trace_id=str(getattr(job, "trace_id", "")),
+                    version_manifest=entity_version_manifest,
                 ),
                 attributes=getattr(e, "attributes", {}),
             )

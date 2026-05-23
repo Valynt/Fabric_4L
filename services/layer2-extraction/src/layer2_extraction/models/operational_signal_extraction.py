@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
+from layer2_extraction.models.version_manifest import VersionManifest
 
 
 class OperationalSignal(BaseModel):
@@ -14,6 +15,7 @@ class OperationalSignal(BaseModel):
     source_text: str = ""
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    version_manifest: VersionManifest | None = None
 
 
 class SignalExtractionResult(BaseModel):
@@ -33,6 +35,7 @@ class ExtractionMetadata(BaseModel):
     cost_usd: float = 0.0
     latency_seconds: float = 0.0
     extraction_version: str = ""
+    version_manifest: VersionManifest | None = None
 
 
 class OperationalSignalExtractionResponse(BaseModel):
