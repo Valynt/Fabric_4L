@@ -10,6 +10,7 @@ Provides endpoints for:
 - Compliance auditing (/compliance)
 """
 
+import hashlib
 import json
 import os
 from contextlib import asynccontextmanager
@@ -20,8 +21,19 @@ from urllib.parse import urlparse
 from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
+import anyio
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, File, Form, HTTPException, Query, Request, UploadFile
+from fastapi import (
+    APIRouter,
+    Depends,
+    FastAPI,
+    File,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    UploadFile,
+)
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
@@ -1728,45 +1740,61 @@ async def upload_file_for_ingestion(
     tenant_id: UUID = Depends(get_tenant_id),
     user_id: UUID = Depends(get_current_user_id),
 ):
-    if file.content_type not in APPROVED_UPLOAD_MIME_TYPES:
-        raise HTTPException(status_code=415, detail={"reason_code": "UNSUPPORTED_MEDIA_TYPE"})
-    payload = await file.read()
-    if len(payload) > MAX_UPLOAD_FILE_SIZE_BYTES:
-        raise HTTPException(status_code=413, detail={"reason_code": "FILE_TOO_LARGE"})
-
-    is_clean, scan_reason = await malware_scanner_adapter.scan(
-        content=payload, filename=file.filename or "unnamed", tenant_id=tenant_id
-    )
-    if not is_clean:
+    def _log_upload_rejection(reason_code: str, metadata: dict[str, Any] | None = None) -> None:
         db.add(
             ComplianceLog(
                 tenant_id=tenant_id,
                 event_type=ComplianceEventType.TERMS_VIOLATION.value,
                 severity="HIGH",
                 request_url=str(request.url),
-                request_method=request.method,
                 request_timestamp=datetime.now(UTC),
                 response_action_taken="REJECTED_UPLOAD",
-                response_reason="MALWARE_SCAN_FAILED",
-                metadata={"reason_code": "MALWARE_SCAN_FAILED", "scan_reason": scan_reason},
+                response_reason=reason_code,
+                metadata={"reason_code": reason_code, **(metadata or {})},
             )
         )
         db.commit()
+
+    if file.content_type not in APPROVED_UPLOAD_MIME_TYPES:
+        _log_upload_rejection("UNSUPPORTED_MEDIA_TYPE")
+        raise HTTPException(status_code=415, detail={"reason_code": "UNSUPPORTED_MEDIA_TYPE"})
+
+    payload = await file.read()
+    if len(payload) > MAX_UPLOAD_FILE_SIZE_BYTES:
+        _log_upload_rejection(
+            "FILE_TOO_LARGE",
+            metadata={"size_bytes": len(payload), "max_size_bytes": MAX_UPLOAD_FILE_SIZE_BYTES},
+        )
+        raise HTTPException(status_code=413, detail={"reason_code": "FILE_TOO_LARGE"})
+
+    original_filename = file.filename or "asset"
+    safe_filename = Path(original_filename).name or "asset"
+    is_clean, scan_reason = await malware_scanner_adapter.scan(
+        content=payload, filename=safe_filename, tenant_id=tenant_id
+    )
+    if not is_clean:
+        _log_upload_rejection("MALWARE_SCAN_FAILED", metadata={"scan_reason": scan_reason})
         raise HTTPException(status_code=422, detail={"reason_code": "MALWARE_SCAN_FAILED"})
 
     target = db.query(ScrapingTarget).filter(ScrapingTarget.id == target_id, ScrapingTarget.tenant_id == tenant_id).first()
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        _log_upload_rejection("TARGET_NOT_FOUND")
+        raise HTTPException(status_code=404, detail={"reason_code": "TARGET_NOT_FOUND"})
 
-    checksum = __import__("hashlib").sha256(payload).hexdigest()
+    checksum = hashlib.sha256(payload).hexdigest()
     storage_dir = Path(os.getenv("L1_UPLOAD_STORAGE_PATH", "/tmp/value-fabric-layer1")) / str(tenant_id) / "uploads"
     storage_dir.mkdir(parents=True, exist_ok=True)
-    blob_path = storage_dir / f"{uuid4()}-{file.filename or 'asset'}"
-    blob_path.write_bytes(payload)
+    blob_path = storage_dir / f"{uuid4()}-{safe_filename}"
+    await anyio.to_thread.run_sync(blob_path.write_bytes, payload)
 
-    job = create_scraping_job(target=target, triggered_by=TriggeredBy.API, created_by=user_id)
+    job = create_scraping_job(
+        tenant_id=tenant_id,
+        target_id=target_id,
+        created_by=user_id,
+        configuration={"ingestion_mode": "file_upload", "raw_content_path": str(blob_path)},
+        triggered_by=TriggeredBy.API,
+    )
     job.status = JobStatus.QUEUED.value
-    job.configuration = {"ingestion_mode": "file_upload", "raw_content_path": str(blob_path)}
     db.add(job)
     db.flush()
 
@@ -1774,7 +1802,7 @@ async def upload_file_for_ingestion(
         job_id=job.id,
         tenant_id=tenant_id,
         target_id=target_id,
-        source_url=f"upload://{file.filename or 'asset'}",
+        source_url=f"upload://{safe_filename}",
         source_domain="upload.local",
         source_content_type=file.content_type,
         source_content_length=len(payload),
@@ -1784,7 +1812,7 @@ async def upload_file_for_ingestion(
         source_checksum_sha256=checksum,
         source_account_id=tenant_id,
         storage_binary_path=str(blob_path),
-        processing_status="QUEUED",
+        processing_status="PENDING",
     )
     db.add(raw_content)
     db.add(
@@ -1794,7 +1822,6 @@ async def upload_file_for_ingestion(
             event_type=ComplianceEventType.DOMAIN_ALLOWED.value,
             severity="LOW",
             request_url=str(request.url),
-            request_method=request.method,
             request_timestamp=datetime.now(UTC),
             response_action_taken="ACCEPTED_UPLOAD",
             response_reason="UPLOAD_ACCEPTED",

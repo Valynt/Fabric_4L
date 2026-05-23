@@ -6,55 +6,6 @@
     "version": "1.0.0"
   },
   "paths": {
-    "/health": {
-      "get": {
-        "summary": "Legacy Health Check",
-        "description": "Legacy-compatible health check with dependency status.",
-        "operationId": "legacy_health_check_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ready": {
-      "get": {
-        "summary": "Ready",
-        "operationId": "ready_ready_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/metrics": {
-      "get": {
-        "summary": "Metrics",
-        "operationId": "metrics_metrics_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/ingest": {
       "post": {
         "tags": [
@@ -498,47 +449,6 @@
                   },
                   "type": "object",
                   "title": "Response Admin Read Security Boundary Api Admin Users Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/validation/seed/job": {
-      "post": {
-        "summary": "Seed Validation Ingestion Job",
-        "description": "Seed deterministic Layer 1 job evidence for backend-integrated validation.\n\nThis endpoint is non-production only, service-auth gated, and writes\ntenant-scoped Layer 1 records through the canonical persistence models.\nIt exists to prove the live frontend can read real Layer 1 job state\nwithout requiring external crawling or mocks during Playwright validation.",
-        "operationId": "seed_validation_ingestion_job_api_v1_ingestion_validation_seed_job_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValidationIngestionJobSeedRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "additionalProperties": true,
-                  "type": "object",
-                  "title": "Response Seed Validation Ingestion Job Api V1 Ingestion Validation Seed Job Post"
                 }
               }
             }
@@ -1670,6 +1580,94 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DomainFallbackStatsResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ingestion/uploads": {
+      "post": {
+        "summary": "Upload File For Ingestion",
+        "operationId": "upload_file_for_ingestion_api_v1_ingestion_uploads_post",
+        "parameters": [
+          {
+            "name": "X-Tenant-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "X-Service-Auth",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Service-Auth"
+            }
+          },
+          {
+            "name": "X-Organization-ID",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Organization-Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_upload_file_for_ingestion_api_v1_ingestion_uploads_post"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FileUploadResponse"
                 }
               }
             }
@@ -3443,382 +3441,19 @@
         }
       }
     },
-    "/api/v1/ingestion/jobs/licensing-company-intake": {
-      "post": {
-        "summary": "Create a licensing company ontology intake job",
-        "description": "Creates a skill-aware scraping job that ingests a licensing company website and produces a SourceCorpus for downstream ontology construction.",
-        "operationId": "create_licensing_company_intake_job",
-        "tags": [
-          "Skills"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateLicensingCompanyIntakeRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Job accepted and queued",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SkillJobResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request or unknown job_type"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "422": {
-            "description": "Validation error"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/jobs/prospect-research": {
-      "post": {
-        "summary": "Create a prospect research job",
-        "description": "Creates a skill-aware scraping job that researches a sales prospect and produces an AccountIntelligencePacket.",
-        "operationId": "create_prospect_research_job",
-        "tags": [
-          "Skills"
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateProspectResearchRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Job accepted and queued",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SkillJobResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request or unknown job_type"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "422": {
-            "description": "Validation error"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/jobs/{job_id}/skill-output": {
+    "/health": {
       "get": {
-        "summary": "Get skill output for a completed job",
-        "description": "Returns the structured skill output (SourceCorpus or AccountIntelligencePacket) for a completed skill-aware job.",
-        "operationId": "get_job_skill_output",
-        "tags": [
-          "Skills"
-        ],
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
+        "summary": "Legacy Health Check",
+        "description": "Legacy-compatible health check with dependency status.",
+        "operationId": "legacy_health_check_health_get",
         "responses": {
           "200": {
-            "description": "Skill output envelope",
+            "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SkillOutputEnvelope"
-                }
+                "schema": {}
               }
             }
-          },
-          "400": {
-            "description": "Job has no skill output"
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Job not found or output not yet available"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/source-corpora": {
-      "get": {
-        "summary": "List SourceCorpus records for the authenticated tenant",
-        "description": "Returns summary objects only. Provenance arrays are excluded from list responses. Tenant isolation is enforced from auth context.",
-        "operationId": "list_source_corpora",
-        "tags": [
-          "Skills"
-        ],
-        "parameters": [
-          {
-            "name": "company_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "extraction_status",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ISO-8601 created_at of last seen item for cursor pagination"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Paginated list of SourceCorpus summaries",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceCorpusListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid cursor format"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/source-corpora/{corpus_id}": {
-      "get": {
-        "summary": "Get a SourceCorpus by ID",
-        "description": "Returns the full SourceCorpus including provenance. Returns 404 for cross-tenant access.",
-        "operationId": "get_source_corpus_detail",
-        "tags": [
-          "Skills"
-        ],
-        "parameters": [
-          {
-            "name": "corpus_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "SourceCorpus detail",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SourceCorpusDetail"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Not found or cross-tenant access denied"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/account-intelligence-packets": {
-      "get": {
-        "summary": "List AccountIntelligencePacket records for the authenticated tenant",
-        "description": "Returns summary objects only. source_references arrays are excluded from list responses. Tenant isolation is enforced from auth context.",
-        "operationId": "list_account_intelligence_packets",
-        "tags": [
-          "Skills"
-        ],
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "job_id",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          },
-          {
-            "name": "created_after",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "created_before",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "format": "date-time"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "maximum": 100,
-              "default": 20
-            }
-          },
-          {
-            "name": "cursor",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string"
-            },
-            "description": "ISO-8601 created_at of last seen item for cursor pagination"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Paginated list of AccountIntelligencePacket summaries",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountIntelligencePacketListResponse"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid cursor format"
-          },
-          "401": {
-            "description": "Authentication required"
-          }
-        }
-      }
-    },
-    "/api/v1/ingestion/account-intelligence-packets/{packet_id}": {
-      "get": {
-        "summary": "Get an AccountIntelligencePacket by ID",
-        "description": "Returns the full AccountIntelligencePacket including source_references. Returns 404 for cross-tenant access.",
-        "operationId": "get_account_intelligence_packet_detail",
-        "tags": [
-          "Skills"
-        ],
-        "parameters": [
-          {
-            "name": "packet_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "AccountIntelligencePacket detail",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AccountIntelligencePacketDetail"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Authentication required"
-          },
-          "404": {
-            "description": "Not found or cross-tenant access denied"
           }
         }
       }
@@ -3857,7 +3492,8 @@
           "BASIC",
           "OAUTH2"
         ],
-        "title": "AuthenticationType"
+        "title": "AuthenticationType",
+        "description": "Authentication types for targets."
       },
       "BatchOperationItemResult": {
         "properties": {
@@ -3995,6 +3631,48 @@
         "title": "BatchOperationType",
         "description": "Types of batch operations supported."
       },
+      "Body_upload_file_for_ingestion_api_v1_ingestion_uploads_post": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Target Id"
+          },
+          "file": {
+            "type": "string",
+            "contentMediaType": "application/octet-stream",
+            "title": "File"
+          },
+          "connector_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Connector Id"
+          },
+          "origin": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Origin"
+          }
+        },
+        "type": "object",
+        "required": [
+          "target_id",
+          "file"
+        ],
+        "title": "Body_upload_file_for_ingestion_api_v1_ingestion_uploads_post"
+      },
       "BrowserConfigInput": {
         "properties": {
           "engine": {
@@ -4065,7 +3743,8 @@
           "firefox",
           "webkit"
         ],
-        "title": "BrowserEngine"
+        "title": "BrowserEngine",
+        "description": "Browser engines."
       },
       "ComplianceEventType": {
         "type": "string",
@@ -4081,7 +3760,8 @@
           "TERMS_VIOLATION",
           "DATA_RETENTION_DELETION"
         ],
-        "title": "ComplianceEventType"
+        "title": "ComplianceEventType",
+        "description": "Compliance event types."
       },
       "ComplianceInput": {
         "properties": {
@@ -4324,7 +4004,8 @@
           "browser",
           "fast_fallback"
         ],
-        "title": "CrawlPath"
+        "title": "CrawlPath",
+        "description": "Ingestion path selection for a scraping target.\n\nControls whether the crawler uses HTTPX fast path,\nPlaywright browser automation, or hybrid fallback."
       },
       "CreateProxyPoolRequest": {
         "properties": {
@@ -4383,7 +4064,7 @@
           },
           "source_category": {
             "$ref": "#/components/schemas/SourceCategory",
-            "default": "api"
+            "default": "API"
           },
           "crawl_path": {
             "$ref": "#/components/schemas/CrawlPath",
@@ -4742,7 +4423,43 @@
           "DETERMINISTIC",
           "HYBRID"
         ],
-        "title": "ExtractionMethod"
+        "title": "ExtractionMethod",
+        "description": "Content extraction methods."
+      },
+      "FileUploadResponse": {
+        "properties": {
+          "job_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Job Id"
+          },
+          "raw_content_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Raw Content Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "processing_status": {
+            "type": "string",
+            "title": "Processing Status"
+          },
+          "reason_code": {
+            "type": "string",
+            "title": "Reason Code"
+          }
+        },
+        "type": "object",
+        "required": [
+          "job_id",
+          "raw_content_id",
+          "status",
+          "processing_status",
+          "reason_code"
+        ],
+        "title": "FileUploadResponse"
       },
       "HTTPValidationError": {
         "properties": {
@@ -5104,7 +4821,8 @@
           "CANCELLED",
           "PARTIAL_SUCCESS"
         ],
-        "title": "JobStatus"
+        "title": "JobStatus",
+        "description": "Job lifecycle states - 11 states as per spec."
       },
       "JobSummary": {
         "properties": {
@@ -5117,11 +4835,6 @@
             "type": "string",
             "format": "uuid",
             "title": "Target Id"
-          },
-          "configuration": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Configuration"
           },
           "status": {
             "type": "string",
@@ -5169,7 +4882,6 @@
         "required": [
           "id",
           "target_id",
-          "configuration",
           "status",
           "priority",
           "progress_percent_complete",
@@ -5185,7 +4897,8 @@
           "anthropic",
           "azure_openai"
         ],
-        "title": "LLMProvider"
+        "title": "LLMProvider",
+        "description": "LLM providers for AI extraction."
       },
       "Permission": {
         "type": "string",
@@ -5303,7 +5016,8 @@
           "SESSION_BASED",
           "LEAST_USED"
         ],
-        "title": "ProxyRotationStrategy"
+        "title": "ProxyRotationStrategy",
+        "description": "Proxy rotation strategies."
       },
       "RateLimitInput": {
         "properties": {
@@ -5573,6 +5287,15 @@
             ],
             "title": "Org Id"
           },
+          "workspace_id": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Workspace Id"
+          },
           "tenant_role": {
             "anyOf": [
               {
@@ -5583,6 +5306,17 @@
               }
             ],
             "title": "Tenant Role"
+          },
+          "trace_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trace Id"
           },
           "isolation_tier": {
             "type": "string",
@@ -5625,6 +5359,17 @@
               }
             ],
             "title": "Privileged Session Start"
+          },
+          "impersonator_id": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impersonator Id"
           },
           "_locked": {
             "type": "boolean",
@@ -5671,7 +5416,8 @@
           "fixed",
           "exponential"
         ],
-        "title": "RetryBackoff"
+        "title": "RetryBackoff",
+        "description": "Retry backoff strategies."
       },
       "RetryJobRequest": {
         "properties": {
@@ -6263,13 +6009,18 @@
       "SourceCategory": {
         "type": "string",
         "enum": [
-          "crm",
-          "database",
-          "file",
-          "api",
-          "cloud_storage"
+          "API",
+          "CRM",
+          "ERP",
+          "HRIS",
+          "MARKETING",
+          "FINANCE",
+          "PRODUCT",
+          "SUPPORT",
+          "GENERAL"
         ],
-        "title": "SourceCategory"
+        "title": "SourceCategory",
+        "description": "Source category for scraping targets."
       },
       "TargetListResponse": {
         "properties": {
@@ -6341,7 +6092,8 @@
           "ARCHIVED",
           "ERROR"
         ],
-        "title": "TargetStatus"
+        "title": "TargetStatus",
+        "description": "Scraping target lifecycle status."
       },
       "TargetType": {
         "type": "string",
@@ -6351,7 +6103,8 @@
           "SPIDER",
           "API_ENDPOINT"
         ],
-        "title": "TargetType"
+        "title": "TargetType",
+        "description": "Scraping target types."
       },
       "UpdateTargetRequest": {
         "properties": {
@@ -6647,34 +6400,6 @@
         ],
         "title": "ValidationError"
       },
-      "ValidationIngestionJobSeedRequest": {
-        "properties": {
-          "domain": {
-            "type": "string",
-            "minLength": 3,
-            "title": "Domain",
-            "default": "meridian-auto.com"
-          },
-          "url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Url"
-          },
-          "status": {
-            "$ref": "#/components/schemas/JobStatus",
-            "default": "COMPLETED"
-          }
-        },
-        "type": "object",
-        "title": "ValidationIngestionJobSeedRequest",
-        "description": "Non-production deterministic ingestion evidence for backend-integrated Playwright."
-      },
       "ValidationWarning": {
         "properties": {
           "field": {
@@ -6693,394 +6418,6 @@
         ],
         "title": "ValidationWarning",
         "description": "Validation warning detail."
-      },
-      "CreateLicensingCompanyIntakeRequest": {
-        "type": "object",
-        "required": [
-          "target_id",
-          "company_name"
-        ],
-        "properties": {
-          "target_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ScrapingTarget ID to crawl"
-          },
-          "company_name": {
-            "type": "string",
-            "description": "Name of the licensing company"
-          },
-          "company_id": {
-            "type": "string",
-            "nullable": true,
-            "description": "Optional external company identifier"
-          },
-          "priority": {
-            "type": "integer",
-            "default": 5,
-            "minimum": 1,
-            "maximum": 10
-          },
-          "override_config": {
-            "type": "object",
-            "nullable": true,
-            "description": "Optional job configuration overrides"
-          }
-        }
-      },
-      "CreateProspectResearchRequest": {
-        "type": "object",
-        "required": [
-          "target_id",
-          "account_name"
-        ],
-        "properties": {
-          "target_id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "ScrapingTarget ID to crawl"
-          },
-          "account_name": {
-            "type": "string",
-            "description": "Name of the prospect account"
-          },
-          "account_id": {
-            "type": "string",
-            "nullable": true,
-            "description": "Optional CRM account identifier"
-          },
-          "priority": {
-            "type": "integer",
-            "default": 5,
-            "minimum": 1,
-            "maximum": 10
-          },
-          "override_config": {
-            "type": "object",
-            "nullable": true,
-            "description": "Optional job configuration overrides"
-          }
-        }
-      },
-      "SkillJobResponse": {
-        "type": "object",
-        "required": [
-          "job_id",
-          "status",
-          "job_type",
-          "skill_name",
-          "queue_position"
-        ],
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "status": {
-            "type": "string",
-            "example": "QUEUED"
-          },
-          "job_type": {
-            "type": "string",
-            "example": "licensing_company_intake"
-          },
-          "skill_name": {
-            "type": "string",
-            "example": "licensing_company_intake"
-          },
-          "queue_position": {
-            "type": "integer"
-          },
-          "queue_position_metadata": {
-            "type": "object",
-            "nullable": true
-          }
-        }
-      },
-      "SkillOutputEnvelope": {
-        "type": "object",
-        "required": [
-          "output_contract",
-          "data"
-        ],
-        "properties": {
-          "output_contract": {
-            "type": "string",
-            "enum": [
-              "SourceCorpus",
-              "AccountIntelligencePacket"
-            ]
-          },
-          "data": {
-            "type": "object",
-            "description": "The full skill output matching the output_contract schema"
-          }
-        }
-      },
-      "SourceCorpusSummary": {
-        "type": "object",
-        "required": [
-          "id",
-          "company_name",
-          "corpus_type",
-          "source_count",
-          "extraction_status",
-          "created_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "company_name": {
-            "type": "string"
-          },
-          "company_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "corpus_type": {
-            "type": "string"
-          },
-          "source_count": {
-            "type": "integer",
-            "description": "Total number of sources across all source_groups"
-          },
-          "extraction_status": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "SourceCorpusListResponse": {
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/SourceCorpusSummary"
-            }
-          },
-          "total": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          },
-          "next_cursor": {
-            "type": "string",
-            "nullable": true,
-            "description": "ISO-8601 cursor for next page"
-          }
-        }
-      },
-      "SourceCorpusDetail": {
-        "type": "object",
-        "required": [
-          "id",
-          "tenant_id",
-          "company_name",
-          "corpus_type",
-          "extraction_status",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "tenant_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "company_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "company_name": {
-            "type": "string"
-          },
-          "corpus_type": {
-            "type": "string"
-          },
-          "source_groups": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "candidate_concepts": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "provenance": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "extraction_status": {
-            "type": "string"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AccountIntelligencePacketSummary": {
-        "type": "object",
-        "required": [
-          "id",
-          "account_name",
-          "packet_type",
-          "observed_signal_count",
-          "high_confidence_signal_count",
-          "created_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "account_name": {
-            "type": "string"
-          },
-          "account_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "packet_type": {
-            "type": "string"
-          },
-          "observed_signal_count": {
-            "type": "integer"
-          },
-          "high_confidence_signal_count": {
-            "type": "integer"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
-      "AccountIntelligencePacketListResponse": {
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit"
-        ],
-        "properties": {
-          "items": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/AccountIntelligencePacketSummary"
-            }
-          },
-          "total": {
-            "type": "integer"
-          },
-          "limit": {
-            "type": "integer"
-          },
-          "next_cursor": {
-            "type": "string",
-            "nullable": true,
-            "description": "ISO-8601 cursor for next page"
-          }
-        }
-      },
-      "AccountIntelligencePacketDetail": {
-        "type": "object",
-        "required": [
-          "id",
-          "tenant_id",
-          "account_name",
-          "packet_type",
-          "created_at",
-          "updated_at"
-        ],
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "tenant_id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "account_id": {
-            "type": "string",
-            "nullable": true
-          },
-          "account_name": {
-            "type": "string"
-          },
-          "packet_type": {
-            "type": "string"
-          },
-          "company_profile": {
-            "type": "object"
-          },
-          "observed_signals": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "likely_pain_areas": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "likely_stakeholders": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "source_references": {
-            "type": "array",
-            "items": {
-              "type": "object"
-            }
-          },
-          "confidence_summary": {
-            "type": "object"
-          },
-          "next_recommended_events": {
-            "type": "array",
-            "items": {
-              "type": "string"
-            }
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
       }
     }
   }
