@@ -55,7 +55,6 @@ from layer2_extraction.extraction.deduplicator import deduplicate_entities
 from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer1_ingestion_adapter import build_layer1_ingestion_adapter
-from layer2_extraction.integration.layer1_ingestion_adapter import build_layer1_ingestion_adapter
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
     PendingIngestionRecord,
