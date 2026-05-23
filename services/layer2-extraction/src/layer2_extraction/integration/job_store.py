@@ -46,6 +46,7 @@ class InMemoryJobStore:
     def __init__(self) -> None:
         self._jobs: dict[str, PipelineJob] = {}
         self._artifacts: dict[str, ExtractionArtifacts] = {}
+        self._idempotency_keys: dict[str, str] = {}
 
     async def get_job(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob:
         job = self._jobs[job_id]
@@ -77,6 +78,12 @@ class InMemoryJobStore:
     async def set_artifacts(self, job_id: str, artifacts: ExtractionArtifacts) -> None:
         self._artifacts[job_id] = artifacts
 
+    async def get_job_id_for_idempotency_key(self, idempotency_key: str) -> str | None:
+        return self._idempotency_keys.get(idempotency_key)
+
+    async def set_job_id_for_idempotency_key(self, idempotency_key: str, job_id: str) -> None:
+        self._idempotency_keys[idempotency_key] = job_id
+
     async def list_jobs(self, *, tenant_id: str | None = None) -> list[PipelineJob]:
         jobs = list(self._jobs.values())
         if tenant_id is not None:
@@ -107,6 +114,7 @@ class RedisJobStore:
         self._redis = aioredis.from_url(redis_url, decode_responses=True)
         self._job_prefix = "l2:job:"
         self._artifact_prefix = "l2:artifact:"
+        self._idempotency_prefix = "l2:idempotency:"
         self._default_ttl = default_ttl_seconds
 
     def _job_key(self, job_id: str) -> str:
@@ -114,6 +122,9 @@ class RedisJobStore:
 
     def _artifact_key(self, job_id: str) -> str:
         return f"{self._artifact_prefix}{job_id}"
+
+    def _idempotency_key(self, idempotency_key: str) -> str:
+        return f"{self._idempotency_prefix}{idempotency_key}"
 
     async def get_job(self, job_id: str, *, tenant_id: str | None = None) -> PipelineJob:
         raw = await self._redis.get(self._job_key(job_id))
@@ -157,6 +168,17 @@ class RedisJobStore:
             self._artifact_key(job_id),
             self._default_ttl,
             artifacts.model_dump_json(),
+        )
+
+    async def get_job_id_for_idempotency_key(self, idempotency_key: str) -> str | None:
+        job_id = await self._redis.get(self._idempotency_key(idempotency_key))
+        return job_id if job_id else None
+
+    async def set_job_id_for_idempotency_key(self, idempotency_key: str, job_id: str) -> None:
+        await self._redis.setex(
+            self._idempotency_key(idempotency_key),
+            self._default_ttl,
+            job_id,
         )
 
     async def list_jobs(self, *, tenant_id: str | None = None) -> list[PipelineJob]:
