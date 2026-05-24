@@ -194,6 +194,12 @@ repos:
         language: system
         files: .
         pass_filenames: true
+      - id: infisical-scan
+        name: Infisical Secret Scan
+        entry: infisical scan
+        language: system
+        pass_filenames: false
+        always_run: true
       - id: package-manager-and-lockfile-policy
         name: Enforce package manager + lockfile policy
         entry: node scripts/ci/check_package_manager_policy.mjs --staged

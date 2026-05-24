@@ -44,8 +44,8 @@ describe('EvidenceCard', () => {
 
   it('displays formatted timestamp', () => {
     render(<EvidenceCard {...defaultProps} />);
-    // formatDate should format the ISO timestamp
-    expect(screen.getByText(/2024/)).toBeInTheDocument();
+    // formatDate should format the ISO timestamp to a readable date
+    expect(screen.getByText(/Jan 15, 2024/)).toBeInTheDocument();
   });
 
   it('displays em dash when timestamp is empty', () => {

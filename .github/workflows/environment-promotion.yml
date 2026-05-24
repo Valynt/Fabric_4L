@@ -449,6 +449,15 @@ jobs:
           echo "  - https://grafana.fabric.internal/d/production"
           echo "  - https://prometheus.fabric.internal"
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: prod
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /monitoring
+
       - name: Notify on deployment success
         uses: slackapi/slack-github-action@v1
         if: success()
@@ -480,7 +489,7 @@ jobs:
               ]
             }
         env:
-          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+          SLACK_WEBHOOK_URL: ${{ env.SLACK_WEBHOOK_URL }}
 
   # ============================================================================
   # Rollback on Failure

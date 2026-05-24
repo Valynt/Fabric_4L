@@ -56,6 +56,14 @@ class CookieStorage {
   }
 
   /**
+   * Get all cookie entries as an array of [name, value] tuples.
+   * @returns Array of cookie entries
+   */
+  entries(): [string, string][] {
+    return Array.from(this.cookies.entries());
+  }
+
+  /**
    * Parse a cookie string and populate storage.
    * @param cookieString - Cookie string in "name1=value1; name2=value2" format
    */
@@ -149,7 +157,7 @@ export class CookieMock {
    * @returns Object with cookie name-value pairs
    */
   getAll(): Record<string, string> {
-    return Object.fromEntries(this.storage.cookies);
+    return Object.fromEntries(this.storage.entries());
   }
 }
 

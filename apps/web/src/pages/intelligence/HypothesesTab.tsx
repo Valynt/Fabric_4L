@@ -162,7 +162,7 @@ export default function HypothesesTab() {
   const queryClient = useQueryClient();
   const { navigateTo, navigate } = useNavigation();
   const setSelection = useWorkspaceSelectionStore((state) => state.setSelection);
-  const { accountId } = useParams<{ accountId: string }>();
+  const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
   const { data: account, isLoading: accountLoading, error: accountError, refetch: refetchAccount } = useAccount(accountId ?? null);
   const {
     data: hypothesesData,
@@ -437,7 +437,7 @@ export default function HypothesesTab() {
                             query.set("linkage_id", linkages[0].linkage_id);
                           }
                           const qs = query.toString();
-                          const path = `/drivers/${accountId}/evidence${qs ? `?${qs}` : ""}`;
+                          const path = `/t/${tenantSlug}/accounts/${accountId}/intelligence/evidence${qs ? `?${qs}` : ""}`;
                           navigateTo(path, {
                             state: {
                               hypothesisId: h.id,
@@ -465,7 +465,7 @@ export default function HypothesesTab() {
                         if (result.tree_id) query.set("tree_id", result.tree_id);
                         if (result.value_model_id) query.set("value_model_id", result.value_model_id);
                         const qs = query.toString();
-                        const path = `/drivers/${result.account_id}/evidence${qs ? `?${qs}` : ""}`;
+                        const path = `/t/${tenantSlug}/accounts/${result.account_id}/intelligence/evidence${qs ? `?${qs}` : ""}`;
                         navigateTo(path, {
                           state: {
                             hypothesisId: result.hypothesis_id,

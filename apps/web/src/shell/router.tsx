@@ -1,19 +1,13 @@
-import { lazy, Suspense, type ComponentProps } from "react";
+import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
-import { toast } from "sonner";
 import { useAuthContext } from "@/contexts/AuthContext";
-import { useNavigation } from "@/hooks/useNavigation";
-import { workspacePath } from "@/features/intelligence-workspace/workspaceRoutes";
-import { getStatePath, buildPath } from "@/navigation/navigationService";
-import { GlobalLayout } from "@/components/layout/GlobalLayout";
-import { ProtectedRoute } from "@/components/routing/ProtectedRoute";
-import { AccountContextSync } from "@/components/routing/AccountContextSync";
-import { AccountScopedRedirect } from "@/components/routing/AccountScopedRedirect";
 import { useAccountContextStore } from "@/stores/accountContextStore";
-import { useProspectSetupAccountCreate } from "@/hooks/useProspectSetupAccount";
+import { GlobalLayout } from "@/components/layout/GlobalLayout";
+import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
+import StudioShell from "@/features/value-studio/StudioShell";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -59,30 +53,6 @@ const TasksPage = lazy(() => import("@/pages/TasksPage"));
 const CollaborationCommentsPage = lazy(() => import("@/pages/CollaborationCommentsPage"));
 const NotificationsPage = lazy(() => import("@/pages/NotificationsPage"));
 
-// ── Workspace Tab Pages ───────────────────────────────────────────────────────
-const SignalsTab = lazy(() => import("@/pages/intelligence/SignalsTab"));
-const StakeholdersTab = lazy(() => import("@/pages/intelligence/StakeholdersTab"));
-const EnrichmentTab = lazy(() => import("@/pages/intelligence/EnrichmentTab"));
-const OntologyMatchTab = lazy(() => import("@/pages/intelligence/OntologyMatchTab"));
-const HypothesesTab = lazy(() => import("@/pages/intelligence/HypothesesTab"));
-const DiscoveryQuestionsTab = lazy(() => import("@/pages/hypothesis/DiscoveryQuestionsTab"));
-const PersonaFitTab = lazy(() => import("@/pages/hypothesis/PersonaFitTab"));
-const AssumptionsTab = lazy(() => import("@/pages/hypothesis/AssumptionsTab"));
-const DriverTreePage = lazy(() => import("@/pages/drivers/DriverTreePage"));
-const CalcROITab = lazy(() => import("@/pages/calculator/ROITab"));
-const CalcValueModelTab = lazy(() => import("@/pages/calculator/ValueModelTab"));
-const ValueCasePage = lazy(() => import("@/pages/value-case/ValueCasePage"));
-const RealizationPage = lazy(() => import("@/pages/realization/RealizationPage"));
-
-// ── Studio Tabs (legacy) ──
-const ActionPlanTab = lazy(() => import("@/pages/studio/ActionPlanTab"));
-const ValueModelTab = lazy(() => import("@/pages/studio/ValueModelTab"));
-const NarrativeTab = lazy(() => import("@/pages/studio/NarrativeTab"));
-const StudioEnrichmentTab = lazy(() => import("@/pages/studio/StudioEnrichmentTab"));
-const StudioCompetitiveTab = lazy(() => import("@/pages/studio/StudioCompetitiveTab"));
-const StudioROITab = lazy(() => import("@/pages/studio/StudioROITab"));
-const StudioEvidenceTab = lazy(() => import("@/pages/studio/StudioEvidenceTab"));
-
 // ── Context Engine ──
 const ValuePacks = lazy(() => import("@/pages/ValuePacks"));
 const MyModels = lazy(() => import("@/pages/MyModels"));
@@ -120,55 +90,9 @@ const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole"));
 
-// ── Workflow ──
-const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
-const WorkflowIntelligence = lazy(() => import("@/workflow/pages/Intelligence"));
-const AIModel = lazy(() => import("@/workflow/pages/AIModel"));
-const WorkflowDriverTree = lazy(() => import("@/workflow/pages/DriverTree"));
-const WorkflowEvidence = lazy(() => import("@/workflow/pages/Evidence"));
-const WorkflowCalculator = lazy(() => import("@/workflow/pages/Calculator"));
-const WorkflowValueCase = lazy(() => import("@/workflow/pages/ValueCase"));
-
 // ── Dev Tools ──
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
-
-function ProspectSetupWithNav() {
-  const { navigateTo } = useNavigation();
-  const prospectSetup = useProspectSetupAccountCreate();
-  const setSelectedAccountId = useAccountContextStore((state) => state.setSelectedAccountId);
-
-  const handleCreateSetup: ComponentProps<typeof ProspectSetupPage>["onCreateSetup"] = async (payload) => {
-    try {
-      return await prospectSetup.createSetup(payload);
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : 'Failed to create account');
-      throw error;
-    }
-  };
-
-  return (
-    <ProspectSetupPage
-      mode="workflow"
-      onNavigateToWorkspace={(path, accountId) => {
-        setSelectedAccountId(accountId);
-        navigateTo(workspacePath(accountId, "signals"));
-      }}
-      onCreateSetup={handleCreateSetup}
-      isSubmitting={prospectSetup.isSubmitting}
-    />
-  );
-}
-
-function StudioAccountRedirect() {
-  const selectedAccountId = useAccountContextStore((state) => state.selectedAccountId);
-  const { tab } = useParams<{ tab?: string }>();
-  if (!selectedAccountId) {
-    return <Navigate to="/accounts" replace />;
-  }
-  const targetTab = tab || "action-plan";
-  return <Navigate to={buildPath(`${getStatePath("studio", { accountId: selectedAccountId })}/:tab`, { tab: targetTab })} replace />;
-}
 
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthContext();
@@ -188,18 +112,36 @@ function RootRedirect() {
   );
 }
 
+function AccountOverviewRedirect() {
+  const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
+  return <Navigate to={`/t/${tenantSlug}/accounts/${accountId}/overview`} replace />;
+}
+
+// ── Route metadata helpers ───────────────────────────────────────────────────
+
+const authPolicy = { requiresAuth: false, tenantScoped: false, fallbackRoute: "/login", analyticsRouteId: "auth" } as const;
+const homePolicy = { requiresAuth: true, tenantScoped: false, fallbackRoute: "/login", analyticsRouteId: "home" } as const;
+const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
+const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
+
 export const router = createBrowserRouter([
   {
     path: "/login",
     element: <Login />,
+    handle: { accessPolicy: authPolicy },
   },
   {
     path: "/login/callback",
     element: <Login />,
+    handle: { accessPolicy: authPolicy },
   },
   {
     path: "/signup",
     element: <Signup />,
+    handle: { accessPolicy: authPolicy },
   },
   {
     element: <GlobalLayout />,
@@ -211,411 +153,536 @@ export const router = createBrowserRouter([
       {
         path: "/home",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
             <ValueNarrativeHome />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: homePolicy },
       },
       {
         path: "/command-center",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
             <CommandCenter />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
-      },
-      // Compatibility alias — tests and legacy links use /context/command-center
-      {
-        path: "/context/command-center",
-        element: <Navigate to="/command-center" replace />,
-      },
-      {
-        path: "/accounts",
-        element: (
-          <ProtectedRoute>
-            <Accounts />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/accounts/:id",
-        element: (
-          <ProtectedRoute>
-            <Accounts />
-          </ProtectedRoute>
-        ),
+        handle: { accessPolicy: homePolicy },
       },
       {
         path: "/tasks",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
             <TasksPage />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: homePolicy },
       },
       {
         path: "/collaboration/comments",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
             <CollaborationCommentsPage />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: homePolicy },
       },
       {
         path: "/notifications",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
             <NotificationsPage />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: homePolicy },
       },
 
       // ═══════════════════════════════════════════════════════════════
-      // FUNCTIONAL WORKSPACES — Intelligence, Hypothesis, Driver Tree,
-      // Calculator, Value Case, Value Realization
+      // ACCOUNTS
       // ═══════════════════════════════════════════════════════════════
-
-      // ── Intelligence — canonical workspace shell ──
-      // Route: /accounts/:accountId/intelligence/:tabId
-      // IntelligenceWorkspace is the canonical shell; all tabs are resolved
-      // through workspaceTabRegistry. Flat /intelligence/:accountId/* routes
-      // below are kept as compatibility aliases that redirect here.
       {
-        path: "/accounts/:accountId/intelligence",
+        path: "/t/:tenantSlug/accounts",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
+          <UnifiedRouteGuard>
+            <Accounts />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("accounts.list") },
+      },
+      {
+        path: "/t/:tenantSlug/accounts/:accountId",
+        element: <AccountOverviewRedirect />,
+      },
+      {
+        path: "/t/:tenantSlug/accounts/:accountId/overview",
+        element: (
+          <UnifiedRouteGuard>
+            <Accounts />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: accountStdPolicy("accounts.overview") },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // INTELLIGENCE WORKSPACE
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence",
+        element: (
+          <UnifiedRouteGuard>
             <Navigate to="signals" replace />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("intelligence.workspace") },
       },
       {
-        path: "/accounts/:accountId/intelligence/:tabId",
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence/:tabId",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
+          <UnifiedRouteGuard>
             <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
               <IntelligenceWorkspace />
             </Suspense>
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("intelligence.workspace") },
       },
 
-      // ── Intelligence — legacy flat routes (compatibility redirects) ──
+      // ═══════════════════════════════════════════════════════════════
+      // VALUE STUDIO WORKSPACE
+      // ═══════════════════════════════════════════════════════════════
       {
-        path: "/intelligence",
+        path: "/t/:tenantSlug/accounts/:accountId/studio",
         element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/intelligence" defaultTab="signals" />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <Navigate to="action-plan" replace />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
       },
       {
-        path: "/intelligence/:accountId",
+        path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <Navigate to="signals" replace />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
+              <StudioShell />
+            </Suspense>
+          </UnifiedRouteGuard>
         ),
-      },
-      {
-        path: "/intelligence/:accountId/signals",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <SignalsTab />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/intelligence/:accountId/stakeholders",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <StakeholdersTab />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/intelligence/:accountId/ontology-match",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <OntologyMatchTab />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/intelligence/:accountId/enrichment",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <EnrichmentTab />
-          </ProtectedRoute>
-        ),
+        handle: { accessPolicy: accountStdPolicy("studio.workspace") },
       },
 
-      // ── Hypothesis (4 tabs) ──
+      // ═══════════════════════════════════════════════════════════════
+      // DELIVERABLES
+      // ═══════════════════════════════════════════════════════════════
       {
-        path: "/hypothesis",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables",
         element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/hypothesis" defaultTab="hypothesis" />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <Navigate to="business-cases" replace />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.workspace") },
       },
       {
-        path: "/hypothesis/:accountId",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <Navigate to="hypothesis" replace />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <BusinessCaseList />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.business-cases") },
       },
       {
-        path: "/hypothesis/:accountId/hypothesis",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <HypothesesTab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <BusinessCase />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.business-case-detail") },
       },
       {
-        path: "/hypothesis/:accountId/discovery-questions",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/proposals",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <DiscoveryQuestionsTab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <BusinessCaseList />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.proposals") },
       },
       {
-        path: "/hypothesis/:accountId/persona-fit",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/exports",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <PersonaFitTab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <BusinessCaseList />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.exports") },
       },
       {
-        path: "/hypothesis/:accountId/assumptions",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <AssumptionsTab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <CFOView />
+          </UnifiedRouteGuard>
         ),
-      },
-
-      // ── Driver Tree (3 tabs) ──
-      {
-        path: "/drivers",
-        element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/drivers" />
-          </ProtectedRoute>
-        ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.cfo-view") },
       },
       {
-        path: "/drivers/:accountId",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <DriverTreePage />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <ExecutiveView />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.executive-view") },
       },
       {
-        path: "/drivers/:accountId/:tab",
+        path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <DriverTreePage />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <TechnicalView />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("deliverables.technical-view") },
       },
 
-      // ── Calculator (2 tabs) ──
+      // ═══════════════════════════════════════════════════════════════
+      // AGENTS & WORKFLOWS
+      // ═══════════════════════════════════════════════════════════════
       {
-        path: "/calculator",
+        path: "/t/:tenantSlug/accounts/:accountId/agents",
         element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/calculator" defaultTab="roi" />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <AgentWorkflows />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("agents.console") },
       },
       {
-        path: "/calculator/:accountId",
+        path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <Navigate to="roi" replace />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <AgentWorkflows />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("agents.thread") },
       },
       {
-        path: "/calculator/:accountId/roi",
+        path: "/t/:tenantSlug/accounts/:accountId/workflows",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <CalcROITab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <AgentWorkflows />
+          </UnifiedRouteGuard>
         ),
+        handle: { accessPolicy: accountStdPolicy("agents.workflows") },
       },
       {
-        path: "/calculator/:accountId/value-model",
+        path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId",
         element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <CalcValueModelTab />
-          </ProtectedRoute>
+          <UnifiedRouteGuard>
+            <AgentWorkflows />
+          </UnifiedRouteGuard>
         ),
-      },
-
-      // ── Value Case ──
-      {
-        path: "/value-case",
-        element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/value-case" />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/value-case/:accountId",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <ValueCasePage />
-          </ProtectedRoute>
-        ),
-      },
-
-      // ── Value Realization ──
-      {
-        path: "/realization",
-        element: (
-          <ProtectedRoute>
-            <AccountScopedRedirect basePath="/realization" />
-          </ProtectedRoute>
-        ),
-      },
-      {
-        path: "/realization/:accountId",
-        element: (
-          <ProtectedRoute>
-            <AccountContextSync />
-            <RealizationPage />
-          </ProtectedRoute>
-        ),
+        handle: { accessPolicy: accountStdPolicy("agents.workflow-run") },
       },
 
       // ═══════════════════════════════════════════════════════════════
       // CONTEXT ENGINE
       // ═══════════════════════════════════════════════════════════════
-      { path: "/context", element: <Navigate to="/context/packs" replace /> },
-      { path: "/context/packs", element: <ProtectedRoute><ValuePacks /></ProtectedRoute> },
-      { path: "/context/models", element: <ProtectedRoute><MyModels /></ProtectedRoute> },
-      { path: "/context/formulas", element: <ProtectedRoute requiredTier="advanced"><FormulaList /></ProtectedRoute> },
-      { path: "/context/formulas/new", element: <ProtectedRoute requiredTier="advanced"><FormulaBuilder isNew /></ProtectedRoute> },
-      { path: "/context/formulas/:formulaId", element: <ProtectedRoute requiredTier="advanced"><FormulaBuilder /></ProtectedRoute> },
-      { path: "/context/value-trees/explorer", element: <ProtectedRoute requiredTier="advanced"><ValueTreeExplorer /></ProtectedRoute> },
-      { path: "/context/agents", element: <ProtectedRoute requiredTier="advanced"><AgentWorkflows /></ProtectedRoute> },
-      { path: "/context/ontology", element: <ProtectedRoute requiredTier="advanced"><OntologyEditor /></ProtectedRoute> },
-      { path: "/context/ontology/entities", element: <ProtectedRoute requiredTier="advanced"><EntityBrowser /></ProtectedRoute> },
-      { path: "/context/ontology/entities/:entityId", element: <ProtectedRoute requiredTier="advanced"><EntityDetail /></ProtectedRoute> },
-      { path: "/context/ontology/graph", element: <ProtectedRoute requiredTier="advanced"><GraphExplorer /></ProtectedRoute> },
-      { path: "/context/ingestion/jobs", element: <ProtectedRoute><IngestionJobs /></ProtectedRoute> },
-      { path: "/context/extraction", element: <ProtectedRoute requiredTier="advanced"><ExtractionEngine /></ProtectedRoute> },
-      { path: "/context/integrations", element: <ProtectedRoute requiredTier="admin"><Integrations /></ProtectedRoute> },
-      { path: "/context/sources", element: <ProtectedRoute requiredTier="admin"><SourceConfiguration /></ProtectedRoute> },
-      { path: "/context/targets", element: <ProtectedRoute requiredTier="admin"><TargetsAdmin /></ProtectedRoute> },
-      { path: "/graph-explorer", element: <ProtectedRoute requiredTier="advanced"><GraphExplorer /></ProtectedRoute> },
-      { path: "/formula-builder", element: <ProtectedRoute requiredTier="advanced"><FormulaBuilder /></ProtectedRoute> },
+      {
+        path: "/t/:tenantSlug/context",
+        element: <Navigate to="sources" replace />,
+        handle: { accessPolicy: tenantStdPolicy("context.workspace") },
+      },
+      {
+        path: "/t/:tenantSlug/context/packs",
+        element: (
+          <UnifiedRouteGuard>
+            <ValuePacks />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("context.packs") },
+      },
+      {
+        path: "/t/:tenantSlug/context/models",
+        element: (
+          <UnifiedRouteGuard>
+            <MyModels />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("context.models") },
+      },
+      {
+        path: "/t/:tenantSlug/context/formulas",
+        element: (
+          <UnifiedRouteGuard>
+            <FormulaList />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.formulas") },
+      },
+      {
+        path: "/t/:tenantSlug/context/formulas/new",
+        element: (
+          <UnifiedRouteGuard>
+            <FormulaBuilder isNew />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.formulas-new") },
+      },
+      {
+        path: "/t/:tenantSlug/context/formulas/:formulaId",
+        element: (
+          <UnifiedRouteGuard>
+            <FormulaBuilder />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.formula-detail") },
+      },
+      {
+        path: "/t/:tenantSlug/context/value-trees/explorer",
+        element: (
+          <UnifiedRouteGuard>
+            <ValueTreeExplorer />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.value-trees") },
+      },
+      {
+        path: "/t/:tenantSlug/context/agents",
+        element: (
+          <UnifiedRouteGuard>
+            <AgentWorkflows />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.agents") },
+      },
+      {
+        path: "/t/:tenantSlug/context/ontology",
+        element: (
+          <UnifiedRouteGuard>
+            <OntologyEditor />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.ontology") },
+      },
+      {
+        path: "/t/:tenantSlug/context/ontology/entities",
+        element: (
+          <UnifiedRouteGuard>
+            <EntityBrowser />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.entities") },
+      },
+      {
+        path: "/t/:tenantSlug/context/ontology/entities/:entityId",
+        element: (
+          <UnifiedRouteGuard>
+            <EntityDetail />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.entity-detail") },
+      },
+      {
+        path: "/t/:tenantSlug/context/ontology/graph",
+        element: (
+          <UnifiedRouteGuard>
+            <GraphExplorer />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.graph") },
+      },
+      {
+        path: "/t/:tenantSlug/context/ingestion/jobs",
+        element: (
+          <UnifiedRouteGuard>
+            <IngestionJobs />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("context.ingestion-jobs") },
+      },
+      {
+        path: "/t/:tenantSlug/context/extraction",
+        element: (
+          <UnifiedRouteGuard>
+            <ExtractionEngine />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("context.extraction") },
+      },
+      {
+        path: "/t/:tenantSlug/context/integrations",
+        element: (
+          <UnifiedRouteGuard>
+            <Integrations />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("context.integrations") },
+      },
+      {
+        path: "/t/:tenantSlug/context/sources",
+        element: (
+          <UnifiedRouteGuard>
+            <SourceConfiguration />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("context.sources") },
+      },
+      {
+        path: "/t/:tenantSlug/context/targets",
+        element: (
+          <UnifiedRouteGuard>
+            <TargetsAdmin />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("context.targets") },
+      },
 
       // ═══════════════════════════════════════════════════════════════
-      // DELIVERABLES
-      // ═══════════════════════════════════════════════════════════════
-      { path: "/deliverables", element: <Navigate to="/deliverables/cases" replace /> },
-      { path: "/deliverables/cases", element: <ProtectedRoute><BusinessCaseList /></ProtectedRoute> },
-      { path: "/deliverables/cases/:caseId", element: <ProtectedRoute><BusinessCase /></ProtectedRoute> },
-      { path: "/deliverables/calculators", element: <ProtectedRoute requiredTier="advanced"><InteractiveBusinessCase /></ProtectedRoute> },
-      { path: "/deliverables/views/cfo", element: <ProtectedRoute><CFOView /></ProtectedRoute> },
-      { path: "/deliverables/views/executive", element: <ProtectedRoute><ExecutiveView /></ProtectedRoute> },
-      { path: "/deliverables/views/technical", element: <ProtectedRoute><TechnicalView /></ProtectedRoute> },
-      { path: "/deliverables/api", element: <ProtectedRoute requiredTier="admin"><Integrations /></ProtectedRoute> },
-
-      // ═══════════════════════════════════════════════════════════════
-      // GOVERNANCE (top-level)
-      // ═══════════════════════════════════════════════════════════════
-      { path: "/governance", element: <Navigate to="/governance/traces" replace /> },
-      { path: "/governance/traces", element: <ProtectedRoute><DecisionTracePage /></ProtectedRoute> },
-      { path: "/governance/evidence", element: <ProtectedRoute><GovernanceEvidencePage /></ProtectedRoute> },
-      { path: "/governance/provenance", element: <ProtectedRoute requiredTier="advanced"><DecisionTracePage /></ProtectedRoute> },
-      { path: "/governance/integrity", element: <ProtectedRoute requiredTier="advanced"><DecisionTracePage /></ProtectedRoute> },
-      { path: "/governance/compliance", element: <ProtectedRoute requiredTier="advanced"><GovernanceCompliancePage /></ProtectedRoute> },
-      { path: "/governance/benchmarks", element: <ProtectedRoute requiredTier="admin"><BenchmarkPoliciesPage /></ProtectedRoute> },
-      { path: "/governance/audit", element: <Navigate to="/governance/audit/log" replace /> },
-      { path: "/governance/audit/log", element: <ProtectedRoute requiredTier="admin"><GovernanceAuditLogPage /></ProtectedRoute> },
-      { path: "/governance/audit/changes", element: <ProtectedRoute requiredTier="admin"><GovernanceChangeHistoryPage /></ProtectedRoute> },
-      { path: "/governance/health", element: <ProtectedRoute requiredTier="admin"><HealthMonitorPage /></ProtectedRoute> },
-      { path: "/admin/console", element: <ProtectedRoute requiredTier="admin"><SuperAdminConsolePage /></ProtectedRoute> }, // Backend enforces super_admin role; frontend tier check is minimal guard
-      { path: "/governance/reviews/:accountId", element: <ProtectedRoute><ReviewQueuePage /></ProtectedRoute> },
-      { path: "/governance/versions/:accountId", element: <ProtectedRoute><VersionHistoryPage /></ProtectedRoute> },
-
-      // ═══════════════════════════════════════════════════════════════
-      // WORKFLOW
-      // ═══════════════════════════════════════════════════════════════
-      { path: "/workflow", element: <Navigate to="/workflow/prospect" replace /> },
-      { path: "/workflow/prospect", element: <ProtectedRoute><ProspectSetupWithNav /></ProtectedRoute> },
-      { path: "/workflow/intelligence", element: <ProtectedRoute><WorkflowIntelligence /></ProtectedRoute> },
-      { path: "/workflow/ai-model", element: <ProtectedRoute><AIModel /></ProtectedRoute> },
-      { path: "/workflow/driver-tree", element: <ProtectedRoute><WorkflowDriverTree /></ProtectedRoute> },
-      { path: "/workflow/evidence", element: <ProtectedRoute><WorkflowEvidence /></ProtectedRoute> },
-      { path: "/workflow/calculator", element: <ProtectedRoute><WorkflowCalculator /></ProtectedRoute> },
-      { path: "/workflow/value-case", element: <ProtectedRoute><WorkflowValueCase /></ProtectedRoute> },
-
-      // ═══════════════════════════════════════════════════════════════
-      // VALUE STUDIO (legacy workspace)
-      // ═══════════════════════════════════════════════════════════════
-      { path: "/studio", element: <ProtectedRoute><StudioAccountRedirect /></ProtectedRoute> },
-      { path: "/studio/:tab", element: <ProtectedRoute><StudioAccountRedirect /></ProtectedRoute> },
-      { path: "/studio/:accountId", element: <ProtectedRoute><AccountContextSync /><Navigate to="action-plan" replace /></ProtectedRoute> },
-      { path: "/studio/:accountId/action-plan", element: <ProtectedRoute><AccountContextSync /><ActionPlanTab /></ProtectedRoute> },
-      { path: "/studio/:accountId/value-model", element: <ProtectedRoute><AccountContextSync /><ValueModelTab /></ProtectedRoute> },
-      { path: "/studio/:accountId/narrative", element: <ProtectedRoute><AccountContextSync /><NarrativeTab /></ProtectedRoute> },
-      { path: "/studio/:accountId/enrichment", element: <ProtectedRoute><AccountContextSync /><StudioEnrichmentTab /></ProtectedRoute> },
-      { path: "/studio/:accountId/competitive", element: <ProtectedRoute><AccountContextSync /><StudioCompetitiveTab /></ProtectedRoute> },
-      { path: "/studio/:accountId/roi", element: <ProtectedRoute><AccountContextSync /><StudioROITab /></ProtectedRoute> },
-      { path: "/studio/:accountId/evidence", element: <ProtectedRoute><AccountContextSync /><StudioEvidenceTab /></ProtectedRoute> },
-
-      // ═══════════════════════════════════════════════════════════════
-      // DEVELOPER TOOLS
-      // ═══════════════════════════════════════════════════════════════
-      { path: "/dev/integration", element: <ProtectedRoute requiredTier="admin"><IntegrationDashboard /></ProtectedRoute> },
-
-      // ═══════════════════════════════════════════════════════════════
-      // SETTINGS — Personal (all authenticated users)
+      // GOVERNANCE
       // ═══════════════════════════════════════════════════════════════
       {
-        handle: { settingsLayout: true },
+        path: "/t/:tenantSlug/governance",
+        element: <Navigate to="traces" replace />,
+        handle: { accessPolicy: tenantStdPolicy("governance.workspace") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/traces",
         element: (
-          <ProtectedRoute>
+          <UnifiedRouteGuard>
+            <DecisionTracePage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("governance.traces") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/evidence",
+        element: (
+          <UnifiedRouteGuard>
+            <GovernanceEvidencePage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("governance.evidence") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/provenance",
+        element: (
+          <UnifiedRouteGuard>
+            <DecisionTracePage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("governance.provenance") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/compliance",
+        element: (
+          <UnifiedRouteGuard>
+            <GovernanceCompliancePage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("governance.compliance") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/formulas",
+        element: (
+          <UnifiedRouteGuard>
+            <FormulaList />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("governance.formulas") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/formulas/:formulaId",
+        element: (
+          <UnifiedRouteGuard>
+            <FormulaBuilder />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdvPolicy("governance.formula-detail") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/benchmarks",
+        element: (
+          <UnifiedRouteGuard>
+            <BenchmarkPoliciesPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.benchmarks") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/benchmarks/:benchmarkId",
+        element: (
+          <UnifiedRouteGuard>
+            <BenchmarkPoliciesPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.benchmark-detail") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/value-packs",
+        element: (
+          <UnifiedRouteGuard>
+            <ValuePacks />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("governance.value-packs") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/value-packs/:packId",
+        element: (
+          <UnifiedRouteGuard>
+            <ValuePacks />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("governance.value-pack-detail") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/policies",
+        element: (
+          <UnifiedRouteGuard>
+            <GovernancePolicies />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.policies") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/audit-log",
+        element: (
+          <UnifiedRouteGuard>
+            <GovernanceAuditLogPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.audit-log") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/health",
+        element: (
+          <UnifiedRouteGuard>
+            <HealthMonitorPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.health") },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // SETTINGS — Personal (global)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        handle: { accessPolicy: homePolicy },
+        element: (
+          <UnifiedRouteGuard>
             <SettingsLayout />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
         children: [
-          { path: "/personal", element: <Navigate to="/personal/profile" replace /> },
-          { path: "/personal/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings" } },
-          { path: "/personal/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings" } },
-          { path: "/personal/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
-          { path: "/personal/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
-          { path: "/personal/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },
-          { path: "/personal/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings" } },
+          { path: "/settings", element: <Navigate to="/settings/profile" replace /> },
+          { path: "/settings/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings" } },
+          { path: "/settings/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings" } },
+          { path: "/settings/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
+          { path: "/settings/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
+          { path: "/settings/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },
+          { path: "/settings/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings" } },
         ],
       },
 
@@ -623,46 +690,57 @@ export const router = createBrowserRouter([
       // SETTINGS — Tenant / Workspace / Admin
       // ═══════════════════════════════════════════════════════════════
       {
-        handle: { settingsLayout: true },
+        handle: { accessPolicy: tenantAdminPolicy("tenant-settings.workspace") },
         element: (
-          <ProtectedRoute requiredTier="admin">
+          <UnifiedRouteGuard>
             <SettingsLayout />
-          </ProtectedRoute>
+          </UnifiedRouteGuard>
         ),
         children: [
-          { path: "/settings", element: <Navigate to="/settings/workspace" replace /> },
+          { path: "/t/:tenantSlug/settings", element: <Navigate to="workspace" replace /> },
 
           // Account & Billing
-          { path: "/settings/workspace", element: <BillingWorkspace />, handle: { title: "Workspace", category: "Account & Billing" } },
-          { path: "/settings/billing", element: <BillingSubscription />, handle: { title: "Subscription", category: "Account & Billing" } },
-          { path: "/settings/billing/subscription", element: <BillingSubscription />, handle: { title: "Subscription", category: "Account & Billing" } },
-          { path: "/settings/billing/usage", element: <BillingUsage />, handle: { title: "Usage", category: "Account & Billing" } },
-          { path: "/settings/billing/payment-methods", element: <BillingPaymentMethods />, handle: { title: "Payment Methods", category: "Account & Billing" } },
-          { path: "/settings/billing/invoices", element: <BillingInvoices />, handle: { title: "Invoices", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/workspace", element: <BillingWorkspace />, handle: { title: "Workspace", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/billing", element: <BillingSubscription />, handle: { title: "Subscription", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/billing/subscription", element: <BillingSubscription />, handle: { title: "Subscription", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/billing/usage", element: <BillingUsage />, handle: { title: "Usage", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/billing/payment-methods", element: <BillingPaymentMethods />, handle: { title: "Payment Methods", category: "Account & Billing" } },
+          { path: "/t/:tenantSlug/settings/billing/invoices", element: <BillingInvoices />, handle: { title: "Invoices", category: "Account & Billing" } },
 
           // Team & Access
-          { path: "/settings/team", element: <TeamMembers />, handle: { title: "Team Members", category: "Team & Access" } },
-          { path: "/settings/team/invitations", element: <TeamInvitations />, handle: { title: "Invitations", category: "Team & Access" } },
-          { path: "/settings/team/roles", element: <TeamRoles />, handle: { title: "Roles", category: "Team & Access" } },
-          { path: "/settings/team/permissions", element: <TeamPermissions />, handle: { title: "Permissions", category: "Team & Access" } },
-          { path: "/settings/team/api-keys", element: <TeamApiKeys />, handle: { title: "API Keys", category: "Team & Access" } },
+          { path: "/t/:tenantSlug/settings/users", element: <TeamMembers />, handle: { title: "Team Members", category: "Team & Access" } },
+          { path: "/t/:tenantSlug/settings/roles", element: <TeamRoles />, handle: { title: "Roles", category: "Team & Access" } },
+          { path: "/t/:tenantSlug/settings/permissions", element: <TeamPermissions />, handle: { title: "Permissions", category: "Team & Access" } },
+          { path: "/t/:tenantSlug/settings/api-keys", element: <TeamApiKeys />, handle: { title: "API Keys", category: "Team & Access" } },
 
           // Data & Integrations
-          { path: "/settings/data/sources", element: <DataSources />, handle: { title: "Data Sources", category: "Data & Integrations" } },
-          { path: "/settings/data/integrations", element: <DataIntegrations />, handle: { title: "Integrations", category: "Data & Integrations" } },
-          { path: "/settings/data/variables", element: <DataVariables />, handle: { title: "Variables", category: "Data & Integrations" } },
-          { path: "/settings/data/value-packs", element: <DataValuePacks />, handle: { title: "Value Packs", category: "Data & Integrations" } },
-          { path: "/settings/data/ingestion-rules", element: <DataIngestionRules />, handle: { title: "Ingestion Rules", category: "Data & Integrations" } },
+          { path: "/t/:tenantSlug/settings/data-sources", element: <DataSources />, handle: { title: "Data Sources", category: "Data & Integrations" } },
+          { path: "/t/:tenantSlug/settings/integrations", element: <DataIntegrations />, handle: { title: "Integrations", category: "Data & Integrations" } },
+          { path: "/t/:tenantSlug/settings/variables", element: <DataVariables />, handle: { title: "Variables", category: "Data & Integrations" } },
+          { path: "/t/:tenantSlug/settings/value-packs", element: <DataValuePacks />, handle: { title: "Value Packs", category: "Data & Integrations" } },
+          { path: "/t/:tenantSlug/settings/ingestion-rules", element: <DataIngestionRules />, handle: { title: "Ingestion Rules", category: "Data & Integrations" } },
 
           // Governance
-          { path: "/settings/governance", element: <Navigate to="/settings/governance/policies" replace /> },
-          { path: "/settings/governance/policies", element: <GovernancePolicies />, handle: { title: "Policies", category: "Governance" } },
-          { path: "/settings/governance/compliance", element: <GovernanceCompliance />, handle: { title: "Compliance", category: "Governance" } },
-          { path: "/settings/governance/health", element: <GovernanceHealth />, handle: { title: "Health", category: "Governance" } },
-          { path: "/settings/governance/audit-trail", element: <GovernanceAuditTrail />, handle: { title: "Audit Trail", category: "Governance" } },
-          { path: "/settings/governance/admin-controls", element: <GovernanceAdminControls />, handle: { title: "Admin Controls", category: "Governance" } },
-
+          { path: "/t/:tenantSlug/settings/governance", element: <Navigate to="policies" replace /> },
+          { path: "/t/:tenantSlug/settings/governance/policies", element: <GovernancePolicies />, handle: { title: "Policies", category: "Governance" } },
+          { path: "/t/:tenantSlug/settings/governance/compliance", element: <GovernanceCompliance />, handle: { title: "Compliance", category: "Governance" } },
+          { path: "/t/:tenantSlug/settings/governance/health", element: <GovernanceHealth />, handle: { title: "Health", category: "Governance" } },
+          { path: "/t/:tenantSlug/settings/governance/audit", element: <GovernanceAuditTrail />, handle: { title: "Audit Trail", category: "Governance" } },
+          { path: "/t/:tenantSlug/settings/governance/admin", element: <GovernanceAdminControls />, handle: { title: "Admin Controls", category: "Governance" } },
         ],
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // DEVELOPER TOOLS
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/dev/integration",
+        element: (
+          <UnifiedRouteGuard>
+            <IntegrationDashboard />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("dev.integration") },
       },
     ],
   },

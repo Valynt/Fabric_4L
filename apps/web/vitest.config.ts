@@ -12,6 +12,9 @@ export default defineConfig({
     env: {
       VITEST: "true",
     },
+    typecheck: {
+      tsconfig: "./tsconfig.spec.json",
+    },
     coverage: {
       provider: "v8",
       reporter: ["text", "json", "html"],

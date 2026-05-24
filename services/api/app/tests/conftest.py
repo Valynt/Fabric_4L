@@ -20,7 +20,9 @@ from app.core import database as _db_mod
 from app.core.config import get_settings
 
 # Use the same default secret the app uses in test/dev environments
-TEST_SECRET = "fabric-4l-dev-secret-key-change-in-production"
+# Shortened to stay under bcrypt's 72-byte limit when combined with JWT payload
+# Must be at least 32 bytes for HMAC-SHA256 security
+TEST_SECRET = "fabric-dev-secret-key-32bytes-ok"
 TEST_ALGORITHM = "HS256"
 TEST_ISSUER = "value-fabric-internal"
 TEST_AUDIENCE = "value-fabric-services"
@@ -35,6 +37,7 @@ import os as _os
 _os.environ.setdefault("MOCK_PERSISTENCE", "true")
 _os.environ.setdefault("SEED_DEMO_DATA", "true")
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
+_os.environ.setdefault("SECRET_KEY", TEST_SECRET)
 
 
 def _clear_singletons() -> None:

@@ -3,6 +3,7 @@
  */
 import { useCallback } from "react";
 import { useNavigation } from "@/hooks/useNavigation";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { Building2, Plus, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAccounts } from "@/hooks";
@@ -53,6 +54,7 @@ export default function AccountPickerModal({
   tab,
 }: AccountPickerModalProps) {
   const { navigateTo } = useNavigation();
+  const { currentTenantSlug } = useAuthContext();
   const setSelectedAccountId = useAccountContextStore(
     (state) => state.setSelectedAccountId
   );
@@ -67,19 +69,20 @@ export default function AccountPickerModal({
         workspace,
         accountId: account.id,
         tab,
+        tenantSlug: currentTenantSlug,
       });
       navigateTo(path);
     },
-    [workspace, tab, setSelectedAccountId, navigateTo]
+    [workspace, tab, setSelectedAccountId, navigateTo, currentTenantSlug]
   );
 
   const handleManageAccounts = useCallback(() => {
-    navigateTo('accounts');
-  }, [navigateTo]);
+    navigateTo('accounts', { tenantSlug: currentTenantSlug ?? 'default' });
+  }, [navigateTo, currentTenantSlug]);
 
   const handleCreateAccount = useCallback(() => {
-    navigateTo('accounts');
-  }, [navigateTo]);
+    navigateTo('accounts', { tenantSlug: currentTenantSlug ?? 'default' });
+  }, [navigateTo, currentTenantSlug]);
 
   const preventDismiss = useCallback((e: Event) => {
     e.preventDefault();

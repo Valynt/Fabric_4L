@@ -3,6 +3,32 @@ import axiosRetry from 'axios-retry';
 import { z } from 'zod';
 import { createFeatureLogger } from '@/lib/telemetry';
 import { sessionService } from '@/services/sessionService';
+import { isClerkAuthEnabled } from '@/auth/clerkConfig';
+import { getClerkSessionToken } from '@/auth/clerkSession';
+
+/**
+ * Validate that a Clerk-issued session token is safe to embed in an HTTP
+ * header. Rejects:
+ *   - empty / whitespace-only values
+ *   - values containing CR (\r), LF (\n), or any ASCII control char (0x00-0x1F, 0x7F)
+ *     to defeat header-injection attempts via a compromised/malformed token.
+ *
+ * Returns the trimmed token when safe, otherwise null.
+ *
+ * SECURITY: this is defense-in-depth. Clerk should never issue a token with
+ * these characters, but a malicious extension, a misconfigured JWT template,
+ * or a future runtime regression could. The cost of validating is trivial;
+ * the cost of a header-injection bug is not.
+ */
+function sanitizeBearerToken(raw: string | null | undefined): string | null {
+  if (typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  if (trimmed.length === 0) return null;
+  // Reject CR, LF, and all C0/C1 control characters (incl. DEL).
+  // eslint-disable-next-line no-control-regex
+  if (/[\u0000-\u001F\u007F]/.test(trimmed)) return null;
+  return trimmed;
+}
 
 const log = createFeatureLogger('api-client');
 
@@ -250,14 +276,32 @@ class ApiClient {
       });
 
       client.interceptors.request.use(
-        (config) => {
+        async (config) => {
           // Add correlation ID for request tracing
           config.headers['X-Request-ID'] = generateRequestId();
           // Tenant identity must be resolved server-side from authenticated context.
           // Do not send client-controlled tenant headers from browser code.
 
-          // Access token is in the httpOnly vf_session cookie; sent automatically
-          // via withCredentials: true. No Authorization header needed.
+          // Phase 2 Clerk integration: when AUTH_PROVIDER=clerk, attach a
+          // fresh Clerk session JWT as Bearer. The gateway verifies and
+          // re-emits as a Fabric4L envelope; downstream services trust only
+          // that envelope, never this header.
+          //
+          // The legacy path is preserved for AUTH_PROVIDER=legacy: the
+          // httpOnly vf_session cookie is sent automatically via
+          // withCredentials: true and no Authorization header is set.
+          //
+          // SECURITY: the browser never asserts tenant identity. We do NOT
+          // send X-Tenant-ID or any equivalent hint header from the client.
+          // The Fabric4L gateway derives tenant from the verified JWT or
+          // session envelope; that is the sole source of tenant authority.
+          if (isClerkAuthEnabled()) {
+            const rawToken = await getClerkSessionToken();
+            const safeToken = sanitizeBearerToken(rawToken);
+            if (safeToken) {
+              config.headers['Authorization'] = `Bearer ${safeToken}`;
+            }
+          }
 
           const method = (config.method ?? 'get').toUpperCase();
           if (MUTATING_METHODS.has(method)) {

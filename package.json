@@ -17,7 +17,16 @@
     "check:package-manager-policy": "node scripts/ci/check_package_manager_policy.mjs",
     "verify:frontend": "pnpm --filter ./apps/web run verify:frontend",
     "verify": "pnpm run check:default-scope && pnpm run verify:frontend",
-    "check:test-skip-governance": "python scripts/ci/check_test_skip_governance.py --register config/ci/test_skip_register.yaml"
+    "check:test-skip-governance": "python scripts/ci/check_test_skip_governance.py --register config/ci/test_skip_register.yaml",
+    "dev:web": "infisical run --env=dev --path=/shared --path=/apps/web -- pnpm --filter web dev",
+    "dev:layer1": "infisical run --env=dev --path=/shared --path=/infra --path=/layer1-ingestion -- uvicorn services.layer1-ingestion.src.api.main:app --reload",
+    "dev:layer2": "infisical run --env=dev --path=/shared --path=/infra --path=/layer2-extraction -- uvicorn services.layer2-extraction.src.api.main:app --reload",
+    "dev:layer3": "infisical run --env=dev --path=/shared --path=/infra --path=/layer3-knowledge -- uvicorn services.layer3-knowledge.src.api.main:app --reload",
+    "dev:layer4": "infisical run --env=dev --path=/shared --path=/infra --path=/layer4-agents -- uvicorn services.layer4-agents.src.api.main:app --reload",
+    "dev:layer5": "infisical run --env=dev --path=/shared --path=/infra --path=/layer5-ground-truth -- uvicorn services.layer5-ground-truth.src.api.main:app --reload",
+    "dev:layer6": "infisical run --env=dev --path=/shared --path=/infra --path=/layer6-benchmarks -- uvicorn services.layer6-benchmarks.src.api.main:app --reload",
+    "env:dev": "infisical export --env=dev --path=/shared --path=/infra --path=/layer1-ingestion --path=/layer2-extraction --path=/layer2-5-signal-refinery --path=/layer3-knowledge --path=/layer4-agents --path=/layer5-ground-truth --path=/layer6-benchmarks --path=/apps/web --format=dotenv --output-file=.env.generated",
+    "compose:dev": "pnpm env:dev && docker compose --env-file .env.generated up"
   },
   "engines": {
     "node": ">=22.12.0"
@@ -28,7 +37,13 @@
       "minimatch@>=9.0.0 <9.0.7": "9.0.9",
       "mermaid": ">=11.15.0 <12.0.0",
       "fast-uri@<=3.1.1": "3.1.2",
-      "brace-expansion@>=5.0.0 <5.0.6": "5.0.6"
-    }
+      "brace-expansion@>=5.0.0 <5.0.6": "5.0.6",
+      "tailwindcss>nanoid": "3.3.7"
+    },
+    "onlyBuiltDependencies": [
+      "@tailwindcss/oxide",
+      "esbuild",
+      "msw"
+    ]
   }
 }

@@ -219,6 +219,12 @@ app = create_fabric_app(
 if app.state.telemetry_provider is not None:
     logger.info("L6: FastAPI instrumented with OpenTelemetry")
 
+# Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
+# No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
+from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+
+register_fabric_auth_from_env(app, service_name="layer6-benchmarks")
+
 install_metrics_middleware(
     app,
     metrics=initialize_metrics(),

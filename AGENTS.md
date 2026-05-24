@@ -19,9 +19,10 @@
 ### First-time setup
 
 ```bash
-# 1. Clone and configure environment
-cp .env.example .env
-# Edit .env — set JWT_SECRET and the provider key(s) you use for local dev: OPENAI_API_KEY and/or ANTHROPIC_API_KEY; use LAYER4_TOGETHER_API_KEY for Layer4 Together access
+# 1. Clone and install tooling
+#    Install the Infisical CLI: https://infisical.com/docs/cli/overview
+#    Then log in:
+infisical login
 
 # 2. Enable pnpm via corepack (do not use npm/yarn)
 corepack enable
@@ -34,7 +35,10 @@ pnpm install --frozen-lockfile
 make setup
 
 # 5. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
-docker compose -f docker-compose.dev.yml up -d
+#    Using Infisical-generated env (recommended):
+pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d
+#    Or legacy manual .env:
+#    cp .env.example .env && docker compose -f docker-compose.dev.yml up -d
 
 # 6. Run database migrations
 make migrate
@@ -49,14 +53,27 @@ make verify
 
 ```bash
 # Local Docker Compose stack (frontend + supporting backend services defined in docker-compose.dev.yml)
-docker compose -f docker-compose.dev.yml up
+# With Infisical (recommended):
+pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up
+# Legacy manual .env:
+# docker compose -f docker-compose.dev.yml up
 
 # Frontend only (Vite, port 3001, with mock API)
-pnpm --dir apps/web run dev
+pnpm dev:web
+# Or without Infisical:
+# pnpm --dir apps/web run dev
 
 # Frontend against live backend services
 pnpm --dir apps/web run dev:live
 # Requires: VITE_API_BASE_URL, VITE_PROXY_L1_URL … VITE_PROXY_L6_URL
+
+# Individual backend layers (Infisical-injected)
+pnpm dev:layer1
+pnpm dev:layer2
+pnpm dev:layer3
+pnpm dev:layer4
+pnpm dev:layer5
+pnpm dev:layer6
 ```
 
 ---
@@ -831,10 +848,12 @@ Never commit real secrets.
 Use:
 
 ```text
-.env
-.env.example
-OIDC in CI
-ExternalSecrets / Vault in production
+.infisical/          # Infisical project config and path docs
+.env.example         # Committed reference templates (no real secrets)
+.env.generated       # Temporary export from Infisical (gitignored)
+infisical run        # Local dev secret injection
+GitHub OIDC → Infisical machine identity   # CI/CD
+Infisical Kubernetes Operator              # Production K8s
 ```
 
 When adding environment variables:

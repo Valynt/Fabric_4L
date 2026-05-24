@@ -1,8 +1,5 @@
 /**
  * Tests for useNavigation hook — §2.6 canonical navigation abstraction.
- *
- * Verifies that navigateTo() supports optional router state so callers
- * (e.g. HypothesesTab) do not need to fall back to raw useNavigate().
  */
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { renderHook } from "@testing-library/react";
@@ -10,13 +7,8 @@ import { MemoryRouter } from "react-router-dom";
 import type { ReactNode } from "react";
 import { useNavigation } from "./useNavigation";
 
-// useWorkflowContext is used internally by useNavigation to merge query params.
 vi.mock("@/hooks/useWorkflowContext", () => ({
   useWorkflowContext: () => ({}),
-}));
-
-vi.mock("@/workflow/context", () => ({
-  serializeWorkflowContextToQuery: () => ({}),
 }));
 
 const mockNavigate = vi.fn();
@@ -40,23 +32,23 @@ describe("useNavigation — navigateTo with state", () => {
 
   it("navigates to a direct path without state", () => {
     const { result } = renderHook(() => useNavigation(), { wrapper });
-    result.current.navigateTo("/accounts/123/intelligence");
+    result.current.navigateTo("/t/acme/accounts/123/intelligence");
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/accounts/123/intelligence",
+      "/t/acme/accounts/123/intelligence",
       undefined
     );
   });
 
   it("navigates to a direct path with router state", () => {
     const { result } = renderHook(() => useNavigation(), { wrapper });
-    result.current.navigateTo("/drivers/abc/evidence", {
+    result.current.navigateTo("/t/acme/accounts/abc/intelligence/evidence", {
       state: {
         hypothesisId: "hyp-1",
         evidenceIds: ["ev-1", "ev-2"],
         accountId: "abc",
       },
     });
-    expect(mockNavigate).toHaveBeenCalledWith("/drivers/abc/evidence", {
+    expect(mockNavigate).toHaveBeenCalledWith("/t/acme/accounts/abc/intelligence/evidence", {
       state: {
         hypothesisId: "hyp-1",
         evidenceIds: ["ev-1", "ev-2"],
@@ -85,9 +77,9 @@ describe("useNavigation — navigateTo with state", () => {
 
   it("navigates via RouteState with params", () => {
     const { result } = renderHook(() => useNavigation(), { wrapper });
-    result.current.navigateTo("account-detail", { accountId: "acct-99" });
+    result.current.navigateTo("account-detail", { tenantSlug: "acme", accountId: "acct-99" });
     expect(mockNavigate).toHaveBeenCalledWith(
-      "/accounts/acct-99",
+      "/t/acme/accounts/acct-99",
       expect.anything()
     );
   });

@@ -2,6 +2,7 @@ name: Integration Tests
 
 permissions:
   contents: read
+  id-token: write  # Required for Infisical OIDC authentication
 
 on:
   workflow_dispatch:
@@ -40,10 +41,16 @@ jobs:
         run: |
           docker compose version
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+
       - name: Start core services
-        env:
-          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           docker compose -f docker-compose.dev.yml up -d neo4j redis postgres layer2-5 layer4
 

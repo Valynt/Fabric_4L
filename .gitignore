@@ -22,6 +22,9 @@ ehthumbs.db
 .env.local
 .env.live
 .env.*.local
+.env.generated
+.env.generated.*
+.infisical-token
 .local/secrets/
 .local/**/*.env
 

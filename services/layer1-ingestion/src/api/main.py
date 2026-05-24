@@ -277,13 +277,19 @@ _security_config_l1 = SecurityConfig.from_env(
 add_security_middleware(app, config=_security_config_l1)
 register_exception_handlers(app)
 
+# Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
+# No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
+from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+
+register_fabric_auth_from_env(app, service_name="layer1-ingestion")
+
 # GovernanceMiddleware â€” verifies JWTs and resolves tenant/user context (mandatory)
 redis_rate_limiter = None
 try:
-    from ..shared.database import redis_client
+    from ..shared.database import redis_client_async
 
-    if redis_client is not None:
-        redis_rate_limiter = RedisRateLimiter(redis_client)
+    if redis_client_async is not None:
+        redis_rate_limiter = RedisRateLimiter(redis_client_async)
 except Exception as e:
     logger.warning(
         "redis_init_failed",

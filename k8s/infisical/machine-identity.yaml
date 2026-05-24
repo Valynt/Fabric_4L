@@ -1,5 +1,12 @@
 # Infisical Machine Identity and UniversalAuth Configuration
-# This creates the authentication credentials for the Infisical operator
+#
+# NOTE: For CI/CD, OIDC-based machine identities are preferred over
+# UniversalAuth. Configure OIDC trust in Infisical for:
+#   - GitHub Actions (repository: Fabric4L)
+#   - Kubernetes clusters (service account binding)
+#
+# This manifest creates the authentication credentials for the Infisical
+# Kubernetes operator using UniversalAuth as a fallback.
 ---
 # UniversalAuth credentials secret
 # Create this ONCE per cluster after generating credentials in Infisical UI

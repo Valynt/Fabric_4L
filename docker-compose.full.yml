@@ -1,3 +1,13 @@
+# =============================================================================
+# Fabric_4L Full Production-like Stack
+# =============================================================================
+# Usage (with Infisical — recommended):
+#   pnpm env:dev                    # generates .env.generated
+#   docker compose -f docker-compose.full.yml --env-file .env.generated up --build
+#
+# Usage (legacy manual .env):
+#   docker compose -f docker-compose.full.yml up --build
+# =============================================================================
 # Migrated from value-fabric/docker-compose.yml during legacy path cleanup.
 version: "3.8"
 

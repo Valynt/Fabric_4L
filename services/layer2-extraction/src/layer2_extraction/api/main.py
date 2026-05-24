@@ -17,7 +17,7 @@ import os
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, AsyncGenerator
 from uuid import uuid4
 
 # Third-party imports for health check
@@ -26,7 +26,7 @@ try:
 except ImportError:
     psutil = None  # type: ignore[assignment]  # Health check will work without system metrics
 
-from fastapi import BackgroundTasks, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -74,10 +74,8 @@ from layer2_extraction.output.provenance import (
 from layer2_extraction.output.rdf_generator import generate_rdf
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 
-from ..shared_bootstrap import verify_metrics_access
-from .app_factory import create_app
-from .lifespan import create_lifespan
-from .routes.signal_lifecycle import router as signal_lifecycle_router
+from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
+from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 
 logger = logging.getLogger(__name__)
 
@@ -105,15 +103,33 @@ _app_start_time = time.time()
 # WebSocket manager for real-time pipeline streaming
 _ws_manager = get_pipeline_ws_manager()
 
-lifespan = create_lifespan(
-    is_production_like=_is_production_like,
-    current_environment=_current_environment,
-    pending_ingestion_retry_loop=lambda: _pending_ingestion_retry_loop(),
-    ws_manager=_ws_manager,
-)
+# Simple lifespan function
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan — startup and shutdown."""
+    # Startup
+    logger.info("Layer2 extraction service starting up")
+    yield
+    # Shutdown
+    logger.info("Layer2 extraction service shutting down")
 
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
-app = create_app(lifespan=lifespan)
+app = create_fabric_app(
+    service_name="layer2-extraction",
+    title="Layer 2 Extraction Service",
+    version="1.0.0",
+    description="Extraction pipeline for entities and relationships from content",
+    lifespan=lifespan
+)
+
+# Register health endpoint
+register_health_endpoint(app, service_name="layer2-extraction")
+
+# Phase 1 Clerk integration: register the Fabric4L internal AuthContext
+# envelope verifier. No-op when FABRIC_AUTH_PUBLIC_KEYS is unset, so this
+# call is safe to land before any layer is flipped to enforce mode.
+from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+
+register_fabric_auth_from_env(app, service_name="layer2-extraction")
 
 # Register canonical error envelope handlers from shared package
 try:

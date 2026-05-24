@@ -16,6 +16,7 @@ from app.routers import (
     agents,
     auth,
     calculator,
+    clerk_webhooks,
     context_engine,
     drivers,
     evidence,
@@ -111,6 +112,11 @@ app.include_router(versioning.router, prefix="/v1")
 app.include_router(realization.router, prefix="/v1")
 app.include_router(agents.router, prefix="/v1")
 app.include_router(privacy.router, prefix="/v1")
+
+# Clerk webhook handler is mounted unconditionally; the handler itself
+# returns 503 when CLERK_WEBHOOK_SECRET is not configured. Network policy
+# is responsible for restricting public access to /internal/*.
+app.include_router(clerk_webhooks.router)
 
 # Audit logging for all state-changing requests
 app.add_middleware(AuditMiddleware)

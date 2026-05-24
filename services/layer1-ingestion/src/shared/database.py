@@ -44,11 +44,15 @@ engine = create_engine(
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Redis client (used by health checks and rate limiting)
+# Redis client (used by health checks and Celery)
 redis_client = None
+# Async Redis client (used by rate limiter)
+redis_client_async = None
 try:
     import redis
     redis_client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    import redis.asyncio as redis_async
+    redis_client_async = redis_async.Redis.from_url(settings.redis_url, decode_responses=True)
 except Exception:
     pass
 

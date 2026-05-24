@@ -1,3 +1,13 @@
+# =============================================================================
+# Fabric_4L Live Stack
+# =============================================================================
+# Usage (with Infisical — recommended):
+#   pnpm env:dev                    # generates .env.generated
+#   docker compose --env-file .env.generated up
+#
+# Usage (legacy manual .env):
+#   docker compose up
+# =============================================================================
 x-build-args: &id001
   BASE_IMAGE: ${BASE_IMAGE:-}
 services:

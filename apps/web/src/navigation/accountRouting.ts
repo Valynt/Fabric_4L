@@ -9,23 +9,23 @@ const WORKSPACE_TABS = {
     "stakeholders",
     "ontology-match",
     "hypotheses",
+    "discovery-questions",
+    "persona-fit",
+    "assumptions",
     "drivers",
     "evidence",
     "alternatives",
     "solution-cost",
-    "calculator",
-    "value-model",
-    "value-case",
-    "value-realization",
   ],
   studio: [
     "action-plan",
     "value-model",
+    "driver-tree",
+    "calculator",
     "narrative",
-    "enrichment",
-    "competitive",
-    "roi",
-    "evidence",
+    "value-case",
+    "value-realization",
+    "solution-cost",
   ],
 } as const;
 
@@ -45,10 +45,13 @@ export function getWorkspaceTabOrDefault(
   return isValidWorkspaceTab(workspace, tab) ? tab : DEFAULT_WORKSPACE_TAB[workspace];
 }
 
-export function resolveWorkspaceRoutePath(path: string, accountId: string | null): string {
+export function resolveWorkspaceRoutePath(
+  path: string,
+  accountId: string | null,
+  tenantSlug: string | null = null
+): string {
   if (!accountId) return path;
 
-  // Map path prefixes to route states
   const pathMap: Record<string, RouteState> = {
     '/intelligence': 'intelligence',
     '/studio': 'studio',
@@ -56,11 +59,11 @@ export function resolveWorkspaceRoutePath(path: string, accountId: string | null
 
   for (const [prefix, state] of Object.entries(pathMap)) {
     if (path === prefix) {
-      return getStatePath(state, { accountId });
+      return getStatePath(state, { tenantSlug: tenantSlug ?? "default", accountId });
     }
     if (path.startsWith(`${prefix}/`)) {
       const suffix = path.slice(prefix.length + 1);
-      return buildPath(`${getStatePath(state, { accountId })}/:suffix`, { suffix });
+      return buildPath(`${getStatePath(state, { tenantSlug: tenantSlug ?? "default", accountId })}/:suffix`, { suffix });
     }
   }
 
@@ -71,13 +74,14 @@ export function resolveAccountScopedWorkspacePath(options: {
   workspace: AccountWorkspace;
   accountId: string | null;
   tab?: string;
+  tenantSlug?: string | null;
 }): string {
-  const { workspace, accountId, tab } = options;
-  if (!accountId) return "/accounts";
+  const { workspace, accountId, tab, tenantSlug } = options;
+  if (!accountId) return "/t/default/accounts";
 
   const resolvedTab = getWorkspaceTabOrDefault(workspace, tab);
   const state: RouteState = workspace === 'intelligence' ? 'intelligence' : 'studio';
-  const basePath = getStatePath(state, { accountId });
+  const basePath = getStatePath(state, { tenantSlug: tenantSlug ?? "default", accountId });
 
   return buildPath(`${basePath}/:tab`, { tab: resolvedTab });
 }

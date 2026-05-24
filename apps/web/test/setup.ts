@@ -9,6 +9,17 @@ import { server } from '../src/test/mocks/server';
 import { cleanup } from '@testing-library/react';
 import { afterAll, afterEach, beforeAll, beforeEach, vi } from 'vitest';
 
+// Type declaration for import.meta.env in tests
+declare global {
+  interface ImportMetaEnv {
+    VITE_AUTH_PROVIDER?: string;
+    [key: string]: string | undefined;
+  }
+  interface ImportMeta {
+    env: ImportMetaEnv;
+  }
+}
+
 expect.extend(toHaveNoViolations);
 
 // Start MSW server before all tests
@@ -44,11 +55,34 @@ if (!Element.prototype.scrollIntoView) {
 }
 // Radix DropdownMenu uses PointerEvent to detect open/close.
 if (typeof window !== 'undefined' && !window.PointerEvent) {
-  (window as Window & typeof globalThis & { PointerEvent: typeof MouseEvent }).PointerEvent = class PointerEvent extends MouseEvent {
+  const MockPointerEvent = class extends MouseEvent implements PointerEvent {
+    altitudeAngle = 0;
+    azimuthAngle = 0;
+    height = 1;
+    isPrimary = false;
+    pointerId = 0;
+    pointerType = 'mouse';
+    pressure = 0;
+    tangentialPressure = 0;
+    tiltX = 0;
+    tiltY = 0;
+    twist = 0;
+    width = 1;
+
     constructor(type: string, params: PointerEventInit = {}) {
       super(type, params);
+      Object.assign(this, params);
+    }
+
+    getCoalescedEvents(): PointerEvent[] {
+      return [this];
+    }
+
+    getPredictedEvents(): PointerEvent[] {
+      return [];
     }
   };
+  (window as any).PointerEvent = MockPointerEvent as any;
 }
 
 // Mock matchMedia for responsive component tests

@@ -7,14 +7,14 @@ import {
 } from "./accountRouting";
 
 describe("account routing utilities", () => {
-  it("falls back to /accounts when no account is selected", () => {
+  it("falls back to /t/default/accounts when no account is selected", () => {
     expect(
       resolveAccountScopedWorkspacePath({
         workspace: "intelligence",
         accountId: null,
         tab: "signals",
       })
-    ).toBe("/accounts");
+    ).toBe("/t/default/accounts");
   });
 
   it("falls back to workspace default tab for invalid tabs", () => {
@@ -24,19 +24,20 @@ describe("account routing utilities", () => {
 
   it("keeps root workspace routes and deep links consistent", () => {
     const accountId = "acct-123";
+    const tenantSlug = "acme";
 
-    expect(resolveWorkspaceRoutePath("/intelligence", accountId)).toBe(
-      "/intelligence/acct-123"
+    expect(resolveWorkspaceRoutePath("/intelligence", accountId, tenantSlug)).toBe(
+      "/t/acme/accounts/acct-123/intelligence"
     );
-    expect(resolveWorkspaceRoutePath("/intelligence/signals", accountId)).toBe(
-      "/intelligence/acct-123/signals"
+    expect(resolveWorkspaceRoutePath("/intelligence/signals", accountId, tenantSlug)).toBe(
+      "/t/acme/accounts/acct-123/intelligence/signals"
     );
 
-    expect(resolveWorkspaceRoutePath("/studio", accountId)).toBe(
-      "/studio/acct-123"
+    expect(resolveWorkspaceRoutePath("/studio", accountId, tenantSlug)).toBe(
+      "/t/acme/accounts/acct-123/studio"
     );
-    expect(resolveWorkspaceRoutePath("/studio/narrative", accountId)).toBe(
-      "/studio/acct-123/narrative"
+    expect(resolveWorkspaceRoutePath("/studio/narrative", accountId, tenantSlug)).toBe(
+      "/t/acme/accounts/acct-123/studio/narrative"
     );
   });
 });
@@ -55,7 +56,7 @@ describe("workspace tab validation", () => {
 
   it("accepts valid studio tabs", () => {
     expect(isValidWorkspaceTab("studio", "action-plan")).toBe(true);
-    expect(isValidWorkspaceTab("studio", "roi")).toBe(true);
+    expect(isValidWorkspaceTab("studio", "calculator")).toBe(true);
   });
 
   it("rejects invalid studio tabs", () => {
@@ -70,8 +71,9 @@ describe("resolveAccountScopedWorkspacePath — tab path construction", () => {
         workspace: "intelligence",
         accountId: "acct-1",
         tab: "signals",
+        tenantSlug: "acme",
       })
-    ).toBe("/intelligence/acct-1/signals");
+    ).toBe("/t/acme/accounts/acct-1/intelligence/signals");
   });
 
   it("uses default tab when tab is undefined", () => {
@@ -79,8 +81,9 @@ describe("resolveAccountScopedWorkspacePath — tab path construction", () => {
       resolveAccountScopedWorkspacePath({
         workspace: "intelligence",
         accountId: "acct-1",
+        tenantSlug: "acme",
       })
-    ).toBe("/intelligence/acct-1/signals");
+    ).toBe("/t/acme/accounts/acct-1/intelligence/signals");
   });
 
   it("uses default tab when tab is invalid", () => {
@@ -88,8 +91,9 @@ describe("resolveAccountScopedWorkspacePath — tab path construction", () => {
       resolveAccountScopedWorkspacePath({
         workspace: "studio",
         accountId: "acct-1",
-        tab: "bad-tab",
+        tab: "not-a-tab",
+        tenantSlug: "acme",
       })
-    ).toBe("/studio/acct-1/action-plan");
+    ).toBe("/t/acme/accounts/acct-1/studio/action-plan");
   });
 });

@@ -122,6 +122,7 @@ class Settings(BaseSettings):
     database_url: str = Field(
         default="postgresql://postgres:postgres@localhost:5432/layer1_ingestion",
         description="PostgreSQL connection URL",
+        alias="DATABASE_URL",
     )
 
     # JWT and Security

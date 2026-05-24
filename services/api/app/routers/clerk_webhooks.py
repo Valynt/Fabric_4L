@@ -1,0 +1,214 @@
+"""Clerk webhook handler — keeps Fabric4L identity tables in sync.
+
+Security:
+    - Signature verification uses Svix when the ``svix`` package is
+      installed; otherwise we fall back to a stricter manual HMAC-SHA256
+      check matching Svix's wire format. Either way, requests without a
+      valid signature are rejected with 401.
+    - The endpoint is registered under ``/internal/webhooks/clerk`` and
+      MUST NOT be exposed publicly without an additional network policy.
+
+Idempotency:
+    Each Clerk event carries a Svix message id (``svix-id`` header). The
+    directory's ``has_processed_event`` / ``mark_event_processed`` make
+    replays a no-op.
+"""
+from __future__ import annotations
+
+import hashlib
+import hmac
+import logging
+from base64 import b64decode
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request, status
+
+from app.core.auth_directory import AuthDirectory, get_auth_directory
+from app.core.clerk_config import get_auth_settings
+
+logger = logging.getLogger(__name__)
+
+router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
+
+
+def _verify_svix_signature(
+    *,
+    secret: str,
+    headers: dict[str, str],
+    body: bytes,
+) -> None:
+    """Verify the Svix-format signature header.
+
+    Svix uses ``v1,<base64-hmac-sha256>`` over ``"<svix_id>.<svix_timestamp>.<body>"``
+    using a base64-decoded shared secret (``whsec_<base64>``).
+    """
+    svix_id = headers.get("svix-id")
+    svix_timestamp = headers.get("svix-timestamp")
+    svix_signature = headers.get("svix-signature")
+    if not (svix_id and svix_timestamp and svix_signature):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "auth.webhook_signature_missing", "message": "Unauthorized."},
+        )
+
+    if secret.startswith("whsec_"):
+        try:
+            key = b64decode(secret[len("whsec_") :])
+        except Exception as exc:
+            logger.error("CLERK_WEBHOOK_SECRET base64 decode failed: %s", exc)
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail={"code": "auth.webhook_misconfigured", "message": "Misconfigured."},
+            ) from exc
+    else:
+        key = secret.encode()
+
+    signed_payload = f"{svix_id}.{svix_timestamp}.".encode() + body
+    expected = hmac.new(key, signed_payload, hashlib.sha256).digest()
+
+    from base64 import b64encode
+
+    expected_sig = b64encode(expected).decode()
+    # svix-signature is a space-separated list of "v1,<base64>" pairs.
+    valid = False
+    for sig_entry in svix_signature.split(" "):
+        if "," not in sig_entry:
+            continue
+        version, value = sig_entry.split(",", 1)
+        if version != "v1":
+            continue
+        if hmac.compare_digest(value.strip(), expected_sig):
+            valid = True
+            break
+    if not valid:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={"code": "auth.webhook_signature_invalid", "message": "Unauthorized."},
+        )
+
+
+def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]) -> None:
+    if event_type == "user.created" or event_type == "user.updated":
+        emails = data.get("email_addresses") or []
+        primary_email_id = data.get("primary_email_address_id")
+        primary_email = None
+        for entry in emails:
+            if entry.get("id") == primary_email_id:
+                primary_email = entry.get("email_address")
+                break
+        directory.upsert_user(
+            clerk_user_id=data["id"],
+            email=primary_email,
+            display_name=" ".join(
+                filter(None, [data.get("first_name"), data.get("last_name")])
+            )
+            or None,
+            status="active",
+        )
+    elif event_type == "user.deleted":
+        directory.delete_user(clerk_user_id=data["id"])
+    elif event_type in {"organization.created", "organization.updated"}:
+        directory.upsert_tenant(
+            clerk_org_id=data["id"],
+            name=data.get("name") or data.get("slug") or data["id"],
+            slug=data.get("slug"),
+            status="active",
+        )
+    elif event_type == "organization.deleted":
+        directory.delete_tenant(clerk_org_id=data["id"])
+    elif event_type in {
+        "organizationMembership.created",
+        "organizationMembership.updated",
+    }:
+        org = data.get("organization") or {}
+        user = (data.get("public_user_data") or {})
+        clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
+        clerk_org_id = data.get("organization_id") or org.get("id")
+        if not (clerk_user_id and clerk_org_id):
+            raise ValueError("membership event missing user_id/organization_id")
+        directory.upsert_membership(
+            clerk_org_id=clerk_org_id,
+            clerk_user_id=clerk_user_id,
+            clerk_membership_id=data["id"],
+            role=data.get("role") or "org:member",
+            status="active",
+        )
+    elif event_type == "organizationMembership.deleted":
+        org = data.get("organization") or {}
+        user = (data.get("public_user_data") or {})
+        clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
+        clerk_org_id = data.get("organization_id") or org.get("id")
+        if clerk_user_id and clerk_org_id:
+            directory.revoke_membership(
+                clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id
+            )
+    else:
+        logger.info("ignoring unhandled clerk event type: %s", event_type)
+
+
+@router.post("/clerk", status_code=status.HTTP_204_NO_CONTENT)
+async def clerk_webhook(request: Request) -> None:
+    settings = get_auth_settings()
+    if settings.clerk is None or not settings.clerk.webhook_secret:
+        # Webhook endpoint is silent until configured.
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail={
+                "code": "auth.webhook_disabled",
+                "message": "Webhook handler not configured.",
+            },
+        )
+
+    body = await request.body()
+    headers = {k.lower(): v for k, v in request.headers.items()}
+    _verify_svix_signature(
+        secret=settings.clerk.webhook_secret,
+        headers=headers,
+        body=body,
+    )
+
+    import json
+
+    try:
+        payload = json.loads(body.decode("utf-8") or "{}")
+    except json.JSONDecodeError as exc:
+        logger.warning("clerk webhook body not valid JSON: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "auth.webhook_invalid_body", "message": "Bad request."},
+        ) from exc
+
+    event_id = headers.get("svix-id") or payload.get("id") or ""
+    event_type = payload.get("type")
+    data = payload.get("data") or {}
+    if not event_type or not isinstance(data, dict):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={"code": "auth.webhook_invalid_body", "message": "Bad request."},
+        )
+
+    directory = get_auth_directory()
+    if event_id and directory.has_processed_event(event_id):
+        logger.info("clerk webhook replay ignored: id=%s type=%s", event_id, event_type)
+        return None
+
+    try:
+        _apply_event(directory, event_type, data)
+    except KeyError as exc:
+        # Apply ordering: a membership may arrive before its user/org event.
+        # Surface a 409 so Clerk retries with backoff.
+        logger.warning("clerk webhook ordering: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail={"code": "auth.webhook_ordering", "message": "Retry later."},
+        ) from exc
+    except Exception as exc:
+        logger.exception("clerk webhook handler failed: %s", exc)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail={"code": "auth.webhook_failed", "message": "Internal error."},
+        ) from exc
+
+    if event_id:
+        directory.mark_event_processed(event_id, event_type)
+    return None

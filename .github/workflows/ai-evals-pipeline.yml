@@ -39,9 +39,9 @@ permissions:
   contents: read
   pull-requests: write
   checks: write
+  id-token: write  # Required for Infisical OIDC authentication
 
 env:
-  OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
   EVAL_THRESHOLD: 0.85  # Minimum pass rate for deployment
 
 jobs:
@@ -119,6 +119,15 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+
       - name: Install dependencies
         run: |
           # Install layer4-agents dependencies
@@ -171,6 +180,15 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
 
       - name: Install dependencies
         run: |
@@ -275,6 +293,15 @@ jobs:
           cd layer4-agents
           pip install -e . --quiet
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+
       - name: Run agent evaluation for ${{ matrix.agent }}
         run: |
           AGENT_NAME="${{ matrix.agent }}"
@@ -308,6 +335,15 @@ jobs:
           cd layer4-agents
           pip install -e . --quiet
           pip install pytest --quiet
+
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
 
       - name: Run golden trace evals
         run: |
@@ -675,10 +711,16 @@ jobs:
           git commit -m "chore(evals): update ground truth baseline [skip ci]" || echo "No changes"
           git push || echo "No changes to push"
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer4-agents
+
       - name: Update Model Registry with eval results
-        env:
-          L4_API_URL: ${{ secrets.L4_API_URL || 'http://localhost:8000' }}
-          L4_API_TOKEN: ${{ secrets.L4_API_TOKEN }}
         run: |
           echo "📤 Recording evaluation results in Model Registry..."
           
@@ -689,6 +731,7 @@ jobs:
             
             # Record eval run in Model Registry
             # This associates the eval results with the active production model
+            L4_API_URL="${L4_API_URL:-http://localhost:8000}"
             curl -s -X POST "${L4_API_URL}/v1/models/eval-run" \
               -H "Content-Type: application/json" \
               -H "Authorization: Bearer ${L4_API_TOKEN}" \

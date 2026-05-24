@@ -9,27 +9,26 @@ export interface WorkspaceTabProps {
   organizationId?: string;
 }
 
-export type WorkspaceTabId =
+export type IntelligenceTabId =
   | "signals"
   | "stakeholders"
   | "ontology-match"
   | "enrichment"
   | "hypotheses"
+  | "discovery-questions"
+  | "persona-fit"
+  | "assumptions"
   | "drivers"
   | "evidence"
   | "alternatives"
-  | "solution-cost"
-  | "calculator"
-  | "value-model"
-  | "value-case"
-  | "value-realization";
+  | "solution-cost";
 
 export type WorkspaceTabStatus = "active" | "stub";
 
 export type WorkspaceTabCategory = "input" | "reasoning" | "output";
 
 export interface WorkspaceTabDef {
-  id: WorkspaceTabId;
+  id: IntelligenceTabId;
   label: string;
   description: string;
   component: ComponentType<WorkspaceTabProps> | null;

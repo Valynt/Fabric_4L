@@ -2,18 +2,19 @@
  * useNavigation — Wrapper hook for centralized navigation service
  * Replaces direct useNavigate() with state-based navigation per CONTRACT.md §2.6
  */
-import { useNavigate, useLocation, type NavigateOptions, type To } from 'react-router-dom';
-import { getStatePath, type RouteState, type NavigationParams } from '@/navigation/navigationService';
-import { useWorkflowContext } from '@/hooks/useWorkflowContext';
-import { serializeWorkflowContextToQuery } from '@/workflow/context';
+import { useNavigate, useLocation, type NavigateOptions, type To } from "react-router-dom";
+import { getStatePath, type RouteState, type NavigationParams } from "@/navigation/navigationService";
+import { serializeQueryString } from "@/navigation/queryParams";
+import { useWorkflowContext } from "@/hooks/useWorkflowContext";
+import { serializeWorkflowContextToQuery } from "@/workflow/context";
 
-interface NavigationOptions extends Omit<NavigateOptions, 'state'> {
+interface NavigationOptions extends Omit<NavigateOptions, "state"> {
   replace?: boolean;
   state?: Record<string, unknown>;
 }
 
 interface StateNavigationOptions extends NavigationOptions {
-  query?: Record<string, string | number | undefined>;
+  query?: Record<string, string | number | boolean | undefined | string[]>;
 }
 
 interface NavigateToFunction {
@@ -26,24 +27,12 @@ export function useNavigation() {
   const location = useLocation();
   const workflowContext = useWorkflowContext();
 
-  const buildQueryString = (query?: Record<string, string | number | undefined>): string => {
-    if (!query) return '';
-    const params = new URLSearchParams();
-    for (const [key, value] of Object.entries(query)) {
-      if (value !== undefined) {
-        params.append(key, String(value));
-      }
-    }
-    const queryString = params.toString();
-    return queryString ? `?${queryString}` : '';
-  };
-
   const navigateTo: NavigateToFunction = (
     stateOrPath: RouteState | string,
     paramsOrOptions?: NavigationParams | NavigationOptions,
     options?: StateNavigationOptions
   ) => {
-    if (typeof stateOrPath === 'string' && stateOrPath.startsWith('/')) {
+    if (typeof stateOrPath === "string" && stateOrPath.startsWith("/")) {
       // Direct path navigation (backward compat)
       const opts = paramsOrOptions as NavigationOptions | undefined;
       navigate(stateOrPath, opts);
@@ -55,7 +44,7 @@ export function useNavigation() {
       let path = getStatePath(state, params);
       const contextQuery = serializeWorkflowContextToQuery(workflowContext);
       const mergedQuery = { ...contextQuery, ...(opts?.query ?? {}) };
-      path += buildQueryString(mergedQuery);
+      path += serializeQueryString(mergedQuery);
       const { query: _query, ...navigateOpts } = opts ?? {};
       navigate(path, navigateOpts);
     }
@@ -65,16 +54,18 @@ export function useNavigation() {
   const goForward = () => navigate(1);
 
   const navigateToLogin = (redirect?: string) => {
-    navigateTo('login', undefined, redirect ? { query: { redirect } } : undefined);
+    navigateTo("login", undefined, redirect ? { query: { redirect } } : undefined);
   };
 
-  const navigateToHome = () => navigateTo('home');
+  const navigateToHome = () => navigateTo("home");
 
-  const navigateToAccount = (accountId: string) =>
-    navigateTo('account-detail', { accountId });
+  const navigateToAccount = (tenantSlug: string, accountId: string) =>
+    navigateTo("account-detail", { tenantSlug, accountId });
 
-  const navigateToIntelligence = (accountId: string, tab?: string) =>
-    navigateTo('intelligence-signals', { accountId, tab });
+  const navigateToIntelligence = (tenantSlug: string, accountId: string, tab?: string) => {
+    const state = tab ? (`intelligence-${tab}` as RouteState) : "intelligence-signals";
+    navigateTo(state, { tenantSlug, accountId });
+  };
 
   return {
     navigate,

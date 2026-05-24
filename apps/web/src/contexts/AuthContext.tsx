@@ -25,6 +25,8 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   user: UserInfo | null;
+  /** Convenience accessor for the current tenant slug from user metadata. */
+  currentTenantSlug: string | null;
   /** @deprecated Token is in the httpOnly cookie; always null. */
   accessToken: null;
 
@@ -266,6 +268,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: authState.state === 'authenticated',
     isLoading,
     user: authState.user,
+    currentTenantSlug: authState.user?.tenantSlug ?? null,
     accessToken: null,
     initiateLogin,
     handleCallback,

@@ -11,7 +11,7 @@ vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual("react-router-dom");
   return {
     ...(actual as object),
-    useParams: () => ({ accountId: "acc-1" }),
+    useParams: () => ({ accountId: "acc-1", tenantSlug: "default" }),
     useNavigate: () => navigateMock,
   };
 });
@@ -63,8 +63,16 @@ describe("hypothesis validation to driver flow", () => {
       expect(navigateMock).toHaveBeenCalled();
     });
 
-    expect(navigateMock.mock.calls[0][0].pathname).toBe("/drivers/acc-1/evidence");
-    expect(String(navigateMock.mock.calls[0][0].search)).toContain("driver_id=driver_hyp-1");
-    expect(String(navigateMock.mock.calls[0][0].search)).toContain("linkage_id=vh%3Ahyp-1%3Adriver%3Adriver_hyp-1");
+    expect(navigateMock).toHaveBeenCalled();
+    const navCall = navigateMock.mock.calls.find((call) =>
+      typeof call[0] === "string" && call[0].includes("/intelligence/evidence")
+    );
+    expect(navCall).toBeDefined();
+    expect(navCall![0]).toBe("/t/default/accounts/acc-1/intelligence/evidence?driver_id=driver_hyp-1&linkage_id=vh%3Ahyp-1%3Adriver%3Adriver_hyp-1");
+    expect(navCall![1].state).toMatchObject({
+      hypothesisId: "hyp-1",
+      accountId: "acc-1",
+      driverId: "driver_hyp-1",
+    });
   });
 });

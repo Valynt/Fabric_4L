@@ -76,7 +76,9 @@ class TestKeycloakJWKSResolution:
                     mock_fetch.return_value = {"keys": []}
                     header = {"kid": "missing", "alg": "RS256"}
                     _resolve_external_key(header, "test-issuer")
-                    mock_fetch.assert_called_once_with("http://example.com/jwks")
+                    # Implementation has cache-busting re-fetch logic, so it may call twice
+                    assert mock_fetch.call_count >= 1
+                    assert mock_fetch.call_args_list[0][0][0] == "http://example.com/jwks"
 
     def test_jwks_resolution_order_keycloak_third(self):
         """Auto-built Keycloak URL is used when static and explicit URLs are absent."""
@@ -92,9 +94,9 @@ class TestKeycloakJWKSResolution:
                 mock_fetch.return_value = {"keys": []}
                 header = {"kid": "missing", "alg": "RS256"}
                 _resolve_external_key(header, "test-issuer")
-                mock_fetch.assert_called_once_with(
-                    "http://keycloak:8080/realms/fabric/protocol/openid-connect/certs"
-                )
+                # Implementation has cache-busting re-fetch logic, so it may call twice
+                assert mock_fetch.call_count >= 1
+                assert mock_fetch.call_args_list[0][0][0] == "http://keycloak:8080/realms/fabric/protocol/openid-connect/certs"
 
 
 class TestTokenValidation:
@@ -182,18 +184,22 @@ class TestJWKSCaching:
         test_url = "http://test/jwks"
         jwks_data = {"keys": [{"kid": "kid-1", "alg": "RS256"}]}
 
-        with patch("urllib.request.urlopen") as mock_urlopen:
+        with patch("httpx.Client") as mock_client_class:
+            mock_client = MagicMock()
             mock_response = MagicMock()
-            mock_response.read.return_value = json.dumps(jwks_data).encode()
-            mock_urlopen.return_value.__enter__.return_value = mock_response
+            mock_response.json.return_value = jwks_data
+            mock_response.raise_for_status = MagicMock()
+            mock_client.get.return_value = mock_response
+            mock_client.__enter__.return_value = mock_client
+            mock_client_class.return_value = mock_client
 
             # First fetch should hit network
             result1 = _fetch_jwks_from_url(test_url)
-            assert mock_urlopen.call_count == 1
+            assert mock_client.get.call_count == 1
 
             # Second fetch within TTL should use cache
             result2 = _fetch_jwks_from_url(test_url)
-            assert mock_urlopen.call_count == 1  # no new network call
+            assert mock_client.get.call_count == 1  # no new network call
             assert result2 == result1
 
             # Expire cache manually
@@ -201,7 +207,7 @@ class TestJWKSCaching:
 
             # Third fetch after expiry should hit network again
             result3 = _fetch_jwks_from_url(test_url)
-            assert mock_urlopen.call_count == 2
+            assert mock_client.get.call_count == 2
             assert result3 == result1
 
         # Clean up

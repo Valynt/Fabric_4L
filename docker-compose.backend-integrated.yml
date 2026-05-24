@@ -4,7 +4,12 @@
 # Full L1-L6 services with backing stores for the 61-test backend-integrated
 # validation milestone. Services map to localhost:8001-8006.
 #
-# Usage:
+# Usage (with Infisical — recommended):
+#   pnpm env:dev                    # generates .env.generated
+#   docker compose -f docker-compose.backend-integrated.yml --env-file .env.generated up --build -d
+#   make test-backend-integrated-validation
+#
+# Usage (legacy manual .env):
 #   docker compose -f docker-compose.backend-integrated.yml up --build -d
 #   make test-backend-integrated-validation
 # =============================================================================

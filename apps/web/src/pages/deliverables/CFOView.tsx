@@ -6,7 +6,7 @@
  * Route: /deliverables/views/cfo
  * Hooks: useBusinessCase, useBusinessCaseExport
  */
-import { useSearchParams, Link } from "react-router-dom";
+import { useSearchParams, Link, useParams } from "react-router-dom";
 import { deliverableRoutes } from "@/navigation/deliverableRoutes";
 import {
   DollarSign, TrendingUp, Clock, BarChart3, Download,
@@ -45,6 +45,7 @@ function KPI({ icon: Icon, label, value, sub, accent }: {
 
 export default function CFOView() {
   const [searchParams] = useSearchParams();
+  const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
   const caseId = searchParams.get("caseId");
   const { data: bc, isLoading, error } = useBusinessCase(caseId);
   const exportMutation = useBusinessCaseExport();
@@ -62,12 +63,24 @@ export default function CFOView() {
       <div className="flex flex-col items-center py-16">
         <AlertCircle size={24} className="text-red-500 mb-2" />
         <p className="text-[13px] text-neutral-600">{caseId ? "Failed to load business case." : "No case selected. Navigate from the case list."}</p>
-        <Link to="/deliverables/cases" className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>
+        {tenantSlug && accountId ? (
+          <Link to={deliverableRoutes.businessCaseList(tenantSlug, accountId)} className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>
+        ) : (
+          <Link to="/deliverables/cases" className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>
+        )}
       </div>
     </div>
   );
 
   const netValue = bc.total_value - bc.implementation_cost;
+
+  // Graceful handling if route params are missing
+  const listHref = tenantSlug && accountId
+    ? deliverableRoutes.businessCaseList(tenantSlug, accountId)
+    : "/deliverables/cases";
+  const detailHref = tenantSlug && accountId && bc.case_id
+    ? deliverableRoutes.businessCaseDetail(tenantSlug, accountId, bc.case_id)
+    : "/deliverables/cases";
 
   return (
     <div className="p-6 max-w-5xl mx-auto">
@@ -75,13 +88,13 @@ export default function CFOView() {
         title={`CFO View: ${bc.title}`}
         subtitle="Financial summary for executive decision-making"
         breadcrumbs={[
-          { label: "Deliverables", href: deliverableRoutes.businessCaseList() },
-          { label: bc.title, href: deliverableRoutes.businessCaseDetail(bc.case_id) },
+          { label: "Deliverables", href: listHref },
+          { label: bc.title, href: detailHref },
           { label: "CFO View" },
         ]}
         actions={
           <div className="flex gap-2">
-            <Link to={deliverableRoutes.businessCaseDetail(bc.case_id)}>
+            <Link to={detailHref}>
               <Btn variant="ghost"><ArrowLeft size={14} /> Full Case</Btn>
             </Link>
             <Btn

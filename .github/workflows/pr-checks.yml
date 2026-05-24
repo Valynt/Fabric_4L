@@ -10,6 +10,7 @@ name: PR Checks
 
 permissions:
   contents: read
+  id-token: write  # Required for Infisical OIDC authentication
 
 on:
   pull_request:
@@ -1419,11 +1420,19 @@ jobs:
         run: |
           docker compose version
 
+      - name: Fetch secrets from Infisical
+        uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
+        with:
+          method: oidc
+          env-slug: dev
+          project-slug: fabric4l
+          identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
+          secret-path: /layer2-extraction
+
       - name: Start core services
         run: |
           export NEO4J_PASSWORD=valuefabric
-          # P1-22 FIX: Removed secret fallback - secrets must be configured
-          export OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}
+          export OPENAI_API_KEY=${OPENAI_API_KEY}
           docker compose up -d neo4j redis postgres
           # Start layers in background
           docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents

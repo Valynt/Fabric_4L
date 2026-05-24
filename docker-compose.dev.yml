@@ -3,7 +3,11 @@
 # =============================================================================
 # Spins up the full platform with auth bypass for local exploration.
 #
-# Usage:
+# Usage (with Infisical — recommended):
+#   pnpm env:dev                    # generates .env.generated
+#   docker compose -f docker-compose.dev.yml --env-file .env.generated up --build
+#
+# Usage (legacy manual .env):
 #   docker compose -f docker-compose.dev.yml up --build
 #
 # Services:

@@ -21,7 +21,7 @@ from fastapi.testclient import TestClient
 import jwt
 
 from app.core.config import get_settings
-from app.core.security import decode_token
+from app.core.security import decode_token, revoke_token
 from app.main import app
 
 from .conftest import TENANT_ALPHA, TENANT_BETA, TEST_AUDIENCE, TEST_ISSUER, auth_headers, mint_token
@@ -269,7 +269,7 @@ class TestProductionSecretGuard:
 
         get_settings.cache_clear()
 
-        with pytest.raises(RuntimeError, match="PostgreSQL with Row-Level Security"):
+        with pytest.raises(RuntimeError, match="services/api requires a PostgreSQL database with Row-Level Security"):
             get_settings()
 
         get_settings.cache_clear()

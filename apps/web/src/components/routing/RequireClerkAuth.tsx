@@ -1,0 +1,80 @@
+/**
+ * <RequireClerkAuth /> — Phase 2 route guard layered on top of the legacy
+ * <ProtectedRoute />.
+ *
+ * Behavior:
+ *   - When AUTH_PROVIDER=legacy: renders children unconditionally. The
+ *     existing <ProtectedRoute /> guards remain authoritative, so this
+ *     component is a no-op and zero-risk to add to existing routes.
+ *   - When AUTH_PROVIDER=clerk:
+ *       - If Clerk is still loading, render a small spinner.
+ *       - If the user is not signed in, redirect to the configured sign-in
+ *         URL with the original location preserved.
+ *       - If the user has no active organization (and the route requires
+ *         one), redirect to the org-picker page.
+ *
+ * Tenant authority remains server-side: the gateway always trusts the
+ * verified Fabric4L envelope, never anything from the browser.
+ */
+import { useAuth, useOrganization } from "@clerk/react";
+import { Navigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
+
+import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
+
+interface RequireClerkAuthProps {
+  children: ReactNode;
+  /**
+   * When true (default), users must have an active Clerk organization. Set
+   * to false for routes that are valid before an org is selected (e.g. the
+   * org picker itself).
+   */
+  requireOrganization?: boolean;
+}
+
+function ClerkLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="flex h-full min-h-[400px] items-center justify-center"
+    >
+      <div className="flex flex-col items-center gap-3">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+        <p className="text-sm text-muted-foreground">Verifying session...</p>
+      </div>
+    </div>
+  );
+}
+
+export function RequireClerkAuth({
+  children,
+  requireOrganization = true,
+}: RequireClerkAuthProps) {
+  const location = useLocation();
+  const urls = getClerkUrls();
+  const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { isLoaded: orgLoaded, organization } = useOrganization();
+
+  // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
+  if (!isClerkAuthEnabled()) {
+    return <>{children}</>;
+  }
+
+  if (!authLoaded || (requireOrganization && !orgLoaded)) {
+    return <ClerkLoadingFallback />;
+  }
+
+  if (!isSignedIn) {
+    const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+      location.pathname + location.search,
+    )}`;
+    return <Navigate to={redirectTo} replace />;
+  }
+
+  if (requireOrganization && !organization) {
+    return <Navigate to={urls.selectOrgUrl} replace />;
+  }
+
+  return <>{children}</>;
+}

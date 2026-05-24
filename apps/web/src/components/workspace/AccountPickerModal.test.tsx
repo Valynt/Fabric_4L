@@ -29,6 +29,10 @@ vi.mock("@/hooks", async () => {
   };
 });
 
+vi.mock("@/contexts/AuthContext", () => ({
+  useAuthContext: () => ({ currentTenantSlug: "default" }),
+}));
+
 vi.mock("@/stores/accountContextStore", () => ({
   useAccountContextStore: (selector: (state: { setSelectedAccountId: typeof mockSetSelectedAccountId }) => unknown) =>
     selector({ setSelectedAccountId: mockSetSelectedAccountId }),
@@ -90,7 +94,7 @@ describe("AccountPickerModal", () => {
     if (item) await user.click(item);
 
     expect(mockSetSelectedAccountId).toHaveBeenCalledWith("acc-001");
-    expect(mockNavigate).toHaveBeenCalledWith("/intelligence/acc-001/signals", undefined);
+    expect(mockNavigate).toHaveBeenCalledWith("/t/default/accounts/acc-001/intelligence/signals", undefined);
   });
 
   it("shows error state when accounts fail to load", () => {

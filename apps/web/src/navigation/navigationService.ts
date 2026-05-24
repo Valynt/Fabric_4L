@@ -2,260 +2,316 @@
  * Navigation Service — Centralized Navigation with State Machine Support
  *
  * Replaces imperative useNavigate() calls with declarative state-based navigation.
- * Per CONTRACT.md §2.6: UI State Progression and Route Model
- *
- * Migration from:
- *   - navigate('/path') → navigateToState('stateId', params)
- *   - URL concatenation → route configuration with parameters
+ * All routes use canonical /t/:tenantSlug prefix.
  */
 
 import type { ReactNode } from "react";
-import type { NavigateOptions, To } from 'react-router-dom';
+import type { NavigateOptions, To } from "react-router-dom";
+import type { UserTier } from "@/routes/types";
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Route State Definitions (Contract §2.6)
+// Route State Definitions (Canonical)
 // ─────────────────────────────────────────────────────────────────────────────
 
 export type RouteState =
+  // Legacy aliases (temporary for component compatibility during migration)
+  | "hypothesis"
+  | "drivers"
+  | "drivers-evidence"
+  | "calculator"
+  | "value-case"
+  | "realization"
+  | "formula-builder"
+  | "formula-new"
+  | "business-case-detail"
+  | "business-cases"
+  | "business-case-interactive"
+  | "business-case-new"
+  | "decision-trace"
+  | "model-detail"
+  | "integrations"
+  | "cfo-view"
+  | "executive-view"
+  | "technical-view"
+  | "interactive-calculator"
+  | "opportunities"
+  | "opportunity-scan"
   // Auth
-  | 'login'
-  | 'signup'
-  | 'login-callback'
+  | "login"
+  | "signup"
+  | "login-callback"
   // Home
-  | 'root'
-  | 'home'
-  | 'command-center'
+  | "root"
+  | "home"
+  | "command-center"
   // Accounts
-  | 'accounts'
-  | 'account-detail'
-  // Workspaces
-  | 'intelligence'
-  | 'intelligence-signals'
-  | 'account-intelligence'
-  | 'hypothesis'
-  | 'drivers'
-  | 'drivers-evidence'
-  | 'calculator'
-  | 'value-case'
-  | 'realization'
-  // Studio (legacy)
-  | 'studio'
-  // Context Engine
-  | 'value-packs'
-  | 'my-models'
-  | 'model-detail'
-  | 'formulas'
-  | 'formula-builder'
-  | 'formula-new'
-  | 'value-trees'
-  | 'normalization'
-  | 'agent-workflows'
-  | 'ontology'
-  | 'entity-browser'
-  | 'entity-detail'
-  | 'graph-explorer'
-  | 'ingestion-jobs'
-  | 'extraction'
-  | 'integrations'
-  | 'sources'
-  | 'targets'
-  // Discover
-  | 'opportunities'
-  | 'opportunity-scan'
-  // Deliverables
-  | 'business-cases'
-  | 'business-cases-agent'
-  | 'business-case-detail'
-  | 'business-case-new'
-  | 'business-case-interactive'
-  // Decision Support
-  | 'decision-trace'
-  | 'interactive-calculator'
-  | 'cfo-view'
-  | 'executive-view'
-  | 'technical-view'
-  // Governance
-  | 'governance-traces'
-  | 'governance-evidence'
-  | 'governance-provenance'
-  | 'governance-integrity'
-  | 'governance-compliance'
-  | 'governance-benchmarks'
-  | 'governance-audit-log'
-  | 'governance-change-history'
-  | 'governance-health'
-  // Workflow
-  | 'workflow-prospect'
-  | 'workflow-intelligence'
-  | 'workflow-ai-model'
-  | 'workflow-driver-tree'
-  | 'workflow-evidence'
-  | 'workflow-calculator'
-  | 'workflow-value-case'
-  // Settings - Personal
-  | 'personal-profile'
-  | 'personal-security'
-  | 'personal-preferences'
-  | 'personal-notifications'
-  | 'personal-sessions'
-  // Settings - Workspace
-  | 'settings-workspace'
-  | 'settings-subscription'
-  | 'settings-usage'
-  | 'settings-payment-methods'
-  | 'settings-invoices'
-  // Settings - Team
-  | 'settings-team-members'
-  | 'settings-team-invitations'
-  | 'settings-team-roles'
-  | 'settings-team-permissions'
-  | 'settings-team-api-keys'
-  // Settings - Data
-  | 'settings-data-sources'
-  | 'settings-data-integrations'
-  | 'settings-data-variables'
-  | 'settings-data-value-packs'
-  | 'settings-data-ingestion-rules'
-  // Settings - Governance
-  | 'settings-governance-policies'
-  | 'settings-governance-compliance'
-  | 'settings-governance-health'
-  | 'settings-governance-audit-trail'
-  | 'settings-governance-admin-controls'
+  | "accounts"
+  | "account-detail"
+  | "account-overview"
+  // Intelligence Workspace (account-scoped)
+  | "intelligence"
+  | "intelligence-signals"
+  | "intelligence-stakeholders"
+  | "intelligence-enrichment"
+  | "intelligence-ontology"
+  | "intelligence-hypotheses"
+  | "intelligence-discovery"
+  | "intelligence-persona"
+  | "intelligence-assumptions"
+  | "intelligence-drivers"
+  | "intelligence-evidence"
+  | "intelligence-alternatives"
+  | "intelligence-solution-cost"
+  // Value Studio Workspace (account-scoped)
+  | "studio"
+  | "studio-action-plan"
+  | "studio-value-model"
+  | "studio-driver-tree"
+  | "studio-calculator"
+  | "studio-narrative"
+  | "studio-value-case"
+  | "studio-value-realization"
+  | "studio-solution-cost"
+  // Deliverables (account-scoped)
+  | "deliverables"
+  | "deliverables-business-cases"
+  | "deliverables-business-case-detail"
+  | "deliverables-proposals"
+  | "deliverables-exports"
+  | "deliverables-cfo-view"
+  | "deliverables-executive-view"
+  | "deliverables-technical-view"
+  // Context Engine (tenant-scoped)
+  | "context"
+  | "context-sources"
+  | "context-source-detail"
+  | "context-entities"
+  | "context-entity-detail"
+  | "context-graph"
+  | "context-ingestion-runs"
+  | "context-ingestion-run-detail"
+  | "context-extraction"
+  | "context-ontology"
+  | "context-agents"
+  | "context-integrations"
+  // Governance (tenant-scoped)
+  | "governance"
+  | "governance-traces"
+  | "governance-evidence"
+  | "governance-provenance"
+  | "governance-compliance"
+  | "governance-formulas"
+  | "governance-formula-detail"
+  | "governance-benchmarks"
+  | "governance-benchmark-detail"
+  | "governance-value-packs"
+  | "governance-value-pack-detail"
+  | "governance-policies"
+  | "governance-audit-log"
+  | "governance-health"
+  // Agents & Workflows (account-scoped)
+  | "agents"
+  | "agents-thread"
+  | "workflows"
+  | "workflow-run"
+  // Settings — Personal (global)
+  | "settings-profile"
+  | "settings-security"
+  | "settings-preferences"
+  | "settings-notifications"
+  | "settings-sessions"
+  | "settings-activity"
+  // Settings — Tenant (tenant-scoped)
+  | "tenant-settings"
+  | "tenant-settings-workspace"
+  | "tenant-settings-billing"
+  | "tenant-settings-subscription"
+  | "tenant-settings-usage"
+  | "tenant-settings-payment-methods"
+  | "tenant-settings-invoices"
+  | "tenant-settings-users"
+  | "tenant-settings-roles"
+  | "tenant-settings-permissions"
+  | "tenant-settings-api-keys"
+  | "tenant-settings-data-sources"
+  | "tenant-settings-integrations"
+  | "tenant-settings-variables"
+  | "tenant-settings-value-packs"
+  | "tenant-settings-ingestion-rules"
+  | "tenant-settings-governance-policies"
+  | "tenant-settings-governance-compliance"
+  | "tenant-settings-governance-health"
+  | "tenant-settings-governance-audit"
+  | "tenant-settings-governance-admin"
   // Dev Tools
-  | 'dev-integration';
+  | "dev-integration"
+  // Legacy settings
+  | "personal-profile"
+  | "personal-security"
+  | "personal-preferences"
+  | "personal-notifications"
+  | "personal-sessions";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Route Configuration Map
 // ─────────────────────────────────────────────────────────────────────────────
 
-interface RouteConfig {
+export interface RouteConfig {
   path: string;
   params?: string[];
+  analyticsRouteId: string;
 }
 
 const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   // Auth
-  'login': { path: '/login' },
-  'signup': { path: '/signup' },
-  'login-callback': { path: '/login/callback' },
+  login: { path: "/login", analyticsRouteId: "auth.login" },
+  signup: { path: "/signup", analyticsRouteId: "auth.signup" },
+  "login-callback": { path: "/login/callback", analyticsRouteId: "auth.callback" },
 
   // Home
-  'root': { path: '/' },
-  'home': { path: '/home' },
-  'command-center': { path: '/command-center' },
+  root: { path: "/", analyticsRouteId: "home.root" },
+  home: { path: "/home", analyticsRouteId: "home.dashboard" },
+  "command-center": { path: "/command-center", analyticsRouteId: "home.command-center" },
 
   // Accounts
-  'accounts': { path: '/accounts' },
-  'account-detail': { path: '/accounts/:accountId', params: ['accountId'] },
+  accounts: { path: "/t/:tenantSlug/accounts", params: ["tenantSlug"], analyticsRouteId: "accounts.list" },
+  "account-detail": { path: "/t/:tenantSlug/accounts/:accountId", params: ["tenantSlug", "accountId"], analyticsRouteId: "accounts.detail" },
+  "account-overview": { path: "/t/:tenantSlug/accounts/:accountId/overview", params: ["tenantSlug", "accountId"], analyticsRouteId: "accounts.overview" },
 
-  // Workspaces (account-scoped)
-  'intelligence': { path: '/intelligence/:accountId', params: ['accountId'] },
-  'intelligence-signals': { path: '/intelligence/:accountId/signals', params: ['accountId'] },
-  'account-intelligence': { path: '/accounts/:accountId/intelligence', params: ['accountId'] },
-  'hypothesis': { path: '/hypothesis/:accountId', params: ['accountId'] },
-  'drivers': { path: '/drivers/:accountId', params: ['accountId'] },
-  'drivers-evidence': { path: '/drivers/:accountId/evidence', params: ['accountId'] },
-  'calculator': { path: '/calculator/:accountId', params: ['accountId'] },
-  'value-case': { path: '/value-case/:accountId', params: ['accountId'] },
-  'realization': { path: '/realization/:accountId', params: ['accountId'] },
+  // Intelligence Workspace
+  intelligence: { path: "/t/:tenantSlug/accounts/:accountId/intelligence", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.workspace" },
+  "intelligence-signals": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.signals" },
+  "intelligence-stakeholders": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.stakeholders" },
+  "intelligence-enrichment": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/enrichment", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.enrichment" },
+  "intelligence-ontology": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/ontology", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.ontology" },
+  "intelligence-hypotheses": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/hypotheses", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.hypotheses" },
+  "intelligence-discovery": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/discovery-questions", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.discovery" },
+  "intelligence-persona": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/persona-fit", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.persona" },
+  "intelligence-assumptions": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/assumptions", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.assumptions" },
+  "intelligence-drivers": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.drivers" },
+  "intelligence-evidence": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.evidence" },
+  "intelligence-alternatives": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/alternatives", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.alternatives" },
+  "intelligence-solution-cost": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/solution-cost", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.solution-cost" },
 
-  // Studio (legacy, account-scoped)
-  'studio': { path: '/studio/:accountId', params: ['accountId'] },
-
-  // Context Engine
-  'value-packs': { path: '/context/packs' },
-  'my-models': { path: '/context/models' },
-  'model-detail': { path: '/library/models/:modelId', params: ['modelId'] },
-  'formulas': { path: '/context/formulas' },
-  'formula-builder': { path: '/context/formulas/:formulaId', params: ['formulaId'] },
-  'formula-new': { path: '/model/value-studio/formulas/new' },
-  'value-trees': { path: '/context/value-trees/explorer' },
-  'normalization': { path: '/model/value-studio/normalization' },
-  'agent-workflows': { path: '/context/agents' },
-  'ontology': { path: '/context/ontology' },
-  'entity-browser': { path: '/context/ontology/entities' },
-  'entity-detail': { path: '/context/ontology/entities/:entityId', params: ['entityId'] },
-  'graph-explorer': { path: '/context/ontology/graph' },
-  'ingestion-jobs': { path: '/context/ingestion/jobs' },
-  'extraction': { path: '/context/extraction' },
-  'integrations': { path: '/context/integrations' },
-  'sources': { path: '/context/sources' },
-  'targets': { path: '/context/targets' },
-
-  // Discover
-  'opportunities': { path: '/discover/opportunities' },
-  'opportunity-scan': { path: '/discover/opportunities/scan' },
+  // Value Studio Workspace
+  studio: { path: "/t/:tenantSlug/accounts/:accountId/studio", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.workspace" },
+  "studio-action-plan": { path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.action-plan" },
+  "studio-value-model": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-model", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-model" },
+  "studio-driver-tree": { path: "/t/:tenantSlug/accounts/:accountId/studio/driver-tree", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.driver-tree" },
+  "studio-calculator": { path: "/t/:tenantSlug/accounts/:accountId/studio/calculator", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.calculator" },
+  "studio-narrative": { path: "/t/:tenantSlug/accounts/:accountId/studio/narrative", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.narrative" },
+  "studio-value-case": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-case", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-case" },
+  "studio-value-realization": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-realization", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-realization" },
+  "studio-solution-cost": { path: "/t/:tenantSlug/accounts/:accountId/studio/solution-cost", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.solution-cost" },
 
   // Deliverables
-  'business-cases': { path: '/deliverables/cases' },
-  'business-cases-agent': { path: '/agents/business-cases' },
-  'business-case-detail': { path: '/deliverables/cases/:caseId', params: ['caseId'] },
-  'business-case-new': { path: '/deliverables/cases/new' },
-  'business-case-interactive': { path: '/agents/business-cases/explore' },
-  'interactive-calculator': { path: '/deliverables/calculators' },
-  'decision-trace': { path: '/decision-trace' },
-  'cfo-view': { path: '/deliverables/views/cfo' },
-  'executive-view': { path: '/deliverables/views/executive' },
-  'technical-view': { path: '/deliverables/views/technical' },
+  deliverables: { path: "/t/:tenantSlug/accounts/:accountId/deliverables", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.workspace" },
+  "deliverables-business-cases": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.business-cases" },
+  "deliverables-business-case-detail": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId", params: ["tenantSlug", "accountId", "caseId"], analyticsRouteId: "deliverables.business-case-detail" },
+  "deliverables-proposals": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/proposals", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.proposals" },
+  "deliverables-exports": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/exports", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.exports" },
+  "deliverables-cfo-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.cfo-view" },
+  "deliverables-executive-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.executive-view" },
+  "deliverables-technical-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.technical-view" },
+
+  // Context Engine
+  context: { path: "/t/:tenantSlug/context", params: ["tenantSlug"], analyticsRouteId: "context.workspace" },
+  "context-sources": { path: "/t/:tenantSlug/context/sources", params: ["tenantSlug"], analyticsRouteId: "context.sources" },
+  "context-source-detail": { path: "/t/:tenantSlug/context/sources/:sourceId", params: ["tenantSlug", "sourceId"], analyticsRouteId: "context.source-detail" },
+  "context-entities": { path: "/t/:tenantSlug/context/entities", params: ["tenantSlug"], analyticsRouteId: "context.entities" },
+  "context-entity-detail": { path: "/t/:tenantSlug/context/entities/:entityId", params: ["tenantSlug", "entityId"], analyticsRouteId: "context.entity-detail" },
+  "context-graph": { path: "/t/:tenantSlug/context/graph", params: ["tenantSlug"], analyticsRouteId: "context.graph" },
+  "context-ingestion-runs": { path: "/t/:tenantSlug/context/ingestion-runs", params: ["tenantSlug"], analyticsRouteId: "context.ingestion-runs" },
+  "context-ingestion-run-detail": { path: "/t/:tenantSlug/context/ingestion-runs/:runId", params: ["tenantSlug", "runId"], analyticsRouteId: "context.ingestion-run-detail" },
+  "context-extraction": { path: "/t/:tenantSlug/context/extraction", params: ["tenantSlug"], analyticsRouteId: "context.extraction" },
+  "context-ontology": { path: "/t/:tenantSlug/context/ontology", params: ["tenantSlug"], analyticsRouteId: "context.ontology" },
+  "context-agents": { path: "/t/:tenantSlug/context/agents", params: ["tenantSlug"], analyticsRouteId: "context.agents" },
+  "context-integrations": { path: "/t/:tenantSlug/context/integrations", params: ["tenantSlug"], analyticsRouteId: "context.integrations" },
 
   // Governance
-  'governance-traces': { path: '/governance/traces' },
-  'governance-evidence': { path: '/governance/evidence' },
-  'governance-provenance': { path: '/governance/provenance' },
-  'governance-integrity': { path: '/governance/integrity' },
-  'governance-compliance': { path: '/governance/compliance' },
-  'governance-benchmarks': { path: '/governance/benchmarks' },
-  'governance-audit-log': { path: '/governance/audit/log' },
-  'governance-change-history': { path: '/governance/audit/changes' },
-  'governance-health': { path: '/governance/health' },
+  governance: { path: "/t/:tenantSlug/governance", params: ["tenantSlug"], analyticsRouteId: "governance.workspace" },
+  "governance-traces": { path: "/t/:tenantSlug/governance/traces", params: ["tenantSlug"], analyticsRouteId: "governance.traces" },
+  "governance-evidence": { path: "/t/:tenantSlug/governance/evidence", params: ["tenantSlug"], analyticsRouteId: "governance.evidence" },
+  "governance-provenance": { path: "/t/:tenantSlug/governance/provenance", params: ["tenantSlug"], analyticsRouteId: "governance.provenance" },
+  "governance-compliance": { path: "/t/:tenantSlug/governance/compliance", params: ["tenantSlug"], analyticsRouteId: "governance.compliance" },
+  "governance-formulas": { path: "/t/:tenantSlug/governance/formulas", params: ["tenantSlug"], analyticsRouteId: "governance.formulas" },
+  "governance-formula-detail": { path: "/t/:tenantSlug/governance/formulas/:formulaId", params: ["tenantSlug", "formulaId"], analyticsRouteId: "governance.formula-detail" },
+  "governance-benchmarks": { path: "/t/:tenantSlug/governance/benchmarks", params: ["tenantSlug"], analyticsRouteId: "governance.benchmarks" },
+  "governance-benchmark-detail": { path: "/t/:tenantSlug/governance/benchmarks/:benchmarkId", params: ["tenantSlug", "benchmarkId"], analyticsRouteId: "governance.benchmark-detail" },
+  "governance-value-packs": { path: "/t/:tenantSlug/governance/value-packs", params: ["tenantSlug"], analyticsRouteId: "governance.value-packs" },
+  "governance-value-pack-detail": { path: "/t/:tenantSlug/governance/value-packs/:packId", params: ["tenantSlug", "packId"], analyticsRouteId: "governance.value-pack-detail" },
+  "governance-policies": { path: "/t/:tenantSlug/governance/policies", params: ["tenantSlug"], analyticsRouteId: "governance.policies" },
+  "governance-audit-log": { path: "/t/:tenantSlug/governance/audit-log", params: ["tenantSlug"], analyticsRouteId: "governance.audit-log" },
+  "governance-health": { path: "/t/:tenantSlug/governance/health", params: ["tenantSlug"], analyticsRouteId: "governance.health" },
 
-  // Workflow
-  'workflow-prospect': { path: '/workflow/prospect' },
-  'workflow-intelligence': { path: '/workflow/intelligence' },
-  'workflow-ai-model': { path: '/workflow/ai-model' },
-  'workflow-driver-tree': { path: '/workflow/driver-tree' },
-  'workflow-evidence': { path: '/workflow/evidence' },
-  'workflow-calculator': { path: '/workflow/calculator' },
-  'workflow-value-case': { path: '/workflow/value-case' },
+  // Agents & Workflows
+  agents: { path: "/t/:tenantSlug/accounts/:accountId/agents", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.console" },
+  "agents-thread": { path: "/t/:tenantSlug/accounts/:accountId/agents/threads/:threadId", params: ["tenantSlug", "accountId", "threadId"], analyticsRouteId: "agents.thread" },
+  workflows: { path: "/t/:tenantSlug/accounts/:accountId/workflows", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.workflows" },
+  "workflow-run": { path: "/t/:tenantSlug/accounts/:accountId/workflows/:workflowRunId", params: ["tenantSlug", "accountId", "workflowRunId"], analyticsRouteId: "agents.workflow-run" },
 
-  // Settings - Personal
-  'personal-profile': { path: '/personal/profile' },
-  'personal-security': { path: '/personal/security' },
-  'personal-preferences': { path: '/personal/preferences' },
-  'personal-notifications': { path: '/personal/notifications' },
-  'personal-sessions': { path: '/personal/sessions' },
+  // Settings — Personal (global)
+  "settings-profile": { path: "/settings/profile", analyticsRouteId: "settings.profile" },
+  "settings-security": { path: "/settings/security", analyticsRouteId: "settings.security" },
+  "settings-preferences": { path: "/settings/preferences", analyticsRouteId: "settings.preferences" },
+  "settings-notifications": { path: "/settings/notifications", analyticsRouteId: "settings.notifications" },
+  "settings-sessions": { path: "/settings/sessions", analyticsRouteId: "settings.sessions" },
+  "settings-activity": { path: "/settings/activity", analyticsRouteId: "settings.activity" },
 
-  // Settings - Workspace
-  'settings-workspace': { path: '/settings/workspace' },
-  'settings-subscription': { path: '/settings/billing/subscription' },
-  'settings-usage': { path: '/settings/billing/usage' },
-  'settings-payment-methods': { path: '/settings/billing/payment-methods' },
-  'settings-invoices': { path: '/settings/billing/invoices' },
-
-  // Settings - Team
-  'settings-team-members': { path: '/settings/team' },
-  'settings-team-invitations': { path: '/settings/team/invitations' },
-  'settings-team-roles': { path: '/settings/team/roles' },
-  'settings-team-permissions': { path: '/settings/team/permissions' },
-  'settings-team-api-keys': { path: '/settings/team/api-keys' },
-
-  // Settings - Data
-  'settings-data-sources': { path: '/settings/data/sources' },
-  'settings-data-integrations': { path: '/settings/data/integrations' },
-  'settings-data-variables': { path: '/settings/data/variables' },
-  'settings-data-value-packs': { path: '/settings/data/value-packs' },
-  'settings-data-ingestion-rules': { path: '/settings/data/ingestion-rules' },
-
-  // Settings - Governance
-  'settings-governance-policies': { path: '/settings/governance/policies' },
-  'settings-governance-compliance': { path: '/settings/governance/compliance' },
-  'settings-governance-health': { path: '/settings/governance/health' },
-  'settings-governance-audit-trail': { path: '/settings/governance/audit-trail' },
-  'settings-governance-admin-controls': { path: '/settings/governance/admin-controls' },
+  // Settings — Tenant (tenant-scoped)
+  "tenant-settings": { path: "/t/:tenantSlug/settings", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.workspace" },
+  "tenant-settings-workspace": { path: "/t/:tenantSlug/settings/workspace", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.workspace-profile" },
+  "tenant-settings-billing": { path: "/t/:tenantSlug/settings/billing", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.billing" },
+  "tenant-settings-subscription": { path: "/t/:tenantSlug/settings/billing/subscription", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.subscription" },
+  "tenant-settings-usage": { path: "/t/:tenantSlug/settings/billing/usage", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.usage" },
+  "tenant-settings-payment-methods": { path: "/t/:tenantSlug/settings/billing/payment-methods", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.payment-methods" },
+  "tenant-settings-invoices": { path: "/t/:tenantSlug/settings/billing/invoices", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.invoices" },
+  "tenant-settings-users": { path: "/t/:tenantSlug/settings/users", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.users" },
+  "tenant-settings-roles": { path: "/t/:tenantSlug/settings/roles", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.roles" },
+  "tenant-settings-permissions": { path: "/t/:tenantSlug/settings/permissions", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.permissions" },
+  "tenant-settings-api-keys": { path: "/t/:tenantSlug/settings/api-keys", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.api-keys" },
+  "tenant-settings-data-sources": { path: "/t/:tenantSlug/settings/data-sources", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.data-sources" },
+  "tenant-settings-integrations": { path: "/t/:tenantSlug/settings/integrations", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.integrations" },
+  "tenant-settings-variables": { path: "/t/:tenantSlug/settings/variables", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.variables" },
+  "tenant-settings-value-packs": { path: "/t/:tenantSlug/settings/value-packs", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.value-packs" },
+  "tenant-settings-ingestion-rules": { path: "/t/:tenantSlug/settings/ingestion-rules", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.ingestion-rules" },
+  "tenant-settings-governance-policies": { path: "/t/:tenantSlug/settings/governance/policies", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.governance-policies" },
+  "tenant-settings-governance-compliance": { path: "/t/:tenantSlug/settings/governance/compliance", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.governance-compliance" },
+  "tenant-settings-governance-health": { path: "/t/:tenantSlug/settings/governance/health", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.governance-health" },
+  "tenant-settings-governance-audit": { path: "/t/:tenantSlug/settings/governance/audit", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.governance-audit" },
+  "tenant-settings-governance-admin": { path: "/t/:tenantSlug/settings/governance/admin", params: ["tenantSlug"], analyticsRouteId: "tenant-settings.governance-admin" },
 
   // Dev Tools
-  'dev-integration': { path: '/dev/integration' },
+  "dev-integration": { path: "/dev/integration", analyticsRouteId: "dev.integration" },
+
+  // Legacy aliases (map old route states to canonical paths)
+  hypothesis: { path: "/t/:tenantSlug/accounts/:accountId/intelligence/hypotheses", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.hypotheses" },
+  drivers: { path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.drivers" },
+  "drivers-evidence": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.evidence" },
+  calculator: { path: "/t/:tenantSlug/accounts/:accountId/studio/calculator", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.calculator" },
+  "value-case": { path: "/t/:tenantSlug/accounts/:accountId/studio/value-case", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-case" },
+  realization: { path: "/t/:tenantSlug/accounts/:accountId/studio/value-realization", params: ["tenantSlug", "accountId"], analyticsRouteId: "studio.value-realization" },
+  "formula-builder": { path: "/t/:tenantSlug/context/formulas/:formulaId", params: ["tenantSlug", "formulaId"], analyticsRouteId: "context.formula-detail" },
+  "formula-new": { path: "/t/:tenantSlug/context/formulas/new", params: ["tenantSlug"], analyticsRouteId: "context.formulas-new" },
+  "business-case-detail": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/:caseId", params: ["tenantSlug", "accountId", "caseId"], analyticsRouteId: "deliverables.business-case-detail" },
+  "business-cases": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.business-cases" },
+  "business-case-interactive": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/calculators", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.calculators" },
+  "business-case-new": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/business-cases/new", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.business-case-new" },
+  "decision-trace": { path: "/t/:tenantSlug/governance/traces", params: ["tenantSlug"], analyticsRouteId: "governance.traces" },
+  "model-detail": { path: "/t/:tenantSlug/context/models/:modelId", params: ["tenantSlug", "modelId"], analyticsRouteId: "context.model-detail" },
+  integrations: { path: "/t/:tenantSlug/context/integrations", params: ["tenantSlug"], analyticsRouteId: "context.integrations" },
+  "cfo-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/cfo", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.cfo-view" },
+  "executive-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/executive", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.executive-view" },
+  "technical-view": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/views/technical", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.technical-view" },
+  "interactive-calculator": { path: "/t/:tenantSlug/accounts/:accountId/deliverables/calculators", params: ["tenantSlug", "accountId"], analyticsRouteId: "deliverables.calculators" },
+  opportunities: { path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.signals" },
+  "opportunity-scan": { path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals", params: ["tenantSlug", "accountId"], analyticsRouteId: "intelligence.signals" },
+  // Legacy personal settings aliases
+  "personal-profile": { path: "/settings/profile", analyticsRouteId: "settings.profile" },
+  "personal-security": { path: "/settings/security", analyticsRouteId: "settings.security" },
+  "personal-preferences": { path: "/settings/preferences", analyticsRouteId: "settings.preferences" },
+  "personal-notifications": { path: "/settings/notifications", analyticsRouteId: "settings.notifications" },
+  "personal-sessions": { path: "/settings/sessions", analyticsRouteId: "settings.sessions" },
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -266,13 +322,11 @@ export type NavigationParams = Record<string, string | number | undefined>;
 
 /**
  * Build a URL path by substituting parameters into the route template.
- * Replaces URL string concatenation per CONTRACT.md §2.6.
- *
- * @example
- * buildPath('/accounts/:accountId', { accountId: '123' })
- * // Returns: '/accounts/123'
  */
-export function buildPath(pathTemplate: string, params: NavigationParams = {}): string {
+export function buildPath(
+  pathTemplate: string,
+  params: NavigationParams = {}
+): string {
   let path = pathTemplate;
 
   for (const [key, value] of Object.entries(params)) {
@@ -281,19 +335,18 @@ export function buildPath(pathTemplate: string, params: NavigationParams = {}): 
   }
 
   // Remove any remaining optional params that weren't provided
-  path = path.replace(/\/:[^/]+/g, '');
+  path = path.replace(/\/:[^/]+/g, "");
 
   return path;
 }
 
 /**
  * Get the URL path for a given route state with parameters.
- *
- * @example
- * getStatePath('intelligence', { accountId: '123' })
- * // Returns: '/intelligence/123'
  */
-export function getStatePath(state: RouteState, params?: NavigationParams): string {
+export function getStatePath(
+  state: RouteState,
+  params?: NavigationParams
+): string {
   const config = ROUTE_MAP[state];
   if (!config) {
     throw new Error(`Unknown route state: ${state}`);
@@ -303,11 +356,6 @@ export function getStatePath(state: RouteState, params?: NavigationParams): stri
 
 /**
  * Resolve a navigation target for react-router's navigate() function.
- * This is the primary replacement for imperative navigation.
- *
- * @example
- * // Instead of: navigate(`/intelligence/${accountId}`)
- * // Use: navigate(getNavigateTarget('intelligence', { accountId }))
  */
 export function getNavigateTarget(
   state: RouteState,
@@ -337,61 +385,18 @@ export function validateStateParams(
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Legacy Compatibility Helpers (for gradual migration)
+// Reverse lookup
 // ─────────────────────────────────────────────────────────────────────────────
 
-const ACCOUNT_SCOPED_PREFIXES = [
-  '/intelligence',
-  '/hypothesis',
-  '/drivers',
-  '/calculator',
-  '/value-case',
-  '/realization',
-];
-
-/**
- * Resolve a workspace path with an account ID.
- * Replaces the URL concatenation in navHelpers.ts and Layout.tsx
- *
- * @example
- * resolveWorkspacePath('/intelligence', '123')
- * // Returns: '/intelligence/123'
- */
-export function resolveWorkspacePath(path: string, accountId: string | null): string {
-  if (!accountId) return path;
-
-  for (const prefix of ACCOUNT_SCOPED_PREFIXES) {
-    if (path === prefix) {
-      return `${prefix}/${accountId}`;
-    }
-    if (path.startsWith(`${prefix}/`)) {
-      const suffix = path.slice(prefix.length + 1);
-      return `${prefix}/${accountId}/${suffix}`;
-    }
-  }
-
-  // Legacy studio routes
-  if (path === '/studio') return `/studio/${accountId}`;
-  if (path.startsWith('/studio/')) {
-    const suffix = path.slice('/studio/'.length);
-    return `/studio/${accountId}/${suffix}`;
-  }
-
-  return path;
-}
-
-/**
- * Map common path patterns to route states.
- * Useful for breadcrumb and navigation highlighting.
- */
-export function pathToState(path: string): { state: RouteState | null; params: NavigationParams } {
-  // Reverse lookup in ROUTE_MAP
+export function pathToState(path: string): {
+  state: RouteState | null;
+  params: NavigationParams;
+} {
   for (const [state, config] of Object.entries(ROUTE_MAP)) {
     const paramNames = config.params ?? [];
 
-    // Build regex pattern from path template
-    let pattern = config.path.replace(/:[^/]+/g, '([^/]+)');
-    pattern = '^' + pattern + '$';
+    let pattern = config.path.replace(/:[^/]+/g, "([^/]+)");
+    pattern = "^" + pattern + "$";
 
     const regex = new RegExp(pattern);
     const match = path.match(regex);
@@ -408,27 +413,64 @@ export function pathToState(path: string): { state: RouteState | null; params: N
   return { state: null, params: {} };
 }
 
+// ── Legacy compatibility helpers ─────────────────────────────────────────────
+
+const WORKSPACE_PREFIXES = [
+  "/t/:tenantSlug/accounts/:accountId/intelligence",
+  "/t/:tenantSlug/accounts/:accountId/studio",
+  "/t/:tenantSlug/accounts/:accountId/deliverables",
+  "/t/:tenantSlug/accounts/:accountId/agents",
+  "/t/:tenantSlug/accounts/:accountId/workflows",
+];
+
+/**
+ * Resolve a workspace path with an account ID and tenant slug.
+ */
+export function resolveWorkspacePath(
+  path: string,
+  accountId: string | null,
+  tenantSlug?: string | null
+): string {
+  if (!accountId) return path;
+
+  if (path.includes(accountId)) return path;
+
+  for (const prefix of WORKSPACE_PREFIXES) {
+    const template = prefix.replace(":tenantSlug", tenantSlug ?? ":tenantSlug");
+    if (path === template) {
+      return template.replace(":accountId", accountId);
+    }
+    if (path.startsWith(`${template}/`)) {
+      const suffix = path.slice(template.length + 1);
+      return `${template.replace(":accountId", accountId)}/${suffix}`;
+    }
+  }
+
+  return path;
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Re-export for convenience
 // ─────────────────────────────────────────────────────────────────────────────
 
 export { ROUTE_MAP };
-
-
-export type UserTier = "standard" | "advanced" | "admin";
+export type { UserTier } from "@/routes/types";
 
 export interface NavItem {
   id: string;
   label: string;
   icon?: ReactNode;
   path: string;
-  tier: UserTier;
+  tier: Exclude<UserTier, "unknown">;
   children?: NavItem[];
   badge?: string | number;
   description?: string;
 }
 
-export function isItemVisible(item: NavItem, userTier: UserTier): boolean {
+export function isItemVisible(
+  item: NavItem,
+  userTier: Exclude<UserTier, "unknown">
+): boolean {
   if (userTier === "admin") return true;
   if (userTier === "advanced") return item.tier !== "admin";
   return item.tier === "standard";

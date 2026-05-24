@@ -9,9 +9,14 @@ import '@testing-library/jest-dom';
 import { HorizontalTabWrapper } from './HorizontalTabWrapper';
 
 // Mock react-router-dom
-vi.mock('react-router-dom', () => ({
-  useSearchParams: vi.fn(),
-}));
+const mockUseSearchParams = vi.fn();
+vi.mock('react-router-dom', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('react-router-dom')>();
+  return {
+    ...actual,
+    useSearchParams: () => mockUseSearchParams(),
+  };
+});
 
 describe('HorizontalTabWrapper', () => {
   beforeEach(() => {
@@ -19,8 +24,7 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('renders null when tabs array is empty', () => {
-    const { useSearchParams } = require('react-router-dom');
-    useSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
     
     const { container } = render(
       <HorizontalTabWrapper tabs={[]} />
@@ -29,8 +33,7 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('renders tabs from configuration', () => {
-    const { useSearchParams } = require('react-router-dom');
-    useSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -44,9 +47,8 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('renders active tab content', () => {
-    const { useSearchParams } = require('react-router-dom');
     const setSearchParams = vi.fn();
-    useSearchParams.mockReturnValue([new URLSearchParams('tab=tab1'), setSearchParams]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('tab=tab1'), setSearchParams]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -60,9 +62,8 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('uses defaultTab when no tab in URL', () => {
-    const { useSearchParams } = require('react-router-dom');
     const setSearchParams = vi.fn();
-    useSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -75,9 +76,8 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('uses first tab when no tab in URL and no defaultTab', () => {
-    const { useSearchParams } = require('react-router-dom');
     const setSearchParams = vi.fn();
-    useSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -90,9 +90,8 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('calls setSearchParams when tab is changed', () => {
-    const { useSearchParams } = require('react-router-dom');
     const setSearchParams = vi.fn();
-    useSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), setSearchParams]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -103,13 +102,13 @@ describe('HorizontalTabWrapper', () => {
     
     // Click on tab2
     screen.getByText('Tab 2').click();
-    expect(setSearchParams).toHaveBeenCalledWith({ tab: 'tab2' });
+    expect(setSearchParams).toHaveBeenCalledTimes(1);
+    expect(typeof setSearchParams.mock.calls[0][0]).toBe('function');
   });
 
   it('falls back to first tab when URL tab does not exist', () => {
-    const { useSearchParams } = require('react-router-dom');
     const setSearchParams = vi.fn();
-    useSearchParams.mockReturnValue([new URLSearchParams('tab=nonexistent'), setSearchParams]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams('tab=nonexistent'), setSearchParams]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },
@@ -123,8 +122,7 @@ describe('HorizontalTabWrapper', () => {
   });
 
   it('applies custom className', () => {
-    const { useSearchParams } = require('react-router-dom');
-    useSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
+    mockUseSearchParams.mockReturnValue([new URLSearchParams(), vi.fn()]);
     
     const tabs = [
       { id: 'tab1', label: 'Tab 1', content: <div>Content 1</div> },

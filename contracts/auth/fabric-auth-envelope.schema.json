@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://contracts.fabric4l/auth/fabric-auth-envelope.schema.json",
+  "title": "Fabric4L Internal AuthContext Envelope (v1)",
+  "description": "Canonical claim shape for the X-Fabric-Auth envelope minted by services/api and verified by L1\u2013L6. Algorithm is fixed to EdDSA (Ed25519) and MUST be transported as a compact JWT.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "iss",
+    "aud",
+    "iat",
+    "exp",
+    "nbf",
+    "request_id",
+    "clerk_user_id",
+    "user_id",
+    "tenant_id",
+    "roles",
+    "permissions"
+  ],
+  "properties": {
+    "iss": {
+      "type": "string",
+      "const": "fabric4l-gateway"
+    },
+    "aud": {
+      "type": "string",
+      "const": "fabric4l-internal"
+    },
+    "iat": { "type": "integer", "minimum": 0 },
+    "exp": { "type": "integer", "minimum": 0 },
+    "nbf": { "type": "integer", "minimum": 0 },
+    "request_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "clerk_user_id": { "type": "string", "minLength": 1, "maxLength": 128 },
+    "clerk_org_id": {
+      "type": ["string", "null"],
+      "maxLength": 128
+    },
+    "user_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "tenant_id": { "type": "string", "minLength": 1, "maxLength": 64 },
+    "roles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    },
+    "permissions": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 },
+      "uniqueItems": true
+    }
+  }
+}

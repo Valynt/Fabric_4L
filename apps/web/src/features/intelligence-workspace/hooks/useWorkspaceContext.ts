@@ -7,7 +7,7 @@ import { useAccount } from "@/hooks";
 import { useWorkflowSessionContext } from "@/hooks/useWorkflowSessionContext";
 
 export function useWorkspaceContext() {
-  const params = useParams<{ accountId: string; tabId: string }>();
+  const params = useParams<{ tenantSlug: string; accountId: string; tabId: string }>();
   const accountId = params.accountId ?? "";
   const { workflowContext } = useWorkflowSessionContext();
   const tabId = params.tabId ?? workflowContext.tabId ?? "signals";
@@ -17,6 +17,7 @@ export function useWorkspaceContext() {
   const { data: account } = useAccount(resolvedAccountId || null);
 
   return {
+    tenantSlug: params.tenantSlug ?? "",
     accountId: resolvedAccountId,
     tabId,
     accountName: account?.name ?? "",
