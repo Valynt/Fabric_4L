@@ -17,12 +17,23 @@ from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
+import logging
+
+logger = logging.getLogger(__name__)
+
 try:
+    from value_fabric.shared.environment import (
+        get_service_environment,
+        is_production_like_environment,
+    )
     from value_fabric.shared.secrets import load_infisical_secrets
 
     load_infisical_secrets()
-except ImportError:
-    pass
+except Exception as exc:
+    _secret_env = get_service_environment("layer6")
+    logger.warning("Failed to load Infisical secrets (dev mode): %s", exc)
+    if is_production_like_environment(_secret_env):
+        raise RuntimeError("Failed to load Infisical secrets in production-like Layer 6 runtime")
 
 from ..database import close_driver, get_driver
 from ..database import health_check as neo4j_health_check

@@ -31,6 +31,10 @@ from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
 # Load secrets from Infisical if available (optional in dev, required in prod)
+from value_fabric.shared.environment import (
+    get_service_environment,
+    is_production_like_environment,
+)
 from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
@@ -38,14 +42,10 @@ from layer2_extraction.api.deps import RequestContext
 
 try:
     load_infisical_secrets()
-except Exception:
-    _secret_env = (
-        os.getenv("ENVIRONMENT")
-        or os.getenv("APP_ENV")
-        or os.getenv("LAYER2_ENV")
-        or "development"
-    ).strip().lower()
-    if _secret_env in {"production", "prod", "staging", "stage"}:
+except Exception as exc:
+    _secret_env = get_service_environment("layer2")
+    logger.warning("Failed to load Infisical secrets (dev mode): %s", exc)
+    if is_production_like_environment(_secret_env):
         raise RuntimeError("Failed to load Infisical secrets in production-like Layer 2 runtime")
 
 from layer2_extraction.alignment import SemanticAligner

@@ -3,6 +3,7 @@ import binascii
 import hashlib
 import logging
 import secrets
+import threading
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
@@ -24,9 +25,54 @@ logger = logging.getLogger(__name__)
 # Brute-force / account lockout constants (F-05)
 # ---------------------------------------------------------------------------
 _MAX_FAILED_ATTEMPTS = 10       # lock after this many consecutive failures
-_LOCKOUT_DURATION_MINUTES = 15  # how long the account stays locked
+_LOCKOUT_DURATION_MINUTES = 15
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+# ---------------------------------------------------------------------------
+# Password security policy
+# ---------------------------------------------------------------------------
+# bcrypt has a 72-byte password limit. We explicitly reject passwords longer
+# than this limit to prevent silent truncation vulnerabilities.
+MAX_BCRYPT_PASSWORD_BYTES = 72
+
+# Use bcrypt in production, but allow fallback to a test-only scheme in test environments
+# Lazy initialization to allow env var to be set before first use
+_pwd_context: CryptContext | None = None
+_pwd_context_lock = threading.Lock()
+
+def get_pwd_context() -> CryptContext:
+    """Get the password hashing context with thread-safe lazy initialization.
+    
+    In production-like environments, bcrypt is always used. In test environments,
+    USE_BCRYPT=false can be set to use sha256_crypt for faster test execution.
+    
+    Raises:
+        RuntimeError: If USE_BCRYPT=false is set in a production-like environment.
+    """
+    global _pwd_context
+    if _pwd_context is None:
+        with _pwd_context_lock:
+            if _pwd_context is None:  # Double-checked locking
+                import os as _os
+                _use_bcrypt = _os.getenv("USE_BCRYPT", "true").lower() == "true"
+                
+                # Production guard: prevent USE_BCRYPT=false in production-like environments
+                env = _os.getenv("ENVIRONMENT", "development").lower()
+                production_like_envs = {"production", "prod", "staging", "stage", "preprod", "pre-production"}
+                if env in production_like_envs and not _use_bcrypt:
+                    raise RuntimeError(
+                        "USE_BCRYPT=false is not allowed in production-like environments. "
+                        "This would disable secure password hashing and expose the application to "
+                        "password cracking attacks. Set USE_BCRYPT=true or unset the variable."
+                    )
+                
+                _pwd_context = CryptContext(
+                    schemes=["bcrypt"] if _use_bcrypt else ["sha256_crypt"],
+                    deprecated="auto"
+                )
+    return _pwd_context
+
+# Backward compatibility: pwd_context as a callable
+pwd_context = get_pwd_context
 
 _bearer_scheme = HTTPBearer(auto_error=False)
 
@@ -34,6 +80,16 @@ _SESSION_COOKIE = "vf_session"
 _DEFAULT_JWT_ISSUER = "value-fabric-internal"
 _DEFAULT_JWT_AUDIENCE = "value-fabric-services"
 _AUTH_REQUIRED = "authentication_required"
+class PasswordTooLongError(ValueError):
+    """Raised when a password exceeds the bcrypt 72-byte limit."""
+    def __init__(self, length: int, max_length: int = MAX_BCRYPT_PASSWORD_BYTES):
+        super().__init__(
+            f"Password exceeds {max_length} byte limit (got {length} bytes). "
+            f"Passwords longer than {max_length} bytes cannot be securely hashed with bcrypt."
+        )
+        self.length = length
+        self.max_length = max_length
+
 
 
 class TokenPayload(BaseModel):
@@ -200,15 +256,35 @@ def verify_password(plain: str, hashed: str) -> bool:
     if hashed.startswith("sha256$"):
         return False
     try:
-        return pwd_context.verify(plain, hashed)
+        return get_pwd_context().verify(plain, hashed)
     except Exception:
         return False
 
 
 def hash_password(password: str) -> str:
-    # bcrypt must be available. If it is not, fail loudly rather than silently
-    # falling back to an insecure algorithm (SHA-256 is not a password hash).
-    return pwd_context.hash(password)
+    """Hash a password using the configured password hashing scheme.
+    
+    Enforces the bcrypt 72-byte password limit when bcrypt is enabled.
+    Raises PasswordTooLongError if the password exceeds the limit.
+    
+    Args:
+        password: The plain-text password to hash.
+        
+    Returns:
+        The hashed password.
+        
+    Raises:
+        PasswordTooLongError: If the password exceeds MAX_BCRYPT_PASSWORD_BYTES.
+    """
+    # Enforce bcrypt 72-byte limit when bcrypt is the active scheme
+    import os as _os
+    _use_bcrypt = _os.getenv("USE_BCRYPT", "true").lower() == "true"
+    if _use_bcrypt:
+        password_bytes = password.encode("utf-8")
+        if len(password_bytes) > MAX_BCRYPT_PASSWORD_BYTES:
+            raise PasswordTooLongError(len(password_bytes))
+    
+    return get_pwd_context().hash(password)
 
 
 def create_access_token(

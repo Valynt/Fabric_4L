@@ -95,9 +95,9 @@ class UsageTrackingService:
         summary = await service.get_usage_summary(tenant_id, days=30)
     """
 
-    # Estimated cost per 1K tokens (configurable via env)
-    LLM_COST_PER_1K_INPUT = 0.0005
-    LLM_COST_PER_1K_OUTPUT = 0.0015
+    # Estimated cost per 1K tokens (configurable via env in future)
+    DEFAULT_LLM_COST_PER_1K_INPUT = 0.0005
+    DEFAULT_LLM_COST_PER_1K_OUTPUT = 0.0015
 
     def __init__(self, db: AsyncSession) -> None:
         self.db = db
@@ -142,8 +142,8 @@ class UsageTrackingService:
         summary.llm_tokens_output = llm_details["tokens_output"]
         summary.llm_requests = llm_details["requests"]
         summary.llm_cost_estimate_usd = (
-            (summary.llm_tokens_input / 1000) * self.LLM_COST_PER_1K_INPUT
-            + (summary.llm_tokens_output / 1000) * self.LLM_COST_PER_1K_OUTPUT
+            (summary.llm_tokens_input / 1000) * self.DEFAULT_LLM_COST_PER_1K_INPUT
+            + (summary.llm_tokens_output / 1000) * self.DEFAULT_LLM_COST_PER_1K_OUTPUT
         )
 
         summary.active_users = await self._count_active_users(

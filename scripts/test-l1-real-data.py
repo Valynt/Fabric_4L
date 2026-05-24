@@ -130,9 +130,9 @@ def map_job_status(status: str) -> str:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def print_header(title: str) -> None:
-    print(f"\n{'═' * 60}")
+    print(f"\n{'=' * 60}")
     print(f"  {title}")
-    print(f"{'═' * 60}")
+    print(f"{'=' * 60}")
 
 
 def print_kv(data: dict[str, Any], indent: int = 2) -> None:
@@ -172,9 +172,14 @@ def print_table(headers: list[str], rows: list[list[str]]) -> None:
 # API helpers
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# Reuse the same tenant/user for the entire test run so entities are visible
+_test_token: str | None = None
+
 def _auth_headers() -> dict[str, str]:
-    token = make_jwt_token()
-    return {"Authorization": f"Bearer {token}"}
+    global _test_token
+    if _test_token is None:
+        _test_token = make_jwt_token()
+    return {"Authorization": f"Bearer {_test_token}"}
 
 
 def l1_post(path: str, json: dict[str, Any] | None = None) -> dict[str, Any]:
@@ -198,12 +203,13 @@ def scenario_fast() -> None:
     print_header("Scenario A: Single-Page Fast Crawl")
 
     # 1. Create target
-    print("\n📡 POST /targets")
+    print("\n[API] POST /targets")
     target = l1_post("/targets", {
         "name": "example.com",
         "url": "https://example.com",
         "target_type": "SINGLE_PAGE",
         "source_category": "api",
+        "crawl_path": "fast",
         "tags": ["test", "fast-path"],
     })
     target_id = target["id"]
@@ -217,12 +223,12 @@ def scenario_fast() -> None:
     })
 
     # 2. Validate
-    print("\n📡 POST /targets/{id}/validate")
-    validation = l1_post(f"/targets/{target_id}/validate")
+    print("\n[API] POST /targets/{id}/validate")
+    validation = l1_post(f"/targets/{target_id}/validate", {})
     print_kv(validation)
 
     # 3. Execute
-    print("\n📡 POST /targets/{id}/execute")
+    print("\n[API] POST /targets/{id}/execute")
     execution = l1_post(f"/targets/{target_id}/execute", {"priority": 5})
     job_id = execution["job_id"]
     print_kv({"job_id": job_id})
@@ -231,7 +237,7 @@ def scenario_fast() -> None:
     print_header("Polling Job")
     job = poll_job(job_id)
     if not job:
-        print("❌ Job polling timed out")
+        print("[FAIL] Job polling timed out")
         return
 
     # 5. Results
@@ -287,7 +293,7 @@ def scenario_spider() -> None:
     """Shallow spider crawl on Wikipedia."""
     print_header("Scenario B: Spider Crawl (Wikipedia)")
 
-    print("\n📡 POST /targets")
+    print("\n[API] POST /targets")
     target = l1_post("/targets", {
         "name": "Wikipedia Web Crawling",
         "url": "https://en.wikipedia.org/wiki/Web_crawling",
@@ -305,7 +311,7 @@ def scenario_spider() -> None:
         "status": target["status"],
     })
 
-    print("\n📡 POST /targets/{id}/execute")
+    print("\n[API] POST /targets/{id}/execute")
     execution = l1_post(f"/targets/{target_id}/execute", {"priority": 5})
     job_id = execution["job_id"]
     print_kv({"job_id": job_id})
@@ -313,7 +319,7 @@ def scenario_spider() -> None:
     print_header("Polling Job")
     job = poll_job(job_id)
     if not job:
-        print("❌ Job polling timed out")
+        print("[FAIL] Job polling timed out")
         return
 
     print_header("Job Results")
@@ -330,7 +336,7 @@ def scenario_skill() -> None:
     """Prospect research skill job."""
     print_header("Scenario C: Prospect Research Skill Job")
 
-    print("\n📡 POST /jobs/prospect-research")
+    print("\n[API] POST /jobs/prospect-research")
     try:
         job = l1_post("/jobs/prospect-research", {
             "target_entity_id": "wikipedia-org",
@@ -338,7 +344,7 @@ def scenario_skill() -> None:
             "priority": 5,
         })
     except httpx.HTTPStatusError as e:
-        print(f"❌ Skill job creation failed: {e.response.status_code}")
+        print(f"[FAIL] Skill job creation failed: {e.response.status_code}")
         print(f"   {e.response.text}")
         return
 
@@ -348,7 +354,7 @@ def scenario_skill() -> None:
     print_header("Polling Job")
     job = poll_job(job_id)
     if not job:
-        print("❌ Job polling timed out")
+        print("[FAIL] Job polling timed out")
         return
 
     print_header("Skill Output")
@@ -379,7 +385,7 @@ def poll_job(job_id: str) -> dict[str, Any] | None:
 
         bar_len = 20
         filled = int(bar_len * percent / 100)
-        bar = "█" * filled + "░" * (bar_len - filled)
+        bar = "#" * filled + "-" * (bar_len - filled)
 
         total_str = str(total) if total else "?"
         print(
@@ -391,7 +397,7 @@ def poll_job(job_id: str) -> dict[str, Any] | None:
 
         if status in ("COMPLETED", "FAILED", "CANCELLED", "PARTIAL_SUCCESS"):
             print()  # newline
-            print(f"\n✅ Job finished with status: {status}")
+            print(f"\n[OK] Job finished with status: {status}")
             # Print final summary
             print_kv({
                 "id": job["id"],
@@ -433,8 +439,8 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    global LAYER1_BASE
-    LAYER1_BASE = args.base_url.rstrip("/")
+    # Update base URL if overridden
+    base_url = args.base_url.rstrip("/")
 
     # Quick health check
     print_header("Layer 1 Health Check")
@@ -442,7 +448,7 @@ def main() -> int:
         health = l1_get("/health")
         print_kv(health)
     except Exception as e:
-        print(f"❌ Layer 1 health check failed: {e}")
+        print(f"[FAIL] Layer 1 health check failed: {e}")
         return 1
 
     if args.scenario in ("fast", "all"):

@@ -13,6 +13,7 @@ from ..registry.api.routes import router as models_router
 from ..services.stripe_client import StripeNotConfiguredError
 from ..tenants.api import (
     admin_console_router,
+    admin_dashboard_router,
     admin_router,
     api_keys_router,
     provisioning_router,
@@ -81,6 +82,7 @@ def register_routers(app: FastAPI) -> None:
     app.include_router(provisioning_router, prefix="/v1")
     app.include_router(registration_router, prefix="/v1")
     app.include_router(admin_router, prefix="/v1")
+    app.include_router(admin_dashboard_router, prefix="/v1")
     app.include_router(admin_console_router, prefix="/v1/admin")
     app.include_router(models_router, prefix="/v1")
     app.include_router(feature_flags_router, prefix="/v1")

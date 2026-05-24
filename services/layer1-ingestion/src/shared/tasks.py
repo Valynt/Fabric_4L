@@ -166,7 +166,7 @@ def process_scraping_job(self, job_id: str):
     logger.info("Starting scraping job pipeline", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -207,7 +207,7 @@ def process_scraping_job(self, job_id: str):
 
         result = pipeline_chain.apply_async()
 
-        return process_scraping_jobResult.model_validate({"success": True, "job_id": str(job_id), "task_id": result.id})
+        return process_scraping_jobResult.model_validate({"success": True, "job_id": str(job_id), "task_id": result.id}).model_dump()
 
     except Exception as exc:
         logger.error("Pipeline orchestration failed", job_id=str(job_id), error_code="PIPELINE_ORCHESTRATION_ERROR", error=sanitize_log_error(exc))
@@ -226,7 +226,7 @@ def compliance_check_stage(self, job_id: UUID):
     logger.info("Starting compliance check stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -242,7 +242,7 @@ def compliance_check_stage(self, job_id: UUID):
             )
             if existing_stage and existing_stage.status == "COMPLETED":
                 logger.info("Compliance check already completed (idempotent retry)", job_id=str(job_id))
-                return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)})
+                return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
             # Update stage status
             _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
@@ -287,7 +287,8 @@ def compliance_check_stage(self, job_id: UUID):
                 checker = RobotsChecker(session)
                 domain = url.split("/")[2] if "/" in url else url
 
-                result = asyncio.run(checker.check_url(domain, url))
+                allowed, reason, rules = asyncio.run(checker.check_url(domain, url))
+                crawl_delay = rules.get("crawl_delay") if rules else None
 
                 # Log compliance check
                 log = ComplianceLog(
@@ -295,41 +296,41 @@ def compliance_check_stage(self, job_id: UUID):
                     job_id=job_id,
                     target_id=job.target_id,
                     event_type=ComplianceEventType.ROBOTS_TXT_CHECK.value,
-                    severity="INFO" if result.allowed else "WARNING",
+                    severity="INFO" if allowed else "WARNING",
                     robots_txt_check={
                         "url": url,
                         "robots_txt_url": f"https://{domain}/robots.txt",
                         "user_agent": compliance_config.get("user_agent_string", "ValueFabricBot"),
-                        "allowed": result.allowed,
-                        "crawl_delay": result.crawl_delay,
+                        "allowed": allowed,
+                        "crawl_delay": crawl_delay,
                     },
                     request_url=url,
                     request_user_agent=compliance_config.get("user_agent_string", "ValueFabricBot"),
                 )
                 session.add(log)
 
-                if not result.allowed:
+                if not allowed:
                     _fail_job(job_id, "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
-                    return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)})
+                    return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
 
                 # OPTIMIZATION: Apply crawl delay via Celery retry instead of blocking sleep.
                 # This frees the worker to process other tasks during the delay.
-                if result.crawl_delay:
+                if crawl_delay:
                     _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "RUNNING")
                     session.commit()
                     logger.info(
                         "Applying crawl delay via Celery retry",
                         job_id=str(job_id),
-                        crawl_delay_seconds=result.crawl_delay,
+                        crawl_delay_seconds=crawl_delay,
                     )
-                    raise self.retry(countdown=int(result.crawl_delay))
+                    raise self.retry(countdown=int(crawl_delay))
 
             # Complete stage
             _update_stage(session, job_id, PipelineStage.COMPLIANCE_CHECK, "COMPLETED")
             session.commit()
 
             logger.info("Compliance check completed", job_id=str(job_id))
-            return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)})
+            return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
         # Propagate Celery retry exceptions directly; don't wrap them
@@ -337,7 +338,7 @@ def compliance_check_stage(self, job_id: UUID):
             raise
         logger.error("Compliance check failed", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(exc))
         try:
-            with get_db_session() as error_session:
+            with get_db_session(require_tenant=False) as error_session:
                 _update_stage(
                     error_session, job_id, PipelineStage.COMPLIANCE_CHECK, "FAILED", sanitize_log_error(exc)[:200]
                 )
@@ -359,7 +360,7 @@ def browser_crawl_stage(self, prev_result: dict):
     logger.info("Starting smart crawl stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -371,7 +372,7 @@ def browser_crawl_stage(self, prev_result: dict):
             if job.target_id:
                 target = session.query(ScrapingTarget).get(job.target_id)
                 if target:
-                    target_config = target.configuration or {}
+                    target_config = target.extraction_config or {}
 
             tenant_id = str(job.tenant_id) if job.tenant_id else None
             effective_mode = target_config.get("crawl_path", "browser")
@@ -389,7 +390,7 @@ def browser_crawl_stage(self, prev_result: dict):
 
             # Routing decision
             route_type = RouteType(effective_mode)
-            routing_decision = asyncio.run(router.decide(url, route_type))
+            routing_decision = router.decide(url, route_type)
 
             decision_record = CrawlDecisionRecord(
                 decision_id=str(uuid4()),
@@ -577,12 +578,13 @@ def browser_crawl_stage(self, prev_result: dict):
                 "success": True,
                 "job_id": str(job_id),
                 "raw_content_id": str(raw_content.id),
-            })
+            }).model_dump()
 
     except Exception as exc:
         logger.error("Smart crawl failed", job_id=str(job_id), error_code="SMART_CRAWL_ERROR", error=sanitize_log_error(exc))
         for stage in (PipelineStage.BROWSER_LAUNCH, PipelineStage.NAVIGATION, PipelineStage.CONTENT_CAPTURE):
-            _update_stage(get_db_session(), job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
+            with get_db_session(require_tenant=False) as session:
+                _update_stage(session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -594,7 +596,7 @@ def ai_extraction_stage(self, prev_result: dict):
     logger.info("Starting AI extraction stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -616,7 +618,7 @@ def ai_extraction_stage(self, prev_result: dict):
 
             if method == ExtractionMethod.DETERMINISTIC.value:
                 logger.info("Skipping AI extraction (deterministic mode)", job_id=str(job_id))
-                return ai_extraction_stageResult.model_validate({"success": True, "job_id": str(job_id), "skipped": True})
+                return ai_extraction_stageResult.model_validate({"success": True, "job_id": str(job_id), "skipped": True}).model_dump()
 
             _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "RUNNING")
             job.progress_stage = PipelineStage.AI_EXTRACTION.value
@@ -699,13 +701,14 @@ def ai_extraction_stage(self, prev_result: dict):
                 "job_id": str(job_id),
                 "tokens_consumed": tokens_consumed,
                 "entities_extracted": len(extraction_result.get("entities", [])),
-            })
+            }).model_dump()
 
     except Exception as exc:
         if "Retry" in type(exc).__name__:
             raise
         logger.error("AI extraction failed", job_id=str(job_id), error_code="AI_EXTRACTION_ERROR", error=sanitize_log_error(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
+        with get_db_session(require_tenant=False) as session:
+            _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -717,7 +720,7 @@ def post_processing_stage(self, prev_result: dict):
     logger.info("Starting post-processing stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -790,11 +793,12 @@ def post_processing_stage(self, prev_result: dict):
             session.commit()
 
             logger.info("Post-processing completed", job_id=str(job_id))
-            return post_processing_stageResult.model_validate({"success": True, "job_id": str(job_id)})
+            return post_processing_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
         logger.error("Post-processing failed", job_id=str(job_id), error_code="POST_PROCESSING_ERROR", error=sanitize_log_error(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
+        with get_db_session(require_tenant=False) as session:
+            _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -846,7 +850,7 @@ def validation_stage(self, prev_result: dict):
     logger.info("Starting validation stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -911,11 +915,12 @@ def validation_stage(self, prev_result: dict):
             session.commit()
 
             logger.info("Validation completed", job_id=str(job_id))
-            return validation_stageResult.model_validate({"success": True, "job_id": str(job_id)})
+            return validation_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
         logger.error("Validation failed", job_id=str(job_id), error_code="VALIDATION_ERROR", error=sanitize_log_error(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
+        with get_db_session(require_tenant=False) as session:
+            _update_stage(session, job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -927,7 +932,7 @@ def storage_stage(self, prev_result: dict):
     logger.info("Starting storage stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
@@ -1054,11 +1059,12 @@ def storage_stage(self, prev_result: dict):
             session.commit()
 
             logger.info("Storage completed", job_id=str(job_id))
-            return storage_stageResult.model_validate({"success": True, "job_id": str(job_id)})
+            return storage_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
         logger.error("Storage failed", job_id=str(job_id), error_code="STORAGE_ERROR", error=sanitize_log_error(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
+        with get_db_session(require_tenant=False) as session:
+            _update_stage(session, job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -1070,7 +1076,7 @@ def notification_stage(prev_result: dict):
     logger.info("Starting notification stage", job_id=str(job_id))
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 return
@@ -1173,12 +1179,13 @@ def notification_stage(prev_result: dict):
                     )
 
             logger.info("Job completed successfully", job_id=str(job_id))
-            return notification_stageResult.model_validate({"success": True, "job_id": str(job_id), "error": None})
+            return notification_stageResult.model_validate({"success": True, "job_id": str(job_id), "error": None}).model_dump()
 
     except Exception as exc:
         logger.error("Notification stage failed", job_id=str(job_id), error_code="NOTIFICATION_ERROR", error=sanitize_log_error(exc))
-        _update_stage(get_db_session(), job_id, PipelineStage.NOTIFICATION, "FAILED", sanitize_log_error(exc)[:200])
-        return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": "Notification stage failed"})
+        with get_db_session(require_tenant=False) as session:
+            _update_stage(session, job_id, PipelineStage.NOTIFICATION, "FAILED", sanitize_log_error(exc)[:200])
+        return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": "Notification stage failed"}).model_dump()
 
 
 # =============================================================================
@@ -1200,7 +1207,7 @@ def dispatch_outbox_event(self, event_id: str):
     event_uuid = UUID(event_id)
 
     try:
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             event = (
                 session.query(EventOutbox)
                 .filter(EventOutbox.id == event_uuid)
@@ -1254,7 +1261,7 @@ def dispatch_outbox_event(self, event_id: str):
 
         # Record the failure on the outbox row.
         try:
-            with get_db_session() as session:
+            with get_db_session(require_tenant=False) as session:
                 event = (
                     session.query(EventOutbox)
                     .filter(EventOutbox.id == event_uuid)
@@ -1321,7 +1328,7 @@ def _update_stage(
 
 def _fail_job(job_id: UUID, error: str, stage: PipelineStage):
     """Mark job as failed."""
-    with get_db_session() as session:
+    with get_db_session(require_tenant=False) as session:
         job = session.query(ScrapingJob).get(job_id)
         if job:
             job.status = JobStatus.FAILED.value
@@ -1419,14 +1426,14 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
 
     try:
         # Get target configuration from job
-        with get_db_session() as session:
+        with get_db_session(require_tenant=False) as session:
             job = session.query(ScrapingJob).get(job_id_uuid)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
 
             tenant_id = str(job.tenant_id) if job.tenant_id else None
             target = session.query(ScrapingTarget).get(job.target_id)
-            target_config = target.configuration if target else {}
+            target_config = target.extraction_config or {} if target else {}
 
             # Use target's crawl_path if available, otherwise use parameter
             effective_mode = target_config.get("crawl_path", target_mode)
@@ -1437,7 +1444,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
 
         # 1. ROUTING DECISION
         route_type = RouteType(effective_mode)
-        routing_decision = asyncio.run(router.decide(url, route_type))
+        routing_decision = router.decide(url, route_type)
 
         # Initialize decision record
         decision_record = CrawlDecisionRecord(
@@ -1557,7 +1564,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
             "final_path": decision_record.final_path,
             "duration_ms": decision_record.fetch_time_ms,
             "decision_id": decision_record.decision_id,
-        })
+        }).model_dump()
 
 
     except Exception as exc:
@@ -1607,7 +1614,7 @@ async def _crawl_browser(url: str, browser_config: dict) -> "CrawlResult":
     Returns:
         CrawlResult with rendered HTML and metadata
     """
-    from crawler.crawler_config import CrawlerConfig
+    from ..crawler.crawler_config import CrawlerConfig
     cfg = CrawlerConfig(headless=browser_config.get("headless", True))
     result = validate_url_safety(url)
     enforce_rebinding_protection(result.normalized_url, result.resolved_ips)
@@ -1637,7 +1644,7 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
     wait_for_selector = browser_config.get("wait_for_selector")
     wait_timeout = browser_config.get("wait_timeout", 30000)
 
-    from crawler.crawler_config import CrawlerConfig
+    from ..crawler.crawler_config import CrawlerConfig
     crawler_cfg = CrawlerConfig(headless=browser_config.get("headless", True))
     async with PlaywrightCrawler(config=crawler_cfg) as crawler:
         result = await crawler.crawl_url(
@@ -1660,7 +1667,7 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
         "config_used": config,
         "blocked_resources": result.blocked_resources,
         "scroll_triggered": result.scroll_triggered,
-    })
+    }).model_dump()
 
 
 def _should_fail_closed(
@@ -1708,7 +1715,7 @@ def cleanup_old_content(days: int = 30):
 
     logger.info("Starting content cleanup", cutoff_date=cutoff_date.isoformat())
 
-    with get_db_session() as session:
+    with get_db_session(require_tenant=False) as session:
         old_content = (
             session.query(RawContent)
             .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
@@ -1728,4 +1735,4 @@ def cleanup_old_content(days: int = 30):
             cutoff_date=cutoff_date.isoformat(),
         )
 
-        return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()})
+        return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()

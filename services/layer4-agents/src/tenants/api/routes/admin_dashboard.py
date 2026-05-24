@@ -70,7 +70,7 @@ class get_tenant_settingsResult(TypedDictModel):
     created_at: Any
     id: Any
     name: Any
-    settings: bool
+    settings: dict[str, Any]
     slug: Any
     status: Any
     tier_id: Any

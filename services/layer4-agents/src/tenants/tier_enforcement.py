@@ -34,6 +34,14 @@ class TierEnforcement_get_usage_summaryResult(TypedDictModel):
 
 logger = logging.getLogger(__name__)
 
+# Default API key limits per tier (configurable via environment in future)
+DEFAULT_API_KEY_LIMITS = {
+    "free": 2,
+    "basic": 10,
+    "pro": 50,
+    "enterprise": 500,
+}
+
 # Audit integration (optional — graceful degradation)
 try:
     from value_fabric.shared.audit import AuditAction, emit_audit_event
@@ -108,9 +116,9 @@ class TierEnforcement:
             return  # Unlimited
 
         # Lazy import to avoid circular dependencies
-        from .models.tenant import TenantUser
+        from .models.user import User
 
-        current = await self._count_rows(TenantUser, tenant_id)
+        current = await self._count_rows(User, tenant_id)
         if current >= config.limits.max_users:
             await self._emit_limit_exceeded(tenant_id, "max_users", current, config)
             raise TierLimitExceeded(
@@ -162,24 +170,18 @@ class TierEnforcement:
         API key limits are not in TierLimits (they're a platform concern),
         so we use a configurable mapping with sensible defaults.
         """
-        defaults = {
-            "free": 2,
-            "basic": 10,
-            "pro": 50,
-            "enterprise": 500,
-        }
-        limits = max_keys_per_tier or defaults
+        limits = max_keys_per_tier or DEFAULT_API_KEY_LIMITS
         max_keys = limits.get(tier_id)
 
         if max_keys is None:
             return  # Unknown tier or unlimited
 
         try:
-            from .models.tenant import TenantAPIKey
+            from .models.api_key import APIKey
 
-            current = await self._count_rows(TenantAPIKey, tenant_id)
+            current = await self._count_rows(APIKey, tenant_id)
         except ImportError:
-            logger.warning("TenantAPIKey model not available for limit check")
+            logger.warning("APIKey model not available for limit check")
             return
 
         if current >= max_keys:
@@ -310,8 +312,8 @@ class TierEnforcement:
         api_key_count = 0
 
         try:
-            from .models.tenant import TenantUser
-            user_count = await self._count_rows(TenantUser, tenant_id)
+            from .models.user import User
+            user_count = await self._count_rows(User, tenant_id)
         except ImportError:
             pass
 
@@ -322,8 +324,8 @@ class TierEnforcement:
             pass
 
         try:
-            from .models.tenant import TenantAPIKey
-            api_key_count = await self._count_rows(TenantAPIKey, tenant_id)
+            from .models.api_key import APIKey
+            api_key_count = await self._count_rows(APIKey, tenant_id)
         except ImportError:
             pass
 
@@ -343,9 +345,7 @@ class TierEnforcement:
                 },
                 "api_keys": {
                     "current": api_key_count,
-                    "max": {"free": 2, "basic": 10, "pro": 50, "enterprise": 500}.get(
-                        tier_id
-                    ),
+                    "max": DEFAULT_API_KEY_LIMITS.get(tier_id),
                 },
                 "storage_mb": {
                     "max": config.limits.max_storage_mb,

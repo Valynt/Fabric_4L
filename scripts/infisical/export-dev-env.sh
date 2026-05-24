@@ -14,8 +14,16 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 ROOT_DIR="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 OUTPUT_FILE="${ROOT_DIR}/.env.generated"
+TEMP_FILE="${OUTPUT_FILE}.tmp.$$"
 
 echo "→ Exporting Infisical dev secrets to ${OUTPUT_FILE} ..."
+
+if ! command -v infisical >/dev/null 2>&1; then
+  echo "❌ Infisical CLI not found."
+  echo "   Install: https://infisical.com/docs/cli/overview"
+  echo "   Then run: infisical login"
+  exit 1
+fi
 
 infisical export \
   --env=dev \
@@ -30,7 +38,11 @@ infisical export \
   --path=/layer6-benchmarks \
   --path=/apps/web \
   --format=dotenv \
-  --output-file="${OUTPUT_FILE}"
+  --output-file="${TEMP_FILE}"
 
-echo "✅  ${OUTPUT_FILE} generated."
+# Atomic move with restrictive permissions
+mv "${TEMP_FILE}" "${OUTPUT_FILE}"
+chmod 600 "${OUTPUT_FILE}"
+
+echo "✅  ${OUTPUT_FILE} generated (permissions: 600)."
 echo "   Run: docker compose --env-file .env.generated up"

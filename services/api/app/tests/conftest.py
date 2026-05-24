@@ -35,9 +35,11 @@ TENANT_BETA = "22222222-2222-4222-8222-222222222222"
 # override these env vars explicitly.
 import os as _os
 _os.environ.setdefault("MOCK_PERSISTENCE", "true")
-_os.environ.setdefault("SEED_DEMO_DATA", "true")
+_os.environ.setdefault("SEED_DEMO_DATA", "false")  # Disable seeding to avoid tenant context issues
 _os.environ.setdefault("LLM_PROVIDER", "layer4")
 _os.environ.setdefault("SECRET_KEY", TEST_SECRET)
+# Disable bcrypt in tests to avoid 72-byte password limit issues in passlib
+_os.environ.setdefault("USE_BCRYPT", "false")
 
 
 def _clear_singletons() -> None:

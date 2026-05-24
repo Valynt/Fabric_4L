@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from .routes.admin import router as admin_router
 from .routes.admin_console import router as admin_console_router
+from .routes.admin_dashboard import router as admin_dashboard_router
 from .routes.api_keys import router as api_keys_router
 from .routes.provisioning import router as provisioning_router
 from .routes.registration import router as registration_router
@@ -17,5 +18,6 @@ __all__ = [
     "registration_router",
     "admin_router",
     "admin_console_router",
+    "admin_dashboard_router",
     "provisioning_router",
 ]

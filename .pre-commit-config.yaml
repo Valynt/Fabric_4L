@@ -196,7 +196,7 @@ repos:
         pass_filenames: true
       - id: infisical-scan
         name: Infisical Secret Scan
-        entry: infisical scan
+        entry: bash -c 'if command -v infisical >/dev/null 2>&1; then infisical scan; else echo "⚠️  Infisical CLI not installed — skipping local secret scan (enforced in CI)"; exit 0; fi'
         language: system
         pass_filenames: false
         always_run: true

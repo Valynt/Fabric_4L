@@ -41,14 +41,27 @@ jobs:
         run: |
           docker compose version
 
+      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
+      # once Infisical project is fully populated and CI validation passes.
+      # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
+        id: infisical
         uses: Infisical/secrets-action@617d17ca4658c4b8d625927492bb55d41ff87230 # v1
         with:
           method: oidc
           env-slug: dev
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
-          secret-path: /layer2-extraction
+          secret-path: /shared
+        continue-on-error: true
+
+      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
+      - name: Fallback to GitHub Secrets
+        if: steps.infisical.outcome == 'failure'
+        run: |
+          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
+          echo "NEO4J_PASSWORD=${{ secrets.NEO4J_PASSWORD }}" >> "$GITHUB_ENV"
+          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> "$GITHUB_ENV"
 
       - name: Start core services
         run: |

@@ -1256,6 +1256,7 @@ async def create_target(
         target.authentication = authentication
 
     db.add(target)
+    db.commit()
     db.refresh(target)
 
     logger.info("Created scraping target", target_id=str(target.id), name=target.name)
@@ -1422,6 +1423,7 @@ async def update_target(
             target.authentication = None
 
     target.updated_at = datetime.now(UTC)
+    db.commit()
     db.refresh(target)
 
     logger.info("Updated scraping target", target_id=str(target.id))
@@ -1514,11 +1516,11 @@ async def validate_target(
         parsed = urlparse(test_url)
         checker = RobotsChecker(db)
         domain = parsed.netloc
-        robots_result = await checker.check_url(domain, test_url)
-        robots_check = {"allowed": robots_result.allowed, "crawl_delay": robots_result.crawl_delay}
-        if not robots_result.allowed:
+        allowed, reason, rules = await checker.check_url(domain, test_url)
+        robots_check = {"allowed": allowed, "crawl_delay": rules.get("crawl_delay") if rules else None}
+        if not allowed:
             warnings.append(
-                ValidationWarning(field="robots_txt", message="URL is disallowed by robots.txt")
+                ValidationWarning(field="robots_txt", message=reason or "URL is disallowed by robots.txt")
             )
 
     valid = len(errors) == 0
@@ -1579,6 +1581,7 @@ async def execute_target(
     )
 
     db.add(job)
+    db.commit()
     db.refresh(job)
 
     # Initialize pipeline stages
@@ -2096,6 +2099,7 @@ async def retry_job(
     )
 
     db.add(new_job)
+    db.commit()
     db.refresh(new_job)
 
     # Initialize stages
@@ -2230,6 +2234,7 @@ def _create_skill_job(
     job.downstream_events = skill.downstream_events
 
     db.add(job)
+    db.commit()
     db.refresh(job)
 
     # Initialize pipeline stages
@@ -3046,6 +3051,7 @@ async def create_proxy_pool_endpoint(
     )
 
     db.add(pool)
+    db.commit()
     db.refresh(pool)
 
     return ProxyPoolResponse(
