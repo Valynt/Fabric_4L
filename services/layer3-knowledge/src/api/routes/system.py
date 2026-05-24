@@ -76,7 +76,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 )
             )
         else:
-            from schema.initializer import SchemaInitializer
+            from value_fabric.layer3.schema.initializer import SchemaInitializer
 
             neo4j_checker = (
                 schema_initializer if schema_initializer is not None else SchemaInitializer()
@@ -166,7 +166,7 @@ def _derive_readiness(
     if neo4j_dependency.status != "healthy":
         return {"is_ready": False, "reason": "dependency_unhealthy"}
 
-    if schema_status.get("status") != "healthy":
+    if not schema_status.get("valid", False):
         return {"is_ready": False, "reason": "schema_verification_failed"}
 
     return {"is_ready": True, "reason": "dependencies_available"}
@@ -224,6 +224,23 @@ async def health_check(
     """Check service health and Neo4j connectivity."""
     start_time = time.time()
     request_id = getattr(request.state, "request_id", "unknown")
+    
+    # Attempt to recover Neo4j state if driver is None (degraded startup recovery)
+    if schema_initializer is not None and getattr(schema_initializer, "_driver", None) is None:
+        try:
+            from ...api.dependencies import recover_neo4j_state
+            app = request.app
+            recovered_state = await recover_neo4j_state(app)
+            if recovered_state.schema_initializer is not None and getattr(recovered_state.schema_initializer, "_driver", None) is not None:
+                schema_initializer = recovered_state.schema_initializer
+                logger.info("Neo4j state recovered during health check")
+        except Exception as exc:
+            logger.warning(
+                "Neo4j state recovery attempt failed during health check: %s",
+                exc,
+                extra={"health_request_id": request_id},
+            )
+    
     dependencies = await check_dependencies(schema_initializer=schema_initializer)
     metrics = get_system_metrics()
 

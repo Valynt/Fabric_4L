@@ -38,6 +38,7 @@ from value_fabric.shared.error_handling import sanitize_log_error
 
 from ..shared.config import settings
 from ..shared.database import get_db_session
+from sqlalchemy import text
 from ..shared.models import (
     AccountIntelligencePacket,
     ComplianceEventType,
@@ -170,6 +171,10 @@ def process_scraping_job(self, job_id: str):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             # Start job
             job.status = JobStatus.VALIDATING.value
@@ -230,6 +235,10 @@ def compliance_check_stage(self, job_id: UUID):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             # Idempotent: skip if already completed (handles retry after crawl delay)
             existing_stage = (
@@ -364,6 +373,10 @@ def browser_crawl_stage(self, prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             config = job.configuration
             url = config.get("url", "")
@@ -600,6 +613,10 @@ def ai_extraction_stage(self, prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             config = job.configuration
             extraction_config = config.get("extraction_config", {})
@@ -724,6 +741,10 @@ def post_processing_stage(self, prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "RUNNING")
             job.status = JobStatus.TRANSFORMING.value
@@ -854,6 +875,10 @@ def validation_stage(self, prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.VALIDATION, "RUNNING")
             job.progress_stage = PipelineStage.VALIDATION.value
@@ -936,6 +961,10 @@ def storage_stage(self, prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.STORAGE, "RUNNING")
             job.status = JobStatus.STORING.value
@@ -1080,6 +1109,10 @@ def notification_stage(prev_result: dict):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 return
+            
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.NOTIFICATION, "RUNNING")
             job.progress_stage = PipelineStage.NOTIFICATION.value
@@ -1216,6 +1249,10 @@ def dispatch_outbox_event(self, event_id: str):
             if not event:
                 logger.warning("EventOutbox row not found", event_id=event_id)
                 return
+            
+            # Set tenant context after retrieving event
+            if event.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(event.tenant_id)})
 
             # Idempotency: skip if already dispatched or dead-lettered.
             if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
@@ -1331,6 +1368,9 @@ def _fail_job(job_id: UUID, error: str, stage: PipelineStage):
     with get_db_session(require_tenant=False) as session:
         job = session.query(ScrapingJob).get(job_id)
         if job:
+            # Set tenant context after retrieving job
+            if job.tenant_id:
+                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
             job.status = JobStatus.FAILED.value
             job.completed_at = datetime.now(UTC)
             session.commit()
@@ -1710,7 +1750,12 @@ def _should_fail_closed(
 
 @celery_app.task
 def cleanup_old_content(days: int = 30):
-    """Clean up raw content older than specified days."""
+    """Clean up raw content older than specified days.
+    
+    ADMIN OPERATION: This task intentionally uses require_tenant=False to perform
+    cross-tenant cleanup of old raw content. This is a system-level maintenance
+    operation that should only be triggered by authorized admin processes.
+    """
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
 
     logger.info("Starting content cleanup", cutoff_date=cutoff_date.isoformat())

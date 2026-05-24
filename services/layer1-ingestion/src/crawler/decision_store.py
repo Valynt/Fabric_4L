@@ -23,7 +23,7 @@ from ..shared.models import CrawlDecision as CrawlDecisionModel
 logger = structlog.get_logger()
 
 
-@dataclass(frozen=True)
+@dataclass
 class CrawlDecisionRecord:
     """Canonical record of a crawl routing decision.
 
