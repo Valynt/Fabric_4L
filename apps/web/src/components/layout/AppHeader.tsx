@@ -2,6 +2,7 @@
 import { PanelLeftClose, PanelLeftOpen, Search, Bell, User, LogOut, Settings, ChevronDown } from "lucide-react";
 import { useMatches, Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
+import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -50,6 +51,35 @@ function useHeaderMeta(): { title: string; subtitle: string } {
     .replace(/\b\w/g, (c) => c.toUpperCase());
 
   return { title: formatted, subtitle: "" };
+}
+
+function ClerkAuthControl() {
+  const { isSignedIn } = useAuth();
+
+  if (isSignedIn) {
+    return <UserButton afterSignOutUrl="/" />;
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      <SignInButton mode="modal">
+        <button
+          type="button"
+          className="inline-flex h-9 items-center justify-center rounded-md border px-4 text-sm font-medium hover:bg-accent"
+        >
+          Sign in
+        </button>
+      </SignInButton>
+      <SignUpButton mode="modal">
+        <button
+          type="button"
+          className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+        >
+          Sign up
+        </button>
+      </SignUpButton>
+    </div>
+  );
 }
 
 function UserMenu() {
@@ -160,7 +190,7 @@ export function AppHeader({
           Search
         </button>
 
-        <UserMenu />
+        <ClerkAuthControl />
       </div>
     </header>
   );
