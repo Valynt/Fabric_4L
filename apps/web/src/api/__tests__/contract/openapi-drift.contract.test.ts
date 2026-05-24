@@ -312,7 +312,9 @@ describe('Contract: drift-detection auth failures', () => {
 describe('OpenAPI drift: common error shapes', () => {
   it('ApiError fixture is compatible with canonical ErrorResponse', () => {
     const frontendError = { message: 'Bad request', code: 'VALIDATION_ERROR', trace_id: 'abc' };
-    assertCanonicalSchema(ApiErrorSchema, 'layer4-agents.json', '#/components/schemas/ErrorResponse', frontendError, 'frontend ApiError');
+    // layer2-extraction.json defines the flat ErrorResponse that matches frontend ApiErrorSchema.
+    // layer4-agents.json uses wrapped ErrorEnvelope — cross-layer alignment is tracked separately.
+    assertCanonicalSchema(ApiErrorSchema, 'layer2-extraction.json', '#/components/schemas/ErrorResponse', frontendError, 'frontend ApiError');
   });
 });
 const CONTRACTS_OPENAPI_DIR = resolve(

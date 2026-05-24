@@ -65,7 +65,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   // 3. Account access guard
   const accountId = params.accountId;
   const { hasAccountAccess, isLoading: accountLoading } =
-    useAccountAccess(accountId);
+    useAccountAccess(accountId, tenantSlug);
 
   if (policy.accountScoped && accountId) {
     if (accountLoading) return <RouteGuardSkeleton />;

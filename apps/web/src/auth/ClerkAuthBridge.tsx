@@ -50,6 +50,7 @@ export function ClerkAuthBridge(): null {
       return;
     }
 
+    // Register the new getter immediately
     setClerkTokenGetter(async (options) => {
       const template = options?.template ?? FABRIC_AUTH_TEMPLATE_NAME;
       // Read the latest getToken via ref so re-renders never see a stale
@@ -61,10 +62,10 @@ export function ClerkAuthBridge(): null {
       });
     });
 
+    // Effect cleanup runs on sign-in→sign-out transitions AND on unmount.
+    // In either case we MUST drop the getter so a stale closure cannot
+    // mint a Bearer header for a no-longer-signed-in session.
     return () => {
-      // Effect cleanup runs on sign-in→sign-out transitions AND on unmount.
-      // In either case we MUST drop the getter so a stale closure cannot
-      // mint a Bearer header for a no-longer-signed-in session.
       setClerkTokenGetter(null);
     };
   }, [authLoaded, isSignedIn]);

@@ -300,6 +300,7 @@ describe('Contract: GET /api/v1/maturity-ladder', () => {
         current_level: 3,
         history: [
           { level: 1, status: 'proposed', transitioned_at: '2024-01-10T10:00:00Z' },
+          { level: 2, status: 'reviewed', transitioned_at: '2024-01-12T10:00:00Z' },
           { level: 4, status: 'validated', transitioned_at: '2024-01-15T10:00:00Z' },
         ],
       },

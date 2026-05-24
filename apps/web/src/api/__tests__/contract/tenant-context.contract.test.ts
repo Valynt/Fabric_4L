@@ -41,7 +41,7 @@ describe('Contract: Tenant context propagation', () => {
       })
     );
 
-    await apiClient.get('l2.5', '/test');
+    await apiClient.get('l2_5', '/test');
 
     expect(capturedHeaders['x-tenant-id']).toBeUndefined();
     expect(capturedHeaders['x-organization-id']).toBeUndefined();
@@ -69,7 +69,7 @@ describe('Contract: Tenant context propagation', () => {
       })
     );
 
-    await apiClient.get('l2.5', '/test');
+    await apiClient.get('l2_5', '/test');
 
     expect(capturedHeaders.authorization).toBeUndefined();
   });
@@ -85,25 +85,21 @@ describe('Contract: Tenant context propagation', () => {
       )
     );
 
-    let capturedInit: RequestInit | undefined;
+    // Axios does not use window.fetch; verify withCredentials via client defaults
+    const client = apiClient.getClient('l2_5');
+    expect(client.defaults.withCredentials).toBe(true);
 
+    // Also verify the request actually fires through MSW
+    let requestReceived = false;
     server.use(
       http.get('/api/v1/signals/test', ({ request }) => {
+        requestReceived = true;
         return HttpResponse.json({});
       })
     );
 
-    const originalFetch = window.fetch;
-    window.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      capturedInit = init;
-      return originalFetch(input, init);
-    }) as typeof window.fetch;
-
-    await apiClient.get('l2.5', '/test');
-
-    expect(capturedInit?.credentials).toBe('include');
-
-    window.fetch = originalFetch;
+    await apiClient.get('l2_5', '/test');
+    expect(requestReceived).toBe(true);
   });
 
   it('rejects session metadata with tenant mismatch as a validation error', () => {
@@ -129,7 +125,7 @@ describe('Contract: Tenant context propagation', () => {
       })
     );
 
-    await apiClient.get('l2.5', '/test');
+    await apiClient.get('l2_5', '/test');
 
     expect(capturedHeaders['x-tenant-id']).toBeUndefined();
     expect(capturedHeaders['x-organization-id']).toBeUndefined();

@@ -115,11 +115,10 @@ describe("AccountPickerModal", () => {
     renderModal(<AccountPickerModal workspace="intelligence" />);
 
     await user.click(screen.getByRole("button", { name: "Manage Accounts" }));
-    // useNavigation appends workflow-context query params (e.g. wfStep=0) to the
-    // path before calling navigate, so we match on the /accounts prefix only.
+    // Verify the full tenant-scoped path is used
     expect(mockNavigate).toHaveBeenCalledWith(
-      expect.stringContaining("/accounts"),
-      expect.anything(),
+      expect.stringContaining("/t/default/accounts"),
+      expect.anything()
     );
   });
 });
