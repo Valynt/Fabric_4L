@@ -151,7 +151,7 @@ class HttpxCrawler:
                 "Connection": "keep-alive",
             },
             follow_redirects=True,
-            http2=True,
+            http2=False,
         )
 
         self._semaphore = asyncio.Semaphore(self.config.max_concurrent_requests)
