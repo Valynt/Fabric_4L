@@ -25,6 +25,18 @@ def resolve_oidc_config(config: OIDCProviderConfig) -> OIDCProviderConfig:
     elif provider == "apple":
         if not config.scopes:
             config.scopes = ["name", "email"]
+    elif provider == "clerk":
+        # Clerk uses standard OIDC with Organizations for multi-tenancy
+        if not config.issuer_url:
+            clerk_domain = os.getenv("CLERK_JWT_ISSUER", "").replace("https://", "")
+            if clerk_domain:
+                config.issuer_url = f"https://{clerk_domain}"
+        if not config.scopes:
+            config.scopes = ["openid", "email", "profile", "org"]
+        if not config.jwks_uri:
+            clerk_jwks = os.getenv("CLERK_JWKS_URL")
+            if clerk_jwks:
+                config.jwks_uri = clerk_jwks
     return config
 
 

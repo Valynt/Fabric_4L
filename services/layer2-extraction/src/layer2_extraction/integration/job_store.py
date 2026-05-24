@@ -199,6 +199,10 @@ class RedisJobStore:
         await self._redis.close()
 
 
+# Backward-compatible alias used by layer2_extraction/api/main.py
+JobStore = InMemoryJobStore
+
+
 def build_job_store() -> InMemoryJobStore | RedisJobStore:
     """Factory for job store based on environment."""
     env = os.environ.get("ENVIRONMENT", os.environ.get("APP_ENV", "development")).lower()

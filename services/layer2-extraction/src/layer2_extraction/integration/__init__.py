@@ -3,6 +3,7 @@
 from layer2_extraction.integration.job_store import (
     ExtractionArtifacts,
     InMemoryJobStore,
+    JobStore,
     PipelineJob,
     build_job_store,
 )

@@ -4,65 +4,73 @@
 
 Fabric_4L uses an external managed IdP for production and Keycloak for local/dev/integration testing.
 
-## Production: Auth0
+## Production: Clerk
 
 ### Configuration
 
 **Environment Variables:**
-- `AUTH0_DOMAIN`: Auth0 tenant domain (e.g., `your-tenant.auth0.com`)
-- `AUTH0_CLIENT_ID`: Auth0 application client ID
-- `AUTH0_CLIENT_SECRET`: Auth0 application client secret
-- `AUTH0_AUDIENCE`: Auth0 API audience identifier
-- `JWT_ALGORITHM`: `RS256` (required for Auth0)
+- `CLERK_PUBLISHABLE_KEY`: Clerk publishable key (starts with `pk_test_` or `pk_live_`)
+- `CLERK_SECRET_KEY`: Clerk secret key (starts with `sk_test_` or `sk_live_`)
+- `CLERK_JWT_ISSUER`: Clerk JWT issuer URL (e.g., `https://clerk.your-domain.com`)
+- `CLERK_JWT_AUDIENCE`: Clerk application ID (found in Clerk Dashboard)
+- `CLERK_JWKS_URL`: Clerk JWKS endpoint (e.g., `https://clerk.your-domain.com/.well-known/jwks.json`)
+- `JWT_ALGORITHM`: `RS256` (required for Clerk)
 
 ### OIDC Discovery
 
-Auth0 provides standard OIDC discovery endpoints:
-- Issuer: `https://{AUTH0_DOMAIN}`
-- JWKS URL: `https://{AUTH0_DOMAIN}/.well-known/jwks.json`
-- Authorization Endpoint: `https://{AUTH0_DOMAIN}/authorize`
-- Token Endpoint: `https://{AUTH0_DOMAIN}/oauth/token`
+Clerk provides standard OIDC-compliant discovery endpoints:
+- Issuer: `https://clerk.{your-domain}.com`
+- JWKS URL: `https://clerk.{your-domain}.com/.well-known/jwks.json`
+- Authorization Endpoint: `https://clerk.{your-domain}/oauth/authorize`
+- Token Endpoint: `https://clerk.{your-domain}/oauth/token`
 
 ### Claim Mapping
 
 **Standard Claims:**
-- `sub`: User identifier
+- `sub`: Clerk user ID
 - `email`: User email
-- `name`: User name
-- `picture`: User avatar URL
+- `name`: User first and last name
 
-**Custom Claims (configure in Auth0):**
-- `tenant_id`: Tenant identifier for multi-tenancy
-- `roles`: User roles (admin, user, etc.)
-- `permissions`: Granular permissions
+**Custom Claims (configure in Clerk JWT Template):**
+- `tenant_id`: Clerk Organization ID (multi-tenancy)
+- `roles`: Clerk Organization role (e.g., `org:admin`, `org:member`)
+- `permissions`: Derived from role or custom permissions
 
 ### JWT Validation
 
 The JWT validation middleware in `packages/shared/src/value_fabric/shared/identity/middleware.py`:
-1. Fetches JWKS from Auth0 discovery endpoint
-2. Validates RS256 signature using Auth0 public keys
-3. Verifies issuer matches `AUTH0_DOMAIN`
-4. Verifies audience matches `AUTH0_AUDIENCE`
+1. Fetches JWKS from Clerk discovery endpoint
+2. Validates RS256 signature using Clerk public keys
+3. Verifies issuer matches `CLERK_JWT_ISSUER`
+4. Verifies audience matches `CLERK_JWT_AUDIENCE`
 5. Extracts tenant_id, roles, and permissions claims
 
-### Auth0 Application Setup
+### Clerk Application Setup
 
-1. **Create Auth0 Application:**
-   - Go to Auth0 Dashboard > Applications > Applications > Create Application
-   - Choose "Regular Web Application" or "Single Page Application"
-   - Set callback URLs for your environment
+1. **Create Clerk Application:**
+   - Go to Clerk Dashboard > Create Application
+   - Choose application type (Next.js, React, or Generic)
+   - Configure organization settings
 
-2. **Configure API:**
-   - Go to Auth0 Dashboard > Applications > APIs > Create API
-   - Set identifier (this is your `AUTH0_AUDIENCE`)
-   - Enable RBAC if using roles/permissions
+2. **Configure Organizations (for multi-tenancy):**
+   - Go to Clerk Dashboard > Organizations
+   - Enable Organizations feature
+   - Create organizations for each tenant
 
-3. **Add Custom Claims:**
-   - Go to Auth0 Dashboard > Rules > Create Rule
-   - Add tenant_id, roles, permissions to ID token
+3. **Add Custom Claims (JWT Template):**
+   - Go to Clerk Dashboard > JWT Templates
+   - Create custom template with claims:
+     ```json
+     {
+       "tenant_id": "{{ org.id }}",
+       "roles": "{{ org.role }}",
+       "permissions": "{{ org.permissions }}"
+     }
+     ```
 
 4. **Get Credentials:**
-   - Copy Domain, Client ID, Client Secret
+   - Copy Publishable Key and Secret Key from API Keys section
+   - Copy Application ID for audience
    - Add to environment variables
 
 ## Development: Keycloak
@@ -84,6 +92,15 @@ The Keycloak deployment in `k8s/dev-only/keycloak-deployment.yaml` is marked as 
 ## Cloud Portability
 
 The JWT validation middleware is OIDC-compliant and can be switched to other IdP providers:
+
+### Clerk
+
+**Environment Variables:**
+- `CLERK_PUBLISHABLE_KEY`: `pk_live_...` or `pk_test_...`
+- `CLERK_SECRET_KEY`: `sk_live_...` or `sk_test_...`
+- `CLERK_JWT_ISSUER`: `https://clerk.{your-domain}.com`
+- `CLERK_JWT_AUDIENCE`: `{clerk-application-id}`
+- `CLERK_JWKS_URL`: `https://clerk.{your-domain}.com/.well-known/jwks.json`
 
 ### Okta
 
@@ -123,7 +140,19 @@ Add IdP health checks to monitor:
 
 ## Migration Path
 
-To switch from Keycloak to Auth0 (or another IdP):
+### Auth0 to Clerk Migration
+
+To migrate from Auth0 to Clerk:
+
+1. **Update environment variables** (replace Auth0 with Clerk)
+2. **Configure Clerk JWT template** to match Auth0 claim structure
+3. **Map Clerk Organizations to Value Fabric tenants**
+4. **No code changes required** (OIDC-compliant middleware)
+5. **Test token validation** with Clerk tokens
+6. **Migrate users** from Auth0 to Clerk (export/import)
+7. **Update documentation** and runbooks
+
+### Keycloak to Clerk (or another IdP)
 
 1. Update environment variables
 2. No code changes required (OIDC-compliant middleware)
@@ -132,6 +161,7 @@ To switch from Keycloak to Auth0 (or another IdP):
 
 ## References
 
-- Auth0 Documentation: https://auth0.com/docs
+- Clerk Documentation: https://clerk.com/docs
+- Clerk OIDC Integration: https://clerk.com/docs/backend-requests/handling/oidc
 - OIDC Specification: https://openid.net/connect/
 - JWT Validation: https://tools.ietf.org/html/rfc7519

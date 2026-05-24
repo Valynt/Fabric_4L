@@ -17,6 +17,8 @@ This audit comprehensively evaluated Value Fabric's authentication mechanisms ac
 - **High Priority Risks:** Dev bypass in production (mitigated by guardrails), incomplete test coverage for some bypass flags
 - **Medium Priority Gaps:** Missing MFA, password complexity validation not enforced in all paths, limited session revocation
 
+**Migration Status:** Auth0 to Clerk migration plan created and Sprint 1 implementation in progress. See `.windsurf/plans/auth0-to-clerk-migration-sprint-plan.md` for details.
+
 ---
 
 ## 1. Authentication Architecture Overview

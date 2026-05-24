@@ -162,7 +162,7 @@ class TenantIdConstraintMigration:
             self._uri, auth=(self._user, self._password)
         ) as driver:
             edition = await self._detect_edition(driver)
-            is_community = edition == "community"
+            is_community = edition in ("community", "unknown")
 
             if is_community:
                 logger.warning(

@@ -6,6 +6,16 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ---
 
+## Authentication & Authorization
+
+### clerk-auth
+**Description:** Clerk authentication setup, configuration, and integration for React/Vite and Next.js projects
+**When to Use:** Setting up Clerk auth, configuring OIDC/JWT for multi-tenancy, migrating from Auth0, adding sign-in UI components
+**Side Effects:** write
+**Related Workflow:** `/clerk-auth`
+
+---
+
 ## Quality Debt & Code Hygiene
 
 ### security-auditor
@@ -231,11 +241,11 @@ For skill authoring specifications, see [SKILL_SCHEMA.md](./SKILL_SCHEMA.md).
 
 ## Skill Maintenance
 
-**Last Updated:** 2026-05-22
+**Last Updated:** 2026-05-23
 
-**Total Skills:** 38
+**Total Skills:** 39
 
-**Skills with Full Frontmatter:** 9 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell)
+**Skills with Full Frontmatter:** 10 (security-auditor, stripe-integration, observability-setup, load-testing, siem-integration, contract-enforcement-auditor, deprecation-migrator, dead-code-sweeper, bunnyshell, clerk-auth)
 
 **Skills Needing Frontmatter Updates:** 29 remaining
 

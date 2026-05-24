@@ -1,6 +1,12 @@
+import { ClerkProvider } from "@clerk/react";
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryCache, QueryClient, QueryClientProvider, MutationCache } from "@tanstack/react-query";
+import {
+  QueryCache,
+  QueryClient,
+  QueryClientProvider,
+  MutationCache,
+} from "@tanstack/react-query";
 import App from "./App";
 import "./index.css";
 import { I18nProvider } from "./i18n";
@@ -13,7 +19,7 @@ import { installAnalytics } from "./lib/analytics";
 // preventing the ~40 kB devtools chunk from reaching end users.
 const ReactQueryDevtools = import.meta.env.DEV
   ? lazy(() =>
-      import("@tanstack/react-query-devtools").then((m) => ({
+      import("@tanstack/react-query-devtools").then(m => ({
         default: m.ReactQueryDevtools,
       }))
     )
@@ -22,7 +28,7 @@ const ReactQueryDevtools = import.meta.env.DEV
 const queryClient = new QueryClient({
   queryCache: new QueryCache({
     onError: (error, query) => {
-      logError('Query failed', {
+      logError("Query failed", {
         queryKey: JSON.stringify(query.queryKey),
         error: error instanceof Error ? error.message : String(error),
       });
@@ -30,7 +36,7 @@ const queryClient = new QueryClient({
   }),
   mutationCache: new MutationCache({
     onError: (error, _variables, _context, mutation) => {
-      logError('Mutation failed', {
+      logError("Mutation failed", {
         mutationKey: mutation.options.mutationKey?.toString(),
         error: error instanceof Error ? error.message : String(error),
       });
@@ -51,7 +57,9 @@ installAnalytics();
 createRoot(document.getElementById("root")!).render(
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
-      <App />
+      <ClerkProvider afterSignOutUrl="/">
+        <App />
+      </ClerkProvider>
       {import.meta.env.DEV && ReactQueryDevtools && (
         <Suspense fallback={null}>
           <ReactQueryDevtools initialIsOpen={false} />

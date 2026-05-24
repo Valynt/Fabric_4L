@@ -966,6 +966,58 @@
       "timeout_ms": 300000,
       "required_context": ["audit_log_schema", "siem_config", "security_policies"],
       "allowed_agents": ["infrastructure-operator", "security-auditor"]
+    },
+    {
+      "skill_id": "clerk-auth",
+      "name": "clerk-auth",
+      "version": "1.0.0",
+      "description": "Clerk authentication setup, configuration, and integration for React/Vite and Next.js projects",
+      "input_schema": {
+        "type": "object",
+        "properties": {
+          "action": {
+            "type": "string",
+            "enum": ["init", "configure-oidc", "add-components", "migrate-from-auth0", "verify-setup"]
+          },
+          "framework": {
+            "type": "string",
+            "enum": ["react", "nextjs", "vite"],
+            "default": "react"
+          },
+          "app_id": {
+            "type": "string",
+            "description": "Clerk application ID"
+          },
+          "environment": {
+            "type": "string",
+            "enum": ["development", "staging", "production"],
+            "default": "development"
+          }
+        },
+        "required": ["action"]
+      },
+      "output_schema": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "clerk_config": {
+            "type": "object",
+            "properties": {
+              "publishable_key": { "type": "string" },
+              "issuer": { "type": "string" },
+              "jwks_url": { "type": "string" },
+              "audience": { "type": "string" }
+            }
+          },
+          "files_modified": { "type": "array", "items": { "type": "string" } },
+          "next_steps": { "type": "array", "items": { "type": "string" } },
+          "error": { "type": "string" }
+        }
+      },
+      "side_effects": "write",
+      "timeout_ms": 300000,
+      "required_context": ["project_graph", "frontend/framework", "env_config"],
+      "allowed_agents": ["*"]
     }
   ]
 }

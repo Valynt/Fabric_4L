@@ -316,8 +316,13 @@ def decode_jwt(token: str) -> Optional[TokenClaims]:
     roles_claim = os.getenv("JWT_ROLES_CLAIM", _DEFAULT_ROLES_CLAIM)
     internal_issuer = os.getenv("JWT_ISSUER", _DEFAULT_INTERNAL_ISSUER)
     internal_audience = os.getenv("JWT_AUDIENCE", _DEFAULT_INTERNAL_AUDIENCE)
-    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip()
-    oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip()
+    # Support both generic OIDC and Clerk-specific issuer configuration
+    oidc_issuer = os.getenv("OIDC_ISSUER", "").strip() or os.getenv("CLERK_JWT_ISSUER", "").strip()
+    oidc_audience = os.getenv("OIDC_AUDIENCE", "").strip() or os.getenv("CLERK_JWT_AUDIENCE", "").strip()
+    # Clerk-specific JWKS URL override
+    clerk_jwks_url = os.getenv("CLERK_JWKS_URL", "").strip()
+    if clerk_jwks_url and not os.getenv("OIDC_JWKS_URL", "").strip():
+        os.environ.setdefault("OIDC_JWKS_URL", clerk_jwks_url)
 
     try:
         header = jwt.get_unverified_header(token)

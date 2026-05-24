@@ -4,7 +4,7 @@ FROM python:3.11-slim-bookworm AS builder
 
 WORKDIR /app
 ENV UV_TORCH_BACKEND=cpu
-RUN pip install --no-cache-dir uv==0.11.6
+RUN pip install --no-cache-dir uv
 COPY services/layer3-knowledge/pyproject.toml services/layer3-knowledge/uv.lock ./
 RUN uv sync --frozen --no-install-project --no-dev
 
@@ -13,10 +13,10 @@ FROM python:3.11.11-slim-bookworm
 WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
 COPY --from=builder /app/.venv /app/.venv
-RUN pip install --no-cache-dir uv==0.11.6
+RUN pip install --no-cache-dir uv
 
 ENV PATH="/app/.venv/bin:$PATH" \
-    PYTHONPATH=/app \
+    PYTHONPATH=/app:/app/src \
     UVICORN_CMD="uvicorn value_fabric.layer3.api.main:app --host 0.0.0.0 --port 8001"
 
 COPY services/layer3-knowledge/src/ ./src/

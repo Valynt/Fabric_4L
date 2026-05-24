@@ -12,7 +12,7 @@ RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-reco
     && rm -rf /var/lib/apt/lists/*
 
 # Install uv from official image
-RUN pip install --no-cache-dir uv==0.11.6
+RUN pip install --no-cache-dir uv
 
 # Copy dependency files first (for better layer caching)
 COPY pyproject.toml uv.lock ./
