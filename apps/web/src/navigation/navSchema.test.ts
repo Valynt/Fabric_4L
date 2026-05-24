@@ -1,66 +1,47 @@
-import { describe, expect, it } from "vitest";
-import { resolveBreadcrumbs } from "./navSchema";
+import { describe, expect, it } from 'vitest';
+import { resolveBreadcrumbs } from './navSchema';
 
-describe("resolveBreadcrumbs", () => {
-  it("resolves account-scoped workspace labels from nav schema", () => {
-    expect(resolveBreadcrumbs("/intelligence/acct-123/signals").map((c) => c.label)).toEqual([
-      "Intelligence",
-      "Signals",
-    ]);
+describe('resolveBreadcrumbs', () => {
+  it('resolves intelligence workspace breadcrumbs with canonical paths', () => {
+    expect(
+      resolveBreadcrumbs('/t/acme/accounts/acct-123/intelligence/signals').map((c) => c.label)
+    ).toEqual(['Accounts', 'Intelligence', 'Signals']);
   });
 
-  it("uses progression labels across the full workflow", () => {
-    expect(resolveBreadcrumbs("/hypothesis/acct-123/hypothesis").map((c) => c.label)).toEqual([
-      "Hypothesis",
-      "Opportunities / Value Paths",
-    ]);
-    expect(resolveBreadcrumbs("/drivers/acct-123").map((c) => c.label)).toEqual([
-      "Driver Tree",
-      "Driver Tree",
-    ]);
-    expect(resolveBreadcrumbs("/calculator/acct-123/roi").map((c) => c.label)).toEqual([
-      "Calculator",
-      "Scenarios",
-    ]);
-    expect(resolveBreadcrumbs("/value-case/acct-123").map((c) => c.label)).toEqual([
-      "Value Case",
-      "Business Case",
-    ]);
-    expect(resolveBreadcrumbs("/realization/acct-123").map((c) => c.label)).toEqual([
-      "Realization",
-      "Realization",
-    ]);
+  it('resolves studio workspace breadcrumbs with canonical paths', () => {
+    expect(
+      resolveBreadcrumbs('/t/acme/accounts/acct-123/studio/action-plan').map((c) => c.label)
+    ).toEqual(['Accounts', 'Value Studio', 'Action Plan']);
   });
 
-  it("prefers explicit breadcrumb labels when provided", () => {
-    expect(resolveBreadcrumbs("/studio/acct-123/action-plan").map((c) => c.label)).toEqual([
-      "Value Studio",
-      "Action Plan",
-    ]);
+  it('resolves deliverables workspace breadcrumbs with canonical paths', () => {
+    expect(
+      resolveBreadcrumbs('/t/acme/accounts/acct-123/deliverables/business-cases').map((c) => c.label)
+    ).toEqual(['Accounts', 'Deliverables', 'Business Cases']);
   });
 
-  it("hides opaque ids by design", () => {
-    expect(resolveBreadcrumbs("/accounts/12345678-abcd-1234-abcd-1234567890ab").map((c) => c.label)).toEqual([
-      "Accounts",
-    ]);
+  it('hides opaque ids by design', () => {
+    expect(
+      resolveBreadcrumbs('/t/acme/accounts/12345678-abcd-1234-abcd-1234567890ab').map((c) => c.label)
+    ).toEqual(['Accounts']);
   });
 
-  it("preserves old deep links via breadcrumb aliases", () => {
-    expect(resolveBreadcrumbs("/hypothesis/acct-123").map((c) => c.label)).toEqual([
-      "Hypothesis",
-      "Opportunities / Value Paths",
-    ]);
-    // /drivers → "Driver Tree" (section root)
-    // /drivers/acct-123 → "Driver Tree" (account-level driver-tree node)
-    // /drivers/acct-123/evidence → "Driver Tab" (tab-level node)
-    expect(resolveBreadcrumbs("/drivers/acct-123/evidence").map((c) => c.label)).toEqual([
-      "Driver Tree",
-      "Driver Tree",
-      "Driver Tab",
-    ]);
-    expect(resolveBreadcrumbs("/calculator/acct-123").map((c) => c.label)).toEqual([
-      "Calculator",
-      "Scenarios",
+  it('handles accounts list route', () => {
+    expect(resolveBreadcrumbs('/t/acme/accounts').map((c) => c.label)).toEqual(['Accounts']);
+  });
+
+  it('handles home route', () => {
+    expect(resolveBreadcrumbs('/home').map((c) => c.label)).toEqual(['Home']);
+  });
+
+  it('handles settings route', () => {
+    expect(resolveBreadcrumbs('/settings/team').map((c) => c.label)).toEqual(['Settings', 'Team']);
+  });
+
+  it('handles governance route', () => {
+    expect(resolveBreadcrumbs('/t/acme/governance/audit').map((c) => c.label)).toEqual([
+      'Governance',
+      'Audit',
     ]);
   });
 });

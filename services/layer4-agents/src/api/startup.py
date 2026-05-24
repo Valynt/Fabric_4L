@@ -191,12 +191,14 @@ async def start_optional_integrations(app: FastAPI) -> None:
             await runtime_state.crm_sync_job_runner.start()
 
     if settings.enable_oidc_cleanup:
+        from ..database import get_db_from_context
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
-            db_session_factory=db_session,
+            db_session_factory=get_db_from_context,
             interval_seconds=300.0,
         )
 
     # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
     from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
-    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(db_session)
+    from ..database import get_db_from_context
+    runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
     await runtime_state.gate_timeout_scheduler.start()

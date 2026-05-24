@@ -10,7 +10,7 @@
  */
 
 import { useState, useMemo, useCallback, useEffect } from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { usePrefersReducedMotion } from "@/hooks/useAccessibility";
 import {
@@ -70,7 +70,8 @@ interface MobileNavItemProps {
 
 function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavItemProps) {
   const location = useLocation().pathname;
-  const resolvedPath = useMemo(() => resolveWorkspacePath(item.path, accountId), [item.path, accountId]);
+  const { tenantSlug } = useParams<{ tenantSlug: string }>();
+  const resolvedPath = useMemo(() => resolveWorkspacePath(item.path, accountId, tenantSlug), [item.path, accountId, tenantSlug]);
   const isActive = isRouteActive(location, resolvedPath);
   const [open, setOpen] = useState(isActive);
   useEffect(() => { setOpen(isActive); }, [isActive]);

@@ -33,7 +33,7 @@ vi.mock("@/hooks/useROICalculator", () => ({
 
 describe("evidence acceptance downstream visibility", () => {
   it("shows accepted evidence and linkage IDs in value model", () => {
-    render(<ValueModelTab />, { wrapper: createWrapperWithRouterPath("/calculator/acc-1/value-model") });
+    render(<ValueModelTab />, { wrapper: createWrapperWithRouterPath("/t/acme/accounts/acc-1/studio/value-model") });
     expect(screen.getByText(/accepted evidence inputs/i)).toBeInTheDocument();
     expect(screen.getByText(/Validated headcount baseline/i)).toBeInTheDocument();
     expect(screen.getByText(/Linkage ID: prov-22/i)).toBeInTheDocument();

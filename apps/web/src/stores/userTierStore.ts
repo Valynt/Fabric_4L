@@ -320,23 +320,20 @@ const ROUTE_TIER_MAP: Record<string, UserTier> = {
   '/settings/system/billing/payments': 'admin',
 
   // ═══════════════════════════════════════════════════════════════
-  // MAIN NAVIGATION — 7-Domain Workspace Routes
+  // CANONICAL WORKSPACE ROUTES — /t/:tenantSlug/accounts/:accountId/...
   // ═══════════════════════════════════════════════════════════════
 
-  '/intelligence': 'standard',
-  '/hypothesis': 'standard',
-  '/drivers': 'standard',
-  '/calculator': 'standard',
-  '/value-case': 'standard',
-  '/realization': 'standard',
+  '/t': 'standard',
+  '/t/:tenantSlug/accounts': 'standard',
+  '/t/:tenantSlug/accounts/:accountId/intelligence': 'standard',
+  '/t/:tenantSlug/accounts/:accountId/studio': 'advanced',
+  '/t/:tenantSlug/accounts/:accountId/deliverables': 'standard',
+  '/t/:tenantSlug/context': 'standard',
+  '/t/:tenantSlug/governance': 'standard',
 
-  // Account-scoped workspace routes (for prefix matching)
-  '/intelligence/:accountId': 'standard',
-  '/hypothesis/:accountId': 'standard',
-  '/drivers/:accountId': 'standard',
-  '/calculator/:accountId': 'standard',
-  '/value-case/:accountId': 'standard',
-  '/realization/:accountId': 'standard',
+  // ═══════════════════════════════════════════════════════════════
+  // LEGACY REDIRECTS (maintain for backward compatibility)
+  // ═══════════════════════════════════════════════════════════════
 
   // ═══════════════════════════════════════════════════════════════
   // LEGACY REDIRECTS (maintain for backward compatibility)
@@ -488,12 +485,30 @@ export const useUserTierStore = create<UserTierState>()(
 // Helper function to check route access outside of components
 // SECURITY: Returns 'unknown' for unrecognized paths (fail-closed default)
 export function getRouteTier(path: string): UserTier {
-  // Exact match
+  // Normalize canonical tenant-scoped paths for pattern matching
+  // e.g. /t/acme/accounts/acc-123/intelligence → /t/:tenantSlug/accounts/:accountId/intelligence
+  const normalizedPath = path.replace(
+    /^\/t\/[^/]+\/accounts\/[^/]+/,
+    '/t/:tenantSlug/accounts/:accountId'
+  ).replace(
+    /^\/t\/[^/]+/,
+    '/t/:tenantSlug'
+  );
+
+  // Exact match (normalized first, then original)
+  if (ROUTE_TIER_MAP[normalizedPath]) {
+    return ROUTE_TIER_MAP[normalizedPath];
+  }
   if (ROUTE_TIER_MAP[path]) {
     return ROUTE_TIER_MAP[path];
   }
 
   // Check parent routes using pre-sorted array (longest match wins)
+  for (const [route, tier] of SORTED_ROUTES) {
+    if (normalizedPath.startsWith(route + '/')) {
+      return tier;
+    }
+  }
   for (const [route, tier] of SORTED_ROUTES) {
     if (path.startsWith(route + '/')) {
       return tier;

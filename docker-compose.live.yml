@@ -307,8 +307,8 @@ services:
   # ---------------------------------------------------------------------------
   layer4:
     build:
-      context: ./services/layer4-agents
-      dockerfile: ./Dockerfile
+      context: .
+      dockerfile: ./services/layer4-agents/Dockerfile.full
       args: *id001
     container_name: vf-live-layer4
     ports:
@@ -336,10 +336,8 @@ services:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
       LLM_MODEL: gpt-4o
       LOG_LEVEL: debug
-      PYTHONPATH: /app:/app/src
     volumes:
     - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
-    - ./packages/platform-contract/src/python/canonical:/app/canonical:ro
     networks:
     - live-network
     healthcheck:

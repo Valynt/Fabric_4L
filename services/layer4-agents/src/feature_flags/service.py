@@ -123,9 +123,9 @@ class FeatureFlagService:
             },
         )
         if background_tasks is not None:
-            from ..database import db_session
+            from ..database import get_db_from_context
 
-            background_tasks.add_task(AuditEmitter.write_to_db, event, db_session)
+            background_tasks.add_task(AuditEmitter.write_to_db, event, get_db_from_context)
 
         return existing
 
@@ -154,9 +154,9 @@ class FeatureFlagService:
             details={"tenant_id": str(tenant_id) if tenant_id else None},
         )
         if background_tasks is not None:
-            from ..database import db_session
+            from ..database import get_db_from_context
 
-            background_tasks.add_task(AuditEmitter.write_to_db, event, db_session)
+            background_tasks.add_task(AuditEmitter.write_to_db, event, get_db_from_context)
 
         return True
 

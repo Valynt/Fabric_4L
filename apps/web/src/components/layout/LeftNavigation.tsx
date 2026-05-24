@@ -11,7 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink, useLocation, useParams } from "react-router-dom";
 import { NAV_SCHEMA } from "@/navigation/navSchema";
 
 interface LeftNavigationProps {
@@ -37,8 +37,10 @@ export function LeftNavigation({
   onToggle,
 }: LeftNavigationProps) {
   const { pathname } = useLocation();
-  const accountMatch = pathname.match(/\/(?:intelligence|studio|hypothesis|drivers|calculator|value-case|realization)\/([^/]+)/);
-  const accountId = accountMatch?.[1] || null;
+  const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
+
+  // Extract accountId from canonical URL: /t/:tenantSlug/accounts/:accountId/...
+  const accountId = urlAccountId ?? null;
 
   const navItems = NAV_SCHEMA
     .filter((item) => item.id === "home" || item.id === "accounts")
@@ -56,7 +58,9 @@ export function LeftNavigation({
         ].includes(item.id))
         .map((item) => ({
           ...item,
-          path: accountId ? item.path.replace(":accountId", accountId) : "/accounts",
+          path: accountId && tenantSlug
+            ? item.path.replace(":tenantSlug", tenantSlug).replace(":accountId", accountId)
+            : "/accounts",
         }))
     );
 

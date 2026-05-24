@@ -157,24 +157,26 @@ celery_app.conf.update(
 
 
 @celery_app.task(bind=True, max_retries=3)
-def process_scraping_job(self, job_id: str):
+def process_scraping_job(self, job_id: str, tenant_id: str):
     """Main pipeline orchestrator for a ScrapingJob.
 
     Chains all pipeline stages together for sequential execution.
+    
+    Args:
+        job_id: The job UUID
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     job_id = UUID(job_id)
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting scraping job pipeline", job_id=str(job_id))
+    logger.info("Starting scraping job pipeline", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             # Start job
             job.status = JobStatus.VALIDATING.value
@@ -199,15 +201,15 @@ def process_scraping_job(self, job_id: str):
 
             session.commit()
 
-        # Execute pipeline chain
+        # Execute pipeline chain with tenant context
         pipeline_chain = chain(
-            compliance_check_stage.s(job_id),
-            browser_crawl_stage.s(),
-            ai_extraction_stage.s(),
-            post_processing_stage.s(),
-            validation_stage.s(),
-            storage_stage.s(),
-            notification_stage.s(),
+            compliance_check_stage.s(job_id, tenant_id),
+            browser_crawl_stage.s(tenant_id),
+            ai_extraction_stage.s(tenant_id),
+            post_processing_stage.s(tenant_id),
+            validation_stage.s(tenant_id),
+            storage_stage.s(tenant_id),
+            notification_stage.s(tenant_id),
         )
 
         result = pipeline_chain.apply_async()
@@ -216,7 +218,7 @@ def process_scraping_job(self, job_id: str):
 
     except Exception as exc:
         logger.error("Pipeline orchestration failed", job_id=str(job_id), error_code="PIPELINE_ORCHESTRATION_ERROR", error=sanitize_log_error(exc))
-        _fail_job(job_id, sanitize_log_error(exc)[:200], PipelineStage.INIT)
+        _fail_job(job_id, tenant_id, sanitize_log_error(exc)[:200], PipelineStage.INIT)
         raise self.retry(exc=exc, countdown=60)
 
 
@@ -226,19 +228,23 @@ def process_scraping_job(self, job_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def compliance_check_stage(self, job_id: UUID):
-    """Stage 1: Compliance Check (robots.txt, rate limits, domain policies)."""
-    logger.info("Starting compliance check stage", job_id=str(job_id))
+def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+    """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
+    
+    Args:
+        job_id: The job UUID
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+    """
+    tenant_uuid = UUID(tenant_id)
+
+    logger.info("Starting compliance check stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             # Idempotent: skip if already completed (handles retry after crawl delay)
             existing_stage = (
@@ -347,7 +353,7 @@ def compliance_check_stage(self, job_id: UUID):
             raise
         logger.error("Compliance check failed", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(exc))
         try:
-            with get_db_session(require_tenant=False) as error_session:
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as error_session:
                 _update_stage(
                     error_session, job_id, PipelineStage.COMPLIANCE_CHECK, "FAILED", sanitize_log_error(exc)[:200]
                 )
@@ -357,26 +363,28 @@ def compliance_check_stage(self, job_id: UUID):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def browser_crawl_stage(self, prev_result: dict):
+def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
     and Playwright browser path. Merges launch+navigate+capture into one task,
     eliminating redundant browser launches and enabling fast path for static content.
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting smart crawl stage", job_id=str(job_id))
+    logger.info("Starting smart crawl stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             config = job.configuration
             url = config.get("url", "")
@@ -596,27 +604,30 @@ def browser_crawl_stage(self, prev_result: dict):
     except Exception as exc:
         logger.error("Smart crawl failed", job_id=str(job_id), error_code="SMART_CRAWL_ERROR", error=sanitize_log_error(exc))
         for stage in (PipelineStage.BROWSER_LAUNCH, PipelineStage.NAVIGATION, PipelineStage.CONTENT_CAPTURE):
-            with get_db_session(require_tenant=False) as session:
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 _update_stage(session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
 @celery_app.task(bind=True, max_retries=5)
-def ai_extraction_stage(self, prev_result: dict):
-    """Stage 5: AI/LLM Extraction (conditional based on config)."""
+def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+    """Stage 5: AI/LLM Extraction (conditional based on config).
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+    """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting AI extraction stage", job_id=str(job_id))
+    logger.info("Starting AI extraction stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             config = job.configuration
             extraction_config = config.get("extraction_config", {})
@@ -724,27 +735,30 @@ def ai_extraction_stage(self, prev_result: dict):
         if "Retry" in type(exc).__name__:
             raise
         logger.error("AI extraction failed", job_id=str(job_id), error_code="AI_EXTRACTION_ERROR", error=sanitize_log_error(exc))
-        with get_db_session(require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=30)
 
 
 @celery_app.task(bind=True, max_retries=2)
-def post_processing_stage(self, prev_result: dict):
-    """Stage 6: Post-processing (PII redaction, normalization)."""
+def post_processing_stage(self, prev_result: dict, tenant_id: str):
+    """Stage 6: Post-processing (PII redaction, normalization).
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+    """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting post-processing stage", job_id=str(job_id))
+    logger.info("Starting post-processing stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "RUNNING")
             job.status = JobStatus.TRANSFORMING.value
@@ -818,7 +832,7 @@ def post_processing_stage(self, prev_result: dict):
 
     except Exception as exc:
         logger.error("Post-processing failed", job_id=str(job_id), error_code="POST_PROCESSING_ERROR", error=sanitize_log_error(exc))
-        with get_db_session(require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
@@ -856,7 +870,7 @@ def _validate_payload_against_schema(
 
 
 @celery_app.task(bind=True, max_retries=2)
-def validation_stage(self, prev_result: dict):
+def validation_stage(self, prev_result: dict, tenant_id: str):
     """Stage 7: Validation (schema, data quality).
 
     Validates the job's ExtractedData payload against the extraction_schema
@@ -865,20 +879,22 @@ def validation_stage(self, prev_result: dict):
 
     If no extraction_schema is configured the stage completes successfully
     without modifying the ExtractedData record (schema validation is opt-in).
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting validation stage", job_id=str(job_id))
+    logger.info("Starting validation stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.VALIDATION, "RUNNING")
             job.progress_stage = PipelineStage.VALIDATION.value
@@ -944,27 +960,30 @@ def validation_stage(self, prev_result: dict):
 
     except Exception as exc:
         logger.error("Validation failed", job_id=str(job_id), error_code="VALIDATION_ERROR", error=sanitize_log_error(exc))
-        with get_db_session(require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
 @celery_app.task(bind=True, max_retries=3)
-def storage_stage(self, prev_result: dict):
-    """Stage 8: Storage (save to database, update references)."""
+def storage_stage(self, prev_result: dict, tenant_id: str):
+    """Stage 8: Storage (save to database, update references).
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+    """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting storage stage", job_id=str(job_id))
+    logger.info("Starting storage stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.STORAGE, "RUNNING")
             job.status = JobStatus.STORING.value
@@ -1092,27 +1111,30 @@ def storage_stage(self, prev_result: dict):
 
     except Exception as exc:
         logger.error("Storage failed", job_id=str(job_id), error_code="STORAGE_ERROR", error=sanitize_log_error(exc))
-        with get_db_session(require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
         raise self.retry(exc=exc, countdown=10)
 
 
 @celery_app.task
-def notification_stage(prev_result: dict):
-    """Stage 9: Notification (webhooks, callbacks)."""
+def notification_stage(prev_result: dict, tenant_id: str):
+    """Stage 9: Notification (webhooks, callbacks).
+    
+    Args:
+        prev_result: Previous stage result containing job_id
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+    """
     job_id = UUID(prev_result["job_id"])
+    tenant_uuid = UUID(tenant_id)
 
-    logger.info("Starting notification stage", job_id=str(job_id))
+    logger.info("Starting notification stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 return
-            
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
 
             _update_stage(session, job_id, PipelineStage.NOTIFICATION, "RUNNING")
             job.progress_stage = PipelineStage.NOTIFICATION.value
@@ -1204,10 +1226,10 @@ def notification_stage(prev_result: dict):
                 # Commit outbox rows together with job completion.
                 session.commit()
 
-                # Enqueue async dispatch for each outbox row.
+                # Enqueue async dispatch for each outbox row with tenant context
                 for event_id in outbox_ids:
                     dispatch_outbox_event.apply_async(
-                        args=[str(event_id)],
+                        args=[str(event_id), str(job.tenant_id)],
                         countdown=1,
                     )
 
@@ -1216,7 +1238,7 @@ def notification_stage(prev_result: dict):
 
     except Exception as exc:
         logger.error("Notification stage failed", job_id=str(job_id), error_code="NOTIFICATION_ERROR", error=sanitize_log_error(exc))
-        with get_db_session(require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.NOTIFICATION, "FAILED", sanitize_log_error(exc)[:200])
         return notification_stageResult.model_validate({"success": False, "job_id": str(job_id), "error": "Notification stage failed"}).model_dump()
 
@@ -1227,7 +1249,7 @@ def notification_stage(prev_result: dict):
 
 
 @celery_app.task(bind=True, max_retries=MAX_DISPATCH_ATTEMPTS, default_retry_delay=30)
-def dispatch_outbox_event(self, event_id: str):
+def dispatch_outbox_event(self, event_id: str, tenant_id: str):
     """Deliver a single EventOutbox record to configured sinks.
 
     On success: marks the row as dispatched.
@@ -1236,11 +1258,17 @@ def dispatch_outbox_event(self, event_id: str):
 
     The initial sink is a structured log. The architecture supports adding
     HTTP adapter or other delivery mechanisms without changing this task.
+    
+    Args:
+        event_id: The event UUID
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     event_uuid = UUID(event_id)
+    tenant_uuid = UUID(tenant_id)
 
     try:
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             event = (
                 session.query(EventOutbox)
                 .filter(EventOutbox.id == event_uuid)
@@ -1249,10 +1277,6 @@ def dispatch_outbox_event(self, event_id: str):
             if not event:
                 logger.warning("EventOutbox row not found", event_id=event_id)
                 return
-            
-            # Set tenant context after retrieving event
-            if event.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(event.tenant_id)})
 
             # Idempotency: skip if already dispatched or dead-lettered.
             if event.status in (OutboxStatus.DISPATCHED.value, OutboxStatus.DEAD_LETTER.value):
@@ -1298,7 +1322,7 @@ def dispatch_outbox_event(self, event_id: str):
 
         # Record the failure on the outbox row.
         try:
-            with get_db_session(require_tenant=False) as session:
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 event = (
                     session.query(EventOutbox)
                     .filter(EventOutbox.id == event_uuid)
@@ -1363,14 +1387,21 @@ def _update_stage(
             stage_detail.error_message = error_message
 
 
-def _fail_job(job_id: UUID, error: str, stage: PipelineStage):
-    """Mark job as failed."""
-    with get_db_session(require_tenant=False) as session:
+def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
+    """Mark job as failed.
+    
+    Args:
+        job_id: The job UUID
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+        error: Error message
+        stage: Pipeline stage that failed
+    """
+    tenant_uuid = UUID(tenant_id)
+    
+    # Set tenant context BEFORE any database queries
+    with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
         job = session.query(ScrapingJob).get(job_id)
         if job:
-            # Set tenant context after retrieving job
-            if job.tenant_id:
-                session.execute(text("SET LOCAL app.tenant_id = :tenant_id"), {"tenant_id": str(job.tenant_id)})
             job.status = JobStatus.FAILED.value
             job.completed_at = datetime.now(UTC)
             session.commit()
@@ -1434,7 +1465,7 @@ def execute_pipeline_stage(job_id: str, stage: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "browser"):
+def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "browser", tenant_id: str = None):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
 
     Implements the hardening-pass routing logic with:
@@ -1448,11 +1479,13 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
         job_id: The ScrapingJob UUID
         url: URL to crawl
         target_mode: Target-level mode (fast/browser/fast_fallback)
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
 
     Returns:
         dict with crawl result metadata
     """
     job_id_uuid = UUID(job_id)
+    tenant_uuid = UUID(tenant_id) if tenant_id else None
     router = SmartRouter()
     gate = QualityGate()
     decision_repo = CrawlDecisionRepository()
@@ -1462,16 +1495,16 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
         job_id=job_id,
         url=url,
         target_mode=target_mode,
+        tenant_id=str(tenant_uuid) if tenant_uuid else None,
     )
 
     try:
-        # Get target configuration from job
-        with get_db_session(require_tenant=False) as session:
+        # Set tenant context BEFORE any database queries
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
             job = session.query(ScrapingJob).get(job_id_uuid)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
 
-            tenant_id = str(job.tenant_id) if job.tenant_id else None
             target = session.query(ScrapingTarget).get(job.target_id)
             target_config = target.extraction_config or {} if target else {}
 
@@ -1749,18 +1782,21 @@ def _should_fail_closed(
 
 
 @celery_app.task
-def cleanup_old_content(days: int = 30):
-    """Clean up raw content older than specified days.
+def cleanup_old_content(days: int = 30, tenant_id: str = None):
+    """Clean up raw content older than specified days for a specific tenant.
     
-    ADMIN OPERATION: This task intentionally uses require_tenant=False to perform
-    cross-tenant cleanup of old raw content. This is a system-level maintenance
-    operation that should only be triggered by authorized admin processes.
+    Args:
+        days: Number of days to retain content
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
+                   If None, this is a system-level operation (requires admin authorization)
     """
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
+    tenant_uuid = UUID(tenant_id) if tenant_id else None
 
-    logger.info("Starting content cleanup", cutoff_date=cutoff_date.isoformat())
+    logger.info("Starting content cleanup", cutoff_date=cutoff_date.isoformat(), tenant_id=str(tenant_uuid) if tenant_uuid else "system")
 
-    with get_db_session(require_tenant=False) as session:
+    # Set tenant context BEFORE any database queries
+    with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
         old_content = (
             session.query(RawContent)
             .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")

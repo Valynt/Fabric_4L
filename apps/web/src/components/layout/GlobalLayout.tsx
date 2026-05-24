@@ -20,27 +20,17 @@ import type { UserTier } from "@/navigation/navigationService";
 export function WorkspaceLayoutWrapper({ children }: { children: React.ReactNode }) {
   // Hooks must be called unconditionally on every render — do not use ||
   // short-circuiting because it changes the hook count between renders.
-  const matchIntelligence = useMatch("/intelligence/*");
-  const matchAccounts = useMatch("/accounts/*");
-  const matchHypothesis = useMatch("/hypothesis/*");
-  const matchDrivers = useMatch("/drivers/*");
-  const matchCalculator = useMatch("/calculator/*");
-  const matchValueCase = useMatch("/value-case/*");
-  const matchRealization = useMatch("/realization/*");
-  const matchPersonal = useMatch("/personal/*");
+  const matchIntelligence = useMatch("/t/:tenantSlug/accounts/:accountId/intelligence/*");
+  const matchStudio = useMatch("/t/:tenantSlug/accounts/:accountId/studio/*");
+  const matchDeliverables = useMatch("/t/:tenantSlug/accounts/:accountId/deliverables/*");
+  const matchAccounts = useMatch("/t/:tenantSlug/accounts/*");
   const matchSettings = useMatch("/settings/*");
 
   const isWorkspace = Boolean(
-    matchIntelligence
-      || matchAccounts
-      || matchHypothesis
-      || matchDrivers
-      || matchCalculator
-      || matchValueCase
-      || matchRealization
+    matchIntelligence || matchStudio || matchDeliverables || matchAccounts
   );
 
-  const isSettings = Boolean(matchPersonal || matchSettings);
+  const isSettings = Boolean(matchSettings);
 
   const noPadding = isWorkspace || isSettings;
 

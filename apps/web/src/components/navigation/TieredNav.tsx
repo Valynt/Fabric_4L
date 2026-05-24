@@ -31,7 +31,7 @@ import {
   type UserTier,
 } from "@/navigation/navigationService";
 export type { UserTier } from "@/navigation/navigationService";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { useWorkflowSessionStore } from "@/stores/workflowSessionStore";
@@ -73,7 +73,7 @@ const NAV_SPINE: NavItem[] = [
     id: "accounts",
     label: "Accounts",
     icon: <Building2 size={16} />,
-    path: "/accounts",
+    path: "/t/:tenantSlug/accounts",
     tier: "standard",
     description: "Manage prospect accounts",
   },
@@ -82,32 +82,32 @@ const NAV_SPINE: NavItem[] = [
     id: "intelligence",
     label: "Intelligence",
     icon: <Radar size={16} />,
-    path: "/intelligence",
+    path: "/t/:tenantSlug/accounts/:accountId/intelligence",
     tier: "standard",
     description: "Discovery workspace: signals, drivers, evidence, stakeholders",
     children: [
       {
         id: "intelligence-signals",
         label: "Signals",
-        path: "/intelligence/signals",
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence/signals",
         tier: "standard",
       },
       {
         id: "intelligence-drivers",
         label: "Drivers",
-        path: "/drivers",
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence/drivers",
         tier: "standard",
       },
       {
         id: "intelligence-evidence",
         label: "Evidence",
-        path: "/drivers/evidence",
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence/evidence",
         tier: "standard",
       },
       {
         id: "intelligence-stakeholders",
         label: "Stakeholders",
-        path: "/intelligence/stakeholders",
+        path: "/t/:tenantSlug/accounts/:accountId/intelligence/stakeholders",
         tier: "standard",
       },
     ],
@@ -117,26 +117,26 @@ const NAV_SPINE: NavItem[] = [
     id: "value-studio",
     label: "Value Studio",
     icon: <Lightbulb size={16} />,
-    path: "/studio/action-plan",
+    path: "/t/:tenantSlug/accounts/:accountId/studio",
     tier: "standard",
     description: "Synthesis workspace: action plan, value model, narrative",
     children: [
       {
         id: "studio-action-plan",
         label: "Action Plan",
-        path: "/studio/action-plan",
+        path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan",
         tier: "standard",
       },
       {
         id: "studio-value-model",
         label: "Value Model",
-        path: "/studio/value-model",
+        path: "/t/:tenantSlug/accounts/:accountId/studio/value-model",
         tier: "standard",
       },
       {
         id: "studio-narrative",
         label: "Narrative",
-        path: "/studio/narrative",
+        path: "/t/:tenantSlug/accounts/:accountId/studio/narrative",
         tier: "standard",
       },
     ],
@@ -146,7 +146,7 @@ const NAV_SPINE: NavItem[] = [
     id: "context-engine",
     label: "Context Engine",
     icon: <Wrench size={16} />,
-    path: "/context",
+    path: "/t/:tenantSlug/context",
     tier: "standard",
     description: "Value packs, models, formulas, and agents",
   },
@@ -155,7 +155,7 @@ const NAV_SPINE: NavItem[] = [
     id: "deliverables",
     label: "Deliverables",
     icon: <FileText size={16} />,
-    path: "/deliverables",
+    path: "/t/:tenantSlug/accounts/:accountId/deliverables",
     tier: "standard",
     description: "Packaged outputs for sharing",
   },
@@ -164,7 +164,7 @@ const NAV_SPINE: NavItem[] = [
     id: "governance",
     label: "Governance",
     icon: <GitBranch size={16} />,
-    path: "/governance",
+    path: "/t/:tenantSlug/governance",
     tier: "standard",
     description: "Audit, provenance, and compliance",
   },
@@ -244,15 +244,17 @@ const SidebarItem = memo(function SidebarItem({
   depth = 0,
 }: SidebarItemProps) {
   const location = useLocation().pathname;
+  const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
   const selectedAccountId = useAccountContextStore(
     state => state.selectedAccountId
   );
+  const effectiveAccountId = urlAccountId ?? selectedAccountId;
   const resumePath = useWorkflowSessionStore((state) => state.context.lastPath);
   const resolvedPath = useMemo(
     () => item.id === "resume-workflow"
-      ? (resumePath ?? resolveWorkspacePath(item.path, selectedAccountId))
-      : resolveWorkspacePath(item.path, selectedAccountId),
-    [item.id, item.path, resumePath, selectedAccountId]
+      ? (resumePath ?? resolveWorkspacePath(item.path, effectiveAccountId, tenantSlug))
+      : resolveWorkspacePath(item.path, effectiveAccountId, tenantSlug),
+    [item.id, item.path, resumePath, effectiveAccountId, tenantSlug]
   );
   const isActive = isRouteActive(location, resolvedPath);
   const [open, setOpen] = useState(isActive);

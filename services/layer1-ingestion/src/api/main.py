@@ -1595,8 +1595,8 @@ async def execute_target(
     # Queue job
     job.status = JobStatus.QUEUED.value
 
-    # Start background processing
-    process_scraping_job.delay(str(job.id))
+    # Start background processing with tenant context envelope
+    process_scraping_job.delay(str(job.id), str(job.tenant_id))
 
     logger.info("Queued scraping job", job_id=str(job.id), target_id=str(target_id))
 
@@ -2113,7 +2113,7 @@ async def retry_job(
     # Queue new job
     new_job.status = JobStatus.QUEUED.value
 
-    process_scraping_job.delay(str(new_job.id))
+    process_scraping_job.delay(str(new_job.id), str(new_job.tenant_id))
 
     logger.info("Created retry job", original_job_id=str(job_id), new_job_id=str(new_job.id))
 
@@ -2245,7 +2245,7 @@ def _create_skill_job(
         db.add(stage_detail)
 
     job.status = JobStatus.QUEUED.value
-    process_scraping_job.delay(str(job.id))
+    process_scraping_job.delay(str(job.id), str(job.tenant_id))
 
     logger.info(
         "Queued skill-aware job",

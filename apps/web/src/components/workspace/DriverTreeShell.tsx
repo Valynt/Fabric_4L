@@ -15,7 +15,8 @@ const TABS = [
 ] as const;
 interface DriverTreeShellProps extends Partial<WorkspaceAccountContext> { children: React.ReactNode; }
 export default function DriverTreeShell({ accountName = "Account", industry = "Unknown", revenue = "N/A", children }: DriverTreeShellProps) {
-  const { accountId = "" } = useParams<{ accountId: string }>();
-  const activeTab = useLocation().pathname.split("/")[3] || "trees";
-  return <WorkspacePagePattern account={{ accountName, industry, revenue }} activeTab={activeTab} tabs={TABS.map((t) => ({ ...t, to: buildPath("/drivers/:accountId/:tab", { accountId, tab: t.key }) }))}>{children}</WorkspacePagePattern>;
+  const { tenantSlug = "", accountId = "" } = useParams<{ tenantSlug: string; accountId: string }>();
+  const segments = useLocation().pathname.split("/").filter(Boolean);
+  const activeTab = segments[segments.length - 1] || "trees";
+  return <WorkspacePagePattern account={{ accountName, industry, revenue }} activeTab={activeTab} tabs={TABS.map((t) => ({ ...t, to: buildPath("/t/:tenantSlug/accounts/:accountId/intelligence/:tab", { tenantSlug, accountId, tab: t.key }) }))}>{children}</WorkspacePagePattern>;
 }

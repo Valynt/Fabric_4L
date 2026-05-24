@@ -535,6 +535,15 @@ describe("getRouteTier helper", () => {
   it("should handle root route", () => {
     expect(getRouteTier("/")).toBe("standard");
   });
+
+  it("should return tier for canonical tenant-scoped routes", () => {
+    expect(getRouteTier("/t/acme/accounts")).toBe("standard");
+    expect(getRouteTier("/t/acme/accounts/acc-123/intelligence/signals")).toBe("standard");
+    expect(getRouteTier("/t/acme/accounts/acc-123/studio/action-plan")).toBe("advanced");
+    expect(getRouteTier("/t/acme/accounts/acc-123/deliverables/business-cases")).toBe("standard");
+    expect(getRouteTier("/t/acme/context")).toBe("standard");
+    expect(getRouteTier("/t/acme/governance/audit")).toBe("standard");
+  });
 });
 
 describe("normalizeRoleToTier", () => {

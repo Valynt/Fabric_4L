@@ -67,7 +67,7 @@ describe("DriverTreePage account/loading guards", () => {
     mockUseParams.mockReturnValue({ accountId: undefined, tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: false });
 
-    const wrapper = createWrapperWithRouterPath("/drivers");
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
     render(<DriverTreePage />, { wrapper });
 
     expect(screen.getByText("No account selected")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("DriverTreePage account/loading guards", () => {
     mockUseParams.mockReturnValue({ accountId: "acc-123", tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: true });
 
-    const wrapper = createWrapperWithRouterPath("/drivers/acc-123/evidence");
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
     render(<DriverTreePage />, { wrapper });
 
     expect(screen.getByText("Loading driver tree…")).toBeInTheDocument();
@@ -100,7 +100,7 @@ describe("DriverTreePage account/loading guards", () => {
     mockUseParams.mockReturnValue({ accountId: "acc-404", tab: "evidence" });
     mockUseAccount.mockReturnValue({ data: undefined, isLoading: false });
 
-    const wrapper = createWrapperWithRouterPath("/drivers/acc-404/evidence");
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-404/studio/driver-tree");
     render(<DriverTreePage />, { wrapper });
 
     expect(screen.getByText("Account not found.")).toBeInTheDocument();
@@ -123,7 +123,7 @@ describe("DriverTreePage account/loading guards", () => {
       isLoading: false,
     });
 
-    const wrapper = createWrapperWithRouterPath("/drivers/acc-123/evidence");
+    const wrapper = createWrapperWithRouterPath("/t/acme/accounts/acc-123/studio/driver-tree");
     render(<DriverTreePage />, { wrapper });
 
     // Shell header should show real account data

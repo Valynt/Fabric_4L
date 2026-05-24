@@ -27,7 +27,7 @@ vi.mock('@/agui', () => ({ useAgentEvents: () => ({ messages: [], sendMessage: v
 
 describe('workspace primary forward actions', () => {
   it('AssumptionsTab exposes one forward action and routes to calculator with account context', () => {
-    const wrapper = createWrapperWithRouterPath('/hypothesis/acc-123/assumptions');
+    const wrapper = createWrapperWithRouterPath('/t/acme/accounts/acc-123/intelligence/assumptions');
     render(<AssumptionsTab />, { wrapper });
     const buttons = screen.getAllByTestId('primary-forward-action');
     expect(buttons).toHaveLength(1);
@@ -36,7 +36,7 @@ describe('workspace primary forward actions', () => {
   });
 
   it('SolutionCostTab exposes one forward action and routes to calculator with account context', () => {
-    const wrapper = createWrapperWithRouterPath('/drivers/acc-123/solution-cost');
+    const wrapper = createWrapperWithRouterPath('/t/acme/accounts/acc-123/intelligence/solution-cost');
     render(<SolutionCostTab />, { wrapper });
     const buttons = screen.getAllByTestId('primary-forward-action');
     expect(buttons).toHaveLength(1);
