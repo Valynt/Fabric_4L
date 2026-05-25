@@ -299,7 +299,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
             # Check robots.txt
             if compliance_config.get("respect_robots_txt", True):
-                checker = RobotsChecker(session)
+                checker = RobotsChecker(tenant_id=str(job.tenant_id))
                 domain = url.split("/")[2] if "/" in url else url
 
                 allowed, reason, rules = asyncio.run(checker.check_url(domain, url))
@@ -1434,8 +1434,11 @@ def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
 
 
 @celery_app.task
-def execute_pipeline_stage(job_id: str, stage: str):
-    """Execute a single pipeline stage (for manual/retry operations)."""
+def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
+    """Execute a single pipeline stage (for manual/retry operations).
+
+    SECURITY: tenant_id is required and propagated to all stage dispatches.
+    """
     job_id = UUID(job_id)
     stage_enum = PipelineStage(stage)
 
@@ -1454,7 +1457,8 @@ def execute_pipeline_stage(job_id: str, stage: str):
 
     task = stage_tasks.get(stage_enum.value)
     if task:
-        return task.delay({"job_id": str(job_id), "retry": True})
+        # SECURITY: propagate trusted tenant_id from dispatch envelope
+        return task.delay(str(job_id), tenant_id)
     else:
         raise ValueError(f"Unknown stage: {stage}")
 
@@ -1465,7 +1469,7 @@ def execute_pipeline_stage(job_id: str, stage: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "browser", tenant_id: str = None):
+def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
 
     Implements the hardening-pass routing logic with:
@@ -1478,14 +1482,14 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
     Args:
         job_id: The ScrapingJob UUID
         url: URL to crawl
+        tenant_id: Trusted tenant_id from server-controlled dispatch envelope (required)
         target_mode: Target-level mode (fast/browser/fast_fallback)
-        tenant_id: Trusted tenant_id from server-controlled dispatch envelope
 
     Returns:
         dict with crawl result metadata
     """
     job_id_uuid = UUID(job_id)
-    tenant_uuid = UUID(tenant_id) if tenant_id else None
+    tenant_uuid = UUID(tenant_id)
     router = SmartRouter()
     gate = QualityGate()
     decision_repo = CrawlDecisionRepository()
@@ -1495,12 +1499,12 @@ def crawl_url_with_routing(self, job_id: str, url: str, target_mode: str = "brow
         job_id=job_id,
         url=url,
         target_mode=target_mode,
-        tenant_id=str(tenant_uuid) if tenant_uuid else None,
+        tenant_id=str(tenant_uuid),
     )
 
     try:
         # Set tenant context BEFORE any database queries
-        with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
+        with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             job = session.query(ScrapingJob).get(job_id_uuid)
             if not job:
                 raise ValueError(f"Job {job_id} not found")

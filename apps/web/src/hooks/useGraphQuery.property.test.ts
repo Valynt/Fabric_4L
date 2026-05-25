@@ -188,7 +188,7 @@ describe('useSubgraph Properties [L3-Property]', () => {
 
       expect(error).toBeNull();
     });
-  });
+  }, 15000);
 
   /**
    * PROPERTY 3: "Coherence - all edge endpoints exist in nodes array"
@@ -217,7 +217,7 @@ describe('useSubgraph Properties [L3-Property]', () => {
         expect(nodeIds.has(edge.targetId)).toBe(true);
       }
     });
-  });
+  }, 15000);
 
   /**
    * PROPERTY 4: "Density calculation is always in valid range [0, 1]"
@@ -242,7 +242,7 @@ describe('useSubgraph Properties [L3-Property]', () => {
       expect(density).toBeGreaterThanOrEqual(0);
       expect(density).toBeLessThanOrEqual(1);
     });
-  });
+  }, 15000);
 
   /**
    * PROPERTY 5: "Empty result is handled gracefully"

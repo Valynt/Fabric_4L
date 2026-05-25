@@ -1,6 +1,13 @@
-"""Shared fixtures for security tests.
+"""PostgreSQL-backed fixtures for security and RLS tests.
 
-Copied from tests.api.conftest to avoid import path issues.
+This conftest provides fixtures that require PostgreSQL-specific features:
+- JSONB columns
+- Row-Level Security (RLS)
+- SET LOCAL app.tenant_id
+- current_setting('app.tenant_id')
+- FORCE ROW LEVEL SECURITY
+
+Tests using this conftest must be marked with @pytest.mark.postgres
 """
 
 from __future__ import annotations
@@ -41,11 +48,16 @@ def _make_target_factory():
 
 def _get_postgres_url():
     """Get PostgreSQL URL from environment or use default dev stack."""
+    # Priority: env var > docker-compose dev stack default
     return os.environ.get(
         "TEST_DATABASE_URL",
         "postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion"
     )
 
+
+# ---------------------------------------------------------------------------
+# Hard guard: fail if not PostgreSQL
+# ---------------------------------------------------------------------------
 
 def _ensure_postgresql(engine):
     """Hard guard: fail tests if not running against PostgreSQL."""
@@ -60,31 +72,7 @@ def _ensure_postgresql(engine):
 
 
 # ---------------------------------------------------------------------------
-# SQLite Fixtures (for non-PostgreSQL tests)
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="function")
-def engine():
-    """In-memory SQLite engine for each test."""
-    return create_engine("sqlite:///:memory:")
-
-
-@pytest.fixture(scope="function")
-def db(engine):
-    """SQLAlchemy Session scoped to each test."""
-    Base = _get_base()
-    Base.metadata.create_all(bind=engine)
-    SessionLocal = sessionmaker(bind=engine)
-    session = SessionLocal()
-    try:
-        yield session
-    finally:
-        session.close()
-        Base.metadata.drop_all(bind=engine)
-
-
-# ---------------------------------------------------------------------------
-# PostgreSQL Fixtures (for PostgreSQL-required tests)
+# Fixtures
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(scope="function")
@@ -107,10 +95,13 @@ def postgres_db(postgres_engine):
     
     # Enable RLS on all tables that support it
     with postgres_engine.connect() as conn:
+        # This will be applied by migrations in production, but for tests
+        # we need to ensure RLS is enabled
         try:
             conn.execute(text("SET session_replication_role = 'replica'"))
             conn.commit()
         except Exception:
+            # If this fails, it's okay - migrations should handle it
             pass
     
     SessionLocal = sessionmaker(bind=postgres_engine)
@@ -119,7 +110,73 @@ def postgres_db(postgres_engine):
         yield session
     finally:
         session.close()
+        # Clean up: drop all tables
         Base.metadata.drop_all(bind=postgres_engine)
+
+
+@pytest.fixture(scope="function")
+def org_id() -> UUID:
+    """Primary tenant ID for tests."""
+    return uuid4()
+
+
+@pytest.fixture(scope="function")
+def other_org_id() -> UUID:
+    """Secondary tenant ID for cross-tenant isolation tests."""
+    return uuid4()
+
+
+@pytest.fixture(scope="function")
+def user_id() -> UUID:
+    """User ID for tests."""
+    return uuid4()
+
+
+@pytest.fixture(scope="function")
+def postgres_client(org_id, user_id, postgres_db):
+    """TestClient with fake governance context injected per request."""
+    app = _get_app()
+    get_db_from_context = _get_db_override()
+
+    class FakeGovernanceMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request: Request, call_next):
+            request.state.governance_context = {
+                "tenant_id": str(org_id),
+                "user_id": str(user_id),
+                "roles": ["user"],
+            }
+            request.state.db = postgres_db
+            response = await call_next(request)
+            return response
+
+    app.add_middleware(FakeGovernanceMiddleware)
+
+    def override_get_db():
+        yield postgres_db
+
+    app.dependency_overrides[get_db_from_context] = override_get_db
+
+    with TestClient(app) as test_client:
+        yield test_client
+
+    app.dependency_overrides.clear()
+
+
+@pytest.fixture(scope="function")
+def make_target(postgres_db):
+    """Factory for creating ScrapingTarget rows."""
+    create_scraping_target = _make_target_factory()
+
+    def _make(tenant_id: UUID, status: str = "ACTIVE", name: str = "Test Target"):
+        return create_scraping_target(
+            postgres_db,
+            tenant_id=tenant_id,
+            name=name,
+            url="https://example.com",
+            status=status,
+        )
+
+    return _make
 
 
 @pytest.fixture(scope="function")
@@ -142,74 +199,5 @@ def make_job(postgres_db):
         postgres_db.commit()
         postgres_db.refresh(job)
         return job
-
-    return _make
-
-
-# ---------------------------------------------------------------------------
-# Common Fixtures
-# ---------------------------------------------------------------------------
-
-@pytest.fixture(scope="function")
-def org_id() -> UUID:
-    """Primary tenant ID for tests."""
-    return uuid4()
-
-
-@pytest.fixture(scope="function")
-def other_org_id() -> UUID:
-    """Secondary tenant ID for cross-tenant isolation tests."""
-    return uuid4()
-
-
-@pytest.fixture(scope="function")
-def user_id() -> UUID:
-    """User ID for tests."""
-    return uuid4()
-
-
-@pytest.fixture(scope="function")
-def client(org_id, user_id, db):
-    """TestClient with fake governance context injected per request."""
-    app = _get_app()
-    get_db_from_context = _get_db_override()
-
-    class FakeGovernanceMiddleware(BaseHTTPMiddleware):
-        async def dispatch(self, request: Request, call_next):
-            request.state.governance_context = {
-                "tenant_id": str(org_id),
-                "user_id": str(user_id),
-                "roles": ["user"],
-            }
-            request.state.db = db
-            response = await call_next(request)
-            return response
-
-    app.add_middleware(FakeGovernanceMiddleware)
-
-    def override_get_db():
-        yield db
-
-    app.dependency_overrides[get_db_from_context] = override_get_db
-
-    with TestClient(app) as test_client:
-        yield test_client
-
-    app.dependency_overrides.clear()
-
-
-@pytest.fixture(scope="function")
-def make_target(db):
-    """Factory for creating ScrapingTarget rows."""
-    create_scraping_target = _make_target_factory()
-
-    def _make(tenant_id: UUID, status: str = "ACTIVE", name: str = "Test Target"):
-        return create_scraping_target(
-            db,
-            tenant_id=tenant_id,
-            name=name,
-            url="https://example.com",
-            status=status,
-        )
 
     return _make

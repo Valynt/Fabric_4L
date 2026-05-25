@@ -2,26 +2,21 @@
  * CONTRACT TEST: Tier-Gated Navigation
  *
  * These tests define the behavioral contract for the tiered progressive
- * disclosure system. The sidebar navigation now uses a flat 7-step
- * methodology-driven workflow. All workflow steps are visible to all tiers.
- * Admin-only sections (Settings, Governance) are hidden from non-admin users.
+ * disclosure system. The sidebar navigation uses a 7-domain left rail:
  *
- * Contract hierarchy:
+ *   1. Accounts      — Entry point for prospect accounts
+ *   2. Intelligence  — Discovery workspace (signals, drivers, evidence, stakeholders)
+ *   3. Value Studio  — Synthesis workspace (action plan, value model, narrative)
+ *   4. Context Engine — Vendor knowledge base
+ *   5. Deliverables  — Packaged outputs
+ *   6. Governance    — Audit, provenance, compliance
+ *   7. Settings      — Tenant configuration (admin only)
  *
- *   Standard (Tier 1):
- *     ✓ Home, Accounts, Prospect Setup, Intelligence, Value Hypothesis,
- *       Driver Tree, Evidence, Calculator, Value Case
- *     ✗ Settings (admin only)
- *
- *   Advanced (Tier 2):
- *     ✓ Same as Standard (all workflow steps)
- *     ✗ Settings (admin only)
- *
- *   Admin (Tier 3):
- *     ✓ Everything — full access including Settings
+ * All top-level workflow domains are visible to standard tier and above.
+ * Admin-only sections (Settings) are hidden from non-admin users.
  *
  * References:
- *   - Layout.tsx NAV_DOMAINS
+ *   - TieredNav.tsx NAV_SPINE
  *   - CONTRACT.md §2.6 UI State Machine
  */
 import { test, expect } from '../fixtures/contract-test';
@@ -48,10 +43,6 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await page.waitForLoadState('networkidle');
     });
 
-    test('should show Home in sidebar', async ({ page }) => {
-      await expect(page.getByRole('link', { name: /^Home$/i })).toBeVisible();
-    });
-
     test('should show Accounts in sidebar', async ({ page }) => {
       await expect(page.getByRole('link', { name: /^Accounts$/i })).toBeVisible();
     });
@@ -60,20 +51,28 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
     });
 
-    test('should show Evidence in sidebar', async ({ page }) => {
-      await expect(page.getByRole('link', { name: /^Evidence$/i })).toBeVisible();
+    test('should show Value Studio in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
     });
 
-    test('should show Calculator in sidebar', async ({ page }) => {
-      await expect(page.getByRole('link', { name: /^Calculator$/i })).toBeVisible();
+    test('should show Context Engine in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Context Engine$/i })).toBeVisible();
     });
 
-    test('should show Value Case in sidebar', async ({ page }) => {
-      await expect(page.getByRole('link', { name: /value case/i })).toBeVisible();
+    test('should show Deliverables in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Deliverables$/i })).toBeVisible();
     });
 
-    test('should redirect to /home when navigating to restricted route', async ({ page }) => {
-      await page.goto('/context/ontology/graph');
+    test('should show Governance in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Governance$/i })).toBeVisible();
+    });
+
+    test('should not show Settings in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Settings$/i })).not.toBeVisible();
+    });
+
+    test('should redirect to /home when navigating to admin route', async ({ page }) => {
+      await page.goto('/t/e2e-test/settings/users');
       await expect(page).toHaveURL(/\/home/);
     });
   });
@@ -93,16 +92,21 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await page.waitForLoadState('networkidle');
     });
 
-    test('should show all workflow steps', async ({ page }) => {
+    test('should show all workflow domains', async ({ page }) => {
       await expect(page.getByRole('link', { name: /^Accounts$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Evidence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Calculator$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /value case/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Context Engine$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Deliverables$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Governance$/i })).toBeVisible();
+    });
+
+    test('should not show Settings in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Settings$/i })).not.toBeVisible();
     });
 
     test('should allow navigation to Context Engine routes', async ({ page }) => {
-      await page.goto('/context/ontology/graph');
+      await page.goto('/t/e2e-test/context/ontology/graph');
       await expect(page).not.toHaveURL(/\/home/);
     });
   });
@@ -122,16 +126,18 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await page.waitForLoadState('networkidle');
     });
 
-    test('should show all workflow steps plus admin sections', async ({ page }) => {
+    test('should show all workflow domains plus Settings', async ({ page }) => {
       await expect(page.getByRole('link', { name: /^Accounts$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Evidence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Calculator$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /value case/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Context Engine$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Deliverables$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Governance$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Settings$/i })).toBeVisible();
     });
 
     test('should allow navigation to Settings routes', async ({ page }) => {
-      await page.goto('/settings/system/settings');
+      await page.goto('/t/e2e-test/settings/workspace');
       await expect(page).not.toHaveURL(/\/home/);
     });
   });
@@ -144,16 +150,16 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await page.goto('/home');
       await page.waitForLoadState('networkidle');
 
-      // All workflow steps visible at standard
+      // All workflow domains visible at standard
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Evidence$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
 
       // Switch to advanced — still visible
       await setUserTier(page, 'advanced');
       await page.reload();
       await page.waitForLoadState('networkidle');
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
-      await expect(page.getByRole('link', { name: /^Evidence$/i })).toBeVisible();
+      await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
     });
   });
 });

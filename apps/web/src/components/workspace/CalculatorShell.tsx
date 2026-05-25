@@ -10,7 +10,8 @@ const TABS = [
 ] as const;
 
 export default function CalculatorShell({ account, children, rightRail }: CalculatorShellProps) {
-  const { accountId = "" } = useParams<{ accountId: string }>();
-  const activeTab = useLocation().pathname.split("/")[3] || "roi";
-  return <WorkspacePagePattern account={account} activeTab={activeTab} tabs={TABS.map((t) => ({ ...t, to: buildPath("/calculator/:accountId/:tab", { accountId, tab: t.key }) }))} rightRail={rightRail}>{children}</WorkspacePagePattern>;
+  const { tenantSlug = "", accountId = "" } = useParams<{ tenantSlug: string; accountId: string }>();
+  const segments = useLocation().pathname.split("/").filter(Boolean);
+  const activeTab = segments[segments.length - 1] || "roi";
+  return <WorkspacePagePattern account={account} activeTab={activeTab} tabs={TABS.map((t) => ({ ...t, to: buildPath("/t/:tenantSlug/accounts/:accountId/studio/:tab", { tenantSlug, accountId, tab: t.key }) }))} rightRail={rightRail}>{children}</WorkspacePagePattern>;
 }

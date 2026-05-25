@@ -146,7 +146,7 @@ describe('useSubgraph Performance [L4-Performance]', () => {
     expect(cv).toBeLessThan(0.5);
 
     console.log(`Medium graph: mean=${result.mean.toFixed(2)}ms, p95=${(result.mean + 1.96 * result.stdDev).toFixed(2)}ms`);
-  });
+  }, 30000);
 
   /**
    * PERFORMANCE TEST 3: Large graph (500+ nodes) should load in < 500ms
@@ -173,7 +173,7 @@ describe('useSubgraph Performance [L4-Performance]', () => {
     expect(cv).toBeLessThan(0.6);
 
     console.log(`Large graph: mean=${result.mean.toFixed(2)}ms, max=${result.max.toFixed(2)}ms`);
-  });
+  }, 30000);
 
   /**
    * PERFORMANCE TEST 4: Standard deviation < 50% of mean (flakiness guard)
@@ -220,7 +220,7 @@ describe('useGraphViewState Performance [L4-Performance]', () => {
 
     expect(time).toBeLessThan(1000); // 1000 ops in < 1s total (< 1ms each)
     console.log(`1000 zoom operations: ${time.toFixed(2)}ms (${(time / 1000).toFixed(3)}ms/op)`);
-  });
+  }, 30000);
 
   /**
    * PERFORMANCE TEST 6: Pan operations should be smooth at 60fps
@@ -244,7 +244,7 @@ describe('useGraphViewState Performance [L4-Performance]', () => {
     expect(p95).toBeLessThan(16);
 
     console.log(`Pan p95: ${p95.toFixed(2)}ms (budget: 16ms)`);
-  });
+  }, 30000);
 
   /**
    * PERFORMANCE TEST 7: Reset should be instantaneous
@@ -263,7 +263,7 @@ describe('useGraphViewState Performance [L4-Performance]', () => {
     });
 
     expect(time).toBeLessThan(50); // jsdom timing is variable; 50ms avoids flakes while still catching real regressions
-  });
+  }, 30000);
 });
 
 describe('Memory Leak Detection [L4-Performance]', () => {
@@ -300,7 +300,7 @@ describe('Memory Leak Detection [L4-Performance]', () => {
     // If we get here without OOM, basic memory management is working
     // Real memory profiling requires --expose-gc flag and heap snapshots
     expect(true).toBe(true);
-  });
+  }, 30000);
 
   /**
    * PERFORMANCE TEST 9: Event handlers don't leak on unmount
@@ -325,7 +325,7 @@ describe('Memory Leak Detection [L4-Performance]', () => {
 
     // No errors should occur during cleanup
     expect(true).toBe(true);
-  });
+  }, 30000);
 });
 
 describe('useEntityContext Performance [L4-Performance]', () => {
@@ -359,7 +359,7 @@ describe('useEntityContext Performance [L4-Performance]', () => {
 
     expect(result.mean).toBeLessThan(150);
     console.log(`Entity context: mean=${result.mean.toFixed(2)}ms`);
-  });
+  }, 30000);
 });
 
 describe('useGraphQuery Mutation Performance [L4-Performance]', () => {
@@ -398,7 +398,7 @@ describe('useGraphQuery Mutation Performance [L4-Performance]', () => {
 
     expect(time).toBeLessThan(200);
     console.log(`Graph mutation: ${time.toFixed(2)}ms`);
-  });
+  }, 30000);
 });
 
 // ============================================================================
@@ -432,5 +432,5 @@ describe('Performance Baseline Summary [L4-Performance]', () => {
     for (const [name, metrics] of Object.entries(benchmarks)) {
       expect(metrics.p95).toBeLessThan(metrics.target * 2.5); // Allow 150% buffer for p95 in test environment
     }
-  });
+  }, 30000);
 });

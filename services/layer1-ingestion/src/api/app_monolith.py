@@ -1583,7 +1583,7 @@ async def validate_target(
     if request.validate_robots_txt:
         from ..compliance.robots_checker import RobotsChecker
 
-        checker = RobotsChecker()
+        checker = RobotsChecker(tenant_id=str(org_id))
         robots_allowed, robots_reason, robots_rules = await checker.check_url(test_url, force_refresh=True)
         robots_check = {"allowed": robots_allowed, "crawl_delay": robots_rules.get("crawl_delay") if robots_rules else None}
         if not robots_allowed:
@@ -2849,9 +2849,13 @@ async def metrics_endpoint(request: Request):
 @router.post("/admin/cleanup")
 async def trigger_cleanup(
     days: int = Query(default=30, ge=1, le=365),
+    org_id: UUID = Depends(get_tenant_id),
 ):
-    """Trigger content cleanup for old data."""
-    cleanup_old_content.delay(days)
+    """Trigger content cleanup for old data.
+
+    SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
+    """
+    cleanup_old_content.delay(days, str(org_id))
     return trigger_cleanupResult.model_validate({
         "message": f"Cleanup initiated for content older than {days} days",
         "status": "processing",

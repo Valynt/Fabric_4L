@@ -1514,7 +1514,7 @@ async def validate_target(
 
         from ..compliance.robots_checker import RobotsChecker
         parsed = urlparse(test_url)
-        checker = RobotsChecker(db)
+        checker = RobotsChecker(tenant_id=str(org_id))
         domain = parsed.netloc
         allowed, reason, rules = await checker.check_url(domain, test_url)
         robots_check = {"allowed": allowed, "crawl_delay": rules.get("crawl_delay") if rules else None}
@@ -3022,9 +3022,13 @@ async def metrics_endpoint(request: Request):
 @router.post("/admin/cleanup")
 async def trigger_cleanup(
     days: int = Query(default=30, ge=1, le=365),
+    org_id: UUID = Depends(get_tenant_id),
 ):
-    """Trigger content cleanup for old data."""
-    cleanup_old_content.delay(days)
+    """Trigger content cleanup for old data.
+
+    SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
+    """
+    cleanup_old_content.delay(days, str(org_id))
     return trigger_cleanupResult.model_validate({
         "message": f"Cleanup initiated for content older than {days} days",
         "status": "processing",

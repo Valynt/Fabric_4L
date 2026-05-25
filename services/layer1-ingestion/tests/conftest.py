@@ -10,6 +10,17 @@ from pathlib import Path
 from types import ModuleType
 from unittest.mock import MagicMock
 
+# Patch SQLite dialect to understand PostgreSQL JSONB (used by models)
+# so that in-memory SQLite engines work in tests.
+from sqlalchemy.dialects.sqlite.base import SQLiteTypeCompiler  # noqa: E402
+
+
+def _visit_jsonb(self, type_, **kw):
+    return self.visit_JSON(type_, **kw)
+
+
+SQLiteTypeCompiler.visit_JSONB = _visit_jsonb
+
 # Stub optional heavy deps before any imports that transitively require them
 try:
     import opentelemetry  # noqa: F401

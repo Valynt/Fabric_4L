@@ -307,6 +307,10 @@ setup: ## Install all service dev dependencies into the pytest pipx venv
 test-layer1: ## Run Layer 1 tests
 	cd services/layer1-ingestion && $(PYTEST) tests/
 
+test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
+	@echo "→ Testing Layer 1 security with PostgreSQL..."
+	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) tests/security/test_rls_enforcement_postgres.py tests/security/test_celery_tenant_isolation_postgres.py tests/security/test_require_tenant_false_allowlist_postgres.py -m postgres -v
+
 test-layer2: ## Run Layer 2 tests
 	cd services/layer2-extraction && $(PYTEST) tests/
 

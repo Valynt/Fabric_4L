@@ -176,6 +176,13 @@ python_functions = "test_*"
 addopts = "-v --tb=short"
 asyncio_mode = "auto"
 pythonpath = ["src", "../..", "../../packages/shared/src"]
+markers = [
+    "postgres: Tests requiring PostgreSQL-specific features (JSONB, RLS, SET LOCAL, current_setting)",
+    "security: Security and tenant isolation tests",
+    "rls: Row-Level Security enforcement tests",
+    "unit: Unit tests that do not require PostgreSQL",
+    "integration: Integration tests requiring PostgreSQL",
+]
 
 [tool.coverage.run]
 source = ["src"]

@@ -7,6 +7,7 @@ Uses Protego for fast parsing and respects crawl-delay directives.
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from urllib.parse import urljoin, urlparse
+from uuid import UUID
 
 import httpx
 import structlog
@@ -44,10 +45,12 @@ class RobotsChecker:
 
     def __init__(
         self,
+        tenant_id: str | None = None,
         user_agent: str | None = None,
         cache_ttl_hours: int | None = None,
         respect_crawl_delay: bool = True,
     ):
+        self.tenant_id = tenant_id
         self.user_agent = user_agent or "ValueFabricBot/1.0"
         self.cache_ttl_hours = cache_ttl_hours or settings.robots_txt_cache_hours
         self.respect_crawl_delay = respect_crawl_delay
@@ -211,16 +214,18 @@ class RobotsChecker:
             Cached robots.txt data or None if expired/not found
         """
         try:
-            # CONTRACT Â§2.2: System-level cache uses require_tenant=False (admin bypass)
-            with get_db_session(tenant_id=None, require_tenant=False) as session:
-                cache_entry = (
+            tenant_uuid = UUID(self.tenant_id) if self.tenant_id else None
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
+                query = (
                     session.query(RobotsTxtCache)
                     .filter(
                         RobotsTxtCache.domain == domain,
                         RobotsTxtCache.expires_at > datetime.now(UTC),
                     )
-                    .first()
                 )
+                if tenant_uuid is not None:
+                    query = query.filter(RobotsTxtCache.tenant_id == tenant_uuid)
+                cache_entry = query.first()
 
                 if cache_entry:
                     return RobotsChecker__get_cached_robots_txtResult.model_validate({
@@ -229,7 +234,6 @@ class RobotsChecker:
                         "fetched_at": cache_entry.fetched_at,
                         "expires_at": cache_entry.expires_at,
                     })
-
 
                 return None
 
@@ -259,12 +263,13 @@ class RobotsChecker:
             error: Error message if parsing failed
         """
         try:
-            # CONTRACT Â§2.2: System-level cache uses require_tenant=False (admin bypass)
-            with get_db_session(tenant_id=None, require_tenant=False) as session:
-                # Check if entry exists
-                existing = (
-                    session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == domain).first()
-                )
+            tenant_uuid = UUID(self.tenant_id) if self.tenant_id else None
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
+                # Check if entry exists for this tenant
+                query = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == domain)
+                if tenant_uuid is not None:
+                    query = query.filter(RobotsTxtCache.tenant_id == tenant_uuid)
+                existing = query.first()
 
                 now = datetime.now(UTC)
                 expires_at = now + timedelta(hours=self.cache_ttl_hours)
@@ -283,6 +288,7 @@ class RobotsChecker:
                     # Create new
                     cache_entry = RobotsTxtCache(
                         domain=domain,
+                        tenant_id=tenant_uuid,
                         content=content,
                         url=url,
                         rules=rules,
