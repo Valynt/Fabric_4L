@@ -24,6 +24,7 @@ ehthumbs.db
 .env.*.local
 .env.generated
 .env.generated.*
+.env.clerk-production
 .infisical-token
 .local/secrets/
 .local/**/*.env
