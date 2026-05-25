@@ -196,6 +196,14 @@ class RequestContext:
         """Return True when the context was resolved by an approved auth source."""
         return self.auth_source in VALID_AUTH_SOURCES
 
+    def is_service_account(self) -> bool:
+        """Return True when this context represents a service account."""
+        return self.service_account_id is not None
+
+    def is_isolation_tier_valid(self) -> bool:
+        """Return True when the isolation tier is a valid value."""
+        return self.isolation_tier in VALID_ISOLATION_TIERS
+
     def validate(self) -> List[str]:
         """Return fail-closed validation errors for identity/governance checks."""
         errors: List[str] = []

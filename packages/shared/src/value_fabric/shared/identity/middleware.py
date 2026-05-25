@@ -189,10 +189,27 @@ def audit_protected_routes(app: FastAPI) -> None:
 
 def _allow_legacy_test_tenant_ids() -> bool:
     environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV") or "development"
-    return (
+    explicit_test_flag = (
         os.getenv("ALLOW_LEGACY_TEST_TENANT_IDS", "").strip().lower() == "true"
         or os.getenv("TESTING", "").strip().lower() == "true"
-    ) and environment.strip().lower() not in {"prod", "production", "staging", "stage"}
+    )
+    if not explicit_test_flag:
+        return False
+    if environment.strip().lower() in {"prod", "production", "staging", "stage"}:
+        return False
+    # Reject legacy tenant IDs when production-like deployment markers are present,
+    # matching the fail-closed behaviour in jwt.py.
+    production_like_markers = (
+        "KUBERNETES_SERVICE_HOST",
+        "K_SERVICE",
+        "ECS_CONTAINER_METADATA_URI",
+        "ECS_CONTAINER_METADATA_URI_V4",
+        "AWS_EXECUTION_ENV",
+        "DYNO",
+    )
+    if any(os.getenv(key, "").strip() for key in production_like_markers):
+        return False
+    return True
 
 
 _KNOWN_PERMISSION_VALUES: frozenset[str] = frozenset(p.value for p in Permission)

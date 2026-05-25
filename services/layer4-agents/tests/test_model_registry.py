@@ -45,11 +45,20 @@ def db() -> AsyncMock:
     return AsyncMock()
 
 
+@pytest.fixture
+def mock_emit_audit_event(monkeypatch):
+    """Mock emit_audit_event to accept any arguments."""
+    from unittest.mock import MagicMock
+    mock = MagicMock()
+    monkeypatch.setattr("value_fabric.layer4.registry.service.emit_audit_event", mock)
+    return mock
+
+
 class TestModelRegistryCRUD:
     """Tests for model registration and listing."""
 
     @pytest.mark.asyncio
-    async def test_register_model(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_register_model(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         model = await ModelRegistryService.register_model(
             db=db,
             tenant_id=tenant_id,
@@ -106,7 +115,7 @@ class TestModelPromotion:
     """Tests for promotion gates and audit trail."""
 
     @pytest.mark.asyncio
-    async def test_dev_to_staging_allowed(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_dev_to_staging_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -122,7 +131,7 @@ class TestModelPromotion:
         assert result.stage == "staging"
 
     @pytest.mark.asyncio
-    async def test_staging_to_production_requires_eval(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_staging_to_production_requires_eval(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -144,7 +153,7 @@ class TestModelPromotion:
 
     @pytest.mark.asyncio
     async def test_staging_to_production_passes_with_high_score(
-        self, db: AsyncMock, tenant_id: UUID
+        self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event
     ) -> None:
         mv = ModelVersion(
             id=uuid4(),
@@ -168,7 +177,7 @@ class TestModelPromotion:
         assert result.stage == "production"
 
     @pytest.mark.asyncio
-    async def test_production_to_deprecated_allowed(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_production_to_deprecated_allowed(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -184,7 +193,7 @@ class TestModelPromotion:
         assert result.stage == "deprecated"
 
     @pytest.mark.asyncio
-    async def test_promotion_history_recorded(self, db: AsyncMock, tenant_id: UUID) -> None:
+    async def test_promotion_history_recorded(self, db: AsyncMock, tenant_id: UUID, mock_emit_audit_event) -> None:
         mv = ModelVersion(
             id=uuid4(),
             tenant_id=tenant_id,

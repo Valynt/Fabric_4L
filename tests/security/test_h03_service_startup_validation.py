@@ -86,6 +86,7 @@ class TestValidateProductionSafety:
         monkeypatch.setenv("DEFAULT_TENANT_ID", "12345678-1234-1234-1234-123456789abc")
         monkeypatch.setenv("SERVICE_AUTH_SECRET", "x" * 48)
         monkeypatch.setenv("LLM_PROVIDER", "openai")
+        monkeypatch.delenv("MOCK_PERSISTENCE", raising=False)
 
     def test_passes_with_valid_config(self, monkeypatch):
         self._set_valid_production_env(monkeypatch)
@@ -107,9 +108,9 @@ class TestValidateProductionSafety:
 
     def test_fails_with_dev_auth_bypass_in_production(self, monkeypatch):
         self._set_valid_production_env(monkeypatch)
-        monkeypatch.setenv("ALLOW_DEV_AUTH_BYPASS", "i_understand_risk")
+        monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
 
-        with pytest.raises(RuntimeError, match="ALLOW_DEV_AUTH_BYPASS"):
+        with pytest.raises(RuntimeError, match="ALLOW_INSECURE_DEV_AUTH_BYPASS"):
             validate_production_safety()
 
     def test_fails_with_default_tenant_fallback_in_production(self, monkeypatch):

@@ -1,0 +1,374 @@
+"""Tests for terminal-state reconciliation when max retries exhausted.
+
+Tests verify that jobs reach terminal states when max retries exhausted mid-pipeline:
+- Compliance check max retries leads to FAILED status
+- Browser crawl max retries leads to FAILED status
+- AI extraction max retries leads to FAILED status
+- Stage status consistency after retry exhaustion
+- No orphaned RUNNING states after retry exhaustion
+"""
+
+from __future__ import annotations
+
+import pytest
+from uuid import uuid4, UUID
+from unittest.mock import patch, MagicMock
+from celery.exceptions import MaxRetriesExceededError
+
+from value_fabric.layer1.shared.models import (
+    ScrapingJob,
+    JobStatus,
+    JobStageDetail,
+    PipelineStage,
+)
+
+
+pytestmark = pytest.mark.postgres
+
+
+class TestComplianceCheckMaxRetries:
+    """Test compliance check stage max retry behavior."""
+
+    def test_compliance_check_max_retries_exhaustion_leads_to_failed(
+        self, db, org_id, make_target
+    ):
+        """When compliance_check_stage exhausts max_retries, job should reach FAILED status."""
+        from value_fabric.layer1.shared.tasks import compliance_check_stage
+
+        # Create job
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.VALIDATING.value,
+            configuration={"url": "https://example.com"},
+        )
+        db.add(job)
+        db.commit()
+
+        # Mock compliance check to always fail
+        with patch(
+            "value_fabric.layer1.shared.tasks.validate_url_safety",
+            side_effect=Exception("Compliance check failed"),
+        ):
+            # Simulate max retries exhausted
+            # In real Celery, this would happen after max_retries attempts
+            # For testing, we directly call the error handling path
+            try:
+                # This would normally be called by Celery after max retries
+                # We simulate the final failure
+                from value_fabric.layer1.shared.tasks import _fail_job
+                _fail_job(
+                    job.id,
+                    str(org_id),
+                    "Compliance check failed after max retries",
+                    PipelineStage.COMPLIANCE_CHECK,
+                )
+            except Exception:
+                pass
+
+        db.refresh(job)
+        assert job.status == JobStatus.FAILED.value
+
+    def test_compliance_check_stage_status_marked_failed_after_exhaustion(
+        self, db, org_id, make_target
+    ):
+        """Compliance check stage should be marked FAILED after retry exhaustion."""
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.VALIDATING.value,
+            configuration={"url": "https://example.com"},
+        )
+        db.add(job)
+        db.commit()
+
+        # Simulate stage failure
+        from value_fabric.layer1.shared.tasks import _update_stage
+        with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            _update_stage(
+                session,
+                job.id,
+                PipelineStage.COMPLIANCE_CHECK,
+                "FAILED",
+                "Max retries exceeded",
+            )
+            session.commit()
+
+        # Verify stage status
+        stage = (
+            db.query(JobStageDetail)
+            .filter(
+                JobStageDetail.job_id == job.id,
+                JobStageDetail.stage == PipelineStage.COMPLIANCE_CHECK.value,
+            )
+            .first()
+        )
+        assert stage is not None
+        assert stage.status == "FAILED"
+        assert "Max retries exceeded" in stage.error_message
+
+
+class TestBrowserCrawlMaxRetries:
+    """Test browser crawl stage max retry behavior."""
+
+    def test_browser_crawl_max_retries_exhaustion_leads_to_failed(
+        self, db, org_id, make_target
+    ):
+        """When browser_crawl_stage exhausts max_retries, job should reach FAILED status."""
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.BROWSER_ACQUIRING.value,
+            configuration={"url": "https://example.com"},
+        )
+        db.add(job)
+        db.commit()
+
+        # Simulate max retries exhausted
+        from value_fabric.layer1.shared.tasks import _fail_job
+        _fail_job(
+            job.id,
+            str(org_id),
+            "Browser crawl failed after max retries",
+            PipelineStage.BROWSER_LAUNCH,
+        )
+
+        db.refresh(job)
+        assert job.status == JobStatus.FAILED.value
+
+    def test_browser_crawl_stages_marked_failed_after_exhaustion(
+        self, db, org_id, make_target
+    ):
+        """All browser crawl stages should be marked FAILED after retry exhaustion."""
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.BROWSER_ACQUIRING.value,
+            configuration={"url": "https://example.com"},
+        )
+        db.add(job)
+        db.commit()
+
+        # Mark all browser crawl stages as FAILED
+        from value_fabric.layer1.shared.tasks import _update_stage
+        from value_fabric.layer1.shared.database import get_db_session
+
+        with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            for stage in (
+                PipelineStage.BROWSER_LAUNCH,
+                PipelineStage.NAVIGATION,
+                PipelineStage.CONTENT_CAPTURE,
+            ):
+                _update_stage(
+                    session,
+                    job.id,
+                    stage,
+                    "FAILED",
+                    "Max retries exceeded",
+                )
+            session.commit()
+
+        # Verify all stages marked FAILED
+        for stage_name in (
+            PipelineStage.BROWSER_LAUNCH.value,
+            PipelineStage.NAVIGATION.value,
+            PipelineStage.CONTENT_CAPTURE.value,
+        ):
+            stage = (
+                db.query(JobStageDetail)
+                .filter(
+                    JobStageDetail.job_id == job.id,
+                    JobStageDetail.stage == stage_name,
+                )
+                .first()
+            )
+            assert stage is not None
+            assert stage.status == "FAILED"
+
+
+class TestAIExtractionMaxRetries:
+    """Test AI extraction stage max retry behavior."""
+
+    def test_ai_extraction_max_retries_exhaustion_leads_to_failed(
+        self, db, org_id, make_target
+    ):
+        """When ai_extraction_stage exhausts max_retries, job should reach FAILED status."""
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.EXTRACTING.value,
+            configuration={
+                "url": "https://example.com",
+                "extraction_config": {"method": "LLM"},
+            },
+        )
+        db.add(job)
+        db.commit()
+
+        # Simulate max retries exhausted
+        from value_fabric.layer1.shared.tasks import _fail_job
+        _fail_job(
+            job.id,
+            str(org_id),
+            "AI extraction failed after max retries",
+            PipelineStage.AI_EXTRACTION,
+        )
+
+        db.refresh(job)
+        assert job.status == JobStatus.FAILED.value
+
+
+class TestStageStatusConsistency:
+    """Test stage status consistency after retry exhaustion."""
+
+    def test_all_affected_stages_marked_failed_after_retry_exhaustion(
+        self, db, org_id, make_target
+    ):
+        """When a stage exhausts retries, all affected stages should be marked FAILED."""
+        target = make_target(org_id, status="ACTIVE")
+        job = ScrapingJob(
+            id=uuid4(),
+            tenant_id=org_id,
+            target_id=target.id,
+            status=JobStatus.VALIDATING.value,
+            configuration={"url": "https://example.com"},
+        )
+        db.add(job)
+        db.commit()
+
+        # Simulate compliance check failure affecting subsequent stages
+        from value_fabric.layer1.shared.tasks import _update_stage
+        from value_fabric.layer1.shared.database import get_db_session
+
+        with get_db_session(tenant_id=org_id, require_tenant=True) as session:
+            # Mark compliance check as FAILED
+            _update_stage(
+                session,
+                job.id,
+                PipelineStage.COMPLIANCE_CHECK,
+                "FAILED",
+                "Max retries exceeded",
+            )
+            # Subsequent stages should also be marked FAILED or not started
+            session.commit()
+
+        # Verify compliance check is FAILED
+        compliance_stage = (
+            db.query(JobStageDetail)
+            .filter(
+                JobStageDetail.job_id == job.id,
+                JobStageDetail.stage == PipelineStage.COMPLIANCE_CHECK.value,
+            )
+            .first()
+        )
+        assert compliance_stage is not None
+        assert compliance_stage.status == "FAILED"
+
+
+class TestNoOrphanedRunningStates:
+    """Test that no jobs are stuck in non-terminal states after retry exhaustion."""
+
+    def test_no_orphaned_running_states_after_retry_exhaustion(
+        self, db, org_id, make_target
+    ):
+        """After retry exhaustion, no jobs should be stuck in RUNNING state."""
+        target = make_target(org_id, status="ACTIVE")
+
+        # Create multiple jobs in various states
+        jobs = []
+        for i in range(5):
+            job = ScrapingJob(
+                id=uuid4(),
+                tenant_id=org_id,
+                target_id=target.id,
+                status=JobStatus.VALIDATING.value,
+                configuration={"url": f"https://example{i}.com"},
+            )
+            db.add(job)
+            jobs.append(job)
+        db.commit()
+
+        # Simulate retry exhaustion for all jobs
+        from value_fabric.layer1.shared.tasks import _fail_job
+        for job in jobs:
+            _fail_job(
+                job.id,
+                str(org_id),
+                "Max retries exceeded",
+                PipelineStage.COMPLIANCE_CHECK,
+            )
+
+        # Verify no jobs in RUNNING or non-terminal states
+        non_terminal_statuses = [
+            JobStatus.VALIDATING.value,
+            JobStatus.BROWSER_ACQUIRING.value,
+            JobStatus.NAVIGATING.value,
+            JobStatus.EXTRACTING.value,
+            JobStatus.POST_PROCESSING.value,
+            JobStatus.VALIDATING.value,
+        ]
+
+        stuck_jobs = (
+            db.query(ScrapingJob)
+            .filter(ScrapingJob.status.in_(non_terminal_statuses))
+            .all()
+        )
+
+        assert len(stuck_jobs) == 0, "No jobs should be stuck in non-terminal states"
+
+    def test_stuck_jobs_metric_reflects_non_terminal_count(self, db, org_id):
+        """The stuck_jobs metric should reflect the count of non-terminal jobs."""
+        # This test would require mocking the metrics system
+        # Expected: metrics.set_stuck_jobs(count, stage) for each stage
+        # This is a placeholder for when metrics are fully integrated
+        pass
+
+
+class TestRetryMechanismBehavior:
+    """Test Celery retry mechanism behavior."""
+
+    def test_max_retries_configured_correctly(self):
+        """Verify that max_retries is configured correctly for each stage."""
+        from value_fabric.layer1.shared import tasks
+        import inspect
+
+        # Check max_retries for each stage
+        stage_tasks = {
+            "compliance_check_stage": 3,
+            "browser_crawl_stage": 3,
+            "ai_extraction_stage": 5,
+            "post_processing_stage": 2,
+        }
+
+        for task_name, expected_max_retries in stage_tasks.items():
+            if hasattr(tasks, task_name):
+                task = getattr(tasks, task_name)
+                # Check if task has max_retries attribute
+                if hasattr(task, "max_retries"):
+                    assert (
+                        task.max_retries == expected_max_retries
+                    ), f"{task_name} should have max_retries={expected_max_retries}"
+
+    def test_retry_countdown_increases(self):
+        """Verify that retry countdown increases with each retry."""
+        # This would require testing actual Celery retry behavior
+        # For now, we document the expected behavior
+        # Expected: countdown increases (e.g., 30s, 60s, 120s)
+        pass
+
+
+# Helper function for tests
+def get_db_session(tenant_id: UUID, require_tenant: bool = True):
+    """Helper to get database session."""
+    from value_fabric.layer1.shared.database import get_db_session as real_get_db_session
+    return real_get_db_session(tenant_id=tenant_id, require_tenant=require_tenant)

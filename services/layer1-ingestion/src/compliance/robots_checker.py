@@ -104,12 +104,41 @@ class RobotsChecker:
             robots_data = await self._get_robots_txt(domain, robots_url, force_refresh)
         except RobotsFetchError as e:
             if self.strict_mode:
-                return False, f"robots.txt fetch failed (strict mode): {e.message}", {"strict_mode": True, "domain": domain, "error": "ROBOTS_FETCH_ERROR"}
+                # Emit metric for strict mode block
+                from ..metrics.prometheus_metrics import get_metrics
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_strict_robots_block(domain=domain, reason="fetch_error")
+                
+                # Audit log entry
+                logger.warning(
+                    "Strict robots mode: blocked due to fetch error",
+                    tenant_id=self.tenant_id,
+                    domain=domain,
+                    error=str(e),
+                    strict_mode=True,
+                )
+                
+                return False, f"robots.txt fetch failed (strict mode): {str(e)}", {"strict_mode": True, "domain": domain, "error": "ROBOTS_FETCH_ERROR"}
             # In permissive mode, re-raise so caller can decide to allow
             raise
 
         if robots_data is None:
             if self.strict_mode:
+                # Emit metric for strict mode block
+                from ..metrics.prometheus_metrics import get_metrics
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_strict_robots_block(domain=domain, reason="not_available")
+                
+                # Audit log entry
+                logger.warning(
+                    "Strict robots mode: blocked due to robots.txt not available",
+                    tenant_id=self.tenant_id,
+                    domain=domain,
+                    strict_mode=True,
+                )
+                
                 return False, "robots.txt required but not available (strict mode)", {"strict_mode": True, "domain": domain}
             # No robots.txt found - assume allowed in permissive mode
             return True, None, None

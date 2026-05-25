@@ -73,6 +73,11 @@ from layer2_extraction.output.provenance import (
 )
 from layer2_extraction.output.rdf_generator import generate_rdf
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
+from layer2_extraction.validation.artifact_validator import (
+    validate_artifact_for_persistence,
+    validate_extraction_result,
+    validate_relationship_for_persistence,
+)
 
 from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
@@ -605,15 +610,35 @@ _VAULT_UNREACHABLE_ERROR = "Vault unreachable — cannot start in production wit
 
 # Background task for extraction
 
-async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], reason: str = "validation_error") -> QuarantineRecord:
+async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], model_version: str, schema_version: str, reason: str = "validation_error") -> QuarantineRecord:
+    """Quarantine a validation failure with explicit version metadata.
+    
+    Args:
+        tenant_id: Required tenant identifier (no fallbacks)
+        job_id: Extraction job identifier
+        source_url: Source document URL
+        source_hash: Content hash for provenance
+        payload: Failed payload
+        errors: Validation error messages
+        model_version: LLM model version (required, no fallback)
+        schema_version: Schema version (required, no fallback)
+        reason: Quarantine reason
+    """
+    if not tenant_id:
+        raise ValueError("tenant_id is required for quarantine records")
+    if not model_version:
+        raise ValueError("model_version is required for quarantine records")
+    if not schema_version:
+        raise ValueError("schema_version is required for quarantine records")
+    
     record = QuarantineRecord(
         quarantine_id=str(uuid4()),
         job_id=job_id,
         tenant_id=tenant_id,
         source_url=source_url,
         source_hash=source_hash,
-        model_version=os.getenv("LLM_MODEL", "gpt-4o"),
-        schema_version="v1",
+        model_version=model_version,
+        schema_version=schema_version,
         payload_json=payload,
         validation_errors=errors,
         reason=reason,
@@ -674,13 +699,27 @@ async def run_extraction(
     tenant_id = config.get("tenant_id")
     if not tenant_id:
         raise HTTPException(status_code=400, detail="tenant_id is required in extraction_config")
+    
+    # Validate required telemetry context fields - no empty string fallbacks
+    model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
+    if not model_version:
+        raise HTTPException(status_code=400, detail="model_version is required in extraction_config or EXTRACTION_MODEL env var")
+    
+    schema_version = config.get("schema_version")
+    if not schema_version:
+        raise HTTPException(status_code=400, detail="schema_version is required in extraction_config")
+    
+    prompt_version = config.get("prompt_version")
+    if not prompt_version:
+        raise HTTPException(status_code=400, detail="prompt_version is required in extraction_config")
+    
     telemetry_context = {
         "tenant_id": str(tenant_id),
         "ingestion_id": str(config.get("ingestion_id", "")),
-        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", ""))),
-        "schema_version": str(config.get("schema_version", "")),
+        "model_version": str(model_version),
+        "schema_version": str(schema_version),
         "value_pack_id": str(config.get("value_pack_id", "default")),
-        "prompt_version": str(config.get("prompt_version", "")),
+        "prompt_version": str(prompt_version),
     }
     metrics = get_metrics()
 
@@ -872,10 +911,13 @@ async def run_extraction(
             features=deduplicated.get("features", []),  # type: ignore[arg-type]
             chunks_processed=len(chunks),
             tenant_id=telemetry_context["tenant_id"],
-            schema_version=telemetry_context.get("schema_version", ""),
-            prompt_version=telemetry_context.get("prompt_version", ""),
-            model_version=telemetry_context.get("model_version", ""),
+            schema_version=telemetry_context["schema_version"],
+            prompt_version=telemetry_context["prompt_version"],
+            model_version=telemetry_context["model_version"],
         )
+        
+        # MANDATORY VALIDATION GATE: Validate result before any persistence
+        validate_extraction_result(result)
 
         # Run entailment validation
         validator = EntailmentValidator()
@@ -901,6 +943,8 @@ async def run_extraction(
                 source_hash=content_hash,
                 payload=result.model_dump_json(),
                 errors=error_messages,
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
                 reason="entailment_validation_failed",
             )
             return None
@@ -933,6 +977,10 @@ async def run_extraction(
         step5 = ExtractionStep(step_name="rdf_generation", started_at=datetime.now(UTC))
 
         rdf_content = generate_rdf(result, all_relationships)
+        
+        # MANDATORY VALIDATION GATE: Validate all relationships before persistence
+        for rel in all_relationships:
+            validate_relationship_for_persistence(rel)
 
         # Broadcast RDF generation complete
         await _ws_manager.broadcast_stage_complete(
@@ -997,7 +1045,17 @@ async def run_extraction(
     except Exception as e:
         error_msg = str(e)
         if "schema validation error" in error_msg.lower():
-            await _quarantine_validation_failure(tenant_id=telemetry_context.get("tenant_id", ""), job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
+            await _quarantine_validation_failure(
+                tenant_id=telemetry_context["tenant_id"],
+                job_id=job_id,
+                source_url=source_url,
+                source_hash=content_hash,
+                payload=content[:4000],
+                errors=[error_msg],
+                model_version=telemetry_context["model_version"],
+                schema_version=telemetry_context["schema_version"],
+                reason="llm_schema_validation_failed"
+            )
         activity.fail(error_msg)
         await _set_pipeline_job(
             job_id,

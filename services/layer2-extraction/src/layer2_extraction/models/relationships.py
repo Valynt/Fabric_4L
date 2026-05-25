@@ -78,9 +78,9 @@ class Relationship(BaseModel):
     extraction_job_id: str = ""
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     # Relationship property fields
     impact_level: Any | None = None

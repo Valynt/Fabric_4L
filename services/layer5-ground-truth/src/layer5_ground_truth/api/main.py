@@ -679,6 +679,14 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Assumption Governance router not available")
 
+    # Mount the Governance router (new unified governance APIs)
+    try:
+        from .governance_router import governance_router
+
+        app.include_router(governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Governance router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):

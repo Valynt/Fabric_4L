@@ -136,6 +136,10 @@ def _unauthorized(detail: Any) -> HTTPException:
     return HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=detail)
 
 
+def _bad_request(detail: Any) -> HTTPException:
+    return HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=detail)
+
+
 def _forbidden(detail: Any) -> HTTPException:
     return HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail=detail)
 
@@ -202,11 +206,10 @@ async def require_authenticated(
         ctx = get_request_context()
     if ctx is None:
         raise _unauthorized("Authentication context is required")
-    errors = ctx.validate()
+    # Only check auth_source validity here, not full validation
+    # Full validation (including tenant_id) is checked by require_tenant_context
     if ctx.auth_source == AUTH_SOURCE_UNKNOWN or not ctx.is_auth_source_valid():
-        errors.append("auth_source must be one of the approved authentication mechanisms")
-    if errors:
-        raise _unauthorized({"message": "Authentication context is invalid", "errors": errors})
+        raise _unauthorized({"message": "Authentication context is invalid", "errors": ["auth_source must be one of the approved authentication mechanisms"]})
     return ctx
 
 
@@ -224,7 +227,7 @@ async def require_tenant_context(context: RequestContext | None = None) -> Reque
 
     ctx = await require_authenticated(context)
     if not ctx.tenant_id:
-        raise _forbidden("Tenant context required. Ensure request has passed through GovernanceMiddleware.")
+        raise _bad_request("Tenant context required. Ensure request has passed through GovernanceMiddleware.")
     return ctx
 
 

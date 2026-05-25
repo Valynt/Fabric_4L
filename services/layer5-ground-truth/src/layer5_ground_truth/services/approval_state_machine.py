@@ -1,0 +1,378 @@
+"""
+Approval State Machine for governance artifacts.
+
+Phase 2: Implement approval state machine (draft → pending → approved → deprecated)
+Issue A: Missing generalized approval workflow for high-impact assumptions/formulas/benchmarks
+
+Implements the approval lifecycle:
+  draft → pending → approved | rejected
+  approved → deprecated → archived
+  rejected → (terminal, can resubmit as new draft)
+  deprecated → archived
+"""
+
+import logging
+from datetime import UTC, datetime
+from enum import Enum as PyEnum
+from uuid import UUID
+
+from sqlalchemy import and_, func, select, update
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ..models.approval_workflow import (
+    ApprovalDecision,
+    ApprovalDecisionType,
+    ApprovalRequest,
+    ApprovalStatus,
+    ApprovalWorkflow,
+    EntityType,
+)
+from ..models.truth_object import Base
+
+logger = logging.getLogger(__name__)
+
+
+# ---------------------------------------------------------------------------
+# Custom exceptions
+# ---------------------------------------------------------------------------
+
+
+class InvalidApprovalTransitionError(ValueError):
+    """Raised when a requested approval transition is not permitted."""
+    pass
+
+
+class ApprovalRequirementError(ValueError):
+    """Raised when approval requirements are not met."""
+    pass
+
+
+class ApprovalConflictError(ValueError):
+    """Raised when a concurrent approval state change conflict occurs."""
+    pass
+
+
+# ---------------------------------------------------------------------------
+# Allowed transitions map
+# ---------------------------------------------------------------------------
+
+
+ALLOWED_APPROVAL_TRANSITIONS: dict[ApprovalStatus, set[ApprovalStatus]] = {
+    ApprovalStatus.DRAFT: {ApprovalStatus.PENDING, ApprovalStatus.ARCHIVED},
+    ApprovalStatus.PENDING: {ApprovalStatus.APPROVED, ApprovalStatus.REJECTED, ApprovalStatus.DRAFT},
+    ApprovalStatus.APPROVED: {ApprovalStatus.DEPRECATED, ApprovalStatus.ARCHIVED},
+    ApprovalStatus.REJECTED: set(),  # Terminal - resubmit as new draft
+    ApprovalStatus.DEPRECATED: {ApprovalStatus.ARCHIVED},
+    ApprovalStatus.ARCHIVED: set(),  # Terminal
+}
+
+
+# ---------------------------------------------------------------------------
+# Approval state machine service
+# ---------------------------------------------------------------------------
+
+
+class ApprovalStateMachine:
+    """
+    Encapsulates all approval state transition logic for governance artifacts.
+
+    Generic framework applicable to Formula, Benchmark, Policy, and Assumption entities.
+    """
+
+    def __init__(self) -> None:
+        pass
+
+    # ------------------------------------------------------------------
+    # Public transition methods
+    # ------------------------------------------------------------------
+
+    async def submit_for_approval(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        submitter: str,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """
+        Submit a draft approval request for review (DRAFT → PENDING).
+
+        Requirements:
+          - Current status must be DRAFT
+          - submitter must be the original requester
+        """
+        self._assert_approval_transition(request, ApprovalStatus.PENDING)
+
+        if request.requested_by != submitter:
+            raise ApprovalRequirementError(
+                f"Only the original requester ({request.requested_by}) can submit for approval."
+            )
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.PENDING,
+            actor=submitter,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.APPROVE,
+            notes=notes or "Submitted for approval",
+        )
+
+    async def approve(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        approver: str,
+        notes: str | None = None,
+        effective_from: datetime | None = None,
+        effective_until: datetime | None = None,
+    ) -> ApprovalRequest:
+        """
+        Approve a pending request (PENDING → APPROVED).
+
+        Requirements:
+          - Current status must be PENDING
+          - approver must have required role (checked at API layer)
+        """
+        self._assert_approval_transition(request, ApprovalStatus.APPROVED)
+
+        request.reviewed_by = approver
+        request.reviewed_at = datetime.now(UTC)
+        request.review_notes = notes
+        request.effective_from = effective_from
+        request.effective_until = effective_until
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.APPROVED,
+            actor=approver,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.APPROVE,
+            notes=notes or "Approved",
+        )
+
+    async def reject(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        reviewer: str,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """
+        Reject a pending request (PENDING → REJECTED).
+
+        Requirements:
+          - Current status must be PENDING
+          - reviewer must have required role
+        """
+        self._assert_approval_transition(request, ApprovalStatus.REJECTED)
+
+        request.reviewed_by = reviewer
+        request.reviewed_at = datetime.now(UTC)
+        request.review_notes = notes
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.REJECTED,
+            actor=reviewer,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.REJECT,
+            notes=notes or "Rejected",
+        )
+
+    async def request_changes(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        reviewer: str,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """
+        Request changes and return to draft (PENDING → DRAFT).
+
+        Requirements:
+          - Current status must be PENDING
+        """
+        self._assert_approval_transition(request, ApprovalStatus.DRAFT)
+
+        request.reviewed_by = reviewer
+        request.reviewed_at = datetime.now(UTC)
+        request.review_notes = notes
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.DRAFT,
+            actor=reviewer,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.REQUEST_CHANGES,
+            notes=notes or "Changes requested",
+        )
+
+    async def deprecate(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        deprecator: str,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """
+        Deprecate an approved request (APPROVED → DEPRECATED).
+
+        Requirements:
+          - Current status must be APPROVED
+        """
+        self._assert_approval_transition(request, ApprovalStatus.DEPRECATED)
+
+        request.deprecated_at = datetime.now(UTC)
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.DEPRECATED,
+            actor=deprecator,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.ESCALATE,
+            notes=notes or "Deprecated",
+        )
+
+    async def archive(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        archiver: str,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """
+        Archive a request (DEPRECATED → ARCHIVED or DRAFT → ARCHIVED).
+
+        Requirements:
+          - Current status must be DEPRECATED or DRAFT
+        """
+        self._assert_approval_transition(request, ApprovalStatus.ARCHIVED)
+
+        request.archived_at = datetime.now(UTC)
+
+        return await self._apply_approval_transition(
+            db=db,
+            request=request,
+            new_status=ApprovalStatus.ARCHIVED,
+            actor=archiver,
+            actor_type="human",
+            decision_type=ApprovalDecisionType.ESCALATE,
+            notes=notes or "Archived",
+        )
+
+    # ------------------------------------------------------------------
+    # Private helpers
+    # ------------------------------------------------------------------
+
+    def _assert_approval_transition(
+        self,
+        request: ApprovalRequest,
+        target: ApprovalStatus,
+    ) -> None:
+        """Raise InvalidApprovalTransitionError if the transition is not permitted."""
+        current = ApprovalStatus(request.status)
+        allowed = ALLOWED_APPROVAL_TRANSITIONS.get(current, set())
+        if target not in allowed:
+            logger.warning(
+                "approval_transition_rejected",
+                extra={
+                    "request_id": str(request.id),
+                    "entity_type": request.entity_type,
+                    "entity_id": str(request.entity_id),
+                    "current_status": current.value,
+                    "target_status": target.value,
+                },
+            )
+            raise InvalidApprovalTransitionError(
+                f"Transition {current.value} → {target.value} is not permitted. "
+                f"Allowed from {current.value}: {[s.value for s in allowed] or 'none'}."
+            )
+
+    async def _apply_approval_transition(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        new_status: ApprovalStatus,
+        actor: str,
+        actor_type: str,
+        decision_type: ApprovalDecisionType,
+        notes: str | None = None,
+    ) -> ApprovalRequest:
+        """Apply a validated approval transition and record decision."""
+        old_status = request.status
+
+        # Concurrency guard: only transition if the row is still in the expected state
+        result = await db.execute(
+            update(ApprovalRequest)
+            .where(
+                and_(
+                    ApprovalRequest.id == request.id,
+                    ApprovalRequest.tenant_id == request.tenant_id,
+                    ApprovalRequest.status == old_status,
+                )
+            )
+            .values(
+                status=new_status.value,
+                updated_at=datetime.now(UTC),
+            )
+            .execution_options(synchronize_session=False)
+        )
+        if (result.rowcount or 0) != 1:
+            raise ApprovalConflictError(
+                "Concurrent approval state change conflict: request state changed before transition could be applied."
+            )
+
+        # Keep ORM object in sync
+        request.status = new_status.value
+        request.updated_at = datetime.now(UTC)
+
+        # Set timestamp based on new status
+        if new_status == ApprovalStatus.APPROVED:
+            request.approved_at = datetime.now(UTC)
+        elif new_status == ApprovalStatus.REJECTED:
+            request.rejected_at = datetime.now(UTC)
+
+        # Record approval decision
+        decision = ApprovalDecision(
+            tenant_id=request.tenant_id,
+            approval_request_id=request.id,
+            decision_type=decision_type.value,
+            decided_by=actor,
+            decided_at=datetime.now(UTC),
+            decision_notes=notes,
+            approval_level=1,  # TODO: Support multi-level approval chains
+        )
+        db.add(decision)
+
+        logger.info(
+            "ApprovalRequest %s transitioned %s → %s by %s",
+            request.id,
+            old_status,
+            new_status.value,
+            actor,
+        )
+
+        await db.flush()
+        return request
+
+    async def get_workflow_for_entity(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        entity_type: EntityType,
+    ) -> ApprovalWorkflow | None:
+        """Get the active workflow for an entity type."""
+        result = await db.execute(
+            select(ApprovalWorkflow).where(
+                and_(
+                    ApprovalWorkflow.tenant_id == tenant_id,
+                    ApprovalWorkflow.entity_type == entity_type.value,
+                    ApprovalWorkflow.is_active.is_(True),
+                )
+            )
+        )
+        return result.scalar_one_or_none()
