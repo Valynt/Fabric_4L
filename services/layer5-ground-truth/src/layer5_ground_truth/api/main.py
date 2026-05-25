@@ -670,6 +670,15 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Model Registry router not available")
 
+    try:
+        from .assumption_governance_routes import (
+            router as assumption_governance_router,
+        )
+
+        app.include_router(assumption_governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Assumption Governance router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):
@@ -745,6 +754,19 @@ def create_app() -> FastAPI:
                 content={"status": "not_ready", "database": "unavailable"},
                 status_code=503,
             )
+
+
+    @app.get("/health/audit-writes", tags=["system"], include_in_schema=False)
+    async def audit_write_health() -> JSONResponse:
+        from layer5_ground_truth.services.audit_write_monitor import get_audit_write_stats
+
+        stats = get_audit_write_stats()
+        failures = int(stats.get("failures_total", 0))
+        status_code = 200 if failures == 0 else 503
+        return JSONResponse(
+            content={"status": "ok" if failures == 0 else "degraded", "audit_write_failures_total": failures},
+            status_code=status_code,
+        )
 
     # Root redirect to docs
     @app.get("/", include_in_schema=False)

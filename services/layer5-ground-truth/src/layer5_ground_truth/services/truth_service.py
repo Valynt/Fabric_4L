@@ -92,7 +92,12 @@ async def create_truth_object(
         notes="Initial extraction",
     )
     db.add(initial_event)
-    await db.flush()  # Flush so the event has an ID and can be loaded by refresh
+    try:
+        await db.flush()  # Flush so the event has an ID and can be loaded by refresh
+    except Exception:
+        from .audit_write_monitor import record_audit_write_failure
+        record_audit_write_failure()
+        raise
 
     # Attach sources if provided
     if sources:
