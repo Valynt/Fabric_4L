@@ -81,6 +81,11 @@ jobs:
           pip install pytest pyyaml
           pytest tests/contract/test_import_topology.py -v --tb=short
 
+      - name: Enforce Layer 4 end-state audit implemented-coverage integrity
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_layer4_end_state_audit.py
+
       - name: Enforce pytest skip governance
         run: |
           mkdir -p artifacts
