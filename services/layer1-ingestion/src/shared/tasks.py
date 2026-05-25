@@ -1787,37 +1787,94 @@ def _should_fail_closed(
 
 @celery_app.task
 def cleanup_old_content(days: int = 30, tenant_id: str = None):
-    """Clean up raw content older than specified days for a specific tenant.
+    """Clean up raw content older than specified days.
+    
+    This function implements tenant-by-tenant cleanup under RLS by default.
+    System-scoped cleanup requires explicit system maintenance authorization.
     
     Args:
         days: Number of days to retain content
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
-                   If None, this is a system-level operation (requires admin authorization)
+                   If None, requires system maintenance authorization
+        
+    Raises:
+        SystemMaintenanceAuthorizationError: If system-scoped operation lacks authorization
+        InvalidTenantContextError: If tenant_id is provided but invalid
     """
+    from .maintenance import authorize_maintenance_operation, maintenance_audit_log
+    
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
-    tenant_uuid = UUID(tenant_id) if tenant_id else None
+    
+    # Validate tenant context if provided
+    if tenant_id:
+        try:
+            tenant_uuid = UUID(tenant_id)
+        except (ValueError, TypeError) as e:
+            raise InvalidTenantContextError(
+                f"Invalid tenant_id format: {tenant_id}",
+                tenant_id=tenant_id
+            )
+        
+        # Tenant-scoped cleanup under RLS
+        logger.info("Starting tenant-scoped content cleanup", 
+                   cutoff_date=cutoff_date.isoformat(), 
+                   tenant_id=str(tenant_uuid))
+        
+        with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
+                with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
+                    old_content = (
+                        session.query(RawContent)
+                        .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
+                        .all()
+                    )
 
-    logger.info("Starting content cleanup", cutoff_date=cutoff_date.isoformat(), tenant_id=str(tenant_uuid) if tenant_uuid else "system")
+                    deleted_count = 0
+                    for content in old_content:
+                        content.processing_status = "DELETED"
+                        deleted_count += 1
 
-    # Set tenant context BEFORE any database queries
-    with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
-        old_content = (
-            session.query(RawContent)
-            .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
-            .all()
-        )
+                    session.commit()
+                    record.rows_affected = deleted_count
 
-        deleted_count = 0
-        for content in old_content:
-            content.processing_status = "DELETED"
-            deleted_count += 1
+                    logger.info(
+                        "Tenant-scoped content cleanup completed",
+                        deleted_count=deleted_count,
+                        cutoff_date=cutoff_date.isoformat(),
+                        tenant_id=str(tenant_uuid),
+                    )
 
-        session.commit()
+                    return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
+    
+    else:
+        # System-scoped cleanup requires authorization
+        authorize_maintenance_operation("cleanup_old_content", tenant_id=None)
+        
+        logger.info("Starting system-scoped content cleanup", 
+                   cutoff_date=cutoff_date.isoformat())
+        
+        with maintenance_audit_log("cleanup_old_content", tenant_id=None) as record:
+            # Use system maintenance context for global table access
+            from .maintenance import system_maintenance_context
+            with system_maintenance_context():
+                with get_db_session(tenant_id=None, require_tenant=False) as session:
+                    old_content = (
+                        session.query(RawContent)
+                        .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
+                        .all()
+                    )
 
-        logger.info(
-            "Content cleanup completed",
-            deleted_count=deleted_count,
-            cutoff_date=cutoff_date.isoformat(),
-        )
+                    deleted_count = 0
+                    for content in old_content:
+                        content.processing_status = "DELETED"
+                        deleted_count += 1
 
-        return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
+                    session.commit()
+                    record.rows_affected = deleted_count
+
+                    logger.info(
+                        "System-scoped content cleanup completed",
+                        deleted_count=deleted_count,
+                        cutoff_date=cutoff_date.isoformat(),
+                    )
+
+                    return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()

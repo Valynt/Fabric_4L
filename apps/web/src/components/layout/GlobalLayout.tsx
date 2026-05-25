@@ -8,6 +8,7 @@ import { AppHeader } from "./AppHeader";
 import { AgentChat } from "./AgentChat";
 import { AgentSidePanel } from "./AgentSidePanel";
 import { MobileNavigation } from "./MobileNavigation";
+import { useUserTierStore } from "@/stores/userTierStore";
 import type { AgentChatMode } from "@/types/layout";
 import type { UserTier } from "@/navigation/navigationService";
 
@@ -69,7 +70,9 @@ export function GlobalLayout() {
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(false);
   // Mobile navigation uses persistent icon rail (MobilePersistentSidebar).
   // Hamburger menu drawer is not implemented; no open/close state needed.
-  const [currentTier, setCurrentTier] = useState<UserTier>("standard");
+  const rawTier = useUserTierStore((state) => state.currentTier);
+  const currentTier: UserTier = rawTier === "unknown" ? "standard" : rawTier;
+  const setCurrentTier = useUserTierStore((state) => state.setTier);
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState(false);
   const [agentMode, setAgentMode] = useState<AgentChatMode>("closed");
 
@@ -110,6 +113,7 @@ export function GlobalLayout() {
       <LeftNavigation
         collapsed={leftNavCollapsed}
         onToggle={toggleLeftNav}
+        currentTier={currentTier}
       />
 
       <MobileNavigation

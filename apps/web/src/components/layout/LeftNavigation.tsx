@@ -3,66 +3,64 @@ import {
   Home,
   Building2,
   Radar,
-  Target,
-  GitBranch,
+  Lightbulb,
   FileText,
-  TrendingUp,
-  FlaskConical,
+  Wrench,
+  GitBranch,
+  Settings,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
 import { NavLink, useLocation, useParams } from "react-router-dom";
 import { NAV_SCHEMA } from "@/navigation/navSchema";
+import type { UserTier } from "@/hooks";
 
 interface LeftNavigationProps {
   collapsed: boolean;
   onToggle: () => void;
+  currentTier?: UserTier;
 }
 
-const NAV_ICONS = {
+const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   home: Home,
   accounts: Building2,
   intelligence: Radar,
-  "intel-signals": Radar,
-  "intel-opportunities": Target,
-  "intel-drivers": GitBranch,
-  "intel-evidence": FileText,
-  "intel-scenarios": FlaskConical,
-  "intel-business-case": FileText,
-  "intel-realization": TrendingUp,
-} as const;
+  studio: Lightbulb,
+  deliverables: FileText,
+  "context-engine": Wrench,
+  governance: GitBranch,
+  settings: Settings,
+};
+
+function isItemVisible(itemTier: UserTier, userTier: UserTier): boolean {
+  if (userTier === "admin") return true;
+  if (userTier === "advanced") return itemTier !== "admin";
+  if (userTier === "unknown") return itemTier === "standard";
+  return itemTier === "standard";
+}
 
 export function LeftNavigation({
   collapsed,
   onToggle,
+  currentTier = "standard",
 }: LeftNavigationProps) {
   const { pathname } = useLocation();
   const { tenantSlug, accountId: urlAccountId } = useParams<{ tenantSlug: string; accountId: string }>();
 
-  // Extract accountId from canonical URL: /t/:tenantSlug/accounts/:accountId/...
   const accountId = urlAccountId ?? null;
 
   const navItems = NAV_SCHEMA
-    .filter((item) => item.id === "home" || item.id === "accounts")
-    .map((item) => ({ ...item, path: item.path }))
-    .concat(
-      (NAV_SCHEMA.find((item) => item.id === "intelligence")?.children ?? [])
-        .filter((item) => [
-          "intel-signals",
-          "intel-opportunities",
-          "intel-drivers",
-          "intel-evidence",
-          "intel-scenarios",
-          "intel-business-case",
-          "intel-realization",
-        ].includes(item.id))
-        .map((item) => ({
-          ...item,
-          path: accountId && tenantSlug
-            ? item.path.replace(":tenantSlug", tenantSlug).replace(":accountId", accountId)
-            : "/accounts",
-        }))
-    );
+    .filter((item) => isItemVisible(item.tier, currentTier))
+    .map((item) => {
+      let resolvedPath = item.path;
+      if (tenantSlug) {
+        resolvedPath = resolvedPath.replace(":tenantSlug", tenantSlug);
+      }
+      if (accountId) {
+        resolvedPath = resolvedPath.replace(":accountId", accountId);
+      }
+      return { ...item, path: resolvedPath };
+    });
 
   return (
     <aside
@@ -98,7 +96,7 @@ export function LeftNavigation({
 
       <nav aria-label="Primary navigation" className="flex-1 space-y-1 overflow-y-auto p-2">
         {navItems.map((item) => {
-          const Icon = NAV_ICONS[item.id as keyof typeof NAV_ICONS] ?? Radar;
+          const Icon = NAV_ICONS[item.id] ?? Radar;
 
           return (
             <NavLink

@@ -47,7 +47,7 @@ function ClerkLoadingFallback() {
   );
 }
 
-export function RequireClerkAuth({
+function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
@@ -55,11 +55,6 @@ export function RequireClerkAuth({
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isLoaded: orgLoaded, organization } = useOrganization();
-
-  // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
-  if (!isClerkAuthEnabled()) {
-    return <>{children}</>;
-  }
 
   if (!authLoaded || (requireOrganization && !orgLoaded)) {
     return <ClerkLoadingFallback />;
@@ -77,4 +72,12 @@ export function RequireClerkAuth({
   }
 
   return <>{children}</>;
+}
+
+export function RequireClerkAuth(props: RequireClerkAuthProps) {
+  // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
+  if (!isClerkAuthEnabled()) {
+    return <>{props.children}</>;
+  }
+  return <RequireClerkAuthInner {...props} />;
 }

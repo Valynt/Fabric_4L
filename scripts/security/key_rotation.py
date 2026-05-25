@@ -43,6 +43,63 @@ logging.basicConfig(
 logger = logging.getLogger("key_rotation")
 
 
+def get_infisical_base_cmd() -> list[str]:
+    """Get the Infisical CLI binary path only."""
+    custom_path = os.getenv("INFISICAL_CLI_PATH")
+    if custom_path:
+        return [custom_path]
+    
+    if sys.platform == "win32" or os.name == "nt":
+        common_windows_paths = [
+            r"C:\tools\Infisical\infisical.exe",
+            r"C:\tools\Infisical\infisical",
+            os.path.expanduser(r"~\bin\infisical.exe"),
+            os.path.expanduser(r"~\infisical-cli\infisical.exe"),
+        ]
+        for path in common_windows_paths:
+            if os.path.exists(path):
+                return [path]
+    
+    return ["infisical"]
+
+
+def get_infisical_auth_flags() -> list[str]:
+    """Get authentication flags for Infisical CLI."""
+    flags = []
+    client_id = os.getenv("INFISICAL_CLIENT_ID")
+    client_secret = os.getenv("INFISICAL_CLIENT_SECRET")
+    project_id = os.getenv("INFISICAL_PROJECT_ID")
+    
+    if client_id:
+        flags.extend(["--client-id", client_id])
+    if client_secret:
+        flags.extend(["--client-secret", client_secret])
+    if project_id:
+        flags.extend(["--projectId", project_id])
+    
+    return flags
+
+
+def fix_path_for_git_bash(path: str) -> str:
+    """Fix paths that get mangled by Git Bash path translation."""
+    # In Git Bash, paths like /fabric-4l/value-fabric become C:/tools/Git/fabric-4l/value-fabric
+    # We need to extract the actual Unix path from the mangled Windows path
+    import re
+    # Check if path was mangled by Git Bash (contains Windows drive letter or tools/Git)
+    if re.match(r'^[A-Za-z]:', path) or 'tools/Git' in path or 'tools\\Git' in path:
+        # Extract everything after the drive/tools prefix
+        # Pattern: C:/tools/Git/PATH or C:\tools\Git\PATH -> /PATH
+        match = re.search(r'[tT]ools[/\\][gG]it[/\\](.+)$', path)
+        if match:
+            actual_path = match.group(1).replace('\\', '/')
+            return '/' + actual_path
+    return path
+
+
+INFISICAL_BASE = get_infisical_base_cmd()
+INFISICAL_AUTH_FLAGS = get_infisical_auth_flags()
+
+
 class RotationStatus(Enum):
     PENDING = "pending"
     IN_PROGRESS = "in_progress"
@@ -196,16 +253,17 @@ class SecretProvider(ABC):
         env_map = {"dev": "dev", "staging": "staging", "prod": "prod"}
         infisical_env = env_map.get(self.environment, self.environment)
         
+        fixed_path = fix_path_for_git_bash(self.infisical_path)
         cmd = [
-            "infisical", "secrets", "set",
+            *INFISICAL_BASE, "secrets", "set",
             f"--env={infisical_env}",
-            f"--path={self.infisical_path}",
+            f"--path={fixed_path}",
             f"{self.secret_name}={key_value}",
             "--silent"
         ]
         
         try:
-            subprocess.run(cmd, check=True, capture_output=True, text=True)
+            subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8')
             logger.info(f"[{self.provider_name}] Updated Infisical successfully")
         except subprocess.CalledProcessError as e:
             raise RuntimeError(f"Failed to update Infisical: {e.stderr}")
@@ -221,12 +279,12 @@ class SecretProvider(ABC):
         for service in services:
             try:
                 cmd = ["kubectl", "rollout", "restart", "deployment", service, "-n", "value-fabric"]
-                subprocess.run(cmd, check=True, capture_output=True, text=True)
+                subprocess.run(cmd, check=True, capture_output=True, text=True, encoding='utf-8')
                 logger.info(f"[{self.provider_name}] Restarted {service}")
                 
                 # Wait for rollout
                 wait_cmd = ["kubectl", "rollout", "status", "deployment", service, "-n", "value-fabric", "--timeout=300s"]
-                subprocess.run(wait_cmd, check=True, capture_output=True, text=True)
+                subprocess.run(wait_cmd, check=True, capture_output=True, text=True, encoding='utf-8')
                 logger.info(f"[{self.provider_name}] {service} rollout complete")
                 
             except subprocess.CalledProcessError as e:
@@ -251,9 +309,13 @@ class OpenAIProvider(SecretProvider):
     def provider_name(self) -> str:
         return "openai"
     
+    def get_infisical_path(self) -> str:
+        # OpenAI keys stored in /llm folder
+        return "/llm"
+    
     @property
     def infisical_path(self) -> str:
-        return "/layer2-extraction"
+        return self.get_infisical_path()
     
     @property
     def secret_name(self) -> str:
@@ -262,13 +324,18 @@ class OpenAIProvider(SecretProvider):
     def get_current_key_id(self) -> str | None:
         # OpenAI doesn't expose key IDs via API; we track in Infisical metadata
         try:
+            fixed_path = fix_path_for_git_bash(self.infisical_path)
             result = subprocess.run(
-                ["infisical", "secrets", "get", "--env=dev", f"--path={self.infisical_path}", self.secret_name, "--json"],
-                capture_output=True, text=True, check=True
+                [*INFISICAL_BASE, "secrets", "get",
+                 "--env=dev", f"--path={fixed_path}", self.secret_name],
+                capture_output=True, text=True, check=True, encoding='utf-8'
             )
-            data = json.loads(result.stdout)
-            # Extract key ID from the key value (first 20 chars as identifier)
-            key_value = data.get("secretValue", "")
+            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
+            output = result.stdout.strip()
+            if "=" in output:
+                key_value = output.split("=", 1)[1]
+            else:
+                key_value = output
             return key_value[:20] + "..." if len(key_value) > 20 else key_value
         except Exception:
             return None
@@ -339,9 +406,13 @@ class ThesysProvider(SecretProvider):
     def provider_name(self) -> str:
         return "thesys"
     
+    def get_infisical_path(self) -> str:
+        # Thesys keys stored in /llm folder
+        return "/llm"
+    
     @property
     def infisical_path(self) -> str:
-        return "/shared"
+        return self.get_infisical_path()
     
     @property
     def secret_name(self) -> str:
@@ -349,12 +420,18 @@ class ThesysProvider(SecretProvider):
     
     def get_current_key_id(self) -> str | None:
         try:
+            fixed_path = fix_path_for_git_bash(self.infisical_path)
             result = subprocess.run(
-                ["infisical", "secrets", "get", "--env=dev", f"--path={self.infisical_path}", self.secret_name, "--json"],
-                capture_output=True, text=True, check=True
+                [*INFISICAL_BASE, "secrets", "get",
+                 "--env=dev", f"--path={fixed_path}", self.secret_name],
+                capture_output=True, text=True, check=True, encoding='utf-8'
             )
-            data = json.loads(result.stdout)
-            key_value = data.get("secretValue", "")
+            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
+            output = result.stdout.strip()
+            if "=" in output:
+                key_value = output.split("=", 1)[1]
+            else:
+                key_value = output
             return key_value[:20] + "..." if len(key_value) > 20 else key_value
         except Exception:
             return None
@@ -400,9 +477,13 @@ class ClerkProvider(SecretProvider):
     def provider_name(self) -> str:
         return "clerk"
     
+    def get_infisical_path(self) -> str:
+        # Clerk keys stored in /auth folder
+        return "/auth"
+    
     @property
     def infisical_path(self) -> str:
-        return "/shared"
+        return self.get_infisical_path()
     
     @property
     def secret_name(self) -> str:
@@ -410,14 +491,19 @@ class ClerkProvider(SecretProvider):
     
     def get_current_key_id(self) -> str | None:
         try:
+            fixed_path = fix_path_for_git_bash(self.infisical_path)
             result = subprocess.run(
-                ["infisical", "secrets", "get", "--env=dev", f"--path={self.infisical_path}", self.secret_name, "--json"],
-                capture_output=True, text=True, check=True
+                [*INFISICAL_BASE, "secrets", "get",
+                 "--env=dev", f"--path={fixed_path}", self.secret_name],
+                capture_output=True, text=True, check=True, encoding='utf-8'
             )
-            data = json.loads(result.stdout)
-            key_value = data.get("secretValue", "")
-            # Clerk keys have format sk_test_... or sk_live_...
-            return key_value[:25] + "..." if len(key_value) > 25 else key_value
+            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
+            output = result.stdout.strip()
+            if "=" in output:
+                key_value = output.split("=", 1)[1]
+            else:
+                key_value = output
+            return key_value[:20] + "..." if len(key_value) > 20 else key_value
         except Exception:
             return None
     
@@ -485,9 +571,13 @@ class RegistryTokenProvider(SecretProvider):
     def provider_name(self) -> str:
         return "registry"
     
+    def get_infisical_path(self) -> str:
+        # Registry token stored in /app folder
+        return "/app"
+    
     @property
     def infisical_path(self) -> str:
-        return "/ci"
+        return self.get_infisical_path()
     
     @property
     def secret_name(self) -> str:
@@ -495,15 +585,19 @@ class RegistryTokenProvider(SecretProvider):
     
     def get_current_key_id(self) -> str | None:
         try:
+            fixed_path = fix_path_for_git_bash(self.infisical_path)
             result = subprocess.run(
-                ["infisical", "secrets", "get", "--env=dev", f"--path={self.infisical_path}", self.secret_name, "--json"],
-                capture_output=True, text=True, check=True
+                [*INFISICAL_BASE, "secrets", "get",
+                 "--env=dev", f"--path={fixed_path}", self.secret_name],
+                capture_output=True, text=True, check=True, encoding='utf-8'
             )
-            data = json.loads(result.stdout)
-            key_value = data.get("secretValue", "")
-            # GitHub tokens start with ghp_ or github_pat_
-            prefix = key_value[:15] if len(key_value) > 15 else key_value
-            return prefix + "..."
+            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
+            output = result.stdout.strip()
+            if "=" in output:
+                key_value = output.split("=", 1)[1]
+            else:
+                key_value = output
+            return key_value[:20] + "..." if len(key_value) > 20 else key_value
         except Exception:
             return None
     

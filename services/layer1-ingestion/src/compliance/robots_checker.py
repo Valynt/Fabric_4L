@@ -17,6 +17,14 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..shared.config import settings
 from ..shared.database import get_db_session
 from ..shared.models import RobotsTxtCache
+from ..shared.exceptions import (
+    RobotsCheckerError,
+    RobotsCacheError,
+    RobotsFetchError,
+    RobotsParseError,
+    TenantContextError,
+    InvalidTenantContextError,
+)
 
 
 class RobotsChecker__get_robots_txtResult(TypedDictModel):
@@ -145,10 +153,14 @@ class RobotsChecker:
         """
         # Check cache first
         if not force_refresh:
-            cached = self._get_cached_robots_txt(domain)
-            if cached:
-                self.logger.debug("Using cached robots.txt", domain=domain)
-                return cached
+            try:
+                cached = await self._get_cached_robots_txt(domain)
+                if cached:
+                    self.logger.debug("Using cached robots.txt", domain=domain)
+                    return cached
+            except RobotsCacheError as e:
+                # Log cache error but continue to fetch fresh
+                self.logger.warning("Cache error, fetching fresh robots.txt", domain=domain, error=str(e))
 
         # Fetch fresh robots.txt
         try:
@@ -164,15 +176,34 @@ class RobotsChecker:
             content = response.text
 
             # Parse and cache
-            parsed_rules = self._parse_robots_txt(content)
+            try:
+                parsed_rules = self._parse_robots_txt(content)
+            except RobotsParseError as e:
+                # Log parse error but cache the failure
+                self.logger.warning("Parse error, caching failure", domain=domain, error=str(e))
+                self._cache_robots_txt(
+                    domain=domain,
+                    url=robots_url,
+                    content=content,
+                    rules={},
+                    http_status=response.status_code,
+                    is_valid=False,
+                    error=str(e),
+                )
+                # Be conservative and allow crawling on parse errors
+                return None
 
-            self._cache_robots_txt(
-                domain=domain,
-                url=robots_url,
-                content=content,
-                rules=parsed_rules,
-                http_status=response.status_code,
-            )
+            try:
+                self._cache_robots_txt(
+                    domain=domain,
+                    url=robots_url,
+                    content=content,
+                    rules=parsed_rules,
+                    http_status=response.status_code,
+                )
+            except RobotsCacheError as e:
+                # Log cache error but continue with fetched data
+                self.logger.warning("Failed to cache robots.txt", domain=domain, error=str(e))
 
             self.logger.info("Fetched and cached robots.txt", domain=domain, size=len(content))
 
@@ -200,31 +231,63 @@ class RobotsChecker:
             # On error, be conservative and assume allowed
             return None
 
+        except httpx.RequestError as e:
+            # Network/connection errors - these are recoverable
+            raise RobotsFetchError(
+                f"Network error fetching robots.txt for domain {domain}: {str(e)}",
+                domain=domain
+            )
         except Exception as e:
-            self.logger.error("Failed to fetch robots.txt", domain=domain, error_code="ROBOTS_FETCH_ERROR")
-            return None
+            # Convert other errors to RobotsFetchError
+            raise RobotsFetchError(
+                f"Unexpected error fetching robots.txt for domain {domain}: {str(e)}",
+                domain=domain
+            )
 
     def _get_cached_robots_txt(self, domain: str) -> dict[str, Any] | None:
-        """Get cached robots.txt from database.
-
+        """Get cached robots.txt from global public metadata cache.
+        
+        This cache contains only public robots.txt response data and does not
+        require tenant isolation. The tenant_id column is legacy/system-owned only.
+        
         Args:
             domain: Domain name
 
         Returns:
             Cached robots.txt data or None if expired/not found
+            
+        Raises:
+            InvalidTenantContextError: If tenant_id is provided but invalid
+            RobotsCacheError: If cache operation fails
         """
+        # Validate tenant context if provided
+        if self.tenant_id:
+            try:
+                tenant_uuid = UUID(self.tenant_id)
+            except (ValueError, TypeError) as e:
+                raise InvalidTenantContextError(
+                    f"Invalid tenant_id format: {self.tenant_id}",
+                    tenant_id=self.tenant_id
+                )
+        else:
+            tenant_uuid = None
+        
         try:
-            tenant_uuid = UUID(self.tenant_id) if self.tenant_id else None
-            with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
+            # Use require_tenant=False for global public metadata cache
+            # This is NOT an admin bypass - it's a global public cache
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=False) as session:
                 query = (
                     session.query(RobotsTxtCache)
                     .filter(
                         RobotsTxtCache.domain == domain,
                         RobotsTxtCache.expires_at > datetime.now(UTC),
+                        RobotsTxtCache.is_valid == True,
                     )
                 )
-                if tenant_uuid is not None:
-                    query = query.filter(RobotsTxtCache.tenant_id == tenant_uuid)
+                
+                # Global cache - no tenant filtering required
+                # The tenant_id column is legacy/system-owned only
+                
                 cache_entry = query.first()
 
                 if cache_entry:
@@ -237,9 +300,15 @@ class RobotsChecker:
 
                 return None
 
+        except TenantContextError:
+            # Re-raise tenant context errors - these are security failures
+            raise
         except Exception as e:
-            self.logger.error("Failed to get cached robots.txt", domain=domain, error_code="ROBOTS_CACHE_GET_ERROR")
-            return None
+            # Convert to specific RobotsCacheError for proper error classification
+            raise RobotsCacheError(
+                f"Failed to retrieve cached robots.txt for domain {domain}: {str(e)}",
+                domain=domain
+            )
 
     def _cache_robots_txt(
         self,
@@ -251,7 +320,10 @@ class RobotsChecker:
         is_valid: bool = True,
         error: str | None = None,
     ):
-        """Cache robots.txt in database.
+        """Cache robots.txt in global public metadata cache.
+        
+        This cache stores only public robots.txt response data and does not
+        require tenant isolation. The tenant_id column is legacy/system-owned only.
 
         Args:
             domain: Domain name
@@ -261,15 +333,29 @@ class RobotsChecker:
             http_status: HTTP status code
             is_valid: Whether parsing succeeded
             error: Error message if parsing failed
+            
+        Raises:
+            InvalidTenantContextError: If tenant_id is provided but invalid
+            RobotsCacheError: If cache operation fails
         """
+        # Validate tenant context if provided
+        if self.tenant_id:
+            try:
+                tenant_uuid = UUID(self.tenant_id)
+            except (ValueError, TypeError) as e:
+                raise InvalidTenantContextError(
+                    f"Invalid tenant_id format: {self.tenant_id}",
+                    tenant_id=self.tenant_id
+                )
+        else:
+            tenant_uuid = None
+        
         try:
-            tenant_uuid = UUID(self.tenant_id) if self.tenant_id else None
-            with get_db_session(tenant_id=tenant_uuid, require_tenant=True if tenant_uuid else False) as session:
-                # Check if entry exists for this tenant
-                query = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == domain)
-                if tenant_uuid is not None:
-                    query = query.filter(RobotsTxtCache.tenant_id == tenant_uuid)
-                existing = query.first()
+            # Use require_tenant=False for global public metadata cache
+            # This is NOT an admin bypass - it's a global public cache
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=False) as session:
+                # Check if entry exists (global cache - no tenant filtering)
+                existing = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == domain).first()
 
                 now = datetime.now(UTC)
                 expires_at = now + timedelta(hours=self.cache_ttl_hours)
@@ -285,10 +371,10 @@ class RobotsChecker:
                     existing.is_valid = is_valid
                     existing.parse_error = error
                 else:
-                    # Create new
+                    # Create new - tenant_id is legacy/system-owned only
                     cache_entry = RobotsTxtCache(
                         domain=domain,
-                        tenant_id=tenant_uuid,
+                        tenant_id=tenant_uuid,  # Legacy column - system-owned only
                         content=content,
                         url=url,
                         rules=rules,
@@ -302,8 +388,15 @@ class RobotsChecker:
 
                 session.commit()
 
+        except TenantContextError:
+            # Re-raise tenant context errors - these are security failures
+            raise
         except Exception as e:
-            self.logger.error("Failed to cache robots.txt", domain=domain, error_code="ROBOTS_CACHE_SET_ERROR")
+            # Convert to specific RobotsCacheError for proper error classification
+            raise RobotsCacheError(
+                f"Failed to cache robots.txt for domain {domain}: {str(e)}",
+                domain=domain
+            )
 
     def _parse_robots_txt(self, content: str) -> dict[str, Any]:
         """Parse robots.txt content into structured rules.
@@ -313,6 +406,9 @@ class RobotsChecker:
 
         Returns:
             Dict of user_agent -> rules
+            
+        Raises:
+            RobotsParseError: If robots.txt parsing fails
         """
         try:
             rp = Protego.parse(content)
@@ -333,8 +429,11 @@ class RobotsChecker:
             return rules
 
         except Exception as e:
-            self.logger.error("Failed to parse robots.txt content", error_code="ROBOTS_PARSE_CONTENT_ERROR")
-            return RobotsChecker__parse_robots_txtResult.model_validate({"parse_error": "ROBOTS_PARSE_CONTENT_ERROR"})
+            # Convert to specific RobotsParseError for proper error classification
+            raise RobotsParseError(
+                f"Failed to parse robots.txt content: {str(e)}",
+                content_preview=content[:200] if content else None
+            )
 
     async def get_crawl_delay(self, url: str) -> float | None:
         """Get crawl-delay directive for a domain.

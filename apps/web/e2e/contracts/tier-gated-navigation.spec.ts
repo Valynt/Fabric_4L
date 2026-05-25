@@ -16,7 +16,8 @@
  * Admin-only sections (Settings) are hidden from non-admin users.
  *
  * References:
- *   - TieredNav.tsx NAV_SPINE
+ *   - LeftNavigation.tsx (desktop sidebar)
+ *   - NAV_SCHEMA in navSchema.ts
  *   - CONTRACT.md §2.6 UI State Machine
  */
 import { test, expect } from '../fixtures/contract-test';
@@ -41,6 +42,10 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await setUserTier(page, 'standard');
       await page.goto('/home');
       await page.waitForLoadState('networkidle');
+    });
+
+    test('should show Home in sidebar', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Home$/i })).toBeVisible();
     });
 
     test('should show Accounts in sidebar', async ({ page }) => {
@@ -71,8 +76,8 @@ test.describe('Contract: Tier-Gated Navigation', () => {
       await expect(page.getByRole('link', { name: /^Settings$/i })).not.toBeVisible();
     });
 
-    test('should redirect to /home when navigating to admin route', async ({ page }) => {
-      await page.goto('/t/e2e-test/settings/users');
+    test('should redirect to /home when navigating to another tenant route', async ({ page }) => {
+      await page.goto('/t/wrong-tenant/context/ontology/graph');
       await expect(page).toHaveURL(/\/home/);
     });
   });
@@ -93,6 +98,7 @@ test.describe('Contract: Tier-Gated Navigation', () => {
     });
 
     test('should show all workflow domains', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Home$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Accounts$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
@@ -127,6 +133,7 @@ test.describe('Contract: Tier-Gated Navigation', () => {
     });
 
     test('should show all workflow domains plus Settings', async ({ page }) => {
+      await expect(page.getByRole('link', { name: /^Home$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Accounts$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Intelligence$/i })).toBeVisible();
       await expect(page.getByRole('link', { name: /^Value Studio$/i })).toBeVisible();
@@ -137,7 +144,7 @@ test.describe('Contract: Tier-Gated Navigation', () => {
     });
 
     test('should allow navigation to Settings routes', async ({ page }) => {
-      await page.goto('/t/e2e-test/settings/workspace');
+      await page.goto('/settings/profile');
       await expect(page).not.toHaveURL(/\/home/);
     });
   });

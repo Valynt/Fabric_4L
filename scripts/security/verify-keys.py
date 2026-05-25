@@ -26,6 +26,63 @@ from typing import Any
 import urllib.error
 import urllib.request
 
+
+def get_infisical_base_cmd() -> list[str]:
+    """Get the Infisical CLI binary path only."""
+    custom_path = os.getenv("INFISICAL_CLI_PATH")
+    if custom_path:
+        return [custom_path]
+    
+    if sys.platform == "win32" or os.name == "nt":
+        common_windows_paths = [
+            r"C:\tools\Infisical\infisical.exe",
+            r"C:\tools\Infisical\infisical",
+            os.path.expanduser(r"~\bin\infisical.exe"),
+            os.path.expanduser(r"~\infisical-cli\infisical.exe"),
+        ]
+        for path in common_windows_paths:
+            if os.path.exists(path):
+                return [path]
+    
+    return ["infisical"]
+
+
+def get_infisical_auth_flags() -> list[str]:
+    """Get authentication flags for Infisical CLI."""
+    flags = []
+    client_id = os.getenv("INFISICAL_CLIENT_ID")
+    client_secret = os.getenv("INFISICAL_CLIENT_SECRET")
+    project_id = os.getenv("INFISICAL_PROJECT_ID")
+    
+    if client_id:
+        flags.extend(["--client-id", client_id])
+    if client_secret:
+        flags.extend(["--client-secret", client_secret])
+    if project_id:
+        flags.extend(["--projectId", project_id])
+    
+    return flags
+
+
+def fix_path_for_git_bash(path: str) -> str:
+    """Fix paths that get mangled by Git Bash path translation."""
+    # In Git Bash, paths like /fabric-4l/value-fabric become C:/tools/Git/fabric-4l/value-fabric
+    # We need to extract the actual Unix path from the mangled Windows path
+    import re
+    # Check if path was mangled by Git Bash (contains Windows drive letter or tools/Git)
+    if re.match(r'^[A-Za-z]:', path) or 'tools/Git' in path or 'tools\\Git' in path:
+        # Extract everything after the drive/tools prefix
+        # Pattern: C:/tools/Git/PATH or C:\tools\Git\PATH -> /PATH
+        match = re.search(r'[tT]ools[/\\][gG]it[/\\](.+)$', path)
+        if match:
+            actual_path = match.group(1).replace('\\', '/')
+            return '/' + actual_path
+    return path
+
+
+INFISICAL_BASE = get_infisical_base_cmd()
+INFISICAL_AUTH_FLAGS = get_infisical_auth_flags()
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
@@ -68,17 +125,22 @@ class KeyVerifier:
         """Retrieve secret value from Infisical."""
         env_map = {"dev": "dev", "staging": "staging", "prod": "prod"}
         infisical_env = env_map.get(self.environment, self.environment)
+        fixed_path = fix_path_for_git_bash(path)
         
         try:
             result = subprocess.run(
-                ["infisical", "secrets", "get", "--env", infisical_env, "--path", path, secret_name, "--json"],
+                [*INFISICAL_BASE, "secrets", "get",
+                 "--env", infisical_env, "--path", fixed_path, secret_name],
                 capture_output=True, text=True, check=True
             )
-            data = json.loads(result.stdout)
-            return data.get("secretValue")
+            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
+            output = result.stdout.strip()
+            if "=" in output:
+                return output.split("=", 1)[1]
+            return output
         except subprocess.CalledProcessError:
             return None
-        except json.JSONDecodeError:
+        except Exception:
             return None
     
     def mask_secret(self, value: str, visible_chars: int = 8) -> str:
@@ -99,8 +161,8 @@ class OpenAIVerifier(KeyVerifier):
             secret_name="OPENAI_API_KEY"
         )
         
-        # Get key from Infisical
-        key = self.get_secret_from_infisical("OPENAI_API_KEY", "/layer2-extraction")
+        # Get key from Infisical /llm folder
+        key = self.get_secret_from_infisical("OPENAI_API_KEY", "/llm")
         
         if not key:
             result.error_message = "OPENAI_API_KEY not found in Infisical"
@@ -150,7 +212,8 @@ class ClerkVerifier(KeyVerifier):
             secret_name="CLERK_SECRET_KEY"
         )
         
-        key = self.get_secret_from_infisical("CLERK_SECRET_KEY", "/shared")
+        # Clerk keys in /auth folder
+        key = self.get_secret_from_infisical("CLERK_SECRET_KEY", "/auth")
         
         if not key:
             result.error_message = "CLERK_SECRET_KEY not found in Infisical"
@@ -200,7 +263,8 @@ class ThesysVerifier(KeyVerifier):
             secret_name="THESYS_API_KEY"
         )
         
-        key = self.get_secret_from_infisical("THESYS_API_KEY", "/shared")
+        # Thesys keys in /llm folder
+        key = self.get_secret_from_infisical("THESYS_API_KEY", "/llm")
         
         if not key:
             result.error_message = "THESYS_API_KEY not found in Infisical"
@@ -233,7 +297,8 @@ class RegistryVerifier(KeyVerifier):
             secret_name="GHCR_PAT"
         )
         
-        key = self.get_secret_from_infisical("GHCR_PAT", "/ci")
+        # Registry token in /app folder
+        key = self.get_secret_from_infisical("GHCR_PAT", "/app")
         
         if not key:
             result.error_message = "GHCR_PAT not found in Infisical"

@@ -3,6 +3,7 @@ import { PanelLeftClose, PanelLeftOpen, Search, Bell, User, LogOut, Settings, Ch
 import { useMatches, Link } from "react-router-dom";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { SignInButton, SignUpButton, UserButton, useAuth } from "@clerk/react";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,6 +55,7 @@ function useHeaderMeta(): { title: string; subtitle: string } {
 }
 
 function ClerkAuthControl() {
+  if (!isClerkAuthEnabled()) return null;
   const { isSignedIn } = useAuth();
 
   if (isSignedIn) {

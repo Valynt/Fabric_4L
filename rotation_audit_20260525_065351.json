@@ -1,0 +1,16 @@
+{
+  "rotation_timestamp": "2026-05-25T06:53:51.044631+00:00",
+  "records": [
+    {
+      "timestamp": "2026-05-25T06:53:36.908568+00:00",
+      "provider": "openai",
+      "environment": "prod",
+      "key_id": "sk-proj-GnSOikxcoufW...",
+      "old_key_id": "\u250c\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u2500\u252c\u2500\u2500...",
+      "status": "completed",
+      "rotated_by": "automation",
+      "error_message": null,
+      "verification_passed": true
+    }
+  ]
+}

@@ -234,9 +234,9 @@ export default defineConfig({
           if (id.includes('@tanstack/react-query')) {
             return 'vendor-react-query';
           }
-          // Radix UI components
+          // Radix UI components — merged into vendor-react to avoid circular chunk deps
           if (id.includes('@radix-ui')) {
-            return 'vendor-radix';
+            return 'vendor-react';
           }
           // Charting libraries
           if (id.includes('recharts') || id.includes('chart.js') || id.includes('d3')) {
@@ -250,8 +250,8 @@ export default defineConfig({
           if (id.includes('zod')) {
             return 'vendor-zod';
           }
-          // React core
-          if (id.includes('react') || id.includes('react-dom')) {
+          // React core (exact packages only — avoid @clerk/react, @radix-ui/react-*)
+          if (id.includes('/react/') || id.includes('react-dom')) {
             return 'vendor-react';
           }
         },

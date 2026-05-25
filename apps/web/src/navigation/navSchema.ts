@@ -39,7 +39,7 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     id: "studio",
     label: "Value Studio",
     path: "/t/:tenantSlug/accounts/:accountId/studio",
-    tier: "advanced",
+    tier: "standard",
     description: "Build the product-anchored business case",
     children: [
       { id: "studio-action-plan", label: "Action Plan", path: "/t/:tenantSlug/accounts/:accountId/studio/action-plan", tier: "standard" },

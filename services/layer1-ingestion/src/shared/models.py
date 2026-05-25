@@ -811,8 +811,8 @@ class RobotsTxtCache(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     domain = Column(String(255), nullable=False, unique=True, index=True)
     tenant_id = Column(
-        UUID(as_uuid=True), nullable=False, index=True
-    )  # Added for multi-tenancy
+        UUID(as_uuid=True), nullable=True, index=True
+    )  # LEGACY: System-owned only. Global public cache requires no tenant isolation.
 
     content = Column(Text, nullable=True)
     url = Column(Text, nullable=True)
