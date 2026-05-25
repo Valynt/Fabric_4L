@@ -1,5 +1,5 @@
 /**
- * Clerk + Fabric4L Phase 2 frontend configuration.
+ * Clerk + ValuePact Phase 2 frontend configuration.
  *
  * The frontend supports two auth providers, switched at build time via
  * VITE_AUTH_PROVIDER:

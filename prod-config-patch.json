@@ -1,0 +1,12 @@
+{
+  "paths": {
+    "home": "/",
+    "sign_in": "/sign-in",
+    "sign_up": "/sign-up",
+    "after_sign_out_all": "/"
+  },
+  "organization_settings": {
+    "enabled": true,
+    "force_organization_selection": true
+  }
+}

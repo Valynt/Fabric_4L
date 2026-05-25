@@ -17,7 +17,7 @@ export default function OnboardingPage() {
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-8 p-6">
       <header className="text-center">
         <h1 className="text-3xl font-semibold tracking-tight">
-          Welcome to Fabric4L
+          Welcome to ValuePact
         </h1>
         <p className="mt-3 text-base text-muted-foreground">
           {user?.firstName

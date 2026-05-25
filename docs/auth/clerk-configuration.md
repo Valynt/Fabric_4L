@@ -1,4 +1,4 @@
-# Clerk Configuration for Fabric4L
+# Clerk Configuration for ValuePact
 
 > Canonical reference for Clerk authentication integration.
 > For agent orchestration rules, see `.windsurf/AGENTS.md`.
@@ -11,7 +11,7 @@
 Clerk handles:
   authentication, sessions, organizations, invites, MFA, SSO
 
-Fabric4L handles:
+ValuePact handles:
   tenant mapping, account access, RBAC, entitlements, RLS, audit logs
 
 Infisical stores:
@@ -55,9 +55,9 @@ The codebase already contains a mature dual-auth architecture (legacy OIDC + Cle
 Create separate Clerk instances for:
 
 ```txt
-Fabric4L Dev
-Fabric4L Staging
-Fabric4L Production
+ValuePact Dev
+ValuePact Staging
+ValuePact Production
 ```
 
 Map them to Infisical:
@@ -74,8 +74,8 @@ Recommended domains:
 
 ```txt
 dev:      http://localhost:3001
-staging:  https://staging.fabric4l.com
-prod:     https://app.fabric4l.com
+staging:  https://staging.valuepact.com
+prod:     https://app.valuepact.com
 ```
 
 ---
@@ -84,10 +84,10 @@ prod:     https://app.fabric4l.com
 
 In the Clerk Dashboard, enable **Organizations**.
 
-For Fabric4L:
+For ValuePact:
 
 ```txt
-Clerk Organization = Fabric4L Tenant / Workspace
+Clerk Organization = ValuePact Tenant / Workspace
 ```
 
 Example mapping:
@@ -98,7 +98,7 @@ Clerk organization:
   slug: acme
   name: Acme Manufacturing
 
-Fabric4L tenant:
+ValuePact tenant:
   id: ten_7f92
   clerk_org_id: org_abc123
   slug: acme
@@ -107,7 +107,7 @@ Fabric4L tenant:
 
 Clerk positions Organizations for B2B/multi-tenant SaaS and supports organization membership, roles, and permissions. See [Clerk docs](https://clerk.com/).
 
-Fabric4L URLs continue using the tenant/workspace slug:
+ValuePact URLs continue using the tenant/workspace slug:
 
 ```txt
 /t/acme/accounts/acc_123/intelligence/signals
@@ -178,10 +178,10 @@ Important boundary:
 
 ```txt
 Clerk org permissions = coarse org-level permission hints
-Fabric4L DB policies = real tenant/account/resource authorization
+ValuePact DB policies = real tenant/account/resource authorization
 ```
 
-Do not try to model every account-level permission only in Clerk. Fabric4L needs its own authorization tables for account access, workflow state, entitlements, and audit.
+Do not try to model every account-level permission only in Clerk. ValuePact needs its own authorization tables for account access, workflow state, entitlements, and audit.
 
 ---
 
@@ -205,14 +205,14 @@ For staging/prod:
 
 ```txt
 Allowed origins:
-https://staging.fabric4l.com
-https://app.fabric4l.com
+https://staging.valuepact.com
+https://app.valuepact.com
 
 After sign-in: /workspaces
 After sign-up: /onboarding
 ```
 
-For Fabric4L, send users to `/workspaces` after login so they choose their active tenant/org before entering account-scoped workflows.
+For ValuePact, send users to `/workspaces` after login so they choose their active tenant/org before entering account-scoped workflows.
 
 ---
 
@@ -230,7 +230,7 @@ VITE_CLERK_SIGN_IN_URL=/sign-in
 VITE_CLERK_SIGN_UP_URL=/sign-up
 VITE_CLERK_AFTER_SIGN_IN_URL=/workspaces
 VITE_CLERK_AFTER_SIGN_UP_URL=/onboarding
-VITE_CLERK_JWT_TEMPLATE=fabric4l-api
+VITE_CLERK_JWT_TEMPLATE=valuepact-api
 ```
 
 Anything with `VITE_` is public in the browser.
@@ -249,8 +249,8 @@ Backend/gateway auth config:
 
 ```env
 CLERK_ISSUER=
-CLERK_JWT_AUDIENCE=fabric4l-api
-CLERK_AUTHORIZED_PARTIES=http://localhost:3001,https://staging.fabric4l.com,https://app.fabric4l.com
+CLERK_JWT_AUDIENCE=valuepact-api
+CLERK_AUTHORIZED_PARTIES=http://localhost:3001,https://staging.valuepact.com,https://app.valuepact.com
 ```
 
 ### `/api-gateway`
@@ -268,12 +268,12 @@ FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
 
 Downstream services should not need Clerk secrets if you choose **gateway-only Clerk verification**.
 
-They need only the Fabric4L internal auth verification key:
+They need only the ValuePact internal auth verification key:
 
 ```env
 FABRIC_AUTH_VERIFYING_PUBLIC_KEY=
-FABRIC_AUTH_ISSUER=fabric4l-api-gateway
-FABRIC_AUTH_AUDIENCE=fabric4l-internal-services
+FABRIC_AUTH_ISSUER=valuepact-api-gateway
+FABRIC_AUTH_AUDIENCE=valuepact-internal-services
 ```
 
 ### `/webhooks`
@@ -363,11 +363,11 @@ if (isClerkAuthEnabled()) {
 }
 ```
 
-Create a Clerk JWT template named `fabric4l-api` with claims:
+Create a Clerk JWT template named `valuepact-api` with claims:
 
 ```json
 {
-  "aud": "fabric4l-api",
+  "aud": "valuepact-api",
   "org_id": "{{org.id}}",
   "org_slug": "{{org.slug}}",
   "org_role": "{{org.role}}",
@@ -387,8 +387,8 @@ Gateway flow (already implemented in `services/api/app/core/clerk_verifier.py`):
 1. Read Authorization: Bearer <Clerk JWT>
 2. Verify token signature, issuer, audience, authorized party
 3. Extract Clerk user ID and org ID
-4. Resolve org ID → Fabric4L tenant
-5. Resolve Clerk user ID → Fabric4L user
+4. Resolve org ID → ValuePact tenant
+5. Resolve Clerk user ID → ValuePact user
 6. Load tenant membership
 7. Build AuthContext
 8. Sign internal auth envelope
@@ -458,7 +458,7 @@ create table account_memberships (
 );
 ```
 
-Clerk tells you **who** the user is. Fabric4L decides **what tenant/account/resource** they can touch.
+Clerk tells you **who** the user is. ValuePact decides **what tenant/account/resource** they can touch.
 
 ---
 
@@ -467,7 +467,7 @@ Clerk tells you **who** the user is. Fabric4L decides **what tenant/account/reso
 Webhook endpoint:
 
 ```txt
-POST https://api.fabric4l.com/internal/webhooks/clerk
+POST https://api.valuepact.com/internal/webhooks/clerk
 ```
 
 For dev, use a tunnel if needed:
@@ -610,7 +610,7 @@ Minimum test plan:
 - [ ] Gateway rejects invalid Clerk token.
 - [ ] Gateway rejects wrong audience.
 - [ ] Gateway rejects wrong authorized party.
-- [ ] Gateway resolves Clerk org to Fabric4L tenant.
+- [ ] Gateway resolves Clerk org to ValuePact tenant.
 - [ ] Gateway signs internal AuthContext.
 - [ ] L1-L6 reject requests without `X-Fabric-Auth`.
 - [ ] L1-L6 reject tampered `X-Fabric-Auth`.
@@ -638,9 +638,9 @@ Existing tests:
 - [ ] Add Clerk keys to Infisical.
 - [ ] Add ClerkProvider to `apps/web`.
 - [ ] Add `/sign-in`, `/sign-up`, `/workspaces`, `/onboarding`.
-- [ ] Wire `getToken()` into the Fabric4L API client.
+- [ ] Wire `getToken()` into the ValuePact API client.
 - [ ] Implement gateway Clerk JWT verification.
-- [ ] Implement Fabric4L tenant/user mapping tables.
+- [ ] Implement ValuePact tenant/user mapping tables.
 - [ ] Implement signed internal AuthContext from gateway.
 - [ ] Implement L1-L6 internal AuthContext verification.
 - [ ] Add Clerk webhook sync.
@@ -655,22 +655,22 @@ Most of these are already complete in the codebase. See "What's Already Implemen
 
 ## Final Recommended Configuration
 
-For Fabric4L, the clean setup is:
+For ValuePact, the clean setup is:
 
 ```txt
 Frontend:
   Clerk React SDK
   ClerkProvider
-  getToken({ template: "fabric4l-api" })
+  getToken({ template: "valuepact-api" })
 
 API Gateway:
   verify Clerk JWT
-  resolve Clerk org → Fabric4L tenant
-  sign Fabric4L AuthContext
+  resolve Clerk org → ValuePact tenant
+  sign ValuePact AuthContext
 
 L1-L6:
   reject raw Clerk tokens
-  verify Fabric4L internal AuthContext
+  verify ValuePact internal AuthContext
   enforce permissions
   set PostgreSQL RLS tenant context
 
@@ -689,4 +689,4 @@ Database:
   audit events
 ```
 
-This keeps Clerk as the identity provider without letting it replace Fabric4L's real authorization, tenant isolation, and audit model.
+This keeps Clerk as the identity provider without letting it replace ValuePact's real authorization, tenant isolation, and audit model.
