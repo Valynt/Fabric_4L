@@ -73,3 +73,17 @@ class ValidationResponse(BaseModel):
     deviation_percent: Optional[float]
     severity: str
     message: str
+
+
+class DatasetUpsertPayload(BaseModel):
+    dataset_id: str
+    name: str
+    description: str
+    industry: str
+    segment: Optional[str] = None
+    geography: Optional[str] = None
+    metrics: Dict[str, dict]
+    version: str = "1.0.0"
+    data_source: Optional[str] = None
+    is_public: bool = False
+    ownership_mode: str = "tenant"
