@@ -12,6 +12,7 @@ from typing import Any
 from .checkpoints import CheckpointManager
 from .human_gates import HumanGateManager
 from .models import (
+    ActionClass,
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -193,10 +194,11 @@ class HarnessRegistry:
         run_id: str,
         tenant_id: str,
         gate_type: GateType,
+        action_class: ActionClass | None = None,
     ) -> HumanGate:
         """Create a human gate for a run."""
         run = self.get_run(run_id, tenant_id)
-        gate, event = self._gates.create_gate(run_id, tenant_id, gate_type)
+        gate, event = self._gates.create_gate(run_id, tenant_id, gate_type, action_class)
         event = event.model_copy(
             update={
                 "trace_id": run.trace_id,

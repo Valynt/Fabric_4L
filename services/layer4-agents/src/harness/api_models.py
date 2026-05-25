@@ -13,6 +13,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .models import (
+    ActionClass,
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -149,6 +150,7 @@ class CreateGateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     gate_type: GateType
+    action_class: ActionClass | None = None
 
 
 class GateResponse(BaseModel):
