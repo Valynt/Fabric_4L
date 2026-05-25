@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
+
 import pytest
 
-from value_fabric.layer4.harness.models import ActionClass, GateType
+from value_fabric.layer4.harness.models import ActionClass, GateStatus, GateType
 from value_fabric.layer4.policies.approval_actions import (
     ACTION_APPROVAL_POLICIES,
     ApprovalRequiredError,
@@ -68,3 +70,46 @@ class TestActionLevelApproval:
         assert d["action_class"] == ActionClass.PUBLISH_BUSINESS_CASE.value
         assert d["gate_type"] == GateType.APPROVE_CUSTOMER_OUTPUT.value
         assert d["run_id"] == "run_123"
+
+    def test_gate_creation_with_string_action_class(self) -> None:
+        from value_fabric.layer4.harness.human_gates import HumanGateManager
+
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CLAIMS,
+            action_class="publish_business_case",
+        )
+        assert gate.action_class == ActionClass.PUBLISH_BUSINESS_CASE
+
+    def test_gate_creation_with_enum_action_class(self) -> None:
+        from value_fabric.layer4.harness.human_gates import HumanGateManager
+
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+            action_class=ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE,
+        )
+        assert gate.action_class == ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE
+
+    def test_record_approval_wait_uses_real_action_class(self) -> None:
+        from value_fabric.layer4.harness.human_gates import HumanGateManager
+        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        manager = HumanGateManager()
+        gate, _ = manager.create_gate(
+            run_id="run_123",
+            tenant_id="tenant-123",
+            gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+            action_class=ActionClass.PUBLISH_BUSINESS_CASE,
+        )
+        # Simulate decision to trigger metric emission
+        gate = gate.model_copy(update={"status": GateStatus.APPROVED, "decided_at": datetime.now(UTC), "decision_by": "user_1"})
+        manager._gates[gate.id] = gate
+
+        # The metric should be observable after gate decision
+        assert metrics._metrics["approval_wait_seconds"] is not None

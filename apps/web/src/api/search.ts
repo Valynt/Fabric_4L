@@ -12,8 +12,8 @@ import type {
   SearchResultType,
 } from "@/components/search/types";
 
-// Search endpoint will be federated across layers - using L4 as gateway for Phase 1
-const SEARCH_LAYER: 'l4' = 'l4';
+// Search endpoint is on Layer 3 (Knowledge Graph & Semantic Layer)
+const SEARCH_LAYER: 'l3' = 'l3';
 
 /**
  * Execute a search query

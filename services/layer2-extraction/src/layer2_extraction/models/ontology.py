@@ -101,6 +101,11 @@ class Capability(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("name")
     @classmethod
@@ -149,6 +154,11 @@ class UseCase(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("required_capabilities")
     @classmethod
@@ -194,6 +204,11 @@ class Persona(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("influenced_by")
     @classmethod
@@ -239,6 +254,11 @@ class ValueDriver(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("formula_string")
     @classmethod
@@ -319,6 +339,11 @@ class ValueMetric(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("value_driver_ids")
     @classmethod
@@ -383,6 +408,11 @@ class Feature(BaseModel):
     confidence: float = Field(default=0.0, ge=0.0, le=1.0)
     extracted_at: datetime = Field(default_factory=datetime.utcnow)
     extraction_job_id: str | None = None
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     @field_validator("parent_capability_id")
     @classmethod
@@ -424,6 +454,10 @@ class ExtractionResult(BaseModel):
     processed_at: datetime = Field(default_factory=datetime.utcnow)
     chunks_processed: int = 0
     errors: list[str] = Field(default_factory=list)
+    tenant_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     def get_all_entities(self) -> Sequence[BaseModel]:
         """Return all extracted entities as a flat list."""

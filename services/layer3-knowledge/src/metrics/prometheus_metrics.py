@@ -265,6 +265,52 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # Phase 3 hardening: Graph mutation metrics
+        self._metrics["graph_mutations_total"] = Counter(
+            f"{prefix}graph_mutations_total",
+            "Total graph mutations",
+            ["operation_type", "status", "entity_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_mutation_rate"] = Gauge(
+            f"{prefix}graph_mutation_rate",
+            "Graph mutation rate per second",
+            ["operation_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["unauthorized_traversals_total"] = Counter(
+            f"{prefix}unauthorized_traversals_total",
+            "Total unauthorized graph traversals blocked",
+            ["traversal_type", "violation_type"],
+            registry=self.config.registry,
+        )
+
+        # Phase 3 hardening: Entity resolution metrics
+        self._metrics["entity_resolution_total"] = Counter(
+            f"{prefix}entity_resolution_total",
+            "Total entity resolution requests",
+            ["strategy", "confidence", "entity_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["entity_resolution_duration"] = Histogram(
+            f"{prefix}entity_resolution_duration_seconds",
+            "Entity resolution duration in seconds",
+            ["strategy", "entity_type"],
+            buckets=self.config.default_buckets,
+            registry=self.config.registry,
+        )
+
+        self._metrics["entity_resolution_confidence"] = Histogram(
+            f"{prefix}entity_resolution_confidence",
+            "Entity resolution confidence scores",
+            ["strategy", "entity_type"],
+            buckets=[0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0],
+            registry=self.config.registry,
+        )
+
         self._metrics["tenant_isolation_violations_total"] = Counter(
             f"{prefix}tenant_isolation_violations_total",
             "Tenant isolation violation attempts",
@@ -505,6 +551,64 @@ class PrometheusMetrics:
         self._metrics["tenant_isolation_violations_total"].labels(
             component=component, violation_type=violation_type
         ).inc()
+
+    # Phase 3 hardening: Graph mutation metrics methods
+    def increment_mutation_success(self, operation_type: str) -> None:
+        """Increment mutation success counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_mutations_total"].labels(
+            operation_type=operation_type, status="success", entity_type="all"
+        ).inc()
+
+    def increment_mutation_failure(self, error_type: str = "unknown") -> None:
+        """Increment mutation failure counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_mutations_total"].labels(
+            operation_type="unknown", status="failure", entity_type="all"
+        ).inc()
+
+    def increment_unauthorized_traversal(
+        self, traversal_type: str, violation_type: str
+    ) -> None:
+        """Increment unauthorized traversal counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["unauthorized_traversals_total"].labels(
+            traversal_type=traversal_type, violation_type=violation_type
+        ).inc()
+
+    # Phase 3 hardening: Entity resolution metrics methods
+    def increment_entity_resolution(
+        self, strategy: str, confidence: str, entity_type: str
+    ) -> None:
+        """Increment entity resolution counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_total"].labels(
+            strategy=strategy, confidence=confidence, entity_type=entity_type
+        ).inc()
+
+    def observe_entity_resolution_duration(
+        self, duration: float, strategy: str, entity_type: str
+    ) -> None:
+        """Observe entity resolution duration."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_duration"].labels(
+            strategy=strategy, entity_type=entity_type
+        ).observe(duration)
+
+    def observe_entity_resolution_confidence(
+        self, confidence: float, strategy: str, entity_type: str
+    ) -> None:
+        """Observe entity resolution confidence score."""
+        if not self.config.enabled:
+            return
+        self._metrics["entity_resolution_confidence"].labels(
+            strategy=strategy, entity_type=entity_type
+        ).observe(confidence)
 
     def get_metrics(self) -> str:
         """Get Prometheus metrics output.

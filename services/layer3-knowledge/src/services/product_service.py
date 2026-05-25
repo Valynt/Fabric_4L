@@ -24,6 +24,7 @@ from value_fabric.layer3.services.cypher_scope_guard import (
 )
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 
 
@@ -452,57 +453,55 @@ class ProductService:
         capability_id: str,
         strength: float = 1.0,
     ) -> dict[str, Any] | None:
-        """Link a product to an existing capability node."""
-        query = """
-        MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-        MATCH (c:Capability {id: $capability_id})
-        WHERE c.tenant_id = $tenant_id
-        MERGE (p)-[r:ENABLES_CAPABILITY]->(c)
-        ON CREATE SET r.strength = $strength, r.created_at = datetime()
-        ON MATCH SET r.strength = $strength, r.updated_at = datetime()
-        RETURN c {.id, .name} AS capability, r.strength AS strength
+        """Link a product to an existing capability node.
+
+        Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "product_id": product_id,
-                    "tenant_id": tenant_id,
-                    "capability_id": capability_id,
-                    "strength": strength,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.link_capability",
             )
+
+            await mutation.write_relationship(product_id, "ENABLES_CAPABILITY", capability_id, {"strength": strength})
+
+            # Query to return capability info
+            query = """
+            MATCH (c:Capability {id: $capability_id, tenant_id: $tenant_id})
+            RETURN c {.id, .name} AS capability
+            """
+            result = await self._run_cypher(session, query, {
+                "capability_id": capability_id,
+                "tenant_id": tenant_id,
+            })
             record = await result.single()
             if not record:
                 return None
             return ProductService_link_capabilityResult.model_validate({
                 "capability": record["capability"],
-                "strength": record["strength"],
+                "strength": strength,
             })
 
 
     async def unlink_capability(
         self, tenant_id: str, product_id: str, capability_id: str
     ) -> bool:
-        """Remove the ENABLES_CAPABILITY relationship."""
-        query = """
-        MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})
-              -[r:ENABLES_CAPABILITY]->(c:Capability {id: $capability_id})
-        WHERE c.tenant_id = $tenant_id
-        DELETE r
-        RETURN true AS removed
+        """Remove the ENABLES_CAPABILITY relationship.
+
+        Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session,
-                query,
-                {
-                    "product_id": product_id,
-                    "tenant_id": tenant_id,
-                    "capability_id": capability_id,
-                },
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship deletion
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="product_service.unlink_capability",
             )
-            record = await result.single()
-            return bool(record)
+
+            await mutation.delete_relationship(product_id, "ENABLES_CAPABILITY", capability_id)
+            return True
 
     # ------------------------------------------------------------------
     # Signal-to-Product Matching

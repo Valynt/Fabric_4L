@@ -39,6 +39,7 @@ import structlog
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 
 try:
@@ -249,33 +250,44 @@ class CaseStudyService:
             )
             record = await result.single()
 
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
+            mutation = AuditedGraphMutation(
+                tenant_id=case_study.tenant_id,
+                session=session,
+                operation_source="case_study_service.create",
+            )
+
             # Create relationships to products if specified
             if case_study.products_used:
                 for product_name in case_study.products_used:
-                    await run_validated_query(session,
-                        """
-                        MATCH (e:Evidence {id: $evidence_id, tenant_id: $tenant_id})
-                        MATCH (p:Product {name: $product_name, tenant_id: $tenant_id})
-                        MERGE (p)-[:DEMONSTRATES]->(e)
-                        """,
-                        evidence_id=case_study.id,
-                        tenant_id=case_study.tenant_id,
+                    # Find product ID by name first
+                    product_query = """
+                    MATCH (p:Product {name: $product_name, tenant_id: $tenant_id})
+                    RETURN p.id as product_id
+                    """
+                    product_result = await run_validated_query(session, product_query,
                         product_name=product_name,
+                        tenant_id=case_study.tenant_id,
                     )
+                    product_record = await product_result.single()
+                    if product_record:
+                        await mutation.write_relationship(product_record["product_id"], "DEMONSTRATES", case_study.id)
 
             # Create relationships to pain signals if specified
             if case_study.pain_signals_addressed:
                 for signal_name in case_study.pain_signals_addressed:
-                    await run_validated_query(session,
-                        """
-                        MATCH (e:Evidence {id: $evidence_id, tenant_id: $tenant_id})
-                        MATCH (ps:PainSignal {name: $signal_name, tenant_id: $tenant_id})
-                        MERGE (ps)-[:supportedBy]->(e)
-                        """,
-                        evidence_id=case_study.id,
-                        tenant_id=case_study.tenant_id,
+                    # Find signal ID by name first
+                    signal_query = """
+                    MATCH (ps:PainSignal {name: $signal_name, tenant_id: $tenant_id})
+                    RETURN ps.id as signal_id
+                    """
+                    signal_result = await run_validated_query(session, signal_query,
                         signal_name=signal_name,
+                        tenant_id=case_study.tenant_id,
                     )
+                    signal_record = await signal_result.single()
+                    if signal_record:
+                        await mutation.write_relationship(signal_record["signal_id"], "supportedBy", case_study.id)
 
         logger.info(
             "case_study_created",

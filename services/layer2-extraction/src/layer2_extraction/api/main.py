@@ -671,12 +671,16 @@ async def run_extraction(
         )
 
     await _set_pipeline_job(job_id, extraction_status="running")
+    tenant_id = config.get("tenant_id")
+    if not tenant_id:
+        raise HTTPException(status_code=400, detail="tenant_id is required in extraction_config")
     telemetry_context = {
-        "tenant_id": str(config.get("tenant_id", "unknown")),
-        "ingestion_id": str(config.get("ingestion_id", "unknown")),
-        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", "unknown"))),
-        "schema_version": str(config.get("schema_version", "unknown")),
+        "tenant_id": str(tenant_id),
+        "ingestion_id": str(config.get("ingestion_id", "")),
+        "model_version": str(config.get("model_version", os.getenv("EXTRACTION_MODEL", ""))),
+        "schema_version": str(config.get("schema_version", "")),
         "value_pack_id": str(config.get("value_pack_id", "default")),
+        "prompt_version": str(config.get("prompt_version", "")),
     }
     metrics = get_metrics()
 
@@ -867,6 +871,10 @@ async def run_extraction(
             value_drivers=deduplicated.get("value_drivers", []),  # type: ignore[arg-type]
             features=deduplicated.get("features", []),  # type: ignore[arg-type]
             chunks_processed=len(chunks),
+            tenant_id=telemetry_context["tenant_id"],
+            schema_version=telemetry_context.get("schema_version", ""),
+            prompt_version=telemetry_context.get("prompt_version", ""),
+            model_version=telemetry_context.get("model_version", ""),
         )
 
         # Run entailment validation
@@ -887,7 +895,7 @@ async def run_extraction(
             error_messages = [f"[ERROR] {e.rule_id}: {e.message}" for e in errors]
             result.errors.extend(error_messages)
             await _quarantine_validation_failure(
-                tenant_id="system",
+                tenant_id=telemetry_context["tenant_id"],
                 job_id=job_id,
                 source_url=source_url,
                 source_hash=content_hash,
@@ -989,7 +997,7 @@ async def run_extraction(
     except Exception as e:
         error_msg = str(e)
         if "schema validation error" in error_msg.lower():
-            await _quarantine_validation_failure(tenant_id="system", job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
+            await _quarantine_validation_failure(tenant_id=telemetry_context.get("tenant_id", ""), job_id=job_id, source_url=source_url, source_hash=content_hash, payload=content[:4000], errors=[error_msg], reason="llm_schema_validation_failed")
         activity.fail(error_msg)
         await _set_pipeline_job(
             job_id,
@@ -1222,7 +1230,11 @@ async def metrics_endpoint(request: Request):
         )
 
 
-async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
+async def extract(
+    request: ExtractRequest,
+    background_tasks: BackgroundTasks,
+    ctx: RequestContext,
+):
     """Start an extraction job.
 
     Extracts entities and relationships from provided Markdown content
@@ -1242,8 +1254,13 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
             last_error=None,
             next_retry_at=None,
             completed_at=None,
+            tenant_id=ctx.tenant_id,
         )
     )
+
+    # Ensure tenant_id is in config for downstream pipeline
+    config = dict(request.extraction_config)
+    config["tenant_id"] = ctx.tenant_id
 
     # Queue extraction as background task
     background_tasks.add_task(
@@ -1251,7 +1268,7 @@ async def extract(request: ExtractRequest, background_tasks: BackgroundTasks):
         job_id=job_id,
         source_url=request.source_url,
         content=request.markdown_content,
-        config=request.extraction_config,
+        config=config,
     )
 
     return ExtractResponse(
@@ -1272,6 +1289,11 @@ async def extract_and_ingest(
         extraction_config=request.extraction_config,
     )
     existing_job_id = await job_store.get_job_id_for_idempotency_key(idempotency_key)
+
+    # Ensure tenant_id is in config for downstream pipeline
+    config = dict(request.extraction_config)
+    config["tenant_id"] = ctx.tenant_id
+
     if existing_job_id:
         existing_job = await job_store.get(existing_job_id, tenant_id=ctx.tenant_id)
         if existing_job and existing_job.extraction_status == "completed" and existing_job.ingestion_status == "completed":
@@ -1288,7 +1310,7 @@ async def extract_and_ingest(
                 job_id=existing_job.job_id,
                 source_url=request.source_url,
                 content=request.markdown_content,
-                config=request.extraction_config,
+                config=config,
             )
             return ExtractAndIngestResponse(
                 job_id=existing_job.job_id,
@@ -1322,7 +1344,7 @@ async def extract_and_ingest(
         job_id=job_id,
         source_url=request.source_url,
         content=request.markdown_content,
-        config=request.extraction_config,
+        config=config,
     )
 
     return ExtractAndIngestResponse(
@@ -1357,7 +1379,7 @@ async def list_quarantine_jobs(ctx: RequestContext):
     tenant_id = str(ctx.tenant_id)
     records = await quarantine_store.list(tenant_id=tenant_id)
     return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
-async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks):
+async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, ctx: RequestContext):
     """Start a batch extraction job."""
     batch_id = str(uuid4())
     job_ids = []
@@ -1365,12 +1387,14 @@ async def extract_batch(requests: list[ExtractRequest], background_tasks: Backgr
     for req in requests:
         job_id = str(uuid4())
         job_ids.append(job_id)
+        config = dict(req.extraction_config)
+        config["tenant_id"] = ctx.tenant_id
         background_tasks.add_task(
             run_extraction,
             job_id=job_id,
             source_url=req.source_url,
             content=req.markdown_content,
-            config=req.extraction_config,
+            config=config,
         )
 
     return extract_batchResult.model_validate({

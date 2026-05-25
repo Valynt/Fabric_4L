@@ -7,6 +7,8 @@ import sys
 import os
 from pathlib import Path
 
+import pytest
+
 # ── Path Setup ─────────────────────────────────────────────────────────────
 _tests_dir = Path(__file__).parent.resolve()
 _layer4_dir = _tests_dir.parent.resolve()
@@ -29,8 +31,30 @@ os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
 os.environ.setdefault("LAYER4_ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
 
-import pytest
-from unittest.mock import MagicMock
+
+from unittest.mock import MagicMock, patch
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.permissions import Role
+
+
+# ── Shared Fixtures ───────────────────────────────────────────────────────────
+
+@pytest.fixture
+def mock_tenant_context():
+    """Fixture that provides a mock RequestContext with tenant context for tests.
+    
+    This fixture uses RequestContextManager to set a test RequestContext,
+    allowing tests that depend on tenant context to run without full auth middleware.
+    """
+    from value_fabric.shared.identity.context import RequestContextManager
+    
+    ctx = RequestContext(
+        tenant_id="test-tenant-001",
+        user_id="test-user-001",
+        roles=[Role.TENANT_ADMIN.value]
+    )
+    with RequestContextManager(ctx):
+        yield
 
 # Stub optional heavy deps before any imports that transitively require them
 

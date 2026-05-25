@@ -77,3 +77,27 @@ class TestWorkflowStartTenantInvariant:
                 input_data={"prospect_id": "p1", "value_driver_ids": ["vd1"]},
                 tenant_id="",
             )
+
+    @pytest.mark.asyncio
+    async def test_schedule_workflow_rejects_missing_tenant(self) -> None:
+        registry = ToolRegistry()
+        controller = OrchestrationController(tool_registry=registry)
+
+        with pytest.raises(WorkflowExecutionError, match="tenant_id is required"):
+            await controller.schedule_workflow(
+                workflow_type="roi_calculator",
+                input_data={"prospect_id": "p1", "value_driver_ids": ["vd1"]},
+                tenant_id=None,
+            )
+
+    @pytest.mark.asyncio
+    async def test_schedule_workflow_rejects_empty_tenant(self) -> None:
+        registry = ToolRegistry()
+        controller = OrchestrationController(tool_registry=registry)
+
+        with pytest.raises(WorkflowExecutionError, match="tenant_id is required"):
+            await controller.schedule_workflow(
+                workflow_type="roi_calculator",
+                input_data={"prospect_id": "p1", "value_driver_ids": ["vd1"]},
+                tenant_id="",
+            )

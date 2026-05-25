@@ -29,7 +29,13 @@ interface UseGlobalSearchReturn {
   query: string;
 }
 
+// Constants for search configuration
 const SEARCH_QUERY_KEY = "global-search";
+const DEFAULT_DEBOUNCE_MS = 300;
+const DEFAULT_RESULTS_LIMIT = 5;
+const DEFAULT_TYPED_RESULTS_LIMIT = 10;
+const SEARCH_STALE_TIME_MS = 5 * 60 * 1000; // 5 minutes
+const SEARCH_GC_TIME_MS = 10 * 60 * 1000; // 10 minutes
 
 /**
  * Simple debounce hook implementation
@@ -57,7 +63,7 @@ export function useGlobalSearch({
   tenantSlug,
   accountId,
   enabled = true,
-  debounceMs = 300,
+  debounceMs = DEFAULT_DEBOUNCE_MS,
 }: UseGlobalSearchOptions = {}): UseGlobalSearchReturn {
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebounce(query, debounceMs);
@@ -66,15 +72,15 @@ export function useGlobalSearch({
     q: debouncedQuery,
     scope: accountId ? "account" : "tenant",
     account_id: accountId,
-    limit: 5, // Results per type
+    limit: DEFAULT_RESULTS_LIMIT,
   };
 
   const { data, isLoading, error } = useQuery({
     queryKey: [SEARCH_QUERY_KEY, debouncedQuery, accountId],
     queryFn: () => search(searchRequest),
     enabled: enabled && debouncedQuery.length > 0,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    staleTime: SEARCH_STALE_TIME_MS,
+    gcTime: SEARCH_GC_TIME_MS,
   });
 
   const handleSearch = useCallback((newQuery: string) => {
@@ -88,7 +94,7 @@ export function useGlobalSearch({
   return {
     data,
     isLoading,
-    error: error as Error | null,
+    error: error instanceof Error ? error : (error ? new Error(String(error)) : null),
     search: handleSearch,
     clearSearch,
     query,
@@ -103,22 +109,22 @@ export function useTypedSearch(
   options: UseGlobalSearchOptions = {}
 ): UseGlobalSearchReturn {
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebounce(query, options.debounceMs || 300);
+  const debouncedQuery = useDebounce(query, options.debounceMs || DEFAULT_DEBOUNCE_MS);
 
   const searchRequest: SearchRequest = {
     q: debouncedQuery,
     scope: options.accountId ? "account" : "tenant",
     account_id: options.accountId,
     types,
-    limit: 10,
+    limit: DEFAULT_TYPED_RESULTS_LIMIT,
   };
 
   const { data, isLoading, error } = useQuery({
     queryKey: [SEARCH_QUERY_KEY, debouncedQuery, types, options.accountId],
     queryFn: () => search(searchRequest),
     enabled: options.enabled !== false && debouncedQuery.length > 0,
-    staleTime: 5 * 60 * 1000,
-    gcTime: 10 * 60 * 1000,
+    staleTime: SEARCH_STALE_TIME_MS,
+    gcTime: SEARCH_GC_TIME_MS,
   });
 
   const handleSearch = useCallback((newQuery: string) => {
@@ -132,7 +138,7 @@ export function useTypedSearch(
   return {
     data,
     isLoading,
-    error: error as Error | null,
+    error: error instanceof Error ? error : (error ? new Error(String(error)) : null),
     search: handleSearch,
     clearSearch,
     query,

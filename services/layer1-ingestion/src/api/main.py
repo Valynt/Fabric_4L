@@ -507,6 +507,7 @@ class ComplianceInput(BaseModel):
     """Compliance settings."""
 
     respect_robots_txt: bool = True
+    strict_robots_compliance: bool = False
     user_agent_string: str | None = None
     crawl_delay_seconds: float = 1.0
     domain_allowlist: list[str] = []
@@ -1208,6 +1209,7 @@ async def create_target(
 
     compliance = {
         "respect_robots_txt": request.compliance.respect_robots_txt,
+        "strict_robots_compliance": request.compliance.strict_robots_compliance,
         "user_agent_string": request.compliance.user_agent_string,
         "crawl_delay_seconds": request.compliance.crawl_delay_seconds,
         "domain_allowlist": request.compliance.domain_allowlist,
@@ -1383,6 +1385,7 @@ async def update_target(
     if request.compliance:
         target.compliance = {
             "respect_robots_txt": request.compliance.respect_robots_txt,
+            "strict_robots_compliance": request.compliance.strict_robots_compliance,
             "user_agent_string": request.compliance.user_agent_string,
             "crawl_delay_seconds": request.compliance.crawl_delay_seconds,
             "domain_allowlist": request.compliance.domain_allowlist,

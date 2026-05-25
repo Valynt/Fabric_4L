@@ -1,0 +1,28 @@
+rules:
+  - id: block-direct-graph-mutation
+    message: |
+      Direct Cypher MERGE/CREATE/DELETE on tenant-owned labels must go through AuditedGraphMutation.
+      This bypasses the audited mutation gateway which enforces tenant isolation, audit logging, and metrics.
+      Use AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead.
+    severity: ERROR
+    languages:
+      - python
+    metadata:
+      category: security
+      technology:
+        - neo4j
+        - cypher
+      owasp:
+        - A01:2021 - Broken Access Control
+      references:
+        - https://github.com/neo4j/neo4j
+    patterns:
+      - pattern-regex: '(MERGE|CREATE|DELETE).*\{.*tenant_id'
+      - pattern-not-regex: 'AuditedGraphMutation'
+      - pattern-not-regex: 'test_.*\.py'
+      - pattern-not-regex: 'conftest\.py'
+    fix: |
+      Replace direct Cypher mutation with AuditedGraphMutation methods:
+      - For relationships: mutation.write_relationship(src_id, rel_type, tgt_id, properties)
+      - For nodes: mutation.write_node(label, node_id, properties)
+      - For deletion: mutation.delete_relationship(src_id, rel_type, tgt_id) or mutation.delete_node(label, node_id)
