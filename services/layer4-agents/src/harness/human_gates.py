@@ -9,7 +9,14 @@ Invariants:
 
 from __future__ import annotations
 
-from .models import GateStatus, GateType, HarnessTraceEvent, HarnessWorkflowType, HumanGate
+from .models import (
+    ActionClass,
+    GateStatus,
+    GateType,
+    HarnessTraceEvent,
+    HarnessWorkflowType,
+    HumanGate,
+)
 
 
 def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:
@@ -23,7 +30,7 @@ def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:
             metrics.observe_approval_wait(
                 duration=duration,
                 gate_type=gate.gate_type.value,
-                action_class="unknown",
+                action_class=(gate.action_class.value if gate.action_class else "unknown"),
                 tenant_id=tenant_id,
             )
     except Exception:
@@ -67,12 +74,14 @@ class HumanGateManager:
         run_id: str,
         tenant_id: str,
         gate_type: GateType,
+        action_class: ActionClass | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
         """Create a new pending human gate."""
         gate = HumanGate(
             run_id=run_id,
             tenant_id=tenant_id,
             gate_type=gate_type,
+            action_class=action_class,
         )
         self._gates[gate.id] = gate
         self._run_gates.setdefault(run_id, set()).add(gate.id)
@@ -87,6 +96,7 @@ class HumanGateManager:
             event_type="human_gate_created",
             from_state=None,  # type: ignore[arg-type]
             to_state=None,  # type: ignore[arg-type]
+            metadata={"action_class": action_class.value if action_class else None},
         )
         return gate, event
 
@@ -155,6 +165,7 @@ class HumanGateManager:
             workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
             human_gate_id=gate_id,
             event_type="human_gate_approved",
+            metadata={"action_class": updated.action_class.value if updated.action_class else None},
         )
         return updated, event
 
@@ -190,6 +201,7 @@ class HumanGateManager:
             workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
             human_gate_id=gate_id,
             event_type="human_gate_rejected",
+            metadata={"action_class": updated.action_class.value if updated.action_class else None},
         )
         return updated, event
 
@@ -223,6 +235,7 @@ class HumanGateManager:
             workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
             human_gate_id=gate_id,
             event_type="human_gate_modified",
+            metadata={"action_class": updated.action_class.value if updated.action_class else None},
         )
         return updated, event
 
@@ -253,6 +266,7 @@ class HumanGateManager:
             workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
             human_gate_id=gate_id,
             event_type="human_gate_expired",
+            metadata={"action_class": updated.action_class.value if updated.action_class else None},
         )
         return updated, event
 

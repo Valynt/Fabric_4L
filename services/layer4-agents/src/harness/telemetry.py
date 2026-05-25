@@ -113,6 +113,7 @@ class TelemetryEmitter:
             event_type=f"human_gate_{gate.status.value}",
             metadata={
                 "gate_type": gate.gate_type.value,
+                "action_class": gate.action_class.value if gate.action_class else None,
                 "decision_by": gate.decision_by,
                 "decision_reason": gate.decision_reason,
             },

@@ -22,6 +22,7 @@ from .checkpoints import CheckpointError
 from .db_models import ClaimValidationResultRow
 from .human_gates import GateDecisionError, GateExpiredError
 from .models import (
+    ActionClass,
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -70,11 +71,13 @@ class SqlHumanGateManager:
         run_id: str,
         tenant_id: str,
         gate_type: GateType,
+        action_class: ActionClass | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
         gate = HumanGate(
             run_id=run_id,
             tenant_id=tenant_id,
             gate_type=gate_type,
+            action_class=action_class,
         )
         await self._repo.create(gate)
 
@@ -88,6 +91,7 @@ class SqlHumanGateManager:
             event_type="human_gate_created",
             from_state=None,  # type: ignore[arg-type]
             to_state=None,  # type: ignore[arg-type]
+            metadata={"action_class": action_class.value if action_class else None},
         )
         return gate, event
 
@@ -746,9 +750,10 @@ class SqlHarnessRegistry:
         run_id: str,
         tenant_id: str,
         gate_type: GateType,
+        action_class: ActionClass | None = None,
     ) -> HumanGate:
         run = await self._run_repo.get(run_id, tenant_id)
-        gate, event = await self._gates.create_gate(run_id, tenant_id, gate_type)
+        gate, event = await self._gates.create_gate(run_id, tenant_id, gate_type, action_class)
         event = event.model_copy(
             update={"trace_id": run.trace_id, "workflow_type": run.workflow_type}
         )

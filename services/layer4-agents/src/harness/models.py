@@ -338,6 +338,7 @@ class HumanGate(BaseModel):
     run_id: str
     tenant_id: str
     gate_type: GateType
+    action_class: ActionClass | None = None
     status: GateStatus = GateStatus.PENDING
     decision_by: str | None = None
     decision_reason: str | None = None

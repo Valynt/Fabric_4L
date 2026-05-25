@@ -347,6 +347,7 @@ async def create_gate(
         run_id=run_id,
         tenant_id=ctx.tenant_id,
         gate_type=body.gate_type,
+        action_class=body.action_class,
     )
     return GateResponse.from_domain(gate)
 

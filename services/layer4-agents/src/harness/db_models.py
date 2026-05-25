@@ -98,6 +98,7 @@ class HumanGateRow(Base):
         String(255), nullable=False, comment="Tenant identifier for RLS isolation"
     )
     gate_type: Mapped[str] = mapped_column(String(64), nullable=False)
+    action_class: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
     decision_by: Mapped[str | None] = mapped_column(String(255), nullable=True)
     decision_reason: Mapped[str | None] = mapped_column(Text, nullable=True)

@@ -25,6 +25,7 @@ from .db_models import (
     ToolContractRow,
 )
 from .models import (
+    ActionClass,
     GateStatus,
     GateType,
     HarnessCheckpoint,
@@ -89,6 +90,7 @@ def _gate_to_row(gate: HumanGate) -> HumanGateRow:
         run_id=gate.run_id,
         tenant_id=gate.tenant_id,
         gate_type=gate.gate_type.value,
+        action_class=gate.action_class.value if gate.action_class else None,
         status=gate.status.value,
         decision_by=gate.decision_by,
         decision_reason=gate.decision_reason,
@@ -103,6 +105,7 @@ def _row_to_gate(row: HumanGateRow) -> HumanGate:
         run_id=row.run_id,
         tenant_id=row.tenant_id,
         gate_type=GateType(row.gate_type),
+        action_class=ActionClass(row.action_class) if row.action_class else None,
         status=GateStatus(row.status),
         decision_by=row.decision_by,
         decision_reason=row.decision_reason,
