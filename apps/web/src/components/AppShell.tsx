@@ -74,7 +74,7 @@ const AppShell = memo(function AppShell({
   const setSelectedAccountId = useAccountContextStore(state => state.setSelectedAccountId);
   const { data: accountsData, isLoading: accountsLoading, error: accountsError } = useAccounts({ page_size: 100 });
   const accounts = accountsData?.items ?? [];
-  const { user: currentUser, logout } = useAuthContext();
+  const { user: currentUser, logout, currentTenantSlug } = useAuthContext();
 
   return (
     <div className="flex flex-col h-screen bg-background overflow-hidden">
@@ -155,7 +155,7 @@ const AppShell = memo(function AppShell({
       <GlobalSearchDialog
         open={isSearchOpen}
         onOpenChange={setIsSearchOpen}
-        tenantSlug="acme"
+        tenantSlug={currentTenantSlug || undefined}
         accountId={selectedAccountId || undefined}
       />
     </div>

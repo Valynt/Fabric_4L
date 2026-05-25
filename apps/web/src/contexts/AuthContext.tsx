@@ -19,8 +19,8 @@ interface AuthContextType {
   user: UserInfo | null;
   currentTenantSlug: string | null;
   accessToken: null;
-  initiateLogin: (tenantSlug: string) => Promise<void>;
-  handleCallback: (code: string, state: string) => Promise<boolean>;
+  initiateLogin: () => Promise<void>;
+  handleCallback: () => Promise<boolean>;
   logout: () => Promise<void>;
   refreshToken: () => Promise<boolean>;
   devBypass?: () => void;
@@ -44,13 +44,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const user: UserInfo | null = useMemo(() => {
     if (!clerkUser) return null;
+
+    // Users without organization membership are not fully authenticated for our multi-tenant app
+    // They need to join or create an organization before accessing tenant-scoped features
+    if (!organization || !organization.id || !organization.slug) {
+      return null;
+    }
+
     const primaryEmail = clerkUser.primaryEmailAddress?.emailAddress ?? '';
+
+    // Map Clerk organization role to frontend tier
+    // Clerk roles: 'admin', 'basic_member', 'guest_member'
+    // Frontend tiers: 'standard', 'advanced', 'admin'
+    let role: 'standard' | 'advanced' | 'admin' = 'standard';
+    const orgMembership = clerkUser.organizationMemberships?.find(
+      (m) => m.organization.id === organization.id
+    );
+    if (orgMembership?.role === 'admin') {
+      role = 'admin';
+    } else if (orgMembership?.role === 'basic_member') {
+      role = 'standard';
+    }
+
     const mapped: UserInfo = {
       id: clerkUser.id,
       email: primaryEmail,
-      role: 'standard',
-      tenantId: organization?.id ?? 'default',
-      tenantSlug: organization?.slug ?? 'default',
+      role,
+      tenantId: organization.id,
+      tenantSlug: organization.slug,
     };
     const parsed = UserInfoSchema.safeParse(mapped);
     return parsed.success ? parsed.data : null;
@@ -83,6 +104,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return true;
   };
 
+  /**
+   * Local auth shortcut is compiled only into development and test bundles.
+   * Production builds do not receive the implementation, mock identity, flag path,
+   * or context field; this makes bypass leakage detectable by bundle scanning.
+   */
+  let devBypass: AuthContextType['devBypass'];
+
+  if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
+    devBypass = () => {
+      // Clerk doesn't support dev bypass in the same way as legacy auth
+      // This is a no-op for Clerk mode but kept for interface compatibility
+      log.warn('devBypass called in Clerk mode - not supported');
+    };
+  }
+
   const value: AuthContextType = {
     isAuthenticated: authLoaded && !!isSignedIn,
     isLoading,
@@ -93,6 +129,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     handleCallback,
     logout,
     refreshToken,
+    ...(import.meta.env.DEV || import.meta.env.MODE === 'test' ? { devBypass } : {}),
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

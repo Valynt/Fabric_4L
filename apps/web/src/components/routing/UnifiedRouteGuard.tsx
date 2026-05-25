@@ -10,7 +10,6 @@ import { useUserTierStore } from "@/stores";
 import { type RouteAccessPolicy } from "@/routes/types";
 import { ErrorBoundary } from "@/components";
 import { createFeatureLogger } from "@/lib/telemetry";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 const log = createFeatureLogger("route-guard");
 
@@ -24,14 +23,11 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   const matches = useMatches();
   const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
 
-  // Phase 2: Clerk integration — when Clerk is the auth provider, derive auth
-  // state from Clerk's useAuth() hook so the guard works for both legacy and
-  // Clerk-driven sessions.
-  const clerkEnabled = isClerkAuthEnabled();
+  // Clerk is now the only auth provider - derive auth state from Clerk's useAuth() hook
   const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-  const isAuthenticated = clerkEnabled ? (clerkLoaded && !!isSignedIn) : legacyIsAuthenticated;
-  const isLoading = clerkEnabled ? !clerkLoaded : legacyIsLoading;
-  const loginPath = clerkEnabled ? "/sign-in" : "/login";
+  const isAuthenticated = clerkLoaded && !!isSignedIn;
+  const isLoading = !clerkLoaded;
+  const loginPath = "/sign-in";
 
   // Walk up the match tree to find the most specific access policy
   const policy = matches
