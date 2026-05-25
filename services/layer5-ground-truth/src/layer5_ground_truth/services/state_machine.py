@@ -622,5 +622,10 @@ class ValidationStateMachine:
                 "sync_status": "pending",
             },
         )
-        await db.flush()  # Persist event and history before returning
+        try:
+            await db.flush()  # Persist event and history before returning
+        except Exception:
+            from .audit_write_monitor import record_audit_write_failure
+            record_audit_write_failure()
+            raise
         return truth_object
