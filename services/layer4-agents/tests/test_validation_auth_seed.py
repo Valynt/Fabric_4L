@@ -69,7 +69,7 @@ async def _post_auth_seed(
     app: FastAPI,
     *,
     body: dict[str, Any] | None = None,
-    reason: str = analysis.E2E_SEED_PRIVILEGED_REASON,
+    reason: str = analysis.SEED_PRIVILEGED_REASON,
 ) -> Any:
     headers = {"X-Privileged-Reason": reason} if reason else {}
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:

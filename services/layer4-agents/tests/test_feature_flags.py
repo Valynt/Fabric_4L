@@ -36,6 +36,12 @@ class lookupResult(TypedDictModel):
 
 TEST_DATABASE_URL = "sqlite+aiosqlite:///:memory:"
 
+# Skip these tests on SQLite due to JSONB column incompatibility
+pytestmark = pytest.mark.skipif(
+    "sqlite" in TEST_DATABASE_URL,
+    reason="JSONB columns require PostgreSQL, not SQLite"
+)
+
 
 @pytest.fixture(scope="function")
 async def test_db() -> AsyncGenerator[AsyncSession, None]:

@@ -35,9 +35,12 @@ from testcontainers.postgres import PostgresContainer
 
 from value_fabric.layer4.api.main import app
 from value_fabric.layer4.api.routes.analysis import get_executor
-from value_fabric.layer4.database import Base, get_db_from_context
+from value_fabric.layer4.database import Base, get_db_from_context, _mark_session_tenant_context
 from value_fabric.layer4.models.business_case_record import BusinessCaseRecord
 from value_fabric.layer4.models.account import Account, AccountSyncStatus, CRMProvider, SyncStatus
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
+from value_fabric.shared.identity.permissions import Role
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -63,20 +66,22 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
     username = postgres_container.username
     password = postgres_container.password
     dbname = postgres_container.dbname
-    
+
     test_database_url = f"postgresql+asyncpg://{username}:{password}@{host}:{port}/{dbname}"
-    
+
     engine = create_async_engine(test_database_url, echo=False)
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
-    
+
     async_session = sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
-    
+
     async with async_session() as session:
+        # Mark session with tenant context to avoid TenantContextError
+        _mark_session_tenant_context(session, "test-tenant-accounts")
         yield session
-    
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
     await engine.dispose()
@@ -84,15 +89,24 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
 
 @pytest.fixture
 async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
-    """Create test client with database override."""
+    """Create test client with database and auth override."""
     async def override_get_db():
         yield test_db
-    
+
+    async def override_auth():
+        return RequestContext(
+            tenant_id="test-tenant-accounts",
+            user_id=str(uuid4()),
+            roles=[Role.TENANT_ADMIN.value],
+            source="jwt",
+        )
+
     app.dependency_overrides[get_db_from_context] = override_get_db
-    
+    app.dependency_overrides[require_authenticated] = override_auth
+
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
         yield ac
-    
+
     app.dependency_overrides.clear()
 
 

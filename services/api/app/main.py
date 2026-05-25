@@ -14,7 +14,6 @@ from app.core.metrics import metrics_middleware, render_metrics
 from app.routers import (
     accounts,
     agents,
-    auth,
     calculator,
     clerk_webhooks,
     context_engine,
@@ -34,42 +33,6 @@ from app.services.seed_data import seed_all
 settings = get_settings()
 
 
-def _assert_bcrypt_available() -> None:
-    """Fail fast if bcrypt is not functional.
-
-    Prevents the application from starting in a state where password hashing
-    would silently fall back to an insecure algorithm.
-
-    Uses passlib's identify() rather than a full hash round to avoid the
-    bcrypt cost on every startup while still confirming the backend is loaded.
-    """
-    import os as _os
-    # Skip check if bcrypt is disabled (test environments)
-    if _os.getenv("USE_BCRYPT", "true").lower() != "true":
-        return
-
-    try:
-        from app.core.security import get_pwd_context
-        # identify() returns the scheme name for a known hash without computing
-        # a new one — cheaper than a full bcrypt round.
-        # A well-formed bcrypt hash (cost 4, known salt+digest) used only for
-        # scheme identification — passlib.identify() checks the $2b$ prefix and
-        # structure without verifying the password, so no bcrypt round is run.
-        _BCRYPT_PROBE_HASH = (
-            "$2b$04$aaaaaaaaaaaaaaaaaaaaaaaaaa"  # 22-char salt
-            "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"  # 31-char digest (padded)
-        )
-        scheme = get_pwd_context().identify(_BCRYPT_PROBE_HASH)
-        if scheme != "bcrypt":
-            raise RuntimeError(f"Expected bcrypt scheme, got: {scheme!r}")
-    except Exception as exc:
-        raise RuntimeError(
-            "FATAL: bcrypt is not available or not functional. "
-            "Install bcrypt and ensure the native library is present. "
-            f"Original error: {exc}"
-        ) from exc
-
-
 def _assert_database_ready() -> None:
     """Fail fast if the database is unreachable or misconfigured."""
     from app.core.database import create_database
@@ -84,9 +47,6 @@ def _assert_database_ready() -> None:
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Skip bcrypt check in test environments to avoid version incompatibility issues
-    if settings.app_env not in {"test", "testing", "ci"}:
-        _assert_bcrypt_available()
     _assert_database_ready()
     validate_production_safety()
     if settings.seed_demo_data:
@@ -103,7 +63,6 @@ app = create_fabric_app(
     cors_policy=settings.cors_policy,
 )
 
-app.include_router(auth.router, prefix="/v1")
 app.include_router(accounts.router, prefix="/v1")
 app.include_router(intelligence.router, prefix="/v1")
 app.include_router(intelligence.legacy_router, prefix="/v1")

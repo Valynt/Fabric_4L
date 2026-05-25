@@ -48,8 +48,6 @@ const GovernanceHealth = lazy(() => import("@/app/settings/pages/GovernanceHealt
 const GovernanceAuditTrail = lazy(() => import("@/app/settings/pages/GovernanceAuditTrail").then(m => ({ default: m.GovernanceAuditTrail })));
 const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/GovernanceAdminControls").then(m => ({ default: m.GovernanceAdminControls })));
 
-const Login = lazy(() => import("@/pages/Login"));
-const Signup = lazy(() => import("@/pages/Signup"));
 const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
 const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
 const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
@@ -143,8 +141,8 @@ function AccountOverviewRedirect() {
 
 // ── Route metadata helpers ───────────────────────────────────────────────────
 
-const authPolicy = { requiresAuth: false, tenantScoped: false, fallbackRoute: "/login", analyticsRouteId: "auth" } as const;
-const homePolicy = { requiresAuth: true, tenantScoped: false, fallbackRoute: "/login", analyticsRouteId: "home" } as const;
+const authPolicy = { requiresAuth: false, tenantScoped: false, fallbackRoute: "/sign-in", analyticsRouteId: "auth" } as const;
+const homePolicy = { requiresAuth: true, tenantScoped: false, fallbackRoute: "/sign-in", analyticsRouteId: "home" } as const;
 const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
@@ -152,21 +150,6 @@ const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tr
 const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 
 export const router = createBrowserRouter([
-  {
-    path: "/login",
-    element: <Login />,
-    handle: { accessPolicy: authPolicy },
-  },
-  {
-    path: "/login/callback",
-    element: <Login />,
-    handle: { accessPolicy: authPolicy },
-  },
-  {
-    path: "/signup",
-    element: <Signup />,
-    handle: { accessPolicy: authPolicy },
-  },
   {
     path: "/sign-in",
     element: <ClerkSignInPage />,

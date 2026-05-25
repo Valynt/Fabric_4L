@@ -5,7 +5,6 @@ import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ClerkAuthBridge } from "@/auth/ClerkAuthBridge";
-import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 import { router } from "./shell/router";
 
 export default function App() {
@@ -14,7 +13,7 @@ export default function App() {
       <ThemeProvider defaultTheme="light" switchable>
         <AuthProvider>
           <TooltipProvider>
-            {isClerkAuthEnabled() && <ClerkAuthBridge />}
+            <ClerkAuthBridge />
             <Toaster />
             <RouterProvider router={router} />
           </TooltipProvider>

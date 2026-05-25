@@ -32,7 +32,7 @@ from testcontainers.postgres import PostgresContainer
 
 from fastapi import FastAPI
 from value_fabric.layer4.api.routes import company_knowledge as company_knowledge_route
-from value_fabric.layer4.database import get_db_from_context
+from value_fabric.layer4.database import get_db_from_context, _mark_session_tenant_context
 from value_fabric.layer4.models.company_knowledge import (
     CompanyKnowledgeProfile,
     ICPProfile,
@@ -72,7 +72,7 @@ def postgres_container():
 
 
 @pytest_asyncio.fixture(scope="function")
-async def test_db(postgres_container) -> AsyncSession:
+async def test_db(postgres_container, tenant_id: str) -> AsyncSession:
     """Create a test database session with fresh tables."""
     host = postgres_container.get_container_host_ip()
     port = postgres_container.get_exposed_port(5432)
@@ -99,6 +99,8 @@ async def test_db(postgres_container) -> AsyncSession:
     async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
 
     async with async_session() as session:
+        # Mark session with tenant context to avoid TenantContextError
+        _mark_session_tenant_context(session, tenant_id)
         yield session
 
     async with engine.begin() as conn:
