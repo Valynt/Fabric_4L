@@ -57,7 +57,7 @@ test.describe('UI End-User Satisfaction @debug', () => {
     await page.screenshot({ path: 'e2e-results/debug-deliverables-cases.png', fullPage: true });
 
     // ── 6. Workflow / Prospect ─────────────────────────────────────────────
-    await page.goto('/workflow/prospect');
+    await page.goto('/workflow');
     await expect(page.locator('aside').first()).toBeVisible();
     await expect(page.getByText(/prospect|company|setup/i).first()).toBeVisible();
     await page.screenshot({ path: 'e2e-results/debug-workflow-prospect.png', fullPage: true });

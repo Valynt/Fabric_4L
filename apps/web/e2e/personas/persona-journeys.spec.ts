@@ -24,7 +24,7 @@ journeyTest.describe('Persona Journey Validation Suite', () => {
   journeyTest('Step 1 [PERSONA-SALES-001]: sales rep can start account setup and push toward CRM context', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/workflow/prospect',
+      '/workflow',
       [/start a new value case/i, /search company/i, /attach source material/i, /run account enrichment/i],
       'sales rep account setup, discovery notes, enrichment, and handoff workflow',
     );
@@ -78,7 +78,7 @@ journeyTest.describe('Persona Journey Validation Suite', () => {
   journeyTest('test_sales_rep_to_crm_push_persona_journey', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/workflow/prospect',
+      '/workflow',
       [/start a new value case/i, /launch intelligence/i, /attach source material/i],
       'sales rep account creation and discovery workflow',
     );

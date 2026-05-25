@@ -41,7 +41,7 @@ journeyTest.describe('Golden Path Deep: Account to Approved Business Case', () =
   // ── Phase 1: Account Setup ──────────────────────────────────────────────
 
   journeyTest('GP-DEEP-001: user can create a new account through prospect setup form', async ({ authedPage }) => {
-    await authedPage.goto('/workflow/prospect', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/start a new value case/i, /search company/i], 'prospect setup form');
 
     const companyInput = authedPage.getByPlaceholder(/company name/i);
