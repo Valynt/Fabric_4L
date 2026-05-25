@@ -1,0 +1,86 @@
+# Layer 4 Agentic Workflow Engine — Prometheus Alert Rules
+#
+# Required enterprise reliability signals:
+#   - Approval wait time (OBS-L4-001)
+#   - Stuck workflows (OBS-L4-002)
+#   - Repeated failures (OBS-L4-003)
+#   - Tool auth failures (OBS-L4-004)
+#   - Checkpoint corruption (OBS-L4-005)
+#
+# Install with: promtool check rules monitoring/layer4-alert-rules.yaml
+
+groups:
+  - name: layer4-agents-reliability
+    interval: 30s
+    rules:
+      - alert: Layer4ApprovalWaitHigh
+        expr: |
+          histogram_quantile(0.95,
+            sum by (le, gate_type, action_class) (
+              rate(layer4_approval_wait_seconds_bucket[5m])
+            )
+          ) > 300
+        for: 5m
+        labels:
+          severity: warning
+          team: layer4
+        annotations:
+          summary: "Layer 4 approval wait time is high"
+          description: "95th percentile approval wait for gate {{ $labels.gate_type }} / action {{ $labels.action_class }} exceeds 5 minutes."
+          runbook_url: "docs/troubleshooting/runbooks/application/agent-workflow-stall.md"
+
+      - alert: Layer4StuckWorkflows
+        expr: |
+          sum by (workflow_type) (
+            layer4_stuck_workflows_total
+          ) > 0
+        for: 2m
+        labels:
+          severity: critical
+          team: layer4
+        annotations:
+          summary: "Layer 4 has stuck workflows"
+          description: "{{ $value }} workflow(s) of type {{ $labels.workflow_type }} are stuck longer than the threshold."
+          runbook_url: "docs/troubleshooting/runbooks/application/agent-workflow-stall.md"
+
+      - alert: Layer4RepeatedFailures
+        expr: |
+          sum by (workflow_type, failure_class) (
+            rate(layer4_repeated_workflow_failures_total[5m])
+          ) > 0
+        for: 5m
+        labels:
+          severity: warning
+          team: layer4
+        annotations:
+          summary: "Layer 4 repeated workflow failures detected"
+          description: "Workflow type {{ $labels.workflow_type }} is experiencing repeated failures (class: {{ $labels.failure_class }})."
+          runbook_url: "docs/troubleshooting/runbooks/application/agent-workflow-stall.md"
+
+      - alert: Layer4ToolAuthFailures
+        expr: |
+          sum by (tool_name) (
+            rate(layer4_tool_auth_failures_total[5m])
+          ) > 0
+        for: 3m
+        labels:
+          severity: critical
+          team: layer4
+        annotations:
+          summary: "Layer 4 tool auth failures detected"
+          description: "Tool {{ $labels.tool_name }} is failing due to auth or authorization errors."
+          runbook_url: "docs/troubleshooting/runbooks/application/agent-workflow-stall.md"
+
+      - alert: Layer4CheckpointCorruption
+        expr: |
+          sum by (workflow_type) (
+            rate(layer4_checkpoint_corruption_detected_total[5m])
+          ) > 0
+        for: 1m
+        labels:
+          severity: critical
+          team: layer4
+        annotations:
+          summary: "Layer 4 checkpoint corruption detected"
+          description: "Checkpoint corruption detected for workflow type {{ $labels.workflow_type }} — investigate immediately."
+          runbook_url: "docs/troubleshooting/runbooks/application/agent-workflow-stall.md"

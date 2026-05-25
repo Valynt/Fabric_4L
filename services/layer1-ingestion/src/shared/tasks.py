@@ -56,6 +56,7 @@ from ..shared.models import (
     ScrapingJobType,
     ScrapingTarget,
     SourceCorpus,
+    TenantRegistry,
 )
 from ..skills import get_extraction_schema, get_skill
 
@@ -1843,13 +1844,14 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
     
     else:
         # System-scoped: iterate tenants individually under RLS.
-        # No global table scan — each tenant cleaned in its own RLS context.
+        # Use tenant_registry (system table, no RLS) instead of tenant-owned tables.
         tenant_ids = []
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             tenant_ids = [
                 row[0] for row in
-                session.query(RawContent.tenant_id).distinct().all()
-                if row[0] is not None
+                session.query(TenantRegistry.tenant_id)
+                .filter(TenantRegistry.is_active == True)
+                .all()
             ]
 
         total_deleted = 0

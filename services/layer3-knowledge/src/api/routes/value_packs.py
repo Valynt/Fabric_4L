@@ -35,6 +35,7 @@ from ...api.routes.formulas import evaluate_expression
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key
 from ...db.driver import get_driver
+from ...db.audited_mutation import AuditedGraphMutation
 from ...db.query_execution import run_validated_query
 from ...utils.cypher_security import (
     ALLOWED_REL_TYPES,
@@ -323,12 +324,15 @@ async def _update_relationships(
     target_label: str,
     target_ids: list[str],
     tenant_id: str | None = None,
+    request_id: str | None = None,
+    account_id: str | None = None,
 ) -> None:
     """Update pack relationships, validating target entities exist.
 
     SECURITY: All queries include tenant_id filtering to prevent cross-tenant access.
     SECURITY: rel_type and target_label are validated against allowlists before
     interpolation to prevent Cypher injection (SEC-L3-CYPHER-003).
+    SECURITY: All relationship writes go through AuditedGraphMutation for audit trail (Phase 1 hardening).
 
     Raises HTTPException if any target_id doesn't exist.
     Raises ValueError if rel_type or target_label are not in the allowlist.
@@ -360,24 +364,30 @@ async def _update_relationships(
                 detail=f"{target_label} IDs not found: {sorted(missing)}"
             )
 
-    # Delete existing relationships with tenant scoping
-    delete_query = f"""
-    MATCH (vp:ValuePack {{id: $pack_id, tenant_id: $tenant_id}})
-    OPTIONAL MATCH (vp)-[r:{rel_type}]->()
-    DELETE r
-    """
-    # strict-scoped-query-execution: relationship delete starts from tenant-scoped ValuePack
-    await run_validated_query(tx, delete_query, pack_id=pack_id, tenant_id=tenant_id)
+    # Phase 1 hardening: Use AuditedGraphMutation for all relationship writes
+    mutation = AuditedGraphMutation(
+        tenant_id=tenant_id or "default",
+        session=tx,
+        request_id=request_id,
+        account_id=account_id,
+        operation_source="value_packs._update_relationships",
+    )
 
-    # Create new relationships with tenant scoping
-    create_query = f"""
+    # Delete existing relationships of this type from the pack
+    # First, find all existing targets to delete individually through the gateway
+    existing_query = f"""
     MATCH (vp:ValuePack {{id: $pack_id, tenant_id: $tenant_id}})
-    UNWIND $target_ids as target_id
-    MATCH (t:{target_label} {{id: target_id, tenant_id: $tenant_id}})
-    CREATE (vp)-[:{rel_type}]->(t)
+    MATCH (vp)-[r:{rel_type}]->(t)
+    RETURN t.id as target_id
     """
-    # strict-scoped-query-execution: relationship creation requires tenant_id on both endpoints
-    await run_validated_query(tx, create_query, pack_id=pack_id, target_ids=target_ids, tenant_id=tenant_id)
+    existing_result = await run_validated_query(tx, existing_query, pack_id=pack_id, tenant_id=tenant_id)
+    existing_records = await existing_result.data()
+    for record in existing_records:
+        await mutation.delete_relationship(pack_id, rel_type, record["target_id"])
+
+    # Create new relationships through the gateway
+    for target_id in target_ids:
+        await mutation.write_relationship(pack_id, rel_type, target_id)
 
 
 async def _get_pack_detail(
@@ -730,24 +740,30 @@ def _build_update_params(
 
 async def _update_pack_relationships(
     tx, pack_id: str, request: PackCreateRequest | PackUpdateRequest,
-    tenant_id: str | None = None
+    tenant_id: str | None = None,
+    request_id: str | None = None,
+    account_id: str | None = None,
 ) -> None:
     """Helper to update pack relationships during create/update.
 
     Validates target entities exist before creating relationships.
     SECURITY: All relationship operations are tenant-scoped.
+    SECURITY: All relationship writes go through AuditedGraphMutation (Phase 1 hardening).
     """
     if request.driver_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasDriver", "ValueDriver", request.driver_ids, tenant_id
+            tx, pack_id, "hasDriver", "ValueDriver", request.driver_ids, tenant_id,
+            request_id=request_id, account_id=account_id
         )
     if request.formula_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasFormula", "Formula", request.formula_ids, tenant_id
+            tx, pack_id, "hasFormula", "Formula", request.formula_ids, tenant_id,
+            request_id=request_id, account_id=account_id
         )
     if request.benchmark_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasBenchmark", "BenchmarkDataset", request.benchmark_ids, tenant_id
+            tx, pack_id, "hasBenchmark", "BenchmarkDataset", request.benchmark_ids, tenant_id,
+            request_id=request_id, account_id=account_id
         )
 
 
@@ -784,7 +800,11 @@ async def update_pack(
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
             await run_validated_query(tx, update_query, **params)
-            await _update_pack_relationships(tx, pack_id, request, tenant_id)
+            # Phase 1 hardening: Pass request context for audit trail
+            request_id = getattr(fastapi_request.state, "request_id", None) if fastapi_request else None
+            account_id = getattr(fastapi_request.state, "account_id", None) if fastapi_request else None
+            await _update_pack_relationships(tx, pack_id, request, tenant_id,
+                                          request_id=request_id, account_id=account_id)
 
         # Re-query for consistent view with relationships
         pack = await _get_pack_detail(driver, pack_id, tenant_id)

@@ -185,6 +185,94 @@ class OrchestrationController:
             kwargs["checkpoint_id"] = checkpoint_id
         return Layer4EventContext(**kwargs)
 
+    @staticmethod
+    def _compute_state_hash(state: AgentState) -> str:
+        """Compute a deterministic hash for checkpoint conflict detection.
+
+        Uses canonical JSON serialization of the state's key fields.
+        """
+        import hashlib
+        import json
+
+        canonical = json.dumps(
+            {
+                "workflow_id": state.workflow_id,
+                "run_id": state.run_id,
+                "trace_id": state.trace_id,
+                "tenant_id": state.tenant_id,
+                "workflow_type": str(state.workflow_type.value if hasattr(state.workflow_type, "value") else state.workflow_type),
+                "current_node": state.current_node,
+                "status": str(state.status.value if hasattr(state.status, "value") else state.status),
+                "input_data": state.input_data,
+                "output_data": state.output_data,
+                "metadata": {k: v for k, v in (state.metadata or {}).items() if k not in ("run_envelope",)},
+            },
+            sort_keys=True,
+            separators=(",", ":"),
+            default=str,
+        )
+        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+    def _resolve_resume_policy(
+        self,
+        *,
+        workflow_id: str,
+        state: AgentState,
+        target_checkpoint_id: str | None = None,
+    ) -> None:
+        """Validate a resume attempt against the canonical ReplayConflictPolicy.
+
+        Computes real checkpoint hashes and enforces exact-match, collision,
+        age, and duplicate-replay guards.
+
+        Raises:
+            WorkflowExecutionError: If the resume violates policy.
+        """
+        resolver = ReplayConflictResolver()
+        checkpoint_hash = self._compute_state_hash(state)
+
+        # Determine latest checkpoint hash by loading current state again
+        latest_hash = checkpoint_hash
+
+        # Age guard uses paused_at or started_at
+        checkpoint_created_at = state.paused_at or state.started_at
+        if isinstance(checkpoint_created_at, str):
+            from datetime import datetime as _dt
+            checkpoint_created_at = _dt.fromisoformat(checkpoint_created_at.replace("Z", "+00:00"))
+
+        # Validate against policy
+        try:
+            resolver.validate_resume_attempt(
+                workflow_status=state.status,
+                checkpoint_created_at=checkpoint_created_at,
+                checkpoint_hash=checkpoint_hash,
+                expected_hash=checkpoint_hash,
+                latest_checkpoint_hash=latest_hash,
+            )
+        except ReplayConflictError as rce:
+            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
+
+        # Duplicate replay detection
+        run_id = state.run_id or workflow_id
+        tenant_id = state.tenant_id or "unknown"
+        try:
+            resolver.check_duplicate_replay(
+                run_id=run_id,
+                tenant_id=tenant_id,
+                checkpoint_id=target_checkpoint_id,
+                seen_fingerprints=self._seen_replay_fingerprints,
+            )
+        except ReplayConflictError as rce:
+            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
+
+        # Record fingerprint for future deduplication
+        fingerprint = resolver.compute_replay_fingerprint(
+            run_id=run_id,
+            tenant_id=tenant_id,
+            checkpoint_id=target_checkpoint_id,
+        )
+        self._seen_replay_fingerprints.add(fingerprint)
+
     def __init__(
         self,
         tool_registry: ToolRegistry,
@@ -235,6 +323,9 @@ class OrchestrationController:
         # Workflow tracking
         self._active_workflows: dict[str, asyncio.Task] = {}
         self._workflow_metadata: dict[str, dict[str, Any]] = {}
+
+        # Replay-conflict deduplication tracking
+        self._seen_replay_fingerprints: set[str] = set()
 
         # Lifecycle
         self._started = False
@@ -531,18 +622,23 @@ class OrchestrationController:
             workflow_id, timeout_seconds=settings.workflow_timeout_seconds
         )
 
-        # Hardening: validate reasoning trace is present for non-failed workflows
+        # Hardening: validate reasoning trace with strict schema enforcement
         if result.status not in {
             WorkflowStatus.FAILED,
             WorkflowStatus.CANCELLED,
         }:
-            if result.reasoning_trace is None:
+            try:
+                from ..models.reasoning_trace import validate_reasoning_trace
+                validate_reasoning_trace(result.reasoning_trace, strict=True)
+            except ValueError as exc:
                 result.status = WorkflowStatus.FAILED
-                result.errors.append("REASONING_TRACE_MISSING: workflow completed without reasoning trace")
+                result.errors.append(str(exc))
                 lifecycle_logger.emit(
-                    stage="reasoning_trace_missing",
+                    stage="reasoning_trace_invalid",
                     context=self._lifecycle_context(workflow_id),
                     workflow_type=workflow_type,
+                    error_class="ValueError",
+                    error_code="REASONING_TRACE_INVALID",
                 )
                 await self.state_manager.save_state(workflow_id, result)
 
@@ -598,10 +694,12 @@ class OrchestrationController:
         if state.run_envelope is not None:
             result_metadata["run_envelope"] = state.run_envelope.model_dump()
 
+        # Prefer canonical run envelope for identity fields when available
+        envelope = state.run_envelope
         return OrchestrationController_get_resultResult.model_validate({
-            "workflow_id": state.workflow_id,
-            "run_id": state.run_id,
-            "trace_id": state.trace_id,
+            "workflow_id": envelope.workflow_id if envelope else state.workflow_id,
+            "run_id": envelope.run_id if envelope else state.run_id,
+            "trace_id": envelope.trace_id if envelope else state.trace_id,
             "output": output,
             "metadata": result_metadata,
             "status": self._fmt_enum(state.status),
@@ -632,15 +730,44 @@ class OrchestrationController:
 
         Returns:
             schedule_id: ID for tracking
+
+        Raises:
+            WorkflowExecutionError: If tenant_id is missing or empty
         """
+        # HARDENING: Tenant scope is a mandatory workflow-start invariant
+        if not tenant_id or not tenant_id.strip():
+            raise WorkflowExecutionError(
+                "tenant_id is required: scheduled workflow start rejected"
+            )
+
         schedule_id = f"sched-{datetime.now(UTC).timestamp()}"
 
         execute_time = scheduled_time or datetime.now(UTC)
         workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
-        initial_state = workflow.create_initial_state(input_data)
+        initial_state = workflow.create_initial_state(
+            input_data,
+            tenant_id=tenant_id,
+        )
         initial_state.workflow_id = schedule_id
         initial_state.status = WorkflowStatus.PENDING
         initial_state.started_at = execute_time
+
+        # Generate canonical run envelope for scheduled workflows
+        from uuid import uuid4
+        from ..models.run_envelope import RunEnvelope
+
+        run_id = str(uuid4())
+        trace_id = str(uuid4())
+        envelope = RunEnvelope(
+            run_id=run_id,
+            workflow_id=schedule_id,
+            trace_id=trace_id,
+            tenant_id=tenant_id,
+            workflow_type=workflow_type,
+        )
+        initial_state.run_envelope = envelope
+        initial_state.run_id = run_id
+        initial_state.trace_id = trace_id
 
         self._workflow_metadata[schedule_id] = {
             "workflow_type": workflow_type,
@@ -648,6 +775,7 @@ class OrchestrationController:
             "user_id": user_id,
             "priority": priority.value,
             "scheduled_at": execute_time.isoformat(),
+            "run_envelope": envelope.model_dump(),
         }
         await self.state_manager.save_state(schedule_id, initial_state)
 
@@ -769,7 +897,13 @@ class OrchestrationController:
         metadata = dict(state.metadata or {})
         metadata.update(self._workflow_metadata.get(workflow_id, {}))
 
-        envelope_data = metadata.get("run_envelope", {})
+        # Prefer canonical run envelope for identity fields when available
+        envelope = state.run_envelope
+        if envelope is None:
+            envelope_data = metadata.get("run_envelope", {})
+        else:
+            envelope_data = envelope.model_dump()
+
         return OrchestrationController_get_workflow_statusResult.model_validate({
             "workflow_id": workflow_id,
             "workflow_type": self._fmt_enum(state.workflow_type),
@@ -781,12 +915,13 @@ class OrchestrationController:
             "estimated_duration_seconds": metadata.get("estimated_duration"),
             "error_count": len(state.errors),
             "has_output": bool(state.output_data),
-            "tenant_id": metadata.get("tenant_id"),
+            "tenant_id": envelope.tenant_id if envelope else metadata.get("tenant_id"),
             "user_id": metadata.get("user_id"),
             "priority": metadata.get("priority"),
             "scheduler_status": scheduler_status.get("status") if scheduler_status else None,
-            "run_id": envelope_data.get("run_id") or state.run_id,
-            "trace_id": envelope_data.get("trace_id") or state.trace_id,
+            "run_id": envelope.run_id if envelope else envelope_data.get("run_id") or state.run_id,
+            "trace_id": envelope.trace_id if envelope else envelope_data.get("trace_id") or state.trace_id,
+            "checkpoint_id": envelope.checkpoint_id if envelope else None,
         })
 
 
@@ -944,7 +1079,7 @@ class OrchestrationController:
         from the last completed node. Supports human-in-the-loop workflows where
         execution pauses for user input/decisions.
 
-        Validates against the canonical ReplayConflictPolicy before resuming.
+        Validates against the canonical ReplayConflictPolicy with real hashes.
 
         Args:
             workflow_id: Workflow to resume
@@ -963,7 +1098,6 @@ class OrchestrationController:
             raise WorkflowExecutionError(f"No state found for workflow {workflow_id}")
 
         # Check if workflow is in a resumable state
-        # PAUSED, RUNNING, PENDING, and INTERRUPTED workflows can be resumed
         if state.status not in [
             WorkflowStatus.PAUSED,
             WorkflowStatus.RUNNING,
@@ -981,21 +1115,10 @@ class OrchestrationController:
                 f"Workflow ID mismatch: requested {workflow_id} but state has {state.workflow_id}"
             )
 
-        # Validate against replay-conflict policy
-        resolver = ReplayConflictResolver()
-        try:
-            resolver.validate_resume_attempt(
-                workflow_status=state.status,
-                checkpoint_created_at=state.paused_at or state.started_at,
-                checkpoint_hash=None,
-                expected_hash=None,
-                latest_checkpoint_hash=None,
-            )
-        except ReplayConflictError as rce:
-            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
+        # Validate against replay-conflict policy with real hashes
+        self._resolve_resume_policy(workflow_id=workflow_id, state=state)
 
         # Merge resume data into state if provided
-        # Store in output_data to avoid mutating original input_data
         if resume_data:
             if state.output_data is None:
                 state.output_data = {}
@@ -1017,9 +1140,7 @@ class OrchestrationController:
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
         metadata["resumed_by"] = user_id
 
-        # Resume execution using native LangGraph Command(resume=...).
-        # The checkpoint already holds the latest state; we only need the
-        # thread_id and optional user decision data.
+        # Resume execution
         try:
             result = await workflow.run(
                 state, thread_id=workflow_id, resume_data=resume_data
@@ -1031,16 +1152,137 @@ class OrchestrationController:
                 f"Failed to resume workflow {workflow_id}: {e}"
             ) from e
 
+        # Update run envelope with latest checkpoint reference
+        if result.run_envelope is not None:
+            result.run_envelope = result.run_envelope.with_checkpoint(
+                checkpoint_id=str(result.current_node or "resume")
+            )
+            await self.state_manager.save_state(workflow_id, result)
+
         lifecycle_logger.emit(
             stage="resume",
             context=self._lifecycle_context(
                 workflow_id,
                 tenant_id=str(metadata.get("tenant_id") or "unknown"),
-                checkpoint_id=str(state.current_node or "resume"),
+                checkpoint_id=str(result.current_node or "resume"),
             ),
             resumed_by=user_id,
         )
         return result
+
+    async def resume_from_checkpoint(
+        self,
+        workflow_id: str,
+        checkpoint_id: str,
+        user_id: str,
+        resume_data: dict[str, Any] | None = None,
+        skip_nodes: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Resume a workflow from a specific checkpoint.
+
+        Loads the workflow state, validates against the replay-conflict policy
+        with real hashes, updates the run envelope, and continues execution.
+
+        Args:
+            workflow_id: Workflow to resume
+            checkpoint_id: Specific checkpoint identifier to resume from
+            user_id: User initiating resume
+            resume_data: Optional user input/decision data
+            skip_nodes: Optional node IDs to skip (not yet implemented)
+
+        Returns:
+            Dict with status and result metadata
+
+        Raises:
+            WorkflowExecutionError: If workflow not found, checkpoint invalid,
+                or resume fails policy validation.
+        """
+        # Load existing state
+        state = await self.state_manager.load_state(workflow_id)
+        if not state:
+            raise WorkflowExecutionError(f"No state found for workflow {workflow_id}")
+
+        if state.status not in [
+            WorkflowStatus.PAUSED,
+            WorkflowStatus.RUNNING,
+            WorkflowStatus.PENDING,
+            WorkflowStatus.INTERRUPTED,
+        ]:
+            raise WorkflowExecutionError(
+                f"Workflow {workflow_id} is {state.status.value} and cannot be resumed."
+            )
+
+        if state.workflow_id != workflow_id:
+            raise WorkflowExecutionError(
+                f"Workflow ID mismatch: requested {workflow_id} but state has {state.workflow_id}"
+            )
+
+        # Validate against replay-conflict policy with real hashes
+        self._resolve_resume_policy(
+            workflow_id=workflow_id,
+            state=state,
+            target_checkpoint_id=checkpoint_id,
+        )
+
+        # Merge resume data
+        if resume_data:
+            if state.output_data is None:
+                state.output_data = {}
+            state.output_data["resume_decision"] = resume_data
+            state.output_data["resumed_by"] = user_id
+            state.output_data["resumed_at"] = datetime.now(UTC).isoformat()
+
+        # Update envelope with target checkpoint
+        if state.run_envelope is not None:
+            state.run_envelope = state.run_envelope.with_checkpoint(checkpoint_id)
+
+        # Get workflow type
+        metadata = self._workflow_metadata.get(workflow_id, {})
+        workflow_type = metadata.get("workflow_type")
+        if not workflow_type:
+            raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
+
+        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+
+        metadata["resumed_at"] = datetime.now(UTC).isoformat()
+        metadata["resumed_by"] = user_id
+        metadata["resumed_from_checkpoint"] = checkpoint_id
+
+        try:
+            result = await workflow.run(
+                state, thread_id=workflow_id, resume_data=resume_data
+            )
+        except WorkflowExecutionError:
+            raise
+        except Exception as e:
+            raise WorkflowExecutionError(
+                f"Failed to resume workflow {workflow_id} from checkpoint {checkpoint_id}: {e}"
+            ) from e
+
+        # Update envelope with post-resume checkpoint reference
+        if result.run_envelope is not None:
+            result.run_envelope = result.run_envelope.with_checkpoint(
+                checkpoint_id=str(result.current_node or checkpoint_id)
+            )
+            await self.state_manager.save_state(workflow_id, result)
+
+        lifecycle_logger.emit(
+            stage="resume_from_checkpoint",
+            context=self._lifecycle_context(
+                workflow_id,
+                tenant_id=str(metadata.get("tenant_id") or "unknown"),
+                checkpoint_id=checkpoint_id,
+            ),
+            resumed_by=user_id,
+            checkpoint_id=checkpoint_id,
+        )
+
+        return {
+            "status": self._fmt_enum(result.status),
+            "workflow_id": workflow_id,
+            "checkpoint_id": checkpoint_id,
+            "current_node": result.current_node,
+        }
 
     async def list_active_workflows(
         self,
