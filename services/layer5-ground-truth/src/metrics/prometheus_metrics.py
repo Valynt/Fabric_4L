@@ -215,6 +215,11 @@ class PrometheusMetrics:
             "Total DB pool checkout timeouts",
             registry=self.config.registry,
         )
+        self._metrics["audit_write_failures_total"] = Counter(
+            f"{prefix}audit_write_failures_total",
+            "Total failed audit/event write attempts",
+            registry=self.config.registry,
+        )
 
         # Build info
         self._metrics["build_info"] = Info(
@@ -333,6 +338,10 @@ class PrometheusMetrics:
         if self.config.enabled:
             self._metrics["privileged_db_session_activations_total"].labels(mode=mode).inc()
 
+    def increment_audit_write_failures(self) -> None:
+        if self.config.enabled:
+            self._metrics["audit_write_failures_total"].inc()
+
     def get_metrics(self) -> str:
         """Get Prometheus metrics output."""
         if not self.config.enabled:
@@ -412,3 +421,4 @@ def initialize_metrics(config: MetricsConfig | None = None) -> PrometheusMetrics
     _metrics = PrometheusMetrics(config)
     logger.info("Layer 5 Prometheus metrics initialized")
     return _metrics
+
