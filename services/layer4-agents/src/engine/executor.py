@@ -39,6 +39,8 @@ from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
 from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver
+from ..harness.models import GateStatus, GateType, HumanGate
+from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
 from ..tools.registry import ToolRegistry
 from ..workflows import WORKFLOW_TYPES, create_workflow
@@ -404,6 +406,26 @@ class OrchestrationController:
                 "tenant_id is required: workflow start rejected"
             )
 
+        action_class = input_data.get("action_class")
+        gate_data = input_data.get("approval_gate")
+        gate: HumanGate | None = None
+        if gate_data is not None:
+            gate = HumanGate(
+                id=str(gate_data["id"]),
+                run_id=str(gate_data.get("run_id") or ""),
+                tenant_id=tenant_id,
+                gate_type=GateType(gate_data["gate_type"]),
+                status=GateStatus(gate_data.get("status", GateStatus.APPROVED.value)),
+            )
+        try:
+            approval_evidence = enforce_action_approval(
+                run_id=workflow_id or "pending_workflow_id",
+                action_class=action_class,
+                gate=gate,
+            )
+        except (ValueError, PolicyViolationError) as exc:
+            raise WorkflowExecutionError(str(exc)) from exc
+
         if self.checkpoint_saver is None:
             import os
 
@@ -452,6 +474,8 @@ class OrchestrationController:
             workflow_type=workflow_type,
         )
         initial_state.run_envelope = envelope
+        if approval_evidence is not None:
+            initial_state.metadata["approval_decision"] = approval_evidence
 
         # Store metadata with timeout tracking
         from ..config.settings import settings
@@ -463,7 +487,12 @@ class OrchestrationController:
             "started_at": datetime.now(UTC).isoformat(),
             "timeout_seconds": settings.workflow_timeout_seconds,  # P1-25
             "run_envelope": envelope.model_dump(),
+            "approval_decision": approval_evidence,
         }
+        if approval_evidence:
+            envelope_data = envelope.model_dump()
+            envelope_data["approval_decision"] = approval_evidence
+            self._workflow_metadata[workflow_id]["run_envelope"] = envelope_data
 
         # Schedule workflow execution (Task 2.1: Capture tenant context)
         lifecycle_logger.emit(

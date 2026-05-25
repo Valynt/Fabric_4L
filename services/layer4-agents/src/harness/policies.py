@@ -12,6 +12,7 @@ Rules:
 from __future__ import annotations
 
 from .models import (
+    ActionClass,
     ClaimValidationResult,
     GateStatus,
     HarnessRun,
@@ -22,6 +23,7 @@ from .models import (
     ValidationState,
     ValidationSummary,
 )
+from ..policies import approval_actions
 
 
 class ApprovalRequiredError(PermissionError):
@@ -40,6 +42,44 @@ class PolicyViolationError(ValueError):
     """Raised when a policy is violated."""
 
     pass
+
+
+def enforce_action_approval(
+    *,
+    run_id: str,
+    action_class: ActionClass | str | None,
+    gate: HumanGate | None,
+) -> dict[str, str] | None:
+    """Resolve and enforce action-level approval policy.
+
+    Returns evidence payload when a policy applies; otherwise None.
+    Fails closed when approval is required and a valid approved gate is missing.
+    """
+    policy = approval_actions.get_policy(action_class)
+    if policy is None:
+        return None
+    if gate is None or gate.status != GateStatus.APPROVED:
+        raise approval_actions.ApprovalRequiredError(
+            action_class=policy.action_class,
+            gate_type=policy.required_gate_type,
+            run_id=run_id,
+        )
+    if gate.gate_type != policy.required_gate_type:
+        raise approval_actions.ApprovalRequiredError(
+            action_class=policy.action_class,
+            gate_type=policy.required_gate_type,
+            run_id=run_id,
+            message=(
+                f"Approval gate type mismatch for {policy.action_class.value}: "
+                f"expected={policy.required_gate_type.value}, got={gate.gate_type.value}, run={run_id}"
+            ),
+        )
+    return {
+        "run_id": run_id,
+        "gate_id": gate.id,
+        "gate_type": gate.gate_type.value,
+        "action_class": policy.action_class.value,
+    }
 
 
 def requires_approval(tool: ToolContract) -> bool:

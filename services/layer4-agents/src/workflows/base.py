@@ -428,6 +428,7 @@ class BaseWorkflow(ABC):
         run_id = getattr(initial_state, "run_id", workflow_id)
         trace_id = getattr(initial_state, "trace_id", workflow_id)
         tenant_id = getattr(initial_state, "tenant_id", "unknown")
+        approval_decision = initial_state.metadata.get("approval_decision")
 
         # Build input: Command for resume, state dict for fresh run
         if resume_data is not None:
@@ -452,6 +453,8 @@ class BaseWorkflow(ABC):
                 thread_id=thread_id,
                 recursion_limit=recursion_limit,
             )
+            if approval_decision is not None:
+                initial_state.metadata["approval_decision"] = approval_decision
 
         try:
             result = await compiled.ainvoke(input_val, config=config, **kwargs)
@@ -468,6 +471,8 @@ class BaseWorkflow(ABC):
             # Ensure run_envelope is preserved if it was set on initial_state
             if initial_state.run_envelope is not None and final_state.run_envelope is None:
                 final_state.run_envelope = initial_state.run_envelope
+            if approval_decision is not None:
+                final_state.metadata["approval_decision"] = approval_decision
             return final_state
         except NodeInterrupt:
             logger.info(f"Workflow interrupted by NodeInterrupt: {workflow_id}")
