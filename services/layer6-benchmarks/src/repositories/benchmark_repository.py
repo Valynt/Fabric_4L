@@ -44,6 +44,7 @@ class BenchmarkRepository:
                 d.version = $version,
                 d.data_source = $data_source,
                 d.is_public = $is_public,
+                d.ownership_mode = $ownership_mode,
                 d.created_at = $created_at,
                 d.updated_at = $updated_at
             WITH d
@@ -79,6 +80,7 @@ class BenchmarkRepository:
             version=dataset.version,
             data_source=dataset.data_source,
             is_public=dataset.is_public,
+            ownership_mode=dataset.ownership_mode,
             created_at=dataset.created_at.isoformat() if dataset.created_at else None,
             updated_at=dataset.updated_at.isoformat() if dataset.updated_at else None,
             metrics=[_metric_to_dict(m) for m in dataset.metrics.values()],
@@ -95,7 +97,8 @@ class BenchmarkRepository:
     async def _tx_get_dataset(tx, dataset_id: str, tenant_id: str) -> BenchmarkDataset | None:
         records = await tx.run(
             """
-            MATCH (d:BenchmarkDataset {dataset_id: $dataset_id, tenant_id: $tenant_id})
+            MATCH (d:BenchmarkDataset {dataset_id: $dataset_id})
+            WHERE d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system'
             OPTIONAL MATCH (d)-[:HAS_METRIC]->(m:BenchmarkMetric)
             RETURN d, collect(m) AS metrics
             """,
@@ -127,7 +130,7 @@ class BenchmarkRepository:
             OPTIONAL MATCH (d)-[:HAS_METRIC]->(m:BenchmarkMetric)
             RETURN d, collect(m) AS metrics
         """
-        conditions = ["d.tenant_id = $tenant_id"]
+        conditions = ["(d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system')"]
         if industry:
             conditions.append("d.industry = $industry")
         if segment:
@@ -196,6 +199,7 @@ def _node_to_dataset(node: Any, metric_nodes: list[Any]) -> BenchmarkDataset:
         data_source=node.get("data_source"),
         is_public=node.get("is_public", False),
         tenant_id=node.get("tenant_id", "system"),
+        ownership_mode=node.get("ownership_mode", "tenant"),
     )
     if node.get("created_at"):
         dataset.created_at = datetime.fromisoformat(node["created_at"])

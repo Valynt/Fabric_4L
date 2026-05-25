@@ -10,6 +10,7 @@ from ..schemas import (
     ComparisonResponse,
     DatasetDetail,
     DatasetSummary,
+    DatasetUpsertPayload,
     ValidationRequestPayload,
     ValidationResponse,
 )
@@ -60,3 +61,23 @@ async def list_industries(
 ):
     from .. import main as handlers
     return await handlers.list_industries(ctx=ctx)
+
+
+@router.post("/datasets")
+async def upsert_dataset(
+    payload: DatasetUpsertPayload,
+    ctx=Depends(get_request_context),
+):
+    from .. import main as handlers
+    return await handlers.upsert_dataset(payload, ctx=ctx)
+
+
+@router.put("/datasets/{dataset_id}")
+async def update_dataset(
+    dataset_id: str,
+    payload: DatasetUpsertPayload,
+    ctx=Depends(get_request_context),
+):
+    from .. import main as handlers
+    enforced_payload = payload.model_copy(update={"dataset_id": dataset_id})
+    return await handlers.upsert_dataset(enforced_payload, ctx=ctx)
