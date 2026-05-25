@@ -6,7 +6,7 @@ Storage model aligned with Neo4j + provenance tracking.
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from decimal import Decimal
-from typing import Any, Dict, Optional
+from typing import Any, Dict, Literal, Optional
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -109,6 +109,7 @@ class BenchmarkDataset:
     
     # Isolation
     tenant_id: str = "system"
+    ownership_mode: Literal["tenant", "global_system"] = "tenant"
 
     def get_metric(self, name: str) -> Optional[BenchmarkMetric]:
         """Get metric by name."""
