@@ -94,6 +94,18 @@ const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+// ── Workflow Wizard (legacy /workflow/* routes) ──
+const WorkflowProspectSetup = lazy(() => import("@/workflow/pages/ProspectSetup"));
+const WorkflowIntelligence = lazy(() => import("@/workflow/pages/Intelligence"));
+const WorkflowAIModel = lazy(() => import("@/workflow/pages/AIModel"));
+const WorkflowDriverTree = lazy(() => import("@/workflow/pages/DriverTree"));
+const WorkflowEvidence = lazy(() => import("@/workflow/pages/Evidence"));
+const WorkflowCalculator = lazy(() => import("@/workflow/pages/Calculator"));
+const WorkflowValueCase = lazy(() => import("@/workflow/pages/ValueCase"));
+
+// ── Value Pilot (legacy /value-pilot/* routes) ──
+const ValuePilotProspectSetup = lazy(() => import("@/value-pilot/pages/ProspectSetup"));
+
 function RootRedirect() {
   const { isAuthenticated, isLoading } = useAuthContext();
 
@@ -194,6 +206,94 @@ export const router = createBrowserRouter([
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: homePolicy },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // WORKFLOW WIZARD (legacy /workflow/* routes)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/workflow",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowProspectSetup />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/prospect",
+        element: <Navigate to="/workflow" replace />,
+      },
+      {
+        path: "/workflow/intelligence",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowIntelligence />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/ai-model",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowAIModel />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/driver-tree",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowDriverTree />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/evidence",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowEvidence />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/calculator",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowCalculator />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/value-case",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowValueCase />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // VALUE PILOT (legacy /value-pilot/* routes)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/value-pilot",
+        element: (
+          <UnifiedRouteGuard>
+            <ValuePilotProspectSetup />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/value-pilot/prospect",
+        element: <Navigate to="/value-pilot" replace />,
       },
 
       // ═══════════════════════════════════════════════════════════════

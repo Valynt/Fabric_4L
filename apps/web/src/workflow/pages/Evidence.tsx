@@ -37,7 +37,7 @@ export default function Evidence() {
       })));
     }
     setCurrentStep(STEPS.CALCULATOR);
-    navigateTo('workflow-calculator');
+    navigateTo('/workflow/calculator');
   };
 
   const stats = useMemo(() => {

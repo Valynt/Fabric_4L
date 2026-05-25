@@ -36,7 +36,7 @@ export default function Intelligence() {
       })));
     }
     setCurrentStep(STEPS.AI_MODEL);
-    navigateTo('workflow-ai-model');
+    navigateTo('/workflow/ai-model');
   };
 
   return (

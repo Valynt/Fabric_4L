@@ -65,7 +65,7 @@ export default function AIModel() {
 
   const handleContinue = () => {
     setCurrentStep(STEPS.DRIVER_TREE);
-    navigateTo('workflow-driver-tree');
+    navigateTo('/workflow/driver-tree');
   };
 
   return (
