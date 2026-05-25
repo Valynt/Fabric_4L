@@ -18,8 +18,8 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime, timedelta
 
-from harness.models import ClaimValidationResult, ValidationState
-from harness.validation_hooks import ClaimValidationRequest, ClaimValidator
+from .models import ClaimValidationResult, ValidationState
+from .validation_hooks import ClaimValidationRequest, ClaimValidator
 
 logger = logging.getLogger(__name__)
 

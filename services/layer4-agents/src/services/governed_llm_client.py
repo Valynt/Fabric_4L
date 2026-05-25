@@ -26,12 +26,12 @@ from typing import TYPE_CHECKING, Any
 
 import yaml
 
-from services.llm_output_parser import parse_llm_json
+from .llm_output_parser import parse_llm_json
 
 if TYPE_CHECKING:
     from harness.models import HarnessRun
     from harness.telemetry import TelemetryEmitter
-    from services.llm_provider import LLMProvider
+    from .llm_provider import LLMProvider
 
 logger = logging.getLogger(__name__)
 

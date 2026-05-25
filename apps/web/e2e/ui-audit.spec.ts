@@ -430,7 +430,7 @@ test.describe('UI Audit — Screen by Screen', () => {
     });
 
     test('Prospect Setup', async ({ page }) => {
-      await page.goto('/workflow/prospect');
+      await page.goto('/workflow');
       await waitForStable(page);
       await screenshot(page, '43-workflow-prospect');
     });

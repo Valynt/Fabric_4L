@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from harness.models import HarnessCheckpoint, HarnessState, ToolCallRef
+from .models import HarnessCheckpoint, HarnessState, ToolCallRef
 
 
 class CheckpointError(ValueError):

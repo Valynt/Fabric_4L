@@ -18,10 +18,10 @@ from typing import Any
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from harness.checkpoints import CheckpointError
-from harness.db_models import ClaimValidationResultRow
-from harness.human_gates import GateDecisionError, GateExpiredError
-from harness.models import (
+from .checkpoints import CheckpointError
+from .db_models import ClaimValidationResultRow
+from .human_gates import GateDecisionError, GateExpiredError
+from .models import (
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -38,14 +38,14 @@ from harness.models import (
     ToolRiskLevel,
     ValidationState,
 )
-from harness.repositories import (
+from .repositories import (
     CheckpointRepository,
     HarnessRunRepository,
     HumanGateRepository,
     ToolContractRepository,
     TraceEventRepository,
 )
-from harness.telemetry import EventHandler
+from .telemetry import EventHandler
 
 logger = logging.getLogger(__name__)
 

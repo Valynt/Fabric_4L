@@ -108,7 +108,7 @@ export default function DriverTree() {
   const handleContinue = () => {
     setSelectedTreeId(tree.id);
     setCurrentStep(STEPS.EVIDENCE);
-    navigateTo('workflow-evidence');
+    navigateTo('/workflow/evidence');
   };
 
   return (

@@ -14,7 +14,7 @@ export default function Calculator() {
   const handleSaved = useCallback((valueCase: { case_id: string }) => {
     setGeneratedCaseId(valueCase.case_id);
     setCurrentStep(STEPS.VALUE_CASE);
-    navigateTo('workflow-value-case');
+    navigateTo('/workflow/value-case');
   }, [navigateTo, setCurrentStep, setGeneratedCaseId]);
 
   return (

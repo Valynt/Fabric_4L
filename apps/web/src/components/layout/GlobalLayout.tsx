@@ -8,6 +8,7 @@ import { AppHeader } from "./AppHeader";
 import { AgentChat } from "./AgentChat";
 import { AgentSidePanel } from "./AgentSidePanel";
 import { MobileNavigation } from "./MobileNavigation";
+import { WorkflowStepIndicator } from "@/workflow/components/WorkflowStepIndicator";
 import { useUserTierStore } from "@/stores/userTierStore";
 import type { AgentChatMode } from "@/types/layout";
 import type { UserTier } from "@/navigation/navigationService";
@@ -131,6 +132,7 @@ export function GlobalLayout() {
         />
 
         <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-auto outline-none">
+          <WorkflowStepIndicator />
           <WorkspaceLayoutWrapper>
             <Outlet />
           </WorkspaceLayoutWrapper>

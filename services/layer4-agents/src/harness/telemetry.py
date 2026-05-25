@@ -12,7 +12,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from typing import Any
 
-from harness.models import (
+from .models import (
     ClaimValidationResult,
     HarnessCheckpoint,
     HarnessRun,

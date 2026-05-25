@@ -34,7 +34,7 @@ journeyTest.describe('Persona: Sales Rep', () => {
   journeyTest('PERSONA-SALES-001: sales rep creates account and starts value case', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/workflow/prospect',
+      '/workflow',
       [/start.*value case|new.*case|company|domain/i],
       'prospect intake form',
     );

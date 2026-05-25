@@ -7,29 +7,15 @@
  * notice and a link to the legacy /login route.
  */
 import { SignIn } from "@clerk/react";
-import { Link } from "react-router-dom";
 
+import { ClerkDisabledNotice } from "@/auth/ClerkDisabledNotice";
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function ClerkSignInPage() {
   const urls = getClerkUrls();
 
   if (!isClerkAuthEnabled()) {
-    return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="text-xl font-semibold">Clerk sign-in is disabled</h1>
-        <p className="text-sm text-muted-foreground">
-          This deployment is using the legacy authentication provider. Use the
-          legacy login page instead.
-        </p>
-        <Link
-          to="/login"
-          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Go to legacy login
-        </Link>
-      </div>
-    );
+    return <ClerkDisabledNotice action="sign-in" legacyRoute="/login" />;
   }
 
   return (

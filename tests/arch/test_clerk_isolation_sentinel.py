@@ -18,6 +18,8 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Source directories whose Python files must not reference Clerk.
+# Includes services (L1-L6) and shared packages because shared code
+# transitively reaches every layer.
 LAYER_SOURCE_DIRS: tuple[Path, ...] = (
     REPO_ROOT / "services" / "layer1-ingestion" / "src",
     REPO_ROOT / "services" / "layer2-extraction" / "src",
@@ -26,6 +28,7 @@ LAYER_SOURCE_DIRS: tuple[Path, ...] = (
     REPO_ROOT / "services" / "layer4-agents" / "src",
     REPO_ROOT / "services" / "layer5-ground-truth" / "src",
     REPO_ROOT / "services" / "layer6-benchmarks" / "src",
+    REPO_ROOT / "packages" / "shared" / "src",
 )
 
 # Patterns that indicate Clerk leakage.
@@ -44,7 +47,11 @@ FORBIDDEN_PATTERNS: tuple[re.Pattern[str], ...] = (
 
 EXEMPT_FILE_NAMES: frozenset[str] = frozenset(
     {
-        # No exemptions in Phase 1; downstream layers are pristine of Clerk.
+        # DEBT: packages/shared/src/value_fabric/shared/identity/jwt.py
+        # reads CLERK_JWT_AUDIENCE / CLERK_JWT_ISSUER / CLERK_JWKS_URL as
+        # OIDC fallbacks. This should be refactored so callers pass OIDC
+        # config explicitly instead of the shared module reading Clerk env.
+        "jwt.py",
     }
 )
 

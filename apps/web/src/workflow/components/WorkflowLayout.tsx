@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useLocation, Link } from 'react-router-dom';
+import { useLocation, Link, useParams } from 'react-router-dom';
 import { Radar, Building2, BrainCircuit, GitFork, Database, Calculator, FileText, ChevronRight, Sparkles, LucideIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useWorkflowStore } from '../store/workflowStore';
@@ -17,9 +17,29 @@ function getIcon(name: string): LucideIcon {
   return (iconMap as Record<string, LucideIcon>)[name] || Sparkles;
 }
 
+/**
+ * Resolve a step's navigation path.
+ * Uses canonical path when tenant + account context is available,
+ * otherwise falls back to the legacy workflow path.
+ */
+function resolveStepPath(
+  step: typeof WORKFLOW_STEPS[number],
+  tenantSlug: string | null,
+  accountId: string | null
+): string {
+  if (!tenantSlug || !accountId) return step.path;
+  return step.canonicalPath
+    .replace(':tenantSlug', tenantSlug)
+    .replace(':accountId', accountId);
+}
+
 export function WorkflowLayout({ children }: { children: React.ReactNode }) {
   const location = useLocation().pathname;
+  const { tenantSlug: urlTenantSlug } = useParams();
   const { sessionId, initSession, prospect, setWorkflowContext } = useWorkflowStore();
+
+  const tenantSlug = urlTenantSlug ?? null;
+  const accountId = prospect?.companyId ?? null;
 
   React.useEffect(() => {
     if (!sessionId) initSession();
@@ -60,7 +80,7 @@ export function WorkflowLayout({ children }: { children: React.ReactNode }) {
             <nav aria-label="Workflow steps" className="hidden md:flex items-center gap-1">
               {WORKFLOW_STEPS.map((step, idx) => (
                 <React.Fragment key={step.path}>
-                  <Link to={step.path}>
+                  <Link to={resolveStepPath(step, tenantSlug, accountId)}>
                     <div className={cn(
                       'flex items-center gap-2 px-2 py-1 rounded-lg cursor-pointer transition-colors',
                       idx === currentStepIndex ? 'bg-primary/10' : 'hover:bg-muted'
@@ -88,8 +108,8 @@ export function WorkflowLayout({ children }: { children: React.ReactNode }) {
             <AlertDescription>
               This step requires a selected prospect account. Return to Prospect Setup to restart, or go to Accounts and pick an account.
               <div className="mt-3 flex gap-3 text-sm">
-                <Link className="text-primary underline" to="/workflow/prospect">Go to Prospect Setup</Link>
-                <Link className="text-primary underline" to="/accounts">Open Accounts</Link>
+                <Link className="text-primary underline" to="/workflow">Go to Prospect Setup</Link>
+                <Link className="text-primary underline" to="/t/default/accounts">Open Accounts</Link>
               </div>
             </AlertDescription>
           </Alert>

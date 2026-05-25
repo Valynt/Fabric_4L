@@ -29,7 +29,7 @@ const ALL_ROUTES = [
   { path: '/calculator', tier: 'standard' as const, scoped: true },
   { path: '/value-case', tier: 'standard' as const, scoped: true },
   { path: '/realization', tier: 'standard' as const, scoped: true },
-  { path: '/workflow/prospect', tier: 'standard' as const },
+  { path: '/workflow', tier: 'standard' as const },
   { path: '/context/packs', tier: 'advanced' as const },
   { path: '/context/ontology/graph', tier: 'advanced' as const },
   { path: '/graph-explorer', tier: 'advanced' as const },
@@ -137,7 +137,7 @@ test.describe('Full UI Debug @debug', () => {
 
     console.log('\n========== DEBUG REPORT ==========\n' + JSON.stringify(summary, null, 2));
 
-    for (const c of ['/home', '/accounts', '/login', '/workflow/prospect']) {
+    for (const c of ['/home', '/accounts', '/login', '/workflow']) {
       const r = results.find(x => x.path === c);
       expect(r?.status, `Critical route ${c} failed with status ${r?.status}`).toMatch(/ok|redirect/);
     }

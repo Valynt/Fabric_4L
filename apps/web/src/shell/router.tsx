@@ -1,13 +1,16 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
+import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -47,6 +50,10 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
+const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
+const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
+const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
+const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
 const Accounts = lazy(() => import("@/pages/Accounts"));
 const TasksPage = lazy(() => import("@/pages/TasksPage"));
@@ -94,8 +101,25 @@ const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+// ── Workflow Wizard (legacy /workflow/* routes) ──
+const WorkflowProspectSetup = lazy(() => import("@/workflow/pages/ProspectSetup"));
+const WorkflowIntelligence = lazy(() => import("@/workflow/pages/Intelligence"));
+const WorkflowAIModel = lazy(() => import("@/workflow/pages/AIModel"));
+const WorkflowDriverTree = lazy(() => import("@/workflow/pages/DriverTree"));
+const WorkflowEvidence = lazy(() => import("@/workflow/pages/Evidence"));
+const WorkflowCalculator = lazy(() => import("@/workflow/pages/Calculator"));
+const WorkflowValueCase = lazy(() => import("@/workflow/pages/ValueCase"));
+
+// ── Value Pilot (legacy /value-pilot/* routes) ──
+const ValuePilotProspectSetup = lazy(() => import("@/value-pilot/pages/ProspectSetup"));
+
 function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
+  const clerkEnabled = isClerkAuthEnabled();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
+
+  const isLoading = clerkEnabled ? !clerkLoaded : legacyIsLoading;
+  const isAuthenticated = clerkEnabled ? (clerkLoaded && !!isSignedIn) : legacyIsAuthenticated;
 
   if (isLoading) {
     return (
@@ -108,7 +132,7 @@ function RootRedirect() {
   return isAuthenticated ? (
     <Navigate to="/home" replace />
   ) : (
-    <Navigate to="/login" replace />
+    <Navigate to={clerkEnabled ? "/sign-in" : "/login"} replace />
   );
 }
 
@@ -144,7 +168,39 @@ export const router = createBrowserRouter([
     handle: { accessPolicy: authPolicy },
   },
   {
-    element: <GlobalLayout />,
+    path: "/sign-in",
+    element: <ClerkSignInPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/sign-up",
+    element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/workspaces",
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <SelectOrganizationPage />
+      </RequireClerkAuth>
+    ),
+    handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <OnboardingPage />
+      </RequireClerkAuth>
+    ),
+    handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },
+  },
+  {
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <GlobalLayout />
+      </RequireClerkAuth>
+    ),
     children: [
       {
         path: "/",
@@ -194,6 +250,94 @@ export const router = createBrowserRouter([
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: homePolicy },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // WORKFLOW WIZARD (legacy /workflow/* routes)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/workflow",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowProspectSetup />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/prospect",
+        element: <Navigate to="/workflow" replace />,
+      },
+      {
+        path: "/workflow/intelligence",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowIntelligence />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/ai-model",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowAIModel />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/driver-tree",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowDriverTree />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/evidence",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowEvidence />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/calculator",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowCalculator />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/workflow/value-case",
+        element: (
+          <UnifiedRouteGuard>
+            <WorkflowValueCase />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // VALUE PILOT (legacy /value-pilot/* routes)
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/value-pilot",
+        element: (
+          <UnifiedRouteGuard>
+            <ValuePilotProspectSetup />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: homePolicy },
+      },
+      {
+        path: "/value-pilot/prospect",
+        element: <Navigate to="/value-pilot" replace />,
       },
 
       // ═══════════════════════════════════════════════════════════════

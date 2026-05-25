@@ -19,13 +19,13 @@ from __future__ import annotations
 
 import os
 
-from harness.checkpoints import CheckpointManager
-from harness.human_gates import HumanGateManager
-from harness.registry import HarnessRegistry
-from harness.state_machine import StateMachine
-from harness.telemetry import TelemetryEmitter
-from harness.tool_contracts import ToolContractRegistry
-from harness.validation_hooks import ClaimValidator, ValidationHook
+from .checkpoints import CheckpointManager
+from .human_gates import HumanGateManager
+from .registry import HarnessRegistry
+from .state_machine import StateMachine
+from .telemetry import TelemetryEmitter
+from .tool_contracts import ToolContractRegistry
+from .validation_hooks import ClaimValidator, ValidationHook
 
 
 def make_in_memory_registry(

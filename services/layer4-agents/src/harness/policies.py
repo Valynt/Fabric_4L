@@ -11,7 +11,7 @@ Rules:
 
 from __future__ import annotations
 
-from harness.models import (
+from .models import (
     ClaimValidationResult,
     GateStatus,
     HarnessRun,

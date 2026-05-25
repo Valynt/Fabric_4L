@@ -98,7 +98,7 @@ journeyTest.describe('Operational Resilience Suite', () => {
   });
 
   journeyTest('Step 6 [OPS-RESUME-001]: partially completed workflow can be resumed after reload', async ({ authedPage }) => {
-    await authedPage.goto('/workflow/prospect', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/start a new value case/i, /recent value cases/i, /prompt settings/i], 'prospect workflow before reload');
     await authedPage.reload({ waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/start a new value case/i, /recent value cases/i, /prompt settings/i], 'prospect workflow after reload');
@@ -160,7 +160,7 @@ journeyTest.describe('Operational Resilience Suite', () => {
   });
 
   journeyTest('test_user_can_resume_partially_completed_value_model', async ({ authedPage }) => {
-    await authedPage.goto('/workflow/prospect', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/start a new value case/i, /recent value cases/i, /prompt settings/i], 'workflow before resume');
     await authedPage.reload({ waitUntil: 'domcontentloaded' });
     await expectAnyVisible(authedPage, [/start a new value case/i, /recent value cases/i, /prompt settings/i], 'workflow after resume');

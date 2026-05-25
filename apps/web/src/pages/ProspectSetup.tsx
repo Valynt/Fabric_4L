@@ -1,5 +1,7 @@
 import * as React from "react"
+import { useContext } from "react"
 import { useNavigation } from "@/hooks/useNavigation"
+import { AuthContext } from "@/contexts/AuthContext"
 import { ProspectPromptBuilder } from "@/components/workspace/ProspectPromptBuilder"
 import type {
   ProspectPromptBuilderProps,
@@ -16,23 +18,29 @@ type ProspectSetupPageProps = ProspectPromptBuilderProps & {
 }
 
 type ModeConfig = {
-  workspacePath: (accountId: string) => string
-  fallbackRoute: string
+  workspacePath: (accountId: string, tenantSlug: string) => string
+  fallbackPath: string
 }
 
 const MODE_CONFIG: Record<ProspectSetupMode, ModeConfig> = {
   workflow: {
-    workspacePath: (accountId) => `/accounts/${accountId}/intelligence/signals`,
-    fallbackRoute: "workflow-intelligence",
+    workspacePath: (accountId, tenantSlug) => `/t/${tenantSlug}/accounts/${accountId}/intelligence/signals`,
+    fallbackPath: "/workflow/intelligence",
   },
   "value-pilot": {
-    workspacePath: (accountId) => `/accounts/${accountId}/workspace/action-plan`,
-    fallbackRoute: "value-pilot-intelligence",
+    workspacePath: (accountId, tenantSlug) => `/t/${tenantSlug}/accounts/${accountId}/studio/action-plan`,
+    fallbackPath: "/workflow/intelligence",
   },
+}
+
+function useTenantSlug(): string | null {
+  const ctx = useContext(AuthContext)
+  return ctx?.currentTenantSlug ?? null
 }
 
 export default function ProspectSetupPage({ mode, ...props }: ProspectSetupPageProps) {
   const { navigateTo } = useNavigation()
+  const tenantSlug = useTenantSlug() ?? "default"
   const { setProspect, setCurrentStep } = useWorkflowStore()
   const modeConfig = MODE_CONFIG[mode]
 
@@ -69,8 +77,8 @@ export default function ProspectSetupPage({ mode, ...props }: ProspectSetupPageP
 
   const handleFallbackNavigation = React.useCallback(() => {
     setCurrentStep(STEPS.INTELLIGENCE)
-    navigateTo(modeConfig.fallbackRoute)
-  }, [modeConfig.fallbackRoute, navigateTo, setCurrentStep])
+    navigateTo(modeConfig.fallbackPath)
+  }, [modeConfig.fallbackPath, navigateTo, setCurrentStep])
 
   return (
     <WorkflowLayout>
@@ -80,7 +88,7 @@ export default function ProspectSetupPage({ mode, ...props }: ProspectSetupPageP
         onNavigateToWorkspace={handleNavigateToWorkspace}
         onBeforeSubmit={handleBeforeSubmit}
         onFallbackNavigation={handleFallbackNavigation}
-        getWorkspacePath={modeConfig.workspacePath}
+        getWorkspacePath={(accountId) => modeConfig.workspacePath(accountId, tenantSlug)}
       />
     </WorkflowLayout>
   )

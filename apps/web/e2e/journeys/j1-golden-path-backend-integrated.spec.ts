@@ -47,7 +47,7 @@ journeyTest.describe('@backend Golden Path Backend-Integrated: Account to Approv
   // ── Phase 1: Account Setup ──────────────────────────────────────────────
 
   journeyTest('GP-BI-001: user can create a new account through prospect setup form', async ({ authedPage }) => {
-    await authedPage.goto('/workflow/prospect', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
     await expect(authedPage).toHaveURL(/\/workflow\/prospect(?:[?#].*)?$/);
 
     const companyInput = authedPage.getByLabel(/company name/i);

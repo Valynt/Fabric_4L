@@ -38,7 +38,7 @@ interface AuthContextType {
   devBypass?: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+export const AuthContext = createContext<AuthContextType | undefined>(undefined);
 const log = createFeatureLogger('auth-context');
 
 type AuthState = 'idle' | 'loading' | 'authenticated' | 'error';

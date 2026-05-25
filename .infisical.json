@@ -3,17 +3,35 @@
   "defaultEnvironment": "dev",
   "gitBranchToEnvironmentMapping": null,
   "secretPaths": {
-    "value-fabric": {
-      "dev": "/fabric-4l/value-fabric/dev",
-      "test": "/fabric-4l/value-fabric/test",
-      "staging": "/fabric-4l/value-fabric/staging",
-      "prod": "/fabric-4l/value-fabric/prod"
+    "app": {
+      "dev": "/app",
+      "staging": "/app",
+      "prod": "/app"
     },
-    "frontend": {
-      "dev": "/fabric-4l/frontend/dev",
-      "test": "/fabric-4l/frontend/test",
-      "staging": "/fabric-4l/frontend/staging",
-      "prod": "/fabric-4l/frontend/prod"
+    "auth": {
+      "dev": "/auth",
+      "staging": "/auth",
+      "prod": "/auth"
+    },
+    "database": {
+      "dev": "/database",
+      "staging": "/database",
+      "prod": "/database"
+    },
+    "integrations": {
+      "dev": "/integrations",
+      "staging": "/integrations",
+      "prod": "/integrations"
+    },
+    "llm": {
+      "dev": "/llm",
+      "staging": "/llm",
+      "prod": "/llm"
+    },
+    "storage": {
+      "dev": "/storage",
+      "staging": "/storage",
+      "prod": "/storage"
     }
   }
 }

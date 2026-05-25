@@ -9,9 +9,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from harness.checkpoints import CheckpointManager
-from harness.human_gates import HumanGateManager
-from harness.models import (
+from .checkpoints import CheckpointManager
+from .human_gates import HumanGateManager
+from .models import (
     ClaimValidationResult,
     GateStatus,
     GateType,
@@ -26,12 +26,12 @@ from harness.models import (
     ToolContract,
     ValidationState,
 )
-from harness.state_machine import (
+from .state_machine import (
     StateMachine,
 )
-from harness.telemetry import TelemetryEmitter
-from harness.tool_contracts import ToolContractRegistry
-from harness.validation_hooks import ClaimValidationRequest, ValidationHook
+from .telemetry import TelemetryEmitter
+from .tool_contracts import ToolContractRegistry
+from .validation_hooks import ClaimValidationRequest, ValidationHook
 
 
 class HarnessRegistryError(RuntimeError):

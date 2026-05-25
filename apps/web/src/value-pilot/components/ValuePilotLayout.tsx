@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useParams } from "react-router-dom";
 import {
   Search, Bell, ChevronRight,
   Radar, Building2, BrainCircuit, GitFork, Database, Calculator,
@@ -8,8 +8,27 @@ import {
   PanelLeft, SlidersHorizontal, Cog, Activity
 } from "lucide-react";
 
+/* ─── Canonical path resolution ─── */
+function resolveWorkflowPath(
+  legacyPath: string,
+  tenantSlug: string | null,
+  accountId: string | null
+): string {
+  if (!tenantSlug || !accountId) return legacyPath;
+  const mapping: Record<string, string> = {
+    "/workflow/prospect": `/t/${tenantSlug}/accounts`,
+    "/workflow/intelligence": `/t/${tenantSlug}/accounts/${accountId}/intelligence/signals`,
+    "/workflow/ai-model": `/t/${tenantSlug}/accounts/${accountId}/intelligence/hypotheses`,
+    "/workflow/driver-tree": `/t/${tenantSlug}/accounts/${accountId}/studio/driver-tree`,
+    "/workflow/evidence": `/t/${tenantSlug}/accounts/${accountId}/intelligence/evidence`,
+    "/workflow/calculator": `/t/${tenantSlug}/accounts/${accountId}/studio/calculator`,
+    "/workflow/value-case": `/t/${tenantSlug}/accounts/${accountId}/studio/value-case`,
+  };
+  return mapping[legacyPath] ?? legacyPath;
+}
+
 /* ─── Nav Data ─── */
-const workflowSteps = [
+const WORKFLOW_STEP_DEFS = [
   { path: "/workflow/prospect", label: "Prospect" },
   { path: "/workflow/intelligence", label: "Intelligence" },
   { path: "/workflow/ai-model", label: "AI Model" },
@@ -19,7 +38,7 @@ const workflowSteps = [
   { path: "/workflow/value-case", label: "Value Case" },
 ];
 
-const workflowItems = [
+const WORKFLOW_ITEM_DEFS = [
   { icon: Radar, label: "Prospect Setup", path: "/workflow/prospect" },
   { icon: Building2, label: "Intelligence", path: "/workflow/intelligence" },
   { icon: BrainCircuit, label: "AI Model", path: "/workflow/ai-model" },
@@ -40,7 +59,7 @@ const bottomItems = [
   { icon: Send, label: "Feedback", path: "#" },
 ];
 
-const isWorkflowPath = (path: string) => workflowItems.some((i) => i.path === path);
+const isWorkflowPath = (path: string) => WORKFLOW_ITEM_DEFS.some((i) => i.path === path);
 
 /* ─── Tooltip ─── */
 function Tooltip({ text, children }: { text: string; children: React.ReactNode }) {
@@ -61,8 +80,9 @@ interface ValuePilotLayoutProps {
 
 export default function ValuePilotLayout({ children }: ValuePilotLayoutProps) {
   const currentPath = useLocation().pathname;
+  const { tenantSlug, accountId } = useParams<{ tenantSlug: string; accountId: string }>();
   const inWorkflow = isWorkflowPath(currentPath);
-  const currentStep = workflowSteps.findIndex((s) => s.path === currentPath);
+  const currentStep = WORKFLOW_STEP_DEFS.findIndex((s) => s.path === currentPath);
 
   const [isDark, setIsDark] = React.useState(() => document.documentElement.classList.contains("dark"));
   const [collapsed, setCollapsed] = React.useState(false);
@@ -80,12 +100,13 @@ export default function ValuePilotLayout({ children }: ValuePilotLayoutProps) {
     }
   };
 
-  const NavButton = ({ item, isCollapsed }: { item: typeof workflowItems[0]; isCollapsed: boolean }) => {
-    const isActive = currentPath === item.path;
+  const NavButton = ({ item, isCollapsed }: { item: typeof WORKFLOW_ITEM_DEFS[0]; isCollapsed: boolean }) => {
+    const resolvedPath = resolveWorkflowPath(item.path, tenantSlug ?? null, accountId ?? null);
+    const isActive = currentPath === resolvedPath || currentPath === item.path;
     if (isCollapsed) {
       return (
         <Tooltip text={item.label}>
-          <Link to={item.path}>
+          <Link to={resolvedPath}>
             <div
               className={`w-8 h-8 mx-auto rounded-lg flex items-center justify-center transition-colors cursor-pointer ${
                 isActive ? "bg-sidebar-primary/15 text-sidebar-primary" : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
@@ -98,7 +119,7 @@ export default function ValuePilotLayout({ children }: ValuePilotLayoutProps) {
       );
     }
     return (
-      <Link to={item.path}>
+      <Link to={resolvedPath}>
         <div
           className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors cursor-pointer ${
             isActive ? "bg-sidebar-primary/15 text-sidebar-primary font-semibold" : "text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent"
@@ -168,7 +189,7 @@ export default function ValuePilotLayout({ children }: ValuePilotLayoutProps) {
               <p className="px-3 pb-1.5 text-[10px] font-semibold text-sidebar-foreground/40 uppercase tracking-wider">Workflow</p>
             )}
             <div className="space-y-0.5">
-              {workflowItems.map((item) => (
+              {WORKFLOW_ITEM_DEFS.map((item) => (
                 <NavButton key={item.path} item={item} isCollapsed={collapsed} />
               ))}
             </div>
@@ -310,7 +331,7 @@ export default function ValuePilotLayout({ children }: ValuePilotLayoutProps) {
                   {currentStep >= 0 && (
                     <>
                       <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/40" />
-                      <span className="text-muted-foreground">{workflowSteps[currentStep]?.label}</span>
+                      <span className="text-muted-foreground">{WORKFLOW_STEP_DEFS[currentStep]?.label}</span>
                     </>
                   )}
                 </>

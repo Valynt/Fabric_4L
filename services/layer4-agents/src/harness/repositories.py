@@ -17,14 +17,14 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from harness.db_models import (
+from .db_models import (
     HarnessCheckpointRow,
     HarnessRunRow,
     HarnessTraceEventRow,
     HumanGateRow,
     ToolContractRow,
 )
-from harness.models import (
+from .models import (
     GateStatus,
     GateType,
     HarnessCheckpoint,

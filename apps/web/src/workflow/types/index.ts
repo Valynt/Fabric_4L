@@ -21,17 +21,18 @@ export interface EnrichedEntity {
 
 export interface WorkflowStep {
   path: string;
+  canonicalPath: string;
   label: string;
   description: string;
   icon: string;
 }
 
 export const WORKFLOW_STEPS: WorkflowStep[] = [
-  { path: '/workflow', label: 'Prospect', description: 'Define target account', icon: 'Radar' },
-  { path: '/workflow/intelligence', label: 'Intelligence', description: 'Research and enrich', icon: 'Building2' },
-  { path: '/workflow/ai-model', label: 'AI Model', description: 'Generate hypotheses', icon: 'BrainCircuit' },
-  { path: '/workflow/driver-tree', label: 'Driver Tree', description: 'Build structure', icon: 'GitFork' },
-  { path: '/workflow/evidence', label: 'Evidence', description: 'Match evidence', icon: 'Database' },
-  { path: '/workflow/calculator', label: 'Calculator', description: 'Model scenarios', icon: 'Calculator' },
-  { path: '/workflow/value-case', label: 'Value Case', description: 'Generate case', icon: 'FileText' },
+  { path: '/workflow', canonicalPath: '/t/:tenantSlug/accounts', label: 'Prospect', description: 'Define target account', icon: 'Radar' },
+  { path: '/workflow/intelligence', canonicalPath: '/t/:tenantSlug/accounts/:accountId/intelligence/signals', label: 'Intelligence', description: 'Research and enrich', icon: 'Building2' },
+  { path: '/workflow/ai-model', canonicalPath: '/t/:tenantSlug/accounts/:accountId/intelligence/hypotheses', label: 'AI Model', description: 'Generate hypotheses', icon: 'BrainCircuit' },
+  { path: '/workflow/driver-tree', canonicalPath: '/t/:tenantSlug/accounts/:accountId/studio/driver-tree', label: 'Driver Tree', description: 'Build structure', icon: 'GitFork' },
+  { path: '/workflow/evidence', canonicalPath: '/t/:tenantSlug/accounts/:accountId/intelligence/evidence', label: 'Evidence', description: 'Match evidence', icon: 'Database' },
+  { path: '/workflow/calculator', canonicalPath: '/t/:tenantSlug/accounts/:accountId/studio/calculator', label: 'Calculator', description: 'Model scenarios', icon: 'Calculator' },
+  { path: '/workflow/value-case', canonicalPath: '/t/:tenantSlug/accounts/:accountId/studio/value-case', label: 'Value Case', description: 'Generate case', icon: 'FileText' },
 ];

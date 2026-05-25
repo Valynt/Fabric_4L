@@ -39,6 +39,25 @@ function isItemVisible(itemTier: UserTier, userTier: UserTier): boolean {
   return itemTier === "standard";
 }
 
+function resolveNavPath(path: string, tenantSlug: string | undefined, accountId: string | null): string {
+  let resolvedPath = path;
+  if (tenantSlug) {
+    resolvedPath = resolvedPath.replace(":tenantSlug", tenantSlug);
+  }
+  if (accountId) {
+    resolvedPath = resolvedPath.replace(":accountId", accountId);
+  }
+  // Fallback for unresolved account-scoped paths
+  if (resolvedPath.includes(":accountId")) {
+    resolvedPath = tenantSlug ? `/t/${tenantSlug}/accounts` : "/accounts";
+  }
+  // Fallback for unresolved tenant-only paths
+  if (resolvedPath.includes(":tenantSlug")) {
+    resolvedPath = "/accounts";
+  }
+  return resolvedPath;
+}
+
 export function LeftNavigation({
   collapsed,
   onToggle,
@@ -51,16 +70,10 @@ export function LeftNavigation({
 
   const navItems = NAV_SCHEMA
     .filter((item) => isItemVisible(item.tier, currentTier))
-    .map((item) => {
-      let resolvedPath = item.path;
-      if (tenantSlug) {
-        resolvedPath = resolvedPath.replace(":tenantSlug", tenantSlug);
-      }
-      if (accountId) {
-        resolvedPath = resolvedPath.replace(":accountId", accountId);
-      }
-      return { ...item, path: resolvedPath };
-    });
+    .map((item) => ({
+      ...item,
+      path: resolveNavPath(item.path, tenantSlug, accountId),
+    }));
 
   return (
     <aside
@@ -100,7 +113,7 @@ export function LeftNavigation({
 
           return (
             <NavLink
-              key={item.path}
+              key={item.id}
               to={item.path}
               className={({ isActive }) =>
                 [
