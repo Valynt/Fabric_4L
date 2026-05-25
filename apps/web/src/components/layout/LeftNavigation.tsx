@@ -29,7 +29,8 @@ const NAV_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
   deliverables: FileText,
   "context-engine": Wrench,
   governance: GitBranch,
-  settings: Settings,
+  "personal-settings": Settings,
+  "tenant-settings": Settings,
 };
 
 function isItemVisible(itemTier: UserTier, userTier: UserTier): boolean {

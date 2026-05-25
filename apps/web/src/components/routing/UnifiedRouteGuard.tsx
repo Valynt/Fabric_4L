@@ -6,6 +6,7 @@ import { useAccountAccess } from "@/hooks/useAccountAccess";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
 import { useFeatureFlags } from "@/hooks/useFeatureFlags";
 import { useEntitlements } from "@/hooks/useEntitlements";
+import { useUserTierStore } from "@/stores";
 import { type RouteAccessPolicy } from "@/routes/types";
 import { ErrorBoundary } from "@/components";
 import { createFeatureLogger } from "@/lib/telemetry";
@@ -57,7 +58,17 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     );
   }
 
-  // 2. Tenant membership guard
+  // 2. Tier guard
+  const { canAccessRoute } = useUserTierStore();
+  if (policy.requiredTier && !canAccessRoute(policy.requiredTier)) {
+    log.warn("Tier access denied", {
+      requiredTier: policy.requiredTier,
+      path: location.pathname,
+    });
+    return <Navigate to={policy.fallbackRoute} replace />;
+  }
+
+  // 3. Tenant membership guard
   const tenantSlug = params.tenantSlug;
   const { isMemberOfTenant, isLoading: tenantLoading } =
     useTenantMembership(tenantSlug);

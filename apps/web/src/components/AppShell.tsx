@@ -20,6 +20,7 @@ import { useAuthContext } from "@/contexts/AuthContext";
 import { Search, Bell, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
+import { GlobalSearchDialog } from "./search";
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -54,6 +55,7 @@ const AppShell = memo(function AppShell({
   // Use internal state if external props not provided (backward compatibility)
   const [internalMode, setInternalMode] = useState<UserTier>("standard");
   const [isAdvancedMode, setIsAdvancedMode] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   
   const currentTier = externalCurrentTier || internalMode;
   const effectiveTier = externalEffectiveTier || (isAdvancedMode && internalMode === "standard" ? "advanced" : internalMode);
@@ -85,10 +87,16 @@ const AppShell = memo(function AppShell({
           </div>
         </Link>
         <div className="flex-1 max-w-xs">
-          <div className="flex items-center gap-2 h-7 px-3 bg-muted rounded-full text-[11px] text-muted-foreground border border-border">
+          <button
+            onClick={() => setIsSearchOpen(true)}
+            className="flex items-center gap-2 h-7 px-3 bg-muted rounded-full text-[11px] text-muted-foreground border border-border hover:bg-accent hover:text-accent-foreground transition-colors cursor-pointer w-full"
+          >
             <Search size={11} className="shrink-0"/>
             <span>{t("appShell.searchPlaceholder")}</span>
-          </div>
+            <kbd className="ml-auto text-[10px] bg-background border border-border rounded px-1.5 py-0.5 opacity-60">
+              ⌘K
+            </kbd>
+          </button>
         </div>
         <div className="ml-auto flex items-center gap-3">
           {/* Active mode pill */}
@@ -142,6 +150,14 @@ const AppShell = memo(function AppShell({
           {children}
         </main>
       </div>
+      
+      {/* Global Search Dialog */}
+      <GlobalSearchDialog
+        open={isSearchOpen}
+        onOpenChange={setIsSearchOpen}
+        tenantSlug="acme"
+        accountId={selectedAccountId || undefined}
+      />
     </div>
   );
 }, (prevProps, nextProps) => {

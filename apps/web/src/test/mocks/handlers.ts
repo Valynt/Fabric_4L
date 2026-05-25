@@ -1390,4 +1390,28 @@ export const handlers = [
       total: 0,
     });
   }),
+
+  // ── Global Search ───────────────────────────────────────────────────────────
+
+  http.get('/api/v1/search', ({ request }) => {
+    const url = new URL(request.url);
+    const query = url.searchParams.get('q');
+    
+    if (!query) {
+      return HttpResponse.json({
+        query: '',
+        scope: 'tenant',
+        tenant_id: 'acme',
+        results: {},
+        total_by_type: {},
+        processing_time_ms: 0,
+      });
+    }
+    
+    // Import mock search data
+    const { createMockSearchResponse } = require('./searchMocks');
+    const response = createMockSearchResponse(query);
+    
+    return HttpResponse.json(response);
+  }),
 ];

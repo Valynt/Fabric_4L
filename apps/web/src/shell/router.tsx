@@ -147,6 +147,9 @@ const tenantStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: tru
 const tenantAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const tenantAdminPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, requiredTier: "admin" as const, fallbackRoute: "/home", analyticsRouteId: id });
 const accountStdPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "standard" as const, fallbackRoute: "/home", analyticsRouteId: id });
+// TODO: accountAdvPolicy is reserved for future advanced account-scoped gating.
+// No routes currently use it. When advanced account access is implemented,
+// update affected routes (e.g. studio build, value-model detail) to use this policy.
 const accountAdvPolicy = (id: string) => ({ requiresAuth: true, tenantScoped: true, accountScoped: true, requiredTier: "advanced" as const, fallbackRoute: "/home", analyticsRouteId: id });
 
 export const router = createBrowserRouter([
