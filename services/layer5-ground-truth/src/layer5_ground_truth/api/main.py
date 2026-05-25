@@ -670,6 +670,15 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Model Registry router not available")
 
+    try:
+        from .assumption_governance_routes import (
+            router as assumption_governance_router,
+        )
+
+        app.include_router(assumption_governance_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Assumption Governance router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):

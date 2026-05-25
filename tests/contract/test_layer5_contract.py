@@ -167,3 +167,27 @@ async def test_health_endpoint_exists(client: AsyncClient):
     response = await client.get("/api/v1/health")
     assert response.status_code == 200, \
         f"Health endpoint should return 200, got {response.status_code}"
+
+
+@pytest.mark.asyncio
+async def test_assumption_create_endpoint_exists(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/assumptions",
+        json={"name": "Gross margin assumption", "impact_value": 250000.0},
+    )
+    assert response.status_code != 404
+    assert response.status_code in [201, 400, 401, 403, 422]
+
+
+@pytest.mark.asyncio
+async def test_policy_rule_create_endpoint_exists(client: AsyncClient):
+    response = await client.post(
+        "/api/v1/policy-rules",
+        json={
+            "name": "Revenue reviewer policy",
+            "min_impact_threshold": 100000.0,
+            "required_reviewer_role": "finance_reviewer",
+        },
+    )
+    assert response.status_code != 404
+    assert response.status_code in [201, 400, 401, 403, 422]
