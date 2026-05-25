@@ -9,7 +9,7 @@ Invariants:
 
 from __future__ import annotations
 
-from harness.models import GateStatus, GateType, HarnessTraceEvent, HarnessWorkflowType, HumanGate
+from .models import GateStatus, GateType, HarnessTraceEvent, HarnessWorkflowType, HumanGate
 
 
 def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:

@@ -1,13 +1,16 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import { GlobalLayout } from "@/components/layout/GlobalLayout";
 import { UnifiedRouteGuard } from "@/components/routing/UnifiedRouteGuard";
+import { RequireClerkAuth } from "@/components/routing/RequireClerkAuth";
 import { SettingsLayout } from "@/app/settings/SettingsLayout";
 import CommandCenter from "@/pages/CommandCenter";
 import { IntelligenceWorkspace } from "@/features/intelligence-workspace";
 import StudioShell from "@/features/value-studio/StudioShell";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 // Settings pages — Personal
 const PersonalProfile = lazy(() => import("@/app/settings/pages/PersonalProfile").then(m => ({ default: m.PersonalProfile })));
@@ -47,6 +50,10 @@ const GovernanceAdminControls = lazy(() => import("@/app/settings/pages/Governan
 
 const Login = lazy(() => import("@/pages/Login"));
 const Signup = lazy(() => import("@/pages/Signup"));
+const ClerkSignInPage = lazy(() => import("@/pages/ClerkSignIn"));
+const ClerkSignUpPage = lazy(() => import("@/pages/ClerkSignUp"));
+const SelectOrganizationPage = lazy(() => import("@/pages/SelectOrganization"));
+const OnboardingPage = lazy(() => import("@/pages/Onboarding"));
 const ValueNarrativeHome = lazy(() => import("@/pages/ValueNarrativeHome"));
 const Accounts = lazy(() => import("@/pages/Accounts"));
 const TasksPage = lazy(() => import("@/pages/TasksPage"));
@@ -107,7 +114,12 @@ const WorkflowValueCase = lazy(() => import("@/workflow/pages/ValueCase"));
 const ValuePilotProspectSetup = lazy(() => import("@/value-pilot/pages/ProspectSetup"));
 
 function RootRedirect() {
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
+  const clerkEnabled = isClerkAuthEnabled();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
+
+  const isLoading = clerkEnabled ? !clerkLoaded : legacyIsLoading;
+  const isAuthenticated = clerkEnabled ? (clerkLoaded && !!isSignedIn) : legacyIsAuthenticated;
 
   if (isLoading) {
     return (
@@ -120,7 +132,7 @@ function RootRedirect() {
   return isAuthenticated ? (
     <Navigate to="/home" replace />
   ) : (
-    <Navigate to="/login" replace />
+    <Navigate to={clerkEnabled ? "/sign-in" : "/login"} replace />
   );
 }
 
@@ -156,7 +168,39 @@ export const router = createBrowserRouter([
     handle: { accessPolicy: authPolicy },
   },
   {
-    element: <GlobalLayout />,
+    path: "/sign-in",
+    element: <ClerkSignInPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/sign-up",
+    element: <ClerkSignUpPage />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
+    path: "/workspaces",
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <SelectOrganizationPage />
+      </RequireClerkAuth>
+    ),
+    handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },
+  },
+  {
+    path: "/onboarding",
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <OnboardingPage />
+      </RequireClerkAuth>
+    ),
+    handle: { accessPolicy: { ...authPolicy, requiresAuth: true } },
+  },
+  {
+    element: (
+      <RequireClerkAuth requireOrganization={false}>
+        <GlobalLayout />
+      </RequireClerkAuth>
+    ),
     children: [
       {
         path: "/",

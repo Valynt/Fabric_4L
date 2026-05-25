@@ -1,4 +1,5 @@
 import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
+import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useTenantMembership } from "@/hooks/useTenantMembership";
 import { useAccountAccess } from "@/hooks/useAccountAccess";
@@ -8,6 +9,7 @@ import { useEntitlements } from "@/hooks/useEntitlements";
 import { type RouteAccessPolicy } from "@/routes/types";
 import { ErrorBoundary } from "@/components";
 import { createFeatureLogger } from "@/lib/telemetry";
+import { isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 const log = createFeatureLogger("route-guard");
 
@@ -19,7 +21,16 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   const location = useLocation();
   const params = useParams();
   const matches = useMatches();
-  const { isAuthenticated, isLoading } = useAuthContext();
+  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
+
+  // Phase 2: Clerk integration — when Clerk is the auth provider, derive auth
+  // state from Clerk's useAuth() hook so the guard works for both legacy and
+  // Clerk-driven sessions.
+  const clerkEnabled = isClerkAuthEnabled();
+  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
+  const isAuthenticated = clerkEnabled ? (clerkLoaded && !!isSignedIn) : legacyIsAuthenticated;
+  const isLoading = clerkEnabled ? !clerkLoaded : legacyIsLoading;
+  const loginPath = clerkEnabled ? "/sign-in" : "/login";
 
   // Walk up the match tree to find the most specific access policy
   const policy = matches
@@ -31,19 +42,19 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     return <ErrorBoundary>{children}</ErrorBoundary>;
   }
 
+  if (isLoading) {
+    return <RouteGuardSkeleton />;
+  }
+
   // 1. Authentication guard
   if (policy.requiresAuth && !isAuthenticated) {
     return (
       <Navigate
-        to="/login"
+        to={loginPath}
         state={{ from: location.pathname + location.search }}
         replace
       />
     );
-  }
-
-  if (isLoading) {
-    return <RouteGuardSkeleton />;
   }
 
   // 2. Tenant membership guard

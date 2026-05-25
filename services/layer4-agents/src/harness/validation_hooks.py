@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import abc
 
-from harness.models import (
+from .models import (
     ClaimValidationResult,
     ValidationState,
 )

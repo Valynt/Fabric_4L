@@ -12,7 +12,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from harness.models import (
+from .models import (
     ClaimValidationResult,
     GateStatus,
     GateType,

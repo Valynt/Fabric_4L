@@ -66,6 +66,10 @@ function renderAt(
           element={<div>{SELECT_ORG_LANDING}</div>}
         />
         <Route
+          path="/workspaces"
+          element={<div>{SELECT_ORG_LANDING}</div>}
+        />
+        <Route
           path="/protected"
           element={
             <RequireClerkAuth requireOrganization={options?.requireOrganization}>
@@ -169,7 +173,7 @@ describe("<RequireClerkAuth />", () => {
   // ─────────────────────────────────────────────────────────────────────
   // Clerk mode — signed in, no org
   // ─────────────────────────────────────────────────────────────────────
-  it("clerk mode signed-in without org: redirects to /select-organization", () => {
+  it("clerk mode signed-in without org: redirects to /workspaces", () => {
     setAuthProvider("clerk");
     mockClerkState.isSignedIn = true;
     mockClerkState.organization = null;

@@ -17,6 +17,7 @@
 import { z } from 'zod';
 import { createFeatureLogger } from '@/lib/telemetry';
 import { type UserInfo, UserInfoSchema } from '../schemas/auth';
+import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 
 const log = createFeatureLogger('auth-session');
 
@@ -249,9 +250,10 @@ export class SessionService {
 
   redirectToLogin(): void {
     const loc = this.environment.location;
-    if (!loc || loc.pathname === '/login') return;
+    const loginPath = isClerkAuthEnabled() ? '/sign-in' : '/login';
+    if (!loc || loc.pathname === loginPath) return;
     try {
-      loc.replace('/login'); // navigation-guardrail: ignore - service boundary auth redirect
+      loc.replace(loginPath); // navigation-guardrail: ignore - service boundary auth redirect
     } catch (error) {
       log.warn('Login redirect failed after unauthorized response', {
         route: loc.pathname,

@@ -10,7 +10,7 @@ Invariants:
 
 from __future__ import annotations
 
-from harness.models import ToolContract, ToolRiskLevel, ToolSideEffectClass
+from .models import ToolContract, ToolRiskLevel, ToolSideEffectClass
 
 
 class ToolRegistrationError(ValueError):

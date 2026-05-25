@@ -1823,16 +1823,11 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         
         with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                old_content = (
+                deleted_count = (
                     session.query(RawContent)
                     .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
-                    .all()
+                    .update({"processing_status": "DELETED"}, synchronize_session=False)
                 )
-
-                deleted_count = 0
-                for content in old_content:
-                    content.processing_status = "DELETED"
-                    deleted_count += 1
 
                 session.commit()
                 record.rows_affected = deleted_count
@@ -1865,19 +1860,14 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             try:
                 with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
                     with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                        old_content = (
+                        deleted_count = (
                             session.query(RawContent)
                             .filter(
                                 RawContent.created_at < cutoff_date,
                                 RawContent.processing_status != "DELETED",
                             )
-                            .all()
+                            .update({"processing_status": "DELETED"}, synchronize_session=False)
                         )
-
-                        deleted_count = 0
-                        for content in old_content:
-                            content.processing_status = "DELETED"
-                            deleted_count += 1
 
                         session.commit()
                         record.rows_affected = deleted_count

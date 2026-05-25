@@ -24,14 +24,14 @@ Invariants:
   - Unavailable L5 validation routes to needs_review — never silently approves.
 """
 
-from harness.checkpoints import CheckpointError, CheckpointManager
-from harness.human_gates import (
+from .checkpoints import CheckpointError, CheckpointManager
+from .human_gates import (
     GateDecisionError,
     GateExpiredError,
     GateNotFoundError,
     HumanGateManager,
 )
-from harness.models import (
+from .models import (
     ActionClass,
     ClaimValidationResult,
     GateStatus,
@@ -50,7 +50,7 @@ from harness.models import (
     ToolSideEffectClass,
     ValidationState,
 )
-from harness.policies import (
+from .policies import (
     ApprovalRequiredError,
     PublicationBlockedError,
     can_publish_output,
@@ -58,20 +58,20 @@ from harness.policies import (
     evaluate_transition_policy,
     requires_approval,
 )
-from harness.registry import HarnessRegistry, HarnessRegistryError, RunNotFoundError
-from harness.state_machine import (
+from .registry import HarnessRegistry, HarnessRegistryError, RunNotFoundError
+from .state_machine import (
     StateMachine,
     TerminalStateError,
     TransitionError,
     ValidationRequiredError,
 )
-from harness.telemetry import TelemetryEmitter
-from harness.tool_contracts import (
+from .telemetry import TelemetryEmitter
+from .tool_contracts import (
     ToolContractRegistry,
     ToolNotFoundError,
     ToolRegistrationError,
 )
-from harness.validation_hooks import (
+from .validation_hooks import (
     ClaimValidationRequest,
     ClaimValidator,
     MockValidator,
@@ -94,13 +94,13 @@ def __getattr__(name: str):  # noqa: N807
     _factory = {"make_in_memory_registry", "make_sql_registry", "make_live_l5_registry"}
     _l5 = {"LiveL5Validator"}
     if name in _sql:
-        from harness import sql_stores as _m
+        from . import sql_stores as _m
         return getattr(_m, name)
     if name in _factory:
-        from harness import factory as _m
+        from . import factory as _m
         return getattr(_m, name)
     if name in _l5:
-        from harness import live_l5_validator as _m
+        from . import live_l5_validator as _m
         return getattr(_m, name)
     raise AttributeError(f"module 'harness' has no attribute {name!r}")
 

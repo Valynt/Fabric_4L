@@ -70,8 +70,8 @@ export function getClerkUrls() {
   return {
     signInUrl: (import.meta.env.VITE_CLERK_SIGN_IN_URL ?? "/sign-in").toString(),
     signUpUrl: (import.meta.env.VITE_CLERK_SIGN_UP_URL ?? "/sign-up").toString(),
-    afterSignInUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_IN_URL ?? "/home").toString(),
-    afterSignUpUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL ?? "/home").toString(),
-    selectOrgUrl: (import.meta.env.VITE_CLERK_SELECT_ORG_URL ?? "/select-organization").toString(),
+    afterSignInUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_IN_URL ?? "/workspaces").toString(),
+    afterSignUpUrl: (import.meta.env.VITE_CLERK_AFTER_SIGN_UP_URL ?? "/onboarding").toString(),
+    selectOrgUrl: (import.meta.env.VITE_CLERK_SELECT_ORG_URL ?? "/workspaces").toString(),
   } as const;
 }
