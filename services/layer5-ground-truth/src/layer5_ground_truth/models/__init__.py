@@ -1,5 +1,14 @@
 """Layer 5 Ground Truth — SQLAlchemy models."""
 
+from .assumption_governance import (
+    ApprovalDecision,
+    ApprovalRequest,
+    AssumptionRecord,
+    BenchmarkDataset,
+    FormulaDefinition,
+    LifecycleState,
+    PolicyRule,
+)
 from .model_registry import (
     DeploymentEnvironment,
     DeploymentStatus,
@@ -24,11 +33,17 @@ from .truth_object import (
 )
 
 __all__ = [
+    "ApprovalDecision",
+    "ApprovalRequest",
+    "AssumptionRecord",
     "Base",
+    "BenchmarkDataset",
     "ClaimType",
     "DeploymentEnvironment",
     "DeploymentStatus",
     "DisputeReason",
+    "FormulaDefinition",
+    "LifecycleState",
     "MaturityHistory",
     "MaturityLevel",
     "ModelCapability",
@@ -36,6 +51,7 @@ __all__ = [
     "ModelEvaluation",
     "ModelProvider",
     "ModelVersion",
+    "PolicyRule",
     "RejectionReason",
     "SourceType",
     "TruthObject",

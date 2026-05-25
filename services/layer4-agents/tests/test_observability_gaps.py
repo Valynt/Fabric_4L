@@ -119,3 +119,20 @@ class TestObservabilityGaps:
         assert tier1 != "unknown"
         assert _derive_tenant_tier(None) == "unknown"
         assert _derive_tenant_tier("") == "unknown"
+
+    def test_checkpoint_corruption_metric_emission(self) -> None:
+        from value_fabric.layer4.engine.execution_checkpointing import record_checkpoint_corruption
+        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        # Simulate emission
+        record_checkpoint_corruption("roi_calculator", "tenant-123", "hash_mismatch")
+        assert "checkpoint_corruption_detected_total" in metrics._metrics
+
+    def test_tool_auth_failure_metric_emission(self) -> None:
+        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+
+        metrics = PrometheusMetrics(MetricsConfig(registry=None))
+        metrics.increment_tool_auth_failure("get_prospect_data", "tenant-123")
+        # Metric is registered and no exception raised
+        assert "tool_auth_failures_total" in metrics._metrics

@@ -37,6 +37,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.error_handling import sanitize_log_error
 
 from ..shared.config import settings
+from ..metrics.prometheus_metrics import get_metrics
 from ..shared.database import get_db_session
 from sqlalchemy import text
 from ..shared.models import (
@@ -220,6 +221,9 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
     except Exception as exc:
         logger.error("Pipeline orchestration failed", job_id=str(job_id), error_code="PIPELINE_ORCHESTRATION_ERROR", error=sanitize_log_error(exc))
         _fail_job(job_id, tenant_id, sanitize_log_error(exc)[:200], PipelineStage.INIT)
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="orchestration", reason="pipeline_failure")
         raise self.retry(exc=exc, countdown=60)
 
 
@@ -294,13 +298,19 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                     action="BLOCKED",
                 )
                 session.commit()
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_url_blocked(reason="url_safety")
                 raise ValueError("URL blocked by compliance policy") from exc
 
             compliance_config = config.get("compliance", {})
 
             # Check robots.txt
             if compliance_config.get("respect_robots_txt", True):
-                checker = RobotsChecker(tenant_id=str(job.tenant_id))
+                checker = RobotsChecker(
+                    tenant_id=str(job.tenant_id),
+                    strict_mode=compliance_config.get("strict_robots_compliance", False),
+                )
                 domain = url.split("/")[2] if "/" in url else url
 
                 allowed, reason, rules = asyncio.run(checker.check_url(domain, url))
@@ -326,6 +336,9 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 session.add(log)
 
                 if not allowed:
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.increment_url_blocked(reason="robots_txt")
                     _fail_job(job_id, "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
                     return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
 
@@ -360,6 +373,9 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 )
         except Exception as update_exc:
             logger.error("Failed to update stage status", job_id=str(job_id), error_code="COMPLIANCE_CHECK_ERROR", error=sanitize_log_error(update_exc))
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -500,8 +516,11 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
                 decision_record.bytes_transferred = len((crawl_result.html_content or "").encode("utf-8"))
                 decision_record.text_length = len(crawl_result.html_content or "") // 10
 
-            # Persist routing decision
+            # Persist routing decision and emit path metric
             asyncio.run(decision_repo.save(decision_record))
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_crawl_path(path=final_path)
 
             _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
 
@@ -607,6 +626,9 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
         for stage in (PipelineStage.BROWSER_LAUNCH, PipelineStage.NAVIGATION, PipelineStage.CONTENT_CAPTURE):
             with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
                 _update_stage(session, job_id, stage, "FAILED", sanitize_log_error(exc)[:200])
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="browser_crawl", reason="stage_failure")
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -738,6 +760,9 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
         logger.error("AI extraction failed", job_id=str(job_id), error_code="AI_EXTRACTION_ERROR", error=sanitize_log_error(exc))
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.AI_EXTRACTION, "FAILED", sanitize_log_error(exc)[:200])
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="ai_extraction", reason="stage_failure")
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -835,6 +860,9 @@ def post_processing_stage(self, prev_result: dict, tenant_id: str):
         logger.error("Post-processing failed", job_id=str(job_id), error_code="POST_PROCESSING_ERROR", error=sanitize_log_error(exc))
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.POST_PROCESSING, "FAILED", sanitize_log_error(exc)[:200])
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="post_processing", reason="stage_failure")
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -963,6 +991,9 @@ def validation_stage(self, prev_result: dict, tenant_id: str):
         logger.error("Validation failed", job_id=str(job_id), error_code="VALIDATION_ERROR", error=sanitize_log_error(exc))
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.VALIDATION, "FAILED", sanitize_log_error(exc)[:200])
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="validation", reason="stage_failure")
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -1114,6 +1145,9 @@ def storage_stage(self, prev_result: dict, tenant_id: str):
         logger.error("Storage failed", job_id=str(job_id), error_code="STORAGE_ERROR", error=sanitize_log_error(exc))
         with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
             _update_stage(session, job_id, PipelineStage.STORAGE, "FAILED", sanitize_log_error(exc)[:200])
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="storage", reason="stage_failure")
         raise self.retry(exc=exc, countdown=10)
 
 
@@ -1342,6 +1376,9 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
                             event_type=event.event_type,
                             attempts=event.attempts,
                         )
+                        metrics = get_metrics()
+                        if metrics:
+                            metrics.increment_outbox_dead_lettered()
                         session.commit()
                         return  # Do not retry dead-lettered events.
                     else:
@@ -1356,6 +1393,9 @@ def dispatch_outbox_event(self, event_id: str, tenant_id: str):
             )
 
         # Retry with exponential backoff.
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_retry_event(stage="notification", reason="dispatch_failure")
         raise self.retry(exc=exc, countdown=30 * (2 ** self.request.retries))
 
 

@@ -19,6 +19,10 @@ class LLMClient:
         self,
         provider: str | LLMProvider = LLMProvider.OPENAI,
         api_key: str | None = None,
+        model: str = "gpt-4o",
+        timeout: float = 60.0,
+        max_retries: int = 3,
+        cost_tracking_enabled: bool = False,
     ) -> None:
         if isinstance(provider, str):
             try:
@@ -29,6 +33,11 @@ class LLMClient:
             self.provider = provider
 
         self._api_key = api_key
+        self.model = model
+        self.timeout = timeout
+        self.max_retries = max_retries
+        self.cost_tracking_enabled = cost_tracking_enabled
+        self._cost_records: list[CostRecord] = []
 
         if self.provider == LLMProvider.OPENAI:
             key = api_key or os.environ.get("OPENAI_API_KEY", "")

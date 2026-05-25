@@ -57,11 +57,13 @@ class RobotsChecker:
         user_agent: str | None = None,
         cache_ttl_hours: int | None = None,
         respect_crawl_delay: bool = True,
+        strict_mode: bool | None = None,
     ):
         self.tenant_id = tenant_id
         self.user_agent = user_agent or "ValueFabricBot/1.0"
         self.cache_ttl_hours = cache_ttl_hours or settings.robots_txt_cache_hours
         self.respect_crawl_delay = respect_crawl_delay
+        self.strict_mode = strict_mode if strict_mode is not None else settings.robots_txt_strict_mode
         self._http_client: httpx.AsyncClient | None = None
         self.logger = logger
 
@@ -98,10 +100,18 @@ class RobotsChecker:
         robots_url = urljoin(f"{parsed.scheme}://{domain}", "/robots.txt")
 
         # Get or fetch robots.txt
-        robots_data = await self._get_robots_txt(domain, robots_url, force_refresh)
+        try:
+            robots_data = await self._get_robots_txt(domain, robots_url, force_refresh)
+        except RobotsFetchError as e:
+            if self.strict_mode:
+                return False, f"robots.txt fetch failed (strict mode): {e.message}", {"strict_mode": True, "domain": domain, "error": "ROBOTS_FETCH_ERROR"}
+            # In permissive mode, re-raise so caller can decide to allow
+            raise
 
         if robots_data is None:
-            # No robots.txt found - assume allowed
+            if self.strict_mode:
+                return False, "robots.txt required but not available (strict mode)", {"strict_mode": True, "domain": domain}
+            # No robots.txt found - assume allowed in permissive mode
             return True, None, None
 
         try:
@@ -135,7 +145,9 @@ class RobotsChecker:
 
         except Exception as e:
             self.logger.error("Failed to parse robots.txt", domain=domain, error_code="ROBOTS_PARSE_ERROR")
-            # If parsing fails, allow but log
+            if self.strict_mode:
+                return False, "robots.txt parse error (strict mode)", {"parse_error": "ROBOTS_PARSE_ERROR", "strict_mode": True}
+            # If parsing fails, allow but log in permissive mode
             return True, None, {"parse_error": "ROBOTS_PARSE_ERROR"}
 
     async def _get_robots_txt(

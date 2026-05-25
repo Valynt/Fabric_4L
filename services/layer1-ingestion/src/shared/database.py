@@ -231,7 +231,12 @@ def get_db_session(
         # Validate even when require_tenant=False, if a tenant_id was provided
         tenant_id = validate_tenant_id(tenant_id)
     # If require_tenant=False and tenant_id is None, this is a system-level bypass.
-    
+    # Emit metric for observability — all bypass usage must be alertable.
+    if not require_tenant:
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_privileged_db_session_activation(mode="bypass")
+
     session = SessionLocal()
     try:
         if tenant_id is not None:

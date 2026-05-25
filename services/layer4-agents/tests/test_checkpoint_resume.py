@@ -147,6 +147,50 @@ class TestResumeWorkflow:
         assert result.output_data["resumed_by"] == "test-user"
         assert "resumed_at" in result.output_data
 
+    @pytest.mark.asyncio
+    async def test_resume_workflow_enforces_replay_policy(self, controller_with_running_state, state_manager):
+        """Resume validates against replay-conflict policy with real hashes."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        existing_state.input_data = {"original": "data"}
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_workflow(
+                workflow_id=workflow_id,
+                user_id="test-user",
+                resume_data={"approved": True}
+            )
+
+        assert result is not None
+        # Fingerprint should be recorded after successful resume
+        assert len(controller._seen_replay_fingerprints) > 0
+
+    @pytest.mark.asyncio
+    async def test_resume_from_checkpoint_exists_and_runs(self, controller_with_running_state, state_manager):
+        """resume_from_checkpoint is implemented and executes workflow."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        existing_state.input_data = {"original": "data"}
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_from_checkpoint(
+                workflow_id=workflow_id,
+                checkpoint_id="chk-test-001",
+                user_id="test-user",
+                resume_data={"approved": True}
+            )
+
+        assert result is not None
+        assert result["status"] == existing_state.status.value
+        assert result["checkpoint_id"] == "chk-test-001"
+        mock_workflow.run.assert_called_once()
+
 
 @pytest.mark.unit
 class TestCheckpointConfiguration:

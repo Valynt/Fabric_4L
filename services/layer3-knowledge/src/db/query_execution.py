@@ -202,6 +202,22 @@ class TenantQueryExecutor:
         if context.is_bypass:
             return
 
+        # Phase 1 hardening: Block direct CREATE/MERGE/DELETE on tenant-owned labels
+        # These must go through AuditedGraphMutation for audit trail
+        mutation_keywords = re.compile(r'\b(CREATE|MERGE|DELETE)\b', re.IGNORECASE)
+        if mutation_keywords.search(query) and _touches_tenant_owned_label(query):
+            if not context.allow_system_query:
+                metrics = get_metrics() if get_metrics else None
+                if metrics:
+                    metrics.increment_tenant_isolation_violation(
+                        component="query_execution", violation_type="direct_mutation_bypass"
+                    )
+                raise TenantQueryValidationError(
+                    "Direct CREATE/MERGE/DELETE on tenant-owned labels is prohibited. "
+                    "Use AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead. "
+                    "This ensures audit trail and metrics collection for all graph mutations."
+                )
+
         # Depth limit check (PERF-001)
         max_depth = cls._extract_max_depth(query, params)
         if max_depth is not None and max_depth > MAX_QUERY_DEPTH:

@@ -21,7 +21,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   const location = useLocation();
   const params = useParams();
   const matches = useMatches();
-  const { isAuthenticated: legacyIsAuthenticated, isLoading: legacyIsLoading } = useAuthContext();
 
   // Clerk is now the only auth provider - derive auth state from Clerk's useAuth() hook
   const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
@@ -80,7 +79,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     }
   }
 
-  // 3. Account access guard
+  // 4. Account access guard
   const accountId = params.accountId;
   const { hasAccountAccess, isLoading: accountLoading } =
     useAccountAccess(accountId, tenantSlug);
@@ -95,7 +94,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     }
   }
 
-  // 4. Role/permission guard
+  // 5. Role/permission guard
   const { hasPermissions, isLoading: permLoading } = useUserPermissions(
     policy.requiredPermissions ?? []
   );
@@ -110,7 +109,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     }
   }
 
-  // 5. Feature flag guard
+  // 6. Feature flag guard
   const { flagsEnabled } = useFeatureFlags(
     policy.requiredFeatureFlags ?? []
   );
@@ -124,7 +123,7 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     }
   }
 
-  // 6. Plan/entitlement guard
+  // 7. Plan/entitlement guard
   const { entitlementsMet } = useEntitlements(
     policy.requiredEntitlements ?? []
   );

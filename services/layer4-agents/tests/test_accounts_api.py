@@ -33,7 +33,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
 
-from value_fabric.layer4.api.main import app
+from value_fabric.layer4.api.main import app as production_app
+from value_fabric.layer4.api.routes.accounts import router as accounts_router
 from value_fabric.layer4.api.routes.analysis import get_executor
 from value_fabric.layer4.database import Base, get_db_from_context, _mark_session_tenant_context
 from value_fabric.layer4.models.business_case_record import BusinessCaseRecord
@@ -42,6 +43,12 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.permissions import Role
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+
+# Create test-specific app without full middleware stack
+from fastapi import FastAPI
+test_app = FastAPI()
+test_app.include_router(accounts_router, prefix="/v1", tags=["Accounts"])
 
 
 class mock_sync_providerResult(TypedDictModel):
@@ -101,13 +108,13 @@ async def client(test_db) -> AsyncGenerator[AsyncClient, None]:
             source="jwt",
         )
 
-    app.dependency_overrides[get_db_from_context] = override_get_db
-    app.dependency_overrides[require_authenticated] = override_auth
+    test_app.dependency_overrides[get_db_from_context] = override_get_db
+    test_app.dependency_overrides[require_authenticated] = override_auth
 
-    async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as ac:
+    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
         yield ac
 
-    app.dependency_overrides.clear()
+    test_app.dependency_overrides.clear()
 
 
 @pytest.fixture

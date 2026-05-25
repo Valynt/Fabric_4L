@@ -76,6 +76,11 @@ class Relationship(BaseModel):
     evidence_text: str = ""
     source_url: str = ""
     extraction_job_id: str = ""
+    tenant_id: str | None = None
+    deterministic_id: str | None = None
+    schema_version: str = "unknown"
+    prompt_version: str = "unknown"
+    model_version: str = "unknown"
 
     # Relationship property fields
     impact_level: Any | None = None

@@ -28,6 +28,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
 from ...api.dependencies import get_neo4j_driver
+from ...db.audited_mutation import AuditedGraphMutation
 from ...db.query_execution import run_validated_query
 from ...services.case_study_service import CaseStudy, CaseStudyService
 from ...services.embedding_errors import EmbeddingProviderUnavailableError
@@ -353,37 +354,34 @@ async def link_evidence_to_driver(
     request: EvidenceLinkRequest,
     tenant_id: str = Depends(get_verified_tenant_id),
     driver=Depends(get_neo4j_driver),
+    fastapi_request: Request = None,
 ) -> EvidenceLinkResponse:
     """Create a graph relationship between Evidence and ValueDriver.
 
     Establishes `HAS_EVIDENCE` from ValueDriver to Evidence node,
     enabling value traceability from driver tree back to proof points.
-    """
-    query = """
-    MATCH (e:Evidence {id: $evidence_id, tenant_id: $tenant_id})
-    MATCH (d:ValueDriver {id: $driver_id, tenant_id: $tenant_id})
-    MERGE (d)-[r:HAS_EVIDENCE]->(e)
-    ON CREATE SET r.linked_at = datetime()
-    RETURN r.linked_at AS linked_at
+    Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "evidence_id": request.evidence_id,
-                "driver_id": request.driver_id,
-                "tenant_id": tenant_id,
-            })
-            record = await result.single()
-            if record is None:
-                raise HTTPException(
-                    status_code=404,
-                    detail="Evidence or driver not found for tenant",
-                )
+            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
+            request_id = getattr(fastapi_request.state, "request_id", None) if fastapi_request else None
+            account_id = getattr(fastapi_request.state, "account_id", None) if fastapi_request else None
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                request_id=request_id,
+                account_id=account_id,
+                operation_source="evidence.link_evidence_to_driver",
+            )
+
+            await mutation.write_relationship(request.driver_id, "HAS_EVIDENCE", request.evidence_id)
+
             return EvidenceLinkResponse(
                 evidence_id=request.evidence_id,
                 driver_id=request.driver_id,
                 linked=True,
-                linked_at=record["linked_at"],
+                linked_at=None,  # Timestamp is in audit event
             )
     except HTTPException:
         raise

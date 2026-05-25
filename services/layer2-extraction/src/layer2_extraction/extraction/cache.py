@@ -91,12 +91,12 @@ class ExtractionCache:
         if metrics:
             metrics.record_cache_failure(
                 failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
-                tenant_id=context.get("tenant_id") or "unknown",
-                ingestion_id=context.get("ingestion_id") or "unknown",
-                extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "unknown",
-                model_version=context.get("model_version") or "unknown",
-                schema_version=context.get("schema_version") or "unknown",
-                value_pack_id=context.get("value_pack_id") or "unknown",
+                tenant_id=context.get("tenant_id") or "",
+                ingestion_id=context.get("ingestion_id") or "",
+                extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
+                model_version=context.get("model_version") or "",
+                schema_version=context.get("schema_version") or "",
+                value_pack_id=context.get("value_pack_id") or "",
                 operation=operation,
             )
         logger.warning(
@@ -141,6 +141,8 @@ class ExtractionCache:
         temperature: float | None = None,
         context: dict[str, str | None] | None = None,
     ) -> Any | None:
+        if not tenant_id:
+            raise ValueError("tenant_id is required for cache operations")
         key = self._make_key(
             tenant_id,
             source_hash,
@@ -178,6 +180,8 @@ class ExtractionCache:
         ttl: int | None = None,
         context: dict[str, str | None] | None = None,
     ) -> None:
+        if not tenant_id:
+            raise ValueError("tenant_id is required for cache operations")
         key = self._make_key(tenant_id, source_hash, extraction_version, value_pack_id, endpoint, model, temperature)
         ttl = ttl or self._default_ttl
         if self._redis is not None:

@@ -120,6 +120,42 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # Security / operations metrics (P2)
+        self._metrics["retry_events_total"] = Counter(
+            f"{prefix}retry_events_total",
+            "Total Celery retry events",
+            ["stage", "reason"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["urls_blocked_total"] = Counter(
+            f"{prefix}urls_blocked_total",
+            "Total URLs blocked by compliance",
+            ["reason"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["crawl_path_distribution"] = Counter(
+            f"{prefix}crawl_path_distribution",
+            "Distribution of crawl path choices",
+            ["path"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["stuck_jobs"] = Gauge(
+            f"{prefix}stuck_jobs",
+            "Number of jobs stuck in non-terminal states",
+            ["stage"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["outbox_dead_lettered_total"] = Counter(
+            f"{prefix}outbox_dead_lettered_total",
+            "Total outbox events dead-lettered",
+            [],
+            registry=self.config.registry,
+        )
+
         # Build info
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry
@@ -173,6 +209,37 @@ class PrometheusMetrics:
     def increment_privileged_db_session_activation(self, mode: str) -> None:
         if self.config.enabled:
             self._metrics["privileged_db_session_activations_total"].labels(mode=mode).inc()
+
+    def increment_retry_event(self, stage: str, reason: str) -> None:
+        if self.config.enabled:
+            self._metrics["retry_events_total"].labels(stage=stage, reason=reason).inc()
+
+    def increment_url_blocked(self, reason: str) -> None:
+        if self.config.enabled:
+            self._metrics["urls_blocked_total"].labels(reason=reason).inc()
+
+    def increment_crawl_path(self, path: str) -> None:
+        if self.config.enabled:
+            self._metrics["crawl_path_distribution"].labels(path=path).inc()
+
+    def set_stuck_jobs(self, count: int, stage: str) -> None:
+        if self.config.enabled:
+            self._metrics["stuck_jobs"].labels(stage=stage).set(count)
+
+    def increment_outbox_dead_lettered(self) -> None:
+        if self.config.enabled:
+            self._metrics["outbox_dead_lettered_total"].inc()
+
+    def refresh_stuck_jobs(self, counts_by_stage: dict[str, int]) -> None:
+        """Update stuck jobs gauge from a dict of {stage: count}.
+
+        Callers should compute counts via a system-authorized query
+        and pass the result here.
+        """
+        if not self.config.enabled:
+            return
+        for stage, count in counts_by_stage.items():
+            self._metrics["stuck_jobs"].labels(stage=stage).set(count)
 
     def get_metrics(self) -> str:
         """Get Prometheus metrics output."""

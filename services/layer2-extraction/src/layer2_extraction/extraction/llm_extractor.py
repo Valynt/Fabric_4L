@@ -13,6 +13,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from layer2_extraction.metrics import get_metrics
+from layer2_extraction.extraction.entity_id import compute_deterministic_id
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 # Type variable for generic extraction
@@ -380,10 +381,13 @@ class EntityExtractor:
 
         context = telemetry_context or {}
         model_version = context.get("model_version", self.model)
-        schema_version = context.get("schema_version", "unknown")
-        value_pack_id = context.get("value_pack_id", "unknown")
-        tenant_id = context.get("tenant_id", "unknown")
-        ingestion_id = context.get("ingestion_id", "unknown")
+        schema_version = context.get("schema_version", "")
+        value_pack_id = context.get("value_pack_id", "default")
+        tenant_id = context.get("tenant_id", "")
+        ingestion_id = context.get("ingestion_id", "")
+        prompt_version = context.get("prompt_version", "")
+        if not tenant_id:
+            raise LLMExtractionError("tenant_id is required in telemetry_context")
         metrics = get_metrics()
         start = time.perf_counter()
         try:
@@ -409,6 +413,16 @@ class EntityExtractor:
                     entity.extraction_job_id = extraction_job_id
                     if hasattr(entity, "source_refs"):
                         entity.source_refs = [source_url]
+                    entity.tenant_id = tenant_id
+                    entity.schema_version = schema_version or "unknown"
+                    entity.prompt_version = prompt_version or "unknown"
+                    entity.model_version = model_version or "unknown"
+                    entity.deterministic_id = compute_deterministic_id(
+                        tenant_id=tenant_id,
+                        source_url=source_url,
+                        entity_type=entity_type,
+                        entity=entity,
+                    )
                     entities.append(entity)
                     if metrics:
                         metrics.record_confidence(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, entity_type=entity_type, confidence=float(entity.confidence))
@@ -581,10 +595,13 @@ class RelationshipExtractor:
 
         context = telemetry_context or {}
         model_version = context.get("model_version", self.model)
-        schema_version = context.get("schema_version", "unknown")
-        value_pack_id = context.get("value_pack_id", "unknown")
-        tenant_id = context.get("tenant_id", "unknown")
-        ingestion_id = context.get("ingestion_id", "unknown")
+        schema_version = context.get("schema_version", "")
+        value_pack_id = context.get("value_pack_id", "default")
+        tenant_id = context.get("tenant_id", "")
+        ingestion_id = context.get("ingestion_id", "")
+        prompt_version = context.get("prompt_version", "")
+        if not tenant_id:
+            raise LLMExtractionError("tenant_id is required in telemetry_context")
         metrics = get_metrics()
         endpoint = "extract_relationships"
         try:
@@ -609,6 +626,16 @@ class RelationshipExtractor:
                     # Add provenance metadata
                     rel.source_url = source_url
                     rel.extraction_job_id = extraction_job_id
+                    rel.tenant_id = tenant_id
+                    rel.schema_version = schema_version or "unknown"
+                    rel.prompt_version = prompt_version or "unknown"
+                    rel.model_version = model_version or "unknown"
+                    rel.deterministic_id = compute_deterministic_id(
+                        tenant_id=tenant_id,
+                        source_url=source_url,
+                        entity_type="relationship",
+                        entity=rel,
+                    )
                     relationships.append(rel)
 
             return relationships

@@ -29,6 +29,10 @@ from ...api.dependencies_tenant_secured import (
 from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
+from ...security.account_authorization import (
+    check_account_access,
+    verify_entity_account_access,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -145,6 +149,7 @@ async def persist_signal(
     """Persist a ValueSignal as a Neo4j node and link to its Account.
 
     Called by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).
+    Phase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.
     """
     required = ("id", "tenant_id", "account_id", "type", "content", "confidence")
     missing = [f for f in required if not body.get(f)]
@@ -158,6 +163,20 @@ async def persist_signal(
     tenant_id = neo4j.tenant_id
     if not tenant_id:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant context required")
+
+    # Phase 4 hardening: Check account authorization for account-scoped entity
+    try:
+        check_account_access(
+            entity_type="PainSignal",
+            entity_account_id=body.get("account_id"),
+            request_account_id=_ctx.account_id if hasattr(_ctx, "account_id") else None,
+            tenant_id=tenant_id,
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"Account authorization failed: {str(e)}",
+        ) from e
 
     params = {
         "id": body["id"],

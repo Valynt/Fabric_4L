@@ -9,10 +9,6 @@ import {
   CommandDialog,
   CommandInput,
   CommandList,
-  CommandEmpty,
-  CommandGroup,
-  CommandItem,
-  CommandSeparator,
 } from "@/components/ui/command";
 import { useGlobalSearch } from "@/hooks/useGlobalSearch";
 import { SearchResultsList } from "./SearchResultsList";
@@ -24,16 +20,19 @@ import type { GlobalSearchDialogProps } from "./types";
 export function GlobalSearchDialog({
   open,
   onOpenChange,
-  tenantSlug = "acme",
+  tenantSlug,
   accountId,
 }: GlobalSearchDialogProps) {
   const [query, setQuery] = useState("");
+  
+  // Disable search if tenantSlug is not available
   const { data, isLoading, error, search: executeSearch, clearSearch } = useGlobalSearch({
     tenantSlug,
     accountId,
+    enabled: !!tenantSlug,
   });
 
-  // Handle keyboard shortcut
+  // Handle keyboard shortcut - Cmd/Ctrl+K to open, Escape to close
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
@@ -67,8 +66,7 @@ export function GlobalSearchDialog({
   };
 
   const hasResults = data && Object.values(data.results).some((items) => items.length > 0);
-  const showEmpty = !isLoading && !error && !hasResults && query.length > 0;
-  const showInitialEmpty = !isLoading && !error && !hasResults && query.length === 0;
+  const showEmpty = !isLoading && !error && !hasResults;
 
   return (
     <CommandDialog open={open} onOpenChange={onOpenChange}>
@@ -89,13 +87,7 @@ export function GlobalSearchDialog({
         
         {showEmpty && <SearchEmptyState query={query} />}
         
-        {showInitialEmpty && (
-          <CommandEmpty>
-            <SearchEmptyState />
-          </CommandEmpty>
-        )}
-        
-        {hasResults && data && (
+        {hasResults && data && tenantSlug && (
           <SearchResultsList
             results={data.results}
             tenantSlug={tenantSlug}
