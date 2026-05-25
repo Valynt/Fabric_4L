@@ -46,6 +46,7 @@ from .execution_checkpointing import persist_interruption_if_needed
 from .execution_dispatch import build_workflow_task
 from .execution_persistence import mark_workflow_running, persist_workflow_failure
 from .execution_validation import ensure_controller_accepts_execution
+from .output_contract import validate_final_output
 from .scheduler import ScheduledTask, TaskPriority, TaskScheduler
 from .state_manager import StateManager
 
@@ -1241,6 +1242,27 @@ class OrchestrationController:
                 workflow.run(initial_state, thread_id=workflow_id),
                 timeout=settings.workflow_timeout_seconds,
             )
+
+            if result.status == WorkflowStatus.COMPLETED:
+                validation = validate_final_output(result)
+                result.metadata["output_validation"] = validation.model_dump(mode="json")
+                if not validation.valid:
+                    result.status = WorkflowStatus.FAILED
+                    result.metadata["needs_review"] = True
+                    result.metadata["recoverable_failure"] = True
+                    result.output_data = {
+                        **(result.output_data or {}),
+                        "error": {
+                            "code": "WORKFLOW_OUTPUT_SCHEMA_VALIDATION_FAILED",
+                            "message": "Workflow output failed contract validation and requires review.",
+                            "recoverable": True,
+                            "details": validation.errors,
+                        },
+                    }
+                    result.errors.extend(
+                        [f"OUTPUT_SCHEMA_VALIDATION_FAILED: {err}" for err in validation.errors]
+                    )
+
             await self.state_manager.save_state(workflow_id, result)
 
             # Native LangGraph HITL interrupt: checkpoint already persisted
