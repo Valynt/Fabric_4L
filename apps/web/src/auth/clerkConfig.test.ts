@@ -125,6 +125,21 @@ describe("clerkConfig — publishable key fail-fast", () => {
     expect(() => getAuthProvider()).not.toThrow();
     expect(() => isClerkAuthEnabled()).not.toThrow();
   });
+
+  it("throws when key has invalid format (missing pk_test_/pk_live_ prefix)", () => {
+    env().VITE_CLERK_PUBLISHABLE_KEY = "sk_test_abc123";
+    expect(() => getClerkPublishableKey()).toThrow(/invalid format/);
+  });
+
+  it("throws when key is missing suffix after prefix", () => {
+    env().VITE_CLERK_PUBLISHABLE_KEY = "pk_test_";
+    expect(() => getClerkPublishableKey()).toThrow(/invalid format/);
+  });
+
+  it("accepts pk_live_ key format", () => {
+    env().VITE_CLERK_PUBLISHABLE_KEY = "pk_live_xyz789";
+    expect(getClerkPublishableKey()).toBe("pk_live_xyz789");
+  });
 });
 
 describe("clerkConfig — getClerkUrls defaults + overrides", () => {

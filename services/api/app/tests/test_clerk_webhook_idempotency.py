@@ -15,6 +15,7 @@ import hashlib
 import hmac
 import importlib
 import json
+import time
 from typing import Iterator
 
 import pytest
@@ -59,9 +60,9 @@ def _sign(body: bytes, *, svix_id: str, svix_timestamp: str, secret: str) -> str
     return "v1," + base64.b64encode(digest).decode()
 
 
-def _post(client: TestClient, payload: dict, *, svix_id: str, secret: str):
+def _post(client: TestClient, payload: dict, *, svix_id: str, secret: str, svix_timestamp: str | None = None):
     body = json.dumps(payload).encode("utf-8")
-    ts = "1700000000"
+    ts = svix_timestamp or str(int(time.time()))
     sig = _sign(body, svix_id=svix_id, svix_timestamp=ts, secret=secret)
     return client.post(
         "/internal/webhooks/clerk",
@@ -184,3 +185,54 @@ def test_membership_before_user_returns_409(client):
     }
     response = _post(client, payload, svix_id="msg_ordering", secret=secret)
     assert response.status_code == 409
+
+
+def test_expired_timestamp_rejected(client, monkeypatch):
+    """Signatures older than 5 minutes must be rejected (replay defense)."""
+    secret = "whsec_" + base64.b64encode(b"phase1-test-secret").decode()
+    # Fix "now" so the test is deterministic.
+    monkeypatch.setattr(time, "time", lambda: 1_700_000_000)
+    payload = {"type": "user.created", "data": {"id": "user_replay"}}
+    # Timestamp is 400 seconds in the past (> 300s tolerance).
+    response = _post(
+        client,
+        payload,
+        svix_id="msg_replay",
+        secret=secret,
+        svix_timestamp="1699999600",
+    )
+    assert response.status_code == 401
+    # Gateway middleware wraps errors; verify via the wrapped message.
+    assert "Unauthorized" in response.json()["error"]["message"]
+
+
+def test_signature_version_not_v1_rejected(client):
+    """Only v1 signatures are accepted."""
+    body = json.dumps({"type": "user.created", "data": {"id": "user_1"}}).encode()
+    response = client.post(
+        "/internal/webhooks/clerk",
+        content=body,
+        headers={
+            "svix-id": "msg_1",
+            "svix-timestamp": "1700000000",
+            "svix-signature": "v2,not-the-right-signature",
+            "content-type": "application/json",
+        },
+    )
+    assert response.status_code == 401
+
+
+def test_membership_missing_user_and_org_returns_400(client):
+    """Membership payload missing both user_id and organization_id is a 400."""
+    secret = "whsec_" + base64.b64encode(b"phase1-test-secret").decode()
+    payload = {
+        "type": "organizationMembership.created",
+        "data": {
+            "id": "orgmem_bad",
+            "role": "org:admin",
+            # Deliberately omit user_id, organization_id, and public_user_data
+        },
+    }
+    response = _post(client, payload, svix_id="msg_bad_mbr", secret=secret)
+    assert response.status_code == 400
+    assert "Missing user_id" in response.json()["error"]["message"]

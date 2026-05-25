@@ -21,7 +21,7 @@
  * the ClerkProvider and AuthProvider.
  */
 import { useEffect, useRef } from "react";
-import { useAuth, useOrganization, useUser } from "@clerk/react";
+import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
 
@@ -31,7 +31,6 @@ const FABRIC_AUTH_TEMPLATE_NAME =
 export function ClerkAuthBridge(): null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const { organization } = useOrganization();
-  const { user } = useUser();
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -78,11 +77,6 @@ export function ClerkAuthBridge(): null {
       setActiveClerkOrgId(null);
     };
   }, [organization?.id]);
-
-  // 3) Identity hook reserved for future telemetry expansion (no writes).
-  useEffect(() => {
-    if (!authLoaded || !isSignedIn || !user) return;
-  }, [authLoaded, isSignedIn, user]);
 
   return null;
 }

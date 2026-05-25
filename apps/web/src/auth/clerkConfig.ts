@@ -43,15 +43,24 @@ export function isClerkAuthEnabled(): boolean {
 
 /**
  * Returns the Clerk publishable key when Clerk is enabled. Throws a helpful
- * error if Clerk is enabled but the key is missing — fail fast so the build
- * cannot ship without the required configuration.
+ * error at runtime if Clerk is enabled but the key is missing or malformed.
+ * Callers should gate this behind `isClerkAuthEnabled()` to avoid throwing
+ * in legacy mode.
  */
+const CLERK_PUBLISHABLE_KEY_RE = /^pk_(test|live)_[A-Za-z0-9]+$/;
+
 export function getClerkPublishableKey(): string {
   const key = (import.meta.env.VITE_CLERK_PUBLISHABLE_KEY ?? "").toString().trim();
   if (!key) {
     throw new Error(
       "VITE_CLERK_PUBLISHABLE_KEY is required when VITE_AUTH_PROVIDER=clerk. " +
         "Add it to your environment (Infisical: /apps/web)."
+    );
+  }
+  if (!CLERK_PUBLISHABLE_KEY_RE.test(key)) {
+    throw new Error(
+      `VITE_CLERK_PUBLISHABLE_KEY has invalid format: expected pk_test_* or pk_live_*. ` +
+        `Got prefix: ${key.slice(0, 12)}...`
     );
   }
   return key;

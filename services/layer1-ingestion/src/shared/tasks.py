@@ -1801,7 +1801,8 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         SystemMaintenanceAuthorizationError: If system-scoped operation lacks authorization
         InvalidTenantContextError: If tenant_id is provided but invalid
     """
-    from .maintenance import authorize_maintenance_operation, maintenance_audit_log
+    from .exceptions import InvalidTenantContextError
+    from .maintenance import maintenance_audit_log
     
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
     
@@ -1821,60 +1822,104 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
                    tenant_id=str(tenant_uuid))
         
         with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
-                with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
-                    old_content = (
-                        session.query(RawContent)
-                        .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
-                        .all()
-                    )
+            with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
+                old_content = (
+                    session.query(RawContent)
+                    .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
+                    .all()
+                )
 
-                    deleted_count = 0
-                    for content in old_content:
-                        content.processing_status = "DELETED"
-                        deleted_count += 1
+                deleted_count = 0
+                for content in old_content:
+                    content.processing_status = "DELETED"
+                    deleted_count += 1
 
-                    session.commit()
-                    record.rows_affected = deleted_count
+                session.commit()
+                record.rows_affected = deleted_count
 
-                    logger.info(
-                        "Tenant-scoped content cleanup completed",
-                        deleted_count=deleted_count,
-                        cutoff_date=cutoff_date.isoformat(),
-                        tenant_id=str(tenant_uuid),
-                    )
+                logger.info(
+                    "Tenant-scoped content cleanup completed",
+                    deleted_count=deleted_count,
+                    cutoff_date=cutoff_date.isoformat(),
+                    tenant_id=str(tenant_uuid),
+                )
 
-                    return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
+                return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
     
     else:
-        # System-scoped cleanup requires authorization
-        authorize_maintenance_operation("cleanup_old_content", tenant_id=None)
-        
-        logger.info("Starting system-scoped content cleanup", 
-                   cutoff_date=cutoff_date.isoformat())
-        
-        with maintenance_audit_log("cleanup_old_content", tenant_id=None) as record:
-            # Use system maintenance context for global table access
-            from .maintenance import system_maintenance_context
-            with system_maintenance_context():
-                with get_db_session(tenant_id=None, require_tenant=False) as session:
-                    old_content = (
-                        session.query(RawContent)
-                        .filter(RawContent.created_at < cutoff_date, RawContent.processing_status != "DELETED")
-                        .all()
-                    )
+        # System-scoped: iterate tenants individually under RLS.
+        # No global table scan — each tenant cleaned in its own RLS context.
+        tenant_ids = []
+        with get_db_session(tenant_id=None, require_tenant=False) as session:
+            tenant_ids = [
+                row[0] for row in
+                session.query(RawContent.tenant_id).distinct().all()
+                if row[0] is not None
+            ]
 
-                    deleted_count = 0
-                    for content in old_content:
-                        content.processing_status = "DELETED"
-                        deleted_count += 1
+        total_deleted = 0
+        failed_tenants = []
+        started_at = datetime.now(UTC)
 
-                    session.commit()
-                    record.rows_affected = deleted_count
+        for tenant_uuid in tenant_ids:
+            try:
+                with maintenance_audit_log("cleanup_old_content", tenant_id=str(tenant_uuid)) as record:
+                    with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
+                        old_content = (
+                            session.query(RawContent)
+                            .filter(
+                                RawContent.created_at < cutoff_date,
+                                RawContent.processing_status != "DELETED",
+                            )
+                            .all()
+                        )
 
-                    logger.info(
-                        "System-scoped content cleanup completed",
-                        deleted_count=deleted_count,
-                        cutoff_date=cutoff_date.isoformat(),
-                    )
+                        deleted_count = 0
+                        for content in old_content:
+                            content.processing_status = "DELETED"
+                            deleted_count += 1
 
-                    return cleanup_old_contentResult.model_validate({"deleted_count": deleted_count, "cutoff_date": cutoff_date.isoformat()}).model_dump()
+                        session.commit()
+                        record.rows_affected = deleted_count
+                        total_deleted += deleted_count
+            except Exception as e:
+                failed_tenants.append((str(tenant_uuid), str(e)))
+                logger.error(
+                    "Tenant cleanup failed",
+                    tenant_id=str(tenant_uuid),
+                    error=str(e),
+                )
+
+        completed_at = datetime.now(UTC)
+
+        # Aggregate summary audit event
+        logger.info(
+            "System maintenance audit record",
+            operation="cleanup_old_content",
+            tenant_id=None,
+            system_identity="fabric4l-system-maintenance",
+            correlation_id=str(uuid4()),
+            timestamp=datetime.now(UTC).isoformat(),
+            started_at=started_at.isoformat(),
+            completed_at=completed_at.isoformat(),
+            rows_affected=total_deleted,
+            success=len(failed_tenants) == 0,
+            error_message=None if not failed_tenants else f"Failed tenants: {[t[0] for t in failed_tenants]}",
+            metadata={
+                "tenants_processed": len(tenant_ids),
+                "failed_tenants": failed_tenants,
+            },
+        )
+
+        logger.info(
+            "System cleanup completed",
+            total_deleted=total_deleted,
+            tenants_processed=len(tenant_ids),
+            failed_count=len(failed_tenants),
+            cutoff_date=cutoff_date.isoformat(),
+        )
+
+        return cleanup_old_contentResult.model_validate({
+            "deleted_count": total_deleted,
+            "cutoff_date": cutoff_date.isoformat(),
+        }).model_dump()

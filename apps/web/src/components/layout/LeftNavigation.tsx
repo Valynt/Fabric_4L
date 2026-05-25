@@ -59,6 +59,14 @@ export function LeftNavigation({
       if (accountId) {
         resolvedPath = resolvedPath.replace(":accountId", accountId);
       }
+      // Fallback for unresolved account-scoped paths
+      if (resolvedPath.includes(":accountId")) {
+        resolvedPath = tenantSlug ? `/t/${tenantSlug}/accounts` : "/accounts";
+      }
+      // Fallback for unresolved tenant-only paths
+      if (resolvedPath.includes(":tenantSlug")) {
+        resolvedPath = "/accounts";
+      }
       return { ...item, path: resolvedPath };
     });
 
@@ -100,7 +108,7 @@ export function LeftNavigation({
 
           return (
             <NavLink
-              key={item.path}
+              key={item.id}
               to={item.path}
               className={({ isActive }) =>
                 [

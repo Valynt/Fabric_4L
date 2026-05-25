@@ -3,28 +3,15 @@
  * for routing rationale.
  */
 import { SignUp } from "@clerk/react";
-import { Link } from "react-router-dom";
 
+import { ClerkDisabledNotice } from "@/auth/ClerkDisabledNotice";
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
 export default function ClerkSignUpPage() {
   const urls = getClerkUrls();
 
   if (!isClerkAuthEnabled()) {
-    return (
-      <div className="mx-auto flex min-h-screen max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
-        <h1 className="text-xl font-semibold">Clerk sign-up is disabled</h1>
-        <p className="text-sm text-muted-foreground">
-          This deployment is using the legacy authentication provider.
-        </p>
-        <Link
-          to="/signup"
-          className="text-sm font-medium text-primary underline-offset-4 hover:underline"
-        >
-          Go to legacy sign-up
-        </Link>
-      </div>
-    );
+    return <ClerkDisabledNotice action="sign-up" legacyRoute="/signup" />;
   }
 
   return (

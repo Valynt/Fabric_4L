@@ -322,23 +322,9 @@ class OpenAIProvider(SecretProvider):
         return "OPENAI_API_KEY"
     
     def get_current_key_id(self) -> str | None:
-        # OpenAI doesn't expose key IDs via API; we track in Infisical metadata
-        try:
-            fixed_path = fix_path_for_git_bash(self.infisical_path)
-            result = subprocess.run(
-                [*INFISICAL_BASE, "secrets", "get",
-                 "--env=dev", f"--path={fixed_path}", self.secret_name],
-                capture_output=True, text=True, check=True, encoding='utf-8'
-            )
-            # Parse output - format is "KEY_NAME=VALUE" or just "VALUE"
-            output = result.stdout.strip()
-            if "=" in output:
-                key_value = output.split("=", 1)[1]
-            else:
-                key_value = output
-            return key_value[:20] + "..." if len(key_value) > 20 else key_value
-        except Exception:
-            return None
+        # OpenAI doesn't expose key IDs via API; no metadata tracking available
+        # Return unknown so rotation can proceed without old key revocation
+        return "unknown"
     
     def generate_new_key(self) -> tuple[str, str]:
         """Generate new OpenAI API key."""
@@ -794,7 +780,7 @@ Examples:
     print(f"Failed: {len(failed)}")
     
     for record in all_records:
-        status_icon = "✓" if record.status == RotationStatus.COMPLETED else "✗"
+        status_icon = "[OK]" if record.status == RotationStatus.COMPLETED else "[FAIL]"
         print(f"  {status_icon} {record.provider}: {record.status.value}")
         if record.key_id:
             print(f"      New key: {record.key_id}")

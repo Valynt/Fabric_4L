@@ -1,4 +1,3 @@
-import { ClerkProvider } from "@clerk/react";
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -60,11 +59,17 @@ const queryClient = new QueryClient({
 installAnalytics();
 
 // Phase 2: ClerkProvider is configured from env so the same bundle works for
-// both legacy and Clerk-driven deployments. The publishable key is required
-// at build time when AUTH_PROVIDER=clerk; we surface a clear error otherwise.
+// both legacy and Clerk-driven deployments. Dynamically imported so legacy
+// builds do not pay the cost of the Clerk JS bundle.
 const clerkEnabled = isClerkAuthEnabled();
 const clerkUrls = getClerkUrls();
 const clerkPublishableKey = clerkEnabled ? getClerkPublishableKey() : "";
+
+const ClerkProvider = clerkEnabled
+  ? lazy(() =>
+      import("@clerk/react").then((m) => ({ default: m.ClerkProvider }))
+    )
+  : null;
 
 const AppRoot = (
   <QueryClientProvider client={queryClient}>
@@ -80,17 +85,19 @@ const AppRoot = (
 );
 
 createRoot(document.getElementById("root")!).render(
-  clerkEnabled ? (
-    <ClerkProvider
-      publishableKey={clerkPublishableKey}
-      signInUrl={clerkUrls.signInUrl}
-      signUpUrl={clerkUrls.signUpUrl}
-      signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
-      signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
-      afterSignOutUrl="/"
-    >
-      {AppRoot}
-    </ClerkProvider>
+  clerkEnabled && ClerkProvider ? (
+    <Suspense fallback={null}>
+      <ClerkProvider
+        publishableKey={clerkPublishableKey}
+        signInUrl={clerkUrls.signInUrl}
+        signUpUrl={clerkUrls.signUpUrl}
+        signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
+        signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
+        afterSignOutUrl="/"
+      >
+        {AppRoot}
+      </ClerkProvider>
+    </Suspense>
   ) : (
     AppRoot
   )

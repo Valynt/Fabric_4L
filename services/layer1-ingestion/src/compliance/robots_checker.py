@@ -154,7 +154,7 @@ class RobotsChecker:
         # Check cache first
         if not force_refresh:
             try:
-                cached = await self._get_cached_robots_txt(domain)
+                cached = self._get_cached_robots_txt(domain)
                 if cached:
                     self.logger.debug("Using cached robots.txt", domain=domain)
                     return cached

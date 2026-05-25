@@ -252,11 +252,7 @@ def _request_correlation_context(
         "error_code": error_code,
         "request_id": str(request_id) if request_id else None,
         "correlation_id": str(request_id) if request_id else None,
-        "tenant_id": (
-            str(tenant_id)
-            if tenant_id is not None
-            else request.headers.get("X-Tenant-ID")
-        ),
+        "tenant_id": str(tenant_id) if tenant_id is not None else None,
         "path": request.url.path,
         "method": request.method,
     }
@@ -555,10 +551,7 @@ def create_app() -> FastAPI:
             detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
             error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = (
-                str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
-                request.headers.get("X-Tenant-ID")
-            )
+            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
             request_id = request.headers.get("X-Request-ID")
             is_security_error = exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
             logger.warning(
@@ -605,10 +598,7 @@ def create_app() -> FastAPI:
             # Fallback to old format if shared package not available
             request_id = request.headers.get("X-Request-ID")
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = (
-                str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else
-                request.headers.get("X-Tenant-ID")
-            )
+            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
             logger.exception(
                 "unhandled operational error",
                 extra={

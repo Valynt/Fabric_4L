@@ -26,7 +26,11 @@ def resolve_oidc_config(config: OIDCProviderConfig) -> OIDCProviderConfig:
         if not config.scopes:
             config.scopes = ["name", "email"]
     elif provider == "clerk":
-        # Clerk uses standard OIDC with Organizations for multi-tenancy
+        # Clerk uses standard OIDC with Organizations for multi-tenancy.
+        # Fallback env vars are read here only when the tenant settings do not
+        # already specify issuer_url / jwks_uri. The caller (gateway/L4) should
+        # ideally pre-populate these from its centralized Settings so this
+        # fallback is not reached in production.
         if not config.issuer_url:
             clerk_domain = os.getenv("CLERK_JWT_ISSUER", "").replace("https://", "")
             if clerk_domain:
