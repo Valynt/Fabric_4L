@@ -174,7 +174,7 @@ class CrawlDecisionRepository:
     def _save_sync(self, record: CrawlDecisionRecord) -> None:
         """Synchronous save implementation (runs in thread pool)."""
         tenant_id = UUID(record.tenant_id) if record.tenant_id else None
-        with get_db_session(tenant_id=tenant_id, require_tenant=False) as session:
+        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
             db_record = CrawlDecisionModel(
                 decision_id=UUID(record.decision_id),
                 job_id=UUID(record.job_id) if record.job_id else None,

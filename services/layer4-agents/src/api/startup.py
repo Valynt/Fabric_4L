@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import os
 from collections.abc import Awaitable, Callable
@@ -80,6 +81,7 @@ class RuntimeState:
     crm_sync_job_runner: CRMSyncJobRunner | None = None
     oidc_cleanup_task: OIDCCleanupTask | None = None
     gate_timeout_scheduler: Any | None = None
+    stuck_workflow_task: asyncio.Task | None = None
 
 
 runtime_state = RuntimeState()
@@ -146,6 +148,22 @@ def build_lifespan(
         await runtime_state.workflow_executor.start()
         await runtime_state.workflow_executor.recover_workflows()
 
+        # Schedule periodic stuck-workflow detection (OBS-L4-006)
+        async def _stuck_workflow_detector() -> None:
+            while True:
+                try:
+                    await asyncio.sleep(60)
+                    if runtime_state.workflow_executor is not None:
+                        await runtime_state.workflow_executor.detect_and_record_stuck_workflows(
+                            threshold_seconds=600
+                        )
+                except asyncio.CancelledError:
+                    break
+                except Exception:
+                    logger.exception("Stuck workflow detector failed")
+
+        runtime_state.stuck_workflow_task = asyncio.create_task(_stuck_workflow_detector())
+
         await ws_manager.start()
         await health_tracker.start()
         await configure_optional_integrations(app)
@@ -164,6 +182,12 @@ def build_lifespan(
             await runtime_state.oidc_cleanup_task.stop()
         if runtime_state.gate_timeout_scheduler is not None:
             await runtime_state.gate_timeout_scheduler.stop()
+        if runtime_state.stuck_workflow_task is not None:
+            runtime_state.stuck_workflow_task.cancel()
+            try:
+                await runtime_state.stuck_workflow_task
+            except asyncio.CancelledError:
+                pass
         if runtime_state.checkpoint_saver:
             await CheckpointConfig.close_saver(runtime_state.checkpoint_saver)
         if runtime_state.state_manager and getattr(runtime_state.state_manager, "redis_client", None):

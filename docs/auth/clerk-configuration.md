@@ -248,9 +248,10 @@ VITE_CLERK_JWT_KEY=
 Backend/gateway auth config:
 
 ```env
-CLERK_ISSUER=
-CLERK_JWT_AUDIENCE=fabric4l-api
-CLERK_AUTHORIZED_PARTIES=http://localhost:3001,https://staging.fabric4l.com,https://app.fabric4l.com
+CLERK_ISSUER=https://accounts.valuepact.ai
+CLERK_JWT_AUDIENCE=valuepact-api
+CLERK_AUTHORIZED_PARTIES=https://www.valuepact.ai,https://app.valuepact.ai
+CLERK_JWKS_URL=https://accounts.valuepact.ai/.well-known/jwks.json
 ```
 
 ### `/api-gateway`

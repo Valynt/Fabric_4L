@@ -136,9 +136,14 @@ class HarnessRegistry:
         validation_results: list[ClaimValidationResult] | None = None,
         human_override: bool = False,
         state_payload: dict[str, Any] | None = None,
+        action_class: ActionClass | str | None = None,
     ) -> tuple[HarnessRun, HarnessTraceEvent]:
         """
         Execute a state transition.
+
+        Args:
+            action_class: Optional high-impact action class for gate verification
+                when transitioning to PUBLISH_OUTPUT.
 
         Returns:
             Tuple of (updated_run, trace_event).
@@ -158,6 +163,21 @@ class HarnessRegistry:
                 validation_state = ValidationState.NEEDS_REVIEW
             elif states and all(s == ValidationState.PASSED for s in states):
                 validation_state = ValidationState.PASSED
+
+        # Action-level approval enforcement for PUBLISH_OUTPUT
+        if to_state == HarnessState.PUBLISH_OUTPUT and action_class is not None:
+            from ..policies.approval_actions import get_policy
+            policy = get_policy(action_class)
+            if policy is not None:
+                gates = self._gates.list_gates_for_run(run_id, tenant_id)
+                matching = [g for g in gates if g.gate_type == policy.required_gate_type]
+                approved = [g for g in matching if g.status == GateStatus.APPROVED]
+                if not approved:
+                    raise HarnessRegistryError(
+                        f"PUBLISH_OUTPUT blocked: action {action_class.value} requires "
+                        f"approved gate of type {policy.required_gate_type.value}. "
+                        f"Found {len(matching)} matching gate(s), {len(approved)} approved."
+                    )
 
         updated, event = self._sm.transition(
             run=run,

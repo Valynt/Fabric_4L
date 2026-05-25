@@ -79,6 +79,61 @@ class ReasoningTrace(BaseModel):
         return v
 
 
+def build_reasoning_trace(
+    *,
+    state: Any,
+    run_id: str,
+    trace_id: str,
+) -> ReasoningTrace:
+    """Build a canonical ReasoningTrace from workflow state fields.
+
+    Derives required fields from state metadata, input_data, output_data,
+    and node trace logs so that workflows do not need to manually construct
+    traces.
+    """
+    inputs_used = list(getattr(state, "input_data", {}).keys())
+
+    tools_called: list[ToolCallTrace] = []
+    trace_log = getattr(state, "metadata", {}).get("node_trace_log", [])
+    for entry in trace_log:
+        if entry.get("node_type") == "tool":
+            tools_called.append(
+                ToolCallTrace(
+                    tool_name=entry.get("tool_name", "unknown"),
+                    invocation_id=f"{run_id}:{entry.get('node_id', 'unknown')}",
+                    timestamp=entry.get("timestamp", datetime.now(UTC).isoformat()),
+                    input_summary=entry.get("input_summary", {}),
+                    output_summary=entry.get("output_summary", {}),
+                )
+            )
+
+    evidence_considered = getattr(state, "metadata", {}).get("evidence_considered", [])
+    assumptions = getattr(state, "metadata", {}).get("assumptions", [])
+    confidence = getattr(state, "metadata", {}).get("confidence", 0.8)
+
+    output_object_ids: list[str] = []
+    for key, val in (getattr(state, "output_data", {}) or {}).items():
+        if isinstance(val, dict) and "id" in val:
+            output_object_ids.append(str(val["id"]))
+        elif isinstance(val, list):
+            for item in val:
+                if isinstance(item, dict) and "id" in item:
+                    output_object_ids.append(str(item["id"]))
+    if not output_object_ids and getattr(state, "workflow_id", None):
+        output_object_ids = [f"output:{state.workflow_id}"]
+
+    return ReasoningTrace(
+        inputs_used=inputs_used,
+        tools_called=tools_called,
+        evidence_considered=evidence_considered,
+        assumptions=assumptions,
+        confidence=confidence,
+        output_object_ids=output_object_ids,
+        run_id=run_id,
+        trace_id=trace_id,
+    )
+
+
 def validate_reasoning_trace(trace: ReasoningTrace | None, *, strict: bool = True) -> None:
     """Validate that a reasoning trace meets the hardened contract.
 

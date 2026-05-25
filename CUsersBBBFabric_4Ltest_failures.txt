@@ -1,0 +1,702 @@
+============================= test session starts =============================
+platform win32 -- Python 3.14.4, pytest-9.0.3, pluggy-1.6.0
+Using --randomly-seed=3994774750
+rootdir: C:\Users\BBB\Fabric_4L\services\layer4-agents
+configfile: pyproject.toml
+plugins: anyio-4.13.0, Faker-40.15.0, hypothesis-6.152.4, langsmith-0.8.0, asyncio-1.3.0, cov-7.1.0, mock-3.15.1, randomly-4.1.0, timeout-2.4.0, xdist-3.8.0, respx-0.23.1, schemathesis-4.17.0, env-1.6.0, typeguard-4.5.1
+asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
+collected 1886 items
+
+services\layer4-agents\tests\test_usage_service.py ..F..F..s.s..F        [  0%]
+services\layer4-agents\tests\test_tool_output_structure_validation.py .. [  0%]
+................................                                         [  2%]
+services\layer4-agents\tests\test_llm_budget_guardrails.py FFF           [  2%]
+services\layer4-agents\tests\test_observability_gaps.py ........         [  3%]
+services\layer4-agents\tests\test_workflow_canonical_contract.py ..      [  3%]
+services\layer4-agents\tests\test_tenant_rate_limits.py .........FFF.FFF [  4%]
+FF                                                                       [  4%]
+services\layer4-agents\tests\test_prospects_start_analysis.py FFFFFFFFFF [  4%]
+F                                                                        [  4%]
+services\layer4-agents\tests\test_checkpoint_resume.py ................. [  5%]
+.                                                                        [  5%]
+services\layer4-agents\tests\test_rate_limiting_edge_cases.py .......... [  6%]
+...                                                                      [  6%]
+services\layer4-agents\tests\test_governance_workflow_contracts.py FFFFF [  6%]
+                                                                         [  6%]
+services\layer4-agents\tests\test_websocket_multitenant_hostile.py ..... [  6%]
+.........F........                                                       [  7%]
+services\layer4-agents\tests\test_tiers.py ...............               [  8%]
+services\layer4-agents\tests\test_notifications_route.py ..              [  8%]
+services\layer4-agents\tests\test_reasoning_trace_schema.py ..........   [  9%]
+services\layer4-agents\tests\unit\test_api_common_helpers.py .F....      [  9%]
+services\layer4-agents\tests\test_value_hypothesis.py .................. [ 10%]
+........                                                                 [ 11%]
+services\layer4-agents\tests\test_checkpoint_resume_failure_paths.py ... [ 11%]
+...........                                                              [ 11%]
+services\layer4-agents\tests\test_company_knowledge.py ................. [ 12%]
+....F........                                                            [ 13%]
+services\layer4-agents\tests\test_signal_review_route.py FF              [ 13%]
+services\layer4-agents\tests\test_oidc_id_token_validation.py .......    [ 13%]
+services\layer4-agents\tests\unit\test_value_flow_facade.py ............ [ 14%]
+.........                                                                [ 14%]
+services\layer4-agents\tests\test_dil_phase3.py ........................ [ 16%]
+..................                                                       [ 17%]
+services\layer4-agents\tests\test_agent_workflow_traceability.py ....... [ 17%]
+...........                                                              [ 18%]
+services\layer4-agents\tests\test_validation_auth_seed.py .....          [ 18%]
+services\layer4-agents\tests\test_business_case_claim_promotion.py ..... [ 18%]
+                                                                         [ 18%]
+services\layer4-agents\tests\test_admin_tool_h01.py ..F                  [ 18%]
+services\layer4-agents\tests\test_crm_tools_pagination.py ...            [ 18%]
+services\layer4-agents\tests\test_tools_authorization.py ....            [ 19%]
+services\layer4-agents\tests\test_plan_version_billing.py F              [ 19%]
+services\layer4-agents\tests\test_comments_route.py ..                   [ 19%]
+services\layer4-agents\tests\test_observability_contract_integration.py . [ 19%]
+..                                                                       [ 19%]
+services\layer4-agents\tests\test_database_optional_tenant_security.py . [ 19%]
+..F                                                                      [ 19%]
+services\layer4-agents\tests\test_knowledge_tool_persistence.py .....    [ 19%]
+services\layer4-agents\tests\test_app_title_contract.py .                [ 20%]
+services\layer4-agents\tests\test_accounts_api.py FFFFFFFFFFFFFFFFFFFFFF [ 21%]
+FFFFF                                                                    [ 21%]
+services\layer4-agents\tests\test_health_tracker.py .................... [ 22%]
+.                                                                        [ 22%]
+services\layer4-agents\tests\test_crm_sync_service.py FFFFFFFFFFFFF....  [ 23%]
+services\layer4-agents\tests\test_oidc_cleanup.py .F.F..                 [ 23%]
+services\layer4-agents\tests\test_checkpoints_route_errors.py FF         [ 23%]
+services\layer4-agents\tests\test_fail_closed_authz_guards.py .F.        [ 24%]
+services\layer4-agents\tests\test_salesforce_oauth_routes.py .....       [ 24%]
+services\layer4-agents\tests\test_tool_result_contract.py .............. [ 25%]
+...........                                                              [ 25%]
+services\layer4-agents\tests\test_messaging.py ......................... [ 26%]
+................                                                         [ 27%]
+services\layer4-agents\tests\test_workflow_tenant_isolation.py ......... [ 28%]
+.........                                                                [ 28%]
+services\layer4-agents\tests\unit\test_layer4_observability_schema.py .  [ 28%]
+services\layer4-agents\tests\test_output_envelope_contract.py ......     [ 29%]
+services\layer4-agents\tests\test_websocket_auth_routes.py .....F......F [ 29%]
+.F..FF                                                                   [ 30%]
+services\layer4-agents\tests\test_workflow_start_tenant_invariant.py ... [ 30%]
+...                                                                      [ 30%]
+services\layer4-agents\tests\unit\test_observability_schema_legacy.py .  [ 30%]
+services\layer4-agents\tests\unit\test_services_unit.py ...............  [ 31%]
+services\layer4-agents\tests\test_oidc.py ...F..F...................     [ 32%]
+services\layer4-agents\tests\test_db_pool_metrics.py .                   [ 32%]
+services\layer4-agents\tests\test_case_permissions_and_audit.py .FF      [ 32%]
+services\layer4-agents\tests\test_oidc_state_store.py ......             [ 33%]
+services\layer4-agents\tests\test_code_quality.py ......                 [ 33%]
+services\layer4-agents\tests\test_narratives_tenant_hardening.py ..      [ 33%]
+services\layer4-agents\tests\test_tools_routes_contract.py FF            [ 33%]
+services\layer4-agents\tests\test_salesforce_oauth.py ........           [ 34%]
+services\layer4-agents\tests\test_roi_calculator_workflow.py ........... [ 34%]
+.....................                                                    [ 35%]
+services\layer4-agents\tests\test_websocket_manager.py ....F.F.......... [ 36%]
+.....................F.......                                            [ 38%]
+services\layer4-agents\tests\test_run_envelope_contract.py ......        [ 38%]
+services\layer4-agents\tests\security\test_layer4_tenant_scoped_services.py . [ 38%]
+...                                                                      [ 38%]
+services\layer4-agents\tests\unit\test_task_scheduler.py ............... [ 39%]
+.............                                                            [ 40%]
+services\layer4-agents\tests\test_model_registry.py ..F.......FFFF.      [ 41%]
+services\layer4-agents\tests\test_tenant_api.py ...............F........ [ 42%]
+.                                                                        [ 42%]
+services\layer4-agents\tests\unit\test_workflow_state_machine.py ....... [ 42%]
+........................                                                 [ 44%]
+services\layer4-agents\tests\test_error_handling_paths.py F.F            [ 44%]
+services\layer4-agents\tests\test_agent_grounding_and_refusal.py ....... [ 44%]
+.........                                                                [ 45%]
+services\layer4-agents\tests\test_checkpoint_resume_restart.py ...       [ 45%]
+services\layer4-agents\tests\test_feature_flags.py ssssssssssssssss      [ 46%]
+services\layer4-agents\tests\test_tenant_provisioning.py ..F.FFFFF.FFF.. [ 46%]
+..FF                                                                     [ 47%]
+services\layer4-agents\tests\test_encryption_service.py ................ [ 47%]
+..                                                                       [ 48%]
+services\layer4-agents\tests\test_crm_webhook_auth_unit.py ..........    [ 48%]
+services\layer4-agents\tests\unit\test_overage_service.py ...F.......... [ 49%]
+..                                                                       [ 49%]
+services\layer4-agents\tests\test_trace_header_propagation_integration.py s [ 49%]
+.ss                                                                      [ 49%]
+services\layer4-agents\tests\test_isolation_tier_provisioning.py ....F.F [ 50%]
+F.                                                                       [ 50%]
+services\layer4-agents\tests\test_checkpoint_tenant_isolation.py .F..    [ 50%]
+services\layer4-agents\tests\test_layer3_client_knowledge_methods.py FFF [ 50%]
+FFF                                                                      [ 50%]
+services\layer4-agents\tests\test_security_fixes.py .................... [ 51%]
+...................                                                      [ 52%]
+services\layer4-agents\tests\test_agent_output_traceability.py ......... [ 53%]
+.....................                                                    [ 54%]
+services\layer4-agents\tests\unit\test_state_manager.py ................ [ 55%]
+.............                                                            [ 55%]
+services\layer4-agents\tests\test_workflow_controls.py FFFFF...FFF       [ 56%]
+services\layer4-agents\tests\test_resilience.py ........................ [ 57%]
+.........                                                                [ 58%]
+services\layer4-agents\tests\test_checkpoints_route_identity.py .F       [ 58%]
+services\layer4-agents\tests\test_harness_routes.py .FFFF.FF             [ 58%]
+services\layer4-agents\tests\test_runtime_hardening.py ..                [ 58%]
+services\layer4-agents\tests\test_notification.py ...........FF...       [ 59%]
+services\layer4-agents\tests\unit\test_variable_registry_service.py .... [ 59%]
+...........................                                              [ 61%]
+services\layer4-agents\tests\test_frontend_compat_routes.py .....        [ 61%]
+services\layer4-agents\tests\test_langgraph_execution.py ............... [ 62%]
+...........F.....................                                        [ 64%]
+services\layer4-agents\tests\test_action_level_approval.py .........     [ 64%]
+services\layer4-agents\tests\test_tools_route_response_models.py .F      [ 64%]
+services\layer4-agents\tests\test_api_tenant_propagation.py ..           [ 64%]
+services\layer4-agents\tests\test_startup_contract.py ..F.               [ 65%]
+services\layer4-agents\tests\test_error_response_shape_canonical.py .... [ 65%]
+................                                                         [ 66%]
+services\layer4-agents\tests\test_replay_conflict_policy.py ............ [ 66%]
+                                                                         [ 66%]
+services\layer4-agents\tests\unit\test_scheduler_execution.py ...        [ 66%]
+services\layer4-agents\tests\test_tenant_context_route.py ..             [ 67%]
+services\layer4-agents\tests\test_database_session_tenant_enforcement.py . [ 67%]
+..                                                                       [ 67%]
+services\layer4-agents\tests\test_webhook_security.py F.FFFFFFFFFF       [ 67%]
+services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py F [ 67%]
+FFFFF                                                                    [ 68%]
+services\layer4-agents\tests\test_value_flow_facade.py ................. [ 69%]
+..                                                                       [ 69%]
+services\layer4-agents\tests\test_audit_route_h01.py ..                  [ 69%]
+services\layer4-agents\tests\test_cross_tenant_hostile.py .....          [ 69%]
+services\layer4-agents\tests\unit\test_oss0_ports.py ....                [ 69%]
+services\layer4-agents\tests\test_phase3_control_plane.py .............. [ 70%]
+....................                                                     [ 71%]
+services\layer4-agents\tests\test_agent_tenant_isolation.py FF.......    [ 72%]
+services\layer4-agents\tests\unit\test_layer4_correctness_patch.py ..... [ 72%]
+...F.................................................................... [ 76%]
+.......................                                                  [ 77%]
+services\layer4-agents\tests\test_checkpoint_boundary.py ........        [ 77%]
+services\layer4-agents\tests\test_billing_tenant_scoped_customer_keys.py F [ 77%]
+F                                                                        [ 77%]
+services\layer4-agents\tests\test_workflow_archive_and_list.py ......... [ 78%]
+                                                                         [ 78%]
+services\layer4-agents\tests\test_usage_idempotency.py ...F.....FFF...   [ 79%]
+services\layer4-agents\tests\test_context_gatherer.py FFF..              [ 79%]
+services\layer4-agents\tests\test_interfaces_exports.py .............    [ 80%]
+services\layer4-agents\tests\test_variable_registry_helpers.py ......... [ 80%]
+...................                                                      [ 81%]
+services\layer4-agents\tests\test_pack_variable_loader.py ......F....F.. [ 82%]
+..FF....                                                                 [ 82%]
+services\layer4-agents\tests\test_tenant_isolation.py F.FFFF..FFFFFF.FFF [ 83%]
+FF..FFs                                                                  [ 84%]
+services\layer4-agents\tests\test_enrichment.py ............F.FF.        [ 84%]
+services\layer4-agents\tests\test_llm_cost_tracking.py .FFFF...          [ 85%]
+services\layer4-agents\tests\test_integration_service.py FF.F........... [ 86%]
+                                                                         [ 86%]
+services\layer4-agents\tests\test_agent_tool_result_contracts.py ....... [ 86%]
+...                                                                      [ 86%]
+services\layer4-agents\tests\unit\test_workflow_routes.py ............   [ 87%]
+services\layer4-agents\tests\test_frontend_endpoint_contracts.py ....    [ 87%]
+services\layer4-agents\tests\test_c1_proxy.py ...FFFFF                   [ 87%]
+services\layer4-agents\tests\test_provenance.py ......F........F....F... [ 89%]
+......F.......                                                           [ 89%]
+services\layer4-agents\tests\test_startup_dependencies.py ..             [ 90%]
+services\layer4-agents\tests\test_tenant_guardrails_clients.py ..F.      [ 90%]
+services\layer4-agents\tests\test_workflow_replay_harness.py F..         [ 90%]
+services\layer4-agents\tests\test_tasks_route.py ..                      [ 90%]
+services\layer4-agents\tests\test_agent_mutation_approval_audit.py F..F  [ 90%]
+services\layer4-agents\tests\test_tool_execution_contract.py ........... [ 91%]
+.........                                                                [ 91%]
+services\layer4-agents\tests\migrations\test_031_harness_tables_sql.py . [ 91%]
+....................................                                     [ 93%]
+services\layer4-agents\tests\test_startup_dependency_verifier.py ....    [ 94%]
+services\layer4-agents\tests\test_workflows_real_execution.py ......     [ 94%]
+services\layer4-agents\tests\test_workflow_replay_determinism.py ..      [ 94%]
+services\layer4-agents\tests\test_llm_cost_metrics.py .......            [ 94%]
+services\layer4-agents\tests\unit\test_production_readiness_fixes.py ... [ 94%]
+............                                                             [ 95%]
+services\layer4-agents\tests\test_executor_lifecycle_facade.py ..        [ 95%]
+services\layer4-agents\tests\test_crm_webhook_tenant_isolation.py .....  [ 95%]
+services\layer4-agents\tests\test_analysis_routes.py ....F...s.          [ 96%]
+services\layer4-agents\tests\test_export_provenance.py ..                [ 96%]
+services\layer4-agents\tests\test_tenant_lifecycle.py s................. [ 97%]
+.FFFFF                                                                   [ 97%]
+services\layer4-agents\tests\test_billing_service.py .F.....FF..F......F [ 98%]
+.FFF.FFF..F.F....F..F                                                    [100%]C:\Users\BBB\AppData\Roaming\Python\Python314\site-packages\_pytest\unraisableexception.py:33: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+  gc.collect()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+
+
+============================== warnings summary ===============================
+packages\shared\src\value_fabric\shared\security\config.py:51
+  C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\security\config.py:51: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class SecurityConfig(BaseModel):
+
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+tests/test_security_fixes.py::ProductionSettingsValidationTests::test_development_generates_nonempty_ephemeral_secrets
+tests/unit/test_production_readiness_fixes.py::TestSettingsImportSafety::test_settings_imports_without_infisical_crash
+  C:\Users\BBB\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263: RuntimeWarning: JWT_SECRET not set in development. Using random secret (sessions will not persist across restarts).
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+..\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263
+tests/test_security_fixes.py::ProductionSettingsValidationTests::test_development_generates_nonempty_ephemeral_secrets
+tests/unit/test_production_readiness_fixes.py::TestSettingsImportSafety::test_settings_imports_without_infisical_crash
+  C:\Users\BBB\AppData\Roaming\Python\Python314\site-packages\pydantic\main.py:263: RuntimeWarning: API_KEY_HMAC_SECRET not set in development. Using random secret (API keys will not persist across restarts).
+    validated_self = self.__pydantic_validator__.validate_python(data, self_instance=self)
+
+packages\shared\src\value_fabric\shared\identity\jwt.py:21
+  C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\identity\jwt.py:21: UserWarning: Field name "keys" in "get_jwksResult" shadows an attribute in parent "TypedDictModel"
+    class get_jwksResult(TypedDictModel):
+
+packages\shared\src\value_fabric\shared\audit\models.py:154
+  C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\audit\models.py:154: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class TenantResolvedDetails(BaseModel):
+
+services\layer4-agents\src\integration\layer5_client.py:40
+services\layer4-agents\src\integration\layer5_client.py:40
+services\layer4-agents\src\integration\layer5_client.py:40
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\integration\layer5_client.py:40: UserWarning: Field name "items" in "Layer5GroundTruthClient_list_truthsResult" shadows an attribute in parent "TypedDictModel"
+    class Layer5GroundTruthClient_list_truthsResult(TypedDictModel):
+
+services\layer4-agents\src\integration\layer5_client.py:67
+services\layer4-agents\src\integration\layer5_client.py:67
+services\layer4-agents\src\integration\layer5_client.py:67
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\integration\layer5_client.py:67: UserWarning: Field name "items" in "Layer5GroundTruthClient_get_stale_truthsResult" shadows an attribute in parent "TypedDictModel"
+    class Layer5GroundTruthClient_get_stale_truthsResult(TypedDictModel):
+
+services\layer4-agents\tests\test_accounts_api.py:18
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_accounts_api.py:18: PytestUnknownMarkWarning: Unknown pytest.mark.requires_postgres - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.requires_postgres,
+
+services\layer4-agents\src\api\routes\billing.py:189
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\api\routes\billing.py:189: UserWarning: Field name "items" in "get_invoiceResult" shadows an attribute in parent "TypedDictModel"
+    class get_invoiceResult(TypedDictModel):
+
+services\layer4-agents\tests\test_agent_output_traceability.py:23
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_output_traceability.py:23: PytestUnknownMarkWarning: Unknown pytest.mark.security - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.security,
+
+services\layer4-agents\tests\test_agent_output_traceability.py:24
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_output_traceability.py:24: PytestUnknownMarkWarning: Unknown pytest.mark.contract - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.contract,
+
+services\layer4-agents\tests\test_agent_output_traceability.py:25
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_output_traceability.py:25: PytestUnknownMarkWarning: Unknown pytest.mark.mandatory - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.mandatory,
+
+services\layer4-agents\tests\test_agent_workflow_traceability.py:22
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_workflow_traceability.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.security - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.security,
+
+services\layer4-agents\tests\test_agent_workflow_traceability.py:23
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_workflow_traceability.py:23: PytestUnknownMarkWarning: Unknown pytest.mark.contract - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.contract,
+
+services\layer4-agents\tests\test_agent_workflow_traceability.py:24
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_agent_workflow_traceability.py:24: PytestUnknownMarkWarning: Unknown pytest.mark.mandatory - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.mandatory,
+
+services\layer4-agents\tests\test_business_case_claim_promotion.py:18
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_business_case_claim_promotion.py:18: UserWarning: Field name "items" in "_FakeLayer5Client_list_truthsResult" shadows an attribute in parent "TypedDictModel"
+    class _FakeLayer5Client_list_truthsResult(TypedDictModel):
+
+services\layer4-agents\tests\test_company_knowledge.py:58
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_company_knowledge.py:58: PytestUnknownMarkWarning: Unknown pytest.mark.requires_postgres - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.requires_postgres,
+
+services\layer4-agents\src\api\tenants.py:39
+tests/test_tenant_api.py::TestProvisionTenantEndpoint::test_provision_tenant_success
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\api\tenants.py:39: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.13/migration/
+    class ProvisionTenantRequest(BaseModel):
+
+services\layer4-agents\tests\test_tenant_isolation.py:33
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_isolation.py:33: PytestCollectionWarning: cannot collect test class 'TestCrossTenantDenial_get_tenant_dataResult' because it has a __init__ constructor (from: tests/test_tenant_isolation.py)
+    class TestCrossTenantDenial_get_tenant_dataResult(TypedDictModel):
+
+services\layer4-agents\tests\test_tenant_isolation.py:36
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_isolation.py:36: PytestCollectionWarning: cannot collect test class 'TestCrossTenantDenial_get_admin_dataResult' because it has a __init__ constructor (from: tests/test_tenant_isolation.py)
+    class TestCrossTenantDenial_get_admin_dataResult(TypedDictModel):
+
+services\layer4-agents\tests\test_tool_execution_contract.py:21
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_execution_contract.py:21: PytestUnknownMarkWarning: Unknown pytest.mark.security - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.security,
+
+services\layer4-agents\tests\test_tool_execution_contract.py:22
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_execution_contract.py:22: PytestUnknownMarkWarning: Unknown pytest.mark.contract - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.contract,
+
+services\layer4-agents\tests\test_tool_execution_contract.py:23
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_execution_contract.py:23: PytestUnknownMarkWarning: Unknown pytest.mark.mandatory - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.mandatory,
+
+services\layer4-agents\tests\test_tool_output_structure_validation.py:23
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_output_structure_validation.py:23: PytestUnknownMarkWarning: Unknown pytest.mark.security - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.security,
+
+services\layer4-agents\tests\test_tool_output_structure_validation.py:24
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_output_structure_validation.py:24: PytestUnknownMarkWarning: Unknown pytest.mark.contract - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.contract,
+
+services\layer4-agents\tests\test_tool_output_structure_validation.py:25
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tool_output_structure_validation.py:25: PytestUnknownMarkWarning: Unknown pytest.mark.mandatory - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytest.mark.mandatory,
+
+tests/test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_redis_failure_fails_closed_in_prod_policy
+tests/test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_redis_failure_degrades_open_locally
+tests/test_rate_limiting_edge_cases.py::TestRedisRateLimiterEdgeCases::test_redis_client_none_with_fail_closed_blocks_all_requests
+tests/test_rate_limiting_edge_cases.py::TestRedisRateLimiterEdgeCases::test_redis_client_none_with_fail_open_allows_all_requests
+  C:\Users\BBB\Fabric_4L\packages\shared\src\value_fabric\shared\rate_limiting\tenant_rate_limiter.py:517: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.utcnow().timestamp()
+
+tests/test_websocket_multitenant_hostile.py: 14 warnings
+  C:\Users\BBB\AppData\Roaming\Python\Python314\site-packages\jwt\api_jwt.py:147: InsecureKeyLengthWarning: The HMAC key is 15 bytes long, which is below the minimum recommended length of 32 bytes for SHA256. See RFC 7518 Section 3.2.
+    return self._jws.encode(
+
+tests/test_websocket_multitenant_hostile.py::TestCrossTenantMatrix::test_tenant_a_token_denied_tenant_b_resource[signals-prospect-tenant-b-002]
+  C:\Users\BBB\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:214: DeprecationWarning: db_session() is deprecated. Use get_db_from_context() for consistency.
+    return await anext(self.gen)
+
+tests/test_database_optional_tenant_security.py::test_optional_tenant_super_admin_uses_privileged_mode_without_empty_tenant_sql
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_database_optional_tenant_security.py:108: DeprecationWarning: get_db_with_optional_tenant() is deprecated. Use get_db_from_context() for consistency.
+    session = await agen.__anext__()
+
+tests/test_database_optional_tenant_security.py::test_optional_tenant_super_admin_requires_privileged_reason
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_database_optional_tenant_security.py:77: DeprecationWarning: get_db_with_optional_tenant() is deprecated. Use get_db_from_context() for consistency.
+    await agen.__anext__()
+
+tests/test_database_optional_tenant_security.py::test_optional_tenant_rejects_non_super_admin_without_tenant
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_database_optional_tenant_security.py:56: DeprecationWarning: get_db_with_optional_tenant() is deprecated. Use get_db_from_context() for consistency.
+    await agen.__anext__()
+
+tests/test_health_tracker.py::TestHealthTracker::test_degraded_status_creates_badge
+tests/test_health_tracker.py::TestHealthTracker::test_dismiss_badge
+tests/test_health_tracker.py::TestHealthTracker::test_cannot_dismiss_non_dismissible_badge
+tests/test_health_tracker.py::TestHealthTracker::test_auto_hide_badge
+tests/test_health_tracker.py::TestHealthTracker::test_healthy_status_removes_degraded_badge
+tests/test_health_tracker.py::TestHealthTracker::test_healthy_status_removes_degraded_badge
+tests/test_health_tracker.py::TestHealthTracker::test_callback_exception_handling
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\services\health_tracker.py:329: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(callback):
+
+tests/test_health_tracker.py::TestHealthTracker::test_status_change_triggers_callback
+tests/test_health_tracker.py::TestHealthTracker::test_status_change_triggers_callback
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\services\health_tracker.py:472: DeprecationWarning: 'asyncio.iscoroutinefunction' is deprecated and slated for removal in Python 3.16; use inspect.iscoroutinefunction() instead
+    if asyncio.iscoroutinefunction(callback):
+
+tests/test_model_registry.py::TestModelRegistryCRUD::test_register_model
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\registry\service.py:66: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    db.add(model)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_model_registry.py::TestModelPromotion::test_staging_to_production_passes_with_high_score
+tests/test_model_registry.py::TestModelPromotion::test_dev_to_staging_allowed
+tests/test_model_registry.py::TestModelPromotion::test_promotion_history_recorded
+tests/test_model_registry.py::TestModelPromotion::test_production_to_deprecated_allowed
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\registry\service.py:213: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    db.add(log_entry)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_tenant_api.py::TestTenantAPIModels::test_provision_tenant_response_structure
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:266: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow().isoformat(),
+
+tests/test_tenant_api.py::TestTenantAPIModels::test_tenant_summary_structure
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:283: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow().isoformat(),
+
+tests/test_tenant_api.py::TestProvisionTenantEndpoint::test_provision_tenant_returns_credentials
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:126: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_tenant_api.py::TestProvisionTenantEndpoint::test_provision_tenant_partial_success
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:179: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_tenant_api.py::TestProvisionTenantEndpoint::test_provision_tenant_success
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:69: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_tenant_api.py::TestProvisionTenantEndpoint::test_provision_tenant_idempotent
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_api.py:146: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_error_handling_paths.py::test_usage_ingest_event_rolls_back_and_surfaces_db_error
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\src\services\usage_service.py:222: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    self.db.add(event)
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_idempotent
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_provisioning.py:97: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    (existing_tenant_id, "existing-tenant", datetime.utcnow(), "shared"),
+
+tests/test_tenant_provisioning.py::TestTenantProvisionResult::test_creates_partial_result_with_errors
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_provisioning.py:358: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_tenant_provisioning.py::TestTenantProvisionResult::test_creates_success_result
+  C:\Users\BBB\Fabric_4L\services\layer4-agents\tests\test_tenant_provisioning.py:344: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    created_at=datetime.utcnow(),
+
+tests/test_isolation_tier_provisioning.py::test_get_tiered_db_session_schema_raises_422
+tests/test_isolation_tier_provisioning.py::test_get_tiered_db_session_database_raises_422
+  C:\Users\BBB\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:214: DeprecationWarning: get_tiered_db_session() is deprecated. Use get_db_from_context() for consistency.
+    return await anext(self.gen)
+
+tests/test_isolation_tier_provisioning.py::test_get_tiered_db_session_schema_raises_422
+tests/test_isolation_tier_provisioning.py::test_get_tiered_db_session_database_raises_422
+tests/test_isolation_tier_provisioning.py::test_db_session_for_context_unsupported_tier_raises_422
+  C:\Users\BBB\AppData\Local\Python\pythoncore-3.14-64\Lib\contextlib.py:214: DeprecationWarning: 'HTTP_422_UNPROCESSABLE_ENTITY' is deprecated. Use 'HTTP_422_UNPROCESSABLE_CONTENT' instead.
+    return await anext(self.gen)
+
+tests/test_frontend_endpoint_contracts.py::test_frontend_register_response_contract_fields
+  C:\Users\BBB\AppData\Roaming\Python\Python314\site-packages\pydantic\json_schema.py:2466: PydanticJsonSchemaWarning: Default value <function TypedDictModel.items at 0x00000257F6F1E820> is not JSON serializable; excluding default from JSON schema [non-serializable-default]
+    warnings.warn(message, PydanticJsonSchemaWarning)
+
+tests/test_frontend_endpoint_contracts.py::test_frontend_register_response_contract_fields
+  C:\Users\BBB\AppData\Local\Python\pythoncore-3.14-64\Lib\dataclasses.py:1468: RuntimeWarning: coroutine 'AsyncMockMixin._execute_mock_call' was never awaited
+    def is_dataclass(obj):
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED services\layer4-agents\tests\test_usage_service.py::test_ingest_usage_batch_soft_limit_allows_accumulation
+FAILED services\layer4-agents\tests\test_usage_service.py::test_get_usage_summary
+FAILED services\layer4-agents\tests\test_usage_service.py::test_ingest_usage_event_blocks_hard_limit
+FAILED services\layer4-agents\tests\test_llm_budget_guardrails.py::test_precheck_returns_throttle_near_soft_cap
+FAILED services\layer4-agents\tests\test_llm_budget_guardrails.py::test_record_usage_and_prune_old_events
+FAILED services\layer4-agents\tests\test_llm_budget_guardrails.py::test_precheck_blocks_when_hard_cap_exceeded
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_redis_failure_fails_closed_in_prod_policy
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_middleware_does_not_double_consume_allowed_requests
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_middleware_uses_tenant_settings_for_rate_limit
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_redis_failure_degrades_open_locally
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_middleware_honors_layer4_burst_schema_key
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_prod_like_environment_requires_shared_limiter
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_resolver_failure_falls_back_to_role_defaults
+FAILED services\layer4-agents\tests\test_tenant_rate_limits.py::TestRateLimitMiddlewareIntegration::test_middleware_uses_tenant_config_for_429_headers
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_updates_existing_prospect
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_missing_tenant_fails_closed
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_valid_tenant_creates_prospect
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_creates_new_prospect
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_no_buyer_role_for_non_executive
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_degraded_when_executor_unavailable
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_triggers_workflow
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_no_hardcoded_company_data
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_buyer_role_from_executive_title
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_no_hardcoded_crm_match
+FAILED services\layer4-agents\tests\test_prospects_start_analysis.py::test_start_analysis_degraded_when_workflow_fails
+FAILED services\layer4-agents\tests\test_governance_workflow_contracts.py::test_approval_gated_export_blocks_without_approval
+FAILED services\layer4-agents\tests\test_governance_workflow_contracts.py::test_frontend_query_key_route_contracts_are_reachable
+FAILED services\layer4-agents\tests\test_governance_workflow_contracts.py::test_immutable_governance_objects_reject_duplicate_ids
+FAILED services\layer4-agents\tests\test_governance_workflow_contracts.py::test_export_fails_closed_when_correlation_id_does_not_match_review
+FAILED services\layer4-agents\tests\test_governance_workflow_contracts.py::test_lineage_retrieval_contains_review_decision_version_and_export
+FAILED services\layer4-agents\tests\test_websocket_multitenant_hostile.py::TestWorkflowWebSocketOwnership::test_tenant_a_can_connect_to_own_workflow
+FAILED services\layer4-agents\tests\unit\test_api_common_helpers.py::test_raise_normalized_with_log_logs_non_http_exception
+FAILED services\layer4-agents\tests\test_company_knowledge.py::test_approve_profile
+FAILED services\layer4-agents\tests\test_signal_review_route.py::test_signal_review_approve_reject_roundtrip_and_persistence_reload
+FAILED services\layer4-agents\tests\test_signal_review_route.py::test_evidence_attach_writes_driver_relation
+FAILED services\layer4-agents\tests\test_admin_tool_h01.py::test_suspend_tenant_uses_lifecycle_service_and_commits
+FAILED services\layer4-agents\tests\test_plan_version_billing.py::test_entitlement_uses_pinned_plan_version_for_historical_reproducibility
+FAILED services\layer4-agents\tests\test_database_optional_tenant_security.py::test_database_module_source_contains_no_empty_tenant_bypass_sql
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_sorting
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_sync_accounts_specific_provider
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_filter_options_with_data
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_create_case_from_existing_account
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_search_accounts_with_filters
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_search_accounts_by_name
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_account_detail
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_account_activity_not_found
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_pagination
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_sync_accounts_force_refresh
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_account_activity_success
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_account_not_found
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_create_account
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_filter_by_provider
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_search_accounts_no_results
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_search_accounts_by_domain
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_refresh_account_success
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_sync_status_empty
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_filter_by_stage
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_search_accounts_by_owner
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_sync_accounts_all_providers
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_create_case_rejects_non_uuid_account_id
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_with_data
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_refresh_account_not_found
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_sync_status_all
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_get_filter_options_empty
+FAILED services\layer4-agents\tests\test_accounts_api.py::test_list_accounts_empty
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMWebhooks::test_salesforce_webhook_health
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMWebhooks::test_salesforce_webhook_accepts_platform_event
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMWebhooks::test_hubspot_webhook_handles_multiple_events
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMWebhooks::test_hubspot_webhook_accepts_company_events
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestAccountServiceIntegration::test_refresh_account_delegates_to_sync_service
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestAccountServiceIntegration::test_trigger_sync_delegates_to_sync_service
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_sync_provider_with_hubspot
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_sync_provider_updates_existing_account
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_get_crm_config_missing_integration
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_sync_provider_creates_new_account
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_get_crm_config_from_integration_table
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_refresh_single_account_success
+FAILED services\layer4-agents\tests\test_crm_sync_service.py::TestCRMSyncService::test_sync_provider_with_api_error
+FAILED services\layer4-agents\tests\test_oidc_cleanup.py::TestCleanupExpiredSessions::test_cleanup_rolls_back_on_error
+FAILED services\layer4-agents\tests\test_oidc_cleanup.py::TestOIDCCleanupTask::test_cleanup_task_handles_errors_gracefully
+FAILED services\layer4-agents\tests\test_checkpoints_route_errors.py::test_list_checkpoints_returns_structured_500_on_query_failure
+FAILED services\layer4-agents\tests\test_checkpoints_route_errors.py::test_list_checkpoints_returns_empty_200_when_no_checkpoints_exist
+FAILED services\layer4-agents\tests\test_fail_closed_authz_guards.py::FailClosedAuthzGuardTests::test_tool_invocation_route_does_not_fallback_to_direct_registry_execution
+FAILED services\layer4-agents\tests\test_websocket_auth_routes.py::test_route_rejects_bare_subprotocol_name
+FAILED services\layer4-agents\tests\test_websocket_auth_routes.py::test_route_rejects_missing_token
+FAILED services\layer4-agents\tests\test_websocket_auth_routes.py::test_route_accepts_canonical_header_and_connects_with_correct_claims
+FAILED services\layer4-agents\tests\test_websocket_auth_routes.py::test_route_auth_failure_log_has_trace_metadata
+FAILED services\layer4-agents\tests\test_websocket_auth_routes.py::test_route_does_not_leak_token_in_logs
+FAILED services\layer4-agents\tests\test_oidc.py::TestOIDCClient::test_discover_retries_on_failure
+FAILED services\layer4-agents\tests\test_oidc.py::TestOIDCClient::test_discover_no_retry_on_4xx
+FAILED services\layer4-agents\tests\test_case_permissions_and_audit.py::test_cross_tenant_case_access_denied
+FAILED services\layer4-agents\tests\test_case_permissions_and_audit.py::test_audit_lifecycle_reconstructable
+FAILED services\layer4-agents\tests\test_tools_routes_contract.py::test_list_tool_categories_returns_typed_items
+FAILED services\layer4-agents\tests\test_tools_routes_contract.py::test_get_tool_schema_returns_typed_shape
+FAILED services\layer4-agents\tests\test_websocket_manager.py::TestOutputSummarization::test_summarize_output_handles_none
+FAILED services\layer4-agents\tests\test_websocket_manager.py::TestOutputSummarization::test_summarize_output_handles_empty
+FAILED services\layer4-agents\tests\test_websocket_manager.py::TestClientMessageHandling::test_handle_ack_logs_debug
+FAILED services\layer4-agents\tests\test_model_registry.py::TestModelRegistryCRUD::test_register_model
+FAILED services\layer4-agents\tests\test_model_registry.py::TestModelPromotion::test_staging_to_production_passes_with_high_score
+FAILED services\layer4-agents\tests\test_model_registry.py::TestModelPromotion::test_dev_to_staging_allowed
+FAILED services\layer4-agents\tests\test_model_registry.py::TestModelPromotion::test_promotion_history_recorded
+FAILED services\layer4-agents\tests\test_model_registry.py::TestModelPromotion::test_production_to_deprecated_allowed
+FAILED services\layer4-agents\tests\test_tenant_api.py::test_count_tenant_entities_queries_real_tenant_scoped_tables
+FAILED services\layer4-agents\tests\test_error_handling_paths.py::test_billing_webhook_malformed_payload_translates_to_value_error
+FAILED services\layer4-agents\tests\test_error_handling_paths.py::test_webhook_db_failure_not_swallowed
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_with_metadata
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_rollback_on_failure
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_audit_event_redacts_temp_password
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_schema_isolation
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_idempotent
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_stores_argon2id_password_hash
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_emits_audit_event
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_new_tenant_success
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningService::test_provision_tenant_creates_records
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningIntegration::test_provision_with_org_hierarchy
+FAILED services\layer4-agents\tests\test_tenant_provisioning.py::TestTenantProvisioningIntegration::test_provision_multiple_tenants
+FAILED services\layer4-agents\tests\unit\test_overage_service.py::TestCheckMetricUsageNoPlan::test_plan_without_metric_limit_returns_unlimited
+FAILED services\layer4-agents\tests\test_isolation_tier_provisioning.py::test_database_tier_rejected_at_validation
+FAILED services\layer4-agents\tests\test_isolation_tier_provisioning.py::test_schema_tier_rejected_at_validation
+FAILED services\layer4-agents\tests\test_isolation_tier_provisioning.py::test_schema_tier_rejected_before_db_write
+FAILED services\layer4-agents\tests\test_checkpoint_tenant_isolation.py::test_tenant_a_cannot_resume_tenant_b_checkpoint
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_value_driver_formulas_uses_provided_tenant_id
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_value_driver_formulas_calls_correct_url
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_value_driver_formulas_single_id
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_benchmark_variables_uses_provided_tenant_id
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_value_driver_formulas_empty_list_raises_value_error
+FAILED services\layer4-agents\tests\test_layer3_client_knowledge_methods.py::test_get_benchmark_variables_calls_correct_url
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowPause::test_pause_running_workflow_returns_200
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowPause::test_pause_completed_workflow_returns_400
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowPause::test_pause_already_paused_workflow_returns_400
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowPause::test_pause_failed_workflow_returns_400
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowPause::test_pause_nonexistent_workflow_returns_404
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowResume::test_resume_completed_workflow_returns_400
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowResume::test_resume_failed_workflow_returns_400
+FAILED services\layer4-agents\tests\test_workflow_controls.py::TestWorkflowResume::test_resume_paused_workflow_returns_200
+FAILED services\layer4-agents\tests\test_checkpoints_route_identity.py::test_resume_from_checkpoint_uses_authenticated_identity
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_decide_gate_uses_auth_context_for_decision_by
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_decide_gate_decision_by_falls_back_to_tenant_id
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_decide_gate_accepts_rejected_decision
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_decide_gate_rejects_unknown_decision_value
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_decide_gate_calls_registry_with_correct_args
+FAILED services\layer4-agents\tests\test_harness_routes.py::test_invalid_transition_returns_422
+FAILED services\layer4-agents\tests\test_notification.py::TestQuietHoursEnforcement::test_outside_quiet_hours_allows_all_channels
+FAILED services\layer4-agents\tests\test_notification.py::TestQuietHoursEnforcement::test_wrapped_quiet_hours_range
+FAILED services\layer4-agents\tests\test_langgraph_execution.py::TestOrchestrationControllerWorkflowLifecycle::test_execute_workflow_creates_metadata
+FAILED services\layer4-agents\tests\test_tools_route_response_models.py::test_tool_schema_response_has_typed_fields
+FAILED services\layer4-agents\tests\test_startup_contract.py::test_dependency_checks_fail_contract
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_does_not_log_secrets
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_out_of_order_subscription_events
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_checkout_completed_with_unknown_customer
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_signature_verification_mandatory
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_database_failure_rolls_back
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_malformed_payload_rejected
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_duplicate_event_id_returns_success
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_tenant_resolution_from_customer_record
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_invalid_signature_rejected_with_specific_error
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_idempotency_uses_db_constraint_not_raceable_select
+FAILED services\layer4-agents\tests\test_webhook_security.py::test_webhook_unknown_event_type_logged_and_ignored
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_normal_business_case_request_preserves_full_workflow
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_smoke_mode_roi_returns_deterministic_response_without_executor
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_roi_smoke_mode_creates_audit_event
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_smoke_mode_business_case_persists_draft_and_skips_executor
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_export_gate_rejects_smoke_draft_record_without_executor_result
+FAILED services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py::test_regenerate_business_case_returns_lineage_and_diff
+FAILED services\layer4-agents\tests\test_agent_tenant_isolation.py::test_forged_tenant_header_cannot_override_validated_context
+FAILED services\layer4-agents\tests\test_agent_tenant_isolation.py::test_agent_stream_passes_entity_context_to_conversation_service
+FAILED services\layer4-agents\tests\unit\test_layer4_correctness_patch.py::TestGovernedLLMClientSupplemental::test_emit_raw_with_run_and_telemetry_emits_event
+FAILED services\layer4-agents\tests\test_billing_tenant_scoped_customer_keys.py::test_same_logical_customer_id_can_exist_in_multiple_tenants
+FAILED services\layer4-agents\tests\test_billing_tenant_scoped_customer_keys.py::test_subscription_fk_is_scoped_by_tenant_and_customer
+FAILED services\layer4-agents\tests\test_usage_idempotency.py::test_usage_event_db_failure_rolls_back
+FAILED services\layer4-agents\tests\test_usage_idempotency.py::test_get_usage_summary_enforces_tenant_filter
+FAILED services\layer4-agents\tests\test_usage_idempotency.py::test_usage_batch_db_failure_partial_rollback
+FAILED services\layer4-agents\tests\test_usage_idempotency.py::test_usage_event_duplicate_idempotency_key_rejected_at_db_level
+FAILED services\layer4-agents\tests\test_context_gatherer.py::test_run_tenant_validated_query_rejects_mismatched_tenant_context
+FAILED services\layer4-agents\tests\test_context_gatherer.py::test_context_queries_reject_mismatched_tenant_context[context_gatherer.account_hypotheses-\n            MATCH (vh:ValueHypothesis {tenant_id: $tenant_id, account_id: $account_id})\n            RETURN vh {.*} AS hypothesis\n            -params1]
+FAILED services\layer4-agents\tests\test_context_gatherer.py::test_context_queries_reject_mismatched_tenant_context[context_gatherer.account_signals-\n            MATCH (s:Signal {tenant_id: $tenant_id})\n            WHERE s.account_id = $account_id OR s.target_account_id = $account_id\n            RETURN s {.*} AS signal\n            -params0]
+FAILED services\layer4-agents\tests\test_pack_variable_loader.py::TestPackVariableLoader::test_load_pack_success
+FAILED services\layer4-agents\tests\test_pack_variable_loader.py::TestPackVariableLoader::test_load_pack_idempotent
+FAILED services\layer4-agents\tests\test_pack_variable_loader.py::TestValidatePackReferences::test_validate_references_invalid
+FAILED services\layer4-agents\tests\test_pack_variable_loader.py::TestValidatePackReferences::test_validate_references_all_valid
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestCrossTenantDenial::test_api_rejects_request_without_tenant_context
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequireTenantContextDependency::test_raises_400_when_tenant_id_missing
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_is_service_account_false_when_no_service_account_id
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_isolation_tier_validation_shared
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_auth_source_validation_unknown
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_uuid_to_str_helper
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_request_context_defaults
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_is_service_account_true_when_service_account_id_set
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_isolation_tier_validation_schema
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_isolation_tier_validation_invalid
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestRequestContextTenantClaims::test_request_context_to_dict_includes_all_fields
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestGovernanceMiddlewareClaims::test_api_key_auth_sets_correct_auth_source
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestGovernanceMiddlewareClaims::test_extracts_tenant_context_claims
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestGovernanceMiddlewareClaims::test_extracts_role_claims
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestGovernanceMiddlewareClaims::test_extracts_service_account_claims
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestGovernanceMiddlewareClaims::test_extracts_core_identity_claims
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestTierChangeValidation::test_valid_change_sources_defined
+FAILED services\layer4-agents\tests\test_tenant_isolation.py::TestTierChangeValidation::test_log_isolation_tier_change_validates_change_source
+FAILED services\layer4-agents\tests\test_enrichment.py::TestEnrichmentOrchestrator::test_enrich_account_with_specific_sources
+FAILED services\layer4-agents\tests\test_enrichment.py::TestEnrichmentOrchestrator::test_enrich_account_force_reenrich
+FAILED services\layer4-agents\tests\test_enrichment.py::TestEnrichmentOrchestrator::test_enrich_account_not_found
+FAILED services\layer4-agents\tests\test_llm_cost_tracking.py::TestLLMCostTracking::test_budget_limit_enforcement
+FAILED services\layer4-agents\tests\test_llm_cost_tracking.py::TestLLMCostTracking::test_cost_calculation_with_pricing
+FAILED services\layer4-agents\tests\test_llm_cost_tracking.py::TestLLMCostTracking::test_token_counting_accuracy
+FAILED services\layer4-agents\tests\test_llm_cost_tracking.py::TestLLMCostTracking::test_cost_tracking_on_success_after_failure
+FAILED services\layer4-agents\tests\test_integration_service.py::TestEncryptionService::test_encryption_different_keys
+FAILED services\layer4-agents\tests\test_integration_service.py::TestEncryptionService::test_decryption_wrong_key_fails
+FAILED services\layer4-agents\tests\test_integration_service.py::TestEncryptionService::test_encryption_roundtrip
+FAILED services\layer4-agents\tests\test_c1_proxy.py::TestStreamC1Endpoint::test_returns_422_on_invalid_body
+FAILED services\layer4-agents\tests\test_c1_proxy.py::TestStreamC1Endpoint::test_handles_connection_error
+FAILED services\layer4-agents\tests\test_c1_proxy.py::TestStreamC1Endpoint::test_returns_503_when_api_key_not_set
+FAILED services\layer4-agents\tests\test_c1_proxy.py::TestStreamC1Endpoint::test_handles_thesys_error_status
+FAILED services\layer4-agents\tests\test_c1_proxy.py::TestStreamC1Endpoint::test_streams_sse_from_thesys
+FAILED services\layer4-agents\tests\test_provenance.py::TestPROVEntity::test_to_dict
+FAILED services\layer4-agents\tests\test_provenance.py::TestPROVActivity::test_to_dict
+FAILED services\layer4-agents\tests\test_provenance.py::TestPROVAgent::test_to_dict
+FAILED services\layer4-agents\tests\test_provenance.py::TestPROVGraph::test_to_dict_structure
+FAILED services\layer4-agents\tests\test_tenant_guardrails_clients.py::test_layer5_list_truths_requires_tenant_and_allows_privileged_with_reason
+FAILED services\layer4-agents\tests\test_workflow_replay_harness.py::test_replay_is_deterministic_for_historical_events
+FAILED services\layer4-agents\tests\test_agent_mutation_approval_audit.py::test_business_case_smoke_draft_creates_audit_event
+FAILED services\layer4-agents\tests\test_agent_mutation_approval_audit.py::test_rejecting_or_exporting_unapproved_draft_does_not_update_model
+FAILED services\layer4-agents\tests\test_analysis_routes.py::test_export_route_uses_get_result_dependency
+FAILED services\layer4-agents\tests\test_tenant_lifecycle.py::TestRLSMigrationCoverage::test_billing_tables_have_rls_migration
+FAILED services\layer4-agents\tests\test_tenant_lifecycle.py::TestMiddlewareTenantStatusEnforcement::test_active_tenant_allowed
+FAILED services\layer4-agents\tests\test_tenant_lifecycle.py::TestMiddlewareTenantStatusEnforcement::test_deleted_tenant_returns_404_json
+FAILED services\layer4-agents\tests\test_tenant_lifecycle.py::TestMiddlewareTenantStatusEnforcement::test_suspended_tenant_blocked_with_json
+FAILED services\layer4-agents\tests\test_tenant_lifecycle.py::TestMiddlewareTenantStatusEnforcement::test_pending_tenant_blocked_with_json
+FAILED services\layer4-agents\tests\test_billing_service.py::test_get_subscription_endpoint
+FAILED services\layer4-agents\tests\test_billing_service.py::test_reactivate_subscription_endpoint
+FAILED services\layer4-agents\tests\test_billing_service.py::test_get_or_create_customer_new
+FAILED services\layer4-agents\tests\test_billing_service.py::test_webhook_invalid_signature
+FAILED services\layer4-agents\tests\test_billing_service.py::test_handle_webhook_checkout_completed
+FAILED services\layer4-agents\tests\test_billing_service.py::test_webhook_subscription_deleted_downgrades_to_free
+FAILED services\layer4-agents\tests\test_billing_service.py::test_check_feature_endpoint
+FAILED services\layer4-agents\tests\test_billing_service.py::test_update_plan_endpoint
+FAILED services\layer4-agents\tests\test_billing_service.py::test_handle_webhook_idempotency
+FAILED services\layer4-agents\tests\test_billing_service.py::test_reconcile_customer_sync_retry_recovers_failed_customer
+FAILED services\layer4-agents\tests\test_billing_service.py::test_get_subscription_no_customer
+FAILED services\layer4-agents\tests\test_billing_service.py::test_check_entitlement_pro_has_advanced_models
+FAILED services\layer4-agents\tests\test_billing_service.py::test_get_or_create_customer_logs_orphan_on_db_failure_after_stripe_success
+FAILED services\layer4-agents\tests\test_billing_service.py::test_cancel_subscription_endpoint
+FAILED services\layer4-agents\tests\test_billing_service.py::test_get_entitlements_endpoint
+==== 242 failed, 1620 passed, 24 skipped, 92 warnings in 94.43s (0:01:34) =====

@@ -3,6 +3,12 @@
 All relationship writes (CREATE, MERGE, DELETE) should route through this
 module so that provenance, versioning, and tenant isolation are enforced
 uniformly.
+
+Enhanced for Phase 1 security hardening:
+- Node operations (write_node, delete_node)
+- Bulk operations (write_nodes_batch, write_relationships_batch, delete_by_source)
+- Context enrichment (request_id, account_id, operation_source)
+- Metrics integration (mutation rate, failure tracking)
 """
 
 from __future__ import annotations
@@ -17,6 +23,11 @@ from value_fabric.layer3.utils.cypher_security import (
     validate_cypher_identifier,
 )
 
+try:
+    from metrics.prometheus_metrics import get_metrics
+except Exception:
+    get_metrics = None  # type: ignore[assignment]
+
 
 class AuditedGraphMutation:
     """Mandatory mutation gateway for all graph relationship changes.
@@ -26,6 +37,8 @@ class AuditedGraphMutation:
     2. Tenant isolation is enforced via ``TenantQueryExecutor``.
     3. Every mutation produces an ``AuditEvent`` node.
     4. Optional relationship versioning via ``RelationshipVersion`` nodes.
+    5. Metrics tracking for mutation rate and failures.
+    6. Context enrichment (request_id, account_id, operation_source).
     """
 
     def __init__(
@@ -33,10 +46,16 @@ class AuditedGraphMutation:
         tenant_id: str,
         session,
         metrics: Any | None = None,
+        request_id: str | None = None,
+        account_id: str | None = None,
+        operation_source: str | None = None,
     ):
         self.tenant_id = tenant_id
         self.session = session
-        self.metrics = metrics
+        self.metrics = metrics or get_metrics()
+        self.request_id = request_id
+        self.account_id = account_id
+        self.operation_source = operation_source
 
     async def write_relationship(
         self,
@@ -44,7 +63,7 @@ class AuditedGraphMutation:
         rel_type: str,
         tgt_id: str,
         properties: dict[str, Any] | None = None,
-        versioned: bool = False,
+        versioned: bool = True,  # Changed to default True for security
     ) -> dict[str, Any]:
         """Merge a relationship between two tenant-scoped nodes and audit the change."""
         validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="relationship type")
@@ -54,6 +73,7 @@ class AuditedGraphMutation:
 
         # Double-check rel_type is allowlisted at runtime (defense-in-depth)
         if rel_type not in ALLOWED_REL_TYPES:
+            self._increment_mutation_failure("relationship_type_not_allowed")
             raise ValueError(f"Relationship type '{rel_type}' not in allowlist")
 
         merge_query = f"""
@@ -63,18 +83,23 @@ class AuditedGraphMutation:
         SET r.updated_at = $now
         RETURN r
         """
-        await run_tenant_query(
-            self.session,
-            merge_query,
-            {
-                "src_id": src_id,
-                "tgt_id": tgt_id,
-                "tenant_id": self.tenant_id,
-                "now": now,
-                **props,
-            },
-            tenant_id=self.tenant_id,
-        )
+        try:
+            await run_tenant_query(
+                self.session,
+                merge_query,
+                {
+                    "src_id": src_id,
+                    "tgt_id": tgt_id,
+                    "tenant_id": self.tenant_id,
+                    "now": now,
+                    **props,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("relationship")
+        except Exception as e:
+            self._increment_mutation_failure("relationship_write_error")
+            raise
 
         await self._audit("WRITE_RELATIONSHIP", src_id, rel_type, tgt_id, props)
 
@@ -98,16 +123,21 @@ class AuditedGraphMutation:
               (tgt {{id: $tgt_id, tenant_id: $tenant_id}})
         DELETE r
         """
-        await run_tenant_query(
-            self.session,
-            delete_query,
-            {
-                "src_id": src_id,
-                "tgt_id": tgt_id,
-                "tenant_id": self.tenant_id,
-            },
-            tenant_id=self.tenant_id,
-        )
+        try:
+            await run_tenant_query(
+                self.session,
+                delete_query,
+                {
+                    "src_id": src_id,
+                    "tgt_id": tgt_id,
+                    "tenant_id": self.tenant_id,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("relationship_delete")
+        except Exception as e:
+            self._increment_mutation_failure("relationship_delete_error")
+            raise
 
         await self._audit("DELETE_RELATIONSHIP", src_id, rel_type, tgt_id, {})
 
@@ -130,7 +160,10 @@ class AuditedGraphMutation:
             entity_id: $entity_id,
             action: $action,
             agent: $agent,
-            details: $details
+            details: $details,
+            request_id: $request_id,
+            account_id: $account_id,
+            operation_source: $operation_source
         })
         """
         await run_tenant_query(
@@ -145,6 +178,9 @@ class AuditedGraphMutation:
                 "action": action,
                 "agent": "AuditedGraphMutation",
                 "details": details,
+                "request_id": self.request_id,
+                "account_id": self.account_id,
+                "operation_source": self.operation_source,
             },
             tenant_id=self.tenant_id,
         )
@@ -181,3 +217,285 @@ class AuditedGraphMutation:
             },
             tenant_id=self.tenant_id,
         )
+
+    # ---------------------------------------------------------------------------
+    # Node operations (Phase 1 enhancement)
+    # ---------------------------------------------------------------------------
+
+    async def write_node(
+        self,
+        label: str,
+        node_id: str,
+        properties: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Merge a tenant-scoped node and audit the change."""
+        now = datetime.now(UTC).isoformat()
+        props = dict(properties or {})
+        props["id"] = node_id
+        props["tenant_id"] = self.tenant_id
+        props["updated_at"] = now
+
+        merge_query = f"""
+        MERGE (n:{label} {{id: $id, tenant_id: $tenant_id}})
+        SET n += $properties
+        RETURN n
+        """
+        try:
+            await run_tenant_query(
+                self.session,
+                merge_query,
+                {
+                    "id": node_id,
+                    "tenant_id": self.tenant_id,
+                    "properties": props,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("node")
+        except Exception as e:
+            self._increment_mutation_failure("node_write_error")
+            raise
+
+        await self._audit_node("WRITE_NODE", label, node_id, props)
+
+        return {"status": "ok", "label": label, "id": node_id}
+
+    async def delete_node(
+        self,
+        label: str,
+        node_id: str,
+    ) -> dict[str, Any]:
+        """Delete a tenant-scoped node and audit the change."""
+        delete_query = f"""
+        MATCH (n:{label} {{id: $id, tenant_id: $tenant_id}})
+        DETACH DELETE n
+        """
+        try:
+            await run_tenant_query(
+                self.session,
+                delete_query,
+                {
+                    "id": node_id,
+                    "tenant_id": self.tenant_id,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("node_delete")
+        except Exception as e:
+            self._increment_mutation_failure("node_delete_error")
+            raise
+
+        await self._audit_node("DELETE_NODE", label, node_id, {})
+
+        return {"status": "ok", "label": label, "id": node_id}
+
+    async def _audit_node(
+        self,
+        action: str,
+        label: str,
+        node_id: str,
+        details: dict[str, Any],
+    ) -> None:
+        audit_query = """
+        CREATE (a:AuditEvent {
+            id: $id,
+            tenant_id: $tenant_id,
+            timestamp: $timestamp,
+            event_type: "graph_mutation",
+            entity_id: $entity_id,
+            action: $action,
+            agent: $agent,
+            details: $details,
+            request_id: $request_id,
+            account_id: $account_id,
+            operation_source: $operation_source
+        })
+        """
+        await run_tenant_query(
+            self.session,
+            audit_query,
+            {
+                "id": str(uuid.uuid4()),
+                "tenant_id": self.tenant_id,
+                "timestamp": datetime.now(UTC).isoformat(),
+                "event_type": "graph_mutation",
+                "entity_id": f"{label}:{node_id}",
+                "action": action,
+                "agent": "AuditedGraphMutation",
+                "details": details,
+                "request_id": self.request_id,
+                "account_id": self.account_id,
+                "operation_source": self.operation_source,
+            },
+            tenant_id=self.tenant_id,
+        )
+
+    # ---------------------------------------------------------------------------
+    # Bulk operations (Phase 1 enhancement for ingestion)
+    # ---------------------------------------------------------------------------
+
+    async def write_nodes_batch(
+        self,
+        label: str,
+        nodes: list[dict[str, Any]],
+    ) -> dict[str, Any]:
+        """Batch merge tenant-scoped nodes and audit the batch operation."""
+        now = datetime.now(UTC).isoformat()
+        node_count = len(nodes)
+
+        merge_query = f"""
+        UNWIND $nodes as node
+        MERGE (n:{label} {{id: node.id, tenant_id: $tenant_id}})
+        SET n += node.properties
+        SET n.updated_at = $now
+        RETURN count(n) as merged
+        """
+        try:
+            result = await run_tenant_query(
+                self.session,
+                merge_query,
+                {
+                    "nodes": [
+                        {
+                            "id": n.get("id"),
+                            "properties": {**n, "tenant_id": self.tenant_id, "updated_at": now}
+                        }
+                        for n in nodes
+                    ],
+                    "tenant_id": self.tenant_id,
+                    "now": now,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("node_batch")
+        except Exception as e:
+            self._increment_mutation_failure("node_batch_error")
+            raise
+
+        await self._audit_node("WRITE_NODES_BATCH", label, f"batch_{node_count}", {"count": node_count})
+
+        return {"status": "ok", "label": label, "count": node_count}
+
+    async def write_relationships_batch(
+        self,
+        rel_type: str,
+        triples: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        """Batch merge relationships and audit the batch operation."""
+        validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="relationship type")
+
+        if rel_type not in ALLOWED_REL_TYPES:
+            self._increment_mutation_failure("relationship_type_not_allowed")
+            raise ValueError(f"Relationship type '{rel_type}' not in allowlist")
+
+        now = datetime.now(UTC).isoformat()
+        triple_count = len(triples)
+
+        merge_query = f"""
+        UNWIND $triples as triple
+        MATCH (src {{id: triple.src_id, tenant_id: $tenant_id}})
+        MATCH (tgt {{id: triple.tgt_id, tenant_id: $tenant_id}})
+        MERGE (src)-[r:{rel_type}]->(tgt)
+        SET r.updated_at = $now
+        RETURN count(r) as merged
+        """
+        try:
+            await run_tenant_query(
+                self.session,
+                merge_query,
+                {
+                    "triples": triples,
+                    "tenant_id": self.tenant_id,
+                    "now": now,
+                },
+                tenant_id=self.tenant_id,
+            )
+            self._increment_mutation_success("relationship_batch")
+        except Exception as e:
+            self._increment_mutation_failure("relationship_batch_error")
+            raise
+
+        await self._audit(
+            "WRITE_RELATIONSHIPS_BATCH",
+            f"batch_{triple_count}",
+            rel_type,
+            f"batch_{triple_count}",
+            {"count": triple_count}
+        )
+
+        return {"status": "ok", "rel_type": rel_type, "count": triple_count}
+
+    async def delete_by_source(
+        self,
+        source_id: str,
+    ) -> dict[str, Any]:
+        """Delete all entities and relationships from a specific source."""
+        stats = {"relationships_deleted": 0, "entities_deleted": 0}
+
+        # Delete relationships first
+        rel_query = """
+        MATCH (n)-[r]->(m)
+        WHERE n.source_id = $source_id AND n.tenant_id = $tenant_id
+        DELETE r
+        RETURN count(r) as deleted
+        """
+        try:
+            rel_result = await run_tenant_query(
+                self.session,
+                rel_query,
+                {"source_id": source_id, "tenant_id": self.tenant_id},
+                tenant_id=self.tenant_id,
+            )
+            record = await rel_result.single()
+            stats["relationships_deleted"] = record["deleted"] if record else 0
+            self._increment_mutation_success("relationship_delete_batch")
+        except Exception as e:
+            self._increment_mutation_failure("relationship_delete_batch_error")
+            raise
+
+        # Delete entities
+        entity_query = """
+        MATCH (n)
+        WHERE n.source_id = $source_id AND n.tenant_id = $tenant_id
+        DELETE n
+        RETURN count(n) as deleted
+        """
+        try:
+            entity_result = await run_tenant_query(
+                self.session,
+                entity_query,
+                {"source_id": source_id, "tenant_id": self.tenant_id},
+                tenant_id=self.tenant_id,
+            )
+            record = await entity_result.single()
+            stats["entities_deleted"] = record["deleted"] if record else 0
+            self._increment_mutation_success("node_delete_batch")
+        except Exception as e:
+            self._increment_mutation_failure("node_delete_batch_error")
+            raise
+
+        await self._audit_node("DELETE_BY_SOURCE", "Source", source_id, stats)
+
+        return {"status": "ok", "source_id": source_id, **stats}
+
+    # ---------------------------------------------------------------------------
+    # Metrics helpers (Phase 1 enhancement)
+    # ---------------------------------------------------------------------------
+
+    def _increment_mutation_success(self, operation_type: str) -> None:
+        """Increment mutation success counter."""
+        if self.metrics:
+            try:
+                self.metrics.increment_graph_mutation_success(operation_type=operation_type)
+            except AttributeError:
+                # Metrics may not have this method yet, will add in Phase 3
+                pass
+
+    def _increment_mutation_failure(self, error_type: str) -> None:
+        """Increment mutation failure counter."""
+        if self.metrics:
+            try:
+                self.metrics.increment_graph_mutation_failure(error_type=error_type)
+            except AttributeError:
+                # Metrics may not have this method yet, will add in Phase 3
+                pass

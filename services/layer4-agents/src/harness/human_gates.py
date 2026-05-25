@@ -22,7 +22,7 @@ from .models import (
 def _record_approval_wait(gate: HumanGate, tenant_id: str) -> None:
     """Emit approval-wait metric if metrics are initialized."""
     try:
-        from metrics.prometheus_metrics import get_metrics
+        from ..metrics.prometheus_metrics import get_metrics
 
         metrics = get_metrics()
         if metrics and gate.created_at and gate.decided_at:
@@ -74,14 +74,32 @@ class HumanGateManager:
         run_id: str,
         tenant_id: str,
         gate_type: GateType,
-        action_class: ActionClass | None = None,
+        action_class: ActionClass | str | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
-        """Create a new pending human gate."""
+        """Create a new pending human gate.
+
+        Args:
+            run_id: Associated workflow run
+            tenant_id: Owning tenant
+            gate_type: Type of gate
+            action_class: Optional high-impact action class (enum or string)
+        """
+        # Resolve string action_class to enum
+        resolved_action: ActionClass | None = None
+        if action_class is not None:
+            if isinstance(action_class, str):
+                try:
+                    resolved_action = ActionClass(action_class)
+                except ValueError:
+                    resolved_action = None
+            else:
+                resolved_action = action_class
+
         gate = HumanGate(
             run_id=run_id,
             tenant_id=tenant_id,
             gate_type=gate_type,
-            action_class=action_class,
+            action_class=resolved_action,
         )
         self._gates[gate.id] = gate
         self._run_gates.setdefault(run_id, set()).add(gate.id)
@@ -96,7 +114,7 @@ class HumanGateManager:
             event_type="human_gate_created",
             from_state=None,  # type: ignore[arg-type]
             to_state=None,  # type: ignore[arg-type]
-            metadata={"action_class": action_class.value if action_class else None},
+            metadata={"action_class": resolved_action.value if resolved_action else None},
         )
         return gate, event
 
