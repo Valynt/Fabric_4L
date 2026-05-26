@@ -99,6 +99,14 @@ logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
 
 
+TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS: tuple[tuple[str, ...], ...] = (
+    ("layer4", "workflow", "timeout_seconds"),
+    ("layer4", "workflow_timeout_seconds"),
+    ("workflow", "timeout_seconds"),
+    ("workflow_timeout_seconds",),
+)
+
+
 # ---------------------------------------------------------------------------
 # LLM Cost Metrics Integration Snippet
 # ---------------------------------------------------------------------------
@@ -673,19 +681,27 @@ class OrchestrationController:
             tenant_id=tenant_id,
             workflow_type=workflow_type,
         )
+        # Resolve tenant-aware timeout and store metadata with timeout tracking
+        from ..config.settings import settings
+        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
+
         initial_state.run_envelope = envelope
         if approval_evidence is not None:
             initial_state.metadata["approval_decision"] = approval_evidence
-
-        # Store metadata with timeout tracking
-        from ..config.settings import settings
+        initial_state.metadata["workflow_timeout_seconds"] = resolved_timeout_seconds
+        initial_state.metadata["workflow_timeout_source"] = timeout_source
         self._workflow_metadata[workflow_id] = {
             "workflow_type": workflow_type,
             "tenant_id": tenant_id,
             "user_id": user_id,
             "priority": priority.value,
             "started_at": datetime.now(UTC).isoformat(),
-            "timeout_seconds": settings.workflow_timeout_seconds,  # P1-25
+            "timeout_seconds": resolved_timeout_seconds,
+            "timeout_resolution": {
+                "tenant_id": tenant_id,
+                "selected_timeout_seconds": resolved_timeout_seconds,
+                "source": timeout_source,
+            },
             "run_envelope": envelope.model_dump(),
             "approval_decision": approval_evidence,
         }
@@ -720,6 +736,7 @@ class OrchestrationController:
             workflow_type=workflow_type,
             workflow=workflow,
             initial_state=initial_state,
+            timeout_seconds=resolved_timeout_seconds,
             checkpoint_interval=checkpoint_interval,
             handler=self._run_workflow_task,
         )
@@ -728,7 +745,7 @@ class OrchestrationController:
 
         # P1-25: Wait for completion with global timeout
         result = await self._wait_for_workflow_with_timeout(
-            workflow_id, timeout_seconds=settings.workflow_timeout_seconds
+            workflow_id, timeout_seconds=resolved_timeout_seconds
         )
 
         # Hardening: validate reasoning trace with strict schema enforcement
@@ -1619,9 +1636,10 @@ class OrchestrationController:
 
         try:
             from ..config.settings import settings
+            timeout_seconds = int(task.parameters.get("timeout_seconds", settings.workflow_timeout_seconds))
             result = await asyncio.wait_for(
                 workflow.run(initial_state, thread_id=workflow_id),
-                timeout=settings.workflow_timeout_seconds,
+                timeout=timeout_seconds,
             )
 
             if result.status == WorkflowStatus.COMPLETED:
@@ -1674,7 +1692,7 @@ class OrchestrationController:
                 error_code="WORKFLOW_TIMEOUT",
             )
             raise WorkflowExecutionError(
-                f"Workflow {workflow_id} exceeded global timeout of {settings.workflow_timeout_seconds}s"
+                f"Workflow {workflow_id} exceeded global timeout of {timeout_seconds}s"
             ) from exc
         except NodeInterrupt:
             # Native LangGraph HITL - checkpoint already persisted by checkpointer
@@ -1749,6 +1767,54 @@ class OrchestrationController:
                 return state
 
             await asyncio.sleep(0.5)
+
+    def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:
+        if not tenant_settings:
+            return None
+        cursor: Any
+        for path in TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS:
+            cursor = tenant_settings
+            for key in path:
+                if not isinstance(cursor, dict) or key not in cursor:
+                    cursor = None
+                    break
+                cursor = cursor[key]
+            if isinstance(cursor, int):
+                return cursor
+        return None
+
+    async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
+        from ..config.settings import settings
+        source = "service_default"
+        selected = settings.workflow_timeout_seconds
+
+        if tenant_id:
+            try:
+                from value_fabric.shared.identity.context import RequestContext
+                from ..database import db_session_for_context
+                from ..tenants.service import get_tenant_settings
+
+                tenant_uuid = UUID(str(tenant_id))
+                async with db_session_for_context(RequestContext(tenant_id=tenant_uuid)) as db:
+                    tenant_settings = await get_tenant_settings(db, tenant_uuid)
+                tenant_timeout = self._extract_tenant_timeout(tenant_settings)
+                if tenant_timeout is not None:
+                    selected = tenant_timeout
+                    source = "tenant_settings"
+            except Exception:
+                logger.debug("Tenant timeout override resolution failed for tenant_id=%s", tenant_id, exc_info=True)
+
+        min_timeout = settings.workflow_timeout_min_seconds
+        max_timeout = settings.workflow_timeout_max_seconds
+        if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
+            source = "safe_fallback"
+            selected = settings.workflow_timeout_fallback_seconds
+
+        if selected < min_timeout:
+            selected = min_timeout
+        if selected > max_timeout:
+            selected = max_timeout
+        return selected, source
 
     async def _wait_for_workflow(self, workflow_id: str) -> AgentState:
         """Wait for workflow completion (legacy, no timeout).

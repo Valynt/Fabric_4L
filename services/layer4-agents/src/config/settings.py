@@ -214,7 +214,19 @@ class Settings(BaseSettings):
     )
     workflow_timeout_seconds: int = Field(
         default=1800,  # 30 minutes (P1-25)
-        description="Global workflow timeout"
+        description="Global workflow timeout (service default baseline)"
+    )
+    workflow_timeout_min_seconds: int = Field(
+        default=60,
+        description="Lower bound for resolved workflow timeout"
+    )
+    workflow_timeout_max_seconds: int = Field(
+        default=7200,
+        description="Upper bound for resolved workflow timeout"
+    )
+    workflow_timeout_fallback_seconds: int = Field(
+        default=1800,
+        description="Safe fallback when resolved timeout is invalid/out of range"
     )
     workflow_state_ttl_seconds: int = Field(
         default=86400,  # 24 hours
