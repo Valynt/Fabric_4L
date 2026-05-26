@@ -1,5 +1,3 @@
-from uuid import uuid4
-
 from value_fabric.layer1.shared.models import JobStatus, ScrapingJob
 
 
