@@ -11,6 +11,9 @@ kind: Kustomization
 #     - name: services/layer4-agents
 #       newTag: v1.2.3
 images:
+  - name: services/api
+    newName: ghcr.io/bmsull560/fabric_4l/api-gateway
+    newTag: main
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
     newTag: main
@@ -51,6 +54,7 @@ resources:
   - pgbouncer-config.yml
   - pgbouncer.yml
   - neo4j.yml
+  - api-gateway.yml
   - layer1-ingestion.yml
   - layer2-extraction.yml
   - layer2-5-signal-refinery.yml
