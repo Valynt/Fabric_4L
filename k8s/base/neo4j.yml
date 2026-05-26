@@ -103,9 +103,13 @@ kind: PersistentVolumeClaim
 metadata:
   name: neo4j-data-pvc
   namespace: value-fabric
+  annotations:
+    security.valuefabric.io/encryption-at-rest: "required"
+    security.valuefabric.io/kms-provider: "external"
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: encrypted-rwo
   resources:
     requests:
       storage: 20Gi
@@ -115,9 +119,13 @@ kind: PersistentVolumeClaim
 metadata:
   name: neo4j-logs-pvc
   namespace: value-fabric
+  annotations:
+    security.valuefabric.io/encryption-at-rest: "required"
+    security.valuefabric.io/kms-provider: "external"
 spec:
   accessModes:
     - ReadWriteOnce
+  storageClassName: encrypted-rwo
   resources:
     requests:
       storage: 5Gi
