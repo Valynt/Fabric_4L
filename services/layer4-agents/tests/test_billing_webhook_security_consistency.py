@@ -78,3 +78,22 @@ def test_webhook_rejects_invalid_signature_and_stale_or_replayed_timestamp(
         content=b'{"id":"evt_1"}',
     )
     assert resp.status_code == 400
+
+
+
+def test_signature_helpers_match_across_entrypoints() -> None:
+    header = "t=1700000000,v1=sig1,v1=sig2"
+    direct = billing_security.parse_stripe_signature_header(header)
+    compat = billing_webhook_security.parse_stripe_signature_header(header)
+    assert direct == compat
+
+
+def test_timestamp_tolerance_helpers_match(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(billing_security, "_STRIPE_TIMESTAMP_TOLERANCE_SECONDS", 5)
+    billing_security.ensure_timestamp_within_tolerance(100, now=104)
+    billing_webhook_security.ensure_timestamp_within_tolerance(100, now=104)
+
+    with pytest.raises(ValueError, match="stale/replay"):
+        billing_security.ensure_timestamp_within_tolerance(100, now=200)
+    with pytest.raises(ValueError, match="stale/replay"):
+        billing_webhook_security.ensure_timestamp_within_tolerance(100, now=200)
