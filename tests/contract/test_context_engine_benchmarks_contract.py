@@ -26,7 +26,10 @@ def test_context_engine_benchmarks_openapi_uses_typed_item_schema() -> None:
     benchmark_get = schema["paths"]["/v1/context-engine/benchmarks"]["get"]
     content_schema = benchmark_get["responses"]["200"]["content"]["application/json"]["schema"]
 
-    assert content_schema["$ref"].endswith("PaginatedResponse_ContextEngineItem_")
+    ref = content_schema.get("$ref") or (
+        content_schema.get("allOf", [{}])[0].get("$ref", "")
+    )
+    assert ref.endswith("PaginatedResponse_ContextEngineItem_")
 
     item_schema = schema["components"]["schemas"]["ContextEngineItem"]
     assert item_schema.get("additionalProperties") is False
