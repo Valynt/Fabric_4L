@@ -63,14 +63,16 @@ class User(BaseModel):
 
 
 class Account(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
     id: str
     tenant_id: str
     name: str
     industry: str
     segment: str | None = None
     website: str | None = None
-    annual_revenue: float | None = None
-    employee_count: int | None = None
+    annual_revenue: float | None = Field(default=None, ge=0)
+    employee_count: int | None = Field(default=None, ge=0)
     crm_stage: str | None = None
     value_pack_id: str | None = None
     summary: str | None = None
@@ -326,19 +328,49 @@ class ROICalculation(BaseModel):
     account_id: str
     tenant_id: str
     scenario_id: str
-    revenue_uplift: float = 0.0
-    cost_savings: float = 0.0
-    risk_reduction: float = 0.0
-    total_benefit: float = 0.0
-    solution_cost: float = 0.0
+    revenue_uplift: float = Field(default=0.0, ge=0)
+    cost_savings: float = Field(default=0.0, ge=0)
+    risk_reduction: float = Field(default=0.0, ge=0)
+    total_benefit: float = Field(default=0.0, ge=0)
+    solution_cost: float = Field(default=0.0, ge=0)
     net_benefit: float = 0.0
     roi_percent: float = 0.0
-    payback_months: float = 0.0
+    payback_months: float = Field(default=0.0, ge=0)
     calculation_trace: list[dict[str, Any]] = Field(default_factory=list)
     evidence_ids: list[str] = Field(default_factory=list)
     assumption_ids: list[str] = Field(default_factory=list)
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
+
+class RealizationPlanCreateRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    scenario_id: str
+    revenue_uplift: float = Field(default=0.0, ge=0)
+    cost_savings: float = Field(default=0.0, ge=0)
+    risk_reduction: float = Field(default=0.0, ge=0)
+    total_benefit: float = Field(default=0.0, ge=0)
+    solution_cost: float = Field(default=0.0, ge=0)
+    net_benefit: float = 0.0
+    roi_percent: float = 0.0
+    payback_months: float = Field(default=0.0, ge=0)
+    calculation_trace: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
+class RealizationPlanActualsPatchRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    revenue_uplift: float | None = Field(default=None, ge=0)
+    cost_savings: float | None = Field(default=None, ge=0)
+    risk_reduction: float | None = Field(default=None, ge=0)
+    total_benefit: float | None = Field(default=None, ge=0)
+    solution_cost: float | None = Field(default=None, ge=0)
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = Field(default=None, ge=0)
 
 class BusinessCase(BaseModel):
     id: str

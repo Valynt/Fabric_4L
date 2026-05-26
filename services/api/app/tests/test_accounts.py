@@ -97,3 +97,49 @@ def test_account_summary_and_share_responses_are_typed():
         revoke = client.delete("/v1/accounts/acc-allego/share", headers=HEADERS)
         assert revoke.status_code == 200
         assert revoke.json() == {"revoked": True, "account_id": "acc-allego"}
+
+
+def test_patch_account_rejects_invalid_types_and_constraints():
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"employee_count": "many", "annual_revenue": -1},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err["loc"] == ["body", "employee_count"] for err in detail)
+
+
+def test_create_account_rejects_missing_required_fields():
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/accounts",
+            json={"id": "acc-missing-fields", "tenant_id": TENANT_ALPHA},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err["loc"] == ["body", "name"] for err in detail)
+        assert any(err["loc"] == ["body", "industry"] for err in detail)
+
+
+def test_create_account_rejects_unknown_fields():
+    with TestClient(app) as client:
+        response = client.post(
+            "/v1/accounts",
+            json={
+                "id": "acc-extra-field",
+                "name": "Extra",
+                "industry": "Software",
+                "tenant_id": TENANT_ALPHA,
+                "unknown_field": "boom",
+            },
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err["loc"] == ["body", "unknown_field"] for err in detail)

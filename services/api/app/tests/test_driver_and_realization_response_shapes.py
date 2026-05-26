@@ -36,3 +36,49 @@ def test_realization_list_and_variance_shape():
     assert variance_response.status_code == 200
     variance = variance_response.json()
     assert set(variance.keys()) == {"plan_id", "projected", "actual", "variance"}
+
+
+def test_realization_create_request_validation_errors():
+    missing_required = client.post(
+        '/v1/accounts/acc-allego/realization-plans',
+        json={"revenue_uplift": 10},
+        headers=HEADERS,
+    )
+    assert missing_required.status_code == 422
+    missing_detail = missing_required.json()["detail"]
+    assert any(err["loc"] == ["body", "id"] for err in missing_detail)
+    assert any(err["loc"] == ["body", "scenario_id"] for err in missing_detail)
+
+    invalid_types = client.post(
+        '/v1/accounts/acc-allego/realization-plans',
+        json={"id": "roi-invalid", "scenario_id": "s1", "revenue_uplift": "a lot"},
+        headers=HEADERS,
+    )
+    assert invalid_types.status_code == 422
+    invalid_detail = invalid_types.json()["detail"]
+    assert any(err["loc"] == ["body", "revenue_uplift"] for err in invalid_detail)
+
+    invalid_constraints = client.post(
+        '/v1/accounts/acc-allego/realization-plans',
+        json={"id": "roi-invalid2", "scenario_id": "s1", "cost_savings": -5},
+        headers=HEADERS,
+    )
+    assert invalid_constraints.status_code == 422
+    constraint_detail = invalid_constraints.json()["detail"]
+    assert any(err["loc"] == ["body", "cost_savings"] for err in constraint_detail)
+
+
+def test_realization_actuals_patch_rejects_malformed_payload():
+    create_payload = {"id": "roi-patch-validation", "scenario_id": "scenario-1", "revenue_uplift": 1000}
+    create_response = client.post('/v1/accounts/acc-allego/realization-plans', json=create_payload, headers=HEADERS)
+    assert create_response.status_code == 200
+
+    malformed = client.patch(
+        '/v1/accounts/acc-allego/realization-plans/roi-patch-validation/actuals',
+        json={"payback_months": "soon", "unexpected": 5},
+        headers=HEADERS,
+    )
+    assert malformed.status_code == 422
+    detail = malformed.json()["detail"]
+    assert any(err["loc"] == ["body", "payback_months"] for err in detail)
+    assert any(err["loc"] == ["body", "unexpected"] for err in detail)
