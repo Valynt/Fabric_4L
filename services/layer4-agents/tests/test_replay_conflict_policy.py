@@ -99,15 +99,37 @@ class TestReplayConflictResolver:
                 latest_checkpoint_hash="abc",
             )
 
-    def test_validate_resume_attempt_rejects_collision_when_fail(self) -> None:
+    def test_validate_resume_attempt_accepts_equal_canonical_hash_variants(self) -> None:
         resolver = ReplayConflictResolver()
-        with pytest.raises(ReplayConflictError, match="diverges from latest checkpoint"):
+        digest = "a" * 64
+        resolver.validate_resume_attempt(
+            workflow_status=WorkflowStatus.INTERRUPTED,
+            checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
+            checkpoint_hash=f"SHA256:{digest.upper()}",
+            expected_hash=f"0x{digest}",
+            latest_checkpoint_hash=digest,
+        )
+
+    def test_validate_resume_attempt_rejects_encoding_variant_safely(self) -> None:
+        resolver = ReplayConflictResolver()
+        with pytest.raises(ReplayConflictError, match="hash normalization failed"):
             resolver.validate_resume_attempt(
                 workflow_status=WorkflowStatus.INTERRUPTED,
                 checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
-                checkpoint_hash="abc",
-                expected_hash="abc",
-                latest_checkpoint_hash="def",
+                checkpoint_hash="not-hex-encoded",
+                expected_hash="a" * 64,
+                latest_checkpoint_hash="a" * 64,
+            )
+
+    def test_validate_resume_attempt_rejects_collision_when_fail(self) -> None:
+        resolver = ReplayConflictResolver()
+        with pytest.raises(ReplayConflictError, match="checkpoint collision/mismatch"):
+            resolver.validate_resume_attempt(
+                workflow_status=WorkflowStatus.INTERRUPTED,
+                checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
+                checkpoint_hash="a" * 64,
+                expected_hash="a" * 64,
+                latest_checkpoint_hash="b" * 64,
             )
 
     def test_evaluate_duplicate_replay_rejects_without_audit_justification(self) -> None:

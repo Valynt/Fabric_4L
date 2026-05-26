@@ -327,3 +327,29 @@ def test_gate_tolerates_comments_about_base(tmp_path: Path, repo_root: Path) -> 
     (rendered / "dev-nginx.yaml").write_text(VALID_NGINX_RENDER, encoding="utf-8")
     result = _run_gate(repo_root, rendered, routing, ["dev-nginx:nginx"])
     assert result.returncode == 0, result.stderr + result.stdout
+
+
+def test_gate_detects_missing_deployment_security_context(tmp_path: Path, repo_root: Path) -> None:
+    """Rendered deployment bundles fail when container hardening is missing."""
+    rendered = tmp_path / "rendered"
+    rendered.mkdir()
+    insecure = VALID_NGINX_RENDER + textwrap.dedent(
+        """\
+        ---
+        apiVersion: apps/v1
+        kind: Deployment
+        metadata: {name: oauth2-proxy, namespace: value-fabric}
+        spec:
+          selector: {matchLabels: {app: oauth2-proxy}}
+          template:
+            metadata: {labels: {app: oauth2-proxy}}
+            spec:
+              containers:
+                - name: oauth2-proxy
+                  image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+        """
+    )
+    (rendered / "dev-nginx.yaml").write_text(insecure, encoding="utf-8")
+    result = _run_gate(repo_root, rendered, _ok_routing_dir(tmp_path), ["dev-nginx:nginx"])
+    assert result.returncode == 1
+    assert "runAsNonRoot must be true" in result.stderr
