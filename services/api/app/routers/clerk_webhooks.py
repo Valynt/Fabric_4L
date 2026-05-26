@@ -21,7 +21,7 @@ import json
 import logging
 import time
 from base64 import b64decode, b64encode
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
 
 
-class ClerkEventType(str, Enum):
+class ClerkEventType(StrEnum):
     """Canonical Clerk webhook event types handled by Fabric4L."""
 
     USER_CREATED = "user.created"
@@ -88,7 +88,7 @@ def _verify_svix_signature(
         try:
             key = b64decode(secret[len("whsec_") :])
         except Exception as exc:
-            logger.error("CLERK_WEBHOOK_SECRET base64 decode failed: %s", exc)
+            logger.exception("CLERK_WEBHOOK_SECRET base64 decode failed")
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail={"code": "auth.webhook_misconfigured", "message": "Misconfigured."},
@@ -246,12 +246,10 @@ async def clerk_webhook(request: Request) -> None:
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.
         # Alerting/monitoring should flag these as they indicate a bug.
-        logger.error(
+        logger.exception(
             "clerk webhook handler failed: event_id=%s event_type=%s error=%s",
             event_id,
             event_type,
-            exc,
-            exc_info=True,
         )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,

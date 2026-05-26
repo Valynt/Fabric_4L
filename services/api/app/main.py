@@ -2,12 +2,6 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from .shared_bootstrap import (
-    create_fabric_app,
-    register_health_endpoint,
-    validate_production_safety,
-)
-
 from app.core.audit import AuditMiddleware
 from app.core.config import get_settings
 from app.core.metrics import metrics_middleware, render_metrics
@@ -30,6 +24,12 @@ from app.routers import (
 )
 from app.services.seed_data import seed_all
 
+from .shared_bootstrap import (
+    create_fabric_app,
+    register_health_endpoint,
+    validate_production_safety,
+)
+
 settings = get_settings()
 
 
@@ -40,9 +40,8 @@ def _assert_database_ready() -> None:
     try:
         create_database()
     except Exception as exc:
-        raise RuntimeError(
-            f"FATAL: Database initialization failed: {exc}"
-        ) from exc
+        error_message = "FATAL: Database initialization failed."
+        raise RuntimeError(error_message) from exc
 
 
 @asynccontextmanager
