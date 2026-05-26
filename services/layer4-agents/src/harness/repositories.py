@@ -284,6 +284,23 @@ class HarnessRunRepository:
         await self._session.flush()
         return run
 
+    async def get_for_update(self, run_id: str, tenant_id: str) -> HarnessRun:
+        """Fetch a run row using a row lock while preserving tenant isolation."""
+        from harness.registry import RunNotFoundError
+
+        result = await self._session.execute(
+            select(HarnessRunRow)
+            .where(
+                HarnessRunRow.id == run_id,
+                HarnessRunRow.tenant_id == tenant_id,
+            )
+            .with_for_update()
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise RunNotFoundError(f"Run '{run_id}' not found for tenant '{tenant_id}'")
+        return _row_to_run(row)
+
     async def list(
         self,
         tenant_id: str,

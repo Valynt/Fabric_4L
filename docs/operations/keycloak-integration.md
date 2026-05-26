@@ -54,12 +54,16 @@ Keycloak is included in `docker-compose.dev.yml`:
 docker compose -f docker-compose.dev.yml up keycloak
 ```
 
-Access the admin console: http://localhost:8080/admin  
-Credentials: `admin` / `admin`
+Access the admin console: http://localhost:8080/admin.  
+Bootstrap admin credentials come from `KC_BOOTSTRAP_ADMIN_USERNAME` and
+`KC_BOOTSTRAP_ADMIN_PASSWORD` (set via environment/secret management).
 
 ### 3.2 Realm Import
 
 The `fabric` realm is automatically imported from `infra/keycloak/fabric-realm.json` on first startup.
+A fail-closed preflight (`infra/keycloak/validate-realm-seed.py`) runs before
+Keycloak starts and rejects embedded client secrets, placeholder secret
+literals, and non-temporary seeded passwords.
 
 Pre-configured clients:
 
@@ -70,10 +74,16 @@ Pre-configured clients:
 
 Pre-configured users:
 
-| User | Password | Role | Tenant |
-|------|----------|------|--------|
-| `admin` | `admin` | `tenant_admin` | `demo-tenant` |
-| `analyst` | `analyst` | `analyst` | `demo-tenant` |
+| User | Password policy in seed | Role | Tenant |
+|------|--------------------------|------|--------|
+| `admin` | temporary only (or provision at runtime) | `tenant_admin` | `demo-tenant` |
+| `analyst` | temporary only (or provision at runtime) | `analyst` | `demo-tenant` |
+
+Credential sourcing requirements:
+
+1. **Client secrets** for confidential/service clients must be injected during runtime provisioning (secret manager, admin API job, or IaC), never committed in realm export JSON.
+2. **Seed user passwords** must be temporary (`temporary: true`) when present in realm data, forcing rotation on first login.
+3. **Static defaults are prohibited** (`do-not-use-in-production`, `admin/admin`, `analyst/analyst`, or any `temporary: false` password in realm seed data).
 
 ### 3.3 Backend Configuration
 

@@ -3,11 +3,11 @@ import hashlib
 import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.database import db
-from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
+from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.models.schemas import (
     Account,
     AccountShareLinkResponse,
@@ -15,10 +15,14 @@ from app.models.schemas import (
     AccountSummaryResponse,
     PaginatedResponse,
 )
-
-_SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
+from app.repositories.session_store import ShareLinkRepository
+from app.services.distributed_store import StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+
+
+def get_share_link_repo() -> ShareLinkRepository:
+    return ShareLinkRepository(get_distributed_store())
 
 
 @router.get("", response_model=PaginatedResponse[Account])
@@ -55,7 +59,9 @@ async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)
 
 @router.patch("/{account_id}", response_model=Account)
 async def update_account(
-    account_id: str, fields: dict[str, Any], tenant_id: str = Depends(tenant_required)
+    account_id: str,
+    fields: dict[str, Any],
+    tenant_id: str = Depends(tenant_required),
 ):
     acc = db.accounts.update(account_id, tenant_id=tenant_id, **fields)
     if not acc:
@@ -68,13 +74,20 @@ async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_r
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    signals = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
+
+    signals = db.signals.list(
+        tenant_id=tenant_id,
+        filter_fn=lambda s: s.account_id == account_id,
+    )
     hypotheses = db.hypotheses.list(
-        tenant_id=tenant_id, filter_fn=lambda h: h.account_id == account_id
+        tenant_id=tenant_id,
+        filter_fn=lambda h: h.account_id == account_id,
     )
     roi_calcs = db.roi_calculations.list(
-        tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id
+        tenant_id=tenant_id,
+        filter_fn=lambda r: r.account_id == account_id,
     )
+
     return AccountSummaryResponse(
         account=acc,
         signal_count=len(signals),
@@ -84,27 +97,58 @@ async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_r
 
 
 @router.post("/{account_id}/share", response_model=AccountShareLinkResponse)
-async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def create_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    # Use a cryptographically secure random token (256 bits of entropy).
-    # Python's built-in hash() is non-cryptographic, seed-randomized per process,
-    # and produces only ~20 bits of effective entropy after modulo — do not use it.
+
     raw_token = secrets.token_urlsafe(32)
     token_fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     expires_at = datetime.now(UTC) + timedelta(days=7)
-    _SHARE_LINKS[(tenant_id, account_id)] = {
-        "fingerprint_hash": token_fingerprint_hash,
-        "expires_at_ts": int(expires_at.timestamp()),
-    }
-    return AccountShareLinkResponse(share_token=raw_token, account_id=account_id, role="read_only")
+
+    try:
+        repo.create(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            fingerprint_hash=token_fingerprint_hash,
+            expires_at_ts=int(expires_at.timestamp()),
+        )
+    except StoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Share-link store unavailable; try again later",
+        )
+
+    return AccountShareLinkResponse(
+        share_token=raw_token,
+        account_id=account_id,
+        role="read_only",
+    )
 
 
 @router.delete("/{account_id}/share", response_model=AccountShareRevokeResponse)
-async def revoke_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def revoke_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    _SHARE_LINKS.pop((tenant_id, account_id), None)
-    return AccountShareRevokeResponse(revoked=True, account_id=account_id)
+
+    try:
+        repo.revoke(tenant_id=tenant_id, account_id=account_id)
+    except StoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Share-link store unavailable; try again later",
+        )
+
+    return AccountShareRevokeResponse(
+        revoked=True,
+        account_id=account_id,
+    )
