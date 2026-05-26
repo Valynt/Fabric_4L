@@ -31,6 +31,14 @@ class WorkflowExecutionError(Exception):
     pass
 
 
+class CheckpointConflictError(WorkflowExecutionError):
+    """Raised when checkpoint hash from caller is stale versus persisted latest state."""
+
+    def __init__(self, message: str, metadata: dict[str, Any]):
+        super().__init__(message)
+        self.metadata = metadata
+
+
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
@@ -234,9 +242,30 @@ class OrchestrationController:
         # Expected hash is the one stored when the checkpoint was originally saved
         expected_hash = (state.metadata or {}).get("checkpoint_hash")
 
-        # Determine latest checkpoint hash by loading current state again
+        # Determine latest checkpoint hash by loading current persisted state
         latest_state = await self.state_manager.load_state(workflow_id)
         latest_hash = self._compute_state_hash(latest_state) if latest_state else checkpoint_hash
+        checkpoint_id = target_checkpoint_id or str(state.current_node or "latest")
+        run_id = state.run_id or workflow_id
+
+        if latest_hash != checkpoint_hash:
+            conflict_metadata = {
+                "workflow_id": workflow_id,
+                "run_id": run_id,
+                "checkpoint_id": checkpoint_id,
+                "expected_hash": checkpoint_hash,
+                "actual_hash": latest_hash,
+            }
+            lifecycle_logger.emit(
+                stage="checkpoint_conflict",
+                context=self._lifecycle_context(
+                    workflow_id,
+                    tenant_id=str(state.tenant_id or "unknown"),
+                    checkpoint_id=checkpoint_id,
+                ),
+                **conflict_metadata,
+            )
+            raise CheckpointConflictError("Checkpoint hash mismatch", conflict_metadata)
 
         # Age guard uses paused_at or started_at
         checkpoint_created_at = state.paused_at or state.started_at
@@ -257,7 +286,6 @@ class OrchestrationController:
             raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 
         # Duplicate replay detection
-        run_id = state.run_id or workflow_id
         tenant_id = state.tenant_id or "unknown"
         try:
             decision = resolver.evaluate_duplicate_replay(

@@ -9,6 +9,7 @@ Provides account-scoped authorization for entity access:
 from typing import Any
 
 from fastapi import HTTPException, Request, status
+from value_fabric.shared.error_handling import sanitize_public_error
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from ..schema.entity_scope import (
@@ -276,5 +277,5 @@ def verify_entity_account_access(
     except AccountAuthorizationError as e:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=str(e),
+            detail=sanitize_public_error(e, status_code=status.HTTP_403_FORBIDDEN).message,
         ) from e

@@ -2,12 +2,12 @@ from fastapi import APIRouter, Depends, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import GovernanceGate, PaginatedResponse, ReviewDecision
+from app.models.schemas import AuditLogListResponse, GovernanceGate, GovernanceReviewQueueResponse, PaginatedResponse, ReviewDecision
 
 router = APIRouter(prefix="/governance", tags=["Governance"])
 
 
-@router.get("/review-queue")
+@router.get("/review-queue", response_model=GovernanceReviewQueueResponse)
 async def get_review_queue(tenant_id: str = Depends(tenant_required)):
     hypotheses = db.hypotheses.list(
         tenant_id=tenant_id, filter_fn=lambda h: h.status == "generated"
@@ -18,12 +18,12 @@ async def get_review_queue(tenant_id: str = Depends(tenant_required)):
     evidence = db.evidence.list(
         tenant_id=tenant_id, filter_fn=lambda e: e.audit.review_state == "needs_review"
     )
-    return {
-        "hypotheses": hypotheses,
-        "formulas": formulas,
-        "evidence": evidence,
-        "total": len(hypotheses) + len(formulas) + len(evidence),
-    }
+    return GovernanceReviewQueueResponse(
+        hypotheses=hypotheses,
+        formulas=formulas,
+        evidence=evidence,
+        total=len(hypotheses) + len(formulas) + len(evidence),
+    )
 
 
 @router.post("/review-decisions", response_model=ReviewDecision, status_code=201)
@@ -46,6 +46,6 @@ async def list_prod_gates(
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
-@router.get("/audit-log")
+@router.get("/audit-log", response_model=AuditLogListResponse)
 async def get_audit_log(tenant_id: str = Depends(tenant_required)):
-    return db.audit_logs.list(tenant_id=tenant_id)
+    return AuditLogListResponse(items=db.audit_logs.list(tenant_id=tenant_id))
