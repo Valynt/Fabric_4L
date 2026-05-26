@@ -74,10 +74,12 @@
     "test:frontend-hygiene": "node scripts/quality/assert-frontend-hygiene.mjs && node scripts/quality/assert-explicit-any-threshold.mjs && pnpm run check:no-legacy-api-imports && pnpm run check:compatibility-shims-registered",
     "test:legacy-removals": "node scripts/quality/assert-legacy-removals.mjs",
     "test:coverage:critical": "vitest run --coverage --config vitest.critical-coverage.config.ts",
+    "test:hooks:priority": "vitest run src/hooks/useTenantMembership.test.ts src/hooks/useWorkflowContext.test.ts src/hooks/useValueCaseArtifacts.test.ts",
     "check:no-legacy-api-imports": "node scripts/assert-no-legacy-api-imports.mjs",
     "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs",
     "check:async-boundaries": "node scripts/quality/async-boundary-audit.mjs",
     "test:prod-unhandled-rejections": "NODE_ENV=production NODE_OPTIONS=--unhandled-rejections=strict vitest run",
+    "test:coverage:stores": "vitest run --coverage --config vitest.store-coverage.config.ts"
     "test:generated-response-types": "node scripts/quality/assert-generated-response-types-no-any.mjs"
   },
   "dependencies": {

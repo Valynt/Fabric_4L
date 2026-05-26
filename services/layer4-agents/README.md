@@ -176,6 +176,14 @@ The initial migration creates tables for:
 - **Tenant Governance**: tenants, users, api_keys, tenant_isolation_tier_history
 - **CRM Accounts**: accounts, account_sync_status
 - **Billing**: billing_customers, billing_subscriptions, billing_webhook_events, billing_usage_events, billing_invoices, billing_invoice_items, billing_charges
+
+### Stripe Webhook Reliability Guarantees
+
+- Webhook signatures are verified before any persistence or business logic is run.
+- Stripe events are persisted to `billing_webhook_events` keyed by `event.id` with inbox state (`status`, `attempt_count`, `last_error`, `next_retry_at`, `processed_at`, `payload_hash`).
+- Duplicate deliveries with already-processed `event.id` are acknowledged idempotently and do not re-run side effects.
+- Business handling runs asynchronously from request handling, with retryable failures marked for bounded exponential backoff and terminal failures moved to a final `failed` state.
+- Operational signals are emitted through logs for duplicate deliveries, retry scheduling, terminal failures, and processing latency.
 - **Integrations**: integrations
 
 All tables include `tenant_id` for multi-tenant isolation via Row-Level Security (RLS).

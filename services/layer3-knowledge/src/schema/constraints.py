@@ -10,6 +10,8 @@ which are supported on both Community and Enterprise editions.
 
 from dataclasses import dataclass
 
+from ..config import get_settings
+
 
 @dataclass
 class Constraint:
@@ -91,13 +93,14 @@ class Index:
                 f"ON EACH [{props}]"
             )
         elif self.index_type == "vector":
+            embedding_dimension = get_settings().embedding_dimension
             # Vector index only supports single property
             return (
                 f"CREATE VECTOR INDEX {self.name} "
                 f"IF NOT EXISTS "
                 f"FOR (n:{self.entity_type}) "
                 f"ON (n.{self.properties[0]}) "
-                f"OPTIONS {{indexConfig: {{`vector.dimensions`: 384, `vector.similarity_function`: 'cosine'}}}}"
+                f"OPTIONS {{indexConfig: {{`vector.dimensions`: {embedding_dimension}, `vector.similarity_function`: 'cosine'}}}}"
             )
         elif self.index_type == "lookup":
             return f"CREATE LOOKUP INDEX {self.name} IF NOT EXISTS FOR (n) ON EACH labels(n)"
