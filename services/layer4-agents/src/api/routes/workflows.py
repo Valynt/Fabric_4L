@@ -365,10 +365,19 @@ async def create_workflow(
         )
 
     except Exception as exc:
+        if isinstance(exc, WorkflowExecutionError):
+            raise HTTPException(
+                status_code=503,
+                detail={
+                    "error": "durable_workflow_required",
+                    "message": str(exc),
+                },
+            )
         raise_normalized_with_log(
             exc,
             status_code=500,
-            detail="Workflow execution failed",
+            message="Workflow execution failed",
+            error_code="workflow_execution_failed",
             logger=logger,
             log_message="Workflow execution failed",
         )

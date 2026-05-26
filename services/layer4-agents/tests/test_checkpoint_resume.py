@@ -215,6 +215,53 @@ class TestCheckpointConfiguration:
                 assert saver is not None
                 # Verify connection is stored for later cleanup
                 assert hasattr(saver, '_conn')
+
+
+@pytest.mark.unit
+class TestDurableWorkflowPolicy:
+    @pytest.mark.asyncio
+    async def test_enforced_mode_rejects_missing_checkpoint_saver(self, mock_tool_registry, state_manager):
+        controller = OrchestrationController(
+            tool_registry=mock_tool_registry,
+            state_manager=state_manager,
+            checkpoint_saver=None,
+        )
+        with patch.dict(os.environ, {"REQUIRE_DURABLE_WORKFLOWS": "true"}, clear=False):
+            with pytest.raises(WorkflowExecutionError, match="Durable workflow policy violation"):
+                await controller.execute_workflow(
+                    workflow_type=TEST_WORKFLOW_TYPE,
+                    input_data={"prospect_id": "p-1"},
+                    tenant_id="tenant-a",
+                )
+
+    @pytest.mark.asyncio
+    async def test_best_effort_mode_allows_missing_checkpoint_saver(self, mock_tool_registry, state_manager):
+        controller = OrchestrationController(
+            tool_registry=mock_tool_registry,
+            state_manager=state_manager,
+            checkpoint_saver=None,
+        )
+        mock_workflow = Mock(spec=BaseWorkflow)
+        initial_state = BaseAgentState(
+            tenant_id="tenant-a",
+            workflow_id="wf-best-effort",
+            workflow_type=TEST_WORKFLOW_TYPE,
+            status=WorkflowStatus.PENDING,
+            input_data={"prospect_id": "p-2"},
+            output_data={},
+            errors=[],
+        )
+        final_state = initial_state.model_copy(update={"status": WorkflowStatus.COMPLETED})
+        mock_workflow.create_initial_state = Mock(return_value=initial_state)
+        mock_workflow.run = AsyncMock(return_value=final_state)
+        with patch.dict(os.environ, {"REQUIRE_DURABLE_WORKFLOWS": "false", "ENVIRONMENT": "development"}, clear=False):
+            with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+                result = await controller.execute_workflow(
+                    workflow_type=TEST_WORKFLOW_TYPE,
+                    input_data={"prospect_id": "p-2"},
+                    tenant_id="tenant-a",
+                )
+        assert result.status == WorkflowStatus.COMPLETED
     
     def test_checkpoint_config_handles_url_variations(self):
         """CheckpointConfig handles different URL formats."""

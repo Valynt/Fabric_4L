@@ -91,6 +91,18 @@ logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
 
 
+def _require_durable_workflows() -> bool:
+    """Return True when runtime policy requires durable checkpointing."""
+    import os
+
+    return (os.getenv("REQUIRE_DURABLE_WORKFLOWS") or "").strip().lower() in {
+        "1",
+        "true",
+        "yes",
+        "on",
+    }
+
+
 # ---------------------------------------------------------------------------
 # LLM Cost Metrics Integration Snippet
 # ---------------------------------------------------------------------------
@@ -527,9 +539,9 @@ class OrchestrationController:
             from value_fabric.shared.security.config import is_production_like_environment
 
             environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV")
-            if is_production_like_environment(environment):
+            if _require_durable_workflows() or is_production_like_environment(environment):
                 raise WorkflowExecutionError(
-                    "Production workflow execution requires a durable checkpoint saver"
+                    "Durable workflow policy violation: checkpoint saver unavailable"
                 )
 
         # P1-42: Check concurrent workflow limit
