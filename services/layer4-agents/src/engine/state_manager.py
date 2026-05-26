@@ -14,7 +14,7 @@ from pydantic import TypeAdapter, ValidationError
 from ..models.agent_state import AgentState, WorkflowStatus
 
 if TYPE_CHECKING:
-    from ..api.websocket.manager import WorkflowWebSocketManager
+    from ..contexts.api_surface.public import WorkflowWebSocketManager
 
 logger = logging.getLogger(__name__)
 _SECRET_KEY_PATTERN = re.compile(
