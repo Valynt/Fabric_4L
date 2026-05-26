@@ -435,3 +435,23 @@ groups:
         annotations:
           summary: "Ground truth evaluations failing"
           description: "{{ $value | humanizePercentage }} of evaluations failing"
+
+      - alert: Layer1RepeatedCrawlFailures
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+          team: platform
+        annotations:
+          summary: "Layer 1 repeated crawl failures"
+          description: "Layer 1 retry events exceeded threshold in the last 15m."
+
+      - alert: Layer1StuckJobCandidates
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 25
+        for: 10m
+        labels:
+          severity: critical
+          team: platform
+        annotations:
+          summary: "Layer 1 stuck-job candidates detected"
+          description: "Layer 1 retry events remained elevated for browser crawl or compliance check stages, indicating potentially stuck non-terminal jobs."
