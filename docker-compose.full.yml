@@ -608,16 +608,26 @@ services:
       - BADGER_DIRECTORY_VALUE=/badger/data
       - BADGER_DIRECTORY_KEY=/badger/key
       - BADGER_SPAN_STORE_TTL=336h  # 14 days retention (>7 days required)
+      - MEMORY_MAX_TRACES=50000
     volumes:
       - jaeger-data:/badger
     networks:
       - value-fabric-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 2G
+        reservations:
+          cpus: "0.50"
+          memory: 512M
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:16686/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:14269/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # PgBouncer connection pool (for production database connection pooling)
   # NOTE: userlist.txt must be generated from environment variables before starting

@@ -38,7 +38,7 @@ Operational recommendation:
 
 Jaeger all-in-one resources are tuned for moderate-to-high trace volume:
 
-- Requests: `cpu=1000m`, `memory=3Gi`
+- Requests: `cpu=1500m`, `memory=4Gi`
 - Limits: `cpu=4000m`, `memory=8Gi`
 
 If ingestion spikes or UI query latency increases:
@@ -71,3 +71,24 @@ kubectl -n monitoring get deployment jaeger -o yaml | grep -E 'SPAN_STORAGE_TYPE
 kubectl -n monitoring get secret jaeger-storage-credentials -o jsonpath='{.metadata.annotations}'
 kubectl -n monitoring logs deploy/jaeger --tail=200
 ```
+
+
+## Staging trace continuity validation (required)
+
+Use this procedure after any Jaeger rollout in staging to verify spans survive pod restarts:
+
+1. Port-forward Jaeger query and capture a known trace ID generated from any layer request.
+2. Restart the Jaeger pod (`kubectl -n monitoring rollout restart deploy/jaeger`) and wait until readiness recovers.
+3. Re-query the same trace ID in Jaeger UI/API (`/api/traces/{traceId}`).
+4. Pass criteria: trace remains available and query latency remains within normal bounds.
+
+Example commands:
+
+```bash
+kubectl -n monitoring port-forward svc/jaeger-query 16686:16686
+kubectl -n monitoring rollout restart deploy/jaeger
+kubectl -n monitoring rollout status deploy/jaeger --timeout=180s
+curl -sf "http://localhost:16686/jaeger/api/traces/${TRACE_ID}" | jq '.data | length'
+```
+
+If the trace is missing after restart, treat it as a storage durability incident and validate OpenSearch index health plus ILM/ISM retention policy state before re-enabling traffic.
