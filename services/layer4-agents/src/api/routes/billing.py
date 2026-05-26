@@ -12,7 +12,7 @@ import re
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
@@ -54,6 +54,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ...database import get_session_factory
 from ...services.billing_service import BillingService
 from ...services.overage_service import OverageService
 from ...services.stripe_client import StripeError
@@ -681,6 +682,7 @@ async def sync_customer(
 @router.post("/webhook", response_model=stripe_webhookResult, status_code=status.HTTP_200_OK)
 async def stripe_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
     # SECURITY: Webhook uses get_db (no tenant context) intentionally.
     # Stripe server-to-server calls don't carry tenant JWTs.
@@ -725,7 +727,18 @@ async def stripe_webhook(
     service = BillingService(db)
 
     try:
-        await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        inbox = await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        if inbox.status != "processed":
+            async def _process() -> None:
+                session_factory = get_session_factory()
+                async with session_factory() as worker_db:
+                    worker = BillingService(worker_db)
+                    try:
+                        await worker.process_webhook_event(inbox.id, body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+                        await worker_db.commit()
+                    except Exception:
+                        await worker_db.commit()
+            background_tasks.add_task(_process)
         return stripe_webhookResult.model_validate({"received": True})
     except ValueError as e:
         logger.warning(f"Webhook validation failed: {e}")

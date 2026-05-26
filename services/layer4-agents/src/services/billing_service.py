@@ -7,8 +7,9 @@ Minimal scope: subscription status, customer portal, plan enforcement.
 from __future__ import annotations
 
 import asyncio
+import hashlib
 import logging
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -82,6 +83,9 @@ class BillingService:
     @staticmethod
     def _utc_now() -> datetime:
         return datetime.now(UTC)
+
+    def _retry_delay_seconds(self, attempt_count: int) -> int:
+        return min(300, 2 ** max(0, attempt_count - 1))
 
     async def get_or_create_customer(
         self,
@@ -388,8 +392,8 @@ class BillingService:
                 return existing
             raise
 
-    async def handle_webhook(self, payload: bytes, signature: str, webhook_secret: str) -> bool:
-        """Handle Stripe webhook event with idempotency check."""
+    async def handle_webhook(self, payload: bytes, signature: str, webhook_secret: str) -> BillingWebhookEvent:
+        """Persist Stripe webhook event and return inbox entry."""
         # Validate signature is present
         if not signature:
             raise ValueError("Invalid signature: missing signature header")
@@ -408,16 +412,42 @@ class BillingService:
         event_id = event["id"]
         event_type = event["type"]
 
-        # Check idempotency (SELECT check is a cache optimization)
-        result = await self.db.execute(
-            select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id)
-        )
-        if result.scalar_one_or_none():
-            logger.info(f"Webhook {event_id} already processed (idempotent)")
-            return True  # Already processed
+        payload_hash = hashlib.sha256(payload).hexdigest()
+        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+        existing = result.scalar_one_or_none()
+        if existing:
+            if existing.status == "processed":
+                logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type})
+            else:
+                existing.status = "pending"
+                existing.next_retry_at = self._utc_now()
+            await self.db.flush()
+            return existing
 
-        # Process event with transaction safety
+        inbox = BillingWebhookEvent(
+            id=event_id,
+            type=event_type,
+            status="pending",
+            attempt_count=0,
+            payload_hash=payload_hash,
+            next_retry_at=self._utc_now(),
+        )
+        self.db.add(inbox)
+        await self.db.flush()
+        return inbox
+
+    async def process_webhook_event(self, event_id: str, payload: bytes, signature: str, webhook_secret: str) -> None:
+        """Process persisted webhook inbox event with bounded retries."""
+        stripe = _get_stripe()
+        event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
+        event_type = event["type"]
+        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+        inbox = result.scalar_one_or_none()
+        if inbox is None or inbox.status == "processed":
+            return
         try:
+            inbox.status = "processing"
+            inbox.attempt_count += 1
             if event_type == "checkout.session.completed":
                 await self._handle_checkout_completed(event["data"]["object"])
             elif event_type == "customer.subscription.created":
@@ -431,22 +461,11 @@ class BillingService:
             elif event_type == "invoice.payment_failed":
                 await self._handle_payment_failed(event["data"]["object"])
 
-            # Record event as processed
-            # Extract tenant_id from customer lookup if available for audit trail
-            tenant_id = None
-            if event_type in ["checkout.session.completed", "customer.subscription.created", "customer.subscription.updated", "customer.subscription.deleted"]:
-                # These events have customer context we can use to extract tenant_id
-                # For checkout.session.completed, tenant_id is set in _handle_checkout_completed
-                # For subscription events, we can look up the customer
-                pass  # tenant_id will be set by the specific handler if available
-            
+            inbox.status = "processed"
+            inbox.processed_at = self._utc_now()
+            inbox.next_retry_at = None
+            inbox.last_error = None
             invoice_obj = event.get("data", {}).get("object", {})
-            webhook_event = BillingWebhookEvent(
-                id=event_id,
-                type=event_type,
-                tenant_id=tenant_id,
-            )
-            self.db.add(webhook_event)
             logger.info(
                 "billing.webhook_reconciliation_artifact",
                 extra={
@@ -459,19 +478,16 @@ class BillingService:
                 },
             )
             await self.db.flush()
-
-            return True
-
-        except IntegrityError:
-            # Race condition: another request processed this event concurrently
-            # The unique constraint on BillingWebhookEvent.id caught it
-            await self.db.rollback()
-            logger.info(f"Webhook {event_id} processed concurrently (idempotent)")
-            return True
-        except SQLAlchemyError as exc:
-            # Database error - rollback to maintain consistency
-            await self.db.rollback()
-            logger.error("Webhook persistence failure", extra={"event_id": event_id, "event_type": event_type, "error_type": type(exc).__name__}, exc_info=True)
+        except Exception as exc:
+            transient = isinstance(exc, (StripeError, SQLAlchemyError, asyncio.TimeoutError))
+            inbox.last_error = sanitize_log_error(exc)
+            if transient and inbox.attempt_count < 5:
+                inbox.status = "retryable"
+                inbox.next_retry_at = self._utc_now() + timedelta(seconds=self._retry_delay_seconds(inbox.attempt_count))
+            else:
+                inbox.status = "failed"
+                inbox.next_retry_at = None
+            await self.db.flush()
             raise
 
     async def _handle_checkout_completed(self, session: dict[str, Any]) -> None:
