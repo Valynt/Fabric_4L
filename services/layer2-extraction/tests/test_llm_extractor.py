@@ -129,6 +129,49 @@ async def test_entity_extractor_uses_structured_output():
 
 
 @pytest.mark.asyncio
+async def test_entity_extractor_assigns_stable_deterministic_ids_across_replays():
+    """Identical tenant/source/content/config should produce stable entity IDs."""
+    extractor = EntityExtractor(api_key="test-key")
+    mock_capability = Capability(
+        name="Replay Safe Capability",
+        description="Stable IDs are required for replays and retries",
+        confidence=0.95,
+    )
+    mock_response = CapabilityExtractionResponse(capabilities=[mock_capability])
+    telemetry_context = {
+        "tenant_id": "tenant-a",
+        "schema_version": "2026-05",
+        "model_version": "gpt-4o",
+        "value_pack_id": "default",
+        "extraction_version": "v1",
+    }
+
+    with patch.object(
+        extractor.client,
+        "chat_completion_structured",
+        return_value=(mock_response, None),
+    ):
+        first = await extractor._extract_capabilities(
+            "same text",
+            "http://test.com/source",
+            "job-123",
+            0.8,
+            telemetry_context=telemetry_context,
+        )
+        second = await extractor._extract_capabilities(
+            "same text",
+            "http://test.com/source",
+            "job-123-replay",
+            0.8,
+            telemetry_context=telemetry_context,
+        )
+
+    assert first[0].id == first[0].deterministic_id
+    assert second[0].id == second[0].deterministic_id
+    assert first[0].id == second[0].id
+
+
+@pytest.mark.asyncio
 async def test_entity_extractor_filters_by_confidence_threshold():
     """Verify entities below confidence threshold are filtered."""
     extractor = EntityExtractor(api_key="test-key")
