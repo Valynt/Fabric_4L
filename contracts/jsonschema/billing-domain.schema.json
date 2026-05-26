@@ -1,0 +1,14 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric/contracts/billing-domain.schema.json",
+  "title": "Billing Domain Contracts",
+  "type": "object",
+  "required": ["plan", "entitlement_decision", "usage_event", "invoice", "payment_state"],
+  "properties": {
+    "plan": {"type":"object","required":["plan_id","name","entitlements"],"properties":{"plan_id":{"type":"string"},"name":{"type":"string"},"entitlements":{"type":"array","items":{"type":"string"}}}},
+    "entitlement_decision": {"type":"object","required":["tenant_id","plan_id","feature","allowed","policy"],"properties":{"tenant_id":{"type":"string"},"plan_id":{"type":"string"},"feature":{"type":"string"},"allowed":{"type":"boolean"},"policy":{"type":"string"}}},
+    "usage_event": {"type":"object","required":["event_id","tenant_id","actor","source","timestamp","request_id"],"properties":{"event_id":{"type":"string"},"tenant_id":{"type":"string"},"actor":{"type":"string"},"source":{"type":"string"},"timestamp":{"type":"string"},"request_id":{"type":"string"}}},
+    "invoice": {"type":"object","required":["invoice_id","tenant_id","amount","currency","state"],"properties":{"invoice_id":{"type":"string"},"tenant_id":{"type":"string"},"amount":{"type":"number"},"currency":{"type":"string"},"state":{"type":"string"}}},
+    "payment_state": {"type":"object","required":["tenant_id","state"],"properties":{"tenant_id":{"type":"string"},"state":{"enum":["pending","paid","failed","refunded"]}}}
+  }
+}
