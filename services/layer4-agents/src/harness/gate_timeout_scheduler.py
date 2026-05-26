@@ -13,8 +13,9 @@ from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-# Default gate timeout: 60 seconds (P0 requirement)
-DEFAULT_GATE_TIMEOUT_SECONDS = 60
+# Default gate timeout when env var is unset.
+# Backward compatibility: scheduler remains enabled and uses this value.
+DEFAULT_GATE_TIMEOUT_SECONDS = 600
 
 
 class GateTimeoutScheduler:
@@ -87,9 +88,18 @@ class GateTimeoutScheduler:
 
             if expired_count:
                 await session.commit()
-                logger.info("Expired %d overdue gate(s)", expired_count)
+                logger.info(
+                    "Expired %d overdue gate(s) with configured timeout=%ss",
+                    expired_count,
+                    self._timeout_seconds,
+                )
 
 
 def create_gate_timeout_scheduler(session_factory) -> GateTimeoutScheduler:
     """Factory for the gate timeout scheduler."""
-    return GateTimeoutScheduler(session_factory)
+    from ..config.settings import settings
+
+    return GateTimeoutScheduler(
+        session_factory,
+        timeout_seconds=settings.agent_gate_timeout_seconds,
+    )

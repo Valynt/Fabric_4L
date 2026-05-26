@@ -467,7 +467,11 @@ class ValidateResponse(BaseModel):
 class AddSourceRequest(TruthSourceCreate):
     """Schema for POST /truths/{id}/sources."""
 
-    pass
+    @model_validator(mode="after")
+    def require_provenance_reference(self) -> "AddSourceRequest":
+        if not (self.source_id or self.source_url):
+            raise ValueError("Either source_id or source_url is required for provenance")
+        return self
 
 
 # ---------------------------------------------------------------------------

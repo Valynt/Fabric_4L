@@ -12,7 +12,7 @@ import { useBusinessCase } from "@/hooks/useDocuments";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { Toolbar } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, Btn, StatusBadge, LegacyDataTable } from "@/components/ui/fabric";
+import { PageHeader, Btn, StatusBadge, DataTable } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('DecisionTrace');
 
@@ -306,7 +306,7 @@ export default function DecisionTrace() {
         {/* Trace list */}
         <div className="flex-1">
           <SectionCard title={`Audit Log (${auditLogs?.total || 0} entries)`} noPad>
-            <LegacyDataTable
+            <DataTable
               columns={["Trace ID", "Entity", "Action", "Agent", "Timestamp", "Status", "Actions"]}
               rows={auditRows}
               emptyMessage="No audit entries found"

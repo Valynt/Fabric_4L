@@ -149,6 +149,14 @@ class Settings(BaseSettings):
             )
         return v
 
+    @field_validator("embedding_dimension")
+    @classmethod
+    def validate_embedding_dimension(cls, v: int) -> int:
+        """Embedding vectors must use a positive dimension."""
+        if v <= 0:
+            raise ValueError("EMBEDDING_DIMENSION must be a positive integer")
+        return v
+
     @model_validator(mode="after")
     def validate_prod_neo4j_aura(self) -> "Settings":
         """Production/staging must use managed Aura, not in-cluster Neo4j."""
