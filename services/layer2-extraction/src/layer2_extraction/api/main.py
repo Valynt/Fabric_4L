@@ -806,6 +806,7 @@ async def run_extraction(
                 source_url=source_url,
                 extraction_job_id=job_id,
                 confidence_threshold=confidence_threshold - RELATIONSHIP_CONFIDENCE_OFFSET,
+                telemetry_context=telemetry_context,
             )
             all_relationships.extend(relationships)
 
@@ -914,6 +915,10 @@ async def run_extraction(
             schema_version=telemetry_context["schema_version"],
             prompt_version=telemetry_context["prompt_version"],
             model_version=telemetry_context["model_version"],
+            security_metadata=(
+                get_entity_extractor().get_security_signals()
+                + get_relationship_extractor().get_security_signals()
+            ),
         )
         
         # MANDATORY VALIDATION GATE: Validate result before any persistence
