@@ -83,6 +83,10 @@ Expected output: `.env` or `.env.local` should be listed.
 
 Docker Compose automatically loads `.env` from the same directory as `docker-compose.yml`.
 
+> ⚠️ **Security warning:** Vault dev mode (`server -dev`) is for isolated local development only.
+> It is never production-safe and must never be used for staging/production deployments.
+> Production/staging must use Vault auth methods such as Kubernetes auth, OIDC/JWT, or AppRole.
+
 ### Startup with secrets
 
 ```bash
@@ -90,6 +94,19 @@ cd value-fabric
 # Ensure .env exists with OPENAI_API_KEY
 docker-compose up -d
 ```
+
+### Optional local Vault dev-root-token override (local only)
+
+Use this only when you explicitly need a stable local Vault dev token:
+
+```bash
+docker compose \
+  -f docker-compose.full.yml \
+  -f docker-compose.full.dev-vault.yml \
+  --profile local-dev up -d vault
+```
+
+This override file intentionally sets `VAULT_DEV_ROOT_TOKEN_ID=root` and must never be included in release compose paths.
 
 ### Verifying secrets are injected
 

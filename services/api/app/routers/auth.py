@@ -28,6 +28,8 @@ from app.core.security import (
     verify_password,
 )
 from app.models.schemas import AuditLogEvent, Tenant, User
+from app.repositories.session_store import ImpersonationSessionRepository
+from app.services.distributed_store import StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -222,7 +224,10 @@ _ROLE_RANK: dict[str, int] = {
     "read_only": 20,
 }
 
-_IMPERSONATION_SESSIONS: dict[str, dict[str, str]] = {}
+
+
+def get_impersonation_repo() -> ImpersonationSessionRepository:
+    return ImpersonationSessionRepository(get_distributed_store())
 
 
 @router.post("/invite", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
@@ -349,6 +354,7 @@ async def start_impersonation(
     payload: ImpersonationStartRequest,
     request: Request,
     current_user: User = Depends(get_current_user),
+    repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> ImpersonationStartResponse:
     if current_user.role not in {"tenant_admin", "super_admin"}:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role for impersonation")
@@ -359,15 +365,18 @@ async def start_impersonation(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cross-tenant impersonation is forbidden")
 
     session_id = str(uuid.uuid4())
-    _IMPERSONATION_SESSIONS[session_id] = {
-        "tenant_id": current_user.tenant_id,
-        "target_user_id": target_user.id,
-        "impersonated_by": current_user.id,
-        "reason": payload.reason,
-        "started_at": datetime.now(UTC).isoformat(),
-        "notify_email": str(payload.notify_email),
-        "notify_webhook": str(payload.notify_webhook),
-    }
+    try:
+        repo.create(
+            tenant_id=current_user.tenant_id,
+            session_id=session_id,
+            target_user_id=target_user.id,
+            impersonated_by=current_user.id,
+            reason=payload.reason,
+            notify_email=payload.notify_email,
+            notify_webhook=payload.notify_webhook,
+        )
+    except StoreUnavailableError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
     event_payload = {
         "actor_user_id": current_user.id,
         "impersonated_user_id": target_user.id,
@@ -415,10 +424,14 @@ async def start_impersonation(
 async def stop_impersonation(
     request: Request,
     auth: TokenPayload = Depends(require_authenticated),
+    repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> None:
     if not auth.impersonation_session_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
-    session = _IMPERSONATION_SESSIONS.pop(auth.impersonation_session_id, None)
+    try:
+        session = repo.pop(tenant_id=auth.tenant_id, session_id=auth.impersonation_session_id)
+    except StoreUnavailableError:
+        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
     stop_event_id = str(uuid.uuid4())
     db.audit_logs.insert(stop_event_id, AuditLogEvent(
         id=stop_event_id,
@@ -430,15 +443,15 @@ async def stop_impersonation(
         resource_id=session["target_user_id"] if session else auth.sub,
         payload={
             "actor_user_id": auth.sub,
-            "impersonated_user_id": session["target_user_id"] if session else auth.sub,
+            "impersonated_user_id": str(session.get("target_user_id")) if session else auth.sub,
             "impersonated_tenant_id": auth.tenant_id,
             "impersonated_by": auth.impersonated_by,
             "correlation_id": request.headers.get("X-Request-ID"),
             "timestamp": datetime.now(UTC).isoformat(),
             "action_code": "impersonation.stop",
-            "reason": session["reason"] if session else auth.impersonation_reason,
+            "reason": str(session.get("reason")) if session else auth.impersonation_reason,
             "impersonation_session_id": auth.impersonation_session_id,
-            "tenant_notifications": {"in_app": True, "email": session["notify_email"] == "True" if session else False, "webhook": session["notify_webhook"] == "True" if session else False},
+            "tenant_notifications": {"in_app": True, "email": bool(session.get("notify_email")) if session else False, "webhook": bool(session.get("notify_webhook")) if session else False},
         },
     ))
     return None
