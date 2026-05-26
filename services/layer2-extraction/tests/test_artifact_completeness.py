@@ -9,11 +9,13 @@ import pytest
 from layer2_extraction.models import Capability, UseCase, Persona, ValueDriver, Feature, ValueMetric, Relationship
 from layer2_extraction.validation.artifact_validator import (
     validate_artifact_for_persistence,
+    validate_for_persistence,
     validate_extraction_result,
     validate_relationship_for_persistence,
     ArtifactValidationError,
 )
 from layer2_extraction.models.extraction_response import ExtractionResult
+from layer2_extraction.api.main import ExtractionArtifacts
 
 
 class TestEntityMetadataCompleteness:
@@ -257,8 +259,88 @@ class TestExtractionResultCompleteness:
         
         with pytest.raises(ArtifactValidationError) as exc_info:
             validate_extraction_result(result)
-        
+
         assert "tenant_id" in str(exc_info.value).lower()
+
+
+class TestPersistenceValidationGate:
+    def test_validate_for_persistence_passes_valid_artifacts(self):
+        capability = Capability(
+            name="Gate Capability",
+            description="Capability passes persistence validation.",
+            tenant_id="tenant-1",
+            extraction_job_id="job-1",
+            deterministic_id="det-1",
+            schema_version="v1",
+            prompt_version_id="prompt-v1",
+            model_version="gpt-4o",
+            source_refs=["https://example.com/a"],
+        )
+        result = ExtractionResult(
+            job_id="job-1",
+            source_url="https://example.com/a",
+            tenant_id="tenant-1",
+            schema_version="v1",
+            prompt_version="prompt-v1",
+            model_version="gpt-4o",
+            capabilities=[capability],
+            chunks_processed=1,
+        )
+        relationship = Relationship(
+            source_id=capability.id,
+            target_id="11111111-1111-1111-1111-111111111111",
+            predicate="enables",
+            source_url="https://example.com/a",
+            extraction_job_id="job-1",
+            tenant_id="tenant-1",
+            deterministic_id="rel-1",
+            schema_version="v1",
+            prompt_version_id="prompt-v1",
+            model_version="gpt-4o",
+        )
+        artifacts = ExtractionArtifacts(result=result, relationships=[relationship])
+        validate_for_persistence(artifacts)
+
+    def test_validate_for_persistence_fails_missing_required_completeness_fields(self):
+        capability = Capability(
+            name="Invalid Gate Capability",
+            description="Capability fails persistence validation.",
+            tenant_id="tenant-1",
+            extraction_job_id="job-1",
+            deterministic_id="det-1",
+            schema_version="v1",
+            prompt_version_id="prompt-v1",
+            model_version="gpt-4o",
+            source_refs=[],
+        )
+        result = ExtractionResult(
+            job_id="job-1",
+            source_url="https://example.com/a",
+            tenant_id="",
+            schema_version="",
+            prompt_version="prompt-v1",
+            model_version="gpt-4o",
+            capabilities=[capability],
+            chunks_processed=1,
+        )
+        relationship = Relationship(
+            source_id=capability.id,
+            target_id="11111111-1111-1111-1111-111111111111",
+            predicate="enables",
+            source_url="",
+            extraction_job_id="job-1",
+            tenant_id="tenant-1",
+            deterministic_id="rel-1",
+            schema_version="v1",
+            prompt_version_id="prompt-v1",
+            model_version="gpt-4o",
+        )
+        artifacts = ExtractionArtifacts(result=result, relationships=[relationship])
+
+        with pytest.raises(ArtifactValidationError) as exc_info:
+            validate_for_persistence(artifacts)
+
+        assert "tenant_id" in str(exc_info.value)
     
     def test_extraction_result_with_entities_completeness(self):
         """ExtractionResult with entities must validate entity metadata."""
