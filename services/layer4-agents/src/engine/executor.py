@@ -37,7 +37,7 @@ from ..agents.base import BaseAgent
 from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
-from ..observability import Layer4EventContext, Layer4LifecycleLogger
+from ..observability import Layer4EventContext, Layer4LifecycleLogger, Layer4LogContext, Layer4LogContractLogger
 from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
@@ -89,6 +89,7 @@ class OrchestrationController_get_cluster_healthResult(TypedDictModel):
 
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
+contract_logger = Layer4LogContractLogger(logger)
 
 
 # ---------------------------------------------------------------------------
@@ -254,6 +255,19 @@ class OrchestrationController:
                 latest_checkpoint_hash=latest_hash,
             )
         except ReplayConflictError as rce:
+            contract_logger.emit(
+                event="checkpoint_corruption",
+                context=Layer4LogContext(
+                    workflow_id=workflow_id,
+                    run_id=state.run_id or workflow_id,
+                    tenant_id=state.tenant_id or "unknown",
+                    request_id=state.trace_id or workflow_id,
+                    checkpoint_id=target_checkpoint_id,
+                ),
+                reason="replay_conflict",
+                error=str(rce),
+                level="warning",
+            )
             raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 
         # Duplicate replay detection
@@ -599,6 +613,17 @@ class OrchestrationController:
                 workflow_id=workflow_id,
                 run_id=run_id,
                 provider_name="langgraph",
+            ),
+            workflow_type=workflow_type,
+        )
+        contract_logger.emit(
+            event="workflow_start",
+            context=Layer4LogContext(
+                workflow_id=workflow_id,
+                run_id=run_id,
+                tenant_id=tenant_id,
+                request_id=trace_id,
+                account_id=str(input_data.get("account_id")) if input_data.get("account_id") else None,
             ),
             workflow_type=workflow_type,
         )
@@ -1173,6 +1198,17 @@ class OrchestrationController:
             ),
             resumed_by=user_id,
         )
+        contract_logger.emit(
+            event="workflow_resume",
+            context=Layer4LogContext(
+                workflow_id=workflow_id,
+                run_id=result.run_id or workflow_id,
+                tenant_id=str(metadata.get("tenant_id") or "unknown"),
+                request_id=result.trace_id or workflow_id,
+                checkpoint_id=str(result.current_node or "resume"),
+            ),
+            resumed_by=user_id,
+        )
         return result
 
     async def resume_from_checkpoint(
@@ -1280,6 +1316,17 @@ class OrchestrationController:
             ),
             resumed_by=user_id,
             checkpoint_id=checkpoint_id,
+        )
+        contract_logger.emit(
+            event="workflow_resume_from_checkpoint",
+            context=Layer4LogContext(
+                workflow_id=workflow_id,
+                run_id=result.run_id or workflow_id,
+                tenant_id=str(metadata.get("tenant_id") or "unknown"),
+                request_id=result.trace_id or workflow_id,
+                checkpoint_id=checkpoint_id,
+            ),
+            resumed_by=user_id,
         )
 
         return {
@@ -1548,11 +1595,30 @@ class OrchestrationController:
                     context=self._lifecycle_context(workflow_id),
                     checkpoint_id=str(result.current_node or "interrupted"),
                 )
+                contract_logger.emit(
+                    event="checkpoint_persisted",
+                    context=Layer4LogContext(
+                        workflow_id=workflow_id,
+                        run_id=result.run_id or workflow_id,
+                        tenant_id=result.tenant_id or "unknown",
+                        request_id=result.trace_id or workflow_id,
+                        checkpoint_id=str(result.current_node or "interrupted"),
+                    ),
+                )
                 return result
 
             lifecycle_logger.emit(
                 stage="completion",
                 context=self._lifecycle_context(workflow_id),
+            )
+            contract_logger.emit(
+                event="workflow_success",
+                context=Layer4LogContext(
+                    workflow_id=workflow_id,
+                    run_id=result.run_id or workflow_id,
+                    tenant_id=result.tenant_id or "unknown",
+                    request_id=result.trace_id or workflow_id,
+                ),
             )
             return result
         except TimeoutError as exc:
@@ -1567,6 +1633,18 @@ class OrchestrationController:
                 context=self._lifecycle_context(workflow_id),
                 error_class="TimeoutError",
                 error_code="WORKFLOW_TIMEOUT",
+            )
+            contract_logger.emit(
+                event="workflow_retry",
+                context=Layer4LogContext(
+                    workflow_id=workflow_id,
+                    run_id=initial_state.run_id or workflow_id,
+                    tenant_id=initial_state.tenant_id or "unknown",
+                    request_id=initial_state.trace_id or workflow_id,
+                ),
+                reason="timeout",
+                retryable=True,
+                level="warning",
             )
             raise WorkflowExecutionError(
                 f"Workflow {workflow_id} exceeded global timeout of {settings.workflow_timeout_seconds}s"
@@ -1599,6 +1677,17 @@ class OrchestrationController:
                 context=self._lifecycle_context(workflow_id),
                 error_class=type(exc).__name__,
                 error_code="WORKFLOW_EXECUTION_ERROR",
+            )
+            contract_logger.emit(
+                event="workflow_failure",
+                context=Layer4LogContext(
+                    workflow_id=workflow_id,
+                    run_id=initial_state.run_id or workflow_id,
+                    tenant_id=initial_state.tenant_id or "unknown",
+                    request_id=initial_state.trace_id or workflow_id,
+                ),
+                error_class=type(exc).__name__,
+                level="error",
             )
             raise
         finally:

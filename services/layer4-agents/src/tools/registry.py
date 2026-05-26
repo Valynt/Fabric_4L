@@ -30,7 +30,7 @@ from value_fabric.shared.identity.tool_contract import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..models.tool_schemas import ToolCategory, ToolSchema
-from ..observability import Layer4EventContext, Layer4LifecycleLogger
+from ..observability import Layer4EventContext, Layer4LifecycleLogger, Layer4LogContext, Layer4LogContractLogger
 
 
 class ToolResult(TypedDictModel):
@@ -145,6 +145,7 @@ class get_tool_metadataResult(TypedDictModel):
 
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
+contract_logger = Layer4LogContractLogger(logger)
 
 _SENSITIVE_KEY_PATTERN = re.compile(
     r"(secret|token|password|api[_-]?key|authorization|credential|private[_-]?key)",
@@ -621,6 +622,8 @@ class ToolRegistry:
                 user_id=user_id,
                 tool_name=tool_name,
                 approval_decision="denied",
+                run_id=str(input_dict.get("run_id") or workflow_id or "unknown"),
+                request_id=str(input_dict.get("request_id") or trace_id or workflow_id or "unknown"),
             )
             return ToolResult.failure(
                 code="APPROVAL_REQUIRED",
@@ -636,6 +639,8 @@ class ToolRegistry:
                 user_id=user_id,
                 tool_name=tool_name,
                 approval_decision="approved",
+                run_id=str(input_dict.get("run_id") or workflow_id or "unknown"),
+                request_id=str(input_dict.get("request_id") or trace_id or workflow_id or "unknown"),
             )
 
         if idempotency_key:
@@ -664,6 +669,18 @@ class ToolRegistry:
         response_hash: str | None = None
 
         lifecycle_logger.emit(stage="tool-call", context=Layer4EventContext(request_id=str(trace_id or workflow_id or "tool"), trace_id=str(trace_id or workflow_id or "tool"), tenant_id=str(tenant_id or "unknown"), workflow_id=str(workflow_id or "unknown"), run_id=str(workflow_id or "unknown"), provider_name=str(type(tool).__name__)))
+        contract_logger.emit(
+            event="tool_invocation",
+            context=Layer4LogContext(
+                workflow_id=str(workflow_id or "unknown"),
+                run_id=str(input_dict.get("run_id") or workflow_id or "unknown"),
+                tenant_id=str(tenant_id or "unknown"),
+                request_id=str(input_dict.get("request_id") or trace_id or workflow_id or "unknown"),
+                tool=tool_name,
+                checkpoint_id=str(input_dict.get("checkpoint_id")) if input_dict.get("checkpoint_id") else None,
+                account_id=str(input_dict.get("account_id")) if input_dict.get("account_id") else None,
+            ),
+        )
         result = await tool.run(input_dict, trace_id=trace_id)
         lifecycle_logger.emit(stage="tool-result", context=Layer4EventContext(request_id=str(trace_id or workflow_id or "tool"), trace_id=str(trace_id or workflow_id or "tool"), tenant_id=str(tenant_id or "unknown"), workflow_id=str(workflow_id or "unknown"), run_id=str(workflow_id or "unknown"), provider_name=str(type(tool).__name__)), tool_success=result.is_success())
         if idempotency_key:
@@ -694,6 +711,8 @@ class ToolRegistry:
         user_id: str | None,
         tool_name: str,
         approval_decision: str,
+        run_id: str,
+        request_id: str,
     ) -> None:
         logger.info(
             "tool_policy_decision workflow_id=%s tenant_id=%s user_id=%s tool_name=%s approval_decision=%s",
@@ -702,6 +721,18 @@ class ToolRegistry:
             user_id,
             tool_name,
             approval_decision,
+        )
+        contract_logger.emit(
+            event="approval_decision",
+            context=Layer4LogContext(
+                workflow_id=str(workflow_id or "unknown"),
+                run_id=run_id,
+                tenant_id=str(tenant_id or "unknown"),
+                request_id=request_id,
+                tool=tool_name,
+            ),
+            approval_decision=approval_decision,
+            user_id=user_id,
         )
 
     @staticmethod
