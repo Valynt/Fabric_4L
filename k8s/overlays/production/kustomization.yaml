@@ -28,6 +28,9 @@ images:
   - name: services/layer6-benchmarks
     newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
     newTag: v1.1.0
+  - name: services/api
+    newName: ghcr.io/bmsull560/fabric_4l/api-gateway
+    newTag: v1.1.0
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
     newTag: v1.1.0
@@ -44,6 +47,8 @@ replicas:
   - name: layer5-ground-truth
     count: 2
   - name: layer6-benchmarks
+    count: 2
+  - name: api-gateway
     count: 2
   - name: frontend
     count: 2
