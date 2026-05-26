@@ -4,6 +4,7 @@ import asyncio
 import hashlib
 import hmac
 import json
+import logging
 import secrets
 import time
 import uuid
@@ -32,6 +33,8 @@ DSAR_EVENT_LOOP_BLOCKING_RISK_TOTAL = Counter(
     registry=registry,
 )
 
+logger = logging.getLogger(__name__)
+
 
 def _get_signing_key() -> bytes:
     return _get_settings().secret_key.encode()
@@ -47,10 +50,20 @@ async def _run_blocking_repo_call(operation: str, fn, /, *args, **kwargs):
     TODO: Remove executor offloading once DSAR repositories expose native async APIs.
     """
 
+    execution_mode = "threaded_fallback"
     DSAR_EVENT_LOOP_BLOCKING_RISK_TOTAL.labels(operation).inc()
     start = time.perf_counter()
-    result = await asyncio.get_running_loop().run_in_executor(None, lambda: fn(*args, **kwargs))
-    DSAR_QUERY_LATENCY_SECONDS.labels(operation).observe(time.perf_counter() - start)
+    result = await asyncio.to_thread(fn, *args, **kwargs)
+    duration_seconds = time.perf_counter() - start
+    DSAR_QUERY_LATENCY_SECONDS.labels(operation).observe(duration_seconds)
+    logger.info(
+        "DSAR repository call completed",
+        extra={
+            "operation": operation,
+            "db_call_duration_seconds": round(duration_seconds, 6),
+            "db_call_execution_mode": execution_mode,
+        },
+    )
     return result
 
 

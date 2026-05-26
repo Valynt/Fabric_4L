@@ -92,3 +92,46 @@ def test_dsar_reconciliation_error_mapping_contract(monkeypatch):
     response = client.post("/v1/privacy/dsar", json=payload, headers=auth_headers(TENANT_ALPHA, "user-a"))
     assert response.status_code == 422
     assert response.json()["detail"] == "Invalid DSAR request"
+
+
+def test_blocking_repo_calls_are_offloaded_for_parallelism():
+    async def _run_parallel():
+        start = asyncio.get_running_loop().time()
+        await asyncio.gather(
+            dsar_service._run_blocking_repo_call("test.sleep.1", lambda: __import__("time").sleep(0.12)),
+            dsar_service._run_blocking_repo_call("test.sleep.2", lambda: __import__("time").sleep(0.12)),
+            dsar_service._run_blocking_repo_call("test.sleep.3", lambda: __import__("time").sleep(0.12)),
+        )
+        return asyncio.get_running_loop().time() - start
+
+    elapsed = asyncio.run(_run_parallel())
+    assert elapsed < 0.28
+
+
+def test_dsar_service_responsive_under_moderate_parallel_load(monkeypatch):
+    original = dsar_service._run_blocking_repo_call
+
+    async def _slow_bridge(operation, fn, /, *args, **kwargs):
+        await asyncio.sleep(0.01)
+        return await original(operation, fn, *args, **kwargs)
+
+    monkeypatch.setattr(dsar_service, "_run_blocking_repo_call", _slow_bridge)
+
+    async def _submit():
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        payload = DSARRequestCreate(subject_identity={"email": "parallel@y.com"})
+        await asyncio.gather(
+            *[
+                dsar_service.register_request(
+                    payload,
+                    tenant_id=TENANT_ALPHA,
+                    requester_user_id=f"user-{i}",
+                )
+                for i in range(12)
+            ]
+        )
+        return loop.time() - started
+
+    elapsed = asyncio.run(_submit())
+    assert elapsed < 1.0
