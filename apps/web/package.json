@@ -19,7 +19,7 @@
     "test:trust-boundaries": "tsx scripts/security/assert-trust-boundary-parsers.ts",
     "test:coverage": "vitest run --coverage",
     "test:workflow-matrix": "node scripts/quality/assert-frontend-workflow-matrix.mjs",
-    "test:api-type-drift": "node scripts/quality/assert-generated-api-types-current.mjs",
+    "test:api-type-drift": "node scripts/quality/assert-generated-api-types-current.mjs && pnpm run test:generated-response-types",
     "test:bundle-budget": "node scripts/quality/assert-bundle-budget.mjs",
     "verify:frontend": "node scripts/quality/verify-frontend.mjs && pnpm run check:async-boundaries && pnpm run test:prod-unhandled-rejections",
     "test:e2e": "pnpm run test:e2e:guard && playwright test",
@@ -77,7 +77,8 @@
     "check:no-legacy-api-imports": "node scripts/assert-no-legacy-api-imports.mjs",
     "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs",
     "check:async-boundaries": "node scripts/quality/async-boundary-audit.mjs",
-    "test:prod-unhandled-rejections": "NODE_ENV=production NODE_OPTIONS=--unhandled-rejections=strict vitest run"
+    "test:prod-unhandled-rejections": "NODE_ENV=production NODE_OPTIONS=--unhandled-rejections=strict vitest run",
+    "test:generated-response-types": "node scripts/quality/assert-generated-response-types-no-any.mjs"
   },
   "dependencies": {
     "@clerk/react": "^6.7.1",

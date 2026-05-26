@@ -662,8 +662,9 @@ services:
       timeout: 3s
       retries: 3
 
-  # Vault (dev mode) — optional local secrets backend
-  # F-6 FIX: Dev mode only enabled via 'dev' profile. Production must use proper Vault.
+  # Vault (dev mode) — optional local secrets backend.
+  # SECURITY: Vault `server -dev` is NEVER production-safe. It bypasses normal unseal
+  # and auth hardening. Do not use this compose service for staging or production.
   vault:
     image: hashicorp/vault:latest
     container_name: value-fabric-vault
@@ -672,7 +673,6 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=root
       - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     expose:
       - "8200"
@@ -681,7 +681,9 @@ services:
     networks:
       - value-fabric-network
     restart: "no"
-    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    # Intentionally omit -dev-root-token-id here. Use docker-compose.full.dev-vault.yml
+    # to opt into a predictable local token during explicit local-dev workflows only.
+    command: server -dev -dev-listen-address=0.0.0.0:8200
     healthcheck:
       test: ["CMD", "vault", "status"]
       interval: 30s

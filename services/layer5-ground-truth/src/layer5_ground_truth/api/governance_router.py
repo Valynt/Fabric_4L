@@ -68,6 +68,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling import sanitize_error_for_log, sanitize_public_error
 
 from ..database import get_db_from_context
 from ..services.formula_governance_service import (
@@ -109,6 +110,11 @@ from .auth import TokenClaims, authorize_action, get_current_user
 logger = logging.getLogger(__name__)
 
 governance_router = APIRouter(prefix="/api/v1/governance", tags=["governance"])
+
+
+def _safe_http_detail(exc: Exception, *, status_code: int) -> str:
+    logger.exception("governance_router_error", extra={"status_code": status_code, "error": sanitize_error_for_log(exc)})
+    return sanitize_public_error(exc, status_code=status_code).message
 
 
 # ---------------------------------------------------------------------------
@@ -312,7 +318,7 @@ async def create_formula(
         record_governance_operation("create", "formula", "conflict")
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         duration = time.time() - start_time
@@ -436,7 +442,7 @@ async def get_formula(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error getting formula: %s", e)
@@ -502,12 +508,12 @@ async def create_formula_version(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except FormulaVersionConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error creating formula version: %s", e)
@@ -569,12 +575,12 @@ async def submit_formula_version(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error submitting formula version: %s", e)
@@ -636,7 +642,7 @@ async def approve_formula_version(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error approving formula version: %s", e)
@@ -698,7 +704,7 @@ async def reject_formula_version(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error rejecting formula version: %s", e)
@@ -761,12 +767,12 @@ async def deprecate_formula(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error deprecating formula: %s", e)
@@ -826,12 +832,12 @@ async def archive_formula(
     except FormulaNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error archiving formula: %s", e)
@@ -994,7 +1000,7 @@ async def create_benchmark(
     except BenchmarkSlugConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error creating benchmark: %s", e)
@@ -1127,12 +1133,12 @@ async def create_benchmark_version(
     except BenchmarkNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except BenchmarkVersionConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error creating benchmark version: %s", e)
@@ -1269,7 +1275,7 @@ async def create_policy(
     except PolicySlugConflictError as e:
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error creating policy: %s", e)
@@ -1387,12 +1393,12 @@ async def evaluate_policy(
     except PolicyNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error evaluating policy: %s", e)
@@ -1665,7 +1671,7 @@ async def add_assumption_evidence(
     except AssumptionNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error adding assumption evidence: %s", e)
@@ -1725,7 +1731,7 @@ async def submit_assumption(
     except AssumptionNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error submitting assumption: %s", e)
@@ -2006,7 +2012,7 @@ async def add_value_update(
     except ValueEntryNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error adding value update: %s", e)
@@ -2160,7 +2166,7 @@ async def get_approval_request(
     except ApprovalRequestNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error getting approval request: %s", e)
@@ -2215,7 +2221,7 @@ async def approve_request(
     except ApprovalRequestNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error approving request: %s", e)
@@ -2270,7 +2276,7 @@ async def reject_request(
     except ApprovalRequestNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=str(e),
+            detail=_safe_http_detail(e, status_code=500),
         )
     except Exception as e:
         logger.error("Error rejecting request: %s", e)

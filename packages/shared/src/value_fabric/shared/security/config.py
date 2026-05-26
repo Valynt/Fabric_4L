@@ -33,7 +33,7 @@ _APPROVED_JWT_ALGORITHMS = frozenset({
 })
 
 # Dev-only environment names — anything else is treated as production-like
-_DEV_ENVIRONMENTS = frozenset({"local", "dev", "development", "test", "testing", "ci"})
+_TEST_ENVIRONMENTS = frozenset({"test", "testing", "ci"})
 
 # Known PostgreSQL superuser names that bypass RLS
 _SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})
@@ -115,6 +115,12 @@ def is_development() -> bool:
     return detect_environment() == "development"
 
 
+def is_test_runtime(environment: str | None = None) -> bool:
+    """Check if running in test-only runtime profile."""
+    env = (environment or detect_environment()).strip().lower()
+    return env in _TEST_ENVIRONMENTS
+
+
 def is_production_like_environment(environment: str | None = None) -> bool:
     """Return True for production, staging, or any unknown environment.
 
@@ -123,7 +129,7 @@ def is_production_like_environment(environment: str | None = None) -> bool:
     relaxed.
     """
     env = (environment or detect_environment()).strip().lower()
-    return env not in _DEV_ENVIRONMENTS
+    return not is_test_runtime(env)
 
 
 # ═══════════════════════════════════════════════════════════════════════════
@@ -553,8 +559,12 @@ def validate_jwt_secret_strength() -> None:
     jwt_secret = os.getenv("JWT_SECRET", "")
 
     if not jwt_secret:
-        # Missing JWT_SECRET is handled by validate_all_controls / jwt.py
-        return
+        if is_test_runtime():
+            return
+        raise ValueError(
+            "JWT_SECRET is required in all non-test runtimes. "
+            "Generate one with: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
+        )
 
     # Enforce minimum length in production-like environments for consistency
     # with other JWT config checks (JWT_ISSUER, JWT_AUDIENCE)

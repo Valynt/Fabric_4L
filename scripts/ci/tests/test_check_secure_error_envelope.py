@@ -49,6 +49,27 @@ class CheckSecureErrorEnvelopeTests(unittest.TestCase):
 
             self.assertEqual(findings, [])
 
+    def test_detects_fstring_exception_detail(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            services = root / "services"
+            services.mkdir(parents=True)
+            bad_file = services / "route.py"
+            bad_file.write_text('raise HTTPException(status_code=500, detail=f"boom: {error}")\n', encoding="utf-8")
+
+            old_repo_root = gate.REPO_ROOT
+            old_scan_roots = gate.SCAN_ROOTS
+            gate.REPO_ROOT = root
+            gate.SCAN_ROOTS = (services,)
+            try:
+                findings = gate.scan()
+            finally:
+                gate.REPO_ROOT = old_repo_root
+                gate.SCAN_ROOTS = old_scan_roots
+
+            self.assertEqual(len(findings), 1)
+            self.assertIn('detail=f"boom: {error}"', findings[0][2])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -200,6 +200,17 @@ class ValueDriver(BaseModel):
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
 
+class ValueTreeCategories(BaseModel):
+    revenue_uplift: list[ValueDriver] = Field(default_factory=list)
+    cost_savings: list[ValueDriver] = Field(default_factory=list)
+    risk_reduction: list[ValueDriver] = Field(default_factory=list)
+
+
+class ValueTreeResponse(BaseModel):
+    account_id: str
+    categories: ValueTreeCategories
+
+
 # ============================================================================
 # Formula & Scenario
 # ============================================================================
@@ -373,6 +384,10 @@ class AuditLogEvent(BaseModel):
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
 
 
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogEvent] = Field(default_factory=list)
+
+
 class GovernanceGate(BaseModel):
     id: str
     tenant_id: str
@@ -481,6 +496,52 @@ class WorkflowResponse(BaseModel):
     result: dict[str, Any] | None = None
     input: dict[str, Any] | None = None
     tenant_id: str
+
+
+class AccountSummaryResponse(BaseModel):
+    account: Account
+    signal_count: int = 0
+    hypothesis_count: int = 0
+    roi_calculation_count: int = 0
+
+
+class AccountShareLinkResponse(BaseModel):
+    share_token: str
+    account_id: str
+    role: str = "read_only"
+
+
+class AccountShareRevokeResponse(BaseModel):
+    revoked: bool
+    account_id: str
+
+
+class OntologyMatchResponse(BaseModel):
+    account_id: str
+    matched_pack: ValuePack | None = None
+    confidence: float = 0.0
+    gaps: list[str] = Field(default_factory=list)
+
+
+class FirmographicsResponse(BaseModel):
+    revenue: float | None = None
+    employees: int | None = None
+    industry: str | None = None
+    website: str | None = None
+
+
+class EnrichmentResponse(BaseModel):
+    account_id: str
+    firmographics: FirmographicsResponse
+    tech_stack: list[str] = Field(default_factory=list)
+    public_sources: list[str] = Field(default_factory=list)
+
+
+class GovernanceReviewQueueResponse(BaseModel):
+    hypotheses: list[ValueHypothesis] = Field(default_factory=list)
+    formulas: list[Formula] = Field(default_factory=list)
+    evidence: list[Evidence] = Field(default_factory=list)
+    total: int = 0
 
 
 class RealizationVarianceResponse(BaseModel):

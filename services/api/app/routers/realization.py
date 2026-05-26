@@ -19,7 +19,7 @@ async def create_realization_plan(
     plan["tenant_id"] = tenant_id
     plan["status"] = "active"
     db.roi_calculations.insert(plan["id"], plan)
-    return plan
+    return ROICalculation.model_validate(plan)
 
 
 @router.get("/realization-plans", response_model=list[ROICalculation])
