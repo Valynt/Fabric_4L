@@ -321,7 +321,14 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 metrics = get_metrics()
                 if metrics:
                     metrics.increment_url_blocked(reason="url_safety", domain_class=_domain_class(url))
-                raise ValueError("URL blocked by compliance policy") from exc
+                _fail_job(job_id, "URL blocked by compliance policy", PipelineStage.COMPLIANCE_CHECK)
+                return compliance_check_stageResult.model_validate(
+                    {
+                        "success": False,
+                        "error": "URL blocked by compliance policy",
+                        "job_id": str(job_id),
+                    }
+                ).model_dump()
 
             compliance_config = config.get("compliance", {})
 
