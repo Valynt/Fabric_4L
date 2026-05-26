@@ -87,6 +87,10 @@ spec:
                 configMapKeyRef:
                   name: jaeger-storage-config
                   key: es_max_span_age
+            - name: ES_INDEX_DATE_SEPARATOR
+              value: "-"
+            - name: ES_CREATE_INDEX_TEMPLATES
+              value: "true"
             - name: ES_TIMEOUT
               valueFrom:
                 configMapKeyRef:
@@ -138,8 +142,8 @@ spec:
               cpu: "4000m"
               memory: "8Gi"
             requests:
-              cpu: "1000m"
-              memory: "3Gi"
+              cpu: "1500m"
+              memory: "4Gi"
           livenessProbe:
             httpGet:
               path: /metrics
