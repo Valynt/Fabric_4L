@@ -17,7 +17,7 @@ import structlog
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from ..shared.database import get_db_session
+from ..shared.database import TenantContextError, get_db_session
 from ..shared.models import CrawlDecision as CrawlDecisionModel
 
 logger = structlog.get_logger()
@@ -181,12 +181,21 @@ class CrawlDecisionRepository:
 
     def _save_sync(self, record: CrawlDecisionRecord) -> None:
         """Synchronous save implementation (runs in thread pool)."""
-        tenant_id = UUID(record.tenant_id) if record.tenant_id else None
+        if not record.tenant_id:
+            raise TenantContextError("CrawlDecisionRecord.tenant_id is required for persistence")
+
+        try:
+            tenant_id = UUID(record.tenant_id)
+        except (TypeError, ValueError) as exc:
+            raise TenantContextError(
+                f"Invalid CrawlDecisionRecord.tenant_id for persistence: {record.tenant_id!r}"
+            ) from exc
+
         with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
             db_record = CrawlDecisionModel(
                 decision_id=UUID(record.decision_id),
                 job_id=UUID(record.job_id) if record.job_id else None,
-                tenant_id=UUID(record.tenant_id) if record.tenant_id else None,
+                tenant_id=tenant_id,
                 url=record.url,
                 domain=record.domain,
                 requested_path=record.requested_path,
