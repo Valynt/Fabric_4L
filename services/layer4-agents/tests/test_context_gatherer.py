@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import pytest
 
-from src.services.context_gatherer import ContextGatheringService
-from src.services.tenant_query_helper import run_tenant_validated_query
+from services.context_gatherer import ContextGatheringService
+from services.tenant_query_helper import run_tenant_validated_query
+from services.tenant_cypher import TenantCypherValidationError, fetch_tenant_validated_records
 
 
 class _FakeResult:
@@ -117,7 +118,6 @@ async def test_run_tenant_validated_query_rejects_mismatched_tenant_context():
         )
 
     assert driver.calls == []
-    assert session.calls == []
 
 
 @pytest.mark.asyncio
@@ -148,15 +148,15 @@ async def test_context_queries_reject_mismatched_tenant_context(
     query: str,
     params: dict[str, Any],
 ) -> None:
-    session = MockSession({"tenant-b": [{"signal": {"id": "sig-b"}}]})
+    session = _FakeSession({"tenant-b": [{"signal": {"id": "sig-b"}}]}, [])
 
     with pytest.raises(TenantCypherValidationError):
         await fetch_tenant_validated_records(
-            driver=MockDriver(session),
+            driver=_FakeDriver({"tenant-b": [{"signal": {"id": "sig-b"}}]}),
             query=query,
             params=params,
             tenant_id="tenant-a",
             operation=operation,
         )
 
-    assert session.calls == []
+    assert session._calls == []

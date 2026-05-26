@@ -768,6 +768,7 @@ class ExecuteTargetRequest(BaseModel):
     override_config: dict[str, Any] | None = None
     callback_url: str | None = None
     webhook_events: list[str] | None = None
+    idempotency_key: str | None = Field(default=None, max_length=255)
 
 
 class ExecuteTargetResponse(BaseModel):

@@ -7,6 +7,8 @@ from datetime import UTC, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from layer2_extraction.validation.artifact_validator import ArtifactValidationError
+
 
 class QuarantineRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
@@ -42,6 +44,22 @@ class InMemoryQuarantineStore(QuarantineStore):
         self._records: dict[str, QuarantineRecord] = {}
 
     async def put(self, record: QuarantineRecord) -> None:
+        # MANDATORY VALIDATION GATE: Validate quarantine record before persistence
+        if not record.tenant_id or not record.tenant_id.strip():
+            raise ArtifactValidationError(
+                missing_fields=["tenant_id"],
+                invalid_fields=[],
+            )
+        if not record.model_version or not record.model_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["model_version"],
+                invalid_fields=[],
+            )
+        if not record.schema_version or not record.schema_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["schema_version"],
+                invalid_fields=[],
+            )
         self._records[record.job_id] = record
 
     async def get_by_job(self, *, tenant_id: str, job_id: str) -> QuarantineRecord | None:
@@ -82,6 +100,23 @@ class SqliteQuarantineStore(QuarantineStore):
             )
 
     async def put(self, record: QuarantineRecord) -> None:
+        # MANDATORY VALIDATION GATE: Validate quarantine record before persistence
+        if not record.tenant_id or not record.tenant_id.strip():
+            raise ArtifactValidationError(
+                missing_fields=["tenant_id"],
+                invalid_fields=[],
+            )
+        if not record.model_version or not record.model_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["model_version"],
+                invalid_fields=[],
+            )
+        if not record.schema_version or not record.schema_version.strip():
+            raise ArtifactValidationError(
+                missing_fields=["schema_version"],
+                invalid_fields=[],
+            )
+        
         with sqlite3.connect(self._db_path) as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO extraction_quarantine

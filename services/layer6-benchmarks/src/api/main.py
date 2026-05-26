@@ -66,6 +66,7 @@ from .schemas import (
     ComparisonResponse,
     DatasetDetail,
     DatasetSummary,
+    DatasetUpsertPayload,
     ValidationRequestPayload,
     ValidationResponse,
 )
@@ -300,6 +301,11 @@ def _require_tenant_id(ctx: RequestContext | None) -> str:
     if ctx is None or not getattr(ctx, "tenant_id", None):
         raise HTTPException(status_code=401, detail="Tenant context required")
     return str(ctx.tenant_id)
+
+
+def _assert_global_benchmark_admin(ctx: RequestContext) -> None:
+    if not (ctx.is_super_admin() or ctx.has_role("system")):
+        raise HTTPException(status_code=403, detail="Global benchmark baselines require privileged admin role")
 
 
 async def health_check(request: Request):
@@ -552,6 +558,49 @@ async def list_industries(ctx: RequestContext = Depends(get_request_context)):
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(tenant_id=tenant_id)
     return list_industriesResult.model_validate({"industries": sorted({d.industry for d in datasets})})
+
+
+async def upsert_dataset(payload: DatasetUpsertPayload, ctx: RequestContext = Depends(get_request_context)):
+    authorize_action("layer6.benchmarks.write", ctx)
+    if _benchmark_repo is None:
+        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+    tenant_id = _require_tenant_id(ctx)
+    if payload.ownership_mode not in {"tenant", "global_system"}:
+        raise HTTPException(status_code=400, detail="ownership_mode must be one of: tenant, global_system")
+
+    dataset_tenant_id = tenant_id
+    if payload.ownership_mode == "global_system":
+        _assert_global_benchmark_admin(ctx)
+        dataset_tenant_id = "system"
+
+    existing = await _benchmark_repo.get_dataset(payload.dataset_id, tenant_id=tenant_id)
+    if existing and existing.ownership_mode == "global_system":
+        _assert_global_benchmark_admin(ctx)
+
+    dataset = BenchmarkDataset(
+        dataset_id=payload.dataset_id,
+        name=payload.name,
+        description=payload.description,
+        industry=payload.industry,
+        segment=payload.segment,
+        geography=payload.geography,
+        version=payload.version,
+        data_source=payload.data_source,
+        is_public=payload.is_public,
+        tenant_id=dataset_tenant_id,
+        ownership_mode=payload.ownership_mode,
+    )
+    for metric_name, metric in payload.metrics.items():
+        dataset.add_metric(
+            BenchmarkMetric(
+                name=metric.get("name", metric_name),
+                unit=metric["unit"],
+                description=metric["description"],
+                profile=StatisticalProfile.from_dict(metric["profile"]),
+            )
+        )
+    await _benchmark_repo.save_dataset(dataset)
+    return {"dataset_id": payload.dataset_id, "ownership_mode": payload.ownership_mode}
 
 
 register_health_endpoint(app, service_name=SERVICE_NAME, handler=health_check)

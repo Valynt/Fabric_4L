@@ -27,7 +27,7 @@ def _resolve_ingest_tenant_id(
     behaviour expected by test_ingest_tenant_fail_closed.py).
     """
     if not (authenticated_tenant_id or "").strip():
-        raise HTTPException(status_code=401, detail="Missing tenant context")
+        raise HTTPException(status_code=401, detail="Authentication context is required")
     return _canonical(
         authenticated_tenant_id,
         header_tenant_id,

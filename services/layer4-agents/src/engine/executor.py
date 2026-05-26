@@ -213,7 +213,7 @@ class OrchestrationController:
         )
         return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
-    def _resolve_resume_policy(
+    async def _resolve_resume_policy(
         self,
         *,
         workflow_id: str,
@@ -231,8 +231,12 @@ class OrchestrationController:
         resolver = ReplayConflictResolver()
         checkpoint_hash = self._compute_state_hash(state)
 
+        # Expected hash is the one stored when the checkpoint was originally saved
+        expected_hash = (state.metadata or {}).get("checkpoint_hash")
+
         # Determine latest checkpoint hash by loading current state again
-        latest_hash = checkpoint_hash
+        latest_state = await self.state_manager.load_state(workflow_id)
+        latest_hash = self._compute_state_hash(latest_state) if latest_state else checkpoint_hash
 
         # Age guard uses paused_at or started_at
         checkpoint_created_at = state.paused_at or state.started_at
@@ -246,7 +250,7 @@ class OrchestrationController:
                 workflow_status=state.status,
                 checkpoint_created_at=checkpoint_created_at,
                 checkpoint_hash=checkpoint_hash,
-                expected_hash=checkpoint_hash,
+                expected_hash=expected_hash,
                 latest_checkpoint_hash=latest_hash,
             )
         except ReplayConflictError as rce:
@@ -1018,6 +1022,7 @@ class OrchestrationController:
         state.metadata["pause_reason"] = reason
         state.metadata["paused_by"] = user_id
         state.metadata["paused_at"] = paused_at.isoformat()
+        state.metadata["checkpoint_hash"] = self._compute_state_hash(state)
         await self.state_manager.save_state(workflow_id, state)
         logger.info("Interrupted workflow %s at node %s", workflow_id, state.current_node)
         tenant_id = str(
@@ -1116,7 +1121,7 @@ class OrchestrationController:
             )
 
         # Validate against replay-conflict policy with real hashes
-        self._resolve_resume_policy(workflow_id=workflow_id, state=state)
+        await self._resolve_resume_policy(workflow_id=workflow_id, state=state)
 
         # Merge resume data into state if provided
         if resume_data:
@@ -1218,7 +1223,7 @@ class OrchestrationController:
             )
 
         # Validate against replay-conflict policy with real hashes
-        self._resolve_resume_policy(
+        await self._resolve_resume_policy(
             workflow_id=workflow_id,
             state=state,
             target_checkpoint_id=checkpoint_id,

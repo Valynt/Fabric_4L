@@ -319,13 +319,22 @@ class EntityExtractor:
         "additionalProperties": False,
     }
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o", timeout: float = 60.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "gpt-4o",
+        timeout: float = 60.0,
+        job_id: str = "",
+        tenant_id: str = "",
+    ):
         """Initialize extractor with OpenAI client.
 
         Args:
             api_key: OpenAI API key (or set OPENAI_API_KEY env var)
             model: Model to use (gpt-4o, gpt-4o-mini, etc.)
             timeout: Timeout for API calls in seconds (default: 60.0)
+            job_id: Extraction job ID for cost tracking
+            tenant_id: Tenant ID for cost tracking
         """
         self.client = LLMClient(
             provider="openai",
@@ -334,6 +343,8 @@ class EntityExtractor:
             timeout=timeout,
             max_retries=3,
             cost_tracking_enabled=True,
+            job_id=job_id,
+            tenant_id=tenant_id,
         )
         self.model = self.client.model
 
@@ -414,14 +425,15 @@ class EntityExtractor:
                     if hasattr(entity, "source_refs"):
                         entity.source_refs = [source_url]
                     entity.tenant_id = tenant_id
-                    entity.schema_version = schema_version or "unknown"
-                    entity.prompt_version = prompt_version or "unknown"
-                    entity.model_version = model_version or "unknown"
+                    entity.schema_version = schema_version or ""
+                    entity.prompt_version = prompt_version or ""
+                    entity.model_version = model_version or ""
                     entity.deterministic_id = compute_deterministic_id(
                         tenant_id=tenant_id,
                         source_url=source_url,
                         entity_type=entity_type,
                         entity=entity,
+                        extraction_version=telemetry_context.get("extraction_version", "v1"),
                     )
                     entities.append(entity)
                     if metrics:
@@ -543,7 +555,23 @@ class EntityExtractor:
 class RelationshipExtractor:
     """Extract relationships between entities using LLM."""
 
-    def __init__(self, api_key: str | None = None, model: str = "gpt-4o", timeout: float = 60.0):
+    def __init__(
+        self,
+        api_key: str | None = None,
+        model: str = "gpt-4o",
+        timeout: float = 60.0,
+        job_id: str = "",
+        tenant_id: str = "",
+    ):
+        """Initialize relationship extractor with OpenAI client.
+
+        Args:
+            api_key: OpenAI API key (or set OPENAI_API_KEY env var)
+            model: Model to use (gpt-4o, gpt-4o-mini, etc.)
+            timeout: Timeout for API calls in seconds (default: 60.0)
+            job_id: Extraction job ID for cost tracking
+            tenant_id: Tenant ID for cost tracking
+        """
         self.client = LLMClient(
             provider="openai",
             api_key=api_key,
@@ -551,6 +579,8 @@ class RelationshipExtractor:
             timeout=timeout,
             max_retries=3,
             cost_tracking_enabled=True,
+            job_id=job_id,
+            tenant_id=tenant_id,
         )
         self.model = self.client.model
 
@@ -627,14 +657,15 @@ class RelationshipExtractor:
                     rel.source_url = source_url
                     rel.extraction_job_id = extraction_job_id
                     rel.tenant_id = tenant_id
-                    rel.schema_version = schema_version or "unknown"
-                    rel.prompt_version = prompt_version or "unknown"
-                    rel.model_version = model_version or "unknown"
+                    rel.schema_version = schema_version or ""
+                    rel.prompt_version = prompt_version or ""
+                    rel.model_version = model_version or ""
                     rel.deterministic_id = compute_deterministic_id(
                         tenant_id=tenant_id,
                         source_url=source_url,
                         entity_type="relationship",
                         entity=rel,
+                        extraction_version=telemetry_context.get("extraction_version", "v1"),
                     )
                     relationships.append(rel)
 

@@ -1933,6 +1933,21 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
     else:
         # System-scoped: iterate tenants individually under RLS.
         # Use tenant_registry (system table, no RLS) instead of tenant-owned tables.
+        
+        # Emit metric for tenant enumeration observability
+        metrics = get_metrics()
+        if metrics:
+            metrics.increment_maintenance_tenant_enumeration()
+        
+        # Audit log entry before TenantRegistry query
+        logger.info(
+            "System maintenance: beginning tenant enumeration",
+            operation="cleanup_old_content",
+            tenant_id=None,
+            system_identity="fabric4l-system-maintenance",
+            correlation_id=str(uuid4()),
+        )
+        
         tenant_ids = []
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             tenant_ids = [

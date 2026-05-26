@@ -66,7 +66,7 @@ def _find_require_tenant_false_usages(source: str, path: Path) -> list[tuple[int
             for kw in node.keywords:
                 if kw.arg == "require_tenant" and isinstance(kw.value, ast.Constant) and kw.value.value is False:
                     scope = _enclosing_scope(node)
-                    usages.append((node.lineno, scope, lines[node.lineno - 1].strip() if node.lineno <= len(lines) else ""))
+                    usages.append((node.lineno, scope, lines[node.lineno - 1].strip() if 1 <= node.lineno <= len(lines) else ""))
     return usages
 
 
@@ -84,7 +84,7 @@ def main() -> int:
             for line_no, scope, line_text in usages:
                 rel_posix = rel.as_posix()
                 allowed = any(
-                    rel_posix.endswith(allow_path) and (allow_scope is None or allow_scope == scope)
+                    rel_posix == allow_path and (allow_scope is None or allow_scope == scope)
                     for allow_path, allow_scope, _reason in ALLOWLIST
                 )
                 if not allowed:

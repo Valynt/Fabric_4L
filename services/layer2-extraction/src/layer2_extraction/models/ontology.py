@@ -103,9 +103,9 @@ class Capability(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("name")
     @classmethod
@@ -156,9 +156,9 @@ class UseCase(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("required_capabilities")
     @classmethod
@@ -206,9 +206,9 @@ class Persona(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("influenced_by")
     @classmethod
@@ -256,9 +256,9 @@ class ValueDriver(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("formula_string")
     @classmethod
@@ -341,9 +341,9 @@ class ValueMetric(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("value_driver_ids")
     @classmethod
@@ -410,9 +410,9 @@ class Feature(BaseModel):
     extraction_job_id: str | None = None
     tenant_id: str | None = None
     deterministic_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version_id: str = ""  # Immutable prompt template version ID from registry
+    model_version: str = ""
 
     @field_validator("parent_capability_id")
     @classmethod
@@ -455,9 +455,9 @@ class ExtractionResult(BaseModel):
     chunks_processed: int = 0
     errors: list[str] = Field(default_factory=list)
     tenant_id: str | None = None
-    schema_version: str = "unknown"
-    prompt_version: str = "unknown"
-    model_version: str = "unknown"
+    schema_version: str = ""
+    prompt_version: str = ""
+    model_version: str = ""
 
     def get_all_entities(self) -> Sequence[BaseModel]:
         """Return all extracted entities as a flat list."""

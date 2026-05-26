@@ -27,7 +27,7 @@ class TestRequestContext:
         assert ctx.user_id is None
         assert ctx.roles == []
         assert ctx.permissions == frozenset()
-        assert ctx.source == "unknown"
+        assert ctx.source == "jwt_claim"
 
     def test_has_role_with_enum(self):
         ctx = RequestContext(tenant_id=_TENANT, roles=["analyst"])
@@ -76,7 +76,7 @@ class TestRequestContext:
         assert d["tenant_id"] == str(_TENANT)
         assert d["user_id"] == "user-1"
         assert d["roles"] == ["analyst"]
-        assert d["source"] == "jwt"
+        assert d["source"] == "jwt_claim"
 
 
 class TestContextVarHelpers:

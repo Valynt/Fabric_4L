@@ -172,8 +172,8 @@ class PROVEntity:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return PROVEntity_to_dictResult.model_validate({
-            "@id": self.entity_id,
-            "@type": self.entity_type.value,
+            "id_": self.entity_id,
+            "type_": self.entity_type.value,
             "label": self.label,
             "generatedAt": self.generated_at.isoformat() if self.generated_at else None,
             "generatedBy": self.generated_by,
@@ -248,8 +248,8 @@ class PROVActivity:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return PROVActivity_to_dictResult.model_validate({
-            "@id": self.activity_id,
-            "@type": self.activity_type.value,
+            "id_": self.activity_id,
+            "type_": self.activity_type.value,
             "label": self.label,
             "startedAt": self.started_at.isoformat() if self.started_at else None,
             "endedAt": self.ended_at.isoformat() if self.ended_at else None,
@@ -306,8 +306,8 @@ class PROVAgent:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return PROVAgent_to_dictResult.model_validate({
-            "@id": self.agent_id,
-            "@type": self.agent_type.value,
+            "id_": self.agent_id,
+            "type_": self.agent_type.value,
             "label": self.label,
             "actedOnBehalfOf": self.acted_on_behalf_of,
             "attributes": self.attributes,
@@ -470,8 +470,8 @@ class PROVGraph:
     def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return PROVGraph_to_dictResult.model_validate({
-            "@id": self.graph_id,
-            "@context": {
+            "id_": self.graph_id,
+            "context_": {
                 "prov": "http://www.w3.org/ns/prov#",
                 "vf": "http://valuefabric.io/ns/prov#",
             },

@@ -177,6 +177,37 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # Maintenance operations metrics (P1 hardening)
+        self._metrics["maintenance_tenant_enumerations_total"] = Counter(
+            f"{prefix}maintenance_tenant_enumerations_total",
+            "Total system maintenance tenant enumeration operations",
+            [],
+            registry=self.config.registry,
+        )
+
+        # Strict robots mode metrics (P2)
+        self._metrics["strict_robots_blocks_total"] = Counter(
+            f"{prefix}strict_robots_blocks_total",
+            "Total strict robots mode blocks",
+            ["domain", "reason"],
+            registry=self.config.registry,
+        )
+
+        # API idempotency metrics (P3)
+        self._metrics["idempotency_key_hits_total"] = Counter(
+            f"{prefix}idempotency_key_hits_total",
+            "Total idempotency key cache hits",
+            [],
+            registry=self.config.registry,
+        )
+
+        self._metrics["idempotency_key_misses_total"] = Counter(
+            f"{prefix}idempotency_key_misses_total",
+            "Total idempotency key cache misses",
+            [],
+            registry=self.config.registry,
+        )
+
         # Build info
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry
@@ -270,6 +301,22 @@ class PrometheusMetrics:
     def increment_outbox_dead_lettered(self) -> None:
         if self.config.enabled:
             self._metrics["outbox_dead_lettered_total"].inc()
+
+    def increment_maintenance_tenant_enumeration(self) -> None:
+        if self.config.enabled:
+            self._metrics["maintenance_tenant_enumerations_total"].inc()
+
+    def increment_strict_robots_block(self, domain: str, reason: str) -> None:
+        if self.config.enabled:
+            self._metrics["strict_robots_blocks_total"].labels(domain=domain, reason=reason).inc()
+
+    def increment_idempotency_key_hit(self) -> None:
+        if self.config.enabled:
+            self._metrics["idempotency_key_hits_total"].inc()
+
+    def increment_idempotency_key_miss(self) -> None:
+        if self.config.enabled:
+            self._metrics["idempotency_key_misses_total"].inc()
 
     def refresh_stuck_jobs(self, counts_by_stage: dict[str, int]) -> None:
         """Update stuck jobs gauge from a dict of {stage: count}.

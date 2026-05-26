@@ -166,10 +166,18 @@ class CrawlDecisionRepository:
         self.logger = logger.bind(component="CrawlDecisionRepository")
 
     def _get_session(self) -> Session:
-        """Get database session."""
+        """Get database session.
+
+        Raises:
+            RuntimeError: If called without explicit tenant context.
+        """
         if self._session:
             return self._session
-        return get_db_session()
+        raise RuntimeError(
+            "_get_session() must be called with explicit tenant context. "
+            "Pass db_session to CrawlDecisionRepository constructor or use "
+            "repository methods with tenant context already set."
+        )
 
     def _save_sync(self, record: CrawlDecisionRecord) -> None:
         """Synchronous save implementation (runs in thread pool)."""

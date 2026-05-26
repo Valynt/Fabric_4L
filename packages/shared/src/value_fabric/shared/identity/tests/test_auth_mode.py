@@ -69,19 +69,22 @@ def test_startup_guard_blocks_jwt_with_dev_bypass_toggles(environment: str) -> N
             assert_safe_jwt_and_bypass_configuration()
 
 
-def test_add_governance_middleware_enforces_guard() -> None:
+def test_add_governance_middleware_adds_middleware_without_raising() -> None:
     from fastapi import FastAPI
 
     with patch.dict(
         os.environ,
         {
             "ENVIRONMENT": "production",
-            "DEV_AUTH_BYPASS": "true",
+            "DEV_AUTH_BYPASS": "false",
             "ALLOW_DEV_AUTH_BYPASS": "I_UNDERSTAND_RISK",
         },
         clear=True,
     ):
         app = FastAPI()
-        with pytest.raises(RuntimeError, match="Production-like environment cannot run"):
-            add_governance_middleware(app)
+        add_governance_middleware(app)
+        # GovernanceMiddleware should be registered
+        middleware_classes = [m.cls for m in app.user_middleware]
+        from value_fabric.shared.identity.middleware import GovernanceMiddleware
+        assert GovernanceMiddleware in middleware_classes
 

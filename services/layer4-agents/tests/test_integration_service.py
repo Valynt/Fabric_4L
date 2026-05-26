@@ -16,9 +16,11 @@ from value_fabric.layer4.services.integration_service import (
 
 
 @pytest.fixture(autouse=True)
-def clear_encryption_cache():
+def clear_encryption_cache(monkeypatch):
     """Clear encryption cache between tests to prevent pollution."""
     from collections import OrderedDict
+    # Set environment variable to allow ephemeral encryption
+    monkeypatch.setenv("ALLOW_EPHEMERAL_ENCRYPTION", "true")
     EncryptionService._MASTER_KEY = None
     EncryptionService._key_cache = OrderedDict()
     EncryptionService._cache_lock = None
