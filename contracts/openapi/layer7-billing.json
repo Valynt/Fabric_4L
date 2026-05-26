@@ -1,0 +1,12 @@
+{
+  "openapi": "3.1.0",
+  "info": {"title": "Layer 7 Billing API", "version": "0.1.0"},
+  "paths": {
+    "/v1/billing/plans": {"post": {"summary": "Upsert plan", "responses": {"200": {"description": "OK"}}}},
+    "/v1/billing/entitlements/{plan_id}/decision": {"get": {"summary": "Entitlement decision", "parameters": [{"name":"plan_id","in":"path","required":true,"schema":{"type":"string"}},{"name":"feature","in":"query","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK"}}}},
+    "/v1/billing/usage-events": {"post": {"summary": "Append-only usage ingestion", "responses": {"200": {"description": "Accepted or duplicate"}}}},
+    "/v1/billing/usage-aggregates": {"get": {"summary": "Idempotent billable aggregates", "responses": {"200": {"description": "OK"}}}},
+    "/v1/billing/invoices": {"get": {"summary": "Tenant invoices", "responses": {"200": {"description": "OK"}}}},
+    "/v1/billing/payment-state": {"get": {"summary": "Payment state", "responses": {"200": {"description": "OK"}}}}
+  }
+}
