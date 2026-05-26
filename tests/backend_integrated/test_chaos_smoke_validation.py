@@ -49,7 +49,8 @@ async def test_chaos_downstream_l3_timeout_blocks_l4_policy_path(backend, seed_i
         json={"account_id": seed_ids.account_id, "requires_benchmark_policy": True, "approval_status": "submitted"},
         expected=(200, 201, 202),
     )
-    case_id = case.get("id") or case.get("case_id") or seed_ids.account_id
+    case_id = case.get("id") or case.get("case_id")
+    assert case_id, f"Case creation response missing 'id' or 'case_id': {case!r}"
     body, response = await backend.request(
         "l4",
         "POST",
