@@ -78,7 +78,8 @@ from layer2_extraction.output.provenance import (
 from layer2_extraction.output.rdf_generator import generate_rdf
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 from layer2_extraction.validation.artifact_validator import (
-    validate_artifact_for_persistence,
+    ArtifactValidationError,
+    validate_for_persistence,
     validate_extraction_result,
     validate_relationship_for_persistence,
 )
@@ -1140,6 +1141,22 @@ async def run_extract_and_ingest(
         return
 
     if not artifacts:
+        return
+
+    try:
+        validate_for_persistence(artifacts)
+    except ArtifactValidationError as exc:
+        await _quarantine_validation_failure(
+            tenant_id=str(config.get("tenant_id", "")),
+            job_id=job_id,
+            source_url=source_url,
+            source_hash=hashlib.sha256(content.encode()).hexdigest(),
+            payload=artifacts.model_dump_json(),
+            errors=[str(exc)],
+            model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
+            schema_version=str(config.get("schema_version") or ""),
+            reason="persistence_validation_failed",
+        )
         return
 
     client = Layer3KnowledgeClient()
