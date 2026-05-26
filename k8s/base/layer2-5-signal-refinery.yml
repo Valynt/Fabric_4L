@@ -46,6 +46,14 @@ spec:
         - name: layer2-5-signal-refinery
           image: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery:main
           imagePullPolicy: IfNotPresent
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           ports:
             - containerPort: 8007
               name: http
@@ -97,6 +105,9 @@ spec:
             limits:
               cpu: 500m
               memory: 512Mi
+          volumeMounts:
+            - name: init-tmp
+              mountPath: /tmp
 ---
 apiVersion: v1
 kind: Service
