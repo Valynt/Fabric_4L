@@ -11,6 +11,8 @@ from typing import Any
 
 from layer2_extraction.extraction.prompt_registry import register_prompt_template
 
+ENTITY_PROMPT_TEMPLATE_VERSION = "entity_extraction_v1"
+RELATIONSHIP_PROMPT_TEMPLATE_VERSION = "relationship_extraction_v1"
 
 @dataclass
 class RenderedPrompt:
@@ -102,3 +104,12 @@ Be conservative - do not infer relationships that are not clearly stated.
         version_id=version_id,
         template_name=template_name,
     )
+
+
+__all__ = [
+    "ENTITY_PROMPT_TEMPLATE_VERSION",
+    "RELATIONSHIP_PROMPT_TEMPLATE_VERSION",
+    "RenderedPrompt",
+    "render_entity_prompt",
+    "render_relationship_prompt",
+]
