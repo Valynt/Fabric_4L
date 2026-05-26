@@ -396,3 +396,39 @@ groups:
           summary: "Potential auth brute-force pattern"
           description: "High auth-route throttling indicates possible credential stuffing or brute-force attacks."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
+
+      - alert: Layer1RepeatedCrawlFailures
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 1 repeated crawl failures"
+          description: "Layer 1 retry events exceeded threshold in the last 15m."
+
+      - alert: Layer1StuckJobCandidates
+        expr: histogram_quantile(0.95, sum(rate(layer1_stuck_job_age_seconds_bucket[10m])) by (le, status)) > 600
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 stuck-job candidates detected"
+          description: "p95 age in status exceeds 10 minutes for non-terminal jobs."
+
+      - alert: Layer1RobotsBypassAttempts
+        expr: sum(increase(layer1_retry_events_total{reason="robots_bypass_attempt"}[10m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 robots bypass attempts detected"
+          description: "Detected retries explicitly flagged as robots bypass attempts."
+
+      - alert: Layer1TenantContextErrors
+        expr: sum(increase(layer1_errors_total{error_type="tenant_context_error"}[10m])) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 tenant context errors detected"
+          description: "Tenant-context errors in Layer 1 indicate possible isolation failures."

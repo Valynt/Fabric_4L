@@ -65,6 +65,17 @@ from ..skills import get_extraction_schema, get_skill
 MAX_DISPATCH_ATTEMPTS = 5
 
 
+def _domain_class(url: str) -> str:
+    host = (urlparse(url).netloc or "").lower()
+    if not host:
+        return "unknown"
+    if host.endswith(".gov") or host.endswith(".edu"):
+        return "regulated"
+    if host.endswith(".internal") or host.endswith(".local"):
+        return "internal"
+    return "public"
+
+
 class _execute_browser_pathResult(TypedDictModel):
     blocked_resources: Any
     config_used: Any
@@ -241,6 +252,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     tenant_uuid = UUID(tenant_id)
+    stage_started_at = time.monotonic()
 
     logger.info("Starting compliance check stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
@@ -250,6 +262,14 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            queue_latency_seconds = max(0.0, (datetime.now(UTC) - job.created_at).total_seconds())
+            metrics = get_metrics()
+            if metrics:
+                metrics.observe_queue_latency(
+                    queue_latency_seconds,
+                    stage=PipelineStage.COMPLIANCE_CHECK.value,
+                    status=job.status,
+                )
 
             # Idempotent: skip if already completed (handles retry after crawl delay)
             existing_stage = (
@@ -300,7 +320,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 session.commit()
                 metrics = get_metrics()
                 if metrics:
-                    metrics.increment_url_blocked(reason="url_safety")
+                    metrics.increment_url_blocked(reason="url_safety", domain_class=_domain_class(url))
                 raise ValueError("URL blocked by compliance policy") from exc
 
             compliance_config = config.get("compliance", {})
@@ -338,7 +358,12 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 if not allowed:
                     metrics = get_metrics()
                     if metrics:
-                        metrics.increment_url_blocked(reason="robots_txt")
+                        metrics.increment_url_blocked(reason="robots_txt", domain_class=_domain_class(url))
+                        metrics.increment_retry_event(
+                            stage="compliance_check",
+                            reason="robots_bypass_attempt",
+                            domain_class=_domain_class(url),
+                        )
                     _fail_job(job_id, "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
                     return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
 
@@ -359,6 +384,13 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
             session.commit()
 
             logger.info("Compliance check completed", job_id=str(job_id))
+            metrics = get_metrics()
+            if metrics:
+                metrics.observe_job_stage_duration(
+                    time.monotonic() - stage_started_at,
+                    stage=PipelineStage.COMPLIANCE_CHECK.value,
+                    status="completed",
+                )
             return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
@@ -376,6 +408,11 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
         metrics = get_metrics()
         if metrics:
             metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
+            metrics.observe_job_stage_duration(
+                time.monotonic() - stage_started_at,
+                stage=PipelineStage.COMPLIANCE_CHECK.value,
+                status="failed",
+            )
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -393,6 +430,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """
     job_id = UUID(prev_result["job_id"])
     tenant_uuid = UUID(tenant_id)
+    stage_started_at = time.monotonic()
 
     logger.info("Starting smart crawl stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
@@ -520,7 +558,12 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
             asyncio.run(decision_repo.save(decision_record))
             metrics = get_metrics()
             if metrics:
-                metrics.increment_crawl_path(path=final_path)
+                metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
+                metrics.observe_job_stage_duration(
+                    time.monotonic() - stage_started_at,
+                    stage="crawl_path_execution",
+                    status="completed",
+                )
 
             _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
 
@@ -629,6 +672,11 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
         metrics = get_metrics()
         if metrics:
             metrics.increment_retry_event(stage="browser_crawl", reason="stage_failure")
+            metrics.observe_job_stage_duration(
+                time.monotonic() - stage_started_at,
+                stage="crawl_path_execution",
+                status="failed",
+            )
         raise self.retry(exc=exc, countdown=30)
 
 

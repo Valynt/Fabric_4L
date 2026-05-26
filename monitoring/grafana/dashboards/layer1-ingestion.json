@@ -21,7 +21,12 @@
   "panels": [
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 0},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "id": 1,
       "panels": [],
       "title": "API Health & Performance",
@@ -31,26 +36,60 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [
-            {"options": {"0": {"text": "DOWN"}}, "type": "value"},
-            {"options": {"1": {"text": "UP"}}, "type": "value"}
+            {
+              "options": {
+                "0": {
+                  "text": "DOWN"
+                }
+              },
+              "type": "value"
+            },
+            {
+              "options": {
+                "1": {
+                  "text": "UP"
+                }
+              },
+              "type": "value"
+            }
           ],
           "thresholds": {
             "mode": "absolute",
             "steps": [
-              {"color": "red", "value": 0},
-              {"color": "green", "value": 1}
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           },
           "unit": "none"
         }
       },
-      "gridPos": {"h": 4, "w": 4, "x": 0, "y": 1},
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 1
+      },
       "id": 2,
-      "options": {"colorMode": "background", "graphMode": "none", "orientation": "auto"},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "orientation": "auto"
+      },
       "targets": [
-        {"expr": "layer1_health_status{component=\"api\"} or vector(0)", "refId": "A"}
+        {
+          "expr": "layer1_health_status{component=\"api\"} or vector(0)",
+          "refId": "A"
+        }
       ],
       "title": "API Health",
       "type": "stat"
@@ -59,16 +98,36 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10, "lineWidth": 2},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
           "unit": "reqps"
         }
       },
-      "gridPos": {"h": 8, "w": 10, "x": 4, "y": 1},
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 4,
+        "y": 1
+      },
       "id": 3,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "rate(layer1_http_requests_total[5m])", "legendFormat": "{{method}} {{endpoint}}", "refId": "A"}
+        {
+          "expr": "rate(layer1_http_requests_total[5m])",
+          "legendFormat": "{{method}} {{endpoint}}",
+          "refId": "A"
+        }
       ],
       "title": "Request Rate",
       "type": "timeseries"
@@ -77,23 +136,47 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "percent"
         }
       },
-      "gridPos": {"h": 8, "w": 10, "x": 14, "y": 1},
+      "gridPos": {
+        "h": 8,
+        "w": 10,
+        "x": 14,
+        "y": 1
+      },
       "id": 4,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "(rate(layer1_http_requests_total{status_code=~\"4..|5..\"}[5m]) / rate(layer1_http_requests_total[5m])) * 100 or vector(0)", "legendFormat": "Error %", "refId": "A"}
+        {
+          "expr": "(rate(layer1_http_requests_total{status_code=~\"4..|5..\"}[5m]) / rate(layer1_http_requests_total[5m])) * 100 or vector(0)",
+          "legendFormat": "Error %",
+          "refId": "A"
+        }
       ],
       "title": "Error Rate",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 9},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      },
       "id": 5,
       "panels": [],
       "title": "Ingestion Pipeline Metrics",
@@ -103,16 +186,35 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "docs_per_sec"
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 10},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
       "id": 6,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "rate(value_fabric_ingestion_operations_total[5m])", "legendFormat": "{{source_type}} - {{status}}", "refId": "A"}
+        {
+          "expr": "rate(value_fabric_ingestion_operations_total[5m])",
+          "legendFormat": "{{source_type}} - {{status}}",
+          "refId": "A"
+        }
       ],
       "title": "Documents Ingested/sec",
       "type": "timeseries"
@@ -121,17 +223,46 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "thresholds"},
+          "color": {
+            "mode": "thresholds"
+          },
           "mappings": [],
-          "thresholds": {"mode": "absolute", "steps": [{"color": "green", "value": null}, {"color": "yellow", "value": 95}, {"color": "red", "value": 99}]},
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 95
+              },
+              {
+                "color": "red",
+                "value": 99
+              }
+            ]
+          },
           "unit": "percent"
         }
       },
-      "gridPos": {"h": 8, "w": 6, "x": 12, "y": 10},
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 10
+      },
       "id": 7,
-      "options": {"colorMode": "value", "graphMode": "area"},
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area"
+      },
       "targets": [
-        {"expr": "(sum(rate(value_fabric_ingestion_operations_total{status=\"success\"}[5m])) / sum(rate(value_fabric_ingestion_operations_total[5m]))) * 100 or vector(0)", "refId": "A"}
+        {
+          "expr": "(sum(rate(value_fabric_ingestion_operations_total{status=\"success\"}[5m])) / sum(rate(value_fabric_ingestion_operations_total[5m]))) * 100 or vector(0)",
+          "refId": "A"
+        }
       ],
       "title": "Ingestion Success Rate",
       "type": "stat"
@@ -140,23 +271,47 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "bytes"
         }
       },
-      "gridPos": {"h": 8, "w": 6, "x": 18, "y": 10},
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 10
+      },
       "id": 8,
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "targets": [
-        {"expr": "rate(value_fabric_ingestion_bytes_total[5m])", "legendFormat": "Bytes/sec", "refId": "A"}
+        {
+          "expr": "rate(value_fabric_ingestion_bytes_total[5m])",
+          "legendFormat": "Bytes/sec",
+          "refId": "A"
+        }
       ],
       "title": "Ingestion Throughput",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 18},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
       "id": 9,
       "panels": [],
       "title": "Crawler & Web Scraping",
@@ -166,17 +321,40 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "short"
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 19},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 19
+      },
       "id": 10,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "rate(value_fabric_crawler_pages_fetched_total[5m])", "legendFormat": "Pages/min", "refId": "A"},
-        {"expr": "rate(value_fabric_crawler_links_discovered_total[5m])", "legendFormat": "Links/min", "refId": "B"}
+        {
+          "expr": "rate(value_fabric_crawler_pages_fetched_total[5m])",
+          "legendFormat": "Pages/min",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(value_fabric_crawler_links_discovered_total[5m])",
+          "legendFormat": "Links/min",
+          "refId": "B"
+        }
       ],
       "title": "Crawler Activity",
       "type": "timeseries"
@@ -185,24 +363,52 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "s"
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 19},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 19
+      },
       "id": 11,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "histogram_quantile(0.95, sum(rate(value_fabric_crawler_page_fetch_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p95", "refId": "A"},
-        {"expr": "histogram_quantile(0.99, sum(rate(value_fabric_crawler_page_fetch_duration_seconds_bucket[5m])) by (le))", "legendFormat": "p99", "refId": "B"}
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(value_fabric_crawler_page_fetch_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p95",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(value_fabric_crawler_page_fetch_duration_seconds_bucket[5m])) by (le))",
+          "legendFormat": "p99",
+          "refId": "B"
+        }
       ],
       "title": "Page Fetch Latency",
       "type": "timeseries"
     },
     {
       "collapsed": false,
-      "gridPos": {"h": 1, "w": 24, "x": 0, "y": 27},
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 27
+      },
       "id": 12,
       "panels": [],
       "title": "Resource Utilization",
@@ -212,16 +418,35 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "percent"
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 28},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 28
+      },
       "id": 13,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "rate(process_cpu_seconds_total{job=\"layer1-ingestion\"}[5m]) * 100", "legendFormat": "CPU %", "refId": "A"}
+        {
+          "expr": "rate(process_cpu_seconds_total{job=\"layer1-ingestion\"}[5m]) * 100",
+          "legendFormat": "CPU %",
+          "refId": "A"
+        }
       ],
       "title": "CPU Usage",
       "type": "timeseries"
@@ -230,29 +455,120 @@
       "datasource": "Prometheus",
       "fieldConfig": {
         "defaults": {
-          "color": {"mode": "palette-classic"},
-          "custom": {"drawStyle": "line", "fillOpacity": 10},
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10
+          },
           "unit": "bytes"
         }
       },
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 28},
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 28
+      },
       "id": 14,
-      "options": {"legend": {"displayMode": "table", "placement": "right"}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
       "targets": [
-        {"expr": "process_resident_memory_bytes{job=\"layer1-ingestion\"}", "legendFormat": "Memory", "refId": "A"}
+        {
+          "expr": "process_resident_memory_bytes{job=\"layer1-ingestion\"}",
+          "legendFormat": "Memory",
+          "refId": "A"
+        }
       ],
       "title": "Memory Usage",
       "type": "timeseries"
+    },
+    {
+      "id": 15,
+      "type": "timeseries",
+      "title": "Layer1 Retry Events by Stage",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "sum by (stage, reason) (increase(layer1_retry_events_total[15m]))",
+          "legendFormat": "{{stage}}/{{reason}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 16,
+      "type": "timeseries",
+      "title": "Layer1 Stuck Candidates (p95 age)",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 32
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(layer1_stuck_job_age_seconds_bucket[10m])) by (le, status))",
+          "legendFormat": "{{status}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 17,
+      "type": "timeseries",
+      "title": "Layer1 Blocked URLs / Robots Bypass / Tenant Errors",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "targets": [
+        {
+          "expr": "sum by (reason, domain_class) (increase(layer1_urls_blocked_total[15m]))",
+          "legendFormat": "blocked {{reason}} {{domain_class}}",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(increase(layer1_retry_events_total{reason=\"robots_bypass_attempt\"}[15m]))",
+          "legendFormat": "robots bypass attempts",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(increase(layer1_errors_total{error_type=\"tenant_context_error\"}[15m]))",
+          "legendFormat": "tenant-context errors",
+          "refId": "C"
+        }
+      ]
     }
   ],
   "refresh": "30s",
   "schemaVersion": 36,
   "style": "dark",
-  "tags": ["layer1", "ingestion", "operational"],
+  "tags": [
+    "layer1",
+    "ingestion",
+    "operational"
+  ],
   "templating": {
     "list": [
       {
-        "current": {"selected": false, "text": "Prometheus", "value": "Prometheus"},
+        "current": {
+          "selected": false,
+          "text": "Prometheus",
+          "value": "Prometheus"
+        },
         "hide": 0,
         "label": "Datasource",
         "name": "datasource",
@@ -264,7 +580,10 @@
       }
     ]
   },
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "timepicker": {},
   "timezone": "browser",
   "title": "Layer 1 - Ingestion Pipeline",

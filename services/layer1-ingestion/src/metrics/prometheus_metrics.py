@@ -124,21 +124,42 @@ class PrometheusMetrics:
         self._metrics["retry_events_total"] = Counter(
             f"{prefix}retry_events_total",
             "Total Celery retry events",
-            ["stage", "reason"],
+            ["stage", "reason", "domain_class"],
             registry=self.config.registry,
         )
 
         self._metrics["urls_blocked_total"] = Counter(
             f"{prefix}urls_blocked_total",
             "Total URLs blocked by compliance",
-            ["reason"],
+            ["reason", "domain_class"],
             registry=self.config.registry,
         )
 
         self._metrics["crawl_path_distribution"] = Counter(
             f"{prefix}crawl_path_distribution",
             "Distribution of crawl path choices",
-            ["path"],
+            ["path", "domain_class"],
+            registry=self.config.registry,
+        )
+        self._metrics["job_stage_duration_seconds"] = Histogram(
+            f"{prefix}job_stage_duration_seconds",
+            "Duration of ingestion job stages",
+            ["stage", "status"],
+            buckets=self.config.default_buckets,
+            registry=self.config.registry,
+        )
+        self._metrics["stuck_job_age_seconds"] = Histogram(
+            f"{prefix}stuck_job_age_seconds",
+            "Age in seconds for jobs in non-terminal states (stuck-job candidates)",
+            ["status"],
+            buckets=self.config.default_buckets + [120.0, 300.0, 600.0, 1800.0, 3600.0],
+            registry=self.config.registry,
+        )
+        self._metrics["queue_latency_seconds"] = Histogram(
+            f"{prefix}queue_latency_seconds",
+            "Queue latency in seconds before stage execution",
+            ["stage", "status"],
+            buckets=self.config.default_buckets + [120.0, 300.0, 600.0, 1800.0, 3600.0],
             registry=self.config.registry,
         )
 
@@ -210,17 +231,37 @@ class PrometheusMetrics:
         if self.config.enabled:
             self._metrics["privileged_db_session_activations_total"].labels(mode=mode).inc()
 
-    def increment_retry_event(self, stage: str, reason: str) -> None:
+    def increment_retry_event(self, stage: str, reason: str, domain_class: str = "unknown") -> None:
         if self.config.enabled:
-            self._metrics["retry_events_total"].labels(stage=stage, reason=reason).inc()
+            self._metrics["retry_events_total"].labels(
+                stage=stage, reason=reason, domain_class=domain_class
+            ).inc()
 
-    def increment_url_blocked(self, reason: str) -> None:
+    def increment_url_blocked(self, reason: str, domain_class: str = "unknown") -> None:
         if self.config.enabled:
-            self._metrics["urls_blocked_total"].labels(reason=reason).inc()
+            self._metrics["urls_blocked_total"].labels(
+                reason=reason, domain_class=domain_class
+            ).inc()
 
-    def increment_crawl_path(self, path: str) -> None:
+    def increment_crawl_path(self, path: str, domain_class: str = "unknown") -> None:
         if self.config.enabled:
-            self._metrics["crawl_path_distribution"].labels(path=path).inc()
+            self._metrics["crawl_path_distribution"].labels(path=path, domain_class=domain_class).inc()
+
+    def observe_job_stage_duration(self, duration_seconds: float, stage: str, status: str) -> None:
+        if self.config.enabled:
+            self._metrics["job_stage_duration_seconds"].labels(stage=stage, status=status).observe(
+                duration_seconds
+            )
+
+    def observe_stuck_job_age(self, age_seconds: float, status: str) -> None:
+        if self.config.enabled:
+            self._metrics["stuck_job_age_seconds"].labels(status=status).observe(age_seconds)
+
+    def observe_queue_latency(self, latency_seconds: float, stage: str, status: str = "scheduled") -> None:
+        if self.config.enabled:
+            self._metrics["queue_latency_seconds"].labels(stage=stage, status=status).observe(
+                latency_seconds
+            )
 
     def set_stuck_jobs(self, count: int, stage: str) -> None:
         if self.config.enabled:
