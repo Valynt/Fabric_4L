@@ -4,12 +4,13 @@ Governance Structured Logging Module.
 Structured logging for all Layer 5 governance actions with required fields.
 """
 
-import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-logger = logging.getLogger(__name__)
+from .structured_logging import get_logger
+
+logger = get_logger(__name__)
 
 
 class GovernanceLogger:
@@ -37,7 +38,7 @@ class GovernanceLogger:
             "timestamp": datetime.now(UTC).isoformat(),
             "details": details or {},
         }
-        logger.info("Governance action: %s", log_data)
+        logger.info("governance_action", **log_data)
 
     @staticmethod
     def log_formula_created(
