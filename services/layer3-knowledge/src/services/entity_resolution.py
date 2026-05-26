@@ -74,6 +74,10 @@ class EntityResolutionService:
                     scored_candidates, request.tie_break_rule
                 )
 
+            selected_tie_break_rule = (
+                request.tie_break_rule.value if provenance.tie_break_applied else "none"
+            )
+
             # Determine final match
             if not scored_candidates:
                 response = EntityResolutionResponse(
@@ -83,6 +87,12 @@ class EntityResolutionService:
                     candidates=[],
                     provenance=provenance,
                     requires_manual_review=False,
+                    explanation=self._build_explanation(
+                        canonical_entity_id=None,
+                        confidence_score=0.0,
+                        tie_break_rule=selected_tie_break_rule,
+                        candidates=[],
+                    ),
                 )
             elif len(scored_candidates) == 1:
                 top_candidate = scored_candidates[0]
@@ -94,6 +104,12 @@ class EntityResolutionService:
                     candidates=scored_candidates,
                     provenance=provenance,
                     requires_manual_review=(confidence == MatchConfidence.AMBIGUOUS),
+                    explanation=self._build_explanation(
+                        canonical_entity_id=top_candidate.entity_id,
+                        confidence_score=top_candidate.score,
+                        tie_break_rule=selected_tie_break_rule,
+                        candidates=scored_candidates,
+                    ),
                 )
             else:
                 # Multiple candidates after tie-break - ambiguous
@@ -104,6 +120,12 @@ class EntityResolutionService:
                     candidates=scored_candidates,
                     provenance=provenance,
                     requires_manual_review=True,
+                    explanation=self._build_explanation(
+                        canonical_entity_id=None,
+                        confidence_score=scored_candidates[0].score if scored_candidates else 0.0,
+                        tie_break_rule=selected_tie_break_rule,
+                        candidates=scored_candidates,
+                    ),
                 )
 
             return response
@@ -118,6 +140,12 @@ class EntityResolutionService:
                 provenance=provenance,
                 requires_manual_review=True,
                 error=str(e),
+                explanation=self._build_explanation(
+                    canonical_entity_id=None,
+                    confidence_score=0.0,
+                    tie_break_rule="error",
+                    candidates=[],
+                ),
             )
 
     async def resolve_batch(self, request: BatchResolutionRequest) -> BatchResolutionResponse:
@@ -307,7 +335,7 @@ class EntityResolutionService:
             ))
         
         # Sort by score descending
-        return sorted(scored, key=lambda c: c.score, reverse=True)
+        return sorted(scored, key=lambda c: (-c.score, c.entity_id))
 
     def _apply_tie_break(
         self, candidates: list[MatchCandidate], rule: TieBreakRule
@@ -346,6 +374,28 @@ class EntityResolutionService:
             return [candidates[0]]
         else:
             return [candidates[0]]
+
+    def _build_explanation(
+        self,
+        *,
+        canonical_entity_id: str | None,
+        confidence_score: float,
+        tie_break_rule: str,
+        candidates: list[MatchCandidate],
+    ) -> dict[str, Any]:
+        """Build a transparent deterministic explanation payload."""
+        return {
+            "canonical_entity_id": canonical_entity_id,
+            "confidence": confidence_score,
+            "tie_break_rule": tie_break_rule,
+            "source_evidence_ids": [candidate.entity_id for candidate in candidates],
+            "reasoning_trace_keys": [
+                "candidate_retrieval",
+                "candidate_scoring",
+                "deterministic_ordering",
+                "tie_break_resolution",
+            ],
+        }
 
     def _determine_confidence(self, score: float, min_confidence: float) -> MatchConfidence:
         """Determine confidence level from score.
