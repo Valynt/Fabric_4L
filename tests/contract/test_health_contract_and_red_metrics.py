@@ -37,3 +37,35 @@ def test_red_metric_exports_include_tenant_label_where_required() -> None:
     for rel_path in METRICS_FILES:
         source = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
         assert "tenant_id" in source, f"Expected tenant_id label plumbing in {rel_path}"
+
+
+def test_layer3_graph_observability_contract_metrics_and_alerts() -> None:
+    metrics_source = (
+        REPO_ROOT / "services/layer3-knowledge/src/metrics/prometheus_metrics.py"
+    ).read_text(encoding="utf-8")
+    required_metric_tokens = [
+        "value_fabric_graph_mutation_rate",
+        "value_fabric_graph_query_failures_total",
+        "value_fabric_unauthorized_traversals_total",
+        "value_fabric_graph_index_constraint_health_failures_total",
+        '["operation", "route"],',
+        '["category", "operation", "route"],',
+        '["category", "route", "violation_type"],',
+        '["check_type", "component"],',
+    ]
+    for token in required_metric_tokens:
+        assert token in metrics_source, f"Missing Layer 3 metric contract token: {token}"
+
+    alert_source = (REPO_ROOT / "monitoring/alerting/rules.yml").read_text(encoding="utf-8")
+    required_alerts = [
+        "Layer3GraphQueryFailureSpike",
+        "Layer3SustainedSlowGraphQueries",
+        "Layer3UnauthorizedTraversalAttempts",
+        "Layer3IndexConstraintHealthFailures",
+        "value_fabric_graph_query_failures_total",
+        "value_fabric_graph_slow_queries_total",
+        "value_fabric_unauthorized_traversals_total",
+        "value_fabric_graph_index_constraint_health_failures_total",
+    ]
+    for alert in required_alerts:
+        assert alert in alert_source, f"Missing observability alert contract: {alert}"
