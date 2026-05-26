@@ -704,7 +704,9 @@ class SqlHarnessRegistry:
         human_override: bool = False,
         state_payload: dict[str, Any] | None = None,
     ) -> tuple[HarnessRun, HarnessTraceEvent]:
-        run = await self._run_repo.get(run_id, tenant_id)
+        from harness.registry import TransitionConflictError
+
+        baseline = await self._run_repo.get(run_id, tenant_id)
 
         validation_state: ValidationState | None = None
         if validation_results is not None:
@@ -718,28 +720,40 @@ class SqlHarnessRegistry:
             elif states and all(s == ValidationState.PASSED for s in states):
                 validation_state = ValidationState.PASSED
 
-        updated, event = self._sm.transition(
-            run=run,
-            to_state=to_state,
-            validation_state=validation_state,
-            human_override=human_override,
-        )
+        async with self._run_repo._session.begin():
+            locked = await self._run_repo.get_for_update(run_id, tenant_id)
+            # Re-validate optimistic preconditions after lock acquisition.
+            if (
+                locked.current_state != baseline.current_state
+                or locked.status != baseline.status
+                or locked.updated_at != baseline.updated_at
+            ):
+                raise TransitionConflictError(
+                    f"Transition conflict for run '{run_id}': run changed before lock acquisition"
+                )
 
-        self._telemetry.emit_transition_event(
-            run=updated,
-            from_state=run.current_state,
-            to_state=to_state,
-        )
-
-        await self._run_repo.update(updated)
-
-        if state_payload is not None:
-            await self._checkpoints.create_checkpoint(
-                run_id=run_id,
-                tenant_id=tenant_id,
-                state_name=to_state,
-                state_payload=state_payload,
+            updated, event = self._sm.transition(
+                run=locked,
+                to_state=to_state,
+                validation_state=validation_state,
+                human_override=human_override,
             )
+
+            self._telemetry.emit_transition_event(
+                run=updated,
+                from_state=locked.current_state,
+                to_state=to_state,
+            )
+
+            await self._run_repo.update(updated)
+
+            if state_payload is not None:
+                await self._checkpoints.create_checkpoint(
+                    run_id=run_id,
+                    tenant_id=tenant_id,
+                    state_name=to_state,
+                    state_payload=state_payload,
+                )
 
         return updated, event
 

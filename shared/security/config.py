@@ -14,7 +14,6 @@ from urllib.parse import parse_qsl, urlparse
 logger = logging.getLogger(__name__)
 
 DEFAULT_JWT_SECRETS = {
-    "",
     "test-secret",
     "test-secret-key",
     "changeme",
@@ -44,6 +43,10 @@ def is_staging() -> bool:
     return current_environment() in {"staging", "stage", "preprod", "pre-production"}
 
 
+def is_test_runtime() -> bool:
+    return current_environment() in {"test", "testing", "ci"}
+
+
 def _split_origins(value: str) -> list[str]:
     return [origin.strip() for origin in value.split(",") if origin.strip()]
 
@@ -56,21 +59,20 @@ def validate_jwt_config() -> None:
     brute-forceable and commonly leaked in examples.
     """
     jwt_secret = _env("JWT_SECRET")
-    if not is_production():
-        if not jwt_secret:
-            logger.warning("JWT_SECRET is not configured; development-only mode")
+    if is_test_runtime() and not jwt_secret:
+        logger.info("JWT_SECRET is unset in test runtime; use test fixtures for deterministic secrets")
         return
 
     if not jwt_secret:
-        raise ValueError("JWT_SECRET is required in production")
+        raise ValueError("JWT_SECRET is required in all non-test runtimes")
     if len(jwt_secret) < 32:
-        raise ValueError("JWT_SECRET must be at least 32 characters in production")
+        raise ValueError("JWT_SECRET must be at least 32 characters in all non-test runtimes")
     if jwt_secret.lower() in DEFAULT_JWT_SECRETS:
-        raise ValueError("Reject default JWT_SECRET values in production")
-    if not _env("JWT_ISSUER"):
-        raise ValueError("JWT_ISSUER is required in production")
-    if not _env("JWT_AUDIENCE"):
-        raise ValueError("JWT_AUDIENCE is required in production")
+        raise ValueError("Reject default JWT_SECRET values in all non-test runtimes")
+    if not is_test_runtime() and not _env("JWT_ISSUER"):
+        raise ValueError("JWT_ISSUER is required in all non-test runtimes")
+    if not is_test_runtime() and not _env("JWT_AUDIENCE"):
+        raise ValueError("JWT_AUDIENCE is required in all non-test runtimes")
 
 
 def validate_cors_config() -> None:

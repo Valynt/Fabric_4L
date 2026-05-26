@@ -31,6 +31,13 @@ from typing import Any
 from value_fabric.layer3.utils.cypher_security import TENANT_OWNED_LABELS
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
+from ..graph.query_guards import (
+    DEFAULT_MAX_QUERY_DEPTH,
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
+    sanitize_query_depth,
+    sanitize_query_timeout_seconds,
+)
+
 try:
     from metrics.prometheus_metrics import get_metrics
 except Exception:
@@ -38,9 +45,9 @@ except Exception:
 
 SYSTEM_SCOPES = {QueryScope.SYSTEM, QueryScope.SCHEMA, QueryScope.MIGRATION, QueryScope.BACKUP}
 
-# Global Cypher query limits (PERF-001)
-MAX_QUERY_DEPTH = 10
-QUERY_TIMEOUT_SECONDS = 30.0
+# Backward-compatible aliases for existing imports.
+MAX_QUERY_DEPTH = DEFAULT_MAX_QUERY_DEPTH
+QUERY_TIMEOUT_SECONDS = DEFAULT_QUERY_TIMEOUT_SECONDS
 
 
 class TenantQueryValidationError(ValueError):
@@ -165,7 +172,9 @@ class TenantQueryExecutor:
         start = time.monotonic()
         coro = run_callable(query, params)
         try:
-            result = await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+            result = await asyncio.wait_for(
+                coro, timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS)
+            )
         except asyncio.TimeoutError:
             metrics = get_metrics() if get_metrics else None
             if metrics:
@@ -241,7 +250,8 @@ class TenantQueryExecutor:
 
         # Depth limit check (PERF-001)
         max_depth = cls._extract_max_depth(query, params)
-        if max_depth is not None and max_depth > MAX_QUERY_DEPTH:
+        safe_max_depth = sanitize_query_depth(MAX_QUERY_DEPTH, default_depth=MAX_QUERY_DEPTH)
+        if max_depth is not None and max_depth > safe_max_depth:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.observe_graph_traversal_depth(
@@ -253,7 +263,7 @@ class TenantQueryExecutor:
                     violation_type="depth_exceeded",
                 )
             raise CypherDepthLimitExceeded(
-                f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"
+                f"Query exceeds maximum depth of {safe_max_depth} (found {max_depth})"
             )
 
         touches_tenant_data = _touches_tenant_owned_label(query)
