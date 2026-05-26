@@ -15,6 +15,12 @@ spec:
       securityContext:
         runAsNonRoot: true
         runAsUser: 65532
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      volumes:
+        - name: tmp
+          emptyDir: {}
       containers:
         - name: api-gateway
           image: services/api
@@ -42,10 +48,15 @@ spec:
             initialDelaySeconds: 30
             periodSeconds: 15
           securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
 ---
 apiVersion: v1
 kind: Service

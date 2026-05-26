@@ -34,6 +34,8 @@ spec:
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z neo4j 7687; do echo waiting for neo4j; sleep 2; done']
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -45,6 +47,8 @@ spec:
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done']
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -59,6 +63,8 @@ spec:
         - name: api
           image: value-fabric/layer3-knowledge:main
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
