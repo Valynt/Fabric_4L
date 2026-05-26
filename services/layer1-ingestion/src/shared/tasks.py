@@ -359,11 +359,6 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                     metrics = get_metrics()
                     if metrics:
                         metrics.increment_url_blocked(reason="robots_txt", domain_class=_domain_class(url))
-                        metrics.increment_retry_event(
-                            stage="compliance_check",
-                            reason="robots_bypass_attempt",
-                            domain_class=_domain_class(url),
-                        )
                     _fail_job(job_id, "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
                     return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
 
