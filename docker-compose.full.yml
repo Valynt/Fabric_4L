@@ -30,6 +30,34 @@ x-build-args: &build-args
   BASE_IMAGE: ${BASE_IMAGE:-python:3.11.11-slim-bookworm}
 
 services:
+  api-gateway:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: value-fabric-api-gateway
+    <<: *app-hardening
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - TESTING=false
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Layer 1: Data Ingestion Service
   layer1-ingestion:
     build:

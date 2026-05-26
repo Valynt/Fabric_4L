@@ -15,3 +15,10 @@ enforcement:
 protected_branch_patterns:
   - main
   - release/*
+
+informational_status_checks:
+  - chaos-smoke-informational
+promotion_policy:
+  chaos_smoke:
+    current_mode: informational
+    promotion_condition: "Two consecutive weeks flake-free; then add as required status check."

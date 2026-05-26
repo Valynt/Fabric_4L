@@ -1,9 +1,16 @@
 name: Release Evidence Bundle
 
 on:
+  pull_request:
+    branches:
+      - main
+      - 'release/**'
   push:
     tags:
       - 'v*'
+    branches:
+      - main
+      - 'release/**'
   workflow_dispatch:
     inputs:
       tag:
@@ -50,57 +57,122 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Resolve security mode
+        id: mode
+        run: |
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Build image
         run: |
           docker build \
             --build-arg BASE_IMAGE="${BASE_IMAGE:-}" \
             --build-arg BUILDER_BASE_IMAGE="${BUILDER_BASE_IMAGE:-}" \
             -t ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} \
+            -t ${{ matrix.service }}:local-${{ github.sha }} \
             ./services/${{ matrix.service }}
 
       - name: Log in to registry
+        if: steps.mode.outputs.publish == 'true'
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Push image
+        if: steps.mode.outputs.publish == 'true'
         run: docker push ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
 
       - name: Trivy vulnerability scan
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: sarif
           output: trivy-${{ matrix.service }}.sarif
 
       - name: Trivy HTML report
         uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98 # master (post-v0.36.0)
         with:
-          image-ref: ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+          image-ref: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: html
           output: trivy-${{ matrix.service }}.html
 
       - name: Generate SBOM (CycloneDX)
         uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+          image: ${{ steps.mode.outputs.publish == 'true' && format('{0}/fabric_4l/{1}:{2}', env.REGISTRY, matrix.service, github.sha) || format('{0}:local-{1}', matrix.service, github.sha) }}
           format: cyclonedx-json
-          output-file: sbom-${{ matrix.service }}.cdx.json
+          output-file: sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json
 
       - name: Install Cosign
+        if: steps.mode.outputs.publish == 'true'
         uses: sigstore/cosign-installer@v3
 
-      - name: Sign SBOM with Cosign
+      - name: Sign image (keyless OIDC)
+        if: steps.mode.outputs.publish == 'true'
         run: |
-          cosign sign-blob --yes sbom-${{ matrix.service }}.cdx.json \
-            --output-signature sbom-${{ matrix.service }}.cdx.json.sig \
-            --output-certificate sbom-${{ matrix.service }}.cdx.json.crt
+          cosign sign --yes ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+
+      - name: Attest SBOM to registry
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign attest --yes \
+            --type cyclonedx \
+            --predicate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }}
+
+      - name: Verify image signature metadata
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-evidence-bundle.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > signing-${{ matrix.service }}-${{ github.sha }}.json
+
+      - name: Verify attestation metadata
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign verify-attestation \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}/.github/workflows/release-evidence-bundle.yml@.*" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            --type cyclonedx \
+            ${{ env.REGISTRY }}/fabric_4l/${{ matrix.service }}:${{ github.sha }} > attestation-${{ matrix.service }}-${{ github.sha }}.json
+
+      - name: Sign SBOM with Cosign
+        if: steps.mode.outputs.publish == 'true'
+        run: |
+          cosign sign-blob --yes sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json \
+            --output-signature sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.sig \
+            --output-certificate sbom-${{ matrix.service }}-${{ github.sha }}.cdx.json.crt
 
       - name: Upload scan artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: scan-${{ matrix.service }}
+          name: scan-${{ matrix.service }}-${{ github.sha }}
           path: |
             trivy-${{ matrix.service }}.*
-            sbom-${{ matrix.service }}.*
+            sbom-${{ matrix.service }}-${{ github.sha }}.*
+            signing-${{ matrix.service }}-${{ github.sha }}.json
+            attestation-${{ matrix.service }}-${{ github.sha }}.json
+
+  supply-chain-policy-check:
+    name: Supply-chain metadata policy check
+    runs-on: ubuntu-latest
+    needs: [build-and-scan]
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - name: Download image security artifacts
+        uses: actions/download-artifact@fa0a91b85d4f404e444306234a53f49b9be1f8b9 # v4
+        with:
+          pattern: scan-*-${{ github.sha }}
+          path: artifacts
+          merge-multiple: false
+      - name: Enforce SBOM/signing policy
+        run: |
+          python scripts/ci/check_image_supply_chain_metadata.py \
+            --artifact-root artifacts \
+            --sha "${{ github.sha }}" \
+            --mode "${{ github.event_name == 'pull_request' && 'pr' || 'release' }}"
 
   sast-and-tests:
     name: SAST & Security E2E
@@ -176,7 +248,7 @@ jobs:
   consolidate-bundle:
     name: Consolidate & Publish Evidence Bundle
     runs-on: ubuntu-latest
-    needs: [release-readiness-gate, build-and-scan, sast-and-tests, live-stack-evidence]
+    needs: [release-readiness-gate, build-and-scan, supply-chain-policy-check, sast-and-tests, live-stack-evidence]
     steps:
       - uses: actions/checkout@v4
 
