@@ -1,0 +1,28 @@
+name: Chaos Smoke (Informational)
+
+on:
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  chaos-smoke-informational:
+    name: chaos-smoke-informational
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38
+        with:
+          python-version: '3.11'
+      - name: Install test dependencies
+        run: pip install pytest pytest-asyncio httpx
+      - name: Run chaos smoke suite
+        run: scripts/ci/run_chaos_smoke.sh
+
+  chaos-smoke-required-ready-marker:
+    name: chaos-smoke-required-ready-marker
+    if: ${{ false }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "Enable this job and remove continue-on-error from chaos-smoke-informational once flakes are resolved."

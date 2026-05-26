@@ -1,8 +1,6 @@
 from datetime import UTC, datetime, timedelta
 import hashlib
 import secrets
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.database import db
@@ -10,6 +8,7 @@ from app.core.tenant_context import tenant_required
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.models.schemas import (
     Account,
+    AccountUpdateRequest,
     AccountShareLinkResponse,
     AccountShareRevokeResponse,
     AccountSummaryResponse,
@@ -60,10 +59,14 @@ async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)
 @router.patch("/{account_id}", response_model=Account)
 async def update_account(
     account_id: str,
-    fields: dict[str, Any],
+    fields: AccountUpdateRequest,
     tenant_id: str = Depends(tenant_required),
 ):
-    acc = db.accounts.update(account_id, tenant_id=tenant_id, **fields)
+    update_data = fields.model_dump(exclude_unset=True)
+    if not update_data:
+        raise HTTPException(status_code=422, detail="No fields provided for update")
+
+    acc = db.accounts.update(account_id, tenant_id=tenant_id, **update_data)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
     return acc

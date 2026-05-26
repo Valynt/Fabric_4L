@@ -39,6 +39,7 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from ..shared.config import settings
 from ..metrics.prometheus_metrics import get_metrics
 from ..shared.database import get_db_session
+from ..shared.maintenance import authorize_maintenance_operation, maintenance_audit_log
 from sqlalchemy import text
 from ..shared.models import (
     AccountIntelligencePacket,
@@ -1879,6 +1880,39 @@ def _should_fail_closed(
 
 
 @celery_app.task
+def _enumerate_authorized_tenants_for_cleanup() -> list[UUID]:
+    """Enumerate active tenants from system-owned registry with explicit authorization."""
+    authorize_maintenance_operation("cleanup_old_content", tenant_id="tenant-registry")
+
+    correlation_id = str(uuid4())
+    with maintenance_audit_log("cleanup_old_content", tenant_id="tenant-registry") as record:
+        record.metadata = {
+            "tenant_iteration_source": "tenant_registry",
+            "source_scope": "system_owned",
+            "require_tenant": False,
+            "correlation_id": correlation_id,
+        }
+        with get_db_session(tenant_id=None, require_tenant=False) as session:
+            tenant_ids = [
+                row[0]
+                for row in session.query(TenantRegistry.tenant_id)
+                .filter(TenantRegistry.is_active == True)
+                .all()
+            ]
+        record.rows_affected = len(tenant_ids)
+
+    logger.info(
+        "System maintenance tenant enumeration completed",
+        operation="cleanup_old_content",
+        tenant_iteration_source="tenant_registry",
+        source_scope="system_owned",
+        require_tenant=False,
+        correlation_id=correlation_id,
+        tenants_discovered=len(tenant_ids),
+    )
+    return tenant_ids
+
+
 def cleanup_old_content(days: int = 30, tenant_id: str = None):
     """Clean up raw content older than specified days.
     
@@ -1895,8 +1929,6 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         InvalidTenantContextError: If tenant_id is provided but invalid
     """
     from .exceptions import InvalidTenantContextError
-    from .maintenance import maintenance_audit_log
-    
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
     
     # Validate tenant context if provided
@@ -1952,14 +1984,7 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             correlation_id=str(uuid4()),
         )
         
-        tenant_ids = []
-        with get_db_session(tenant_id=None, require_tenant=False) as session:
-            tenant_ids = [
-                row[0] for row in
-                session.query(TenantRegistry.tenant_id)
-                .filter(TenantRegistry.is_active == True)
-                .all()
-            ]
+        tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
         total_deleted = 0
         failed_tenants = []
