@@ -365,10 +365,20 @@ async def create_workflow(
         )
 
     except Exception as exc:
+        if isinstance(exc, WorkflowExecutionError):
+            raise_normalized_with_log(
+                exc,
+                status_code=403,
+                message="Workflow blocked by approval policy",
+                error_code="APPROVAL_POLICY_BLOCKED",
+                logger=logger,
+                log_message="Workflow policy enforcement blocked execution",
+            )
         raise_normalized_with_log(
             exc,
             status_code=500,
-            detail="Workflow execution failed",
+            message="Workflow execution failed",
+            error_code="WORKFLOW_EXECUTION_FAILED",
             logger=logger,
             log_message="Workflow execution failed",
         )
@@ -684,12 +694,19 @@ async def resume_workflow(
             logger.warning("workflow_resume_value_error", error=str(exc))
             raise HTTPException(status_code=404, detail="Workflow not found")
         if isinstance(exc, WorkflowExecutionError):
-            logger.warning("workflow_resume_execution_error", error=str(exc))
-            raise HTTPException(status_code=400, detail="Workflow resume failed")
+            raise_normalized_with_log(
+                exc,
+                status_code=403,
+                message="Workflow resume blocked by approval policy",
+                error_code="APPROVAL_POLICY_BLOCKED",
+                logger=logger,
+                log_message="workflow_resume_execution_error",
+            )
         raise_normalized_with_log(
             exc,
             status_code=500,
-            detail="Failed to resume workflow",
+            message="Failed to resume workflow",
+            error_code="WORKFLOW_RESUME_FAILED",
             logger=logger,
             log_message=f"Unexpected error resuming workflow {workflow_id}",
         )
