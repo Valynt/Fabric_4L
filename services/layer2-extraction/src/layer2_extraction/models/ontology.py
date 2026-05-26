@@ -457,6 +457,8 @@ class ExtractionResult(BaseModel):
     tenant_id: str | None = None
     schema_version: str = ""
     prompt_version: str = ""
+    prompt_template_version: str = ""
+    prompt_template_hash: str | None = None
     model_version: str = ""
 
     def get_all_entities(self) -> Sequence[BaseModel]:
