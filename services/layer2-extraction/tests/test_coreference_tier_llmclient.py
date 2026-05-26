@@ -319,3 +319,69 @@ class TestLLMClient:
 
         result = await client.complete([{"role": "user", "content": "Hi"}])
         assert result == ""
+
+
+    @pytest.mark.asyncio
+    async def test_complete_openai_tracks_usage_metrics_and_safe_logs(self, caplog):
+        from unittest.mock import AsyncMock, MagicMock
+        from layer2_extraction.metrics.prometheus_metrics import initialize_metrics
+
+        initialize_metrics()
+        caplog.set_level("INFO")
+
+        mock_response = MagicMock()
+        mock_response.model = "gpt-4o"
+        mock_response.usage.prompt_tokens = 100
+        mock_response.usage.completion_tokens = 50
+        mock_response.usage.total_tokens = 150
+        mock_response.choices = [MagicMock()]
+        mock_response.choices[0].message.content = "Hello from OpenAI"
+
+        mock_openai_client = AsyncMock()
+        mock_openai_client.chat.completions.create = AsyncMock(return_value=mock_response)
+
+        client = LLMClient(provider=LLMProvider.OPENAI, api_key="sk-super-secret", cost_tracking_enabled=True, job_id="job-1", tenant_id="tenant-1", prompt_version="pv-1")
+        client._client = mock_openai_client
+
+        result = await client.complete([{"role": "user", "content": "Hi"}], call_type="entity_extraction")
+        assert result == "Hello from OpenAI"
+
+        records = client.get_cost_records()
+        assert len(records) == 1
+        assert records[0].prompt_tokens == 100
+        assert records[0].completion_tokens == 50
+        assert records[0].total_tokens == 150
+        assert records[0].tenant_id == "tenant-1"
+        assert records[0].job_id == "job-1"
+        assert records[0].prompt_version == "pv-1"
+
+        log_text = "\n".join(r.getMessage() for r in caplog.records)
+        assert "sk-super-secret" not in log_text
+        assert "Hi" not in log_text
+
+    @pytest.mark.asyncio
+    async def test_complete_anthropic_tracks_usage(self):
+        from unittest.mock import AsyncMock, MagicMock
+
+        mock_content = MagicMock()
+        mock_content.text = "Hello from Anthropic"
+        mock_response = MagicMock()
+        mock_response.model = "claude-3-5-sonnet"
+        mock_response.usage.input_tokens = 30
+        mock_response.usage.output_tokens = 20
+        mock_response.content = [mock_content]
+
+        mock_anthropic_client = AsyncMock()
+        mock_anthropic_client.messages.create = AsyncMock(return_value=mock_response)
+
+        client = LLMClient(provider=LLMProvider.ANTHROPIC, api_key="test-key", cost_tracking_enabled=True, job_id="job-2", tenant_id="tenant-2")
+        client._client = mock_anthropic_client
+
+        result = await client.complete([{"role": "user", "content": "Hi"}], prompt_version="pv-2")
+        assert result == "Hello from Anthropic"
+        records = client.get_cost_records()
+        assert len(records) == 1
+        assert records[0].prompt_tokens == 30
+        assert records[0].completion_tokens == 20
+        assert records[0].total_tokens == 50
+        assert records[0].prompt_version == "pv-2"
