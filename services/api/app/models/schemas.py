@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 T = TypeVar("T")
 
@@ -247,6 +247,19 @@ class Formula(BaseModel):
     validation_status: Literal["draft", "validated", "approved", "deprecated"] = "draft"
     version: str = "1.0.0"
     audit: AuditMeta = Field(default_factory=AuditMeta)
+
+
+class ContextEngineItem(BaseModel):
+    """Typed benchmark payload returned by Context Engine benchmark listing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    industry: str
+    category: str
+    median_value: float | None = None
+    unit: str | None = None
 
 
 class Scenario(BaseModel):
