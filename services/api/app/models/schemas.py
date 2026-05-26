@@ -340,6 +340,36 @@ class ROICalculation(BaseModel):
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
 
+class RealizationPlanCreateRequest(BaseModel):
+    id: str
+    scenario_id: str
+    revenue_uplift: float | None = Field(default=None, ge=0)
+    cost_savings: float | None = Field(default=None, ge=0)
+    risk_reduction: float | None = Field(default=None, ge=0)
+    total_benefit: float | None = Field(default=None, ge=0)
+    solution_cost: float | None = Field(default=None, ge=0)
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = Field(default=None, ge=0)
+    calculation_trace: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
+class RealizationPlanActualsPatchRequest(BaseModel):
+    revenue_uplift: float | None = Field(default=None, ge=0)
+    cost_savings: float | None = Field(default=None, ge=0)
+    risk_reduction: float | None = Field(default=None, ge=0)
+    total_benefit: float | None = Field(default=None, ge=0)
+    solution_cost: float | None = Field(default=None, ge=0)
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = Field(default=None, ge=0)
+    calculation_trace: list[dict[str, Any]] | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
 class BusinessCase(BaseModel):
     id: str
     account_id: str
