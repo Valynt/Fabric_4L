@@ -23,6 +23,7 @@ from ...db.query_execution import (
     QUERY_TIMEOUT_SECONDS,
     CypherDepthLimitExceeded,
 )
+from ...graph.query_guards import sanitize_query_depth, sanitize_query_timeout_seconds
 
 router = APIRouter()
 
@@ -142,7 +143,7 @@ async def get_value_tree(
             raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
 
         # Clamp depth to global limit
-        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
+        max_depth = sanitize_query_depth(max_depth, default_depth=4)
 
         # Verify entity exists with mandatory tenant filtering
         root_query = """
@@ -151,7 +152,7 @@ async def get_value_tree(
         """
         root_result = await asyncio.wait_for(
             neo4j.execute_query(root_query, {"entity_id": entity_id, "tenant_id": tenant_id}),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         if not root_result:
             raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
@@ -185,7 +186,7 @@ async def get_value_tree(
             neo4j.execute_query(
                 path_query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         # Collect nodes and edges
@@ -322,7 +323,7 @@ async def get_value_tree_paths(
         if not tenant_id:
             raise HTTPException(status_code=400, detail="tenant_id is required for value tree access")
 
-        max_depth = max(1, min(max_depth, MAX_QUERY_DEPTH))
+        max_depth = sanitize_query_depth(max_depth, default_depth=4)
 
         if direction == "upward":
             query = """
@@ -341,7 +342,7 @@ async def get_value_tree_paths(
             neo4j.execute_query(
                 query, {"entity_id": entity_id, "max_depth": max_depth, "tenant_id": tenant_id}
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         paths = []
