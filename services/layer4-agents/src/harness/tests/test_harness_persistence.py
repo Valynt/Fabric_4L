@@ -803,6 +803,54 @@ class TestSqlHarnessRegistryIntegration:
         fetched_run = await reg.get_run(run.id, TENANT_A)
         assert fetched_run.trace_id == run.trace_id
 
+    async def test_decide_gate_parallel_workers_single_winner(
+        self, async_session_factory
+    ) -> None:
+        """Parallel workers deciding the same gate should produce one terminal winner."""
+        async with async_session_factory() as seed:
+            reg = await make_sql_registry(seed)
+            run = await reg.create_run(
+                tenant_id=TENANT_A,
+                workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
+                initiated_by=InitiatedBy.USER,
+            )
+            gate = await reg.create_human_gate(
+                run_id=run.id,
+                tenant_id=TENANT_A,
+                gate_type=GateType.APPROVE_CLAIMS,
+            )
+            await seed.commit()
+
+        async def _attempt_decision(decision_by: str) -> str:
+            async with async_session_factory() as s:
+                reg_local = await make_sql_registry(s)
+                try:
+                    await reg_local.decide_gate(
+                        gate_id=gate.id,
+                        tenant_id=TENANT_A,
+                        decision=GateStatus.APPROVED,
+                        decision_by=decision_by,
+                        decision_reason="parallel approval",
+                    )
+                    await s.commit()
+                    return "success"
+                except Exception as exc:
+                    await s.rollback()
+                    return type(exc).__name__
+
+        outcomes = await asyncio.gather(
+            _attempt_decision("worker-1"),
+            _attempt_decision("worker-2"),
+        )
+        assert outcomes.count("success") == 1
+        assert "GateDecisionError" in outcomes
+
+        async with async_session_factory() as verify:
+            reg_verify = await make_sql_registry(verify)
+            final_gate = await reg_verify.get_gate(gate.id, TENANT_A)
+            assert final_gate.status == GateStatus.APPROVED
+            assert final_gate.tenant_id == TENANT_A
+
 
 # ---------------------------------------------------------------------------
 # SqlClaimValidationStore persistence

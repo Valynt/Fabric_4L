@@ -13,9 +13,13 @@ Invariants preserved from in-memory stores:
 
 from __future__ import annotations
 
+import asyncio
 import logging
+import random
+from contextlib import asynccontextmanager
 from typing import Any
 
+from sqlalchemy.exc import DBAPIError, OperationalError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from .checkpoints import CheckpointError
@@ -65,6 +69,30 @@ class SqlHumanGateManager:
 
     def __init__(self, session: AsyncSession) -> None:
         self._repo = HumanGateRepository(session)
+        self._session = session
+
+    @staticmethod
+    def _is_retryable_lock_error(exc: Exception) -> bool:
+        if not isinstance(exc, (OperationalError, DBAPIError)):
+            return False
+        sqlstate = getattr(getattr(exc, "orig", None), "pgcode", None) or getattr(exc, "sqlstate", None)
+        # 40P01 = deadlock_detected, 55P03 = lock_not_available, 57014 = query_canceled/timeout
+        return sqlstate in {"40P01", "55P03", "57014"}
+
+    @asynccontextmanager
+    async def _transaction_with_retry(self, max_attempts: int = 3):
+        attempt = 0
+        while True:
+            attempt += 1
+            try:
+                async with self._session.begin():
+                    yield
+                return
+            except Exception as exc:
+                if attempt >= max_attempts or not self._is_retryable_lock_error(exc):
+                    raise
+                await self._session.rollback()
+                await asyncio.sleep((0.02 * (2 ** (attempt - 1))) + random.uniform(0.0, 0.02))
 
     async def create_gate(
         self,
@@ -108,15 +136,16 @@ class SqlHumanGateManager:
         decision_by: str,
         decision_reason: str | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
-        gate = await self._repo.get(gate_id, tenant_id)
-        if gate.status == GateStatus.EXPIRED:
-            raise GateExpiredError(f"Gate '{gate_id}' has expired")
-        if gate.is_terminal and gate.status != GateStatus.MODIFIED:
-            raise GateDecisionError(
-                f"Gate '{gate_id}' already decided with status {gate.status.value}"
-            )
-        updated = gate.decide(GateStatus.APPROVED, decision_by=decision_by, decision_reason=decision_reason)
-        await self._repo.update(updated)
+        async with self._transaction_with_retry():
+            gate = await self._repo.get_for_update(gate_id, tenant_id)
+            if gate.status == GateStatus.EXPIRED:
+                raise GateExpiredError(f"Gate '{gate_id}' has expired")
+            if gate.is_terminal and gate.status != GateStatus.MODIFIED:
+                raise GateDecisionError(
+                    f"Gate '{gate_id}' already decided with status {gate.status.value}"
+                )
+            updated = gate.decide(GateStatus.APPROVED, decision_by=decision_by, decision_reason=decision_reason)
+            await self._repo.update(updated)
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
             run_id=gate.run_id,
@@ -134,15 +163,16 @@ class SqlHumanGateManager:
         decision_by: str,
         decision_reason: str | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
-        gate = await self._repo.get(gate_id, tenant_id)
-        if gate.status == GateStatus.EXPIRED:
-            raise GateExpiredError(f"Gate '{gate_id}' has expired")
-        if gate.is_terminal and gate.status != GateStatus.MODIFIED:
-            raise GateDecisionError(
-                f"Gate '{gate_id}' already decided with status {gate.status.value}"
-            )
-        updated = gate.decide(GateStatus.REJECTED, decision_by=decision_by, decision_reason=decision_reason)
-        await self._repo.update(updated)
+        async with self._transaction_with_retry():
+            gate = await self._repo.get_for_update(gate_id, tenant_id)
+            if gate.status == GateStatus.EXPIRED:
+                raise GateExpiredError(f"Gate '{gate_id}' has expired")
+            if gate.is_terminal and gate.status != GateStatus.MODIFIED:
+                raise GateDecisionError(
+                    f"Gate '{gate_id}' already decided with status {gate.status.value}"
+                )
+            updated = gate.decide(GateStatus.REJECTED, decision_by=decision_by, decision_reason=decision_reason)
+            await self._repo.update(updated)
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
             run_id=gate.run_id,
@@ -160,13 +190,14 @@ class SqlHumanGateManager:
         decision_by: str,
         decision_reason: str | None = None,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
-        gate = await self._repo.get(gate_id, tenant_id)
-        if gate.is_terminal and gate.status != GateStatus.MODIFIED:
-            raise GateDecisionError(
-                f"Gate '{gate_id}' already decided with status {gate.status.value}"
-            )
-        updated = gate.decide(GateStatus.MODIFIED, decision_by=decision_by, decision_reason=decision_reason)
-        await self._repo.update(updated)
+        async with self._transaction_with_retry():
+            gate = await self._repo.get_for_update(gate_id, tenant_id)
+            if gate.is_terminal and gate.status != GateStatus.MODIFIED:
+                raise GateDecisionError(
+                    f"Gate '{gate_id}' already decided with status {gate.status.value}"
+                )
+            updated = gate.decide(GateStatus.MODIFIED, decision_by=decision_by, decision_reason=decision_reason)
+            await self._repo.update(updated)
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
             run_id=gate.run_id,
@@ -182,13 +213,14 @@ class SqlHumanGateManager:
         gate_id: str,
         tenant_id: str,
     ) -> tuple[HumanGate, HarnessTraceEvent]:
-        gate = await self._repo.get(gate_id, tenant_id)
-        if gate.status != GateStatus.PENDING:
-            raise GateDecisionError(
-                f"Cannot expire gate '{gate_id}' with status {gate.status.value}"
-            )
-        updated = gate.decide(GateStatus.EXPIRED, decision_by="system", decision_reason="Gate expired due to timeout")
-        await self._repo.update(updated)
+        async with self._transaction_with_retry():
+            gate = await self._repo.get_for_update(gate_id, tenant_id)
+            if gate.status != GateStatus.PENDING:
+                raise GateDecisionError(
+                    f"Cannot expire gate '{gate_id}' with status {gate.status.value}"
+                )
+            updated = gate.decide(GateStatus.EXPIRED, decision_by="system", decision_reason="Gate expired due to timeout")
+            await self._repo.update(updated)
         event = HarnessTraceEvent(
             trace_id=f"trace_gate_{gate_id}",
             run_id=gate.run_id,
