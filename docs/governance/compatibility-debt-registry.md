@@ -164,3 +164,20 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 3. **Verify no remaining callers**: rerun `rg` to confirm zero callsites outside approved shim files.
 4. **Remove shim code**: delete deprecated wrapper/alias paths and compatibility tests that only validated shim behavior.
 5. **Update registry + CI evidence**: mark the entry removed (strikethrough row), include removal date, and run `pnpm --dir apps/web run check:compatibility-shims-registered`.
+
+## Value Fabric Import Boundary Migration (2026-05-26)
+
+- Public API entrypoint added: `value_fabric.public_api.shared`.
+- Service-local adapter modules added under each layer service at `src/.../adapters/value_fabric_api.py`.
+- CI guardrail added: `scripts/ci/check_value_fabric_public_imports.py` with baseline file `config/ci/value_fabric_deep_import_baseline.txt`.
+
+### Remaining direct deep-import counts (non-test runtime files)
+
+- `services/layer1-ingestion`: 108
+- `services/layer2-extraction`: 112
+- `services/layer3-knowledge`: 161
+- `services/layer4-agents`: 56
+- `services/layer5-ground-truth`: 27
+- `services/layer6-benchmarks`: 16
+
+Migration policy: no *new* non-public `value_fabric.shared.*` deep imports are allowed; existing usages are baseline-locked until each service is migrated to adapter imports.
