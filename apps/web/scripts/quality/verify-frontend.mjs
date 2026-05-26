@@ -22,6 +22,7 @@ const gates = [
   ["Contract tests", [pnpmCommand, ["run", "test:contracts"]]],
   ["Trust-boundary parser guard", [pnpmCommand, ["run", "test:trust-boundaries"]]],
   ["Unit/component tests", [pnpmCommand, ["run", "test"]]],
+  ["Store coverage threshold", [pnpmCommand, ["run", "test:coverage:stores"]]],
   ["Critical E2E guard", [pnpmCommand, ["run", "test:e2e:guard"]]],
   ["Production build", [pnpmCommand, ["run", "build"]]],
   ["Bundle budget", [pnpmCommand, ["run", "test:bundle-budget"]]],
