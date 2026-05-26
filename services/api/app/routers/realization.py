@@ -1,10 +1,14 @@
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import ROICalculation, RealizationRecommendationsResponse, RealizationVarianceResponse
+from app.models.schemas import (
+    ROICalculation,
+    RealizationActualsUpdateRequest,
+    RealizationPlanCreateRequest,
+    RealizationRecommendationsResponse,
+    RealizationVarianceResponse,
+)
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Realization"])
 
@@ -12,13 +16,15 @@ router = APIRouter(prefix="/accounts/{account_id}", tags=["Realization"])
 @router.post("/realization-plans", response_model=ROICalculation)
 async def create_realization_plan(
     account_id: str,
-    plan: dict[str, Any],
+    request: RealizationPlanCreateRequest,
     tenant_id: str = Depends(tenant_required),
 ):
-    plan["account_id"] = account_id
-    plan["tenant_id"] = tenant_id
-    plan["status"] = "active"
-    db.roi_calculations.insert(plan["id"], plan)
+    plan = ROICalculation(
+        **request.model_dump(),
+        account_id=account_id,
+        tenant_id=tenant_id,
+    )
+    db.roi_calculations.insert(plan.id, plan)
     return plan
 
 
@@ -37,13 +43,17 @@ async def list_realization_plans(
 async def update_actuals(
     account_id: str,
     plan_id: str,
-    fields: dict[str, Any],
+    request: RealizationActualsUpdateRequest,
     tenant_id: str = Depends(tenant_required),
 ):
     plan = db.roi_calculations.get(plan_id, tenant_id=tenant_id)
     if not plan or plan.account_id != account_id:
         raise HTTPException(status_code=404, detail="Plan not found")
-    updated = db.roi_calculations.update(plan_id, tenant_id=tenant_id, **fields)
+    updated = db.roi_calculations.update(
+        plan_id,
+        tenant_id=tenant_id,
+        **request.model_dump(exclude_none=True),
+    )
     return updated
 
 

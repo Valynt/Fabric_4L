@@ -1,14 +1,12 @@
 from datetime import UTC, datetime, timedelta
 import hashlib
 import secrets
-from typing import Any
-
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Account, PaginatedResponse
+from app.models.schemas import Account, AccountUpdateRequest, PaginatedResponse
 
 _SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
 
@@ -49,9 +47,9 @@ async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)
 
 @router.patch("/{account_id}", response_model=Account)
 async def update_account(
-    account_id: str, fields: dict[str, Any], tenant_id: str = Depends(tenant_required)
+    account_id: str, request: AccountUpdateRequest, tenant_id: str = Depends(tenant_required)
 ):
-    acc = db.accounts.update(account_id, tenant_id=tenant_id, **fields)
+    acc = db.accounts.update(account_id, tenant_id=tenant_id, **request.model_dump(exclude_none=True))
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
     return acc

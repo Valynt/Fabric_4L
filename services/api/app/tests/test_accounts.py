@@ -70,3 +70,36 @@ def test_tenant_a_cannot_read_tenant_b_account():
 
         read_response = client.get("/v1/accounts/acc-test-beta-only", headers=HEADERS)
         assert read_response.status_code == 404
+
+
+def test_update_account_rejects_malformed_payload_with_422():
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"employee_count": -1},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+
+
+def test_update_account_rejects_wrong_field_types_with_422():
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"name": 123},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+
+
+def test_openapi_accounts_patch_uses_typed_request_schema():
+    with TestClient(app) as client:
+        response = client.get("/openapi.json")
+        assert response.status_code == 200
+        openapi = response.json()
+        schema_ref = (
+            openapi["paths"]["/v1/accounts/{account_id}"]["patch"]["requestBody"]["content"][
+                "application/json"
+            ]["schema"]["$ref"]
+        )
+        assert schema_ref.endswith("/AccountUpdateRequest")

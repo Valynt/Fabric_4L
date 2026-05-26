@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
-from typing import Any, Generic, Literal, TypeVar
+from typing import Annotated, Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, StringConstraints
 
 T = TypeVar("T")
 
@@ -314,6 +314,46 @@ class ROICalculation(BaseModel):
     evidence_ids: list[str] = Field(default_factory=list)
     assumption_ids: list[str] = Field(default_factory=list)
     audit: AuditMeta = Field(default_factory=AuditMeta)
+
+
+class RealizationPlanCreateRequest(BaseModel):
+    id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    scenario_id: Annotated[str, StringConstraints(min_length=1, max_length=128)]
+    revenue_uplift: float = 0.0
+    cost_savings: float = 0.0
+    risk_reduction: float = 0.0
+    total_benefit: float = 0.0
+    solution_cost: float = 0.0
+    net_benefit: float = 0.0
+    roi_percent: float = 0.0
+    payback_months: float = 0.0
+    calculation_trace: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
+class RealizationActualsUpdateRequest(BaseModel):
+    actual_benefit: float | None = None
+    revenue_uplift: float | None = None
+    cost_savings: float | None = None
+    risk_reduction: float | None = None
+    total_benefit: float | None = None
+    solution_cost: float | None = None
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = None
+
+
+class AccountUpdateRequest(BaseModel):
+    name: Annotated[str, StringConstraints(min_length=1, max_length=200)] | None = None
+    industry: Annotated[str, StringConstraints(min_length=1, max_length=100)] | None = None
+    segment: Annotated[str, StringConstraints(min_length=1, max_length=100)] | None = None
+    website: Annotated[str, StringConstraints(min_length=1, max_length=255)] | None = None
+    annual_revenue: float | None = Field(default=None, ge=0)
+    employee_count: int | None = Field(default=None, ge=0)
+    crm_stage: Annotated[str, StringConstraints(min_length=1, max_length=100)] | None = None
+    value_pack_id: Annotated[str, StringConstraints(min_length=1, max_length=128)] | None = None
+    summary: Annotated[str, StringConstraints(min_length=1, max_length=5000)] | None = None
 
 
 class BusinessCase(BaseModel):
