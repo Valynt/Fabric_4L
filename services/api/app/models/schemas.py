@@ -609,3 +609,36 @@ class RealizationVarianceResponse(BaseModel):
 class RealizationRecommendationsResponse(BaseModel):
     plan_id: str
     recommendations: list[str] = Field(default_factory=list)
+
+
+class DSARCreateResponse(BaseModel):
+    request: DSARRequestRecord
+    download_url: str
+
+
+class SnapshotDiffChange(BaseModel):
+    field: str
+    from_value: Any = Field(alias="from")
+    to_value: Any = Field(alias="to")
+
+
+class SnapshotDiffResponse(BaseModel):
+    base_snapshot_id: str
+    compare_snapshot_id: str
+    changes: list[SnapshotDiffChange] = Field(default_factory=list)
+    created_at_base: str
+    created_at_compare: str
+
+
+class ContextOntologyResponse(BaseModel):
+    packs: list[ValuePack] = Field(default_factory=list)
+    ontology: dict[str, Any] = Field(default_factory=dict)
+
+
+class ValueCaseExportResponse(BaseModel):
+    status: str
+    format: str
+    filename: str
+    download_url: str
+    generated_at: str
+    size_bytes: int

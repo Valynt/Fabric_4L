@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import BusinessCase
+from app.models.schemas import BusinessCase, ValueCaseExportResponse
 from app.services.gate_service import all_gates_pass, check_gates, get_gate_summary
 from app.services.export_service import generate_export
 
@@ -43,12 +43,12 @@ async def update_value_case(
     return bc
 
 
-@router.get("/gates")
+@router.get("/gates", response_model=dict[str, Any])
 async def get_account_gates(account_id: str, tenant_id: str = Depends(tenant_required)):
     return get_gate_summary(account_id, tenant_id)
 
 
-@router.post("/value-case/{value_case_id}/export")
+@router.post("/value-case/{value_case_id}/export", response_model=ValueCaseExportResponse)
 async def export_value_case(
     account_id: str,
     value_case_id: str,

@@ -658,6 +658,73 @@ class TestSqlHarnessRegistryIntegration:
             refreshed = await reg_verify.get_run(run.id, TENANT_A)
             assert refreshed.current_state == HarnessState.RESOLVE_CONTEXT
 
+    async def test_transition_conflict_is_deterministic_retryable_error(
+        self, async_session_factory
+    ) -> None:
+        async with async_session_factory() as seed:
+            reg = await make_sql_registry(seed)
+            run = await reg.create_run(
+                tenant_id=TENANT_A,
+                workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
+                initiated_by=InitiatedBy.USER,
+            )
+            await seed.commit()
+
+        async def _attempt_transition() -> str:
+            async with async_session_factory() as s:
+                reg_local = await make_sql_registry(s)
+                try:
+                    await reg_local.transition(
+                        run_id=run.id,
+                        tenant_id=TENANT_A,
+                        to_state=HarnessState.RESOLVE_CONTEXT,
+                        state_payload={"step": "resolve"},
+                    )
+                    await s.commit()
+                    return "success"
+                except TransitionConflictError as exc:
+                    await s.rollback()
+                    assert "Transition conflict for run" in str(exc) or "Stale run state" in str(exc)
+                    return "conflict"
+
+        outcomes = await asyncio.gather(_attempt_transition(), _attempt_transition())
+        assert sorted(outcomes) == ["conflict", "success"]
+
+    async def test_transition_locks_are_tenant_scoped_no_cross_tenant_interaction(
+        self, async_session_factory
+    ) -> None:
+        async with async_session_factory() as seed:
+            reg = await make_sql_registry(seed)
+            run_a = await reg.create_run(
+                tenant_id=TENANT_A,
+                workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
+                initiated_by=InitiatedBy.USER,
+            )
+            run_b = await reg.create_run(
+                tenant_id=TENANT_B,
+                workflow_type=HarnessWorkflowType.VALUE_MODEL_GENERATION,
+                initiated_by=InitiatedBy.USER,
+            )
+            await seed.commit()
+
+        async def _transition(run_id: str, tenant_id: str) -> None:
+            async with async_session_factory() as s:
+                reg_local = await make_sql_registry(s)
+                await reg_local.transition(run_id, tenant_id, HarnessState.RESOLVE_CONTEXT)
+                await s.commit()
+
+        await asyncio.gather(
+            _transition(run_a.id, TENANT_A),
+            _transition(run_b.id, TENANT_B),
+        )
+
+        async with async_session_factory() as verify:
+            reg_verify = await make_sql_registry(verify)
+            refreshed_a = await reg_verify.get_run(run_a.id, TENANT_A)
+            refreshed_b = await reg_verify.get_run(run_b.id, TENANT_B)
+            assert refreshed_a.current_state == HarnessState.RESOLVE_CONTEXT
+            assert refreshed_b.current_state == HarnessState.RESOLVE_CONTEXT
+
     async def test_full_workflow_persisted_across_registry_instances(
         self, session: AsyncSession
     ) -> None:
