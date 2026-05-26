@@ -14,6 +14,7 @@ from typing import Any
 from neo4j import AsyncDriver
 
 from ..db.query_execution import run_validated_query
+from ..config.embedding_dimension import validate_embedding_dimension
 from .embedding_errors import EmbeddingProviderUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -41,9 +42,6 @@ class EvidenceSearchService:
     Searches case studies, benchmarks, and other evidence sources
     to find supporting material for pain signals.
     """
-
-    # Default vector dimensions (must match schema constraint)
-    VECTOR_DIMENSIONS = 384
 
     def __init__(self, driver: AsyncDriver):
         """Initialize with Neo4j driver.
@@ -330,7 +328,19 @@ class EvidenceSearchService:
         try:
             model = _get_embedding_model()
             embedding = await asyncio.to_thread(model.encode, text)
-            return embedding.tolist()
+            embedding_list = embedding.tolist()
+            from config import get_settings
+
+            validate_embedding_dimension(
+                configured_dimension=get_settings().embedding_dimension,
+                model=model,
+                model_name=get_settings().embedding_model,
+            )
+            if len(embedding_list) != get_settings().embedding_dimension:
+                raise ValueError(
+                    f"VECTOR_DIMENSION_MISMATCH: expected={get_settings().embedding_dimension} actual={len(embedding_list)}"
+                )
+            return embedding_list
         except Exception as exc:
             raise EmbeddingProviderUnavailableError(
                 "Embedding provider unavailable",
