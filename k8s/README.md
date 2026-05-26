@@ -238,6 +238,14 @@ Monitoring manifests:
 
 - `base/monitoring-alertmanager.yml` - Canonical Alertmanager manifest used by overlays
 - `monitoring-prometheus.yml` - Prometheus server with alerting rules
+- `monitoring/jaeger-deployment.yaml` - Jaeger all-in-one deployment with persistent span storage configured via OpenSearch/Elasticsearch
+
+### Jaeger Storage and Recovery Runbook
+
+- **Storage backend**: Jaeger uses `SPAN_STORAGE_TYPE=elasticsearch` and connects to the cluster endpoint from `ConfigMap/jaeger-storage-config` (`ES_SERVER_URLS`, TLS toggle, and index prefix). Credentials are loaded from `Secret/jaeger-storage-credentials` and should be supplied by External Secrets or Infisical in non-dev clusters.
+- **Retention policy**: Trace retention is governed by the OpenSearch/Elasticsearch Index State Management (or ILM) policy for the `jaeger-span*` index prefix. Default platform target is **7 days hot retention** unless SRE sets an environment-specific override.
+- **Recovery expectations after pod restart**: Jaeger UI/query/collector restarts do **not** erase historical spans; traces remain queryable as long as they are still retained in OpenSearch/Elasticsearch. Only in-memory buffers for in-flight requests are lost during abrupt termination.
+- **Failure mode**: If storage is unavailable or credentials are invalid, Jaeger admin readiness (`:14269`) fails and the pod remains unready until storage connectivity is restored.
 
 ### Alertmanager Configuration
 

@@ -116,6 +116,14 @@ spec:
         - name: celery-worker
           image: value-fabric/layer1-ingestion:main
           command: ["celery", "-A", "src.shared.tasks", "worker", "-l", "info"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           envFrom:
             - configMapRef:
                 name: value-fabric-config

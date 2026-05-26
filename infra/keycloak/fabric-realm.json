@@ -84,7 +84,6 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "fabric-frontend-secret-do-not-use-in-production",
       "redirectUris": [
         "http://localhost:3001/*",
         "http://localhost:3000/*"
@@ -175,7 +174,6 @@
       "enabled": true,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
-      "secret": "fabric-api-secret-do-not-use-in-production",
       "redirectUris": [],
       "webOrigins": [],
       "notBefore": 0,
@@ -251,8 +249,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "admin",
-          "temporary": false
+          "temporary": true
         }
       ],
       "realmRoles": ["tenant_admin"],
@@ -273,8 +270,7 @@
       "credentials": [
         {
           "type": "password",
-          "value": "analyst",
-          "temporary": false
+          "temporary": true
         }
       ],
       "realmRoles": ["analyst"],
