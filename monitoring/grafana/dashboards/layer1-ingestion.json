@@ -546,8 +546,8 @@
           "refId": "B"
         },
         {
-          "expr": "sum(increase(layer1_errors_total{error_type=\"tenant_context_error\"}[15m]))",
-          "legendFormat": "tenant-context errors",
+          "expr": "sum by (error_type) (increase(layer1_errors_total[15m]))",
+          "legendFormat": "errors {{error_type}}",
           "refId": "C"
         }
       ]
