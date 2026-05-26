@@ -652,6 +652,28 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
     )
     return record
 
+
+def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
+    """Require authenticated tenant context and fail closed when missing."""
+    if tenant_id is None:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "tenant_context_required",
+                "message": f"Authenticated tenant context is required for {operation}.",
+            },
+        )
+    normalized = str(tenant_id).strip()
+    if not normalized:
+        raise HTTPException(
+            status_code=403,
+            detail={
+                "code": "tenant_context_required",
+                "message": f"Authenticated tenant context is required for {operation}.",
+            },
+        )
+    return normalized
+
 async def run_extraction(
     job_id: str,
     source_url: str,
@@ -679,6 +701,8 @@ async def run_extraction(
         activity_id=job_id, source_url=source_url, content_hash=content_hash
     )
 
+    tenant_id = _require_authenticated_tenant_id(config.get("tenant_id"), operation="extraction execution")
+
     if not await job_store.exists(job_id):
         await job_store.set(
             PipelineJob(
@@ -696,9 +720,6 @@ async def run_extraction(
         )
 
     await _set_pipeline_job(job_id, extraction_status="running")
-    tenant_id = config.get("tenant_id")
-    if not tenant_id:
-        raise HTTPException(status_code=400, detail="tenant_id is required in extraction_config")
     
     # Validate required telemetry context fields - no empty string fallbacks
     model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
@@ -714,7 +735,7 @@ async def run_extraction(
         raise HTTPException(status_code=400, detail="prompt_version is required in extraction_config")
     
     telemetry_context = {
-        "tenant_id": str(tenant_id),
+        "tenant_id": tenant_id,
         "ingestion_id": str(config.get("ingestion_id", "")),
         "model_version": str(model_version),
         "schema_version": str(schema_version),
@@ -1298,6 +1319,8 @@ async def extract(
     Extracts entities and relationships from provided Markdown content
     and generates RDF/OWL output.
     """
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction job creation")
+
     job_id = str(uuid4())
 
     await job_store.set(
@@ -1312,13 +1335,13 @@ async def extract(
             last_error=None,
             next_retry_at=None,
             completed_at=None,
-            tenant_id=ctx.tenant_id,
+            tenant_id=tenant_id,
         )
     )
 
     # Ensure tenant_id is in config for downstream pipeline
     config = dict(request.extraction_config)
-    config["tenant_id"] = ctx.tenant_id
+    config["tenant_id"] = tenant_id
 
     # Queue extraction as background task
     background_tasks.add_task(
@@ -1340,8 +1363,10 @@ async def extract_and_ingest(
     ctx: RequestContext,
 ):
     """Start a combined extraction and ingestion pipeline job."""
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="extraction+ingestion job creation")
+
     idempotency_key = _build_idempotency_key(
-        tenant_id=ctx.tenant_id,
+        tenant_id=tenant_id,
         source_url=request.source_url,
         content_id=request.content_id,
         extraction_config=request.extraction_config,
@@ -1350,10 +1375,10 @@ async def extract_and_ingest(
 
     # Ensure tenant_id is in config for downstream pipeline
     config = dict(request.extraction_config)
-    config["tenant_id"] = ctx.tenant_id
+    config["tenant_id"] = tenant_id
 
     if existing_job_id:
-        existing_job = await job_store.get(existing_job_id, tenant_id=ctx.tenant_id)
+        existing_job = await job_store.get(existing_job_id, tenant_id=tenant_id)
         if existing_job and existing_job.extraction_status == "completed" and existing_job.ingestion_status == "completed":
             return ExtractAndIngestResponse(
                 job_id=existing_job.job_id,
@@ -1392,7 +1417,7 @@ async def extract_and_ingest(
             last_error=None,
             next_retry_at=None,
             completed_at=None,
-            tenant_id=ctx.tenant_id,
+            tenant_id=tenant_id,
         )
     )
     await job_store.set_job_id_for_idempotency_key(idempotency_key, job_id)
@@ -1439,6 +1464,8 @@ async def list_quarantine_jobs(ctx: RequestContext):
     return [QuarantineStatusResponse.model_validate(r.model_dump()) for r in records]
 async def extract_batch(requests: list[ExtractRequest], background_tasks: BackgroundTasks, ctx: RequestContext):
     """Start a batch extraction job."""
+    tenant_id = _require_authenticated_tenant_id(ctx.tenant_id, operation="batch extraction job creation")
+
     batch_id = str(uuid4())
     job_ids = []
 
@@ -1446,7 +1473,7 @@ async def extract_batch(requests: list[ExtractRequest], background_tasks: Backgr
         job_id = str(uuid4())
         job_ids.append(job_id)
         config = dict(req.extraction_config)
-        config["tenant_id"] = ctx.tenant_id
+        config["tenant_id"] = tenant_id
         background_tasks.add_task(
             run_extraction,
             job_id=job_id,
@@ -1677,6 +1704,7 @@ async def stream_job_events(job_id: str):
     Returns:
         StreamingResponse with text/event-stream content type
     """
+
     if not await job_store.exists(job_id):
         raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
 
