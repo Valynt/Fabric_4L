@@ -242,11 +242,14 @@ class OrchestrationController:
         # Expected hash is the one stored when the checkpoint was originally saved
         expected_hash = (state.metadata or {}).get("checkpoint_hash")
 
-        # Determine latest checkpoint hash by loading current persisted state
-        latest_state = await self.state_manager.load_state(workflow_id)
-        latest_hash = self._compute_state_hash(latest_state) if latest_state else checkpoint_hash
         checkpoint_id = target_checkpoint_id or str(state.current_node or "latest")
         run_id = state.run_id or workflow_id
+        latest_hash = await self._get_latest_persisted_checkpoint_hash(
+            tenant_id=str(state.tenant_id),
+            workflow_id=workflow_id,
+            run_id=run_id,
+            checkpoint_id=checkpoint_id,
+        )
 
         if latest_hash != checkpoint_hash:
             try:
@@ -338,6 +341,46 @@ class OrchestrationController:
             checkpoint_id=target_checkpoint_id,
         )
         self._seen_replay_fingerprints.add(fingerprint)
+
+    async def _get_latest_persisted_checkpoint_hash(
+        self,
+        *,
+        tenant_id: str,
+        workflow_id: str,
+        run_id: str,
+        checkpoint_id: str,
+    ) -> str:
+        """Load the latest persisted checkpoint hash from durable state.
+
+        Uses canonical checkpoint storage when available, scoped by tenant and
+        workflow identifiers. Falls back to persisted workflow state hash.
+        """
+        conn = self.checkpoint_saver.conn if self.checkpoint_saver and hasattr(self.checkpoint_saver, "conn") else None
+        if conn is not None and hasattr(conn, "fetchrow"):
+            row = await conn.fetchrow(
+                """
+                SELECT checkpoint->'channel_values' as state_data
+                FROM checkpoints
+                WHERE thread_id = $1
+                  AND checkpoint_id = $2
+                  AND checkpoint->'channel_values'->>'tenant_id' = $3
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                workflow_id,
+                checkpoint_id,
+                tenant_id,
+            )
+            if row and isinstance(row.get("state_data"), dict):
+                return self._compute_state_hash(AgentState.model_validate(row["state_data"]))
+
+        latest_state = await self.state_manager.load_state(workflow_id)
+        if latest_state is None:
+            raise WorkflowExecutionError(
+                f"No persisted checkpoint state for tenant={tenant_id} run_id={run_id} "
+                f"workflow_id={workflow_id} checkpoint_id={checkpoint_id}"
+            )
+        return self._compute_state_hash(latest_state)
 
     def __init__(
         self,
