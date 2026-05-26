@@ -337,7 +337,7 @@ class TestIntegrationWithCleanupOldContent:
         with patch('value_fabric.layer1.shared.tasks.authorize_maintenance_operation'):
             with patch('value_fabric.layer1.shared.tasks.maintenance_audit_log') as mock_audit:
                 mock_audit.return_value.__enter__ = MagicMock()
-                mock_audit.return_value.__exit__ = MagicMock()
+                mock_audit.return_value.__exit__ = MagicMock(return_value=False)
                 with patch('value_fabric.layer1.shared.tasks.get_db_session', return_value=_FakeCtx(query_targets)):
                     tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
