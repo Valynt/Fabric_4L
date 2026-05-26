@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from layer2_extraction.metrics import get_metrics
-from layer2_extraction.extraction.entity_id import compute_deterministic_id
+from layer2_extraction.extraction.entity_id import compute_deterministic_id, compute_source_hash
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 # Type variable for generic extraction
@@ -397,6 +397,7 @@ class EntityExtractor:
         tenant_id = context.get("tenant_id", "")
         ingestion_id = context.get("ingestion_id", "")
         prompt_version = context.get("prompt_version", "")
+        source_hash = compute_source_hash(source_url)
         if not tenant_id:
             raise LLMExtractionError("tenant_id is required in telemetry_context")
         metrics = get_metrics()
@@ -428,13 +429,15 @@ class EntityExtractor:
                     entity.schema_version = schema_version or ""
                     entity.prompt_version = prompt_version or ""
                     entity.model_version = model_version or ""
-                    entity.deterministic_id = compute_deterministic_id(
+                    deterministic_id = compute_deterministic_id(
                         tenant_id=tenant_id,
-                        source_url=source_url,
+                        source_hash=source_hash,
                         entity_type=entity_type,
                         entity=entity,
                         extraction_version=telemetry_context.get("extraction_version", "v1"),
                     )
+                    entity.id = deterministic_id
+                    entity.deterministic_id = deterministic_id
                     entities.append(entity)
                     if metrics:
                         metrics.record_confidence(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, entity_type=entity_type, confidence=float(entity.confidence))

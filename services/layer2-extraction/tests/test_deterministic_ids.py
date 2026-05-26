@@ -25,7 +25,7 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
             extraction_version="v1",
@@ -33,14 +33,14 @@ class TestDeterministicIDStability:
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
             extraction_version="v1",
         )
         
         assert id1 == id2
-        assert len(id1) == 64  # SHA256 hex string
+        assert len(id1) == 36  # UUIDv5 string
 
     def test_capability_id_changes_with_different_tenant(self):
         """Different tenant produces different ID for same entity."""
@@ -53,14 +53,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-456",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
         )
@@ -68,7 +68,7 @@ class TestDeterministicIDStability:
         assert id1 != id2
 
     def test_capability_id_changes_with_different_source(self):
-        """Different source URL produces different ID."""
+        """Different source hash produces different ID."""
         entity = Capability(
             name="Real-time Analytics",
             description="Process data streams",
@@ -78,14 +78,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc2",
+            source_hash="source-hash-doc2",
             entity_type="capability",
             entity=entity,
         )
@@ -103,7 +103,7 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
             extraction_version="v1",
@@ -111,7 +111,7 @@ class TestDeterministicIDStability:
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity,
             extraction_version="v2",
@@ -130,14 +130,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="usecase",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="usecase",
             entity=entity,
         )
@@ -156,14 +156,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="persona",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="persona",
             entity=entity,
         )
@@ -182,14 +182,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="valuedriver",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="valuedriver",
             entity=entity,
         )
@@ -206,14 +206,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="feature",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="feature",
             entity=entity,
         )
@@ -232,14 +232,14 @@ class TestDeterministicIDStability:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="valuemetric",
             entity=entity,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="valuemetric",
             entity=entity,
         )
@@ -356,14 +356,14 @@ class TestIDUniqueness:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity1,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity2,
         )
@@ -387,14 +387,14 @@ class TestIDUniqueness:
         
         id1 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="capability",
             entity=entity1,
         )
         
         id2 = compute_deterministic_id(
             tenant_id="tenant-123",
-            source_url="https://example.com/doc1",
+            source_hash="source-hash-doc1",
             entity_type="feature",
             entity=entity2,
         )

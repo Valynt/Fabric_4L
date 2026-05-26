@@ -53,6 +53,10 @@ from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manag
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
 from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
+from layer2_extraction.extraction.prompt_loader import (
+    ENTITY_PROMPT_TEMPLATE_VERSION,
+    RELATIONSHIP_PROMPT_TEMPLATE_VERSION,
+)
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
@@ -319,6 +323,8 @@ class QuarantineStatusResponse(BaseModel):
     source_hash: str
     model_version: str
     schema_version: str
+    prompt_template_version: str
+    prompt_template_hash: str | None = None
     validation_errors: list[str]
     reason: str
     review_status: str
@@ -456,6 +462,8 @@ async def _attempt_ingestion(job_id: str, source_url: str, artifacts: Extraction
             rdf_data=rdf_data,
             source_url=source_url,
             extraction_job_id=job_id,
+            prompt_template_version=artifacts.result.prompt_template_version,
+            prompt_template_hash=artifacts.result.prompt_template_hash,
         )
         if response.success:
             await _set_pipeline_job(
@@ -611,7 +619,7 @@ _VAULT_UNREACHABLE_ERROR = "Vault unreachable — cannot start in production wit
 
 # Background task for extraction
 
-async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], model_version: str, schema_version: str, reason: str = "validation_error") -> QuarantineRecord:
+async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_url: str, source_hash: str, payload: str, errors: list[str], model_version: str, schema_version: str, prompt_template_version: str, prompt_template_hash: str | None = None, reason: str = "validation_error") -> QuarantineRecord:
     """Quarantine a validation failure with explicit version metadata.
     
     Args:
@@ -640,6 +648,8 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
         source_hash=source_hash,
         model_version=model_version,
         schema_version=schema_version,
+        prompt_template_version=prompt_template_version,
+        prompt_template_hash=prompt_template_hash,
         payload_json=payload,
         validation_errors=errors,
         reason=reason,
@@ -914,6 +924,8 @@ async def run_extraction(
             tenant_id=telemetry_context["tenant_id"],
             schema_version=telemetry_context["schema_version"],
             prompt_version=telemetry_context["prompt_version"],
+            prompt_template_version=str(prompt_template_version),
+            prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
             model_version=telemetry_context["model_version"],
         )
         
@@ -946,6 +958,8 @@ async def run_extraction(
                 errors=error_messages,
                 model_version=telemetry_context["model_version"],
                 schema_version=telemetry_context["schema_version"],
+                prompt_template_version=str(prompt_template_version),
+                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
                 reason="entailment_validation_failed",
             )
             return None
@@ -1055,6 +1069,8 @@ async def run_extraction(
                 errors=[error_msg],
                 model_version=telemetry_context["model_version"],
                 schema_version=telemetry_context["schema_version"],
+                prompt_template_version=str(prompt_template_version),
+                prompt_template_hash=str(prompt_template_hash) if prompt_template_hash else None,
                 reason="llm_schema_validation_failed"
             )
         activity.fail(error_msg)
@@ -1732,3 +1748,8 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
+    prompt_template_version = config.get(
+        "prompt_template_version",
+        f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}",
+    )
+    prompt_template_hash = config.get("prompt_template_hash")
