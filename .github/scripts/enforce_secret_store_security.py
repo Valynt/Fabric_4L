@@ -4,12 +4,14 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 from typing import Any
+import re
 
 import yaml
 
 ROOT = Path(__file__).resolve().parents[2]
 SCAN_PATHS = [ROOT / "k8s" / "external-secrets", ROOT / "k8s" / "envs" / "prod", ROOT / "k8s" / "envs" / "staging"]
 BANNED_TOKENS = {"root", "changeme", "replace-me", "dev-token", "vault-dev-token"}
+VAULT_DEV_ROOT_LITERAL_PATTERN = re.compile(r"VAULT_DEV_ROOT_TOKEN_ID\s*[:=]\s*[\"']?root[\"']?", re.IGNORECASE)
 
 
 def iter_yaml_docs(path: Path):
@@ -26,9 +28,12 @@ def check() -> list[str]:
         if not base.exists():
             continue
         for file, _, doc in iter_yaml_docs(base):
-            text = file.read_text(encoding="utf-8").lower()
+            original_text = file.read_text(encoding="utf-8")
+            text = original_text.lower()
             if "vault_dev_" in text:
                 errors.append(f"{file}: contains forbidden VAULT_DEV_* reference")
+            if VAULT_DEV_ROOT_LITERAL_PATTERN.search(original_text):
+                errors.append(f"{file}: contains forbidden VAULT_DEV_ROOT_TOKEN_ID=root literal")
             for token in BANNED_TOKENS:
                 if token in text and "dev-only" not in str(file):
                     errors.append(f"{file}: contains dev token placeholder '{token}'")

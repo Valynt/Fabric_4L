@@ -41,6 +41,12 @@ class HarnessRegistryError(RuntimeError):
     pass
 
 
+class TransitionConflictError(HarnessRegistryError):
+    """Raised when a run transition loses a concurrency race."""
+
+    pass
+
+
 class RunNotFoundError(KeyError):
     """Raised when a run does not exist or is not visible to the requesting tenant.
 

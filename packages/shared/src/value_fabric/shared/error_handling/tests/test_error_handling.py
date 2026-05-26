@@ -479,3 +479,33 @@ class TestRegisteredHandlers:
         # Success response should not have envelope structure
         assert "error" not in body
         assert body == {"limit": 10}
+
+class TestSanitizedPublicErrors:
+    def test_http_exception_does_not_leak_raw_detail(self):
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/boom')
+        def boom():
+            raise HTTPException(status_code=500, detail='db password=secret')
+
+        client = TestClient(app)
+        response = client.get('/boom')
+        body = response.json()
+        assert response.status_code == 500
+        assert body['error']['message'] == 'Request failed'
+        assert 'password' not in body['error']['message']
+
+    def test_unhandled_exception_response_is_sanitized(self):
+        app = FastAPI()
+        register_exception_handlers(app)
+
+        @app.get('/crash')
+        def crash():
+            raise RuntimeError('token=abc123 leaked')
+
+        client = TestClient(app)
+        response = client.get('/crash')
+        body = response.json()
+        assert response.status_code == 500
+        assert 'abc123' not in body['error']['message']

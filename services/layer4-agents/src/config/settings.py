@@ -220,6 +220,13 @@ class Settings(BaseSettings):
         default=86400,  # 24 hours
         description="Workflow state TTL in Redis"
     )
+    agent_gate_timeout_seconds: int = Field(
+        default=600,
+        description=(
+            "Human-in-the-loop gate timeout in seconds. "
+            "Defaults to 600 seconds when unset for backward compatibility."
+        ),
+    )
 
     # ==========================================================================
     # Rate Limiting (P1-15)
