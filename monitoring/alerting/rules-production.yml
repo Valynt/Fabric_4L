@@ -447,11 +447,11 @@ groups:
           description: "Layer 1 retry events exceeded threshold in the last 15m."
 
       - alert: Layer1StuckJobCandidates
-        expr: histogram_quantile(0.95, sum(rate(layer1_stuck_job_age_seconds_bucket[10m])) by (le, status)) > 600
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 25
         for: 10m
         labels:
           severity: critical
           team: platform
         annotations:
           summary: "Layer 1 stuck-job candidates detected"
-          description: "p95 age in status exceeds 10 minutes for non-terminal jobs."
+          description: "Layer 1 retry events remained elevated for browser crawl or compliance check stages, indicating potentially stuck non-terminal jobs."
