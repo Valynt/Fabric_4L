@@ -297,6 +297,64 @@ class TestIntegrationWithCleanupOldContent:
         
         assert "Invalid tenant_id format" in str(exc_info.value)
 
+    def test_system_cleanup_enumeration_uses_system_registry_only(self, postgres_db):
+        """System cleanup tenant enumeration must not query tenant-owned tables."""
+        from value_fabric.layer1.shared.tasks import cleanup_old_content
+
+        query_calls = []
+
+        class _FakeQuery:
+            def __init__(self, entity):
+                self.entity = entity
+
+            def filter(self, *_args, **_kwargs):
+                return self
+
+            def all(self):
+                return [(uuid4(),)]
+
+            def update(self, *_args, **_kwargs):
+                return 0
+
+        class _FakeSession:
+            def query(self, entity):
+                query_calls.append(entity)
+                return _FakeQuery(entity)
+
+            def commit(self):
+                return None
+
+        class _Ctx:
+            def __init__(self, session):
+                self.session = session
+
+            def __enter__(self):
+                return self.session
+
+            def __exit__(self, *_args):
+                return False
+
+        class _AuditCtx:
+            def __enter__(self):
+                return MagicMock(rows_affected=0)
+
+            def __exit__(self, *_args):
+                return False
+
+        def _fake_get_db_session(tenant_id=None, require_tenant=True):
+            assert not (tenant_id is None and require_tenant is False and any(
+                "raw_content" in str(c).lower() for c in query_calls
+            ))
+            return _Ctx(_FakeSession())
+
+        with patch("value_fabric.layer1.shared.tasks.get_db_session", side_effect=_fake_get_db_session):
+            with patch("value_fabric.layer1.shared.tasks.maintenance_audit_log", return_value=_AuditCtx()):
+                with patch("value_fabric.layer1.shared.tasks.authorize_maintenance_operation"):
+                    cleanup_old_content(days=1, tenant_id=None)
+
+        assert any("tenant_registry" in str(call).lower() for call in query_calls)
+        assert not any("raw_content" in str(call).lower() for call in query_calls[:1])
+
 
 class TestMaintenanceOperationEnum:
     """Test MaintenanceOperation enum functionality."""

@@ -39,6 +39,7 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from ..shared.config import settings
 from ..metrics.prometheus_metrics import get_metrics
 from ..shared.database import get_db_session
+from ..shared.maintenance import authorize_maintenance_operation, maintenance_audit_log
 from sqlalchemy import text
 from ..shared.models import (
     AccountIntelligencePacket,
@@ -1843,7 +1844,32 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         InvalidTenantContextError: If tenant_id is provided but invalid
     """
     from .exceptions import InvalidTenantContextError
-    from .maintenance import maintenance_audit_log
+
+    def _get_authorized_active_tenants_for_cleanup() -> list[UUID]:
+        """Resolve active tenants from system-owned registry for maintenance iteration."""
+        authorize_maintenance_operation("cleanup_old_content", tenant_id="__system_tenant_enumeration__")
+
+        with get_db_session(tenant_id=None, require_tenant=False) as session:
+            rows = (
+                session.query(TenantRegistry.tenant_id)
+                .filter(TenantRegistry.is_active == True)
+                .all()
+            )
+
+        tenant_ids = [row[0] for row in rows]
+        logger.info(
+            "Authorized tenant enumeration resolved for cleanup",
+            operation="cleanup_old_content",
+            tenant_source="tenant_registry",
+            tenant_source_scope="system_owned",
+            require_tenant=False,
+            authorized_tenant_count=len(tenant_ids),
+            metadata={
+                "tenant_iteration_input_source": "tenant_registry",
+                "tenant_iteration_input_source_scope": "system_owned",
+            },
+        )
+        return tenant_ids
     
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
     
@@ -1885,14 +1911,7 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
     else:
         # System-scoped: iterate tenants individually under RLS.
         # Use tenant_registry (system table, no RLS) instead of tenant-owned tables.
-        tenant_ids = []
-        with get_db_session(tenant_id=None, require_tenant=False) as session:
-            tenant_ids = [
-                row[0] for row in
-                session.query(TenantRegistry.tenant_id)
-                .filter(TenantRegistry.is_active == True)
-                .all()
-            ]
+        tenant_ids = _get_authorized_active_tenants_for_cleanup()
 
         total_deleted = 0
         failed_tenants = []
