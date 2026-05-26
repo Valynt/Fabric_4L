@@ -295,7 +295,11 @@ class Settings(BaseSettings):
     pii_threshold_flag: float = Field(default=0.3, description="PII detection threshold for flagging")
     pii_threshold_quarantine: float = Field(default=0.7, description="PII detection threshold for quarantine")
     robots_txt_cache_hours: int = Field(default=24, description="robots.txt cache TTL")
-    robots_txt_strict_mode: bool = Field(default=False, description="If True, robots.txt fetch/parse failures block crawling instead of allowing")
+    robots_txt_strict_mode: bool = Field(default=False, description="Deprecated: use strict_robots_enforcement")
+    strict_robots_enforcement: bool = Field(
+        default=False,
+        description="If True, robots.txt fetch/parse failures block crawling instead of allowing",
+    )
 
     # API settings
     api_host: str = Field(default="0.0.0.0", description="API server host")
