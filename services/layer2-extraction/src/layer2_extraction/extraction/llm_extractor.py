@@ -44,7 +44,11 @@ from layer2_extraction.models.extraction_response import (
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
 from .prompt_loader import render_entity_prompt, render_relationship_prompt
-from .security_guard import enforce_untrusted_output_policy, preprocess_source_content
+from .security_guard import (
+    enforce_untrusted_output_policy,
+    preprocess_source_content,
+    security_metadata_from_preprocessed,
+)
 
 
 class LLMExtractionError(Exception):
@@ -347,6 +351,10 @@ class EntityExtractor:
             tenant_id=tenant_id,
         )
         self.model = self.client.model
+        self.security_signals: list[dict[str, object]] = []
+
+    def get_security_signals(self) -> list[dict[str, object]]:
+        return list(self.security_signals)
 
     def get_cost_records(self) -> list[CostRecord]:
         """Return per-call cost records for this extractor."""
@@ -384,6 +392,7 @@ class EntityExtractor:
             List of extracted entities meeting confidence threshold
         """
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_entity_prompt(
             entity_type=entity_type,
             text=preprocessed.delimited_content,
@@ -624,6 +633,7 @@ class RelationshipExtractor:
             return []
 
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
         context = telemetry_context or {}

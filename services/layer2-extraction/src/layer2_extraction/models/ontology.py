@@ -460,6 +460,7 @@ class ExtractionResult(BaseModel):
     prompt_template_version: str = ""
     prompt_template_hash: str | None = None
     model_version: str = ""
+    security_metadata: list["ExtractionSecurityMetadata"] = Field(default_factory=list)
 
     def get_all_entities(self) -> Sequence[BaseModel]:
         """Return all extracted entities as a flat list."""
@@ -480,6 +481,16 @@ class ExtractionResult(BaseModel):
         return None
 
     model_config = ConfigDict(extra="forbid")
+
+
+class ExtractionSecurityMetadata(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    suspicious_instruction_hits: list[str] = Field(default_factory=list)
+    high_risk_token_hits: list[str] = Field(default_factory=list)
+    risk_score: float = Field(default=0.0, ge=0.0, le=1.0)
+    risk_level: str = "none"
+    rejection_tier: str = "allow"
 
 
 # =============================================================================
