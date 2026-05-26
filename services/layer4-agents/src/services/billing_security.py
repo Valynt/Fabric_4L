@@ -8,9 +8,12 @@ and request metadata extraction used by billing webhook entry points.
 
 import ipaddress
 import os
+import re
+import time
 from collections.abc import Iterable
+from dataclasses import dataclass
 
-from fastapi import Request
+from fastapi import HTTPException, Request, status
 
 _DEFAULT_STRIPE_WEBHOOK_IP_CIDRS: tuple[str, ...] = (
     "3.18.12.63/32",
@@ -72,3 +75,52 @@ def get_client_ip(request: Request) -> str:
     if hasattr(request, "client") and request.client:
         return request.client.host
     return ""
+
+
+_STRIPE_TIMESTAMP_TOLERANCE_SECONDS = int(os.environ.get("STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS", "300"))
+_SIG_PART_RE = re.compile(r"^([a-zA-Z0-9_]+)=(.+)$")
+
+
+@dataclass(frozen=True)
+class StripeSignatureComponents:
+    timestamp: int
+    signatures: tuple[str, ...]
+
+
+def parse_stripe_signature_header(signature_header: str) -> StripeSignatureComponents:
+    if not signature_header or not signature_header.strip():
+        raise ValueError("Missing Stripe-Signature header")
+
+    timestamp: int | None = None
+    signatures: list[str] = []
+    for part in signature_header.split(','):
+        match = _SIG_PART_RE.match(part.strip())
+        if not match:
+            continue
+        key, value = match.groups()
+        if key == "t":
+            timestamp = int(value)
+        elif key == "v1":
+            signatures.append(value)
+
+    if timestamp is None:
+        raise ValueError("Missing Stripe signature timestamp")
+    if not signatures:
+        raise ValueError("Missing Stripe v1 signature")
+    return StripeSignatureComponents(timestamp=timestamp, signatures=tuple(signatures))
+
+
+def ensure_timestamp_within_tolerance(timestamp: int, now: int | None = None) -> None:
+    current = now if now is not None else int(time.time())
+    if abs(current - timestamp) > _STRIPE_TIMESTAMP_TOLERANCE_SECONDS:
+        raise ValueError("Timestamp outside tolerance (stale/replay)")
+
+
+def validate_webhook_request_security(request: Request, stripe_signature: str, *, enforce_ip_check: bool = True) -> StripeSignatureComponents:
+    client_ip = get_client_ip(request)
+    if enforce_ip_check and not is_stripe_webhook_ip(client_ip):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid origin")
+
+    components = parse_stripe_signature_header(stripe_signature)
+    ensure_timestamp_within_tolerance(components.timestamp)
+    return components
