@@ -13,6 +13,7 @@ from typing import Any, Protocol
 from pydantic import BaseModel, ConfigDict, Field
 
 from ..models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
+from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver, ReplayDecision
 
 
 class ReplayEventEnvelopeV1(BaseModel):
@@ -76,6 +77,8 @@ class Layer4WorkflowReplayHarness:
 
     def __init__(self, audit_sink: ReplayAuditSink) -> None:
         self._audit_sink = audit_sink
+        self._resolver = ReplayConflictResolver()
+        self._active_replays: set[str] = set()
 
     def replay(
         self,
@@ -86,6 +89,7 @@ class Layer4WorkflowReplayHarness:
         authz: ReplayAuthorizationContext,
     ) -> ReplayResult:
         self._authorize(authz=authz)
+        replay_fp = self._evaluate_replay_policy(workflow_id=workflow_id, authz=authz, events=events)
 
         ordered_events = sorted(events, key=lambda e: (e.timestamp, e.event_id))
         state = BaseAgentState(
@@ -95,10 +99,13 @@ class Layer4WorkflowReplayHarness:
         )
         applied: list[str] = []
 
-        for event in ordered_events:
-            self._validate_tenant(event=event, authz=authz)
-            self._apply_event(state=state, event=event)
-            applied.append(event.event_id)
+        try:
+            for event in ordered_events:
+                self._validate_tenant(event=event, authz=authz)
+                self._apply_event(state=state, event=event)
+                applied.append(event.event_id)
+        finally:
+            self._active_replays.discard(replay_fp)
 
         self._audit_sink.record(
             "layer4.workflow.replay.executed",
@@ -126,6 +133,45 @@ class Layer4WorkflowReplayHarness:
         """Rebuild state from the service-boundary event stream interface."""
         events = stream.list_events(tenant_id=authz.tenant_id, workflow_id=workflow_id, domain=domain)
         return self.replay(workflow_id=workflow_id, workflow_type=workflow_type, events=events, authz=authz)
+
+    def _evaluate_replay_policy(
+        self, *, workflow_id: str, authz: ReplayAuthorizationContext, events: list[ReplayEventEnvelopeV1]
+    ) -> str:
+        fingerprint = self._resolver.compute_replay_fingerprint(
+            run_id=workflow_id,
+            tenant_id=authz.tenant_id,
+            checkpoint_id=None,
+        )
+        if fingerprint in self._active_replays:
+            self._audit_sink.record(
+                "layer4.workflow.replay.policy_decision",
+                {"workflow_id": workflow_id, "tenant_id": authz.tenant_id, "decision": ReplayDecision.REJECT.value, "reason": "concurrent_attempt"},
+            )
+            raise ReplayConflictError("Replay rejected: concurrent replay attempt")
+
+        decisions = set()
+        seen_ids: set[str] = set()
+        for event in events:
+            if event.event_id in seen_ids:
+                decisions.add(ReplayDecision.REJECT)
+            else:
+                seen_ids.add(event.event_id)
+            if event.schema_version != "1.0":
+                decisions.add(ReplayDecision.FORCE_REPLAY)
+        if ReplayDecision.REJECT in decisions:
+            decision = ReplayDecision.REJECT
+        elif ReplayDecision.FORCE_REPLAY in decisions:
+            decision = ReplayDecision.FORCE_REPLAY
+        else:
+            decision = ReplayDecision.MERGE_SAFE
+        self._audit_sink.record(
+            "layer4.workflow.replay.policy_decision",
+            {"workflow_id": workflow_id, "tenant_id": authz.tenant_id, "decision": decision.value, "event_count": len(events)},
+        )
+        if decision == ReplayDecision.REJECT:
+            raise ReplayConflictError("Replay rejected: duplicate run event IDs detected")
+        self._active_replays.add(fingerprint)
+        return fingerprint
 
     def _authorize(self, *, authz: ReplayAuthorizationContext) -> None:
         if authz.environment not in self.ALLOWED_ENVIRONMENTS:

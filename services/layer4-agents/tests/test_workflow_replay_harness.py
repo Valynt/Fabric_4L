@@ -10,6 +10,7 @@ from src.workflows.replay import (
     ReplayAuthorizationContext,
     ReplayEventEnvelopeV1,
 )
+from value_fabric.layer4.policies.replay_conflict import ReplayConflictError
 
 
 class _AuditSink:
@@ -103,3 +104,41 @@ def test_replay_from_stream_uses_tenant_scoped_query_and_is_deterministic() -> N
     assert stream.calls == [("tenant-a", "wf-stream", "layer4.workflow_state")]
     assert result.applied_event_ids == ["e1", "e2", "e3"]
     assert result.state.status == WorkflowStatus.COMPLETED
+
+
+def test_replay_policy_rejects_duplicate_run_event_ids_and_audits_decision() -> None:
+    sink = _AuditSink()
+    harness = Layer4WorkflowReplayHarness(sink)
+    authz = ReplayAuthorizationContext(tenant_id="tenant-a", actor="bot", roles=("replay:execute",), environment="test")
+    events = [_evt("dup", "workflow.created", 1), _evt("dup", "workflow.started", 2)]
+
+    with pytest.raises(ReplayConflictError, match="duplicate run event IDs"):
+        harness.replay(workflow_id="wf-dups", workflow_type=WorkflowType.ROI_CALCULATOR, events=events, authz=authz)
+
+    assert sink.records[-1][0] == "layer4.workflow.replay.policy_decision"
+    assert sink.records[-1][1]["decision"] == "reject"
+
+
+def test_replay_policy_marks_stale_schema_as_force_replay_and_audits_decision() -> None:
+    sink = _AuditSink()
+    harness = Layer4WorkflowReplayHarness(sink)
+    authz = ReplayAuthorizationContext(tenant_id="tenant-a", actor="bot", roles=("replay:execute",), environment="test")
+    stale = _evt("e1", "workflow.created", 1).model_copy(update={"schema_version": "0.9"})
+
+    result = harness.replay(workflow_id="wf-stale", workflow_type=WorkflowType.ROI_CALCULATOR, events=[stale], authz=authz)
+    assert result.applied_event_ids == ["e1"]
+    assert sink.records[0][1]["decision"] == "force-replay"
+
+
+def test_replay_policy_rejects_concurrent_resume_replay_attempts() -> None:
+    sink = _AuditSink()
+    harness = Layer4WorkflowReplayHarness(sink)
+    authz = ReplayAuthorizationContext(tenant_id="tenant-a", actor="bot", roles=("replay:execute",), environment="test")
+    events = [_evt("e1", "workflow.created", 1)]
+    fp = harness._resolver.compute_replay_fingerprint("wf-concurrent", "tenant-a", None)
+    harness._active_replays.add(fp)
+
+    with pytest.raises(ReplayConflictError, match="concurrent replay attempt"):
+        harness.replay(workflow_id="wf-concurrent", workflow_type=WorkflowType.ROI_CALCULATOR, events=events, authz=authz)
+
+    assert sink.records[-1][1]["reason"] == "concurrent_attempt"
