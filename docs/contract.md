@@ -512,3 +512,14 @@ Status progression: proposed → ratified → enforced
 | 2026-04-23 | Platform Team | Initial draft | Establish canonical contracts for six cross-layer concerns |
 | 2026-04-25 | Platform Team | Ratify Section 2.2 | RLS via SET LOCAL ratified as Enforced Canon per Unified Recommendation memo; TenantAwarePool moved to experimental |
 | 2026-05-13 | Platform Team | Close organizational governance controls | Link contributor onboarding, PR governance confirmations, and engineering governance SOP to the canonical contract |
+
+## OpenAPI Dynamic Shape Guardrails (Type Safety)
+
+To keep generated frontend API types free of `any` in response models, dynamic response structures must be modeled explicitly in OpenAPI:
+
+- Use `oneOf` / `anyOf` (+ discriminator when practical) for polymorphic payloads.
+- Use `type: object` + `additionalProperties` with a typed value schema for map/dictionary payloads.
+- Avoid untyped object blobs (`{}` or free-form object) unless contract behavior requires opaque passthrough data.
+- Response model updates must be followed by type regeneration (`pnpm --dir apps/web run generate:types`) and generated-type guard checks.
+
+The repo now enforces a generated-response guard (`test:generated-response-types`) that fails if generated response schema entries regress to `Response: any` in L4/L5 type surfaces.
