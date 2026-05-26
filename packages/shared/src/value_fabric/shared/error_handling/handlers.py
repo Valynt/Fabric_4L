@@ -15,6 +15,7 @@ from ..observability.trace_context import ALL_TRACE_HEADERS, sanitize_trace_id
 from ..testability import IDGenerator
 from .exceptions import ValueFabricException
 from .models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
+from .sanitizer import sanitize_error_for_log, sanitize_public_error
 
 logger = logging.getLogger(__name__)
 
@@ -267,10 +268,7 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
 
     error_code = code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
 
-    # Extract detail message
-    message = str(exc.detail)
-    if isinstance(exc.detail, dict):
-        message = exc.detail.get("message", str(exc.detail))
+    message = sanitize_public_error(exc, status_code=exc.status_code).message
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
@@ -331,16 +329,11 @@ async def global_exception_handler(request: Request, exc: Exception) -> JSONResp
     """Handle unexpected exceptions with sanitized response envelope."""
     request_id = get_request_trace_id(request)
 
-    # Log the full exception for debugging
-    logger.exception("Unhandled exception", extra={"trace_id": request_id, "correlation_id": request_id, "error": str(exc)})
+    logger.exception("Unhandled exception", extra={"trace_id": request_id, "correlation_id": request_id, "error": sanitize_error_for_log(exc)})
 
-    # Always return sanitized message in production
-    if is_production():
-        message = "An unexpected error occurred. Please try again or contact support."
-        details = None
-    else:
-        message = f"Internal error: {str(exc)}"
-        details = {"exception_type": type(exc).__name__}
+    public_error = sanitize_public_error(exc)
+    message = public_error.message
+    details = None if is_production() else {"exception_type": type(exc).__name__}
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
@@ -378,7 +371,7 @@ async def starlette_http_exception_handler(
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(
             code=error_code,
-            message=str(exc.detail),
+            message=sanitize_public_error(exc, status_code=exc.status_code).message,
             request_id=request_id,
             details=None,
         )

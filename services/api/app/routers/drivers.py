@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import PaginatedResponse, ValueDriver
+from app.models.schemas import PaginatedResponse, ValueDriver, ValueTreeCategories, ValueTreeResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Driver Tree"])
 
@@ -22,17 +22,17 @@ async def list_drivers(
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
-@router.get("/value-tree")
+@router.get("/value-tree", response_model=ValueTreeResponse)
 async def get_value_tree(account_id: str, tenant_id: str = Depends(tenant_required)):
     drivers = db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id)
-    return {
-        "account_id": account_id,
-        "categories": {
-            "revenue_uplift": [d for d in drivers if d.category == "revenue_uplift"],
-            "cost_savings": [d for d in drivers if d.category == "cost_savings"],
-            "risk_reduction": [d for d in drivers if d.category == "risk_reduction"],
-        },
-    }
+    return ValueTreeResponse(
+        account_id=account_id,
+        categories=ValueTreeCategories(
+            revenue_uplift=[d for d in drivers if d.category == "revenue_uplift"],
+            cost_savings=[d for d in drivers if d.category == "cost_savings"],
+            risk_reduction=[d for d in drivers if d.category == "risk_reduction"],
+        ),
+    )
 
 
 @router.post("/drivers/generate", response_model=ValueDriver, status_code=201)

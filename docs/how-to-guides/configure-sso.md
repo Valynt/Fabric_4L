@@ -238,13 +238,22 @@ Credentials are set via `KC_BOOTSTRAP_ADMIN_USERNAME` and
 real passwords — use `.env` overrides for local development.
 
 The `fabric` realm is auto-imported from `infra/keycloak/fabric-realm.json`.
+The committed realm file must not contain client secrets or permanent seed
+passwords. Docker/dev startup runs `infra/keycloak/validate-realm-seed.py` and
+fails closed if placeholder literals or embedded secrets are present.
 
-Pre-configured test users (passwords set via Keycloak admin or realm import):
+Pre-configured test users (passwords must be provisioned at bootstrap and reset on first login):
 
 | Username | Role | tenant_id attribute |
 |---|---|---|
 | `admin` | `tenant_admin` | `demo-tenant` |
 | `analyst` | `analyst` | `demo-tenant` |
+
+Local bootstrapping expectation:
+
+- Set initial credentials through environment/secret injection (Infisical, `.env.generated`, or CI secrets), not in `infra/keycloak/fabric-realm.json`.
+- If password credentials are present in seed data, they must use `temporary: true`.
+- Do not commit literal passwords such as `admin`/`analyst` or placeholder secrets containing `do-not-use-in-production`.
 
 Layer 4 is pre-wired in `docker-compose.dev.yml`:
 

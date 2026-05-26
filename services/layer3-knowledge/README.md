@@ -224,3 +224,12 @@ uv export --locked --no-dev --format requirements-txt -o requirements.lock
 ## Migration reproducibility reference
 
 - `docs/reference/migration-reproducibility-invariants.md` (mandatory migration invariants and incident-state reconstruction)
+
+## Graph encryption-at-rest control
+
+Layer 3 depends on Neo4j graph volumes that must be encrypted at rest via infrastructure-managed keys (KMS/HSM-backed storage class), not static keys in repository config.
+
+Control references:
+- `docs/governance/graph-storage-encryption-control.md`
+- `docs/troubleshooting/runbooks/infrastructure/neo4j-encryption-key-rotation.md`
+- `scripts/ci/check_graph_storage_encryption.py`

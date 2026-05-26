@@ -17,7 +17,7 @@ import { useEntityUIStore } from "@/stores";
 import type { EntityType } from "@/lib/entity-colors";
 import { Toolbar, SearchInput } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, LegacyDataTable, Btn } from "@/components/ui/fabric";
+import { PageHeader, DataTable, Btn } from "@/components/ui/fabric";
 import { EntityBadge } from "@/lib/entity-colors";
 
 const CONF_COLORS = (c: number) =>
@@ -218,7 +218,7 @@ export default function EntityBrowser() {
                 <span className="ml-2 text-muted-foreground">Loading entities...</span>
               </div>
             ) : (
-              <LegacyDataTable
+              <DataTable
                 columns={["Entity Name", "Type", "Domain", "Confidence", "Status", "Actions"]}
                 rows={entities.map((e: Entity) => {
                   const isSelected = e.id === selectedEntityId;

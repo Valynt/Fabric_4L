@@ -14,6 +14,12 @@ from db.query_execution import (
     run_system_query,
     run_tenant_query,
 )
+from graph.query_guards import (
+    DEFAULT_MAX_QUERY_DEPTH,
+    DEFAULT_QUERY_TIMEOUT_SECONDS,
+    sanitize_query_depth,
+    sanitize_query_timeout_seconds,
+)
 
 
 @pytest.mark.asyncio
@@ -84,6 +90,16 @@ def test_extract_max_depth_raises_when_param_exceeds_limit() -> None:
             {"depth": MAX_QUERY_DEPTH + 1},
             TenantExecutionContext(tenant_id="tenant-a"),
         )
+
+
+def test_sanitize_query_depth_clamps_hostile_value() -> None:
+    """Out-of-policy depth is clamped to centralized max depth."""
+    assert sanitize_query_depth(DEFAULT_MAX_QUERY_DEPTH + 99) == DEFAULT_MAX_QUERY_DEPTH
+
+
+def test_sanitize_query_timeout_falls_back_on_invalid_input() -> None:
+    """Invalid timeout input fails closed to the centralized safe default."""
+    assert sanitize_query_timeout_seconds("not-a-number") == DEFAULT_QUERY_TIMEOUT_SECONDS
 
 
 @pytest.mark.asyncio

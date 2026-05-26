@@ -22,7 +22,7 @@ from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from ...engine.executor import OrchestrationController, WorkflowExecutionError
+from ...engine.executor import CheckpointConflictError, OrchestrationController, WorkflowExecutionError
 from ...engine.scheduler import TaskPriority
 from ...workflows import list_workflow_types
 from ..common.audit import emit_route_audit
@@ -693,6 +693,16 @@ async def resume_workflow(
         if isinstance(exc, ValueError):
             logger.warning("workflow_resume_value_error", error=str(exc))
             raise HTTPException(status_code=404, detail="Workflow not found")
+        if isinstance(exc, CheckpointConflictError):
+            raise_normalized_with_log(
+                exc,
+                status_code=409,
+                message="Checkpoint conflict",
+                error_code="CHECKPOINT_CONFLICT",
+                logger=logger,
+                log_message="workflow_resume_checkpoint_conflict",
+                **exc.metadata,
+            )
         if isinstance(exc, WorkflowExecutionError):
             raise_normalized_with_log(
                 exc,

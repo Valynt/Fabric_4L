@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { useTruths, type TruthStatus } from "@/hooks/useGroundTruthGovernance";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, LegacyDataTable } from "@/components/ui/fabric";
+import { PageHeader, DataTable } from "@/components/ui/fabric";
 
 const STATUS_OPTIONS: Array<TruthStatus | "all"> = [
   "all",
@@ -112,7 +112,7 @@ export default function GovernanceEvidence() {
         ) : isError ? (
           <div className="p-4 text-[12px] text-red-600">{error.message}</div>
         ) : (
-          <LegacyDataTable
+          <DataTable
             columns={[
               "Truth ID",
               "Claim",

@@ -28,7 +28,7 @@ Production-ready secret handling across local development, Docker Compose, and K
 | Secret Name | Used By | Purpose | Default | Source |
 |-------------|---------|---------|---------|--------|
 | `NEO4J_PASSWORD` | L2, L3, L4 | Graph database auth | `valuefabric` | Self-managed |
-| `JWT_SECRET` | L5 | Token signing | `changeme-in-production` | Generate with `openssl rand -hex 32` |
+| `JWT_SECRET` | L5 | Token signing | `<required-no-default>` | Generate with `openssl rand -hex 32` |
 | `POSTGRES_PASSWORD` | L1, L4, L5 | SQL database auth | `postgres` | Self-managed |
 
 ### Optional (Enhancements)
@@ -83,6 +83,10 @@ Expected output: `.env` or `.env.local` should be listed.
 
 Docker Compose automatically loads `.env` from the same directory as `docker-compose.yml`.
 
+> ⚠️ **Security warning:** Vault dev mode (`server -dev`) is for isolated local development only.
+> It is never production-safe and must never be used for staging/production deployments.
+> Production/staging must use Vault auth methods such as Kubernetes auth, OIDC/JWT, or AppRole.
+
 ### Startup with secrets
 
 ```bash
@@ -90,6 +94,19 @@ cd value-fabric
 # Ensure .env exists with OPENAI_API_KEY
 docker-compose up -d
 ```
+
+### Optional local Vault dev-root-token override (local only)
+
+Use this only when you explicitly need a stable local Vault dev token:
+
+```bash
+docker compose \
+  -f docker-compose.full.yml \
+  -f docker-compose.full.dev-vault.yml \
+  --profile local-dev up -d vault
+```
+
+This override file intentionally sets `VAULT_DEV_ROOT_TOKEN_ID=root` and must never be included in release compose paths.
 
 ### Verifying secrets are injected
 
@@ -407,3 +424,6 @@ A non-zero exit code blocks the deployment pipeline.
 ---
 
 *Last updated: 2026-04-19*
+
+
+For local development, generate secrets per developer machine (never commit): `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
