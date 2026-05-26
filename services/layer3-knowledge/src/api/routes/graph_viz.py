@@ -29,11 +29,8 @@ from ...api.models import (
     GraphStats,
     SubgraphResponse,
 )
-from ...db.query_execution import (
-    MAX_QUERY_DEPTH,
-    QUERY_TIMEOUT_SECONDS,
-    CypherDepthLimitExceeded,
-)
+from ...db.query_execution import MAX_QUERY_DEPTH, QUERY_TIMEOUT_SECONDS, CypherDepthLimitExceeded
+from ...graph.query_guards import sanitize_query_depth, sanitize_query_timeout_seconds
 
 try:
     from ...metrics.prometheus_metrics import get_metrics
@@ -106,7 +103,7 @@ async def get_full_graph(
                 """,
                 {"tenant_id": tenant_id, "limit": limit},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         node_ids: set[str] = set()
         node_types: dict[str, int] = {}
@@ -139,7 +136,7 @@ async def get_full_graph(
                 """,
                 {"tenant_id": tenant_id, "node_ids": list(node_ids)},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         edges = []
@@ -163,14 +160,14 @@ async def get_full_graph(
                 "MATCH (n {tenant_id: $tenant_id}) RETURN count(n) as total",
                 {"tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         total_edges_result = await asyncio.wait_for(
             neo4j.execute_query(
                 "MATCH (:Entity {tenant_id: $tenant_id})-[r]->(:Entity {tenant_id: $tenant_id}) RETURN count(r) as total",
                 {"tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         total_nodes = total_nodes_result[0].get("total", 0) if total_nodes_result else 0  # type: ignore[index]
@@ -228,6 +225,8 @@ async def get_entity_subgraph(
     if not neo4j:
         raise HTTPException(status_code=503, detail="Neo4j not available")
 
+    depth = sanitize_query_depth(depth, default_depth=2)
+
     try:
         root_result = await asyncio.wait_for(
             neo4j.execute_query(
@@ -237,7 +236,7 @@ async def get_entity_subgraph(
                 """,
                 {"entity_id": entity_id, "tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
         if not root_result:
             raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
@@ -253,7 +252,7 @@ async def get_entity_subgraph(
                 """,
                 {"entity_id": entity_id, "depth": depth, "tenant_id": tenant_id},
             ),
-            timeout=QUERY_TIMEOUT_SECONDS,
+            timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
         )
 
         nodes_map: dict[str, GraphNode | GraphNodeWithLayout] = {}
@@ -396,7 +395,7 @@ async def get_query_subgraph(
                     "MATCH (root {id: $entity_id, tenant_id: $tenant_id}) RETURN root",
                     {"entity_id": center_entity_id, "tenant_id": tenant_id},
                 ),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
             if not root_result:
                 raise HTTPException(
@@ -436,7 +435,7 @@ async def get_query_subgraph(
             """
             result = await asyncio.wait_for(
                 neo4j.execute_query(subgraph_query, query_params),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
 
             if result:
@@ -525,7 +524,7 @@ async def get_query_subgraph(
                     """,
                     {"seed_ids": seed_ids[:20], "tenant_id": tenant_id},
                 ),
-                timeout=QUERY_TIMEOUT_SECONDS,
+                timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS),
             )
 
             node_ids: set[str] = set()
