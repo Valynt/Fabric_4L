@@ -7,7 +7,7 @@ from fastapi.responses import Response
 
 from app.core.security import TokenPayload, require_authenticated
 from app.core.tenant_context import tenant_required
-from app.models.schemas import DSARRequestCreate
+from app.models.schemas import DSARCreateResponse, DSARRequestCreate, DSARRequestRecord
 from app.services import dsar_service
 from app.core.database import db
 
@@ -15,7 +15,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/privacy", tags=["Privacy"])
 
 
-@router.post('/dsar', status_code=202)
+@router.post('/dsar', status_code=202, response_model=DSARCreateResponse)
 async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)):
     record = await dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
     package = await dsar_service.launch_export_pipeline(record)
@@ -28,7 +28,7 @@ async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenan
     return {"request": complete, "download_url": dsar_service.issue_download_url(package)}
 
 
-@router.get('/dsar/{request_id}')
+@router.get('/dsar/{request_id}', response_model=DSARRequestRecord)
 async def get_dsar(request_id: str, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)):
     request = await dsar_service._run_blocking_repo_call("dsar_requests.get", db.dsar_requests.get, request_id, tenant_id=tenant_id)
     if not request:
