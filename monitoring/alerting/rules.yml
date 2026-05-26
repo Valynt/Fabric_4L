@@ -425,10 +425,15 @@ groups:
           description: "Detected retries explicitly flagged as robots bypass attempts."
 
       - alert: Layer1TenantContextErrors
-        expr: sum(increase(layer1_errors_total{error_type="tenant_context_error"}[10m])) > 0
+        expr: |
+          (
+            sum(increase(layer1_errors_total{error_type="tenant_context_error"}[10m])) > 0
+          ) or (
+            absent(layer1_errors_total{error_type="tenant_context_error"})
+          )
         for: 5m
         labels:
           severity: critical
         annotations:
-          summary: "Layer 1 tenant context errors detected"
-          description: "Tenant-context errors in Layer 1 indicate possible isolation failures."
+          summary: "Layer 1 tenant context errors detected or metric missing"
+          description: "Layer 1 tenant-context failures were observed, or the expected layer1_errors_total{error_type=\"tenant_context_error\"} metric is not being emitted; investigate tenant-isolation handling and instrumentation."
