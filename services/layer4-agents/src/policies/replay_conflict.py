@@ -16,13 +16,12 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 from ..models.agent_state import WorkflowStatus
 
 
-class ReplayStrategy(str, Enum):
-    """Conflict resolution strategy for replay collisions."""
+class ReplayDecision(str, Enum):
+    """Allowed policy outcomes for replay conflict checks."""
 
     REJECT = "reject"
-    REPLACE = "replace"
-    MERGE = "merge"
-    IDEMPOTENT_CONTINUE = "idempotent_continue"
+    MERGE_SAFE = "merge-safe"
+    FORCE_REPLAY = "force-replay"
 
 
 class CollisionAction(str, Enum):
@@ -45,9 +44,9 @@ class ReplayConflictPolicy(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    strategy: ReplayStrategy = Field(
-        default=ReplayStrategy.REJECT,
-        description="How to resolve duplicate or conflicting replay attempts",
+    default_decision: ReplayDecision = Field(
+        default=ReplayDecision.REJECT,
+        description="Default outcome for duplicate or conflicting replay attempts",
     )
     max_replay_age_seconds: int = Field(
         default=86400,
@@ -171,24 +170,19 @@ class ReplayConflictResolver:
                 )
             # For OVERWRITE / APPEND, we allow the caller to proceed but log the conflict
 
-    def check_duplicate_replay(
+    def evaluate_duplicate_replay(
         self,
         *,
         run_id: str,
         tenant_id: str,
         checkpoint_id: str | None,
         seen_fingerprints: set[str],
-    ) -> bool:
-        """Check whether this exact replay has already been attempted.
-
-        Returns:
-            True if this is a duplicate replay, False otherwise.
-        """
+        audit_justification: str | None = None,
+    ) -> ReplayDecision:
+        """Return deterministic policy decision for duplicate replay attempts."""
         fingerprint = self.compute_replay_fingerprint(run_id, tenant_id, checkpoint_id)
-        if fingerprint in seen_fingerprints:
-            if self.policy.strategy == ReplayStrategy.REJECT:
-                raise ReplayConflictError(
-                    f"Replay rejected: duplicate replay detected (fingerprint={fingerprint})"
-                )
-            return True
-        return False
+        if fingerprint not in seen_fingerprints:
+            return ReplayDecision.MERGE_SAFE
+        if audit_justification and audit_justification.strip():
+            return ReplayDecision.FORCE_REPLAY
+        return ReplayDecision.REJECT

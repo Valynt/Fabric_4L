@@ -38,7 +38,7 @@ from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
-from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver
+from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver, ReplayDecision
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
@@ -260,12 +260,14 @@ class OrchestrationController:
         run_id = state.run_id or workflow_id
         tenant_id = state.tenant_id or "unknown"
         try:
-            resolver.check_duplicate_replay(
+            decision = resolver.evaluate_duplicate_replay(
                 run_id=run_id,
                 tenant_id=tenant_id,
                 checkpoint_id=target_checkpoint_id,
                 seen_fingerprints=self._seen_replay_fingerprints,
             )
+            if decision == ReplayDecision.REJECT:
+                raise ReplayConflictError("Replay rejected: duplicate replay detected")
         except ReplayConflictError as rce:
             raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 

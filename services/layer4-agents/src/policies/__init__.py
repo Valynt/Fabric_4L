@@ -12,17 +12,17 @@ from .approval_actions import (
 )
 from .replay_conflict import (
     CollisionAction,
+    ReplayDecision,
     ReplayConflictError,
     ReplayConflictPolicy,
     ReplayConflictResolver,
-    ReplayStrategy,
 )
 
 __all__ = [
     "ReplayConflictPolicy",
     "ReplayConflictResolver",
     "ReplayConflictError",
-    "ReplayStrategy",
+    "ReplayDecision",
     "CollisionAction",
     "ActionClass",
     "ActionApprovalPolicy",
