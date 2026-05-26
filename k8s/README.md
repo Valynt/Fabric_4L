@@ -400,3 +400,19 @@ kubectl port-forward -n value-fabric svc/layer5-ground-truth 8005:8005
 ## Migration Note
 
 Flat manifests are intentionally preserved during migration. New CI and production checks should target `k8s/deployments/<env>-<routing>/` first.
+
+## Graph storage encryption policy
+
+Neo4j PVCs (`neo4j-data-pvc`, `neo4j-logs-pvc`) require encrypted storage classes and must include compliance annotations:
+
+- `storageClassName: encrypted-rwo`
+- `security.valuefabric.io/encryption-at-rest: "required"`
+- `security.valuefabric.io/kms-provider: "external"`
+
+Production uses Aura-first deployment (`k8s/envs/prod/neo4j-aura-patch.yml` deletes in-cluster Neo4j). If self-hosted Neo4j is enabled in prod-like environments, the same encryption policy is mandatory.
+
+Validation hook:
+
+```bash
+python3 scripts/ci/check_graph_storage_encryption.py
+```

@@ -1,0 +1,10 @@
+# Graph datastore encryption policy used by CI checks.
+allowed_encrypted_storage_classes:
+  - encrypted-rwo
+  - gp3-encrypted
+  - premium-rwo-encrypted
+required_pvcs:
+  - neo4j-data-pvc
+  - neo4j-logs-pvc
+required_annotation_key: security.valuefabric.io/encryption-at-rest
+required_annotation_value: required
