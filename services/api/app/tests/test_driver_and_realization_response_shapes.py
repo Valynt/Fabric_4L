@@ -36,3 +36,52 @@ def test_realization_list_and_variance_shape():
     assert variance_response.status_code == 200
     variance = variance_response.json()
     assert set(variance.keys()) == {"plan_id", "projected", "actual", "variance"}
+
+
+def test_create_realization_plan_missing_required_fields_returns_422_with_field_locations():
+    response = client.post('/v1/accounts/acc-allego/realization-plans', json={}, headers=HEADERS)
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert any(err.get("loc") == ["body", "id"] for err in detail)
+    assert any(err.get("loc") == ["body", "scenario_id"] for err in detail)
+
+
+def test_create_realization_plan_invalid_types_and_constraints_return_422():
+    payload = {
+        "id": "roi-invalid-1",
+        "scenario_id": "scenario-invalid",
+        "revenue_uplift": "high",
+        "solution_cost": -5,
+    }
+    response = client.post('/v1/accounts/acc-allego/realization-plans', json=payload, headers=HEADERS)
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert any(err.get("loc") == ["body", "revenue_uplift"] for err in detail)
+    assert any(err.get("loc") == ["body", "solution_cost"] for err in detail)
+
+
+def test_patch_realization_actuals_malformed_payload_returns_422():
+    seed_payload = {
+        "id": "roi-invalid-actuals",
+        "scenario_id": "scenario-actuals",
+        "revenue_uplift": 100,
+    }
+    seed_response = client.post('/v1/accounts/acc-allego/realization-plans', json=seed_payload, headers=HEADERS)
+    assert seed_response.status_code == 200
+
+    patch_payload = {
+        "calculation_trace": "not-a-list",
+        "payback_months": -1,
+    }
+    response = client.patch(
+        '/v1/accounts/acc-allego/realization-plans/roi-invalid-actuals/actuals',
+        json=patch_payload,
+        headers=HEADERS,
+    )
+    assert response.status_code == 422
+    detail = response.json()["detail"]
+    assert isinstance(detail, list)
+    assert any(err.get("loc") == ["body", "calculation_trace"] for err in detail)
+    assert any(err.get("loc") == ["body", "payback_months"] for err in detail)
