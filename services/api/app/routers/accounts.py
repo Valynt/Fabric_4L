@@ -3,16 +3,20 @@ import hashlib
 import secrets
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
 from app.models.schemas import Account, PaginatedResponse
-
-_SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
+from app.repositories.session_store import ShareLinkRepository
+from app.services.distributed_store import StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+
+
+def get_share_link_repo() -> ShareLinkRepository:
+    return ShareLinkRepository(get_distributed_store())
 
 
 @router.get("", response_model=PaginatedResponse[Account])
@@ -78,27 +82,46 @@ async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_r
 
 
 @router.post("/{account_id}/share")
-async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def create_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    # Use a cryptographically secure random token (256 bits of entropy).
-    # Python's built-in hash() is non-cryptographic, seed-randomized per process,
-    # and produces only ~20 bits of effective entropy after modulo — do not use it.
     raw_token = secrets.token_urlsafe(32)
     token_fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
     expires_at = datetime.now(UTC) + timedelta(days=7)
-    _SHARE_LINKS[(tenant_id, account_id)] = {
-        "fingerprint_hash": token_fingerprint_hash,
-        "expires_at_ts": int(expires_at.timestamp()),
-    }
+    try:
+        repo.create(
+            tenant_id=tenant_id,
+            account_id=account_id,
+            fingerprint_hash=token_fingerprint_hash,
+            expires_at_ts=int(expires_at.timestamp()),
+        )
+    except StoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Share-link store unavailable; try again later",
+        )
     return {"share_token": raw_token, "account_id": account_id, "role": "read_only"}
 
 
 @router.delete("/{account_id}/share")
-async def revoke_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def revoke_share_link(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    repo: ShareLinkRepository = Depends(get_share_link_repo),
+):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
-    _SHARE_LINKS.pop((tenant_id, account_id), None)
+    try:
+        repo.revoke(tenant_id=tenant_id, account_id=account_id)
+    except StoreUnavailableError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Share-link store unavailable; try again later",
+        )
     return {"revoked": True, "account_id": account_id}
