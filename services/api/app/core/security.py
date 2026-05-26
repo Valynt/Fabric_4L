@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 import jwt as pyjwt
 from jwt import DecodeError, ExpiredSignatureError, InvalidTokenError
 from passlib.context import CryptContext
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.core.database import db
@@ -104,6 +104,8 @@ class TokenPayload(BaseModel):
     impersonated_by: str | None = None
     impersonation_session_id: str | None = None
     impersonation_reason: str | None = None
+    account_id: str | None = None
+    account_ids: list[str] = Field(default_factory=list)
 
 
 
@@ -402,6 +404,8 @@ def decode_token(token: str) -> TokenPayload | None:
             nbf=data.get("nbf"),
             iss=data["iss"],
             aud=data["aud"],
+            account_id=data.get("account_id"),
+            account_ids=[str(v) for v in data.get("account_ids", []) if isinstance(v, str)],
         )
     except ExpiredSignatureError:
         raise TokenExpiredError("Token has expired")

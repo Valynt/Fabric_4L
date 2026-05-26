@@ -67,6 +67,7 @@ def mint_token(
     tenant_id: str = TENANT_ALPHA,
     subject: str = "test-user-001",
     expires_delta: timedelta = timedelta(hours=1),
+    extra_claims: dict[str, object] | None = None,
 ) -> str:
     """Return a signed JWT accepted by the test app."""
     expire = datetime.now(UTC) + expires_delta
@@ -79,16 +80,20 @@ def mint_token(
         "nbf": int(datetime.now(UTC).timestamp()),
         "exp": int(expire.timestamp()),
         "jti": secrets.token_urlsafe(16),
+        "account_ids": ["*"],
     }
+    if extra_claims:
+        payload.update(extra_claims)
     return jwt.encode(payload, TEST_SECRET, algorithm=TEST_ALGORITHM)
 
 
 def auth_headers(
     tenant_id: str = TENANT_ALPHA,
     subject: str = "test-user-001",
+    extra_claims: dict[str, object] | None = None,
 ) -> dict[str, str]:
     """Return headers dict with a valid Bearer token for the given tenant."""
-    token = mint_token(tenant_id=tenant_id, subject=subject)
+    token = mint_token(tenant_id=tenant_id, subject=subject, extra_claims=extra_claims)
     return {
         "Authorization": f"Bearer {token}",
         "X-Tenant-ID": tenant_id,

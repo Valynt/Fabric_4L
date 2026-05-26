@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
+from app.core.account_scope import require_account_scope
+from app.core.security import TokenPayload, require_authenticated
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
 from app.models.schemas import PaginatedResponse, Signal, Stakeholder
@@ -13,9 +15,11 @@ legacy_router = APIRouter(prefix="/intelligence/account/{account_id}", tags=["In
 async def list_signals(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
+    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals")
     items = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
     total = len(db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
@@ -23,8 +27,9 @@ async def list_signals(
 
 @router.post("/signals/extract", response_model=Signal, status_code=201)
 async def extract_signal(
-    account_id: str, signal: Signal, tenant_id: str = Depends(tenant_required)
+    account_id: str, signal: Signal, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)
 ):
+    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals/extract")
     enforce_authenticated_tenant(
         body_tenant_id=signal.tenant_id,
         authenticated_tenant_id=tenant_id,
@@ -41,16 +46,23 @@ async def extract_signal(
 async def list_stakeholders(
     account_id: str,
     tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
+    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/stakeholders")
     items = db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
     total = len(db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
 @router.get("/ontology-match")
-async def get_ontology_match(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def get_ontology_match(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/ontology-match")
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
@@ -64,7 +76,12 @@ async def get_ontology_match(account_id: str, tenant_id: str = Depends(tenant_re
 
 
 @router.get("/enrichment")
-async def get_enrichment(account_id: str, tenant_id: str = Depends(tenant_required)):
+async def get_enrichment(
+    account_id: str,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+):
+    require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/enrichment")
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
