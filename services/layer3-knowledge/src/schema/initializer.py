@@ -249,10 +249,31 @@ class SchemaInitializer:
         Args:
             session: Neo4j async session
         """
+        await self._validate_existing_vector_indexes(session)
         for index in INDEXES:
             query = self._build_index_cypher(index)
             await self._execute_schema_statement(
                 session, index.name, query, "index"
+            )
+
+    async def _validate_existing_vector_indexes(self, session: "AsyncSession") -> None:
+        """Fail fast when existing vector indexes use an incompatible dimension."""
+        result = await session.run(
+            "SHOW INDEXES YIELD name, type, options WHERE type = 'VECTOR' RETURN name, options"
+        )
+        expected = self.settings.embedding_dimension
+        mismatches: list[str] = []
+        async for record in result:
+            options = record.get("options") or {}
+            index_cfg = options.get("indexConfig") or {}
+            dim = index_cfg.get("vector.dimensions")
+            if isinstance(dim, int) and dim != expected:
+                mismatches.append(f"{record['name']}={dim}")
+        if mismatches:
+            raise RuntimeError(
+                "VECTOR_INDEX_DIMENSION_MISMATCH: "
+                f"configured={expected}, existing={','.join(mismatches)}. "
+                "Run explicit migration: create parallel *_v2 embedding property/index, backfill, cut over reads/writes, then drop legacy index."
             )
 
     def _build_vector_index_cypher(
