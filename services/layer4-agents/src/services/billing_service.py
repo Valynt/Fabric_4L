@@ -14,6 +14,7 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
 
@@ -412,28 +413,34 @@ class BillingService:
         event_id = event["id"]
         event_type = event["type"]
 
+        now = self._utc_now()
         payload_hash = hashlib.sha256(payload).hexdigest()
-        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
-        existing = result.scalar_one_or_none()
-        if existing:
-            if existing.status == "processed":
-                logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type})
-            else:
-                existing.status = "pending"
-                existing.next_retry_at = self._utc_now()
-            await self.db.flush()
-            return existing
-
-        inbox = BillingWebhookEvent(
-            id=event_id,
-            type=event_type,
-            status="pending",
-            attempt_count=0,
-            payload_hash=payload_hash,
-            next_retry_at=self._utc_now(),
+        stmt = (
+            insert(BillingWebhookEvent)
+            .values(
+                id=event_id,
+                type=event_type,
+                status="pending",
+                attempt_count=0,
+                payload_hash=payload_hash,
+                next_retry_at=now,
+            )
+            .on_conflict_do_update(
+                index_elements=[BillingWebhookEvent.id],
+                set_={
+                    "status": "pending",
+                    "next_retry_at": now,
+                    "payload_hash": payload_hash,
+                    "type": event_type,
+                },
+                where=BillingWebhookEvent.status != "processed",
+            )
         )
-        self.db.add(inbox)
-        await self.db.flush()
+        await self.db.execute(stmt)
+        result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+        inbox = result.scalar_one()
+        if inbox.status == "processed":
+            logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type, "duplicate_count": 1})
         return inbox
 
     async def process_webhook_event(self, event_id: str, payload: bytes, signature: str, webhook_secret: str) -> None:
@@ -446,6 +453,7 @@ class BillingService:
         if inbox is None or inbox.status == "processed":
             return
         try:
+            started_at = self._utc_now()
             inbox.status = "processing"
             inbox.attempt_count += 1
             if event_type == "checkout.session.completed":
@@ -475,6 +483,7 @@ class BillingService:
                     "invoice_amount_paid": invoice_obj.get("amount_paid"),
                     "invoice_status": invoice_obj.get("status"),
                     "subscription_id": invoice_obj.get("subscription"),
+                    "latency_ms": int((self._utc_now() - started_at).total_seconds() * 1000),
                 },
             )
             await self.db.flush()
@@ -484,9 +493,11 @@ class BillingService:
             if transient and inbox.attempt_count < 5:
                 inbox.status = "retryable"
                 inbox.next_retry_at = self._utc_now() + timedelta(seconds=self._retry_delay_seconds(inbox.attempt_count))
+                logger.warning("billing.webhook.retry_scheduled", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
             else:
                 inbox.status = "failed"
                 inbox.next_retry_at = None
+                logger.error("billing.webhook.terminal_failure", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
             await self.db.flush()
             raise
 

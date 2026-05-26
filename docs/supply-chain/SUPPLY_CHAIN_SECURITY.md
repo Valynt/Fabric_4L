@@ -372,6 +372,21 @@ Every container image receives a SLSA provenance attestation pushed to the regis
 
 Every service and the frontend receive individual SBOMs uploaded as GitHub Actions artifacts with 30-day retention.
 
+Release evidence workflows use stable SBOM artifact naming per service and commit SHA:
+
+- `sbom-<service>-<git_sha>.cdx.json` (CycloneDX JSON)
+- artifact bundle: `scan-<service>-<git_sha>`
+
+### PR vs Main/Release Behavior
+
+- **Pull requests (`main` / `release/**` targets):** build images locally, run container scans, and publish SBOM artifacts only (no registry push/signing).
+- **Main / release / tags:** push publishable images, sign each image keylessly with GitHub OIDC (Cosign), attach SBOM attestations to the registry, and verify signature/attestation metadata in CI.
+
+Policy enforcement is handled by `scripts/ci/check_image_supply_chain_metadata.py`, which fails CI when expected metadata is missing:
+
+- PR mode: requires SBOM artifacts for each expected service image.
+- Release mode: requires both SBOM and signing/attestation verification outputs for each expected service image.
+
 ### Artifact Verification Before Deploy
 
 **Script:** `scripts/security/verify-artifact.sh`
@@ -389,6 +404,19 @@ Output: Structured JSON report in `artifacts/verification/`.
 ```bash
 # Verify before deploying
 ./scripts/security/verify-artifact.sh ghcr.io/bmsull560/fabric_4l/layer3-knowledge:sha-abc12345
+
+# Verify image signature directly (OIDC keyless)
+cosign verify \
+  --certificate-identity-regexp "https://github.com/<org>/<repo>/.github/workflows/release-evidence-bundle.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  ghcr.io/<org>/fabric_4l/layer3-knowledge:<git_sha>
+
+# Verify CycloneDX SBOM attestation in registry
+cosign verify-attestation \
+  --certificate-identity-regexp "https://github.com/<org>/<repo>/.github/workflows/release-evidence-bundle.yml@.*" \
+  --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+  --type cyclonedx \
+  ghcr.io/<org>/fabric_4l/layer3-knowledge:<git_sha>
 ```
 
 ### Trust Model for Dependencies

@@ -20,7 +20,7 @@ import { createFeatureLogger } from "@/lib/telemetry";
 import { usePauseAllExtractions } from "@/hooks/usePauseAllExtractions";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { PageHeader, LegacyDataTable, Btn, StatusBadge } from "@/components/ui/fabric";
+import { PageHeader, DataTable, Btn, StatusBadge } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('ExtractionEngine');
 
@@ -410,7 +410,7 @@ export default function ExtractionEngine() {
 
           {/* Results Table */}
           <SectionCard title="Results Table" className="flex-1 min-h-[200px]">
-            <LegacyDataTable
+            <DataTable
               columns={['Name', 'Type', 'Confidence', 'Source', 'Status']}
               rows={extractedEntities?.map(entity => [
                 entity.name,
