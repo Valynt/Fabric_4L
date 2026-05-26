@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -265,22 +265,29 @@ class HarnessRunRepository:
             raise RunNotFoundError(f"Run '{run_id}' not found for tenant '{tenant_id}'")
         return _row_to_run(row)
 
-    async def update(self, run: HarnessRun) -> HarnessRun:
-        from harness.registry import HarnessRegistryError
+    async def update(self, run: HarnessRun, expected_updated_at: datetime | None = None) -> HarnessRun:
+        from harness.registry import HarnessRegistryError, TransitionConflictError
 
-        result = await self._session.execute(
-            select(HarnessRunRow).where(
+        stmt = (
+            update(HarnessRunRow)
+            .where(
                 HarnessRunRow.id == run.id,
                 HarnessRunRow.tenant_id == run.tenant_id,
             )
+            .values(
+                status=run.status.value,
+                current_state=run.current_state.value,
+                updated_at=run.updated_at,
+            )
         )
-        row = result.scalar_one_or_none()
-        if row is None:
+        if expected_updated_at is not None:
+            stmt = stmt.where(HarnessRunRow.updated_at == expected_updated_at)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            if expected_updated_at is not None:
+                raise TransitionConflictError(f"Stale run state for '{run.id}'")
             raise HarnessRegistryError(f"Run '{run.id}' not found for update")
 
-        row.status = run.status.value
-        row.current_state = run.current_state.value
-        row.updated_at = run.updated_at
         await self._session.flush()
         return run
 
