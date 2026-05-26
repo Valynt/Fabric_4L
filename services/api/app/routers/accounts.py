@@ -8,7 +8,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Account, PaginatedResponse
+from app.models.schemas import (
+    Account,
+    AccountShareLinkResponse,
+    AccountShareRevokeResponse,
+    AccountSummaryResponse,
+    PaginatedResponse,
+)
 
 _SHARE_LINKS: dict[tuple[str, str], dict[str, str | int]] = {}
 
@@ -57,7 +63,7 @@ async def update_account(
     return acc
 
 
-@router.get("/{account_id}/summary")
+@router.get("/{account_id}/summary", response_model=AccountSummaryResponse)
 async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
@@ -69,15 +75,15 @@ async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_r
     roi_calcs = db.roi_calculations.list(
         tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id
     )
-    return {
-        "account": acc,
-        "signal_count": len(signals),
-        "hypothesis_count": len(hypotheses),
-        "roi_calculation_count": len(roi_calcs),
-    }
+    return AccountSummaryResponse(
+        account=acc,
+        signal_count=len(signals),
+        hypothesis_count=len(hypotheses),
+        roi_calculation_count=len(roi_calcs),
+    )
 
 
-@router.post("/{account_id}/share")
+@router.post("/{account_id}/share", response_model=AccountShareLinkResponse)
 async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
@@ -92,13 +98,13 @@ async def create_share_link(account_id: str, tenant_id: str = Depends(tenant_req
         "fingerprint_hash": token_fingerprint_hash,
         "expires_at_ts": int(expires_at.timestamp()),
     }
-    return {"share_token": raw_token, "account_id": account_id, "role": "read_only"}
+    return AccountShareLinkResponse(share_token=raw_token, account_id=account_id, role="read_only")
 
 
-@router.delete("/{account_id}/share")
+@router.delete("/{account_id}/share", response_model=AccountShareRevokeResponse)
 async def revoke_share_link(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
     _SHARE_LINKS.pop((tenant_id, account_id), None)
-    return {"revoked": True, "account_id": account_id}
+    return AccountShareRevokeResponse(revoked=True, account_id=account_id)
