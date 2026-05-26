@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import UTC, datetime
 from typing import Any
 
@@ -12,6 +13,25 @@ from app.models.schemas import AgentRun, WorkflowResponse
 from app.services.agent_orchestrator import orchestrator
 
 router = APIRouter(prefix="/agents", tags=["Agents"])
+
+
+def _json_safe(value: Any) -> Any:
+    if isinstance(value, datetime):
+        return value.isoformat()
+    if isinstance(value, dict):
+        return {str(key): _json_safe(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe(item) for item in value]
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    if hasattr(value, "isoformat") and callable(value.isoformat):
+        return value.isoformat()
+    return str(value)
+
+
+def _sse_frame(payload: dict[str, Any]) -> str:
+    serialized_payload = json.dumps(_json_safe(payload), ensure_ascii=False, separators=(",", ":"))
+    return f"data: {serialized_payload}\n\n"
 
 
 # Canonical naming: backend domain model is "run" (AgentRun).
@@ -136,14 +156,15 @@ async def workflow_events(id: str, tenant_id: str = Depends(tenant_required)):
         raise HTTPException(status_code=404, detail="Workflow not found")
 
     async def stream() -> Any:
-        payload = _run_to_workflow_payload(run)
-        yield f"data: {{\"payload\": {payload!r}}}\n\n".replace("'", '"')
-        yield (
-            "data: {\"payload\": {"
-            f"\"workflow_id\": \"{run.id}\","
-            f"\"status\": \"{run.status}\","
-            f"\"updated_at\": \"{datetime.now(UTC).isoformat()}\""
-            "}}\n\n"
+        yield _sse_frame({"payload": _run_to_workflow_payload(run)})
+        yield _sse_frame(
+            {
+                "payload": {
+                    "workflow_id": run.id,
+                    "status": run.status,
+                    "updated_at": datetime.now(UTC),
+                }
+            }
         )
 
     return StreamingResponse(stream(), media_type="text/event-stream")
