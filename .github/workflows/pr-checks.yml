@@ -167,6 +167,10 @@ jobs:
         run: |
           python scripts/ci/check_navigation_patterns.py --strict
 
+      - name: Enforce Layer 4 bounded-context dependency rules
+        run: |
+          python scripts/ci/check_layer4_boundaries.py
+
       - name: Run repository config policy guardrail
         run: |
           python scripts/ci/check_config_policy.py
