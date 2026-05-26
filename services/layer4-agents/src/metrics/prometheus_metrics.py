@@ -375,6 +375,12 @@ class PrometheusMetrics:
             ["workflow_type", "tenant_tier"],
             registry=self.config.registry,
         )
+        self._metrics["checkpoint_collision_outcomes_total"] = Counter(
+            f"{prefix}checkpoint_collision_outcomes_total",
+            "Replay collision detection outcomes",
+            ["workflow_type", "tenant_tier", "outcome"],
+            registry=self.config.registry,
+        )
 
     def increment_requests_total(self, method: str, endpoint: str, status_code: int) -> None:
         if self.config.enabled:
@@ -602,6 +608,18 @@ class PrometheusMetrics:
             self._metrics["checkpoint_corruption_detected_total"].labels(
                 workflow_type=workflow_type,
                 tenant_tier=tenant_tier,
+            ).inc()
+
+    def increment_checkpoint_collision_outcome(
+        self, workflow_type: str, tenant_id: str, outcome: str
+    ) -> None:
+        """Record checkpoint collision detector outcome."""
+        if self.config.enabled:
+            tenant_tier = _derive_tenant_tier(tenant_id)
+            self._metrics["checkpoint_collision_outcomes_total"].labels(
+                workflow_type=workflow_type,
+                tenant_tier=tenant_tier,
+                outcome=outcome,
             ).inc()
 
     def observe_crm_salesforce_sync_duration(self, tenant_id: str, duration: float, sync_type: str = "incremental") -> None:
