@@ -201,6 +201,13 @@ class EntityResolutionResponse(BaseModel):
         default=None,
         description="Error message if resolution failed"
     )
+    explanation: dict[str, Any] = Field(
+        default_factory=dict,
+        description=(
+            "Deterministic resolution explanation payload with canonical entity ID, "
+            "confidence score, tie-break rule, source evidence IDs, and reasoning trace keys"
+        ),
+    )
 
     @field_validator("candidates")
     @classmethod

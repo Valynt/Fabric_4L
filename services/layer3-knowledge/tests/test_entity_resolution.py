@@ -114,6 +114,34 @@ class TestAmbiguityHandling:
         assert len(response.candidates) == 1
         assert response.provenance.tie_break_applied is True
         assert response.provenance.tie_break_rule == TieBreakRule.HIGHEST_CONFIDENCE
+        assert response.explanation["tie_break_rule"] == TieBreakRule.HIGHEST_CONFIDENCE.value
+
+    @pytest.mark.asyncio
+    async def test_hostile_ambiguous_candidates_stable_selection(self):
+        """Ambiguous same-score candidates must deterministically choose lowest entity_id."""
+        driver = AsyncMock()
+        session = AsyncMock()
+        result = AsyncMock()
+        result.data = AsyncMock(return_value=[
+            {"id": "product-z", "properties": {"id": "product-z", "name": "Test Product"}},
+            {"id": "product-a", "properties": {"id": "product-a", "name": "Test Product"}},
+        ])
+        session.run = AsyncMock(return_value=result)
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+        request = EntityResolutionRequest(
+            entity_type="Product",
+            tenant_id="tenant-1",
+            query_attributes={"name": "Test Product"},
+            strategy=ResolutionStrategy.EXACT,
+            tie_break_rule=TieBreakRule.HIGHEST_CONFIDENCE,
+        )
+
+        response1 = await service.resolve(request)
+        response2 = await service.resolve(request)
+        assert response1.matched_entity_id == "product-a"
+        assert response2.matched_entity_id == "product-a"
+        assert response1.explanation["source_evidence_ids"] == ["product-a"]
 
     @pytest.mark.asyncio
     async def test_manual_review_tie_break(self):
@@ -147,6 +175,9 @@ class TestAmbiguityHandling:
         assert response.requires_manual_review is True
         assert response.provenance.tie_break_applied is True
         assert response.provenance.tie_break_rule == TieBreakRule.MANUAL_REVIEW
+        assert response.explanation["tie_break_rule"] == TieBreakRule.MANUAL_REVIEW.value
+        assert response.explanation["source_evidence_ids"] == ["product-1", "product-2"]
+        assert "reasoning_trace_keys" in response.explanation
 
     @pytest.mark.asyncio
     async def test_no_tie_break_needed(self):
