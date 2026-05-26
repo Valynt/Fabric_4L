@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import AccountVersionSnapshot, PaginatedResponse
+from app.models.schemas import AccountVersionSnapshot, PaginatedResponse, SnapshotDiffResponse
 
 router = APIRouter(prefix="/accounts/{account_id}", tags=["Versioning"])
 
@@ -50,7 +50,7 @@ async def get_snapshot(
     return snapshot
 
 
-@router.post("/snapshots/{snapshot_id}/diff")
+@router.post("/snapshots/{snapshot_id}/diff", response_model=SnapshotDiffResponse)
 async def diff_snapshots(
     account_id: str,
     snapshot_id: str,
