@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 T = TypeVar("T")
 
@@ -76,6 +76,18 @@ class Account(BaseModel):
     summary: str | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class AccountUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
+    industry: str | None = None
+    segment: str | None = None
+    website: HttpUrl | None = None
+    annual_revenue: float | None = Field(default=None, ge=0)
+    employee_count: int | None = Field(default=None, ge=0)
+    crm_stage: str | None = None
+    value_pack_id: str | None = None
+    summary: str | None = None
 
 
 class Stakeholder(BaseModel):
