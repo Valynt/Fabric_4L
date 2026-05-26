@@ -20,8 +20,13 @@ def _json_safe(value: Any) -> Any:
         return value.isoformat()
     if isinstance(value, dict):
         return {str(key): _json_safe(item) for key, item in value.items()}
-    if isinstance(value, (list, tuple, set)):
+    if isinstance(value, (list, tuple)):
         return [_json_safe(item) for item in value]
+    if isinstance(value, set):
+        try:
+            return [_json_safe(item) for item in sorted(value, key=str)]
+        except Exception:
+            return [_json_safe(item) for item in value]
     if isinstance(value, (str, int, float, bool)) or value is None:
         return value
     if hasattr(value, "isoformat") and callable(value.isoformat):
