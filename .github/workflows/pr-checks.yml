@@ -434,6 +434,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src --report-json artifacts/layer3-query-entrypoint-matrix.json
 
+      - name: Run Layer 3 audited mutation relationship-write gate
+        working-directory: ${{ github.workspace }}
+        run: python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json artifacts/layer3-audited-mutation-violations.json
+
       - name: Run Layer 3 tenant dependency import gate
         working-directory: ${{ github.workspace }}
         run: python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
@@ -452,6 +456,14 @@ jobs:
         with:
           name: layer3-query-entrypoint-matrix
           path: artifacts/layer3-query-entrypoint-matrix.json
+          if-no-files-found: ignore
+
+      - name: Upload Layer 3 audited mutation violation report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: layer3-audited-mutation-violations
+          path: artifacts/layer3-audited-mutation-violations.json
           if-no-files-found: ignore
 
       - name: Run tests with coverage
