@@ -43,7 +43,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -675,3 +675,7 @@ harness-check: harness-guard harness-task ## Full harness preflight (guard + con
 docs-harness: ## Validate harness documentation artifacts (endpoints, models, runbook, config)
 	@echo "→ Validating harness docs..."
 	@python3 scripts/generate_harness_docs.py --check
+
+
+check-value-fabric-public-imports:
+	@$(PYTHON) scripts/ci/check_value_fabric_public_imports.py
