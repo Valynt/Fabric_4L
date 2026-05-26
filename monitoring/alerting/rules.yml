@@ -396,3 +396,44 @@ groups:
           summary: "Potential auth brute-force pattern"
           description: "High auth-route throttling indicates possible credential stuffing or brute-force attacks."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
+
+      - alert: Layer1RepeatedCrawlFailures
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 1 repeated crawl failures"
+          description: "Layer 1 retry events exceeded threshold in the last 15m."
+
+      - alert: Layer1StuckJobCandidates
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 20
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 stuck-job candidates detected"
+          description: "Sustained Layer 1 retry volume over 30m suggests jobs are stuck or repeatedly failing to make progress."
+
+      - alert: Layer1RobotsBypassAttempts
+        expr: sum(increase(layer1_retry_events_total{reason="robots_bypass_attempt"}[10m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 robots bypass attempts detected"
+          description: "Detected retries explicitly flagged as robots bypass attempts."
+
+      - alert: Layer1TenantContextErrors
+        expr: |
+          (
+            sum(increase(layer1_errors_total{error_type="tenant_context_error"}[10m])) > 0
+          ) or (
+            absent(layer1_errors_total{error_type="tenant_context_error"})
+          )
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 tenant context errors detected or metric missing"
+          description: "Layer 1 tenant-context failures were observed, or the expected layer1_errors_total{error_type=\"tenant_context_error\"} metric is not being emitted; investigate tenant-isolation handling and instrumentation."
