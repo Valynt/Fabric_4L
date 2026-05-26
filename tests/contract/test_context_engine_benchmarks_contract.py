@@ -14,13 +14,11 @@ def test_context_engine_item_forbids_untyped_payload_keys() -> None:
         "unexpected_key": "should-fail",
     }
 
-    try:
-        ContextEngineItem.model_validate(payload_with_unknown_key)
-        accepted_unknown = True
-    except Exception:
-        accepted_unknown = False
+    import pytest
+    from pydantic import ValidationError
 
-    assert not accepted_unknown, "ContextEngineItem must reject unknown/untyped keys"
+    with pytest.raises(ValidationError):
+        ContextEngineItem.model_validate(payload_with_unknown_key)
 
 
 def test_context_engine_benchmarks_openapi_uses_typed_item_schema() -> None:
