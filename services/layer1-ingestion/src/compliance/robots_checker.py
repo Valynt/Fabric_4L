@@ -64,6 +64,7 @@ class RobotsChecker:
         self.cache_ttl_hours = cache_ttl_hours or settings.robots_txt_cache_hours
         self.respect_crawl_delay = respect_crawl_delay
         self.strict_mode = strict_mode if strict_mode is not None else settings.robots_txt_strict_mode
+        self.strict_robots_enforcement = settings.strict_robots_enforcement
         self._http_client: httpx.AsyncClient | None = None
         self.logger = logger
 
@@ -103,8 +104,22 @@ class RobotsChecker:
         try:
             robots_data = await self._get_robots_txt(domain, robots_url, force_refresh)
         except RobotsFetchError as e:
-            if self.strict_mode:
-                return False, f"robots.txt fetch failed (strict mode): {e.message}", {"strict_mode": True, "domain": domain, "error": "ROBOTS_FETCH_ERROR"}
+            if self.strict_mode or self.strict_robots_enforcement:
+                decision_reason = "ROBOTS_FETCH_FAILED_STRICT"
+                self.logger.warning(
+                    "Robots compliance failure enforced",
+                    domain=domain,
+                    job_id=getattr(e, "job_id", None),
+                    tenant_id=self.tenant_id,
+                    decision="blocked",
+                    reason_code=decision_reason,
+                )
+                return False, "robots.txt fetch failed (strict enforcement)", {
+                    "strict_mode": self.strict_mode,
+                    "strict_robots_enforcement": self.strict_robots_enforcement,
+                    "domain": domain,
+                    "reason_code": decision_reason,
+                }
             # In permissive mode, re-raise so caller can decide to allow
             raise
 
@@ -143,12 +158,26 @@ class RobotsChecker:
 
             return True, None, rules
 
-        except Exception as e:
-            self.logger.error("Failed to parse robots.txt", domain=domain, error_code="ROBOTS_PARSE_ERROR")
-            if self.strict_mode:
-                return False, "robots.txt parse error (strict mode)", {"parse_error": "ROBOTS_PARSE_ERROR", "strict_mode": True}
+        except Exception:
+            reason_code = "ROBOTS_PARSE_FAILED"
+            decision = "blocked" if (self.strict_mode or self.strict_robots_enforcement) else "allowed"
+            self.logger.warning(
+                "Robots parser failure",
+                domain=domain,
+                job_id=None,
+                tenant_id=self.tenant_id,
+                decision=decision,
+                reason_code=reason_code,
+            )
+            if self.strict_mode or self.strict_robots_enforcement:
+                return False, "robots.txt parse error (strict enforcement)", {
+                    "parse_error": "ROBOTS_PARSE_ERROR",
+                    "reason_code": reason_code,
+                    "strict_mode": self.strict_mode,
+                    "strict_robots_enforcement": self.strict_robots_enforcement,
+                }
             # If parsing fails, allow but log in permissive mode
-            return True, None, {"parse_error": "ROBOTS_PARSE_ERROR"}
+            return True, None, {"parse_error": "ROBOTS_PARSE_ERROR", "reason_code": reason_code}
 
     async def _get_robots_txt(
         self, domain: str, robots_url: str, force_refresh: bool = False

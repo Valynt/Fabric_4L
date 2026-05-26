@@ -389,3 +389,17 @@ def urlparse(url):
     """Simple URL parser for testing."""
     from urllib.parse import urlparse as real_urlparse
     return real_urlparse(url)
+
+class TestRobotsCheckerStrictEnforcementConfig:
+    """Security coverage for strict robots enforcement config wiring."""
+
+    def test_checker_reads_strict_robots_enforcement_setting(self):
+        from unittest.mock import patch
+
+        with patch("value_fabric.layer1.compliance.robots_checker.settings.strict_robots_enforcement", True):
+            checker = RobotsChecker()
+            assert checker.strict_robots_enforcement is True
+
+    def test_checker_default_strict_robots_enforcement_false(self):
+        checker = RobotsChecker()
+        assert isinstance(checker.strict_robots_enforcement, bool)
