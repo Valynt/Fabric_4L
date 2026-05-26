@@ -252,6 +252,22 @@ class OrchestrationController:
         )
 
         if latest_hash != checkpoint_hash:
+            try:
+                from ..metrics.prometheus_metrics import get_metrics
+
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_checkpoint_collision_outcome(
+                        workflow_type=str(
+                            state.workflow_type.value
+                            if hasattr(state.workflow_type, "value")
+                            else state.workflow_type
+                        ),
+                        tenant_id=str(state.tenant_id or "unknown"),
+                        outcome="mismatch",
+                    )
+            except Exception:
+                logger.debug("Failed to record checkpoint collision mismatch metric", exc_info=True)
             conflict_metadata = {
                 "workflow_id": workflow_id,
                 "run_id": run_id,
@@ -269,6 +285,22 @@ class OrchestrationController:
                 **conflict_metadata,
             )
             raise CheckpointConflictError("Checkpoint hash mismatch", conflict_metadata)
+        try:
+            from ..metrics.prometheus_metrics import get_metrics
+
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_checkpoint_collision_outcome(
+                    workflow_type=str(
+                        state.workflow_type.value
+                        if hasattr(state.workflow_type, "value")
+                        else state.workflow_type
+                    ),
+                    tenant_id=str(state.tenant_id or "unknown"),
+                    outcome="match",
+                )
+        except Exception:
+            logger.debug("Failed to record checkpoint collision match metric", exc_info=True)
 
         # Age guard uses paused_at or started_at
         checkpoint_created_at = state.paused_at or state.started_at
