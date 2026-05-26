@@ -365,6 +365,23 @@ class HumanGateRepository:
             raise GateNotFoundError(f"Gate '{gate_id}' not found for tenant '{tenant_id}'")
         return _row_to_gate(row)
 
+    async def get_for_update(self, gate_id: str, tenant_id: str) -> HumanGate:
+        """Fetch a gate row using a row lock while preserving tenant isolation."""
+        from harness.human_gates import GateNotFoundError
+
+        result = await self._session.execute(
+            select(HumanGateRow)
+            .where(
+                HumanGateRow.id == gate_id,
+                HumanGateRow.tenant_id == tenant_id,
+            )
+            .with_for_update()
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise GateNotFoundError(f"Gate '{gate_id}' not found for tenant '{tenant_id}'")
+        return _row_to_gate(row)
+
     async def update(self, gate: HumanGate) -> HumanGate:
         from harness.human_gates import GateNotFoundError
 
