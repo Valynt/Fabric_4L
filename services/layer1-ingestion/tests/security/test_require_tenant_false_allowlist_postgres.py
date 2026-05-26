@@ -297,3 +297,12 @@ class TestSecurityHardeningCompleteness:
                 # Should contain tenant_id parameter
                 assert 'tenant_id' in match or 'str(job.tenant_id)' in match or 'str(new_job.tenant_id)' in match, \
                     f"Dispatch call missing tenant_id in {api_file}: {match[:100]}"
+
+    def test_decision_store_writes_require_tenant_true(self):
+        """Decision store persistence must enforce require_tenant=True."""
+        from value_fabric.layer1.crawler.decision_store import CrawlDecisionRepository
+        import inspect
+
+        source = inspect.getsource(CrawlDecisionRepository._save_sync)
+        assert "require_tenant=True" in source
+        assert "require_tenant=False" not in source
