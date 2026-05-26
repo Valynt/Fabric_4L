@@ -16,7 +16,7 @@ import hmac
 import importlib
 import json
 import time
-from typing import Iterator
+from collections.abc import Iterator
 
 import pytest
 from fastapi.testclient import TestClient
@@ -236,3 +236,25 @@ def test_membership_missing_user_and_org_returns_400(client):
     response = _post(client, payload, svix_id="msg_bad_mbr", secret=secret)
     assert response.status_code == 400
     assert "Missing user_id" in response.json()["error"]["message"]
+
+
+def test_invalid_json_error_payload_is_sanitized(client):
+    """Invalid JSON should return stable code/message without parser internals."""
+    secret = "whsec_" + base64.b64encode(b"phase1-test-secret").decode()
+    body = b"{"
+    ts = str(int(time.time()))
+    sig = _sign(body, svix_id="msg_invalid_json", svix_timestamp=ts, secret=secret)
+    response = client.post(
+        "/internal/webhooks/clerk",
+        content=body,
+        headers={
+            "svix-id": "msg_invalid_json",
+            "svix-timestamp": ts,
+            "svix-signature": sig,
+            "content-type": "application/json",
+        },
+    )
+    assert response.status_code == 400
+    payload = response.json()["error"]
+    assert payload["code"] == "auth.webhook_invalid_body"
+    assert payload["message"] == "Bad request."

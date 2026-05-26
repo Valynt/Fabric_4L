@@ -369,8 +369,38 @@ class InMemoryDatabase:
         self.governance_gates = InMemoryTable("governance_gates", "tenant_id")
         self.users = InMemoryTable("users", "tenant_id")
         self.tenants = InMemoryTable("tenants", "id")
-        self.dsar_requests = InMemoryTable("dsar_requests", "tenant_id")
-        self.dsar_packages = InMemoryTable("dsar_packages", "tenant_id")
+        self.dsar_requests = AsyncInMemoryTable("dsar_requests", "tenant_id")
+        self.dsar_packages = AsyncInMemoryTable("dsar_packages", "tenant_id")
+
+
+class AsyncInMemoryTable(InMemoryTable[T]):
+    """Async adapter used by DSAR paths to avoid sync-style repository calls in async handlers."""
+
+    async def insert(self, id: str, obj: T) -> T:
+        return super().insert(id, obj)
+
+    async def get(self, id: str, tenant_id: str | None = None) -> T | None:
+        return super().get(id, tenant_id=tenant_id)
+
+    async def list(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> builtins.list[T]:
+        return super().list(
+            tenant_id=tenant_id,
+            filter_fn=filter_fn,
+            allow_system_scope=allow_system_scope,
+            limit=limit,
+            offset=offset,
+        )
+
+    async def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
+        return super().update(id, tenant_id=tenant_id, **fields)
 
 
 

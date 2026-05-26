@@ -8,12 +8,63 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..models.agent_state import WorkflowStatus
+
+_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
+
+
+@dataclass(frozen=True)
+class NormalizedHash:
+    """Canonical SHA-256 hash representation for strict typed comparison."""
+
+    algorithm: str
+    encoding: str
+    digest_hex: str
+
+
+class HashNormalizationError(ValueError):
+    """Raised when a checkpoint hash cannot be normalized safely."""
+
+    def __init__(self, message: str, details: dict[str, Any]):
+        super().__init__(message)
+        self.details = details
+
+
+def _normalize_sha256_hash(value: str | None, *, field_name: str) -> NormalizedHash | None:
+    """Normalize hash input to canonical sha256/hex/lowercase-64 format."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise HashNormalizationError(
+            "Invalid hash type",
+            {"field": field_name, "reason": "hash must be str", "type": type(value).__name__},
+        )
+
+    candidate = value.strip().lower()
+    if candidate.startswith("sha256:"):
+        candidate = candidate[len("sha256:") :]
+    if candidate.startswith("0x"):
+        candidate = candidate[2:]
+
+    if not _SHA256_HEX_RE.fullmatch(candidate):
+        raise HashNormalizationError(
+            "Invalid hash encoding",
+            {
+                "field": field_name,
+                "reason": "expected sha256 hex digest length=64",
+                "length": len(candidate),
+            },
+        )
+
+    return NormalizedHash(algorithm="sha256", encoding="hex", digest_hex=candidate)
 
 
 class ReplayDecision(str, Enum):
@@ -153,20 +204,35 @@ class ReplayConflictResolver:
                     f"max_replay_age_seconds ({self.policy.max_replay_age_seconds})"
                 )
 
+        try:
+            normalized_checkpoint = _normalize_sha256_hash(
+                checkpoint_hash, field_name="checkpoint_hash"
+            )
+            normalized_expected = _normalize_sha256_hash(
+                expected_hash, field_name="expected_hash"
+            )
+            normalized_latest = _normalize_sha256_hash(
+                latest_checkpoint_hash, field_name="latest_checkpoint_hash"
+            )
+        except HashNormalizationError as exc:
+            raise ReplayConflictError(
+                f"Replay rejected: hash normalization failed ({exc.details})"
+            ) from exc
+
         # Exact hash match guard
         if self.policy.require_exact_checkpoint_match:
-            if expected_hash is not None and checkpoint_hash != expected_hash:
+            if normalized_expected is not None and normalized_checkpoint != normalized_expected:
                 raise ReplayConflictError(
                     f"Replay rejected: checkpoint hash mismatch "
-                    f"(got {checkpoint_hash}, expected {expected_hash})"
+                    f"(got={normalized_checkpoint}, expected={normalized_expected})"
                 )
 
         # Collision guard
-        if latest_checkpoint_hash is not None and checkpoint_hash != latest_checkpoint_hash:
+        if normalized_latest is not None and normalized_checkpoint != normalized_latest:
             if self.policy.on_collision == CollisionAction.FAIL:
                 raise ReplayConflictError(
-                    "Replay rejected: resume target diverges from latest checkpoint "
-                    f"(target={checkpoint_hash}, latest={latest_checkpoint_hash})"
+                    "Replay rejected: checkpoint collision/mismatch against latest checkpoint "
+                    f"(target={normalized_checkpoint}, latest={normalized_latest})"
                 )
             # For OVERWRITE / APPEND, we allow the caller to proceed but log the conflict
 
