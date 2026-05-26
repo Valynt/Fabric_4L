@@ -22,7 +22,7 @@ from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
@@ -768,6 +768,7 @@ class ExecuteTargetRequest(BaseModel):
     override_config: dict[str, Any] | None = None
     callback_url: str | None = None
     webhook_events: list[str] | None = None
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class ExecuteTargetResponse(BaseModel):
@@ -890,6 +891,7 @@ class RetryJobRequest(BaseModel):
     retry_strategy: str = "FULL"  # FULL, FAILED_ONLY, FROM_STAGE
     from_stage: str | None = None
     max_retries: int = 3
+    idempotency_key: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class JobProgressResponse(BaseModel):
@@ -1602,6 +1604,7 @@ async def validate_target(
 async def execute_target(
     target_id: UUID,
     request: ExecuteTargetRequest,
+    idempotency_key_header: str | None = Header(default=None, alias="Idempotency-Key"),
     org_id: UUID = Depends(get_tenant_id),
     user_id: UUID = Depends(get_current_user_id),
     db: Session = Depends(get_db_from_context_sync),
@@ -1646,6 +1649,8 @@ async def execute_target(
         priority=request.priority,
         triggered_by=TriggeredBy.API,
         correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        idempotency_window_start=window_start,
     )
 
     db.add(job)
@@ -2141,6 +2146,7 @@ async def get_job_results(
 async def retry_job(
     job_id: UUID,
     request: RetryJobRequest,
+    idempotency_key_header: str | None = Header(default=None, alias="Idempotency-Key"),
     org_id: UUID = Depends(get_tenant_id),
     user_id: UUID = Depends(get_current_user_id),
     db: Session = Depends(get_db_from_context_sync),
@@ -2170,6 +2176,8 @@ async def retry_job(
         priority=original_job.priority,
         triggered_by=TriggeredBy.MANUAL,
         correlation_id=correlation_id,
+        idempotency_key=idempotency_key,
+        idempotency_window_start=window_start,
     )
 
     db.add(new_job)
@@ -2990,3 +2998,45 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host=settings.api_host, port=settings.api_port)
+    idempotency_key = idempotency_key_header or request.idempotency_key
+    window_start = _current_idempotency_window_start() if idempotency_key else None
+    if idempotency_key:
+        existing_job = (
+            db.query(ScrapingJob)
+            .filter(
+                ScrapingJob.tenant_id == org_id,
+                ScrapingJob.idempotency_key == idempotency_key,
+                ScrapingJob.idempotency_window_start == window_start,
+            )
+            .first()
+        )
+        if existing_job:
+            return ExecuteTargetResponse(
+                job_id=existing_job.id,
+                status=existing_job.status,
+                queue_position=None,
+                queue_position_metadata={
+                    "replayed": True,
+                    "idempotency_window_hours": _IDEMPOTENCY_WINDOW_HOURS,
+                },
+                estimated_start_time=None,
+            )
+
+    idempotency_key = idempotency_key_header or request.idempotency_key
+    window_start = _current_idempotency_window_start() if idempotency_key else None
+    if idempotency_key:
+        existing_job = (
+            db.query(ScrapingJob)
+            .filter(
+                ScrapingJob.tenant_id == org_id,
+                ScrapingJob.idempotency_key == idempotency_key,
+                ScrapingJob.idempotency_window_start == window_start,
+            )
+            .first()
+        )
+        if existing_job:
+            return retry_jobResult.model_validate({
+                "original_job_id": str(job_id),
+                "new_job_id": str(existing_job.id),
+                "status": existing_job.status,
+            })

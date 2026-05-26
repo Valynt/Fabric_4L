@@ -405,6 +405,7 @@ class ScrapingJob(Base):
     triggered_by = Column(String(50), default=TriggeredBy.MANUAL.value)
     correlation_id = Column(String(100), nullable=True)  # Distributed tracing
     idempotency_key = Column(String(255), nullable=True)  # API-level idempotency
+    idempotency_window_start = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     target = relationship("ScrapingTarget", back_populates="jobs")
@@ -420,6 +421,14 @@ class ScrapingJob(Base):
         Index("idx_scraping_jobs_tenant_status", "tenant_id", "status"),
         Index("idx_scraping_jobs_target", "target_id", "created_at"),
         Index("idx_scraping_jobs_status_created", "status", "created_at"),
+        Index(
+            "idx_scraping_jobs_tenant_idempotency_window",
+            "tenant_id",
+            "idempotency_key",
+            "idempotency_window_start",
+            unique=True,
+            postgresql_where=text("idempotency_key IS NOT NULL"),
+        ),
     )
 
 
@@ -925,6 +934,7 @@ def create_scraping_job(
     triggered_by: TriggeredBy = TriggeredBy.MANUAL,
     correlation_id: str | None = None,
     idempotency_key: str | None = None,
+    idempotency_window_start: datetime | None = None,
 ) -> ScrapingJob:
     """Factory function to create a new scraping job."""
     return ScrapingJob(
@@ -936,6 +946,7 @@ def create_scraping_job(
         triggered_by=triggered_by.value,
         correlation_id=correlation_id,
         idempotency_key=idempotency_key,
+        idempotency_window_start=idempotency_window_start,
     )
 
 
