@@ -52,6 +52,16 @@ spec:
                 configMapKeyRef:
                   name: jaeger-storage-config
                   key: es_index_prefix
+            - name: ES_USE_ILM
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_use_ilm
+            - name: ES_ILM_POLICY_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_ilm_policy_name
             - name: ES_USERNAME
               valueFrom:
                 secretKeyRef:
@@ -93,11 +103,11 @@ spec:
               cpu: "2000m"
               memory: "4Gi"
             requests:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: "750m"
+              memory: "1536Mi"
           livenessProbe:
             httpGet:
-              path: /metrics
+              path: /
               port: 14269
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -107,18 +117,18 @@ spec:
             httpGet:
               path: /
               port: 14269
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 3
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 6
           startupProbe:
             httpGet:
               path: /
               port: 14269
-            initialDelaySeconds: 5
-            periodSeconds: 5
-            timeoutSeconds: 3
-            failureThreshold: 30
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 36
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -147,6 +157,8 @@ data:
   es_server_urls: "https://opensearch.monitoring.svc.cluster.local:9200"
   es_tls_enabled: "true"
   es_index_prefix: "jaeger-span"
+  es_use_ilm: "true"
+  es_ilm_policy_name: "jaeger-hot-7d"
 ---
 apiVersion: v1
 kind: Secret

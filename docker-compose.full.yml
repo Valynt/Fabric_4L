@@ -52,6 +52,14 @@ services:
     networks:
       - value-fabric-network
     restart: unless-stopped
+    deploy:
+      resources:
+        reservations:
+          cpus: "0.50"
+          memory: 512M
+        limits:
+          cpus: "2.00"
+          memory: 2G
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
@@ -607,14 +615,14 @@ services:
       - BADGER_EPHEMERAL=false
       - BADGER_DIRECTORY_VALUE=/badger/data
       - BADGER_DIRECTORY_KEY=/badger/key
-      - BADGER_SPAN_STORE_TTL=336h  # 14 days retention (>7 days required)
+      - BADGER_SPAN_STORE_TTL=336h  # Explicit 14-day retention for local/dev
     volumes:
       - jaeger-data:/badger
     networks:
       - value-fabric-network
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:16686/"]
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:16686/api/services"]
       interval: 30s
       timeout: 10s
       retries: 3
