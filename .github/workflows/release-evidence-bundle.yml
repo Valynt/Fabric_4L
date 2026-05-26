@@ -160,9 +160,9 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-and-scan]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - name: Download image security artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@fa0a91b85d4f404e444306234a53f49b9be1f8b9 # v4
         with:
           pattern: scan-*-${{ github.sha }}
           path: artifacts
