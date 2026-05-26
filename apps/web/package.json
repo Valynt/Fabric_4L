@@ -79,6 +79,7 @@
     "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs",
     "check:async-boundaries": "node scripts/quality/async-boundary-audit.mjs",
     "test:prod-unhandled-rejections": "NODE_ENV=production NODE_OPTIONS=--unhandled-rejections=strict vitest run",
+    "test:coverage:stores": "vitest run --coverage --config vitest.store-coverage.config.ts"
     "test:generated-response-types": "node scripts/quality/assert-generated-response-types-no-any.mjs"
   },
   "dependencies": {
