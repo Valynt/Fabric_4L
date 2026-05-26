@@ -40,18 +40,31 @@ spec:
                   name: value-fabric-config
                   key: LAYER5_DATABASE_URL_SYNC
           securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: false  # Alembic may need write access for cache
-            capabilities:
-              drop: ["ALL"]
-      containers:
-        - name: api
-          image: value-fabric/layer5-ground-truth:main
-          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: tmp
+          emptyDir: {}
+      containers:
+        - name: api
+          image: value-fabric/layer5-ground-truth:main
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: tmp
+              mountPath: /tmp
           ports:
             - containerPort: 8005
               name: http
