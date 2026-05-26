@@ -178,7 +178,22 @@ class TestResumeWorkflow:
     ):
         controller, workflow_id, existing_state = controller_with_running_state
         await state_manager.save_state(workflow_id, existing_state)
-        await controller._resolve_resume_policy(workflow_id=workflow_id, state=existing_state)
+        checkpoint_id = "chk-match-001"
+        expected_hash = controller._compute_state_hash(existing_state)
+
+        controller._get_latest_persisted_checkpoint_hash = AsyncMock(return_value=expected_hash)  # type: ignore[method-assign]
+
+        await controller._resolve_resume_policy(
+            workflow_id=workflow_id,
+            state=existing_state,
+            target_checkpoint_id=checkpoint_id,
+        )
+        controller._get_latest_persisted_checkpoint_hash.assert_awaited_once_with(  # type: ignore[attr-defined]
+            tenant_id=existing_state.tenant_id,
+            workflow_id=workflow_id,
+            run_id=existing_state.run_id,
+            checkpoint_id=checkpoint_id,
+        )
 
     @pytest.mark.asyncio
     async def test_resolve_resume_policy_rejects_when_persisted_hash_differs(
@@ -224,6 +239,34 @@ class TestResumeWorkflow:
                 workflow_id=workflow_id,
                 user_id="test-user",
                 resume_data={"approved": True},
+            )
+
+    @pytest.mark.asyncio
+    async def test_resume_policy_rejects_second_writer_after_first_wins(
+        self, controller_with_running_state
+    ):
+        controller, workflow_id, existing_state = controller_with_running_state
+        caller_hash = controller._compute_state_hash(existing_state)
+        stale_persisted_hash = "stale-hash-from-later-writer"
+        assert caller_hash != stale_persisted_hash
+
+        controller._get_latest_persisted_checkpoint_hash = AsyncMock(  # type: ignore[method-assign]
+            side_effect=[caller_hash, stale_persisted_hash]
+        )
+
+        # First writer sees matching durable hash and may continue
+        await controller._resolve_resume_policy(
+            workflow_id=workflow_id,
+            state=existing_state,
+            target_checkpoint_id="chk-race-001",
+        )
+
+        # Second writer reuses stale state and is rejected
+        with pytest.raises(CheckpointConflictError):
+            await controller._resolve_resume_policy(
+                workflow_id=workflow_id,
+                state=existing_state,
+                target_checkpoint_id="chk-race-001",
             )
 
     @pytest.mark.asyncio
