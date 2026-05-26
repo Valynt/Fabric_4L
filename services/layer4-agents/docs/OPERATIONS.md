@@ -32,6 +32,7 @@ This document covers operating the Layer 4 Agentic Workflow Engine in production
 | `REDIS_URL` | `redis://localhost:6379` | Redis for state manager and scheduler queues |
 | `LAYER4_OIDC_STATE_STORE_BACKEND` | `redis` | OIDC state backend (`redis` or `memory` for dev only) |
 | `LAYER4_OIDC_STATE_TTL_SECONDS` | `300` | OIDC state record TTL |
+| `LAYER4_AGENT_GATE_TIMEOUT_SECONDS` | `600` | Human review gate timeout used by the gate expiration scheduler. If unset, Layer 4 defaults to 600 seconds for backward compatibility. |
 | `LLM_MODEL` | `gpt-4o` | Fallback LLM model when tenant resolution fails |
 | `RATE_LIMIT_REQUESTS_PER_MINUTE` | `100` | Per-tenant rate limit |
 | `RATE_LIMIT_BURST_SIZE` | `20` | Per-tenant burst allowance |
