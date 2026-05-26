@@ -83,7 +83,7 @@ async def register_request(payload: DSARRequestCreate, *, tenant_id: str, reques
         sla_deadline_at=(requested_at + timedelta(days=30)).isoformat(),
         requested_at=requested_at.isoformat(),
     )
-    await _run_blocking_repo_call("dsar_requests.insert", db.dsar_requests.insert, record.id, record)
+    await db.dsar_requests.insert(record.id, record)
     return record
 
 
@@ -99,7 +99,7 @@ async def _tenant_export_payload(*, tenant_id: str) -> dict:
 
 
 async def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
-    await _run_blocking_repo_call("dsar_requests.update_status_exporting", db.dsar_requests.update, record.id, tenant_id=record.tenant_id, status="exporting")
+    await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="exporting")
     payload = await _tenant_export_payload(tenant_id=record.tenant_id)
     package_id = str(uuid.uuid4())
     package = DSARPackage(
@@ -110,24 +110,24 @@ async def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
         export_payload=payload,
         expires_at=(_now() + timedelta(hours=1)).isoformat(),
     )
-    await _run_blocking_repo_call("dsar_packages.insert", db.dsar_packages.insert, package.id, package)
-    await _run_blocking_repo_call("dsar_requests.update_package", db.dsar_requests.update, record.id, tenant_id=record.tenant_id, package_id=package.id, status="reconciling")
+    await db.dsar_packages.insert(package.id, package)
+    await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, package_id=package.id, status="reconciling")
     return package
 
 
 async def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
-    pkg = await _run_blocking_repo_call("dsar_packages.get", db.dsar_packages.get, record.package_id, tenant_id=record.tenant_id) if record.package_id else None
+    pkg = await db.dsar_packages.get(record.package_id, tenant_id=record.tenant_id) if record.package_id else None
     complete = bool(pkg and any(pkg.export_payload.get(k) for k in ("accounts", "evidence", "hypotheses")))
     if not complete:
         raise ValueError("DSAR package incomplete")
-    await _run_blocking_repo_call("dsar_packages.update", db.dsar_packages.update, pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
-    updated = await _run_blocking_repo_call("dsar_requests.complete", db.dsar_requests.update, record.id, tenant_id=record.tenant_id, status="complete", completed_at=_now().isoformat(), completion_evidence=["completeness_verified"])
+    await db.dsar_packages.update(pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
+    updated = await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="complete", completed_at=_now().isoformat(), completion_evidence=["completeness_verified"])
     return updated
 
 
 async def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
     if record.status not in ("complete", "escalated") and _now() > datetime.fromisoformat(record.sla_deadline_at):
-        return await _run_blocking_repo_call("dsar_requests.escalate", db.dsar_requests.update, record.id, tenant_id=record.tenant_id, status="escalated", escalated_at=_now().isoformat())
+        return await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="escalated", escalated_at=_now().isoformat())
     return record
 
 
