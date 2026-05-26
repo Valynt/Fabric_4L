@@ -7,9 +7,7 @@ usage event ingestion with idempotency and tenant isolation.
 
 from __future__ import annotations
 
-import ipaddress
 import logging
-import os
 import re
 from datetime import datetime
 from typing import Any
@@ -22,69 +20,11 @@ from value_fabric.shared.error_handling import sanitize_log_error
 # Customer ID validation pattern (alphanumeric, underscore, hyphen; 1-64 chars after prefix)
 CUSTOMER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
-# Known Stripe webhook IP ranges (CIDR notation)
-# Source: https://stripe.com/docs/ips
-# NOTE: Stripe may update these IP ranges periodically. Review and update quarterly
-# or when webhook rejections increase. Consider automating via Stripe API in future.
-STRIPE_WEBHOOK_IPS = [
-    # Primary webhook IPs (US East)
-    ipaddress.ip_network("3.18.12.63/32"),
-    ipaddress.ip_network("3.130.192.231/32"),
-    ipaddress.ip_network("13.235.14.237/32"),
-    ipaddress.ip_network("13.235.122.149/32"),
-    ipaddress.ip_network("35.154.171.200/32"),
-    ipaddress.ip_network("35.154.171.208/32"),
-    ipaddress.ip_network("52.15.183.38/32"),
-    ipaddress.ip_network("52.15.183.39/32"),
-    ipaddress.ip_network("54.88.130.27/32"),
-    ipaddress.ip_network("54.88.130.28/32"),
-    ipaddress.ip_network("54.187.174.169/32"),
-    ipaddress.ip_network("54.187.174.170/32"),
-]
-
-# Allow disabling IP check in development (never in production)
-STRIPE_WEBHOOK_SKIP_IP_CHECK = os.environ.get("STRIPE_WEBHOOK_SKIP_IP_CHECK", "").lower() in ("true", "1", "yes")
-
-# SECURITY: Prevent IP check bypass in production
-if os.environ.get("ENVIRONMENT") == "production" and STRIPE_WEBHOOK_SKIP_IP_CHECK:
-    raise RuntimeError("STRIPE_WEBHOOK_SKIP_IP_CHECK cannot be enabled in production")
-
-
-def _is_stripe_webhook_ip(client_ip: str) -> bool:
-    """Check if IP is from Stripe's webhook IP ranges.
-
-    SECURITY: Defense-in-depth for webhook endpoint. Even with valid
-    signature, requests should originate from known Stripe IPs.
-    """
-    try:
-        ip = ipaddress.ip_address(client_ip)
-        # Always allow loopback for local testing
-        if ip.is_loopback:
-            return True
-        return any(ip in network for network in STRIPE_WEBHOOK_IPS)
-    except ValueError:
-        return False
-
-
-def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, handling proxies."""
-    # Check X-Forwarded-For first (common with proxies/load balancers)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        # Take the first IP in the chain (original client)
-        return forwarded.split(",")[0].strip()
-
-    # Check X-Real-IP
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
-
-    # Fall back to direct client IP
-    if hasattr(request, "client") and request.client:
-        return request.client.host
-
-    return ""
-
+from ...services.billing_security import (
+    STRIPE_WEBHOOK_SKIP_IP_CHECK,
+    get_client_ip as _get_client_ip,
+    is_stripe_webhook_ip as _is_stripe_webhook_ip,
+)
 
 def validate_customer_id(customer_id: str) -> str:
     """Validate customer_id format to prevent injection attacks.
