@@ -161,7 +161,12 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:25.0
     container_name: vf-dev-keycloak
-    command: ["start-dev", "--import-realm"]
+    command:
+      - /bin/bash
+      - -lc
+      - >
+        python3 /opt/keycloak/bin/validate-realm-seed.py &&
+        /opt/keycloak/bin/kc.sh start-dev --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USER:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
@@ -176,6 +181,7 @@ services:
     volumes:
       - dev-keycloak-data:/opt/keycloak/data
       - ./infra/keycloak/fabric-realm.json:/opt/keycloak/data/import/fabric-realm.json:ro
+      - ./infra/keycloak/validate-realm-seed.py:/opt/keycloak/bin/validate-realm-seed.py:ro
     networks:
       - dev-network
     healthcheck:
