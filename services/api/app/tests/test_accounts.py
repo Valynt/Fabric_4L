@@ -1,8 +1,10 @@
 """Account endpoint tests — updated for JWT-authenticated requests."""
 
+import pytest
 from fastapi.testclient import TestClient
 
 from app.main import app
+from app.models.schemas import AccountUpdateRequest
 
 from .conftest import TENANT_ALPHA, TENANT_BETA, auth_headers
 
@@ -97,3 +99,68 @@ def test_account_summary_and_share_responses_are_typed():
         revoke = client.delete("/v1/accounts/acc-allego/share", headers=HEADERS)
         assert revoke.status_code == 200
         assert revoke.json() == {"revoked": True, "account_id": "acc-allego"}
+
+
+def test_patch_account_invalid_type_returns_422_with_field_location():
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"employee_count": "many"},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err.get("loc") == ["body", "employee_count"] for err in detail)
+
+
+def test_patch_account_constraint_violation_returns_422_with_field_location():
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"annual_revenue": -1},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err.get("loc") == ["body", "annual_revenue"] for err in detail)
+
+
+def test_patch_account_missing_required_field_returns_422_when_required_fields_exist():
+    required_patch_fields = {
+        field_name
+        for field_name, field_info in AccountUpdateRequest.model_fields.items()
+        if field_info.is_required()
+    }
+    if not required_patch_fields:
+        pytest.skip("AccountUpdateRequest has no required fields to validate missing-field 422 behavior")
+
+    missing_field = sorted(required_patch_fields)[0]
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err.get("loc") == ["body", missing_field] for err in detail)
+
+
+def test_patch_account_unknown_field_returns_422_when_extras_forbidden():
+    extra_mode = AccountUpdateRequest.model_config.get("extra")
+    if extra_mode != "forbid":
+        pytest.skip("AccountUpdateRequest extras are not forbidden")
+
+    with TestClient(app) as client:
+        response = client.patch(
+            "/v1/accounts/acc-allego",
+            json={"unknown_field": "unexpected"},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
+        detail = response.json()["detail"]
+        assert isinstance(detail, list)
+        assert any(err.get("loc") == ["body", "unknown_field"] for err in detail)
