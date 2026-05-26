@@ -8,12 +8,15 @@ Provides endpoints for formula evaluation and variable registry.
 Delegates calculation logic to the ROI calculation agent.
 """
 
+import ast
+import math
 import re
 import uuid
 from datetime import UTC, datetime
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from jsonschema import Draft202012Validator
 from pydantic import BaseModel, Field, field_validator
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context
@@ -35,22 +38,78 @@ FLOATING_POINT_EPSILON = 1e-10  # Threshold for considering a value as zero
 
 # Valid expression pattern: alphanumeric, operators (+, -, *, /), parentheses, underscores, whitespace
 # Note: period (.) intentionally excluded to prevent attribute access attempts
-_VALID_EXPRESSION_PATTERN: re.Pattern = re.compile(r"^[a-zA-Z0-9_+\-*/()\s]+$")
-# Dangerous Python keywords/patterns that should not appear in formula expressions
-# Using set for O(1) membership testing
-_DANGEROUS_PATTERNS: frozenset[str] = frozenset([
-    "import", "exec", "eval", "compile", "__", "lambda", "class", "def"
-])
+_VALID_EXPRESSION_PATTERN: re.Pattern = re.compile(r"^[a-zA-Z0-9_+\-*/(),\s.]+$")
+_ALLOWED_FUNCTIONS: dict[str, Any] = {
+    "abs": abs,
+    "min": min,
+    "max": max,
+    "round": round,
+}
+_ALLOWED_BINARY_OPERATORS: tuple[type[ast.operator], ...] = (
+    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow,
+)
+_ALLOWED_UNARY_OPERATORS: tuple[type[ast.unaryop], ...] = (ast.UAdd, ast.USub)
+_FORMULA_SCHEMA: dict[str, Any] = {
+    "type": "object",
+    "required": ["expression", "variables"],
+    "additionalProperties": False,
+    "properties": {
+        "expression": {"type": "string", "minLength": 1, "maxLength": 2000},
+        "variables": {
+            "type": "object",
+            "propertyNames": {"pattern": r"^[A-Za-z_][A-Za-z0-9_]{0,127}$"},
+            "additionalProperties": {"type": "number"},
+        },
+    },
+}
+_FORMULA_SCHEMA_VALIDATOR = Draft202012Validator(_FORMULA_SCHEMA)
 
 
 def _validate_expression(v: str) -> None:
-    """Validate a formula expression for safety and syntax."""
+    """Validate a formula expression for safety and syntax.
+
+    Enforces a restricted formula DSL using JSON Schema + static AST checks.
+    """
     if not _VALID_EXPRESSION_PATTERN.match(v):
         raise ValueError("Expression contains invalid characters")
-    lowered = v.lower()
-    for dangerous in _DANGEROUS_PATTERNS:
-        if dangerous in lowered:
-            raise ValueError(f"Expression contains forbidden keyword: {dangerous}")
+    _validate_formula_schema(v, {})
+    _validate_formula_ast(v, set())
+
+
+def _validate_formula_schema(expression: str, variables: dict[str, float]) -> None:
+    candidate = {"expression": expression, "variables": variables}
+    errors = sorted(_FORMULA_SCHEMA_VALIDATOR.iter_errors(candidate), key=str)
+    if errors:
+        raise ValueError(f"Formula schema validation failed: {errors[0].message}")
+
+
+def _validate_formula_ast(expression: str, allowed_variables: set[str]) -> ast.AST:
+    try:
+        tree = ast.parse(expression, mode="eval")
+    except SyntaxError as exc:
+        raise ValueError("Invalid expression syntax") from exc
+
+    disallowed_nodes = (
+        ast.Attribute, ast.Subscript, ast.ListComp, ast.SetComp, ast.DictComp,
+        ast.GeneratorExp, ast.Lambda, ast.Import, ast.ImportFrom, ast.Await,
+        ast.Yield, ast.NamedExpr,
+    )
+    for node in ast.walk(tree):
+        if isinstance(node, disallowed_nodes):
+            raise ValueError(f"Forbidden expression construct: {type(node).__name__}")
+        if isinstance(node, ast.Call):
+            if not isinstance(node.func, ast.Name) or node.func.id not in _ALLOWED_FUNCTIONS:
+                raise ValueError("Function is not allowed in formula DSL")
+        if isinstance(node, ast.BinOp) and not isinstance(node.op, _ALLOWED_BINARY_OPERATORS):
+            raise ValueError("Binary operator is not allowed")
+        if isinstance(node, ast.UnaryOp) and not isinstance(node.op, _ALLOWED_UNARY_OPERATORS):
+            raise ValueError("Unary operator is not allowed")
+        if isinstance(node, ast.Name):
+            if node.id in {"eval", "exec", "__import__", "open"}:
+                raise ValueError("Forbidden identifier in formula DSL")
+            if allowed_variables and node.id not in allowed_variables and node.id not in _ALLOWED_FUNCTIONS:
+                raise ValueError(f"Unknown variable in formula: {node.id}")
+    return tree
 
 
 class FormulaInput(BaseModel):
@@ -861,99 +920,57 @@ async def calculate_scenario(
 
 
 def evaluate_expression(expression: str, variables: dict[str, float]) -> float:
-    """Safely evaluate a mathematical expression with variables."""
-    # Simple expression evaluation with basic operators
-    # In production, use a proper math parser like numexpr or asteval
-
-    # Replace variable names with values
-    expr = expression
-    for var_name, var_value in sorted(variables.items(), key=lambda x: -len(x[0])):
-        expr = expr.replace(var_name, str(var_value))
-
-    # Tokenize and evaluate
-    # This is a simplified evaluator - production should use a proper parser
+    """Safely evaluate a typed formula DSL with a strict AST whitelist."""
+    _validate_formula_schema(expression, variables)
+    tree = _validate_formula_ast(expression, set(variables.keys()))
     try:
-        # Handle parentheses with recursive evaluation
-        while "(" in expr:
-            # Find innermost parentheses
-            match = re.search(r"\(([^()]+)\)", expr)
-            if not match:
-                break
-            inner = match.group(1)
-            inner_result = evaluate_simple(inner)
-            expr = expr[: match.start()] + str(inner_result) + expr[match.end() :]
-
-        result = evaluate_simple(expr)
+        result = _evaluate_ast_node(tree.body, variables)
+        if not isinstance(result, (int, float)) or not math.isfinite(float(result)):
+            raise ValueError("Formula result must be a finite number")
         return float(result)
-    except (ValueError, ZeroDivisionError, TypeError) as e:
+    except (ValueError, ZeroDivisionError, TypeError):
         raise ValueError("INVALID_EXPRESSION_ERROR")
 
 
-def evaluate_simple(expr: str) -> float:
-    """Evaluate simple expression without parentheses."""
-
-
-    # Tokenize by operators (respecting operator precedence)
-    tokens = []
-    current = ""
-    i = 0
-    while i < len(expr):
-        if expr[i : i + 2] == "**":
-            if current.strip():
-                tokens.append(float(current.strip()))
-                current = ""
-            tokens.append("**")
-            i += 2
-        elif expr[i] in "+-*/":
-            if current.strip():
-                tokens.append(float(current.strip()))
-                current = ""
-            tokens.append(expr[i])
-            i += 1
-        else:
-            current += expr[i]
-            i += 1
-
-    if current.strip():
-        tokens.append(float(current.strip()))
-
-    # Evaluate with precedence
-    # First: **
-    i = 0
-    while i < len(tokens):
-        if tokens[i] == "**":
-            result = tokens[i - 1] ** tokens[i + 1]
-            tokens = tokens[: i - 1] + [result] + tokens[i + 2 :]
-        else:
-            i += 1
-
-    # Then: *, /
-    i = 0
-    while i < len(tokens):
-        if tokens[i] == "*":
-            result = tokens[i - 1] * tokens[i + 1]
-            tokens = tokens[: i - 1] + [result] + tokens[i + 2 :]
-        elif tokens[i] == "/":
-            if abs(tokens[i + 1]) < FLOATING_POINT_EPSILON:
-                raise ZeroDivisionError("Division by zero in expression")
-            result = tokens[i - 1] / tokens[i + 1]
-            tokens = tokens[: i - 1] + [result] + tokens[i + 2 :]
-        else:
-            i += 1
-
-    # Finally: +, -
-    i = 0
-    while i < len(tokens):
-        if tokens[i] == "+":
-            result = tokens[i - 1] + tokens[i + 1]
-            tokens = tokens[: i - 1] + [result] + tokens[i + 2 :]
-        elif tokens[i] == "-":
-            result = tokens[i - 1] - tokens[i + 1]
-            tokens = tokens[: i - 1] + [result] + tokens[i + 2 :]
-        else:
-            i += 1
-
-    return tokens[0] if tokens else 0.0
+def _evaluate_ast_node(node: ast.AST, variables: dict[str, float]) -> float:
+    if isinstance(node, ast.Constant):
+        if not isinstance(node.value, (int, float)):
+            raise ValueError("Only numeric constants are allowed")
+        return float(node.value)
+    if isinstance(node, ast.Name):
+        if node.id not in variables:
+            raise ValueError(f"Unknown variable: {node.id}")
+        return float(variables[node.id])
+    if isinstance(node, ast.UnaryOp):
+        operand = _evaluate_ast_node(node.operand, variables)
+        if isinstance(node.op, ast.UAdd):
+            return +operand
+        if isinstance(node.op, ast.USub):
+            return -operand
+        raise ValueError("Unsupported unary operator")
+    if isinstance(node, ast.BinOp):
+        left = _evaluate_ast_node(node.left, variables)
+        right = _evaluate_ast_node(node.right, variables)
+        if isinstance(node.op, ast.Add):
+            return left + right
+        if isinstance(node.op, ast.Sub):
+            return left - right
+        if isinstance(node.op, ast.Mult):
+            return left * right
+        if isinstance(node.op, ast.Div):
+            if abs(right) < FLOATING_POINT_EPSILON:
+                raise ZeroDivisionError("Division by zero")
+            return left / right
+        if isinstance(node.op, ast.Pow):
+            return left ** right
+        raise ValueError("Unsupported binary operator")
+    if isinstance(node, ast.Call):
+        fn = node.func
+        if not isinstance(fn, ast.Name) or fn.id not in _ALLOWED_FUNCTIONS:
+            raise ValueError("Unsupported function call")
+        args = [_evaluate_ast_node(arg, variables) for arg in node.args]
+        return float(_ALLOWED_FUNCTIONS[fn.id](*args))
+    raise ValueError(f"Unsupported AST node: {type(node).__name__}")
 
 
 def generate_calculation_steps(
