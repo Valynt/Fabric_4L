@@ -8,6 +8,7 @@ usage event ingestion with idempotency and tenant isolation.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from datetime import datetime
 from typing import Any
@@ -24,6 +25,7 @@ from ...services.billing_security import (
     STRIPE_WEBHOOK_SKIP_IP_CHECK,
     get_client_ip as _get_client_ip,
     is_stripe_webhook_ip as _is_stripe_webhook_ip,
+    validate_webhook_request_security,
 )
 
 def validate_customer_id(customer_id: str) -> str:
@@ -710,16 +712,20 @@ async def stripe_webhook(
             detail="Webhook processing not configured",
         )
 
-    # SECURITY: Verify request originates from Stripe IP ranges
-    client_ip = _get_client_ip(request)
-    if not STRIPE_WEBHOOK_SKIP_IP_CHECK and not _is_stripe_webhook_ip(client_ip):
-        logger.warning(
-            f"Webhook request from non-Stripe IP rejected: {client_ip}"
+    # SECURITY: Canonical ingress checks for source IP + signature/timestamp shape.
+    try:
+        validate_webhook_request_security(
+            request,
+            stripe_signature,
+            enforce_ip_check=not STRIPE_WEBHOOK_SKIP_IP_CHECK,
         )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid origin",
-        )
+    except HTTPException:
+        client_ip = _get_client_ip(request)
+        logger.warning(f"Webhook request from non-Stripe IP rejected: {client_ip}")
+        raise
+    except ValueError as e:
+        logger.warning(f"Webhook security validation failed: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook payload") from e
 
     # Read raw body for signature verification
     body = await request.body()
