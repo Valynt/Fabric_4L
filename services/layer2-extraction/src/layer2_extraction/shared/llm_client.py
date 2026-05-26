@@ -2,11 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
+
+from layer2_extraction.metrics.prometheus_metrics import get_metrics
+
+logger = logging.getLogger(__name__)
 
 
 class LLMProvider(Enum):
@@ -27,6 +32,7 @@ class LLMClient:
         cost_tracking_enabled: bool = False,
         job_id: str = "",
         tenant_id: str = "",
+        prompt_version: str = "",
     ) -> None:
         if isinstance(provider, str):
             try:
@@ -44,6 +50,7 @@ class LLMClient:
         self._cost_records: list[CostRecord] = []
         self._job_id = job_id
         self._tenant_id = tenant_id
+        self._prompt_version = prompt_version
 
         if self.provider == LLMProvider.OPENAI:
             key = api_key or os.environ.get("OPENAI_API_KEY", "")
@@ -81,66 +88,105 @@ class LLMClient:
             raise ValueError(f"Unsupported provider: {self.provider}")
         
         if self.provider == LLMProvider.OPENAI:
+            requested_model = kwargs.get("model", self.model)
             resp = await client.chat.completions.create(
-                model=kwargs.get("model", "gpt-4o"),
+                model=requested_model,
                 messages=messages,
                 temperature=kwargs.get("temperature", 0.0),
             )
             
-            # Track cost if enabled
             if self.cost_tracking_enabled:
-                prompt_tokens = resp.usage.prompt_tokens if resp.usage else 0
-                completion_tokens = resp.usage.completion_tokens if resp.usage else 0
-                total_tokens = resp.usage.total_tokens if resp.usage else 0
-                cost_usd = self._calculate_openai_cost(resp.model, prompt_tokens, completion_tokens)
-                
-                record = CostRecord(
-                    job_id=self._job_id,
-                    tenant_id=self._tenant_id,
-                    model=resp.model,
+                self._record_usage(
                     provider="openai",
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    total_tokens=total_tokens,
-                    cost_usd=cost_usd,
+                    model=getattr(resp, "model", requested_model),
+                    usage=self._extract_openai_usage(resp),
                     call_type=kwargs.get("call_type", "extraction"),
+                    prompt_version=kwargs.get("prompt_version", self._prompt_version),
                 )
-                self._cost_records.append(record)
             
             return resp.choices[0].message.content or ""
         elif self.provider == LLMProvider.ANTHROPIC:
             if self._client is None:
                 raise RuntimeError("Anthropic client not available")
+            requested_model = kwargs.get("model", self.model)
             resp = await self._client.messages.create(
-                model=kwargs.get("model", "claude-3-sonnet-20240229"),
+                model=requested_model,
                 max_tokens=kwargs.get("max_tokens", 1024),
                 messages=messages,
                 temperature=kwargs.get("temperature", 0.0),
             )
             
-            # Track cost if enabled
             if self.cost_tracking_enabled:
-                prompt_tokens = resp.usage.input_tokens if resp.usage else 0
-                completion_tokens = resp.usage.output_tokens if resp.usage else 0
-                total_tokens = prompt_tokens + completion_tokens
-                cost_usd = self._calculate_anthropic_cost(resp.model, prompt_tokens, completion_tokens)
-                
-                record = CostRecord(
-                    job_id=self._job_id,
-                    tenant_id=self._tenant_id,
-                    model=resp.model,
+                self._record_usage(
                     provider="anthropic",
-                    prompt_tokens=prompt_tokens,
-                    completion_tokens=completion_tokens,
-                    total_tokens=total_tokens,
-                    cost_usd=cost_usd,
+                    model=getattr(resp, "model", requested_model),
+                    usage=self._extract_anthropic_usage(resp),
                     call_type=kwargs.get("call_type", "extraction"),
+                    prompt_version=kwargs.get("prompt_version", self._prompt_version),
                 )
-                self._cost_records.append(record)
             
             return resp.content[0].text if resp.content else ""
         raise ValueError(f"Unsupported provider: {self.provider}")
     
+
+    def _extract_openai_usage(self, response: Any) -> tuple[int, int, int]:
+        usage = getattr(response, "usage", None)
+        prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
+        completion_tokens = int(getattr(usage, "completion_tokens", 0) or 0)
+        total_tokens = int(getattr(usage, "total_tokens", prompt_tokens + completion_tokens) or (prompt_tokens + completion_tokens))
+        return prompt_tokens, completion_tokens, total_tokens
+
+    def _extract_anthropic_usage(self, response: Any) -> tuple[int, int, int]:
+        usage = getattr(response, "usage", None)
+        prompt_tokens = int(getattr(usage, "input_tokens", 0) or 0)
+        completion_tokens = int(getattr(usage, "output_tokens", 0) or 0)
+        total_tokens = prompt_tokens + completion_tokens
+        return prompt_tokens, completion_tokens, total_tokens
+
+    def _record_usage(self, *, provider: str, model: str, usage: tuple[int, int, int], call_type: str, prompt_version: str) -> None:
+        prompt_tokens, completion_tokens, total_tokens = usage
+        cost_usd = (
+            self._calculate_openai_cost(model, prompt_tokens, completion_tokens)
+            if provider == "openai"
+            else self._calculate_anthropic_cost(model, prompt_tokens, completion_tokens)
+        )
+        record = CostRecord(
+            job_id=self._job_id,
+            tenant_id=self._tenant_id,
+            model=model,
+            provider=provider,
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+            total_tokens=total_tokens,
+            cost_usd=cost_usd,
+            call_type=call_type,
+            prompt_version=prompt_version,
+        )
+        self._cost_records.append(record)
+
+        metrics = get_metrics()
+        if metrics is not None:
+            metrics.record_llm_cost(provider=provider, model=model, tenant_id=self._tenant_id, cost_usd=cost_usd)
+            metrics.record_llm_tokens(provider=provider, model=model, token_type="prompt", count=prompt_tokens)
+            metrics.record_llm_tokens(provider=provider, model=model, token_type="completion", count=completion_tokens)
+            metrics.record_llm_tokens(provider=provider, model=model, token_type="total", count=total_tokens)
+
+        logger.info(
+            "llm_usage_recorded",
+            extra={
+                "provider": provider,
+                "model": model,
+                "tenant_id": self._tenant_id,
+                "job_id": self._job_id,
+                "prompt_version": prompt_version,
+                "call_type": call_type,
+                "prompt_tokens": prompt_tokens,
+                "completion_tokens": completion_tokens,
+                "total_tokens": total_tokens,
+                "cost_usd": cost_usd,
+            },
+        )
+
     def _calculate_openai_cost(self, model: str, prompt_tokens: int, completion_tokens: int) -> float:
         """Calculate OpenAI API cost in USD.
         
@@ -228,6 +274,7 @@ class CostRecord:
     cost_usd: float = 0.0
     timestamp: datetime = field(default_factory=lambda: datetime.now(UTC))
     call_type: str = "extraction"  # extraction, validation, etc.
+    prompt_version: str = ""
     
     @property
     def cost_per_1k_tokens(self) -> float:
