@@ -119,6 +119,8 @@ class Layer3KnowledgeClient:
         rdf_data: str,
         source_url: str,
         extraction_job_id: str,
+        prompt_template_version: str | None = None,
+        prompt_template_hash: str | None = None,
     ) -> IngestionResponse:
         if not await self.health_check():
             return IngestionResponse(
@@ -132,6 +134,10 @@ class Layer3KnowledgeClient:
                 "source_url": source_url,
                 "extraction_job_id": extraction_job_id,
             }
+            if prompt_template_version is not None:
+                payload["prompt_template_version"] = prompt_template_version
+            if prompt_template_hash is not None:
+                payload["prompt_template_hash"] = prompt_template_hash
             response = await self._client.post(
                 f"{self.base_url}/v1/ingest",
                 json=payload,

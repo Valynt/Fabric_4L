@@ -20,6 +20,8 @@ class QuarantineRecord(BaseModel):
     source_hash: str
     model_version: str
     schema_version: str
+    prompt_template_version: str
+    prompt_template_hash: str | None = None
     payload_json: str
     validation_errors: list[str] = Field(default_factory=list)
     reason: str = "validation_error"
@@ -89,6 +91,8 @@ class SqliteQuarantineStore(QuarantineStore):
                     source_hash TEXT NOT NULL,
                     model_version TEXT NOT NULL,
                     schema_version TEXT NOT NULL,
+                    prompt_template_version TEXT NOT NULL,
+                    prompt_template_hash TEXT,
                     payload_json TEXT NOT NULL,
                     validation_errors_json TEXT NOT NULL,
                     reason TEXT NOT NULL,
@@ -120,9 +124,9 @@ class SqliteQuarantineStore(QuarantineStore):
         with sqlite3.connect(self._db_path) as conn:
             conn.execute(
                 """INSERT OR REPLACE INTO extraction_quarantine
-                (quarantine_id, job_id, tenant_id, source_url, source_hash, model_version, schema_version, payload_json,
+                (quarantine_id, job_id, tenant_id, source_url, source_hash, model_version, schema_version, prompt_template_version, prompt_template_hash, payload_json,
                  validation_errors_json, reason, review_status, retry_eligible, created_at)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     record.quarantine_id,
                     record.job_id,
@@ -131,6 +135,8 @@ class SqliteQuarantineStore(QuarantineStore):
                     record.source_hash,
                     record.model_version,
                     record.schema_version,
+                    record.prompt_template_version,
+                    record.prompt_template_hash,
                     record.payload_json,
                     __import__('json').dumps(record.validation_errors),
                     record.reason,
@@ -157,8 +163,9 @@ class SqliteQuarantineStore(QuarantineStore):
         import json
         return QuarantineRecord(
             quarantine_id=row[0], job_id=row[1], tenant_id=row[2], source_url=row[3], source_hash=row[4],
-            model_version=row[5], schema_version=row[6], payload_json=row[7], validation_errors=json.loads(row[8]),
-            reason=row[9], review_status=row[10], retry_eligible=bool(row[11]), created_at=datetime.fromisoformat(row[12])
+            model_version=row[5], schema_version=row[6], prompt_template_version=row[7], prompt_template_hash=row[8],
+            payload_json=row[9], validation_errors=json.loads(row[10]),
+            reason=row[11], review_status=row[12], retry_eligible=bool(row[13]), created_at=datetime.fromisoformat(row[14])
         )
 
 

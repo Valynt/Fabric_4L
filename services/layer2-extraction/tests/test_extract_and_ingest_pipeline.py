@@ -679,3 +679,40 @@ async def test_cross_layer_extract_ingest_status_flow(
     assert status_body["completed_at"] is not None
 
 
+@pytest.mark.asyncio
+async def test_run_extract_and_ingest_quarantines_invalid_artifacts_before_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    artifacts = build_artifacts("job-invalid", "https://example.com/doc")
+    artifacts.result.tenant_id = ""
+
+    queued = {"called": False}
+    quarantined = {"called": False}
+
+    async def fake_run_extraction(
+        job_id: str, source_url: str, content: str, config: dict, mark_pipeline_complete: bool = True
+    ):
+        return artifacts
+
+    async def fake_queue_for_retry(*args, **kwargs):
+        queued["called"] = True
+
+    async def fake_quarantine_validation_failure(**kwargs):
+        quarantined["called"] = True
+        return None
+
+    monkeypatch.setattr(api_main, "run_extraction", fake_run_extraction)
+    monkeypatch.setattr(api_main, "_queue_for_retry", fake_queue_for_retry)
+    monkeypatch.setattr(api_main, "_quarantine_validation_failure", fake_quarantine_validation_failure)
+    monkeypatch.setattr(api_main, "Layer3KnowledgeClient", build_layer3_client_double(healthy=False))
+
+    await api_main.run_extract_and_ingest(
+        job_id="job-invalid",
+        source_url="https://example.com/doc",
+        content="content",
+        config={"tenant_id": "tenant-1", "schema_version": "v1", "model_version": "gpt-4o"},
+    )
+
+    assert quarantined["called"] is True
+    assert queued["called"] is False
+

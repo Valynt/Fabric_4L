@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+from uuid import NAMESPACE_URL, uuid5
 from typing import Any
 
 
@@ -82,16 +83,18 @@ def _build_entity_signature(entity_type: str, entity: Any) -> str:
 
 def compute_deterministic_id(
     tenant_id: str,
-    source_url: str,
+    source_hash: str,
     entity_type: str,
     entity: Any,
     extraction_version: str = "v1",
+    *,
+    source_url: str | None = None,
 ) -> str:
     """Compute a deterministic, stable ID for an extracted entity.
 
     Args:
         tenant_id: The tenant owning this entity.
-        source_url: The source document URL.
+        source_hash: Stable hash of source content/identifier.
         entity_type: Type of entity (capability, usecase, persona, etc.).
         entity: The entity object with identity-defining fields.
         extraction_version: Version of the extraction pipeline/config.
@@ -99,6 +102,13 @@ def compute_deterministic_id(
     Returns:
         A stable 64-character hex string derived from the inputs.
     """
+    effective_source_hash = source_hash or _normalize_text(source_url)
     signature = _build_entity_signature(entity_type, entity)
-    payload = f"{tenant_id}|{source_url}|{entity_type}|{signature}|{extraction_version}"
-    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+    payload = f"{tenant_id}|{effective_source_hash}|{entity_type}|{signature}|{extraction_version}"
+    return str(uuid5(NAMESPACE_URL, payload))
+
+
+def compute_source_hash(source_value: str) -> str:
+    """Compute a normalized SHA-256 hash for source identifier/content."""
+    normalized = _normalize_text(source_value)
+    return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
