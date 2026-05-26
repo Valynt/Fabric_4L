@@ -561,13 +561,15 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
             metrics = get_metrics()
             if metrics:
                 metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
-                metrics.observe_job_stage_duration(
-                    time.monotonic() - stage_started_at,
-                    stage="crawl_path_execution",
-                    status="completed",
-                )
 
             _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
+
+            if metrics:
+                metrics.observe_job_stage_duration(
+                    time.monotonic() - stage_started_at,
+                    stage=PipelineStage.BROWSER_LAUNCH.value,
+                    status="completed",
+                )
 
             # Stage 3: Navigation
             _update_stage(session, job_id, PipelineStage.NAVIGATION, "RUNNING")
