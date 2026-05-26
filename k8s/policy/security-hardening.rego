@@ -56,7 +56,7 @@ has_required_container_security_context(container) {
 
 is_non_root_id(value) {
   is_number(value)
-  value > 0
+  value >= 1000
 }
 
 
