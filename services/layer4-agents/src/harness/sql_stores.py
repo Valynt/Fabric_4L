@@ -745,7 +745,7 @@ class SqlHarnessRegistry:
                 to_state=to_state,
             )
 
-            await self._run_repo.update(updated)
+            await self._run_repo.update(updated, expected_updated_at=baseline.updated_at)
 
             if state_payload is not None:
                 await self._checkpoints.create_checkpoint(
