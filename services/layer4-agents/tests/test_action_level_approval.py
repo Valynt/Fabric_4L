@@ -54,7 +54,11 @@ class TestActionLevelApproval:
         assert requires_approval(ActionClass.PUBLISH_BUSINESS_CASE) is True
 
     def test_requires_approval_for_unknown_action(self) -> None:
-        assert requires_approval("unknown_action") is False
+        assert requires_approval("unknown_action") is True
+
+    def test_unknown_action_denied_by_default(self) -> None:
+        with pytest.raises(ApprovalRequiredError, match="denied by default"):
+            get_policy("unmapped_critical_action")
 
     def test_requires_approval_for_none(self) -> None:
         assert requires_approval(None) is False
