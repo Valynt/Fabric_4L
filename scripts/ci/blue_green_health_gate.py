@@ -26,7 +26,7 @@ def main() -> int:
 
     ready = bool(health.get("ready", False))
     error_rate = float(metrics.get("error_rate", 1.0))
-    p95_latency_ms = int(metrics.get("p95_latency_ms", 999999))
+    p95_latency_ms = float(metrics.get("p95_latency_ms", 999999))
 
     gate_ok = ready and error_rate <= args.max_error_rate and p95_latency_ms <= args.max_p95_latency_ms
     if gate_ok:
