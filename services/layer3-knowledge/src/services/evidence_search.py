@@ -329,7 +329,7 @@ class EvidenceSearchService:
             model = _get_embedding_model()
             embedding = await asyncio.to_thread(model.encode, text)
             embedding_list = embedding.tolist()
-            from config import get_settings
+            from ..config import get_settings
 
             validate_embedding_dimension(
                 configured_dimension=get_settings().embedding_dimension,
