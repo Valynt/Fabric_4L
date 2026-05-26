@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer3 test-layer4 \
-        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk \
+        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
@@ -57,7 +57,12 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@python -m pytest tests/contract/test_import_topology.py -q
 	@echo "→ Running strict navigation pattern check..."
 	@cd apps/web && python ../../scripts/ci/check_navigation_patterns.py --strict
+	@echo "→ Running Layer 4 bounded-context dependency check..."
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "✅  Structure verification passed"
+
+check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 
 check-ui-duplicates: ## Block new duplicate UI component filenames between prototype and production trees
 	@python3 scripts/check_ui_duplicate_filenames.py

@@ -1,11 +1,12 @@
 
 import json
-import logging
 from uuid import UUID
 
 from fastapi import HTTPException, Request, status
 
-logger = logging.getLogger(__name__)
+from ..observability.structured_logging import get_logger
+
+logger = get_logger(__name__)
 
 
 def _as_uuid(raw: str | UUID | None) -> UUID | None:
@@ -62,14 +63,7 @@ async def enforce_authenticated_tenant_precedence(
             continue
         if candidate != authenticated_tenant_id:
             fields = _audit_fields(request, actor, authenticated_tenant_id)
-            logger.warning(
-                "Denied cross-tenant attempt from %s (auth_tenant=%s, requested_tenant=%s, actor=%s, request_id=%s)",
-                source,
-                fields["tenant_id"],
-                str(candidate),
-                fields["actor"],
-                fields["request_id"],
-            )
+            logger.warning("cross_tenant_request_denied", event="cross_tenant_request_denied", source=source, auth_tenant_id=fields["tenant_id"], requested_tenant_id=str(candidate), actor=fields["actor"], request_id=fields["request_id"], tenant_id=fields["tenant_id"])
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Cross-tenant request denied.",

@@ -181,9 +181,11 @@ The initial migration creates tables for:
 
 - Webhook signatures are verified before any persistence or business logic is run.
 - Stripe events are persisted to `billing_webhook_events` keyed by `event.id` with inbox state (`status`, `attempt_count`, `last_error`, `next_retry_at`, `processed_at`, `payload_hash`).
+- Idempotency scope is `event.id` and applies per Stripe account/event stream; duplicate deliveries are safely re-entrant even when concurrent workers race on the same event row.
 - Duplicate deliveries with already-processed `event.id` are acknowledged idempotently and do not re-run side effects.
 - Business handling runs asynchronously from request handling, with retryable failures marked for bounded exponential backoff and terminal failures moved to a final `failed` state.
-- Operational signals are emitted through logs for duplicate deliveries, retry scheduling, terminal failures, and processing latency.
+- Durable retry queue processing is supported via `process_due_webhook_retries(...)`, which dequeues due `retryable` rows, applies backoff, and leaves poison messages in durable DLQ state (`status=failed`) with audit logs.
+- Operational metrics are emitted as structured logs under `billing.webhook.metric.{accepted|processed|duplicate|retried|failed}` plus audit records like `billing.webhook.dlq_routed`.
 - **Integrations**: integrations
 
 All tables include `tenant_id` for multi-tenant isolation via Row-Level Security (RLS).

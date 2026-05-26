@@ -88,6 +88,10 @@ class BillingService:
     def _retry_delay_seconds(self, attempt_count: int) -> int:
         return min(300, 2 ** max(0, attempt_count - 1))
 
+    def _emit_webhook_metric(self, metric: str, **extra: Any) -> None:
+        """Emit structured webhook operational metric."""
+        logger.info(f"billing.webhook.metric.{metric}", extra={"metric": metric, **extra})
+
     async def get_or_create_customer(
         self,
         customer_id: str,
@@ -441,6 +445,9 @@ class BillingService:
         inbox = result.scalar_one()
         if inbox.status == "processed":
             logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type, "duplicate_count": 1})
+            self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
+        else:
+            self._emit_webhook_metric("accepted", event_id=event_id, event_type=event_type, status=inbox.status)
         return inbox
 
     async def process_webhook_event(self, event_id: str, payload: bytes, signature: str, webhook_secret: str) -> None:
@@ -451,6 +458,8 @@ class BillingService:
         result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
         inbox = result.scalar_one_or_none()
         if inbox is None or inbox.status == "processed":
+            if inbox is not None:
+                self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
             return
         try:
             started_at = self._utc_now()
@@ -487,6 +496,7 @@ class BillingService:
                 },
             )
             await self.db.flush()
+            self._emit_webhook_metric("processed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
         except Exception as exc:
             transient = isinstance(exc, (StripeError, SQLAlchemyError, asyncio.TimeoutError))
             inbox.last_error = sanitize_log_error(exc)
@@ -494,12 +504,38 @@ class BillingService:
                 inbox.status = "retryable"
                 inbox.next_retry_at = self._utc_now() + timedelta(seconds=self._retry_delay_seconds(inbox.attempt_count))
                 logger.warning("billing.webhook.retry_scheduled", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
+                self._emit_webhook_metric("retried", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
             else:
                 inbox.status = "failed"
                 inbox.next_retry_at = None
                 logger.error("billing.webhook.terminal_failure", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
+                logger.error("billing.webhook.dlq_routed", extra={"event_id": event_id, "event_type": event_type, "last_error": inbox.last_error, "attempt_count": inbox.attempt_count})
+                self._emit_webhook_metric("failed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
             await self.db.flush()
             raise
+
+    async def process_due_webhook_retries(self, payload_lookup: dict[str, bytes], signature: str, webhook_secret: str, limit: int = 100) -> int:
+        """Durable retry queue worker for retryable inbox rows.
+
+        Rows in `retryable` with due `next_retry_at` are dequeued and re-processed.
+        Failed rows remain as durable DLQ entries with `status=failed`.
+        """
+        now = self._utc_now()
+        due = await self.db.execute(
+            select(BillingWebhookEvent)
+            .where(BillingWebhookEvent.status == "retryable", BillingWebhookEvent.next_retry_at.is_not(None), BillingWebhookEvent.next_retry_at <= now)
+            .order_by(BillingWebhookEvent.next_retry_at.asc())
+            .limit(limit)
+        )
+        processed = 0
+        for inbox in due.scalars().all():
+            payload = payload_lookup.get(inbox.id)
+            if not payload:
+                logger.error("billing.webhook.retry_payload_missing", extra={"event_id": inbox.id})
+                continue
+            await self.process_webhook_event(inbox.id, payload, signature, webhook_secret)
+            processed += 1
+        return processed
 
     async def _handle_checkout_completed(self, session: dict[str, Any]) -> None:
         """Handle checkout.session.completed event.
