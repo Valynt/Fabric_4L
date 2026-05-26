@@ -322,6 +322,48 @@ groups:
           description: "Replay-suspected token events exceeded threshold in 10m window."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
 
+
+      # Layer 3 graph observability alerts
+      - alert: Layer3GraphQueryFailureSpike
+        expr: |
+          sum(rate(value_fabric_graph_query_failures_total[5m])) by (category, operation, route) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 3 graph query failures are spiking"
+          description: "Failure rate for category={{ $labels.category }}, operation={{ $labels.operation }}, route={{ $labels.route }} exceeded 0.5/sec for 10m."
+
+      - alert: Layer3SustainedSlowGraphQueries
+        expr: |
+          sum(rate(value_fabric_graph_slow_queries_total[10m])) by (operation) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 3 sustained slow graph queries"
+          description: "Slow query events for operation={{ $labels.operation }} have remained elevated for 15m."
+
+      - alert: Layer3UnauthorizedTraversalAttempts
+        expr: |
+          sum(increase(value_fabric_unauthorized_traversals_total[5m])) by (category, route, violation_type) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 3 unauthorized traversal attempt detected"
+          description: "Unauthorized traversal category={{ $labels.category }}, route={{ $labels.route }}, violation_type={{ $labels.violation_type }} detected."
+
+      - alert: Layer3IndexConstraintHealthFailures
+        expr: |
+          sum(increase(value_fabric_graph_index_constraint_health_failures_total[15m])) by (check_type, component) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 3 index/constraint health failures detected"
+          description: "Index/constraint health failures found for check_type={{ $labels.check_type }}, component={{ $labels.component }}."
+
       # Ground truth staleness (L5)
       # `layer5_stale_objects_detected` is a Gauge reflecting the *current*
       # count of stale objects, so this alert auto-clears once staleness is

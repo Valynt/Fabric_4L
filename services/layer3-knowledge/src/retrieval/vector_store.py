@@ -33,6 +33,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..config import Settings, get_settings
 from ..db.driver import get_driver
 from ..db.query_execution import run_scoped_query
+from ..metrics.prometheus_metrics import get_metrics
 
 
 class Neo4jVectorStore_index_healthResult(TypedDictModel):
@@ -383,6 +384,11 @@ class Neo4jVectorStore:
                 online = state == "ONLINE"
                 if not online:
                     all_online = False
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.increment_index_constraint_health_failure(
+                            check_type="vector_index", component=index_name
+                        )
                 details[index_name] = {
                     "entity_type": etype,
                     "state": state or "MISSING",
@@ -390,6 +396,11 @@ class Neo4jVectorStore:
                 }
 
         except (ClientError, ServiceUnavailable) as exc:
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_index_constraint_health_failure(
+                    check_type="vector_index_query", component="neo4j_vector_store"
+                )
             return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": "Neo4j vector store health check failed", "error_code": "NEO4J_VECTOR_STORE_ERROR", "indexes": {}})
 
         return Neo4jVectorStore_index_healthResult.model_validate({

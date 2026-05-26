@@ -164,7 +164,23 @@ class TenantQueryExecutor:
 
         start = time.monotonic()
         coro = run_callable(query, params)
-        result = await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+        try:
+            result = await asyncio.wait_for(coro, timeout=QUERY_TIMEOUT_SECONDS)
+        except asyncio.TimeoutError:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_graph_query_failure(
+                    category="timeout", operation="run", route="tenant_query_executor"
+                )
+            raise
+        except Exception:
+            metrics = get_metrics() if get_metrics else None
+            if metrics:
+                metrics.increment_graph_query_failure(
+                    category="execution_error", operation="run", route="tenant_query_executor"
+                )
+            raise
+
         elapsed = time.monotonic() - start
 
         metrics = get_metrics() if get_metrics else None
@@ -212,6 +228,11 @@ class TenantQueryExecutor:
                     metrics.increment_tenant_isolation_violation(
                         component="query_execution", violation_type="direct_mutation_bypass"
                     )
+                    metrics.increment_unauthorized_traversal(
+                        category="mutation_bypass",
+                        route="tenant_query_executor",
+                        violation_type="direct_mutation_bypass",
+                    )
                 raise TenantQueryValidationError(
                     "Direct CREATE/MERGE/DELETE on tenant-owned labels is prohibited. "
                     "Use AuditedGraphMutation.write_relationship(), write_node(), delete_relationship(), or delete_node() instead. "
@@ -226,6 +247,11 @@ class TenantQueryExecutor:
                 metrics.observe_graph_traversal_depth(
                     depth=max_depth, endpoint="tenant_query_executor", operation="validate"
                 )
+                metrics.increment_unauthorized_traversal(
+                    category="depth_limit",
+                    route="tenant_query_executor",
+                    violation_type="depth_exceeded",
+                )
             raise CypherDepthLimitExceeded(
                 f"Query exceeds maximum depth of {MAX_QUERY_DEPTH} (found {max_depth})"
             )
@@ -236,6 +262,11 @@ class TenantQueryExecutor:
             if metrics:
                 metrics.increment_tenant_isolation_violation(
                     component="query_execution", violation_type="missing_tenant_context"
+                )
+                metrics.increment_unauthorized_traversal(
+                    category="tenant_boundary",
+                    route="tenant_query_executor",
+                    violation_type="missing_tenant_context",
                 )
             raise TenantQueryValidationError("Tenant context is required for tenant-owned Cypher execution")
 
