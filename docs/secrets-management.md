@@ -28,7 +28,7 @@ Production-ready secret handling across local development, Docker Compose, and K
 | Secret Name | Used By | Purpose | Default | Source |
 |-------------|---------|---------|---------|--------|
 | `NEO4J_PASSWORD` | L2, L3, L4 | Graph database auth | `valuefabric` | Self-managed |
-| `JWT_SECRET` | L5 | Token signing | `changeme-in-production` | Generate with `openssl rand -hex 32` |
+| `JWT_SECRET` | L5 | Token signing | `<required-no-default>` | Generate with `openssl rand -hex 32` |
 | `POSTGRES_PASSWORD` | L1, L4, L5 | SQL database auth | `postgres` | Self-managed |
 
 ### Optional (Enhancements)
@@ -424,3 +424,6 @@ A non-zero exit code blocks the deployment pipeline.
 ---
 
 *Last updated: 2026-04-19*
+
+
+For local development, generate secrets per developer machine (never commit): `python3 -c "import secrets; print(secrets.token_urlsafe(48))"`.
