@@ -48,6 +48,7 @@ class L3GraphClient:
         headers = {"X-Tenant-ID": tenant_id}
         if request_id:
             headers["X-Request-ID"] = request_id
+            headers["X-Correlation-ID"] = request_id
 
         try:
             response = await self._client.post(

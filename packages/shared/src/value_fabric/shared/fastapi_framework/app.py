@@ -23,6 +23,13 @@ class EnforcementMode(StrEnum):
     ENFORCE = "enforce"
 
 
+class ExceptionHandlerRegistrationMode(StrEnum):
+    """Exception handler registration strategies for shared app assembly."""
+
+    DEFAULT = "default"
+    SKIP = "skip"
+
+
 @dataclass(frozen=True)
 class EnforcementControlConfig:
     """Control-level rollout configuration for a single enforcement concern."""
@@ -267,7 +274,11 @@ def create_fabric_app(
     lifespan: Callable[..., Any] | None = None,
     cors_policy: CorsPolicy | dict[str, Any] | None = None,
     register_default_exception_handlers: bool = True,
+    exception_handler_registration_mode: ExceptionHandlerRegistrationMode = ExceptionHandlerRegistrationMode.DEFAULT,
     include_request_id_middleware: bool = True,
+    pre_core_middleware_hook: Callable[[FastAPI], None] | None = None,
+    post_core_middleware_hook: Callable[[FastAPI], None] | None = None,
+    health_readiness_augmentation_hook: Callable[[FastAPI], None] | None = None,
     telemetry_service_name: str | None = None,
     instrument_telemetry: bool = False,
     enforcement_rollout: EnforcementRolloutConfig | None = None,
@@ -278,6 +289,14 @@ def create_fabric_app(
     This factory centralizes the common bootstrap concerns that are repeated
     across service entrypoints without constraining service-specific startup
     dependencies or router composition.
+
+    Extension hooks are inert by default:
+    - Middleware hooks run only when explicitly provided by a service.
+    - Exception handler mode defaults to current shared behavior.
+    - Health/readiness augmentation runs only when explicitly provided.
+
+    Service-owned lifecycle behavior remains authoritative; this factory does
+    not create or manage DB/session lifecycle side effects.
     """
 
     app = FastAPI(
@@ -297,6 +316,9 @@ def create_fabric_app(
         if instrument_telemetry:
             instrument_fastapi_app(app, enabled=app.state.telemetry_provider is not None)
 
+    if pre_core_middleware_hook is not None:
+        pre_core_middleware_hook(app)
+
     if cors_policy is not None:
         policy = cors_policy if isinstance(cors_policy, CorsPolicy) else CorsPolicy(**cors_policy)
         add_cors_middleware(app, policy)
@@ -304,7 +326,17 @@ def create_fabric_app(
     if include_request_id_middleware:
         add_request_id_middleware(app)
 
-    if register_default_exception_handlers:
+    if post_core_middleware_hook is not None:
+        post_core_middleware_hook(app)
+
+    should_register_handlers = register_default_exception_handlers
+    if exception_handler_registration_mode == ExceptionHandlerRegistrationMode.SKIP:
+        should_register_handlers = False
+
+    if should_register_handlers:
         register_exception_handlers(app)
+
+    if health_readiness_augmentation_hook is not None:
+        health_readiness_augmentation_hook(app)
 
     return app

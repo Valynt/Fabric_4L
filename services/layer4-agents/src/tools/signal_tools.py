@@ -62,6 +62,7 @@ def _signal_headers(tenant_id: str, request_id: str | None = None) -> dict[str, 
     headers = {"X-Tenant-ID": tenant_id}
     if request_id:
         headers["X-Request-ID"] = request_id
+        headers["X-Correlation-ID"] = request_id
     return headers
 
 

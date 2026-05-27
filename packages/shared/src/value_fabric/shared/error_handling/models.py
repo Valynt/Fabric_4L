@@ -12,6 +12,7 @@ class ErrorCode(str, Enum):
     # Authentication/Authorization errors (4xx)
     AUTHENTICATION_ERROR = "AUTHENTICATION_ERROR"
     AUTHORIZATION_ERROR = "AUTHORIZATION_ERROR"
+    TENANT_ISOLATION_ERROR = "TENANT_ISOLATION_ERROR"
     TOKEN_EXPIRED = "TOKEN_EXPIRED"
     TOKEN_INVALID = "TOKEN_INVALID"
 
@@ -30,6 +31,7 @@ class ErrorCode(str, Enum):
 
     # Rate limiting (429)
     RATE_LIMIT_EXCEEDED = "RATE_LIMIT_EXCEEDED"
+    THROTTLED = "THROTTLED"
     QUOTA_EXCEEDED = "QUOTA_EXCEEDED"
 
     # Server errors (5xx)

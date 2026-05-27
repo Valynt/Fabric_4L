@@ -44,6 +44,15 @@ class AssumptionApprovalService:
     def __init__(self) -> None:
         self._approval_state_machine = ApprovalStateMachine()
 
+    @staticmethod
+    def _require_assumption_tenant(assumption: Assumption) -> UUID:
+        """Fail closed when an assumption is missing tenant ownership metadata."""
+        if assumption.tenant_id is None:
+            raise ValueError(
+                f"Assumption {assumption.id} is missing tenant_id; refusing to process approval workflow."
+            )
+        return assumption.tenant_id
+
     async def requires_approval(self, assumption: Assumption) -> bool:
         """Check if an assumption requires approval based on impact level."""
         return assumption.impact_level in REQUIRES_APPROVAL
@@ -76,10 +85,13 @@ class AssumptionApprovalService:
                 f"Only {REQUIRES_APPROVAL} impact levels require approval."
             )
 
-        # Check if there's already a pending approval request
+        tenant_id = self._require_assumption_tenant(assumption)
+
+        # Check if there's already a pending approval request (tenant-scoped)
         existing = await db.execute(
             select(ApprovalRequest).where(
                 and_(
+                    ApprovalRequest.tenant_id == tenant_id,
                     ApprovalRequest.entity_type == EntityType.ASSUMPTION.value,
                     ApprovalRequest.entity_id == assumption.id,
                     ApprovalRequest.status == ApprovalStatus.PENDING.value,
@@ -93,7 +105,7 @@ class AssumptionApprovalService:
 
         # Create approval request
         request = ApprovalRequest(
-            tenant_id=assumption.tenant_id,
+            tenant_id=tenant_id,
             entity_type=EntityType.ASSUMPTION.value,
             entity_id=assumption.id,
             entity_version=None,  # Assumptions are not versioned in the same way
@@ -154,9 +166,16 @@ class AssumptionApprovalService:
                 "Call create_approval_request first."
             )
 
-        # Get the approval request
+        tenant_id = self._require_assumption_tenant(assumption)
+
+        # Get the approval request (tenant-scoped; fail closed on mismatch)
         result = await db.execute(
-            select(ApprovalRequest).where(ApprovalRequest.id == assumption.approval_request_id)
+            select(ApprovalRequest).where(
+                and_(
+                    ApprovalRequest.id == assumption.approval_request_id,
+                    ApprovalRequest.tenant_id == tenant_id,
+                )
+            )
         )
         request = result.scalar_one_or_none()
         if request is None:
@@ -212,9 +231,16 @@ class AssumptionApprovalService:
                 f"Assumption {assumption.id} has no approval request."
             )
 
-        # Get the approval request
+        tenant_id = self._require_assumption_tenant(assumption)
+
+        # Get the approval request (tenant-scoped; fail closed on mismatch)
         result = await db.execute(
-            select(ApprovalRequest).where(ApprovalRequest.id == assumption.approval_request_id)
+            select(ApprovalRequest).where(
+                and_(
+                    ApprovalRequest.id == assumption.approval_request_id,
+                    ApprovalRequest.tenant_id == tenant_id,
+                )
+            )
         )
         request = result.scalar_one_or_none()
         if request is None:
@@ -274,9 +300,16 @@ class AssumptionApprovalService:
                 f"Assumption {assumption.id} has no approval request."
             )
 
-        # Get the approval request
+        tenant_id = self._require_assumption_tenant(assumption)
+
+        # Get the approval request (tenant-scoped; fail closed on mismatch)
         result = await db.execute(
-            select(ApprovalRequest).where(ApprovalRequest.id == assumption.approval_request_id)
+            select(ApprovalRequest).where(
+                and_(
+                    ApprovalRequest.id == assumption.approval_request_id,
+                    ApprovalRequest.tenant_id == tenant_id,
+                )
+            )
         )
         request = result.scalar_one_or_none()
         if request is None:
