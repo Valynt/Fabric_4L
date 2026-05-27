@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+
 from fastapi import HTTPException
+from starlette.requests import Request
 
 from layer5_ground_truth.api.main import (
     Layer3ClientError,
@@ -46,3 +49,24 @@ def test_l5_health_ready_metrics_route_contract_presence():
     assert "/health" in paths
     assert "/ready" in paths
     assert "/metrics" in paths
+
+
+def test_l5_exception_handler_shape_semantics_for_custom_and_catchall():
+    app = create_app()
+    handlers = app.exception_handlers
+    scope = {"type": "http", "headers": [], "method": "GET", "path": "/compat-check"}
+    request = Request(scope)
+
+    policy_exc = Layer3PolicyDeniedError("policy denied", tenant_id="tenant-a")
+    policy_response = asyncio.run(handlers[Layer3PolicyDeniedError](request, policy_exc))
+    policy_payload = policy_response.body.decode("utf-8")
+    assert policy_response.status_code == policy_exc.status_code
+    assert '"error"' in policy_payload
+    assert '"code":"LAYER3_POLICY_DENIED"' in policy_payload
+    assert '"request_id"' in policy_payload
+
+    catch_all_response = asyncio.run(handlers[Exception](request, Exception("boom")))
+    catch_all_payload = catch_all_response.body.decode("utf-8")
+    assert catch_all_response.status_code == 500
+    assert '"error"' in catch_all_payload
+    assert '"code":"INTERNAL_ERROR"' in catch_all_payload
