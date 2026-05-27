@@ -5,6 +5,7 @@ accidental deep imports from non-public ``value_fabric`` paths.
 """
 
 from value_fabric.public_api import shared
+from value_fabric.shared.error_handling.exceptions import ValueFabricException
 
 # Re-export stable shared API entrypoints used by service runtime modules.
 TypedDictModel = shared.TypedDictModel
@@ -15,3 +16,31 @@ register_exception_handlers = shared.register_exception_handlers
 RedisRateLimiter = shared.RedisRateLimiter
 reject_insecure_bypass_in_production = shared.reject_insecure_bypass_in_production
 register_fabric_auth_from_env = shared.register_fabric_auth_from_env
+
+
+def map_exception_to_http_contract(
+    exc: ValueFabricException,
+    *,
+    request_id: str,
+) -> dict[str, dict[str, object | None]]:
+    """Map shared exceptions to Layer 5 canonical HTTP handler envelope."""
+    return {
+        "error": {
+            "code": str(exc.error_code),
+            "message": exc.message,
+            "request_id": request_id,
+            "details": None,
+        }
+    }
+
+
+def map_exception_to_unhandled_contract() -> dict[str, dict[str, object | None]]:
+    """Preserve Layer 5 catch-all semantics for unhandled exceptions."""
+    return {
+        "error": {
+            "code": "INTERNAL_ERROR",
+            "message": "An unexpected error occurred. Please try again or contact support.",
+            "request_id": None,
+            "details": None,
+        }
+    }
