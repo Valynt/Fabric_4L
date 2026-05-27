@@ -12,6 +12,18 @@ from .async_engine import (
 )
 from .tenant_validation import TenantContextError, validate_tenant_id
 from .tenant_validation import MissingTenantContextError, require_tenant_context
+from .postgresql import (
+    PostgresPoolConfig,
+    create_postgresql_engine,
+    create_session_maker,
+    get_db_session,
+    health_probe,
+    resolve_runtime_dsn,
+    session_scope,
+    shutdown_engine,
+    transactional,
+    validate_postgresql_dsn,
+)
 
 __all__ = [
     "get_async_engine",
@@ -22,4 +34,14 @@ __all__ = [
     "TenantContextError",
     "MissingTenantContextError",
     "require_tenant_context",
+    "PostgresPoolConfig",
+    "create_postgresql_engine",
+    "create_session_maker",
+    "get_db_session",
+    "health_probe",
+    "resolve_runtime_dsn",
+    "session_scope",
+    "shutdown_engine",
+    "transactional",
+    "validate_postgresql_dsn",
 ]
