@@ -10,7 +10,10 @@ Implements the resolution policy with:
 from __future__ import annotations
 
 import logging
+import math
+import unicodedata
 from datetime import UTC, datetime
+from difflib import SequenceMatcher
 from typing import Any
 
 from neo4j import AsyncDriver
@@ -36,6 +39,8 @@ _CONFIDENCE_HIGH_THRESHOLD = 0.9
 _CONFIDENCE_MEDIUM_THRESHOLD = 0.7
 _CONFIDENCE_LOW_THRESHOLD = 0.5
 _CANDIDATE_LIMIT = 10
+_DEFAULT_FUZZY_THRESHOLD = 0.72
+_DEFAULT_VECTOR_THRESHOLD = 0.65
 
 
 class EntityResolutionService:
@@ -238,47 +243,113 @@ class EntityResolutionService:
     async def _find_fuzzy_candidates(
         self, session, request: EntityResolutionRequest
     ) -> list[dict[str, Any]]:
-        """Find candidates using fuzzy name matching.
-        
-        TODO: Implement Levenshtein distance or similar fuzzy matching algorithm.
-        Currently falls back to substring matching as a placeholder.
-        """
+        """Find candidates using deterministic fuzzy scoring."""
         name = request.query_attributes.get("name")
         if not name:
             return await self._find_exact_candidates(session, request)
-        
+
         query = f"""
         MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})
-        WHERE toLower(n.name) CONTAINS toLower($name)
         RETURN n.id as id, n as properties
-        LIMIT {_CANDIDATE_LIMIT}
+        LIMIT {_CANDIDATE_LIMIT * 5}
         """
-        
+
         result = await run_validated_query(session, query, {
             "tenant_id": request.tenant_id,
-            "name": name,
         })
         records = await result.data()
-        return records
+        threshold = float(request.query_attributes.get("fuzzy_threshold", _DEFAULT_FUZZY_THRESHOLD))
+        filtered: list[dict[str, Any]] = []
+        for record in records:
+            candidate_name = record.get("properties", {}).get("name")
+            if not candidate_name:
+                continue
+            similarity = self._name_similarity(str(name), str(candidate_name))
+            if similarity >= threshold:
+                record.setdefault("retrieval_metadata", {})
+                record["retrieval_metadata"]["fuzzy_similarity"] = similarity
+                filtered.append(record)
+        filtered.sort(
+            key=lambda r: (
+                -float(r.get("retrieval_metadata", {}).get("fuzzy_similarity", 0.0)),
+                str(r.get("id", "")),
+            )
+        )
+        return filtered[:_CANDIDATE_LIMIT]
 
     async def _find_vector_candidates(
         self, session, request: EntityResolutionRequest
     ) -> list[dict[str, Any]]:
-        """Find candidates using vector similarity.
-        
-        TODO: Implement vector similarity search using pgvector or Neo4j vector index.
-        Currently falls back to fuzzy matching as a placeholder.
+        """Find candidates using Neo4j vector index path with tenant filtering."""
+        embedding = request.query_attributes.get("embedding")
+        if not embedding or not isinstance(embedding, list):
+            return []
+
+        threshold = float(request.query_attributes.get("vector_threshold", _DEFAULT_VECTOR_THRESHOLD))
+        index_name = request.query_attributes.get("vector_index_name", "entity_embeddings")
+        query = f"""
+        CALL db.index.vector.queryNodes($index_name, $k, $embedding)
+        YIELD node, score
+        WHERE node:{request.entity_type} AND node.tenant_id = $tenant_id AND score >= $threshold
+        RETURN node.id as id, node as properties, score as vector_score
+        ORDER BY score DESC, id ASC
+        LIMIT $k
         """
-        return await self._find_fuzzy_candidates(session, request)
+        result = await run_validated_query(
+            session,
+            query,
+            {
+                "index_name": index_name,
+                "k": _CANDIDATE_LIMIT,
+                "embedding": embedding,
+                "tenant_id": request.tenant_id,
+                "threshold": threshold,
+            },
+        )
+        records = await result.data()
+        for record in records:
+            record.setdefault("retrieval_metadata", {})
+            record["retrieval_metadata"]["vector_similarity"] = float(record.get("vector_score", 0.0))
+        return records
 
     async def _find_hybrid_candidates(
         self, session, request: EntityResolutionRequest
     ) -> list[dict[str, Any]]:
-        """Find candidates using hybrid exact + fuzzy matching."""
+        """Find candidates using ranked exact + fuzzy + vector retrieval."""
         exact = await self._find_exact_candidates(session, request)
-        if exact:
-            return exact
-        return await self._find_fuzzy_candidates(session, request)
+        fuzzy = await self._find_fuzzy_candidates(session, request)
+        vector = await self._find_vector_candidates(session, request)
+
+        ranked: dict[str, dict[str, Any]] = {}
+        for source, records in (("exact", exact), ("fuzzy", fuzzy), ("vector", vector)):
+            for rank, record in enumerate(records):
+                entity_id = record["id"]
+                if entity_id not in ranked:
+                    ranked[entity_id] = record
+                    ranked[entity_id]["retrieval_metadata"] = {
+                        **record.get("retrieval_metadata", {}),
+                        "sources": [source],
+                        "best_rank": rank,
+                    }
+                else:
+                    meta = ranked[entity_id].setdefault("retrieval_metadata", {})
+                    sources = set(meta.get("sources", []))
+                    sources.add(source)
+                    meta["sources"] = sorted(sources)
+                    meta["best_rank"] = min(meta.get("best_rank", rank), rank)
+                    meta.update(record.get("retrieval_metadata", {}))
+
+        ordered = sorted(
+            ranked.values(),
+            key=lambda r: (
+                -len(r.get("retrieval_metadata", {}).get("sources", [])),
+                r.get("retrieval_metadata", {}).get("best_rank", math.inf),
+                -float(r.get("retrieval_metadata", {}).get("fuzzy_similarity", 0.0)),
+                -float(r.get("retrieval_metadata", {}).get("vector_similarity", 0.0)),
+                str(r.get("id", "")),
+            ),
+        )
+        return ordered[:_CANDIDATE_LIMIT]
 
     async def _score_candidates(
         self, request: EntityResolutionRequest, candidates: list[dict[str, Any]]
@@ -331,7 +402,14 @@ class EntityResolutionService:
                 score=score,
                 matched_attributes=matched_attrs,
                 explanation=explanation,
-                metadata={"raw_properties": props},
+                metadata={
+                    "raw_properties": props,
+                    "retrieval_metadata": candidate.get("retrieval_metadata", {}),
+                    "decision_factors": {
+                        "matched_attributes_count": len(matched_attrs),
+                        "query_attribute_count": num_attrs,
+                    },
+                },
             ))
         
         # Sort by score descending
@@ -417,3 +495,24 @@ class EntityResolutionService:
             return MatchConfidence.LOW
         else:
             return MatchConfidence.NONE
+
+    @staticmethod
+    def _normalize_text(value: str) -> str:
+        normalized = unicodedata.normalize("NFKD", value).encode("ascii", "ignore").decode("ascii")
+        return " ".join(normalized.casefold().split())
+
+    def _name_similarity(self, left: str, right: str) -> float:
+        left_norm = self._normalize_text(left)
+        right_norm = self._normalize_text(right)
+        if not left_norm or not right_norm:
+            return 0.0
+        if left_norm == right_norm:
+            return 1.0
+
+        seq_ratio = SequenceMatcher(None, left_norm, right_norm).ratio()
+        left_tokens = set(left_norm.split())
+        right_tokens = set(right_norm.split())
+        overlap = len(left_tokens & right_tokens)
+        union = len(left_tokens | right_tokens) or 1
+        jaccard = overlap / union
+        return (seq_ratio * 0.7) + (jaccard * 0.3)
