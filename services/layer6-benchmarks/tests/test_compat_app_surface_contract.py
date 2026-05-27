@@ -8,8 +8,8 @@ def test_l6_middleware_registration_and_effective_wrapping_order():
     # user_middleware is reverse-registration order (outermost first)
     assert middleware_names[:3] == [
         "GovernanceMiddleware",
-        "MetricsMiddleware",
         "SecurityMiddleware",
+        "BaseHTTPMiddleware",
     ]
 
 

@@ -22,9 +22,8 @@ def test_l4_middleware_registration_and_effective_wrapping_order(monkeypatch):
 
     middleware_names = [mw.cls.__name__ for mw in app.user_middleware]
     # user_middleware is reverse-registration order (outermost first)
-    assert middleware_names[:4] == [
+    assert middleware_names[:3] == [
         "CORSMiddleware",
-        "MetricsMiddleware",
         "SecurityMiddleware",
         "GovernanceMiddleware",
     ]

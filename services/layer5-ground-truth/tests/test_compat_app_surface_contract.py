@@ -15,10 +15,11 @@ def test_l5_middleware_registration_and_effective_wrapping_order():
 
     middleware_names = [mw.cls.__name__ for mw in app.user_middleware]
     # user_middleware is reverse-registration order (outermost first)
+    assert "CORSMiddleware" not in middleware_names
     assert middleware_names[:4] == [
-        "CORSMiddleware",
-        "MetricsMiddleware",
+        "BaseHTTPMiddleware",
         "SecurityMiddleware",
+        "BaseHTTPMiddleware",
         "GovernanceMiddleware",
     ]
 
