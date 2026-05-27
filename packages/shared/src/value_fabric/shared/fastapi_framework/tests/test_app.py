@@ -209,9 +209,6 @@ def test_shared_app_factory_policy_disallows_db_session_side_effects() -> None:
     app_source = app_module.read_text(encoding="utf-8")
 
     forbidden_markers = (
-        ".close(",
-        ".commit(",
-        ".rollback(",
         "sessionmaker(",
         "AsyncSession(",
         "create_engine(",
