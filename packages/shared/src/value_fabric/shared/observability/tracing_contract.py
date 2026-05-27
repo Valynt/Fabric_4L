@@ -55,6 +55,9 @@ def build_trace_attributes(
     return attributes
 
 
-def assert_required_attributes(attributes: Mapping[str, Any]) -> list[str]:
+def missing_required_attributes(attributes: Mapping[str, Any]) -> list[str]:
     """Return missing required attribute keys."""
     return [key for key in REQUIRED_TRACE_ATTRIBUTES if key not in attributes]
+
+
+assert_required_attributes = missing_required_attributes
