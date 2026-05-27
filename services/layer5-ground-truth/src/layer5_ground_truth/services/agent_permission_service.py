@@ -272,10 +272,10 @@ class AgentPermissionService:
         except PolicyEvaluationError as exc:
             message = str(exc)
             outcome = "warning" if not policy.is_mandatory else "failed"
-        except Exception as exc:  # pragma: no cover - defensive fail-closed
+        except Exception as exc:
             logger.exception("Unexpected policy evaluation error for policy %s", policy.id)
             message = f"Policy evaluation error: {exc}"
-            outcome = "warning" if not policy.is_mandatory else "failed"
+            outcome = "failed"
 
         result = {
             "policy_id": str(policy.id),
