@@ -101,8 +101,10 @@ class RedisDistributedStore(DistributedStore):
         probe_payload = {"ok": True, "component": "fabric-api"}
         self._with_resilience("ping", lambda: self.client.ping())
         self.set_json(probe_key, probe_payload, ttl_seconds=30)
-        loaded = self.get_json(probe_key)
-        self.delete(probe_key)
+        try:
+            loaded = self.get_json(probe_key)
+        finally:
+            self.delete(probe_key)
         if loaded != probe_payload:
             raise StorePayloadError("Distributed store serialization compatibility check failed")
 
