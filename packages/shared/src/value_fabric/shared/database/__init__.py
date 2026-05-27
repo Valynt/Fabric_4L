@@ -10,6 +10,7 @@ from .async_engine import (
     get_async_engine,
     get_async_session_factory,
 )
+from .lifespan import PgRuntime, PostgresHealthProbe, pg_lifespan
 from .postgresql import (
     PostgresPoolConfig,
     create_postgresql_engine,
@@ -62,6 +63,9 @@ __all__ = [
     "RuntimeDatabaseAdapter",
     "is_production_mode_from_env",
     "normalize_sqlalchemy_url_scheme",
+    "PgRuntime",
+    "PostgresHealthProbe",
+    "pg_lifespan",
 ]
 
 from .runtime_adapter import (

@@ -119,7 +119,7 @@ async def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
     pkg = await db.dsar_packages.get(record.package_id, tenant_id=record.tenant_id) if record.package_id else None
     complete = bool(pkg and any(pkg.export_payload.get(k) for k in ("accounts", "evidence", "hypotheses")))
     if not complete:
-        raise ValueError("DSAR package incomplete")
+        raise ValueError("dsar_package_incomplete")
     await db.dsar_packages.update(pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
     updated = await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="complete", completed_at=_now().isoformat(), completion_evidence=["completeness_verified"])
     return updated
@@ -145,13 +145,13 @@ def issue_download_url(package: DSARPackage) -> str:
 
 def validate_download_access(package: DSARPackage, *, requester_user_id: str, token: str) -> None:
     if package.requester_user_id != requester_user_id:
-        raise PermissionError("requester mismatch")
+        raise PermissionError("requester_mismatch")
     if _now() > datetime.fromisoformat(package.expires_at):
-        raise PermissionError("download url expired")
+        raise PermissionError("download_url_expired")
     expected = _sign_token(package.id, package.requester_user_id, package.expires_at).rsplit('.',1)[-1]
     provided_sig = token.rsplit('.',1)[-1]
     if not hmac.compare_digest(expected, provided_sig):
-        raise PermissionError("invalid token")
+        raise PermissionError("invalid_token")
 
 
 def serialize_package(package: DSARPackage) -> bytes:

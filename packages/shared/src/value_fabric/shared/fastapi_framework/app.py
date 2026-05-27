@@ -12,7 +12,21 @@ from fastapi import FastAPI
 
 from ..error_handling.handlers import register_exception_handlers
 
-from .middleware import CorsPolicy, add_cors_middleware, add_request_id_middleware
+from .health import (
+    HealthCheckProbe,
+    ProbeResult,
+    aggregate_probes,
+    build_readiness_payload,
+)
+from .logging import StructuredLoggingConfig, configure_structlog
+from .middleware import (
+    CorsPolicy,
+    add_cors_middleware,
+    add_idempotency_middleware,
+    add_rate_limit_middleware,
+    add_request_id_middleware,
+    add_tenant_enforcement_middleware,
+)
 
 
 class EnforcementMode(StrEnum):
@@ -45,6 +59,43 @@ class HealthChecksConfig:
     route_opt_out_paths: frozenset[str] = field(
         default_factory=lambda: frozenset({"/health", "/health/detailed", "/ready", "/readiness"})
     )
+
+
+@dataclass(frozen=True)
+class FrameworkRateLimitConfig:
+    """Framework-level rate limit configuration.
+
+    The factory is deferred so the shared framework does not import Redis at
+    module load. When ``mode != OFF`` and ``rate_limiter_factory`` is provided,
+    :func:`create_fabric_app` installs the rate-limit middleware.
+    """
+
+    mode: EnforcementMode = EnforcementMode.AUDIT
+    rate_limiter_factory: Callable[[], Any] | None = None
+    exempt_paths: tuple[str, ...] = (
+        "/health",
+        "/ready",
+        "/metrics",
+        "/docs",
+        "/openapi.json",
+    )
+
+
+@dataclass(frozen=True)
+class FrameworkIdempotencyConfig:
+    """Framework-level idempotency configuration.
+
+    ``service_factory`` should return a configured ``IdempotencyService`` (or
+    compatible object) when called. Idempotency is applied only for the listed
+    methods.
+    """
+
+    mode: EnforcementMode = EnforcementMode.AUDIT
+    service_factory: Callable[[], Any] | None = None
+    methods: frozenset[str] = field(
+        default_factory=lambda: frozenset({"POST", "PUT", "PATCH", "DELETE"})
+    )
+    header_name: str = "Idempotency-Key"
 
 
 @dataclass(frozen=True)
@@ -241,6 +292,61 @@ def register_health_endpoint(
     )
 
 
+def register_readiness_endpoint(
+    app: FastAPI,
+    *,
+    service_name: str,
+    probes: list[HealthCheckProbe],
+    path: str = "/ready",
+    include_in_schema: bool = True,
+    version: str | None = None,
+    timeout_seconds: float = 2.0,
+    cache_ttl_seconds: float = 5.0,
+) -> None:
+    """Register a readiness endpoint that fans out to pluggable probes.
+
+    Results are cached for ``cache_ttl_seconds`` to protect downstream
+    dependencies from synthetic load by aggressive orchestrators.
+    """
+
+    from fastapi.responses import JSONResponse
+
+    state: dict[str, Any] = {"expires_at": 0.0, "payload": None, "healthy": False}
+
+    async def readiness_handler() -> JSONResponse:
+        import time
+
+        now = time.monotonic()
+        if state["payload"] is not None and now < state["expires_at"]:
+            payload = state["payload"]
+            healthy = state["healthy"]
+        else:
+            healthy, results = await aggregate_probes(probes, timeout_seconds=timeout_seconds)
+            payload = build_readiness_payload(
+                service_name=service_name,
+                healthy=healthy,
+                probe_results=results,
+                version=version,
+            )
+            state["payload"] = payload
+            state["healthy"] = healthy
+            state["expires_at"] = now + cache_ttl_seconds
+
+        return JSONResponse(
+            status_code=200 if healthy else 503,
+            content=payload,
+        )
+
+    mark_route_enforcement_opt_out(readiness_handler, reason="health_or_readiness")
+    app.add_api_route(
+        path,
+        readiness_handler,
+        methods=["GET"],
+        include_in_schema=include_in_schema,
+        tags=["health"],
+    )
+
+
 def install_metrics_middleware(
     app: FastAPI,
     *,
@@ -282,6 +388,12 @@ def create_fabric_app(
     telemetry_service_name: str | None = None,
     instrument_telemetry: bool = False,
     enforcement_rollout: EnforcementRolloutConfig | None = None,
+    rate_limit: FrameworkRateLimitConfig | None = None,
+    idempotency: FrameworkIdempotencyConfig | None = None,
+    structured_logging: StructuredLoggingConfig | None = None,
+    health_probes: list[HealthCheckProbe] | None = None,
+    readiness_path: str = "/ready",
+    enforce_tenant_context: bool = False,
     **fastapi_kwargs: Any,
 ) -> FastAPI:
     """Create a FastAPI application with Value Fabric defaults.
@@ -313,6 +425,13 @@ def create_fabric_app(
     app.state.telemetry_provider = None
     app.state.enforcement_rollout = enforcement_rollout or EnforcementRolloutConfig()
     app.state.enforcement_counters = EnforcementCounters()
+    app.state.rate_limit_config = rate_limit
+    app.state.idempotency_config = idempotency
+    app.state.health_probes = list(health_probes) if health_probes else []
+
+    if structured_logging is not None:
+        applied = configure_structlog(structured_logging)
+        app.state.structlog_configured = applied
 
     if telemetry_service_name is not None:
         app.state.telemetry_provider = init_telemetry(telemetry_service_name)
@@ -338,6 +457,35 @@ def create_fabric_app(
 
     if should_register_handlers:
         register_exception_handlers(app)
+
+    if enforce_tenant_context:
+        add_tenant_enforcement_middleware(app)
+
+    if rate_limit is not None and rate_limit.rate_limiter_factory is not None:
+        add_rate_limit_middleware(
+            app,
+            rate_limiter_factory=rate_limit.rate_limiter_factory,
+            mode=rate_limit.mode,
+            exempt_paths=list(rate_limit.exempt_paths),
+        )
+
+    if idempotency is not None and idempotency.service_factory is not None:
+        add_idempotency_middleware(
+            app,
+            service_factory=idempotency.service_factory,
+            mode=idempotency.mode,
+            methods=idempotency.methods,
+            header_name=idempotency.header_name,
+        )
+
+    if health_probes:
+        register_readiness_endpoint(
+            app,
+            service_name=service_name,
+            probes=list(health_probes),
+            path=readiness_path,
+            version=version,
+        )
 
     if health_readiness_augmentation_hook is not None:
         health_readiness_augmentation_hook(app)

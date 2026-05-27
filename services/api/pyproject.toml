@@ -72,10 +72,5 @@ ignore = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# Existing legacy service modules still use message-bearing raises; enable
-# new hygiene rules incrementally while enforcing them for touched API routes.
-"app/services/agent_orchestrator.py" = ["TRY003", "EM101", "EM102"]
-"app/services/distributed_store.py" = ["TRY003", "EM101", "EM102"]
-"app/services/dsar_service.py" = ["TRY003", "EM101", "EM102"]
-"app/services/export_service.py" = ["TRY003", "EM101", "EM102"]
+# Tests may use message-bearing raises for test assertions
 "app/tests/*.py" = ["EM101", "EM102", "TRY003"]

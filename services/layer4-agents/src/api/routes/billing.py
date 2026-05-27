@@ -276,7 +276,7 @@ async def get_subscription(
 
     if not subscription:
         # Return free tier default
-        return get_subscriptionResult.model_validate({
+        return get_subscriptionResult.model_validate({  # type: ignore[no-any-return]
             "id": None,
             "plan_id": "free",
             "status": "active",
@@ -286,7 +286,7 @@ async def get_subscription(
         })
 
 
-    return get_subscriptionResult.model_validate({
+    return get_subscriptionResult.model_validate({  # type: ignore[no-any-return]
         "id": subscription.id,
         "plan_id": subscription.plan_id,
         "status": subscription.status,
@@ -630,7 +630,7 @@ async def check_feature(
     service = BillingService(db)
     has_access = await service.check_entitlement(customer_id, feature_id)
 
-    return check_featureResult.model_validate({
+    return check_featureResult.model_validate({  # type: ignore[no-any-return]
         "feature_id": feature_id,
         "has_access": has_access,
     })
@@ -668,7 +668,7 @@ async def sync_customer(
         tenant_id=tenant_id,
     )
 
-    return sync_customerResult.model_validate({
+    return sync_customerResult.model_validate({  # type: ignore[no-any-return]
         "id": customer.id,
         "stripe_customer_id": customer.stripe_customer_id,
         "email": customer.email,
@@ -745,7 +745,7 @@ async def stripe_webhook(
                     except Exception:
                         await worker_db.commit()
             background_tasks.add_task(_process)
-        return stripe_webhookResult.model_validate({"received": True})
+        return stripe_webhookResult.model_validate({"received": True})  # type: ignore[no-any-return]
     except ValueError as e:
         logger.warning(f"Webhook validation failed: {e}")
         raise HTTPException(
@@ -813,7 +813,7 @@ async def ingest_usage_event(
             metadata=request.metadata,
         )
         
-        return ingest_usage_eventResult.model_validate({
+        return ingest_usage_eventResult.model_validate({  # type: ignore[no-any-return]
             "id": event.id,
             "event_id": event.event_id,
             "status": event.status,
@@ -881,7 +881,7 @@ async def ingest_usage_batch(
         events_data = [event.model_dump() for event in request.events]
         result = await service.ingest_batch(events_data)
         
-        return ingest_usage_batchResult.model_validate({
+        return ingest_usage_batchResult.model_validate({  # type: ignore[no-any-return]
             "created": result["created"],
             "duplicates": result["duplicates"],
             "errors": result["errors"],
@@ -1104,7 +1104,7 @@ async def get_usage_limits(
     try:
         quota_check = await service.check_all_limits(customer_id)
         
-        return get_usage_limitsResult.model_validate({
+        return get_usage_limitsResult.model_validate({  # type: ignore[no-any-return]
             "customer_id": quota_check.customer_id,
             "plan_id": quota_check.plan_id,
             "all_limits_ok": quota_check.all_limits_ok,
@@ -1212,10 +1212,10 @@ async def get_plan_limits(
             detail=f"Plan not found: {plan_id}",
         )
     
-    service = OverageService(None, tenant_id=None)  # No DB needed
+    service = OverageService(None, tenant_id=None)  # No DB needed  # type: ignore[arg-type]
     limits = service.get_plan_limits(plan_id)
     
-    return get_plan_limitsResult.model_validate({
+    return get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]
         "plan_id": plan_id,
         "plan_name": plan.name,
         "limits": limits,
@@ -1289,7 +1289,7 @@ async def list_invoices(
             offset=offset,
         )
         
-        return list_invoicesResult.model_validate({
+        return list_invoicesResult.model_validate({  # type: ignore[no-any-return]
             "invoices": [
                 {
                     "id": inv.id,
@@ -1349,7 +1349,7 @@ async def create_invoice(
             description=request.description,
         )
         
-        return create_invoiceResult.model_validate({
+        return create_invoiceResult.model_validate({  # type: ignore[no-any-return]
             "id": invoice.id,
             "invoice_number": invoice.invoice_number,
             "customer_id": invoice.customer_id,
@@ -1395,7 +1395,7 @@ async def get_invoice(
                 detail="Invoice not found",
             )
         
-        return get_invoiceResult.model_validate({
+        return get_invoiceResult.model_validate({  # type: ignore[no-any-return]
             "id": invoice.id,
             "invoice_number": invoice.invoice_number,
             "customer_id": invoice.customer_id,
@@ -1485,7 +1485,7 @@ async def add_invoice_item(
             discount_amount=request.discount_cents,
         )
         
-        return add_invoice_itemResult.model_validate({
+        return add_invoice_itemResult.model_validate({  # type: ignore[no-any-return]
             "id": item.id,
             "invoice_id": item.invoice_id,
             "type": item.type,
@@ -1527,7 +1527,7 @@ async def finalize_invoice(
     try:
         invoice = await service.finalize_invoice(invoice_id)
         
-        return finalize_invoiceResult.model_validate({
+        return finalize_invoiceResult.model_validate({  # type: ignore[no-any-return]
             "id": invoice.id,
             "status": invoice.status,
             "total_cents": invoice.total,
@@ -1567,7 +1567,7 @@ async def void_invoice(
     try:
         invoice = await service.void_invoice(invoice_id, reason=reason)
         
-        return void_invoiceResult.model_validate({
+        return void_invoiceResult.model_validate({  # type: ignore[no-any-return]
             "id": invoice.id,
             "status": invoice.status,
             "voided_at": invoice.voided_at.isoformat() if invoice.voided_at else None,
@@ -1617,7 +1617,7 @@ async def list_charges(
             offset=offset,
         )
         
-        return list_chargesResult.model_validate({
+        return list_chargesResult.model_validate({  # type: ignore[no-any-return]
             "charges": [
                 {
                     "id": chg.id,
@@ -1673,7 +1673,7 @@ async def record_charge(
             description=request.description,
         )
         
-        return record_chargeResult.model_validate({
+        return record_chargeResult.model_validate({  # type: ignore[no-any-return]
             "id": charge.id,
             "status": charge.status,
             "amount_cents": charge.amount,

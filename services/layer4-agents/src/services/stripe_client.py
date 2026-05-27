@@ -159,7 +159,7 @@ def report_meter_event(
     """
     if not STRIPE_METER_EVENTS_ENABLED:
         logger.debug("Stripe MeterEvents disabled - skipping meter reporting")
-        return report_meter_eventResult.model_validate({"skipped": True, "reason": "disabled"})
+        return report_meter_eventResult.model_validate({"skipped": True, "reason": "disabled"})  # type: ignore[no-any-return]
 
     stripe = get_stripe()
 
@@ -186,7 +186,7 @@ def report_meter_event(
         logger.debug(
             f"MeterEvent reported: {stripe_event_name}={quantity} for {stripe_customer_id}"
         )
-        return report_meter_eventResult.model_validate({
+        return report_meter_eventResult.model_validate({  # type: ignore[no-any-return]
             "id": meter_event.id,
             "event_name": meter_event.event_name,
             "status": meter_event.status,
@@ -220,7 +220,7 @@ def get_billing_meter(
     try:
         if meter_id:
             meter = stripe.billing.meter.retrieve(meter_id)
-            return get_billing_meterResult.model_validate({
+            return get_billing_meterResult.model_validate({  # type: ignore[no-any-return]
                 "id": meter.id,
                 "display_name": meter.display_name,
                 "event_name": meter.event_name,
@@ -289,7 +289,7 @@ async def sync_usage_to_stripe(
     event_count = row.count or 0
 
     if total_quantity <= 0:
-        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": 0, "stripe_response": None})
+        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": 0, "stripe_response": None})  # type: ignore[no-any-return]
 
     # Report to Stripe
     try:
@@ -317,7 +317,7 @@ async def sync_usage_to_stripe(
 
         await db_session.flush()
 
-        return sync_usage_to_stripeResult.model_validate({
+        return sync_usage_to_stripeResult.model_validate({  # type: ignore[no-any-return]
             "synced": event_count,
             "total_quantity": total_quantity,
             "stripe_response": stripe_response,
@@ -326,4 +326,4 @@ async def sync_usage_to_stripe(
 
     except StripeMeterEventError as e:
         logger.error(f"Failed to sync usage to Stripe: {e}")
-        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": total_quantity, "error": "STRIPE_SYNC_ERROR"})
+        return sync_usage_to_stripeResult.model_validate({"synced": 0, "total_quantity": total_quantity, "error": "STRIPE_SYNC_ERROR"})  # type: ignore[no-any-return]

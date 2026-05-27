@@ -152,7 +152,7 @@ async def api_promote_model(
             reason=request.reason,
         )
     except ModelRegistryService.PromotionError as exc:
-        logger.warning("model_promotion_error", error=str(exc))
+        logger.warning("model_promotion_error", extra={"error": str(exc)})
         raise HTTPException(status_code=400, detail="Model promotion failed") from exc
     if model.tenant_id != ctx.tenant_id:
         raise HTTPException(status_code=404, detail="Model version not found")

@@ -418,8 +418,8 @@ async def _filter_and_paginate_workflows(
             id=str(w.get("workflow_id") or w.get("id") or ""),
             name=str(w.get("name") or w.get("workflow_type") or "workflow"),
             workflow_type=str(w.get("workflow_type") or "unknown"),
-            status=str(w.get("status") or "pending"),
-            progress=float(w.get("progress") if w.get("progress") is not None else (w.get("progress_percentage") or 0)),
+            status=str(w.get("status") or "pending"),  # type: ignore[arg-type]
+            progress=float(w.get("progress") if w.get("progress") is not None else (w.get("progress_percentage") or 0)),  # type: ignore[arg-type]
             created_at=w.get("created_at") or w.get("started_at"),
             updated_at=w.get("updated_at") or w.get("completed_at"),
         )

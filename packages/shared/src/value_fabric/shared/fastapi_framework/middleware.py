@@ -118,3 +118,194 @@ def add_governance_middleware(app: FastAPI, *, rate_limiter: Any | None = None) 
 
 def add_cors_middleware(app: FastAPI, policy: CorsPolicy) -> None:
     app.add_middleware(CORSMiddleware, **policy.as_kwargs())
+
+
+def add_rate_limit_middleware(
+    app: FastAPI,
+    *,
+    rate_limiter_factory: Any,
+    mode: Any,
+    exempt_paths: list[str],
+) -> None:
+    """Install the shared tenant rate-limit middleware.
+
+    ``rate_limiter_factory`` is a zero-arg callable that returns a
+    :class:`TenantRateLimiter`. Instantiation is deferred so importing this
+    module never forces a Redis connection.
+    """
+
+    from value_fabric.shared.fastapi_framework.app import EnforcementMode
+
+    if mode == EnforcementMode.OFF:
+        return
+
+    rate_limiter = rate_limiter_factory()
+    try:
+        from value_fabric.shared.rate_limiting import TenantRateLimitMiddleware
+    except ImportError:
+        return
+
+    app.add_middleware(
+        TenantRateLimitMiddleware,
+        rate_limiter=rate_limiter,
+        exempt_paths=list(exempt_paths),
+    )
+    app.state.rate_limiter = rate_limiter
+
+
+def add_idempotency_middleware(
+    app: FastAPI,
+    *,
+    service_factory: Any,
+    mode: Any,
+    methods: frozenset[str],
+    header_name: str = "Idempotency-Key",
+) -> None:
+    """Install a framework-level idempotency middleware.
+
+    The middleware short-circuits replayed requests by ``Idempotency-Key`` and
+    deduplicates against the shared :class:`IdempotencyService`. In AUDIT
+    mode, conflicts are logged but the request continues; in ENFORCE mode the
+    middleware returns ``409 Conflict``.
+    """
+
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import JSONResponse
+
+    from value_fabric.shared.fastapi_framework.app import (
+        EnforcementMode,
+        record_enforcement_decision,
+    )
+    from value_fabric.shared.idempotency import (
+        IdempotencyConflictError,
+        IdempotencyRequest,
+        build_request_fingerprint,
+    )
+
+    if mode == EnforcementMode.OFF:
+        return
+
+    service = service_factory()
+    methods_upper = {m.upper() for m in methods}
+
+    class _IdempotencyMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            if request.method.upper() not in methods_upper:
+                return await call_next(request)
+            idem_key = request.headers.get(header_name)
+            if not idem_key:
+                return await call_next(request)
+
+            try:
+                from value_fabric.shared.boundaries.tenant_boundary import (
+                    get_tenant_context,
+                )
+                ctx = get_tenant_context()
+                tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else "anonymous"
+            except Exception:  # noqa: BLE001
+                tenant_id = "anonymous"
+
+            try:
+                body_bytes = await request.body()
+                try:
+                    import json as _json
+
+                    body = _json.loads(body_bytes) if body_bytes else {}
+                    if not isinstance(body, dict):
+                        body = {"_raw": body}
+                except Exception:  # noqa: BLE001
+                    body = {"_raw_len": len(body_bytes)}
+
+                fingerprint = build_request_fingerprint(request.method, request.url.path, body)
+                idem_request = IdempotencyRequest(
+                    tenant_id=tenant_id,
+                    endpoint_key=f"{request.method.upper()} {request.url.path}",
+                    idempotency_key=idem_key,
+                    request_fingerprint=fingerprint,
+                )
+
+                replay = service.check_replay(idem_request)
+                if replay is not None:
+                    return JSONResponse(
+                        status_code=replay.status_code,
+                        content=replay.body,
+                        headers={**replay.headers, "Idempotent-Replay": "true"},
+                    )
+            except IdempotencyConflictError:
+                allowed = record_enforcement_decision(
+                    app,
+                    control="idempotency",
+                    violation="key_replay_fingerprint_mismatch",
+                    route=request.url.path,
+                    tenant_id=tenant_id,
+                    actor_id=None,
+                )
+                if not allowed:
+                    return JSONResponse(
+                        status_code=409,
+                        content={
+                            "error": "idempotency_conflict",
+                            "message": "Idempotency key replayed with different payload.",
+                        },
+                    )
+
+            # Re-inject the consumed body so downstream handlers can read it.
+            async def _receive():
+                return {"type": "http.request", "body": body_bytes, "more_body": False}
+
+            request._receive = _receive  # type: ignore[attr-defined]
+            request.state.idempotency_request = idem_request
+            request.state.idempotency_service = service
+
+            return await call_next(request)
+
+    app.add_middleware(_IdempotencyMiddleware)
+    app.state.idempotency_service = service
+
+
+def add_tenant_enforcement_middleware(app: FastAPI) -> None:
+    """Install a middleware that audits/blocks requests missing tenant context.
+
+    Behavior follows ``EnforcementRolloutConfig.tenant_enforcement`` on
+    ``app.state`` via :func:`record_enforcement_decision`. Routes marked as
+    enforcement opt-outs (e.g., ``/health``, ``/ready``) are skipped.
+    """
+
+    from starlette.middleware.base import BaseHTTPMiddleware
+    from starlette.responses import JSONResponse
+
+    from value_fabric.shared.fastapi_framework.app import record_enforcement_decision
+
+    class _TenantEnforcementMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            path = request.url.path
+            try:
+                from value_fabric.shared.boundaries.tenant_boundary import (
+                    get_tenant_context,
+                )
+                ctx = get_tenant_context()
+                tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else None
+            except Exception:  # noqa: BLE001
+                tenant_id = None
+
+            if tenant_id is None:
+                allowed = record_enforcement_decision(
+                    app,
+                    control="tenant_enforcement",
+                    violation="missing_tenant_context",
+                    route=path,
+                    tenant_id=None,
+                    actor_id=None,
+                )
+                if not allowed:
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": "tenant_context_required",
+                            "message": "Request did not establish a tenant context.",
+                        },
+                    )
+
+            return await call_next(request)
+
+    app.add_middleware(_TenantEnforcementMiddleware)

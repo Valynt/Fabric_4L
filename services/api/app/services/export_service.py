@@ -26,7 +26,7 @@ def generate_export(
     """
     case = db.business_cases.get(business_case_id, tenant_id=tenant_id)
     if not case or case.account_id != account_id:
-        raise ValueError("Business case not found")
+        raise ValueError("business_case_not_found")
 
     # Generate a deterministic mock download path
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")

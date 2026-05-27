@@ -1,6 +1,10 @@
 ---
+workflow_id: launch-readiness-assessment
+name: Launch Readiness Assessment
+version: 1.0.0
 description: Assess launch readiness using dual-track claimed-versus-verified evidence and generate a refreshed 5-sprint plan without creating artifacts until explicitly approved
-tags: [launch, readiness, planning, evidence]
+pattern: human-in-the-loop
+risk_level: high
 ---
 
 # Fabric_4L Dual-Track Launch Readiness Assessment & Sprint Plan

@@ -1,5 +1,10 @@
 ---
+workflow_id: production-only-delivery
+name: Production-Only Delivery
+version: 1.0.0
 description: Ensure all implementation work results in real, production-grade code with no mock, stub, placeholder, simulated, or shortcut behavior in production paths.
+pattern: human-in-the-loop
+risk_level: high
 ---
 
 # Production-Only Delivery Standard

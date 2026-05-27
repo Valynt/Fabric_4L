@@ -13,9 +13,26 @@ from app.models.schemas import AgentRun, ToolResult
 class Layer4UnavailableError(RuntimeError):
     """Raised when the Layer 4 orchestration dependency is unavailable."""
 
+    def __init__(self, code: str, *, status_code: int | None = None) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
+
 
 class Layer4DependencyError(RuntimeError):
     """Raised when Layer 4 returns a deterministic dependency failure."""
+
+    def __init__(
+        self,
+        code: str,
+        *,
+        status_code: int | None = None,
+        body: str | None = None,
+    ) -> None:
+        super().__init__(code)
+        self.code = code
+        self.status_code = status_code
+        self.body = body
 
 
 class Layer4OrchestrationClient:
@@ -39,10 +56,14 @@ class Layer4OrchestrationClient:
             raise Layer4UnavailableError("layer4_unavailable") from exc
 
         if response.status_code in {502, 503, 504}:
-            raise Layer4UnavailableError("layer4_unavailable")
+            raise Layer4UnavailableError("layer4_unavailable", status_code=response.status_code)
 
         if response.status_code >= 400:
-            raise Layer4DependencyError("layer4_http_error")
+            raise Layer4DependencyError(
+                "layer4_http_error",
+                status_code=response.status_code,
+                body=response.text[:400],
+            )
 
         try:
             body = response.json()

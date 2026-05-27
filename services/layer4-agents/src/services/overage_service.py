@@ -221,7 +221,7 @@ class OverageService:
             else:
                 limit = None
         else:
-            limit = plan.get_usage_limit(metric_name)
+            limit = plan.get_usage_limit(metric_name)  # type: ignore[assignment]
         if not limit:
             # No limit configured for this metric
             return UsageCheckResult(
@@ -361,7 +361,7 @@ class OverageService:
         )
 
         if check.limit_exceeded:
-            return OverageService_validate_requestResult.model_validate({
+            return OverageService_validate_requestResult.model_validate({  # type: ignore[no-any-return]
                 "allowed": False,
                 "error": f"Usage limit exceeded for {metric_name}",
                 "limit": check.limit,
@@ -400,9 +400,9 @@ class OverageService:
         """
         plan = get_plan(plan_id)
         if not plan or not plan.usage_limits:
-            return OverageService_get_plan_limitsResult.model_validate({})
+            return OverageService_get_plan_limitsResult.model_validate({})  # type: ignore[no-any-return]
 
-        return OverageService_get_plan_limitsResult.model_validate({
+        return OverageService_get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]
             metric_name: {
                 "included_amount": limit.included_amount,
                 "period": limit.period,

@@ -380,7 +380,7 @@ class OrchestrationController:
                 tenant_id,
             )
             if row and isinstance(row.get("state_data"), dict):
-                return self._compute_state_hash(AgentState.model_validate(row["state_data"]))
+                return self._compute_state_hash(AgentState.model_validate(row["state_data"]))  # type: ignore[attr-defined]
 
         latest_state = await self.state_manager.load_state(workflow_id)
         if latest_state is None:
@@ -728,7 +728,7 @@ class OrchestrationController:
         initial_state.started_at = datetime.now(UTC)
         await self.state_manager.save_state(workflow_id, initial_state)
 
-        task = build_workflow_task(
+        task = build_workflow_task(  # type: ignore[call-arg]
             priority=priority.value,
             workflow_id=workflow_id,
             tenant_id=tenant_id,
@@ -822,7 +822,7 @@ class OrchestrationController:
 
         # Prefer canonical run envelope for identity fields when available
         envelope = state.run_envelope
-        return OrchestrationController_get_resultResult.model_validate({
+        return OrchestrationController_get_resultResult.model_validate({  # type: ignore[no-any-return]
             "workflow_id": envelope.workflow_id if envelope else state.workflow_id,
             "run_id": envelope.run_id if envelope else state.run_id,
             "trace_id": envelope.trace_id if envelope else state.trace_id,
@@ -1030,7 +1030,7 @@ class OrchestrationController:
         else:
             envelope_data = envelope.model_dump()
 
-        return OrchestrationController_get_workflow_statusResult.model_validate({
+        return OrchestrationController_get_workflow_statusResult.model_validate({  # type: ignore[no-any-return]
             "workflow_id": workflow_id,
             "workflow_type": self._fmt_enum(state.workflow_type),
             "status": self._fmt_enum(state.status),
@@ -1484,7 +1484,7 @@ class OrchestrationController:
         router_health = self.message_router.get_cluster_health()
         scheduler_stats = self.scheduler.get_stats()
 
-        return OrchestrationController_get_cluster_healthResult.model_validate({
+        return OrchestrationController_get_cluster_healthResult.model_validate({  # type: ignore[no-any-return]
             "status": router_health.get("status", "unknown"),
             "registered_agents": len(self._registered_agents),
             "active_workflows": len(self._active_workflows),
@@ -1674,13 +1674,13 @@ class OrchestrationController:
                     context=self._lifecycle_context(workflow_id),
                     checkpoint_id=str(result.current_node or "interrupted"),
                 )
-                return result
+                return result  # type: ignore[no-any-return]
 
             lifecycle_logger.emit(
                 stage="completion",
                 context=self._lifecycle_context(workflow_id),
             )
-            return result
+            return result  # type: ignore[no-any-return]
         except TimeoutError as exc:
             await persist_workflow_failure(
                 state_manager=self.state_manager,

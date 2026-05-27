@@ -1,5 +1,10 @@
 ---
+workflow_id: technical-documentation
+name: Technical Documentation
+version: 1.0.0
 description: Professional technical documentation generation and maintenance workflow
+pattern: pipeline-dag
+risk_level: low
 ---
 
 # Technical Documentation Workflow

@@ -9,6 +9,8 @@ Checks each workload (Deployment/StatefulSet/DaemonSet) across:
 For the same workload name, this script validates:
 1) Required env var keys are not dropped in production manifests.
 2) Probe/resource/securityContext structures are consistent per container.
+3) Service account references are consistent across environments.
+4) Network policy coverage is enforced for production workloads.
 
 Intended usage:
     python scripts/ci/check_k8s_manifest_consistency.py
@@ -46,6 +48,8 @@ class ServiceSnapshot:
     resources: dict[str, Any]
     pod_security: dict[str, Any]
     container_security: dict[str, Any]
+    service_account: str | None
+    network_policy_enabled: bool
 
 
 @dataclass
@@ -129,6 +133,12 @@ def extract_snapshots(path: Path) -> list[ServiceSnapshot]:
             continue
         pod_spec = (((doc.get("spec") or {}).get("template") or {}).get("spec") or {})
         pod_security = pod_spec.get("securityContext") or {}
+        service_account = pod_spec.get("serviceAccountName")
+        
+        # Check if a network policy exists for this workload
+        # Network policies are typically in k8s/base/networking/ or k8s/policy/
+        network_policy_enabled = _has_network_policy(name, ROOT)
+        
         for container in pod_spec.get("containers") or []:
             cname = container.get("name", "<unnamed>")
             probes = {
@@ -148,9 +158,31 @@ def extract_snapshots(path: Path) -> list[ServiceSnapshot]:
                     resources=container.get("resources") or {},
                     pod_security=pod_security,
                     container_security=container.get("securityContext") or {},
+                    service_account=service_account,
+                    network_policy_enabled=network_policy_enabled,
                 )
             )
     return snapshots
+
+
+def _has_network_policy(workload_name: str, root: Path) -> bool:
+    """Check if a network policy exists for the given workload."""
+    policy_dirs = [
+        root / "k8s" / "base" / "networking",
+        root / "k8s" / "policy",
+    ]
+    for policy_dir in policy_dirs:
+        if not policy_dir.exists():
+            continue
+        for policy_file in policy_dir.rglob("*.yml"):
+            docs = load_docs(policy_file)
+            for doc in docs:
+                if doc.get("kind") == "NetworkPolicy":
+                    pod_selector = ((doc.get("spec") or {}).get("podSelector") or {}).get("matchLabels") or {}
+                    # Check if policy matches workload by name or app label
+                    if workload_name in pod_selector.values() or pod_selector.get("app") == workload_name:
+                        return True
+    return False
 
 
 def compare_consistency(group: list[ServiceSnapshot]) -> list[Violation]:
@@ -183,6 +215,16 @@ def compare_consistency(group: list[ServiceSnapshot]) -> list[Violation]:
                 violations.append(
                     Violation(base.service, cname, "pod securityContext drift between manifests", (base.path, other.path))
                 )
+            # Service account consistency check
+            if base.service_account != other.service_account:
+                violations.append(
+                    Violation(
+                        base.service,
+                        cname,
+                        f"serviceAccount drift: base={base.service_account}, other={other.service_account}",
+                        (base.path, other.path),
+                    )
+                )
 
         base_required = set().union(*(s.required_env for s in snaps if s.source == "base"))
         prod_required = set().union(*(s.required_env for s in snaps if s.source in {"overlay-prod", "deployment-prod"}))
@@ -198,6 +240,20 @@ def compare_consistency(group: list[ServiceSnapshot]) -> list[Violation]:
                         evidence,
                     )
                 )
+
+        # Network policy enforcement for production workloads
+        prod_snaps = [s for s in snaps if s.source in {"overlay-prod", "deployment-prod"}]
+        if prod_snaps:
+            for prod_snap in prod_snaps:
+                if not prod_snap.network_policy_enabled:
+                    violations.append(
+                        Violation(
+                            prod_snap.service,
+                            cname,
+                            "production workload missing network policy coverage",
+                            (prod_snap.path,),
+                        )
+                    )
 
     return violations
 

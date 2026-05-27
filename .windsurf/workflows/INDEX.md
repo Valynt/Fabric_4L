@@ -67,49 +67,17 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Code Review & Development
 
-### jr-coder
-**Description:** Implement a ticket, write tests, run them, commit, and mark ready for review
-**When to Use:** Writing code for defined tasks
-
-### jr-code-review
-**Description:** Review a completed task for code quality, test coverage, and correctness
-**When to Use:** Code is ready for review
-
-### jr-architect-review
-**Description:** Review a completed feature for cross-task coherence, integration quality, and architectural soundness
-**When to Use:** All tasks in a feature are done before merging
-
-### jr-plan
-**Description:** Break down a plan document into features and tasks with dependencies
-**When to Use:** Starting new work or scoping a project
-
-### jr-rebase
-**Description:** Resolve git rebase conflicts in feature branches
-**When to Use:** Rebase has conflicts that need resolution
-
-### jr-retro
-**Description:** Post-mortem analysis of a completed or in-progress feature
-**When to Use:** Feature shipped, stalled, or after architect review
-
-### refinement
-**Description:** Transform functional code into production-grade output through systematic inspection and direct fixes
-**When to Use:** Improving code quality after implementation
+### code-quality-improvement
+**Description:** Systematic code quality improvement workflow for transforming functional code into production-grade output through inspection, analysis, and targeted fixes
+**When to Use:** Improving code quality after implementation, React component self-review, periodic technical debt cleanup
 
 ---
 
 ## Architecture & Governance
 
-### pre-production-audit
-**Description:** Conduct comprehensive pre-production audits of enterprise SaaS platforms
-**When to Use:** Preparing for production deployment, reviewing code quality, assessing security posture
-
 ### drift-assessment
 **Description:** Multi-layer drift detection for API contracts, schemas, and behavior drift
 **When to Use:** After code changes touching API routes or schemas, before releases, weekly drift reports
-
-### execution-status-sync
-**Description:** Task-level roadmap execution audit with integrity checks and next engineering work package generation
-**When to Use:** Daily/weekly execution sync, before sprint planning, before marking major tasks complete
 
 ---
 
@@ -118,14 +86,6 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 ### react-component-design
 **Description:** Three-phase React component design workflow with chain-of-thought rigor
 **When to Use:** Designing React components with agent skills
-
-### component_self_review
-**Description:** Post-generation code review workflow for enterprise-grade component validation
-**When to Use:** After component generation but before merging
-
-### frontend-audit-refactor
-**Description:** Audit a React/TypeScript frontend codebase and its backend API connections, then apply iterative refactoring loops
-**When to Use:** Auditing frontend, reviewing backend connections, finding and removing stale code
 
 ---
 
@@ -147,25 +107,25 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Infrastructure & DevOps
 
-### gate-hardening
-**Description:** Build machine-verifiable production release gate system using TDD
-**When to Use:** Codebase needs ship/no-ship test gates for tenant isolation, state consistency, degraded dependencies
+### dependency-update
+**Description:** Systematic dependency update workflow for security patches, bug fixes, and feature updates with testing and rollback planning
+**When to Use:** Monthly dependency updates, security vulnerabilities, critical bug fixes
 
-### value-engine-e2e-validation
-**Description:** Bootstrap the full development stack, seed a demo tenant and user, authenticate, execute the complete Value Engine workflow end-to-end
-**When to Use:** End-to-end validation of the Value Engine
+### performance-investigation
+**Description:** Systematic performance investigation workflow for identifying bottlenecks, analyzing metrics, and implementing optimizations
+**When to Use:** Slow response times, high latency, resource utilization issues
 
-### production_only_delivery
-**Description:** Ensure all implementation work results in real, production-grade code with no mock, stub, placeholder, simulated, or shortcut behavior
-**When to Use:** Enforcing production-only delivery standards
+### feature-flag-rollout
+**Description:** Systematic feature flag rollout workflow for safe, gradual feature deployment with monitoring and rollback capabilities
+**When to Use:** Deploying new features, A/B testing, gradual migration to new implementations
 
 ---
 
 ## Planning & Roadmap
 
-### propose-roadmap-additions
-**Description:** Full workflow to assess current roadmap state and propose concrete additions for production-complete product
-**When to Use:** Sprint planning, pre-release readiness reviews, quarterly roadmap updates
+### roadmap-management
+**Description:** Comprehensive roadmap management workflow for auditing task status, identifying gaps, proposing additions, and generating work packages
+**When to Use:** Daily/weekly execution sync, sprint planning, quarterly roadmap updates
 
 ### launch-readiness-assessment
 **Description:** Fabric_4L Dual-Track Launch Readiness Assessment & Sprint Plan using claimed-versus-verified evidence
@@ -192,11 +152,11 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ---
 
-## Automation & Triggers
+## Operations & Incident Response
 
-### autonomous_code_reviewer_trigger
-**Description:** Auto-trigger code review on save or periodic check
-**When to Use:** Enable auto-review for continuous code quality monitoring
+### incident-response
+**Description:** Structured incident response workflow for production incidents with severity triage, communication, and post-mortem
+**When to Use:** Production outages, security incidents, data integrity issues, critical bugs
 
 ---
 
@@ -210,12 +170,12 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Workflow Maintenance
 
-**Last Updated:** 2026-05-15
+**Last Updated:** 2026-05-27
 
-**Total Workflows:** 28 (25 main workflows + 3 templates)
+**Total Workflows:** 27 (24 main workflows + 3 templates)
 
-**Workflows with Frontmatter:** 28/28 (100%)
+**Workflows with Frontmatter:** 27/27 (100%)
 
-**Workflows with Cross-References:** 3 (contract-enforcement-auditor, dead-code-sweeper, deprecation-migrator)
+**Moved to Governance:** production-only-delivery.md → docs/governance/
 
 **Note:** This index is generated manually. Consider automating this index generation by parsing workflow frontmatter from all workflow files.

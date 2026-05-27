@@ -1,6 +1,10 @@
 ---
+workflow_id: drift-assessment
+name: Drift Assessment
+version: 1.0.0
 description: Multi-layer drift detection for API contracts, schemas, and behavior drift
-tags: [contract, validation, monitoring]
+pattern: circuit-breaker
+risk_level: medium
 ---
 
 # Drift Assessment Workflow

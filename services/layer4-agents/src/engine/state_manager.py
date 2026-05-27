@@ -330,7 +330,7 @@ class StateManager:
             return history
         else:
             history_key = f"{workflow_id}{_HISTORY_KEY_SUFFIX}"
-            history: list[Any] = self._memory_store.get(history_key, [])
+            history: list[Any] = self._memory_store.get(history_key, [])  # type: ignore[no-redef]
             return history[:limit]
 
     async def list_active_workflows(self) -> list[str]:

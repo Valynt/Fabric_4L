@@ -1,5 +1,10 @@
 ---
+workflow_id: react-component-design
+name: React Component Design
+version: 1.0.0
 description: Three-phase React component design workflow with chain-of-thought rigor
+pattern: circuit-breaker
+risk_level: low
 ---
 
 # React Component Design Workflow

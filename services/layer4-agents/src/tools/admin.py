@@ -66,7 +66,7 @@ async def suspend_tenant(
     except ValueFabricException:
         raise
     except ValueError as exc:
-        logger.warning("admin_tool_value_error", error=str(exc))
+        logger.warning("admin_tool_value_error", extra={"error": str(exc)})
         raise ConflictError(message="Admin operation conflict") from exc
 
     emit_audit_event(

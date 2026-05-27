@@ -1,6 +1,10 @@
 ---
+workflow_id: fumadocs-drift-audit
+name: Fumadocs Drift Audit
+version: 1.0.0
 description: Audit Fumadocs documentation drift for ongoing maintenance and migration
-tags: [documentation, fumadocs, audit, drift, maintenance]
+pattern: circuit-breaker
+risk_level: low
 ---
 
 # Fumadocs Drift Audit Workflow
