@@ -4,7 +4,6 @@
 import json
 import re
 import subprocess
-import sys
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -15,7 +14,7 @@ REPORTS_DIR.mkdir(exist_ok=True)
 SEVERITY_ORDER = {"Critical": 0, "High": 1, "Medium": 2, "Low": 3}
 
 
-def run_git(args):
+def run_git(args, check=False):
     result = subprocess.run(
         ["git", "-C", str(REPO_ROOT)] + args,
         capture_output=True,
@@ -23,22 +22,46 @@ def run_git(args):
         encoding="utf-8",
         errors="replace",
     )
-    return result.stdout
+    if check and result.returncode != 0:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip() or "git command failed")
+    return result
 
 
-def get_merge_commits(limit=20):
-    """Return list of merge commits that look like PR merges."""
-    log = run_git([
-        "log", "--format=%H|%P|%s", "--grep=Merge pull request", "-n", str(limit), "HEAD"
-    ])
+def ensure_origin_main_available():
+    """Fail fast if origin/main is unavailable."""
+    probe = run_git(["rev-parse", "--verify", "origin/main^{commit}"])
+    if probe.returncode != 0:
+        raise RuntimeError(
+            "Preflight failed: origin/main is unavailable. "
+            "Run `git fetch origin main` and retry."
+        )
+
+
+def get_merge_commits(limit=20, base_ref="origin/main"):
+    """Return list of merge commits that look like PR merges from explicit base ref history."""
+    retrieval_command = (
+        f"git -C {REPO_ROOT} log {base_ref} --format=%H|%P|%s "
+        f"--grep='Merge pull request' -n {limit}"
+    )
+    log_result = run_git(
+        ["log", base_ref, "--format=%H|%P|%s", "--grep=Merge pull request", "-n", str(limit)],
+        check=True,
+    )
     commits = []
-    for line in log.strip().splitlines():
+    for line in log_result.stdout.strip().splitlines():
         if "|" not in line:
             continue
         sha, parents, msg = line.split("|", 2)
-        parent_list = parents.split()
-        commits.append({"sha": sha, "parents": parent_list, "message": msg})
-    return commits
+        commits.append({"sha": sha, "parents": parents.split(), "message": msg})
+
+    window = {
+        "base_ref": base_ref,
+        "limit": limit,
+        "retrieval_command": retrieval_command,
+        "start_sha": commits[-1]["sha"] if commits else None,
+        "end_sha": commits[0]["sha"] if commits else None,
+    }
+    return commits, window
 
 
 def get_pr_number(msg):
@@ -54,9 +77,8 @@ def get_branch_name(msg):
 def get_diff(sha, parents):
     """Diff between merge base and the merge commit (what the PR introduced)."""
     if len(parents) >= 2:
-        # For a merge commit, diff against first parent to see PR changes
-        return run_git(["diff", f"{parents[0]}..{sha}"])
-    return run_git(["diff", f"{sha}~1..{sha}"])
+        return run_git(["diff", f"{parents[0]}..{sha}"], check=True).stdout
+    return run_git(["diff", f"{sha}~1..{sha}"], check=True).stdout
 
 
 def scan_diff(diff_text, pr_num, sha, branch):
@@ -65,26 +87,22 @@ def scan_diff(diff_text, pr_num, sha, branch):
     current_file = None
     line_no = 0
 
-    bug_keywords = [
-        "fix", "bug", "crash", "regression", "broken", "error handling",
-        "workaround", "temporary", "hotfix", "patch"
-    ]
-    smell_keywords = [
-        "TODO", "FIXME", "HACK", "XXX", "NOTE:", "WARN"
-    ]
+    smell_keywords = ["TODO", "FIXME", "HACK", "XXX", "NOTE:", "WARN"]
 
     def add_finding(category, severity, description, refs=None):
-        findings.append({
-            "category": category,
-            "severity": severity,
-            "description": description,
-            "pr_number": pr_num,
-            "commit_sha": sha,
-            "branch": branch,
-            "references": refs or [],
-        })
+        findings.append(
+            {
+                "category": category,
+                "severity": severity,
+                "description": description,
+                "pr_number": pr_num,
+                "commit_sha": sha,
+                "branch": branch,
+                "references": refs or [],
+            }
+        )
 
-    for i, line in enumerate(lines):
+    for line in lines:
         if line.startswith("diff --git"):
             m = re.search(r"diff --git a/(\S+) b/(\S+)", line)
             if m:
@@ -100,7 +118,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
             line_no += 1
             content = line[1:]
 
-            # TODO/FIXME/HACK
             for kw in smell_keywords:
                 if kw in content.upper():
                     add_finding(
@@ -110,7 +127,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
                         refs=[{"file": current_file, "line": line_no}],
                     )
 
-            # Bare except
             if re.search(r"^\s*except\s*:\s*$", content):
                 add_finding(
                     "exception_handling",
@@ -119,7 +135,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
                     refs=[{"file": current_file, "line": line_no}],
                 )
 
-            # except Exception: pass
             if re.search(r"except\s+\w+\s*:\s*pass", content):
                 add_finding(
                     "exception_handling",
@@ -128,7 +143,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
                     refs=[{"file": current_file, "line": line_no}],
                 )
 
-            # Hardcoded secrets (basic heuristic)
             if re.search(r'(?i)(api_key|secret|password|token)\s*=\s*["\'][\w\-]{8,}["\']', content):
                 is_test_file = "test" in (current_file or "").lower()
                 add_finding(
@@ -138,7 +152,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
                     refs=[{"file": current_file, "line": line_no}],
                 )
 
-            # print/debug statements
             if re.search(r"^\s*print\(", content) and "test" not in (current_file or "").lower():
                 add_finding(
                     "code_smell",
@@ -147,7 +160,6 @@ def scan_diff(diff_text, pr_num, sha, branch):
                     refs=[{"file": current_file, "line": line_no}],
                 )
 
-            # Race condition hints
             if re.search(r"(?i)\b(race|concurrent|thread|lock|mutex)\b", content):
                 add_finding(
                     "concurrency",
@@ -171,7 +183,8 @@ def deduplicate(findings):
 
 
 def main():
-    commits = get_merge_commits(limit=20)
+    ensure_origin_main_available()
+    commits, commit_window = get_merge_commits(limit=20, base_ref="origin/main")
     all_findings = []
 
     print(f"Scanning {len(commits)} PR merge commits...")
@@ -189,6 +202,7 @@ def main():
     report = {
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "scanned_commits": len(commits),
+        "commit_window": commit_window,
         "total_findings": len(all_findings),
         "findings": all_findings,
     }
