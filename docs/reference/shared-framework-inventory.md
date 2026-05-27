@@ -26,6 +26,10 @@ This inventory captures the current baseline implementation traits for all maint
 | Layer 6 Benchmarks | Shared app factory, security middleware, metrics middleware, CORS | `/health`, `/ready`, `/metrics` | standard `logging` + startup metadata emission | Shared envelope via `register_exception_handlers(app)` | `RequestContext` dependency from `value_fabric.shared.identity.context` | Shared rate-limit policy through framework bootstrap | Shared idempotency/gateway policy behavior from bootstrap |
 | API Gateway (`services/api`) | Shared app factory middleware stack + `AuditMiddleware` + metrics middleware | `register_health_endpoint` + `/metrics` | App-core logging + audit trail middleware | Shared framework exception envelope policies from API bootstrap | Tenant enforcement rollout config in `create_fabric_app(...)` | Rate-limiting rollout in `EnforcementRolloutConfig` (currently audit mode) | Idempotency rollout in `EnforcementRolloutConfig` (currently audit mode) |
 
+## Shared App Factory DB/Session Guardrail
+
+`create_fabric_app()` is intentionally limited to HTTP/framework assembly concerns and **must not** open or close DB sessions automatically. Session lifecycle ownership stays in each service's startup/shutdown hooks and dependency injection wiring. Any future shared DB/session helper must be explicit, opt-in, and validated service-by-service before use.
+
 ## Allowed Differences vs Must-Converge
 
 ### Allowed Differences (intentional and acceptable)
