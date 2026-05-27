@@ -285,6 +285,20 @@ class AnalyticsError(ValueFabricException):
         )
 
 
+class TenantAccessError(ValueFabricException):
+    """Raised when tenant context is missing or invalid for an operation."""
+
+    def __init__(self, message: str = "Tenant context required", **kwargs):
+        super().__init__(message, error_code="TENANT_ACCESS_DENIED", **kwargs)
+
+
+class ContractViolationError(ValueFabricException):
+    """Raised when data violates expected service/API contract shape."""
+
+    def __init__(self, message: str = "Contract violation", **kwargs):
+        super().__init__(message, error_code="CONTRACT_VIOLATION", **kwargs)
+
+
 class ConfigurationError(ValueFabricException):
     """Raised when configuration is invalid."""
 
