@@ -43,7 +43,8 @@ def configure_structured_logging() -> None:
 
 def set_request_log_context(request: Request) -> None:
     request_id = getattr(request.state, "trace_id", None) or request.headers.get("X-Request-ID") or str(uuid.uuid4())
-    tenant_id = getattr(getattr(request.state, "governance_context", None), "tenant_id", None)
+    ctx = getattr(request.state, "governance_context", None) or getattr(request.state, "context", None)
+    tenant_id = getattr(ctx, "tenant_id", None)
     _request_id_ctx.set(str(request_id))
     _tenant_id_ctx.set(str(tenant_id) if tenant_id else None)
 
