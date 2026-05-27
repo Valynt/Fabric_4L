@@ -533,7 +533,7 @@ class TestCorrelationContextMiddleware:
         assert payload["correlation_id"] == payload["request_id"]
         assert response.headers["X-Correlation-ID"] == payload["request_id"]
 
-    def test_propagates_provided_correlation_id(self):
+    def test_preserves_distinct_request_and_correlation_ids(self):
         app = FastAPI()
         app.add_middleware(RequestIDMiddleware)
 
@@ -542,6 +542,14 @@ class TestCorrelationContextMiddleware:
             return {"correlation_id": getattr(request.state, "correlation_id", None)}
 
         client = TestClient(app)
-        response = client.get("/context", headers={"X-Correlation-ID": "corr-shared-123"})
+        response = client.get(
+            "/context",
+            headers={
+                "X-Request-ID": "req-abc",
+                "X-Correlation-ID": "corr-shared-123",
+            },
+        )
         assert response.status_code == 200
         assert response.json()["correlation_id"] == "corr-shared-123"
+        assert response.headers["X-Request-ID"] == "req-abc"
+        assert response.headers["X-Correlation-ID"] == "corr-shared-123"
