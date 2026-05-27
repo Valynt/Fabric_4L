@@ -509,3 +509,39 @@ class TestSanitizedPublicErrors:
         body = response.json()
         assert response.status_code == 500
         assert 'abc123' not in body['error']['message']
+
+
+class TestCorrelationContextMiddleware:
+    def test_generates_correlation_id_when_missing(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {
+                "request_id": getattr(request.state, "request_id", None),
+                "trace_id": getattr(request.state, "trace_id", None),
+                "correlation_id": getattr(request.state, "correlation_id", None),
+            }
+
+        client = TestClient(app)
+        response = client.get("/context")
+        payload = response.json()
+        assert response.status_code == 200
+        assert payload["request_id"]
+        assert payload["trace_id"] == payload["request_id"]
+        assert payload["correlation_id"] == payload["request_id"]
+        assert response.headers["X-Correlation-ID"] == payload["request_id"]
+
+    def test_propagates_provided_correlation_id(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {"correlation_id": getattr(request.state, "correlation_id", None)}
+
+        client = TestClient(app)
+        response = client.get("/context", headers={"X-Correlation-ID": "corr-shared-123"})
+        assert response.status_code == 200
+        assert response.json()["correlation_id"] == "corr-shared-123"

@@ -1,5 +1,6 @@
 """Middleware for request correlation ID handling."""
 
+import time
 from typing import Callable
 
 from value_fabric.shared.observability.correlation import (
@@ -13,6 +14,7 @@ from value_fabric.shared.observability.trace_context import (
     resolve_trace_context,
     sanitize_trace_id,
 )
+from value_fabric.shared.observability.request_context import LoggingContext, clear_logging_context, set_logging_context
 
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -57,12 +59,34 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         setattr(request.state, REQUEST_STATE_TRACE_ID_KEY, request_id)
         setattr(request.state, REQUEST_STATE_CORRELATION_ID_KEY, request_id)
 
-        # Process request
+        # Legacy alias used by some services/tests.
+        setattr(request.state, "request_id", request_id)
+
+        start = time.perf_counter()
         response = await call_next(request)
+        elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
+
+        tenant_id = (
+            getattr(request.state, "tenant_id", None)
+            or request.headers.get("X-Tenant-ID")
+            or request.headers.get("x-tenant-id")
+        )
+        set_logging_context(
+            LoggingContext(
+                request_id=request_id,
+                correlation_id=request_id,
+                tenant_id=tenant_id,
+                route=request.url.path,
+                method=request.method,
+                status=response.status_code,
+                latency_ms=elapsed_ms,
+            )
+        )
 
         # Add request ID to response headers
         for header, value in canonical_trace_headers(request_id).items():
             response.headers[header] = value
+        clear_logging_context()
 
         return response
 
