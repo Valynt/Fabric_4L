@@ -1317,10 +1317,10 @@ jobs:
 
       - name: Start runtime contract services
         run: |
-          export OPENAI_API_KEY=test-key
+          export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
           export NEO4J_PASSWORD=test-neo4j
-          export JWT_SECRET=test-jwt-secret
+          export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose up -d postgres redis neo4j layer5-migrate layer5-ground-truth layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
@@ -1454,7 +1454,6 @@ jobs:
         run: |
           docker compose version
 
-      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
@@ -1466,19 +1465,10 @@ jobs:
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /layer2-extraction
-        continue-on-error: true
-
-      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
-      - name: Fallback to GitHub Secrets
-        if: steps.infisical.outcome == 'failure'
-        run: |
-          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> "$GITHUB_ENV"
 
       - name: Start core services
         run: |
           export NEO4J_PASSWORD=valuefabric
-          export OPENAI_API_KEY=${OPENAI_API_KEY:-${{ secrets.OPENAI_API_KEY }}}
           docker compose up -d neo4j redis postgres
           # Start layers in background
           docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
