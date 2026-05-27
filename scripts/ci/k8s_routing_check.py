@@ -21,6 +21,7 @@ Validates each rendered deployment overlay under k8s/deployments/ for:
 
   5. Routing stacks under k8s/routing/* must not import `../../base`.
   6. Deployment pod/container security contexts include baseline hardening.
+  7. NGINX ingress resources include mandatory CORS, auth, and rate-limit annotations.
 
 Usage:
   python scripts/ci/k8s_routing_check.py \
@@ -71,6 +72,21 @@ ROUTING_KIND_MATRIX: dict[str, set[tuple[str, str]]] = {
 ALL_ROUTING_KINDS: set[tuple[str, str]] = set().union(*ROUTING_KIND_MATRIX.values())
 
 SENTINELS = ("__HOST__", "__API_HOST__")
+
+REQUIRED_NGINX_ANNOTATIONS: dict[str, tuple[str, ...]] = {
+    "cors": ("nginx.ingress.kubernetes.io/enable-cors",),
+    "auth": (
+        "nginx.ingress.kubernetes.io/auth-url",
+        "nginx.ingress.kubernetes.io/auth-signin",
+        "nginx.ingress.kubernetes.io/auth-response-headers",
+    ),
+    "rate_limiting": (
+        "nginx.ingress.kubernetes.io/limit-rps",
+        "nginx.ingress.kubernetes.io/limit-rpm",
+        "nginx.ingress.kubernetes.io/limit-connections",
+        "nginx.ingress.kubernetes.io/limit-burst-multiplier",
+    ),
+}
 
 
 def _api_group(api_version: str) -> str:
@@ -321,6 +337,21 @@ def _check_deployment(name: str, axis: str, rendered: Path) -> list[str]:
                     f"{d.get('metadata', {}).get('name', '?')} "
                     f"references Service '{svc}' which is not in the rendered output"
                 )
+
+    # 7. Mandatory nginx ingress controls (rendered manifests).
+    if axis == "nginx":
+        for d in docs:
+            gk = (_api_group(d.get("apiVersion", "")), d.get("kind", ""))
+            if gk != ("networking.k8s.io", "Ingress"):
+                continue
+            md_name = d.get("metadata", {}).get("name", "?")
+            annotations = (d.get("metadata", {}) or {}).get("annotations") or {}
+            for control, keys in REQUIRED_NGINX_ANNOTATIONS.items():
+                for key in keys:
+                    if not str(annotations.get(key, "")).strip():
+                        errors.append(
+                            f"{name}: Ingress/{md_name} missing required {control} annotation '{key}'"
+                        )
 
     # 6. Deployment securityContext baseline for rendered deployment bundles.
     for d in docs:

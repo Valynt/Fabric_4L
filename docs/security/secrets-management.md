@@ -197,3 +197,7 @@ Prerequisites:
 - [x] Do not expose private secrets through `VITE_` variables.
 - [x] Do not reuse dev/staging/prod API keys across environments.
 - [x] Scan the repo for leaked secrets: `infisical scan --recursive`.
+
+## CI fail-closed policy
+
+CI workflows must fetch runtime secrets via Infisical OIDC and fail hard when retrieval fails. Do not add fallback values for `OPENAI_API_KEY` or `JWT_SECRET` in workflow YAML. For incident recovery and emergency rotation, use `docs/runbooks/operational/ci-infisical-oidc-recovery.md`.

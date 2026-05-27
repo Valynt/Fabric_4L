@@ -64,6 +64,11 @@ jobs:
         with:
           python-version: '3.11'
 
+      - name: Enforce production alert metadata (runbook + on-call owner)
+        run: |
+          pip install pyyaml
+          python scripts/ci/check_production_alert_metadata.py
+
       - name: Enforce legacy tenant access shim lifecycle (phase-controlled)
         run: |
           pip install pyyaml
@@ -204,6 +209,11 @@ jobs:
           pip install pytest
           pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
 
+      - name: Run webhook security matrix and build report artifact
+        run: |
+          pip install pytest
+          python3 scripts/ci/webhook_security_matrix_report.py
+
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
@@ -242,6 +252,7 @@ jobs:
             artifacts/layer-quality-scorecard.md
             artifacts/route-tenant-propagation.json
             artifacts/route-tenant-propagation.md
+            artifacts/webhook-security-matrix.md
           retention-days: 14
 
   governance-docs-check:
@@ -1321,10 +1332,10 @@ jobs:
 
       - name: Start runtime contract services
         run: |
-          export OPENAI_API_KEY=test-key
+          export OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           export REDIS_PASSWORD=test-redis
           export NEO4J_PASSWORD=test-neo4j
-          export JWT_SECRET=test-jwt-secret
+          export JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           docker compose up -d postgres redis neo4j layer5-migrate layer5-ground-truth layer1-ingestion layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for L1-L4 health endpoints
@@ -1458,7 +1469,6 @@ jobs:
         run: |
           docker compose version
 
-      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
@@ -1470,19 +1480,10 @@ jobs:
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /layer2-extraction
-        continue-on-error: true
-
-      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
-      - name: Fallback to GitHub Secrets
-        if: steps.infisical.outcome == 'failure'
-        run: |
-          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
-          echo "OPENAI_API_KEY=${{ secrets.OPENAI_API_KEY }}" >> "$GITHUB_ENV"
 
       - name: Start core services
         run: |
           export NEO4J_PASSWORD=valuefabric
-          export OPENAI_API_KEY=${OPENAI_API_KEY:-${{ secrets.OPENAI_API_KEY }}}
           docker compose up -d neo4j redis postgres
           # Start layers in background
           docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
@@ -1750,3 +1751,51 @@ jobs:
 
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
+
+  unified-readiness-gate:
+    name: Unified Readiness Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - structural-preflight
+      - shared-and-tests-checks
+      - layer5-tenant-isolation-regression
+      - contract-checks
+      - runtime-contract-checks
+      - integration-checks
+      - k8s-dry-run
+      - docker-compose-config-contract
+      - docker-build-check
+      - route-auth-gate
+    steps:
+      - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
+        run: |
+          declare -A CHECKS=(
+            ["structural-preflight"]="${{ needs.structural-preflight.result }}"
+            ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
+            ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
+            ["contract-checks"]="${{ needs.contract-checks.result }}"
+            ["runtime-contract-checks"]="${{ needs.runtime-contract-checks.result }}"
+            ["integration-checks"]="${{ needs.integration-checks.result }}"
+            ["k8s-dry-run"]="${{ needs.k8s-dry-run.result }}"
+            ["docker-compose-config-contract"]="${{ needs.docker-compose-config-contract.result }}"
+            ["docker-build-check"]="${{ needs.docker-build-check.result }}"
+            ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
+          )
+
+          failed=0
+          for check in "${!CHECKS[@]}"; do
+            result="${CHECKS[$check]}"
+            if [[ "$result" != "success" ]]; then
+              echo "❌ ${check} => ${result}"
+              failed=1
+            else
+              echo "✅ ${check} => ${result}"
+            fi
+          done
+
+          if [[ "$failed" -ne 0 ]]; then
+            echo "Unified readiness gate failed."
+            exit 1
+          fi
+          echo "Unified readiness gate passed."

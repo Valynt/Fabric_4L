@@ -9,6 +9,7 @@ checks tenant-scoped permissions for governance artifact usage.
 """
 
 import logging
+from typing import Any
 from uuid import UUID
 
 from sqlalchemy import and_, select
@@ -24,6 +25,10 @@ logger = logging.getLogger(__name__)
 class AgentPermissionError(PermissionError):
     """Raised when an agent lacks permission to use a governance artifact."""
     pass
+
+
+class PolicyEvaluationError(RuntimeError):
+    """Raised when policy evaluation fails and must fail closed."""
 
 
 class AgentPermissionService:
@@ -228,23 +233,121 @@ class AgentPermissionService:
             if entity_type not in applies_to:
                 continue
 
-            # For now, assume policies pass if they're not mandatory
-            # TODO: Implement actual policy evaluation logic
-            policy_result = {
-                "policy_id": str(policy.id),
-                "policy_name": policy.name,
-                "policy_type": policy.policy_type,
-                "is_mandatory": policy.is_mandatory,
-                "severity": policy.severity,
-                "result": "passed" if not policy.is_mandatory else "not_evaluated",
-                "message": "Policy evaluation not yet implemented",
-            }
+            policy_result = await self._evaluate_policy(
+                db=db,
+                tenant_id=tenant_id,
+                policy=policy,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                entity_version=entity_version,
+            )
             policy_results.append(policy_result)
 
-            if policy.is_mandatory:
+            if policy.is_mandatory and policy_result["result"] != "passed":
                 all_passed = False
 
         return all_passed, policy_results
+
+    async def _evaluate_policy(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        policy: Policy,
+        entity_type: str,
+        entity_id: UUID,
+        entity_version: str | None,
+    ) -> dict[str, Any]:
+        evaluation_inputs: dict[str, Any] = {
+            "tenant_id": str(tenant_id),
+            "entity_type": entity_type,
+            "entity_id": str(entity_id),
+            "entity_version": entity_version,
+        }
+        outcome = "failed"
+        message = "Policy evaluation failed"
+        try:
+            evaluator = self._policy_evaluator(policy.policy_type)
+            passed, message = await evaluator(db=db, tenant_id=tenant_id, entity_id=entity_id)
+            outcome = "passed" if passed else ("warning" if not policy.is_mandatory else "failed")
+        except PolicyEvaluationError as exc:
+            message = str(exc)
+            outcome = "warning" if not policy.is_mandatory else "failed"
+        except Exception as exc:
+            logger.exception("Unexpected policy evaluation error for policy %s", policy.id)
+            message = f"Policy evaluation error: {exc}"
+            outcome = "failed"
+
+        result = {
+            "policy_id": str(policy.id),
+            "policy_name": policy.name,
+            "policy_type": policy.policy_type,
+            "policy_version": policy.current_version,
+            "is_mandatory": policy.is_mandatory,
+            "severity": policy.severity,
+            "result": outcome,
+            "message": message,
+            "evaluation_inputs": evaluation_inputs,
+        }
+
+        try:
+            await self.record_policy_application(
+                db=db,
+                tenant_id=tenant_id,
+                policy_id=policy.id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                entity_version=entity_version,
+                result=result["result"],
+                rule_results=[result],
+                applied_by="policy_evaluator",
+                context=evaluation_inputs,
+            )
+        except Exception as exc:  # pragma: no cover - defensive handling for audit persistence
+            logger.exception("Failed to record policy application for policy %s", policy.id)
+            audit_message = f"{result['message']}; audit write failed: {exc}"
+            result["message"] = audit_message
+            if policy.is_mandatory:
+                result["result"] = "failed"
+
+        return result
+
+    def _policy_evaluator(self, policy_type: str):
+        evaluators = {
+            "formula_approval": self._evaluate_formula_approval_policy,
+            "benchmark_approval": self._evaluate_benchmark_approval_policy,
+            "assumption_approval": self._evaluate_assumption_approval_policy,
+        }
+        evaluator = evaluators.get(policy_type)
+        if evaluator is None:
+            raise PolicyEvaluationError(f"Unknown policy type: {policy_type}")
+        return evaluator
+
+    async def _evaluate_formula_approval_policy(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        entity_id: UUID,
+    ) -> tuple[bool, str]:
+        can_use, reason = await self.can_use_formula(db=db, tenant_id=tenant_id, formula_id=entity_id)
+        return can_use, reason
+
+    async def _evaluate_benchmark_approval_policy(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        entity_id: UUID,
+    ) -> tuple[bool, str]:
+        can_use, reason = await self.can_use_benchmark(db=db, tenant_id=tenant_id, benchmark_id=entity_id)
+        return can_use, reason
+
+    async def _evaluate_assumption_approval_policy(
+        self,
+        db: AsyncSession,
+        tenant_id: UUID,
+        entity_id: UUID,
+    ) -> tuple[bool, str]:
+        _ = db, tenant_id, entity_id
+        raise PolicyEvaluationError("assumption approval evaluation not implemented")
 
     async def require_formula_permission(
         self,
