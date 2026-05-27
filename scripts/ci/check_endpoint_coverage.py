@@ -170,6 +170,12 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         help="Directory containing backend OpenAPI specs (*.json).",
     )
+    parser.add_argument(
+        "--write-report",
+        type=Path,
+        default=None,
+        help="Optional JSON report path for actionable debt tracking.",
+    )
     return parser.parse_args()
 
 
@@ -177,6 +183,17 @@ def main() -> int:
     args = parse_args()
     code, report = check_registry(args.registry, args.openapi_dir)
     print(report)
+    if args.write_report:
+        today = dt.date.today().isoformat()
+        report_payload = {
+            "generated_on": today,
+            "status": "fail" if code else "pass",
+            "registry": args.registry.as_posix(),
+            "openapi_dir": args.openapi_dir.as_posix(),
+            "summary": report,
+        }
+        args.write_report.parent.mkdir(parents=True, exist_ok=True)
+        args.write_report.write_text(json.dumps(report_payload, indent=2) + "\n", encoding="utf-8")
     return code
 
 
