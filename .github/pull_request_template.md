@@ -53,6 +53,25 @@ Reference: `docs/reference/layer5-api-compatibility-policy.md`
 - [ ] If this PR claims Layer 5 Phase 0 closure/readiness, all discovered Layer 5 issues include owner and due date (per `docs/governance/layer5-backlog-issue-template.md`); otherwise Phase 0 remains open.
 - [ ] I validated release readiness with either successful chaos smoke + blue-green health-gate checks, or attached an approved exception.
 
+
+## Incremental PR Gate Reporting (Required)
+
+For every incremental PR, provide explicit **Pass / Fail** status and evidence links (job URL, run ID, or log artifact) for each gate below.
+
+| Gate | Status (Pass/Fail) | Evidence (URL or artifact) | Notes |
+|---|---|---|---|
+| structural-preflight |  |  |  |
+| Service layer lint/type/test jobs |  |  |  |
+| Layer 5 source/tenant/contract gates |  |  |  |
+| contract-checks |  |  |  |
+| runtime-contract-checks |  |  |  |
+| route-auth-gate |  |  |  |
+| unified-readiness-gate |  |  |  |
+
+### Behavior Parity (Required for incremental PRs)
+
+- [ ] Behavior parity verified against baseline snapshots captured in Step 1 (attach snapshot references/diffs).
+
 ## Validation
 
 - [ ] `make verify`
