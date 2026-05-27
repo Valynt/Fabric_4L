@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from typing import Any, TypeVar
 
 from sqlalchemy import text
-from sqlalchemy.engine import make_url
+from sqlalchemy.engine import URL, make_url
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker, create_async_engine
 
@@ -34,6 +34,21 @@ def validate_postgresql_dsn(dsn: str) -> str:
     url = make_url(dsn)
     if not url.drivername.startswith("postgresql"):
         raise ValueError(f"Expected PostgreSQL DSN, got '{url.drivername}'")
+    if "+" not in url.drivername:
+        raise ValueError(
+            "Async SQLAlchemy engines require an async PostgreSQL dialect, "
+            "for example 'postgresql+asyncpg://...'.",
+        )
+    return dsn
+
+
+def normalize_async_postgresql_dsn(dsn: str, *, default_driver: str = "asyncpg") -> str:
+    """Normalize bare PostgreSQL DSNs to an async dialect."""
+
+    url = make_url(dsn)
+    if url.drivername == "postgresql":
+        normalized: URL = url.set(drivername=f"postgresql+{default_driver}")
+        return normalized.render_as_string(hide_password=False)
     return dsn
 
 
@@ -41,16 +56,16 @@ def resolve_runtime_dsn(*env_vars: str, fallback: str | None = None) -> str:
     for env_name in env_vars:
         value = os.getenv(env_name)
         if value:
-            return validate_postgresql_dsn(value)
+            return validate_postgresql_dsn(normalize_async_postgresql_dsn(value))
     if fallback:
-        return validate_postgresql_dsn(fallback)
+        return validate_postgresql_dsn(normalize_async_postgresql_dsn(fallback))
     raise RuntimeError(f"No database DSN configured in env vars: {', '.join(env_vars)}")
 
 
 def create_postgresql_engine(dsn: str, *, pool: PostgresPoolConfig | None = None, **kwargs: Any) -> AsyncEngine:
     pool_cfg = pool or PostgresPoolConfig()
     return create_async_engine(
-        validate_postgresql_dsn(dsn),
+        validate_postgresql_dsn(normalize_async_postgresql_dsn(dsn)),
         pool_size=pool_cfg.pool_size,
         max_overflow=pool_cfg.max_overflow,
         pool_timeout=pool_cfg.pool_timeout,
