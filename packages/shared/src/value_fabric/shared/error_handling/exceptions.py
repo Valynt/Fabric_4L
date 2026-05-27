@@ -85,6 +85,22 @@ class AuthorizationError(ValueFabricException):
         )
 
 
+class TenantIsolationError(ValueFabricException):
+    """Raised when tenant scoping or cross-tenant access checks fail."""
+
+    def __init__(
+        self,
+        message: str = "Tenant access denied",
+        details: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message=message,
+            error_code=ErrorCode.TENANT_ISOLATION_ERROR,
+            status_code=403,
+            details=details,
+        )
+
+
 class NotFoundError(ValueFabricException):
     """Raised when a requested resource is not found."""
 
