@@ -56,7 +56,9 @@ def build_rate_limit_key(
     key_strategy: RateLimitKeyStrategy,
 ) -> str:
     parts = ["ratelimit", config.scope.value]
-    if key_strategy.include_tenant and config.scope in {RateLimitScope.TENANT, RateLimitScope.USER}:
+    # Tenant dimension is non-optional for tenant- and user-scoped limits.
+    # This prevents cross-tenant key collisions when env flags are misconfigured.
+    if config.scope in {RateLimitScope.TENANT, RateLimitScope.USER}:
         parts.append(str(ctx.tenant_id))
 
     if key_strategy.include_caller:
