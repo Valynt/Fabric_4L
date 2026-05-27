@@ -2,7 +2,7 @@
 title: "ADR-002: Six-Layer Architecture"
 category: "explanations"
 audience: "advanced"
-last-reviewed: "2026-04-19"
+last-reviewed: "2026-05-27"
 freshness: "current"
 related: ["../../core-concepts/architecture", "../../reference/layer1-ingestion-api", "../why-knowledge-graph"]
 ---
@@ -59,6 +59,27 @@ Each layer is:
 - **API-contracted** (OpenAPI specs)
 - **Horizontally scalable** (stateless where possible)
 
+### Service lifecycle classification (explicit)
+
+To prevent architecture and deployment drift, service directories must be explicitly classified as one of:
+
+- `production`: part of the supported production platform
+- `internal`: operator/internal platform component, not customer-facing product surface
+- `experimental`: pre-GA or incubation scope; may change without normal compatibility guarantees
+
+| Service directory | Classification | Notes |
+|---|---|---|
+| `services/layer1-ingestion` | production | Layer 1 in the six-layer platform.
+| `services/layer2-extraction` | production | Layer 2 in the six-layer platform.
+| `services/layer3-knowledge` | production | Layer 3 in the six-layer platform.
+| `services/layer4-agents` | production | Layer 4 in the six-layer platform.
+| `services/layer5-ground-truth` | production | Layer 5 in the six-layer platform.
+| `services/layer6-benchmarks` | production | Layer 6 in the six-layer platform.
+| `services/layer2-5-signal-refinery` | experimental | Cross-layer refinement prototype between extraction and ground-truth.
+| `services/layer7-billing` | internal | Billing/entitlements control-plane support; internal-facing.
+
+CI preflight enforces that any layer-style deployment entering Kubernetes manifests is listed in this classification set.
+
 ## Consequences
 
 ### Positive
@@ -114,4 +135,4 @@ See [Architecture Overview](../../core-concepts/architecture.md) for detailed di
 
 ---
 
-*Last updated: 2026-04-19 | Status: Accepted*
+*Last updated: 2026-05-27 | Status: Accepted*

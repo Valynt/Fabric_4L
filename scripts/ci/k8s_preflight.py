@@ -26,6 +26,19 @@ SECRETS_TEMPLATE = ROOT / "k8s" / "secrets.yml.template"
 LAYER5_MIGRATIONS = ROOT / "value-fabric" / "layer5-ground-truth" / "src" / "migrations" / "versions"
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet"}
 
+# Explicit lifecycle classifications for layer-style service directories.
+# Keep this list in sync with architecture docs (ADR-002).
+SERVICE_LIFECYCLE_STATUS: dict[str, str] = {
+    "layer1-ingestion": "production",
+    "layer2-extraction": "production",
+    "layer3-knowledge": "production",
+    "layer4-agents": "production",
+    "layer5-ground-truth": "production",
+    "layer6-benchmarks": "production",
+    "layer2-5-signal-refinery": "experimental",
+    "layer7-billing": "internal",
+}
+
 
 @dataclass
 class Violation:
@@ -238,6 +251,39 @@ def check_layer5_migration_guardrails(file_path: Path, doc: dict[str, Any]) -> l
     return violations
 
 
+def check_layer_service_lifecycle_documentation(file_path: Path, doc: dict[str, Any]) -> list[Violation]:
+    """Fail when a layer-style deployment is not explicitly lifecycle-classified."""
+    if doc.get("kind") != "Deployment":
+        return []
+
+    name = (doc.get("metadata", {}) or {}).get("name")
+    if not isinstance(name, str) or not name.startswith("layer"):
+        return []
+
+    if name not in SERVICE_LIFECYCLE_STATUS:
+        allowed = ", ".join(sorted(SERVICE_LIFECYCLE_STATUS))
+        return [
+            Violation(
+                file_path,
+                f"Deployment/{name}",
+                "undocumented layer service in deploy manifests; add explicit lifecycle classification "
+                f"(experimental/internal/production). Known classified services: {allowed}",
+            )
+        ]
+
+    status = SERVICE_LIFECYCLE_STATUS[name]
+    if status not in {"experimental", "internal", "production"}:
+        return [
+            Violation(
+                file_path,
+                f"Deployment/{name}",
+                f"invalid lifecycle status mapping: {status!r}",
+            )
+        ]
+
+    return []
+
+
 def main() -> int:
     files = walk_base_yaml_files()
     template_secrets = collect_template_secret_keys()
@@ -252,6 +298,7 @@ def main() -> int:
             workload_count += 1
             violations.extend(check_workload(file_path, doc, template_secrets))
             violations.extend(check_layer5_migration_guardrails(file_path, doc))
+            violations.extend(check_layer_service_lifecycle_documentation(file_path, doc))
 
     if workload_count == 0:
         print("❌ No workloads found in k8s/base/*.yml")
