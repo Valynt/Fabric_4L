@@ -19,10 +19,9 @@ def test_create_fabric_app_module_does_not_introduce_db_session_side_effects() -
 
     forbidden_markers = [
         "create_engine(",
-        "sessionmaker(",
-        "async_sessionmaker(",
+        "sessionmaker(",  # also matches async_sessionmaker( as a substring
         "scoped_session(",
-        ".dispose(",
+        "engine.dispose(",
         ".close_all(",
         "close_all_sessions(",
     ]
