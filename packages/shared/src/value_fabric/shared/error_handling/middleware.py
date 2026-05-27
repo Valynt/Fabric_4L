@@ -54,43 +54,56 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Get and validate request ID from header, or generate new one
         trace_context = resolve_trace_context(request.headers)
         request_id = sanitize_trace_id(trace_context.trace_id, generator=self.generator)
+        correlation_id = sanitize_trace_id(request.headers.get("X-Correlation-ID"), generator=self.generator)
 
         # Store in request state for access in route handlers
         setattr(request.state, REQUEST_STATE_TRACE_ID_KEY, request_id)
-        setattr(request.state, REQUEST_STATE_CORRELATION_ID_KEY, request_id)
+        setattr(request.state, REQUEST_STATE_CORRELATION_ID_KEY, correlation_id)
 
         # Legacy alias used by some services/tests.
         setattr(request.state, "request_id", request_id)
 
-        start = time.perf_counter()
-        response = await call_next(request)
-        elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
+        tenant_id = getattr(request.state, "tenant_id", None)
 
-        tenant_id = (
-            getattr(request.state, "tenant_id", None)
-            or request.headers.get("X-Tenant-ID")
-            or request.headers.get("x-tenant-id")
-        )
+        # Set initial context so logs emitted during request handling are enriched.
         set_logging_context(
             LoggingContext(
                 request_id=request_id,
-                correlation_id=request_id,
+                correlation_id=correlation_id,
                 tenant_id=tenant_id,
                 route=request.url.path,
                 method=request.method,
-                status=response.status_code,
-                latency_ms=elapsed_ms,
+                status=0,
+                latency_ms=0.0,
             )
         )
 
-        # Add request ID to response headers
+        start = time.perf_counter()
         try:
+            response = await call_next(request)
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
+
+            # Update context with response metadata for any post-handler logging.
+            set_logging_context(
+                LoggingContext(
+                    request_id=request_id,
+                    correlation_id=correlation_id,
+                    tenant_id=tenant_id,
+                    route=request.url.path,
+                    method=request.method,
+                    status=response.status_code,
+                    latency_ms=elapsed_ms,
+                )
+            )
+
+            # Add trace headers to response
             for header, value in canonical_trace_headers(request_id).items():
                 response.headers[header] = value
+            response.headers["X-Correlation-ID"] = correlation_id
+
+            return response
         finally:
             clear_logging_context()
-
-        return response
 
 
 def get_request_id(request: Request) -> str:

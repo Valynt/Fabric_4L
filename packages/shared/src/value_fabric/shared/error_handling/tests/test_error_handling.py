@@ -533,6 +533,31 @@ class TestCorrelationContextMiddleware:
         assert payload["correlation_id"] == payload["request_id"]
         assert response.headers["X-Correlation-ID"] == payload["request_id"]
 
+    def test_keeps_distinct_request_and_correlation_ids(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {
+                "request_id": getattr(request.state, "request_id", None),
+                "trace_id": getattr(request.state, "trace_id", None),
+                "correlation_id": getattr(request.state, "correlation_id", None),
+            }
+
+        client = TestClient(app)
+        response = client.get(
+            "/context",
+            headers={"X-Request-ID": "req-abc", "X-Correlation-ID": "corr-xyz"},
+        )
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["request_id"] == "req-abc"
+        assert payload["trace_id"] == "req-abc"
+        assert payload["correlation_id"] == "corr-xyz"
+        assert response.headers["X-Request-ID"] == "req-abc"
+        assert response.headers["X-Correlation-ID"] == "corr-xyz"
+
     def test_propagates_provided_correlation_id(self):
         app = FastAPI()
         app.add_middleware(RequestIDMiddleware)
