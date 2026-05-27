@@ -1,0 +1,4 @@
+# Route/module files allowed to keep raw HTTPException temporarily.
+# One repo-relative path per line.
+# Keep this list restricted to framework-level adapters only.
+services/layer3-knowledge/src/api/exception_mapping.py

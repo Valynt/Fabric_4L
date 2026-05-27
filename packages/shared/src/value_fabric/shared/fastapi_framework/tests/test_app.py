@@ -1,7 +1,16 @@
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from ..app import create_fabric_app, install_metrics_middleware, register_health_endpoint
+from ..app import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
+    create_fabric_app,
+    install_metrics_middleware,
+    mark_route_enforcement_opt_out,
+    record_enforcement_decision,
+    register_health_endpoint,
+)
 
 
 def test_create_fabric_app_applies_shared_defaults() -> None:
@@ -99,3 +108,93 @@ def test_install_metrics_middleware_sets_state_and_wraps_requests() -> None:
     assert response.headers["x-metrics-installed"] == "true"
     assert app.state.metrics is metrics
     assert metrics.seen_paths == ["/ok"]
+
+
+def test_health_endpoint_is_marked_as_enforcement_opt_out() -> None:
+    app = create_fabric_app(
+        service_name="test-health-service",
+        title="Test Health Service",
+        version="1.0.0",
+        description="test app",
+    )
+    register_health_endpoint(app, service_name="test-health-service")
+
+    route = next(route for route in app.routes if getattr(route, "path", "") == "/health")
+    endpoint = route.endpoint
+    assert getattr(endpoint, "_vf_enforcement_opt_out", False) is True
+
+
+def test_record_enforcement_decision_audit_mode_does_not_block() -> None:
+    app = create_fabric_app(
+        service_name="test-enforcement",
+        title="Test Enforcement",
+        version="1.0.0",
+        description="test app",
+        enforcement_rollout=EnforcementRolloutConfig(
+            tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT)
+        ),
+    )
+
+    allowed = record_enforcement_decision(
+        app,
+        control="tenant_enforcement",
+        violation="missing_tenant_context",
+        route="/v1/private",
+        tenant_id="tenant-a",
+        actor_id="actor-a",
+    )
+
+    assert allowed is True
+    assert app.state.enforcement_counters.false_positive_candidate_total == 1
+    assert app.state.enforcement_counters.blocked_total == 0
+
+
+def test_record_enforcement_decision_enforce_mode_blocks() -> None:
+    app = create_fabric_app(
+        service_name="test-enforcement",
+        title="Test Enforcement",
+        version="1.0.0",
+        description="test app",
+        enforcement_rollout=EnforcementRolloutConfig(
+            tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE)
+        ),
+    )
+
+    allowed = record_enforcement_decision(
+        app,
+        control="tenant_enforcement",
+        violation="missing_tenant_context",
+        route="/v1/private",
+        tenant_id="tenant-a",
+        actor_id="actor-a",
+    )
+
+    assert allowed is False
+    assert app.state.enforcement_counters.blocked_total == 1
+
+
+def test_record_enforcement_decision_route_opt_out_increments_bypass() -> None:
+    app = create_fabric_app(
+        service_name="test-enforcement",
+        title="Test Enforcement",
+        version="1.0.0",
+        description="test app",
+    )
+
+    async def internal_callback() -> dict[str, str]:
+        return {"status": "ok"}
+
+    mark_route_enforcement_opt_out(internal_callback, reason="internal_callback")
+
+    allowed = record_enforcement_decision(
+        app,
+        control="idempotency",
+        violation="replay_near_miss",
+        route="/internal/callback",
+        tenant_id=None,
+        actor_id="system",
+        route_handler=internal_callback,
+    )
+
+    assert allowed is True
+    assert app.state.enforcement_counters.bypass_total == 1
