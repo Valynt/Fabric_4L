@@ -66,11 +66,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         response = await call_next(request)
         elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
 
-        tenant_id = (
-            getattr(request.state, "tenant_id", None)
-            or request.headers.get("X-Tenant-ID")
-            or request.headers.get("x-tenant-id")
-        )
+        tenant_id = getattr(request.state, "tenant_id", None)
         set_logging_context(
             LoggingContext(
                 request_id=request_id,
