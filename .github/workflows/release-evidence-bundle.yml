@@ -36,8 +36,8 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install pytest
-        run: python -m pip install --upgrade pip pytest
+      - name: Install pytest and PyYAML
+        run: python -m pip install --upgrade pip pytest pyyaml
       - name: Enforce config bypass policy (including k8s staging/prod manifests)
         run: python scripts/ci/check_config_policy.py
       - name: Enforce Task 46/47 final readiness criteria
