@@ -45,6 +45,14 @@ jobs:
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
 
+      - name: Enforce Vault dev-mode boundaries (compose + release manifests)
+        run: python scripts/ci/check_vault_dev_mode_boundaries.py
+
+      - name: Enforce secret store static token scanning policy
+        run: |
+          pip install pyyaml
+          python .github/scripts/enforce_secret_store_security.py
+
       - name: Validate workflow target/artifact references
         run: python3 scripts/ci/check_workflow_targets_and_artifacts.py
 
@@ -70,6 +78,11 @@ jobs:
         run: |
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
+
+      - name: Enforce graph storage encryption policy
+        run: |
+          pip install pyyaml
+          python3 scripts/ci/check_graph_storage_encryption.py
 
       - name: Run Python contract lint
         run: |
@@ -153,6 +166,10 @@ jobs:
       - name: Run navigation pattern guardrail
         run: |
           python scripts/ci/check_navigation_patterns.py --strict
+
+      - name: Enforce Layer 4 bounded-context dependency rules
+        run: |
+          python scripts/ci/check_layer4_boundaries.py
 
       - name: Run repository config policy guardrail
         run: |
@@ -434,6 +451,10 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: python scripts/ci/check_layer3_query_entrypoints.py services/layer3-knowledge/src --report-json artifacts/layer3-query-entrypoint-matrix.json
 
+      - name: Run Layer 3 audited mutation relationship-write gate
+        working-directory: ${{ github.workspace }}
+        run: python scripts/ci/check_layer3_audited_relationship_writes.py services/layer3-knowledge/src/api/routes services/layer3-knowledge/src/services services/layer3-knowledge/src/agents --report-json artifacts/layer3-audited-mutation-violations.json
+
       - name: Run Layer 3 tenant dependency import gate
         working-directory: ${{ github.workspace }}
         run: python scripts/ci/check_layer3_legacy_tenant_dependency_imports.py
@@ -452,6 +473,14 @@ jobs:
         with:
           name: layer3-query-entrypoint-matrix
           path: artifacts/layer3-query-entrypoint-matrix.json
+          if-no-files-found: ignore
+
+      - name: Upload Layer 3 audited mutation violation report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: layer3-audited-mutation-violations
+          path: artifacts/layer3-audited-mutation-violations.json
           if-no-files-found: ignore
 
       - name: Run tests with coverage
@@ -1631,11 +1660,35 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          load: true
+          tags: local/${{ matrix.layer }}:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
             BASE_IMAGE=${{ vars.BASE_IMAGE || '' }}
             BUILDER_BASE_IMAGE=${{ vars.BUILDER_BASE_IMAGE || '' }}
+
+      - name: Run Trivy image scan (PR security stage)
+        uses: aquasecurity/trivy-action@314ff8b43182423b84c50b1670b0e10f858f2d98
+        with:
+          image-ref: local/${{ matrix.layer }}:${{ github.sha }}
+          format: table
+          exit-code: '1'
+          severity: CRITICAL,HIGH
+
+      - name: Generate image SBOM (SPDX JSON)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          image: local/${{ matrix.layer }}:${{ github.sha }}
+          format: spdx-json
+          output-file: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
+
+      - name: Upload SBOM artifact
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: sbom-${{ matrix.layer }}-${{ github.sha }}
+          path: sbom-${{ matrix.layer }}-${{ github.sha }}.spdx.json
+          retention-days: 14
 
       - name: Verify Dockerfile lint
         uses: hadolint/hadolint-action@9a9b4e40b6f6d0f6d8f7ecba674498b6ff157131 # v3.1.0

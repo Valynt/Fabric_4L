@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer3 test-layer4 \
-        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk \
+        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
@@ -12,6 +12,7 @@
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-keycloak-realm-seed-security \
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
@@ -42,7 +43,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -56,7 +57,12 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@python -m pytest tests/contract/test_import_topology.py -q
 	@echo "→ Running strict navigation pattern check..."
 	@cd apps/web && python ../../scripts/ci/check_navigation_patterns.py --strict
+	@echo "→ Running Layer 4 bounded-context dependency check..."
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "✅  Structure verification passed"
+
+check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency violations and transitive hotspots
+	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 
 check-ui-duplicates: ## Block new duplicate UI component filenames between prototype and production trees
 	@python3 scripts/check_ui_duplicate_filenames.py
@@ -75,6 +81,9 @@ check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tr
 
 check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
 	@python3 scripts/ci/check_no_nul_bytes.py
+
+check-keycloak-realm-seed-security: ## Fail when committed Keycloak realm seed includes embedded secrets/default credentials
+	@python3 scripts/ci/check_keycloak_realm_seed_security.py
 
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
 	@python3 scripts/ci/check_migration_entrypoints.py
@@ -671,3 +680,7 @@ harness-check: harness-guard harness-task ## Full harness preflight (guard + con
 docs-harness: ## Validate harness documentation artifacts (endpoints, models, runbook, config)
 	@echo "→ Validating harness docs..."
 	@python3 scripts/generate_harness_docs.py --check
+
+
+check-value-fabric-public-imports:
+	@$(PYTHON) scripts/ci/check_value_fabric_public_imports.py

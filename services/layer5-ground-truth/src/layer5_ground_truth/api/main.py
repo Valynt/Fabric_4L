@@ -10,7 +10,6 @@ Or via Docker:
 """
 
 import inspect
-import logging
 import re
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
@@ -60,7 +59,15 @@ logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
 )
-logger = logging.getLogger(__name__)
+from ..observability.structured_logging import (
+    clear_request_log_context,
+    configure_structured_logging,
+    get_logger,
+    set_request_log_context,
+)
+
+configure_structured_logging()
+logger = get_logger(__name__)
 SECURITY_ERROR_CODES = frozenset(
     {
         "AUTH_REQUIRED",
@@ -520,6 +527,15 @@ def create_app() -> FastAPI:
         strict_mode=True,
     )
     add_security_middleware(app, config=_security_config_l5)
+
+    @app.middleware("http")
+    async def _structured_log_context(request: Request, call_next):
+        set_request_log_context(request)
+        try:
+            return await call_next(request)
+        finally:
+            clear_request_log_context()
+
 
     @app.exception_handler(HTTPException)
     async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:

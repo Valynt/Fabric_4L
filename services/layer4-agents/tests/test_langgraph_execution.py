@@ -834,6 +834,65 @@ class TestOrchestrationControllerWorkflowLifecycle:
         assert result is mock_roi_state
 
     @pytest.mark.asyncio
+    async def test_execute_workflow_uses_service_default_timeout(self) -> None:
+        from value_fabric.layer4.engine.executor import OrchestrationController
+        from value_fabric.layer4.engine.state_manager import StateManager
+
+        controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
+        mock_state = Mock(status=WorkflowStatus.COMPLETED)
+        mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
+
+        with (
+            patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow),
+            patch.object(controller, "_wait_for_workflow_with_timeout", AsyncMock(return_value=mock_state)),
+            patch.object(controller, "scheduler") as mock_scheduler,
+            patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(1800, "service_default"))),
+        ):
+            mock_scheduler.schedule_task = AsyncMock()
+            await controller.execute_workflow("roi_calculator", {"prospect_id": "p", "value_driver_ids": ["v"]})
+
+        metadata = next(iter(controller._workflow_metadata.values()))
+        assert metadata["timeout_seconds"] == 1800
+        assert metadata["timeout_resolution"]["source"] == "service_default"
+
+    @pytest.mark.asyncio
+    async def test_execute_workflow_uses_tenant_timeout_override(self) -> None:
+        from value_fabric.layer4.engine.executor import OrchestrationController
+        from value_fabric.layer4.engine.state_manager import StateManager
+
+        controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
+        mock_state = Mock(status=WorkflowStatus.COMPLETED)
+        mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
+
+        with (
+            patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow),
+            patch.object(controller, "_wait_for_workflow_with_timeout", AsyncMock(return_value=mock_state)),
+            patch.object(controller, "scheduler") as mock_scheduler,
+            patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(2400, "tenant_settings"))),
+        ):
+            mock_scheduler.schedule_task = AsyncMock()
+            await controller.execute_workflow("roi_calculator", {"prospect_id": "p", "value_driver_ids": ["v"]}, tenant_id="00000000-0000-0000-0000-000000000123")
+
+        metadata = next(iter(controller._workflow_metadata.values()))
+        assert metadata["timeout_seconds"] == 2400
+        assert metadata["timeout_resolution"]["source"] == "tenant_settings"
+
+    @pytest.mark.asyncio
+    async def test_resolve_timeout_out_of_range_uses_safe_fallback(self) -> None:
+        from value_fabric.layer4.config.settings import settings
+        from value_fabric.layer4.engine.executor import OrchestrationController
+
+        controller = OrchestrationController(tool_registry=_make_mock_tool_registry())
+        original_default = settings.workflow_timeout_seconds
+        try:
+            settings.workflow_timeout_seconds = settings.workflow_timeout_max_seconds + 1
+            resolved, source = await controller._resolve_workflow_timeout_seconds(None)
+            assert resolved == settings.workflow_timeout_fallback_seconds
+            assert source == "safe_fallback"
+        finally:
+            settings.workflow_timeout_seconds = original_default
+
+    @pytest.mark.asyncio
     async def test_get_workflow_status_returns_none_for_unknown(self) -> None:
         """get_workflow_status must return None for unknown workflow IDs."""
         from value_fabric.layer4.engine.executor import OrchestrationController

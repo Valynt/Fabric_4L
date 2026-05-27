@@ -11,7 +11,7 @@ import { useRecentIngestionJobs, useIngestionStats, type IngestionJob } from "@/
 import { ProspectPromptBuilder } from "@/components/workspace/ProspectPromptBuilder";
 import { useNavigation } from "@/hooks/useNavigation";
 import { useProspectSetupAccountCreate } from "@/hooks/useProspectSetupAccount";
-import { MetricCard, LegacyDataTable, StatusBadge } from "@/components/ui/fabric";
+import { MetricCard, DataTable, StatusBadge } from "@/components/ui/fabric";
 
 export default function ValueNarrativeHome() {
   const { data: recentJobs = [], isLoading: jobsLoading } = useRecentIngestionJobs(5);
@@ -76,7 +76,7 @@ export default function ValueNarrativeHome() {
               <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
               <button className="text-[11px] text-primary hover:underline">View all</button>
             </div>
-            <LegacyDataTable
+            <DataTable
               columns={["Domain", "Pages", "Status", "Updated"]}
               rows={recentJobs.map((job) => [
                 <span key={`d-${job.id}`} className="flex items-center gap-2">

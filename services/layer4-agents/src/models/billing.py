@@ -167,11 +167,17 @@ class BillingWebhookEvent(Base):
     id: Mapped[str] = mapped_column(String(100), primary_key=True)  # Stripe event ID
     tenant_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
     type: Mapped[str] = mapped_column(String(100), nullable=False)
-    processed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="pending")
+    attempt_count: Mapped[int] = mapped_column(BigInteger, nullable=False, default=0)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    next_retry_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    payload_hash: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    processed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     __table_args__ = (
         Index("ix_billing_webhook_events_type", "type"),
         Index("ix_billing_webhook_events_processed", "processed_at"),
+        Index("ix_billing_webhook_events_status_retry", "status", "next_retry_at"),
         Index("ix_billing_webhook_events_tenant", "tenant_id"),
     )
 

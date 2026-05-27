@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
-from app.models.schemas import Formula, PaginatedResponse, ValuePack
+from app.models.schemas import ContextEngineItem, ContextOntologyResponse, Formula, PaginatedResponse, ValuePack
 
 router = APIRouter(prefix="/context-engine", tags=["Context Engine"])
 
@@ -45,16 +45,18 @@ async def get_formula(formula_id: str, tenant_id: str = Depends(tenant_required)
     return formula
 
 
-@router.get("/benchmarks", response_model=PaginatedResponse[dict])
+@router.get("/benchmarks", response_model=PaginatedResponse[ContextEngineItem])
 async def list_benchmarks(
     tenant_id: str = Depends(tenant_required),
     limit: int = Query(50, ge=1, le=1000),
     offset: int = Query(0, ge=0),
 ):
-    return PaginatedResponse(items=[], total=0, limit=limit, offset=offset)
+    raw_items: list[dict] = []
+    typed_items = [ContextEngineItem.model_validate(item) for item in raw_items]
+    return PaginatedResponse(items=typed_items, total=0, limit=limit, offset=offset)
 
 
-@router.get("/ontology")
+@router.get("/ontology", response_model=ContextOntologyResponse)
 async def get_ontology(tenant_id: str = Depends(tenant_required)):
     packs = db.value_packs.list()
     return {"packs": packs, "ontology": {}}

@@ -7,14 +7,13 @@ usage event ingestion with idempotency and tenant isolation.
 
 from __future__ import annotations
 
-import ipaddress
 import logging
 import os
 import re
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
@@ -22,69 +21,12 @@ from value_fabric.shared.error_handling import sanitize_log_error
 # Customer ID validation pattern (alphanumeric, underscore, hyphen; 1-64 chars after prefix)
 CUSTOMER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
-# Known Stripe webhook IP ranges (CIDR notation)
-# Source: https://stripe.com/docs/ips
-# NOTE: Stripe may update these IP ranges periodically. Review and update quarterly
-# or when webhook rejections increase. Consider automating via Stripe API in future.
-STRIPE_WEBHOOK_IPS = [
-    # Primary webhook IPs (US East)
-    ipaddress.ip_network("3.18.12.63/32"),
-    ipaddress.ip_network("3.130.192.231/32"),
-    ipaddress.ip_network("13.235.14.237/32"),
-    ipaddress.ip_network("13.235.122.149/32"),
-    ipaddress.ip_network("35.154.171.200/32"),
-    ipaddress.ip_network("35.154.171.208/32"),
-    ipaddress.ip_network("52.15.183.38/32"),
-    ipaddress.ip_network("52.15.183.39/32"),
-    ipaddress.ip_network("54.88.130.27/32"),
-    ipaddress.ip_network("54.88.130.28/32"),
-    ipaddress.ip_network("54.187.174.169/32"),
-    ipaddress.ip_network("54.187.174.170/32"),
-]
-
-# Allow disabling IP check in development (never in production)
-STRIPE_WEBHOOK_SKIP_IP_CHECK = os.environ.get("STRIPE_WEBHOOK_SKIP_IP_CHECK", "").lower() in ("true", "1", "yes")
-
-# SECURITY: Prevent IP check bypass in production
-if os.environ.get("ENVIRONMENT") == "production" and STRIPE_WEBHOOK_SKIP_IP_CHECK:
-    raise RuntimeError("STRIPE_WEBHOOK_SKIP_IP_CHECK cannot be enabled in production")
-
-
-def _is_stripe_webhook_ip(client_ip: str) -> bool:
-    """Check if IP is from Stripe's webhook IP ranges.
-
-    SECURITY: Defense-in-depth for webhook endpoint. Even with valid
-    signature, requests should originate from known Stripe IPs.
-    """
-    try:
-        ip = ipaddress.ip_address(client_ip)
-        # Always allow loopback for local testing
-        if ip.is_loopback:
-            return True
-        return any(ip in network for network in STRIPE_WEBHOOK_IPS)
-    except ValueError:
-        return False
-
-
-def _get_client_ip(request: Request) -> str:
-    """Extract client IP from request, handling proxies."""
-    # Check X-Forwarded-For first (common with proxies/load balancers)
-    forwarded = request.headers.get("X-Forwarded-For")
-    if forwarded:
-        # Take the first IP in the chain (original client)
-        return forwarded.split(",")[0].strip()
-
-    # Check X-Real-IP
-    real_ip = request.headers.get("X-Real-IP")
-    if real_ip:
-        return real_ip
-
-    # Fall back to direct client IP
-    if hasattr(request, "client") and request.client:
-        return request.client.host
-
-    return ""
-
+from ...services.billing_security import (
+    STRIPE_WEBHOOK_SKIP_IP_CHECK,
+    get_client_ip as _get_client_ip,
+    is_stripe_webhook_ip as _is_stripe_webhook_ip,
+    validate_webhook_request_security,
+)
 
 def validate_customer_id(customer_id: str) -> str:
     """Validate customer_id format to prevent injection attacks.
@@ -114,6 +56,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ...database import get_session_factory
 from ...services.billing_service import BillingService
 from ...services.overage_service import OverageService
 from ...services.stripe_client import StripeError
@@ -741,6 +684,7 @@ async def sync_customer(
 @router.post("/webhook", response_model=stripe_webhookResult, status_code=status.HTTP_200_OK)
 async def stripe_webhook(
     request: Request,
+    background_tasks: BackgroundTasks,
     stripe_signature: str = Header(..., alias="Stripe-Signature"),
     # SECURITY: Webhook uses get_db (no tenant context) intentionally.
     # Stripe server-to-server calls don't carry tenant JWTs.
@@ -768,16 +712,20 @@ async def stripe_webhook(
             detail="Webhook processing not configured",
         )
 
-    # SECURITY: Verify request originates from Stripe IP ranges
-    client_ip = _get_client_ip(request)
-    if not STRIPE_WEBHOOK_SKIP_IP_CHECK and not _is_stripe_webhook_ip(client_ip):
-        logger.warning(
-            f"Webhook request from non-Stripe IP rejected: {client_ip}"
+    # SECURITY: Canonical ingress checks for source IP + signature/timestamp shape.
+    try:
+        validate_webhook_request_security(
+            request,
+            stripe_signature,
+            enforce_ip_check=not STRIPE_WEBHOOK_SKIP_IP_CHECK,
         )
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Invalid origin",
-        )
+    except HTTPException:
+        client_ip = _get_client_ip(request)
+        logger.warning(f"Webhook request from non-Stripe IP rejected: {client_ip}")
+        raise
+    except ValueError as e:
+        logger.warning(f"Webhook security validation failed: {e}")
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook payload") from e
 
     # Read raw body for signature verification
     body = await request.body()
@@ -785,7 +733,18 @@ async def stripe_webhook(
     service = BillingService(db)
 
     try:
-        await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        inbox = await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        if inbox.status != "processed":
+            async def _process() -> None:
+                session_factory = get_session_factory()
+                async with session_factory() as worker_db:
+                    worker = BillingService(worker_db)
+                    try:
+                        await worker.process_webhook_event(inbox.id, body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+                        await worker_db.commit()
+                    except Exception:
+                        await worker_db.commit()
+            background_tasks.add_task(_process)
         return stripe_webhookResult.model_validate({"received": True})
     except ValueError as e:
         logger.warning(f"Webhook validation failed: {e}")

@@ -39,6 +39,7 @@ from value_fabric.shared.error_handling import sanitize_log_error
 from ..shared.config import settings
 from ..metrics.prometheus_metrics import get_metrics
 from ..shared.database import get_db_session
+from ..shared.maintenance import authorize_maintenance_operation, maintenance_audit_log
 from sqlalchemy import text
 from ..shared.models import (
     AccountIntelligencePacket,
@@ -63,6 +64,17 @@ from ..skills import get_extraction_schema, get_skill
 
 # Maximum delivery attempts before an outbox event is dead-lettered.
 MAX_DISPATCH_ATTEMPTS = 5
+
+
+def _domain_class(url: str) -> str:
+    host = (urlparse(url).netloc or "").lower()
+    if not host:
+        return "unknown"
+    if host.endswith(".gov") or host.endswith(".edu"):
+        return "regulated"
+    if host.endswith(".internal") or host.endswith(".local"):
+        return "internal"
+    return "public"
 
 
 class _execute_browser_pathResult(TypedDictModel):
@@ -267,6 +279,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
     """
     tenant_uuid = UUID(tenant_id)
+    stage_started_at = time.monotonic()
 
     logger.info("Starting compliance check stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
@@ -276,6 +289,14 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
             job = session.query(ScrapingJob).get(job_id)
             if not job:
                 raise ValueError(f"Job {job_id} not found")
+            queue_latency_seconds = max(0.0, (datetime.now(UTC) - job.created_at).total_seconds())
+            metrics = get_metrics()
+            if metrics:
+                metrics.observe_queue_latency(
+                    queue_latency_seconds,
+                    stage=PipelineStage.COMPLIANCE_CHECK.value,
+                    status=job.status,
+                )
 
             # Idempotent: skip if already completed (handles retry after crawl delay)
             existing_stage = (
@@ -326,8 +347,15 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 session.commit()
                 metrics = get_metrics()
                 if metrics:
-                    metrics.increment_url_blocked(reason="url_safety")
-                raise ValueError("URL blocked by compliance policy") from exc
+                    metrics.increment_url_blocked(reason="url_safety", domain_class=_domain_class(url))
+                _fail_job(job_id, "URL blocked by compliance policy", PipelineStage.COMPLIANCE_CHECK)
+                return compliance_check_stageResult.model_validate(
+                    {
+                        "success": False,
+                        "error": "URL blocked by compliance policy",
+                        "job_id": str(job_id),
+                    }
+                ).model_dump()
 
             compliance_config = config.get("compliance", {})
 
@@ -364,7 +392,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 if not allowed:
                     metrics = get_metrics()
                     if metrics:
-                        metrics.increment_url_blocked(reason="robots_txt")
+                        metrics.increment_url_blocked(reason="robots_txt", domain_class=_domain_class(url))
                     _fail_job(job_id, "URL blocked by robots.txt", PipelineStage.COMPLIANCE_CHECK)
                     return compliance_check_stageResult.model_validate({"success": False, "error": "robots.txt blocked", "job_id": str(job_id)}).model_dump()
 
@@ -385,6 +413,13 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
             session.commit()
 
             logger.info("Compliance check completed", job_id=str(job_id))
+            metrics = get_metrics()
+            if metrics:
+                metrics.observe_job_stage_duration(
+                    time.monotonic() - stage_started_at,
+                    stage=PipelineStage.COMPLIANCE_CHECK.value,
+                    status="completed",
+                )
             return compliance_check_stageResult.model_validate({"success": True, "job_id": str(job_id)}).model_dump()
 
     except Exception as exc:
@@ -402,6 +437,11 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
         metrics = get_metrics()
         if metrics:
             metrics.increment_retry_event(stage="compliance_check", reason="stage_failure")
+            metrics.observe_job_stage_duration(
+                time.monotonic() - stage_started_at,
+                stage=PipelineStage.COMPLIANCE_CHECK.value,
+                status="failed",
+            )
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -419,6 +459,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """
     job_id = UUID(prev_result["job_id"])
     tenant_uuid = UUID(tenant_id)
+    stage_started_at = time.monotonic()
 
     logger.info("Starting smart crawl stage", job_id=str(job_id), tenant_id=str(tenant_uuid))
 
@@ -546,9 +587,16 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
             asyncio.run(decision_repo.save(decision_record))
             metrics = get_metrics()
             if metrics:
-                metrics.increment_crawl_path(path=final_path)
+                metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
 
             _update_stage(session, job_id, PipelineStage.BROWSER_LAUNCH, "COMPLETED")
+
+            if metrics:
+                metrics.observe_job_stage_duration(
+                    time.monotonic() - stage_started_at,
+                    stage=PipelineStage.BROWSER_LAUNCH.value,
+                    status="completed",
+                )
 
             # Stage 3: Navigation
             _update_stage(session, job_id, PipelineStage.NAVIGATION, "RUNNING")
@@ -655,6 +703,11 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
         metrics = get_metrics()
         if metrics:
             metrics.increment_retry_event(stage="browser_crawl", reason="stage_failure")
+            metrics.observe_job_stage_duration(
+                time.monotonic() - stage_started_at,
+                stage="crawl_path_execution",
+                status="failed",
+            )
         raise self.retry(exc=exc, countdown=30)
 
 
@@ -1853,6 +1906,39 @@ def _should_fail_closed(
 
 
 @celery_app.task
+def _enumerate_authorized_tenants_for_cleanup() -> list[UUID]:
+    """Enumerate active tenants from system-owned registry with explicit authorization."""
+    authorize_maintenance_operation("cleanup_old_content", tenant_id="tenant-registry")
+
+    correlation_id = str(uuid4())
+    with maintenance_audit_log("cleanup_old_content", tenant_id="tenant-registry") as record:
+        record.metadata = {
+            "tenant_iteration_source": "tenant_registry",
+            "source_scope": "system_owned",
+            "require_tenant": False,
+            "correlation_id": correlation_id,
+        }
+        with get_db_session(tenant_id=None, require_tenant=False) as session:
+            tenant_ids = [
+                row[0]
+                for row in session.query(TenantRegistry.tenant_id)
+                .filter(TenantRegistry.is_active == True)
+                .all()
+            ]
+        record.rows_affected = len(tenant_ids)
+
+    logger.info(
+        "System maintenance tenant enumeration completed",
+        operation="cleanup_old_content",
+        tenant_iteration_source="tenant_registry",
+        source_scope="system_owned",
+        require_tenant=False,
+        correlation_id=correlation_id,
+        tenants_discovered=len(tenant_ids),
+    )
+    return tenant_ids
+
+
 def cleanup_old_content(days: int = 30, tenant_id: str = None):
     """Clean up raw content older than specified days.
     
@@ -1869,8 +1955,6 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
         InvalidTenantContextError: If tenant_id is provided but invalid
     """
     from .exceptions import InvalidTenantContextError
-    from .maintenance import maintenance_audit_log
-    
     cutoff_date = datetime.now(UTC) - timedelta(days=days)
     
     # Validate tenant context if provided
@@ -1926,14 +2010,7 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             correlation_id=str(uuid4()),
         )
         
-        tenant_ids = []
-        with get_db_session(tenant_id=None, require_tenant=False) as session:
-            tenant_ids = [
-                row[0] for row in
-                session.query(TenantRegistry.tenant_id)
-                .filter(TenantRegistry.is_active == True)
-                .all()
-            ]
+        tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
         total_deleted = 0
         failed_tenants = []

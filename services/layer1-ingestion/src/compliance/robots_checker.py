@@ -64,7 +64,11 @@ class RobotsChecker:
         self.user_agent = user_agent or "ValueFabricBot/1.0"
         self.cache_ttl_hours = cache_ttl_hours or settings.robots_txt_cache_hours
         self.respect_crawl_delay = respect_crawl_delay
-        self.strict_mode = strict_mode if strict_mode is not None else settings.robots_txt_strict_mode
+        self.strict_mode = (
+            strict_mode
+            if strict_mode is not None
+            else (settings.strict_robots_enforcement or settings.robots_txt_strict_mode)
+        )
         self._http_client: httpx.AsyncClient | None = None
         self.logger = logger
         
@@ -90,7 +94,7 @@ class RobotsChecker:
             await self._http_client.aclose()
 
     async def check_url(
-        self, url: str, force_refresh: bool = False
+        self, url: str, force_refresh: bool = False, job_id: str | None = None
     ) -> tuple[bool, str | None, dict | None]:
         """Check if a URL is allowed by robots.txt.
 
@@ -112,6 +116,15 @@ class RobotsChecker:
         try:
             robots_data = await self._get_robots_txt(domain, robots_url, force_refresh)
         except RobotsFetchError as e:
+            self.logger.warning(
+                "robots compliance decision",
+                tenant_id=self.tenant_id,
+                domain=domain,
+                job_id=job_id,
+                decision="blocked" if self.strict_mode else "error",
+                reason_code="ROBOTS_FETCH_ERROR",
+                error=str(e),
+            )
             if self.strict_mode:
                 # Emit metric for strict mode block
                 from ..metrics.prometheus_metrics import get_metrics
@@ -120,15 +133,12 @@ class RobotsChecker:
                     metrics.increment_strict_robots_block(domain=domain, reason="fetch_error")
                 
                 # Audit log entry
-                logger.warning(
-                    "Strict robots mode: blocked due to fetch error",
-                    tenant_id=self.tenant_id,
-                    domain=domain,
-                    error=str(e),
-                    strict_mode=True,
-                )
-                
-                return False, f"robots.txt fetch failed (strict mode): {str(e)}", {"strict_mode": True, "domain": domain, "error": "ROBOTS_FETCH_ERROR"}
+                return False, f"robots.txt fetch failed (strict mode): {str(e)}", {
+                    "strict_mode": True,
+                    "domain": domain,
+                    "error": "ROBOTS_FETCH_ERROR",
+                    "reason_code": "ROBOTS_FETCH_ERROR",
+                }
             # In permissive mode, re-raise so caller can decide to allow
             raise
 
@@ -182,9 +192,20 @@ class RobotsChecker:
             return True, None, rules
 
         except Exception as e:
-            self.logger.error("Failed to parse robots.txt", domain=domain, error_code="ROBOTS_PARSE_ERROR")
+            self.logger.error(
+                "robots compliance decision",
+                domain=domain,
+                tenant_id=self.tenant_id,
+                job_id=job_id,
+                decision="blocked" if self.strict_mode else "allowed",
+                reason_code="ROBOTS_PARSE_ERROR",
+            )
             if self.strict_mode:
-                return False, "robots.txt parse error (strict mode)", {"parse_error": "ROBOTS_PARSE_ERROR", "strict_mode": True}
+                return False, "robots.txt parse error (strict mode)", {
+                    "parse_error": "ROBOTS_PARSE_ERROR",
+                    "strict_mode": True,
+                    "reason_code": "ROBOTS_PARSE_ERROR",
+                }
             # If parsing fails, allow but log in permissive mode
             return True, None, {"parse_error": "ROBOTS_PARSE_ERROR"}
 

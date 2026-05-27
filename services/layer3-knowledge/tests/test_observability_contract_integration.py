@@ -31,6 +31,10 @@ def test_graph_specific_metrics_present_in_prometheus_output() -> None:
     metrics.observe_graph_result_size(size=10, endpoint="/test", operation="test")
     metrics.increment_graph_slow_queries(operation="test", threshold_bucket=">1s")
     metrics.increment_tenant_isolation_violation(component="test", violation_type="test")
+    metrics.increment_graph_mutation_success(operation_type="merge", route="/graph/mutate")
+    metrics.increment_graph_query_failure(category="timeout", operation="run", route="tenant_query_executor")
+    metrics.increment_unauthorized_traversal(category="tenant_boundary", route="tenant_query_executor", violation_type="missing_tenant_context")
+    metrics.increment_index_constraint_health_failure(check_type="vector_index", component="capability_embedding_idx")
 
     body = metrics.get_metrics()
 
@@ -39,6 +43,11 @@ def test_graph_specific_metrics_present_in_prometheus_output() -> None:
         "value_fabric_graph_result_size_bucket",
         "value_fabric_graph_slow_queries_total",
         "value_fabric_tenant_isolation_violations_total",
+        "value_fabric_graph_mutations_total",
+        "value_fabric_graph_mutation_rate",
+        "value_fabric_graph_query_failures_total",
+        "value_fabric_unauthorized_traversals_total",
+        "value_fabric_graph_index_constraint_health_failures_total",
     ]
     for metric in required_metrics:
         assert metric in body, f"Missing required graph metric: {metric}"

@@ -63,7 +63,8 @@ ACTION_APPROVAL_POLICIES: dict[ActionClass, ActionApprovalPolicy] = {
 def get_policy(action_class: ActionClass | str | None) -> ActionApprovalPolicy | None:
     """Lookup the approval policy for an action class.
 
-    Returns None if the action class is not in the registry (no approval required).
+    Returns None when no action class is supplied.
+    Fails closed for unknown/high-impact action identifiers.
     """
     if action_class is None:
         return None
@@ -71,13 +72,36 @@ def get_policy(action_class: ActionClass | str | None) -> ActionApprovalPolicy |
         try:
             action_class = ActionClass(action_class)
         except ValueError:
-            return None
-    return ACTION_APPROVAL_POLICIES.get(action_class)
+            raise ApprovalRequiredError(
+                action_class=ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE,
+                gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+                run_id="unknown",
+                message=(
+                    f"Unmapped high-impact action '{action_class}' is denied by default "
+                    "until explicitly mapped to a gate policy"
+                ),
+            )
+    policy = ACTION_APPROVAL_POLICIES.get(action_class)
+    if policy is None:
+        raise ApprovalRequiredError(
+            action_class=action_class,
+            gate_type=GateType.APPROVE_CUSTOMER_OUTPUT,
+            run_id="unknown",
+            message=(
+                f"Action '{action_class.value}' is high-impact but has no policy mapping; denied by default"
+            ),
+        )
+    return policy
 
 
 def requires_approval(action_class: ActionClass | str | None) -> bool:
     """Check whether an action class requires human approval."""
-    return get_policy(action_class) is not None
+    if action_class is None:
+        return False
+    try:
+        return get_policy(action_class) is not None
+    except ApprovalRequiredError:
+        return True
 
 
 class ApprovalRequiredError(ValueError):

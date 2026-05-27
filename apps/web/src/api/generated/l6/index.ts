@@ -229,19 +229,21 @@ export interface components {
         };
         /**
          * HTTPValidationError
-         * @description Deprecated compatibility alias for ErrorResponse. Use ErrorResponse for new clients.
+         * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
          */
         HTTPValidationError: {
-            /** @description Human-readable error message */
-            message: string;
-            /** @description Machine-readable error code */
-            code: string;
-            /** @description Request trace ID for support correlation */
-            trace_id: string;
-            /** @description Optional sanitized error details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
+            error: {
+                /** @description Machine-readable error code */
+                code: string;
+                /** @description Human-readable error message */
+                message: string;
+                /** @description Request ID for support correlation */
+                request_id: string;
+                /** @description Optional sanitized error details */
+                details?: {
+                    [key: string]: unknown;
+                } | null;
+            };
         };
         /** ValidationError */
         ValidationError: {
@@ -297,18 +299,38 @@ export interface components {
             /** Message */
             message: string;
         };
-        /** ErrorResponse */
+        /** ErrorEnvelope */
+        ErrorEnvelope: {
+            error: {
+                /** @description Machine-readable error code */
+                code: string;
+                /** @description Human-readable error message */
+                message: string;
+                /** @description Request ID for support correlation */
+                request_id: string;
+                /** @description Optional sanitized error details */
+                details?: {
+                    [key: string]: unknown;
+                } | null;
+            };
+        };
+        /**
+         * ErrorResponse
+         * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
+         */
         ErrorResponse: {
-            /** @description Human-readable error message */
-            message: string;
-            /** @description Machine-readable error code */
-            code: string;
-            /** @description Request trace ID for support correlation */
-            trace_id: string;
-            /** @description Optional sanitized error details */
-            details?: {
-                [key: string]: unknown;
-            } | null;
+            error: {
+                /** @description Machine-readable error code */
+                code: string;
+                /** @description Human-readable error message */
+                message: string;
+                /** @description Request ID for support correlation */
+                request_id: string;
+                /** @description Optional sanitized error details */
+                details?: {
+                    [key: string]: unknown;
+                } | null;
+            };
         };
     };
     responses: never;

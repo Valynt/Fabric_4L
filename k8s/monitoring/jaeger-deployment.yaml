@@ -25,9 +25,9 @@ spec:
       containers:
         - name: jaeger
           image: jaegertracing/all-in-one:1.50
+          # Persistent trace storage via OpenSearch; do not use in-memory storage in production-like envs.
           imagePullPolicy: IfNotPresent
           args:
-            - --memory.max-traces=100000
             - --query.base-path=/jaeger
             - --collector.otlp.enabled=true
             - --badger.ephemeral=false
@@ -39,7 +39,81 @@ spec:
             - name: COLLECTOR_ZIPKIN_HOST_PORT
               value: ":9411"
             - name: SPAN_STORAGE_TYPE
-              value: "badger"
+              value: "elasticsearch"
+            - name: ES_SERVER_URLS
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_server_urls
+            - name: ES_TLS_ENABLED
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_tls_enabled
+            - name: ES_INDEX_PREFIX
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_index_prefix
+            - name: ES_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: jaeger-storage-credentials
+                  key: username
+            - name: ES_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: jaeger-storage-credentials
+                  key: password
+            - name: ES_USE_ALIASES
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_use_aliases
+            - name: ES_NUM_SHARDS
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_num_shards
+            - name: ES_NUM_REPLICAS
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_num_replicas
+            - name: ES_TAGS_AS_FIELDS_ALL
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_tags_as_fields_all
+            - name: ES_MAX_SPAN_AGE
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_max_span_age
+            - name: ES_INDEX_DATE_SEPARATOR
+              value: "-"
+            - name: ES_CREATE_INDEX_TEMPLATES
+              value: "true"
+            - name: ES_TIMEOUT
+              valueFrom:
+                configMapKeyRef:
+                  name: jaeger-storage-config
+                  key: es_timeout
+            - name: ES_TLS_CA
+              valueFrom:
+                secretKeyRef:
+                  name: jaeger-storage-credentials
+                  key: ca.crt
+            - name: ES_TLS_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: jaeger-storage-credentials
+                  key: tls.crt
+            - name: ES_TLS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jaeger-storage-credentials
+                  key: tls.key
             - name: JAEGER_SAMPLER_TYPE
               value: "const"
             - name: JAEGER_SAMPLER_PARAM
@@ -68,14 +142,14 @@ spec:
               protocol: TCP
           resources:
             limits:
-              cpu: "2000m"
-              memory: "4Gi"
+              cpu: "4000m"
+              memory: "8Gi"
             requests:
-              cpu: "500m"
-              memory: "1Gi"
+              cpu: "1500m"
+              memory: "4Gi"
           livenessProbe:
             httpGet:
-              path: /
+              path: /metrics
               port: 14269
             initialDelaySeconds: 30
             periodSeconds: 10
@@ -89,6 +163,14 @@ spec:
             periodSeconds: 5
             timeoutSeconds: 3
             failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /
+              port: 14269
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 30
           volumeMounts:
             - name: tmp
               mountPath: /tmp
@@ -120,6 +202,42 @@ kind: ServiceAccount
 metadata:
   name: jaeger
   namespace: monitoring
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: jaeger-storage-config
+  namespace: monitoring
+data:
+  es_server_urls: "https://opensearch.monitoring.svc.cluster.local:9200"
+  es_tls_enabled: "true"
+  es_index_prefix: "jaeger-span"
+  es_use_aliases: "true"
+  es_num_shards: "3"
+  es_num_replicas: "1"
+  es_tags_as_fields_all: "true"
+  es_max_span_age: "168h"
+  es_timeout: "30s"
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: jaeger-storage-credentials
+  namespace: monitoring
+  annotations:
+    infisical.com/inject: "true"
+    infisical.com/path: "/monitoring"
+    value-fabric.io/environment: dev
+    value-fabric.io/non-prod-only: "true"
+    value-fabric.io/secret-scope: dev-placeholder
+    value-fabric.io/allowed-namespaces: monitoring
+type: Opaque
+stringData:
+  username: "replace-with-operator-injected-user"
+  password: "replace-with-operator-injected-password"
+  ca.crt: "replace-with-opensearch-ca-pem"
+  tls.crt: "replace-with-client-cert-pem"
+  tls.key: "replace-with-client-key-pem"
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

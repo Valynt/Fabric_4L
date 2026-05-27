@@ -8,21 +8,71 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from enum import Enum
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from ..models.agent_state import WorkflowStatus
 
+_SHA256_HEX_RE = re.compile(r"^[0-9a-f]{64}$")
 
-class ReplayStrategy(str, Enum):
-    """Conflict resolution strategy for replay collisions."""
+
+@dataclass(frozen=True)
+class NormalizedHash:
+    """Canonical SHA-256 hash representation for strict typed comparison."""
+
+    algorithm: str
+    encoding: str
+    digest_hex: str
+
+
+class HashNormalizationError(ValueError):
+    """Raised when a checkpoint hash cannot be normalized safely."""
+
+    def __init__(self, message: str, details: dict[str, Any]):
+        super().__init__(message)
+        self.details = details
+
+
+def _normalize_sha256_hash(value: str | None, *, field_name: str) -> NormalizedHash | None:
+    """Normalize hash input to canonical sha256/hex/lowercase-64 format."""
+    if value is None:
+        return None
+    if not isinstance(value, str):
+        raise HashNormalizationError(
+            "Invalid hash type",
+            {"field": field_name, "reason": "hash must be str", "type": type(value).__name__},
+        )
+
+    candidate = value.strip().lower()
+    if candidate.startswith("sha256:"):
+        candidate = candidate[len("sha256:") :]
+    if candidate.startswith("0x"):
+        candidate = candidate[2:]
+
+    if not _SHA256_HEX_RE.fullmatch(candidate):
+        raise HashNormalizationError(
+            "Invalid hash encoding",
+            {
+                "field": field_name,
+                "reason": "expected sha256 hex digest length=64",
+                "length": len(candidate),
+            },
+        )
+
+    return NormalizedHash(algorithm="sha256", encoding="hex", digest_hex=candidate)
+
+
+class ReplayDecision(str, Enum):
+    """Allowed policy outcomes for replay conflict checks."""
 
     REJECT = "reject"
-    REPLACE = "replace"
-    MERGE = "merge"
-    IDEMPOTENT_CONTINUE = "idempotent_continue"
+    MERGE_SAFE = "merge-safe"
+    FORCE_REPLAY = "force-replay"
 
 
 class CollisionAction(str, Enum):
@@ -45,9 +95,9 @@ class ReplayConflictPolicy(BaseModel):
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
-    strategy: ReplayStrategy = Field(
-        default=ReplayStrategy.REJECT,
-        description="How to resolve duplicate or conflicting replay attempts",
+    default_decision: ReplayDecision = Field(
+        default=ReplayDecision.REJECT,
+        description="Default outcome for duplicate or conflicting replay attempts",
     )
     max_replay_age_seconds: int = Field(
         default=86400,
@@ -154,41 +204,51 @@ class ReplayConflictResolver:
                     f"max_replay_age_seconds ({self.policy.max_replay_age_seconds})"
                 )
 
+        try:
+            normalized_checkpoint = _normalize_sha256_hash(
+                checkpoint_hash, field_name="checkpoint_hash"
+            )
+            normalized_expected = _normalize_sha256_hash(
+                expected_hash, field_name="expected_hash"
+            )
+            normalized_latest = _normalize_sha256_hash(
+                latest_checkpoint_hash, field_name="latest_checkpoint_hash"
+            )
+        except HashNormalizationError as exc:
+            raise ReplayConflictError(
+                f"Replay rejected: hash normalization failed ({exc.details})"
+            ) from exc
+
         # Exact hash match guard
         if self.policy.require_exact_checkpoint_match:
-            if expected_hash is not None and checkpoint_hash != expected_hash:
+            if normalized_expected is not None and normalized_checkpoint != normalized_expected:
                 raise ReplayConflictError(
                     f"Replay rejected: checkpoint hash mismatch "
-                    f"(got {checkpoint_hash}, expected {expected_hash})"
+                    f"(got={normalized_checkpoint}, expected={normalized_expected})"
                 )
 
         # Collision guard
-        if latest_checkpoint_hash is not None and checkpoint_hash != latest_checkpoint_hash:
+        if normalized_latest is not None and normalized_checkpoint != normalized_latest:
             if self.policy.on_collision == CollisionAction.FAIL:
                 raise ReplayConflictError(
-                    "Replay rejected: resume target diverges from latest checkpoint "
-                    f"(target={checkpoint_hash}, latest={latest_checkpoint_hash})"
+                    "Replay rejected: checkpoint collision/mismatch against latest checkpoint "
+                    f"(target={normalized_checkpoint}, latest={normalized_latest})"
                 )
             # For OVERWRITE / APPEND, we allow the caller to proceed but log the conflict
 
-    def check_duplicate_replay(
+    def evaluate_duplicate_replay(
         self,
         *,
         run_id: str,
         tenant_id: str,
         checkpoint_id: str | None,
         seen_fingerprints: set[str],
-    ) -> bool:
-        """Check whether this exact replay has already been attempted.
-
-        Returns:
-            True if this is a duplicate replay, False otherwise.
-        """
+        audit_justification: str | None = None,
+    ) -> ReplayDecision:
+        """Return deterministic policy decision for duplicate replay attempts."""
         fingerprint = self.compute_replay_fingerprint(run_id, tenant_id, checkpoint_id)
-        if fingerprint in seen_fingerprints:
-            if self.policy.strategy == ReplayStrategy.REJECT:
-                raise ReplayConflictError(
-                    f"Replay rejected: duplicate replay detected (fingerprint={fingerprint})"
-                )
-            return True
-        return False
+        if fingerprint not in seen_fingerprints:
+            return ReplayDecision.MERGE_SAFE
+        if audit_justification and audit_justification.strip():
+            return ReplayDecision.FORCE_REPLAY
+        return ReplayDecision.REJECT

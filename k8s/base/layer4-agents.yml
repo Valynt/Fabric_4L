@@ -34,6 +34,8 @@ spec:
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z redis 6379 && nc -z neo4j 7687 && nc -z postgres 5432 && nc -z layer2-extraction 8000 && nc -z layer3-knowledge 8001; do echo waiting for dependencies; sleep 2; done']
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -48,6 +50,8 @@ spec:
         - name: api
           image: value-fabric/layer4-agents:main
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:

@@ -31,8 +31,10 @@ from value_fabric.shared.identity.isolation import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
+from ..config.embedding_dimension import validate_embedding_dimension
 from ..db.driver import get_driver
 from ..db.query_execution import run_scoped_query
+from ..metrics.prometheus_metrics import get_metrics
 
 
 class Neo4jVectorStore_index_healthResult(TypedDictModel):
@@ -100,19 +102,35 @@ class Neo4jVectorStore:
 
             model_name = getattr(self.settings, "embedding_model", "all-MiniLM-L6-v2")
             self._embedding_model = SentenceTransformer(model_name)
+            validate_embedding_dimension(
+                configured_dimension=self.settings.embedding_dimension,
+                model=self._embedding_model,
+                model_name=model_name,
+            )
             logger.info("Loaded embedding model: %s", model_name)
         return self._embedding_model
 
     def _embed(self, text: str) -> list[float]:
         model = self._get_embedding_model()
-        return model.encode(text, normalize_embeddings=True).tolist()
+        embedding = model.encode(text, normalize_embeddings=True).tolist()
+        self._validate_vector_length(embedding)
+        return embedding
 
     def _embed_batch(self, texts: list[str]) -> list[list[float]]:
         model = self._get_embedding_model()
-        return [
+        vectors = [
             v.tolist()
             for v in model.encode(texts, normalize_embeddings=True, batch_size=32)
         ]
+        for vector in vectors:
+            self._validate_vector_length(vector)
+        return vectors
+
+    def _validate_vector_length(self, vector: list[float]) -> None:
+        if len(vector) != self.settings.embedding_dimension:
+            raise VectorStoreError(
+                f"VECTOR_DIMENSION_MISMATCH: expected={self.settings.embedding_dimension} actual={len(vector)}"
+            )
 
     def _resolve_tenant_id(self, tenant_id: str | None = None) -> str:
         """Return the explicit or request-context tenant, failing closed if absent."""
@@ -383,6 +401,11 @@ class Neo4jVectorStore:
                 online = state == "ONLINE"
                 if not online:
                     all_online = False
+                    metrics = get_metrics()
+                    if metrics:
+                        metrics.increment_index_constraint_health_failure(
+                            check_type="vector_index", component=index_name
+                        )
                 details[index_name] = {
                     "entity_type": etype,
                     "state": state or "MISSING",
@@ -390,6 +413,11 @@ class Neo4jVectorStore:
                 }
 
         except (ClientError, ServiceUnavailable) as exc:
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_index_constraint_health_failure(
+                    check_type="vector_index_query", component="neo4j_vector_store"
+                )
             return Neo4jVectorStore_index_healthResult.model_validate({"status": "unhealthy", "error": "Neo4j vector store health check failed", "error_code": "NEO4J_VECTOR_STORE_ERROR", "indexes": {}})
 
         return Neo4jVectorStore_index_healthResult.model_validate({

@@ -1,0 +1,9 @@
+services:
+  # Local-dev override only. Never include this file in staging/production compose runs.
+  # SECURITY WARNING: `root` is a dev convenience token and is never production-safe.
+  vault:
+    profiles:
+      - local-dev
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=root
+    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200

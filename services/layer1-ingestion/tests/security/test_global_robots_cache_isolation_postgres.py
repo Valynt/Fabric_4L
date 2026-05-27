@@ -15,6 +15,7 @@ from datetime import datetime, timezone, timedelta
 from value_fabric.layer1.shared.exceptions import (
     RobotsCacheError,
     InvalidTenantContextError,
+    RobotsFetchError,
 )
 from value_fabric.layer1.compliance.robots_checker import RobotsChecker
 from value_fabric.layer1.shared.models import RobotsTxtCache
@@ -382,6 +383,28 @@ class TestCacheSecurityProperties:
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "norls.com").first()
             assert retrieved is not None
+
+
+class TestStrictRobotsEnforcementSetting:
+    """Security-relevant checks for strict robots enforcement behavior."""
+
+    @pytest.mark.asyncio
+    async def test_strict_robots_enforcement_blocks_fetch_failures_with_reason_code(self):
+        checker = RobotsChecker(
+            tenant_id=str(uuid4()),
+            strict_mode=True,
+        )
+
+        from unittest.mock import AsyncMock, patch
+
+        with patch.object(checker, "_get_robots_txt", new_callable=AsyncMock) as mock_get:
+            mock_get.side_effect = RobotsFetchError("network down", domain="example.com")
+            allowed, reason, rules = await checker.check_url("https://example.com/path", job_id="job-123")
+
+        assert allowed is False
+        assert "strict mode" in (reason or "").lower()
+        assert rules is not None
+        assert rules["reason_code"] == "ROBOTS_FETCH_ERROR"
 
 
 # Helper function for URL parsing

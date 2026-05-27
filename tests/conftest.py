@@ -611,3 +611,11 @@ def pytest_terminal_summary(terminalreporter, exitstatus, config):
     for key, dep in INFRA_DEPENDENCIES.items():
         terminalreporter.write_line(f"{dep.display_name}: {counts[key]} skipped tests")
     terminalreporter.write_line(f"Total infra-gated skips: {total}")
+
+
+@pytest.fixture
+def deterministic_jwt_secret(monkeypatch):
+    """Test-only deterministic JWT secret fixture."""
+    secret = "test-jwt-secret-00000000000000000000000000000000"
+    monkeypatch.setenv("JWT_SECRET", secret)
+    return secret

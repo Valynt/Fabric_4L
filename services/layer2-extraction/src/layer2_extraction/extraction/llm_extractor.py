@@ -13,7 +13,7 @@ from typing import Any, TypeVar
 from pydantic import BaseModel, ValidationError
 
 from layer2_extraction.metrics import get_metrics
-from layer2_extraction.extraction.entity_id import compute_deterministic_id
+from layer2_extraction.extraction.entity_id import compute_deterministic_id, compute_source_hash
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 # Type variable for generic extraction
@@ -44,7 +44,11 @@ from layer2_extraction.models.extraction_response import (
 from layer2_extraction.shared.llm_client import CostRecord, LLMClient
 
 from .prompt_loader import render_entity_prompt, render_relationship_prompt
-from .security_guard import enforce_untrusted_output_policy, preprocess_source_content
+from .security_guard import (
+    enforce_untrusted_output_policy,
+    preprocess_source_content,
+    security_metadata_from_preprocessed,
+)
 
 
 class LLMExtractionError(Exception):
@@ -347,6 +351,10 @@ class EntityExtractor:
             tenant_id=tenant_id,
         )
         self.model = self.client.model
+        self.security_signals: list[dict[str, object]] = []
+
+    def get_security_signals(self) -> list[dict[str, object]]:
+        return list(self.security_signals)
 
     def get_cost_records(self) -> list[CostRecord]:
         """Return per-call cost records for this extractor."""
@@ -384,6 +392,7 @@ class EntityExtractor:
             List of extracted entities meeting confidence threshold
         """
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_entity_prompt(
             entity_type=entity_type,
             text=preprocessed.delimited_content,
@@ -397,6 +406,7 @@ class EntityExtractor:
         tenant_id = context.get("tenant_id")
         ingestion_id = context.get("ingestion_id", "")
         prompt_version = context.get("prompt_version", "")
+        source_hash = compute_source_hash(source_url)
         if not tenant_id or not tenant_id.strip():
             raise LLMExtractionError("tenant_id is required in telemetry_context (no fallbacks)")
         metrics = get_metrics()
@@ -428,13 +438,15 @@ class EntityExtractor:
                     entity.schema_version = schema_version or ""
                     entity.prompt_version = prompt_version or ""
                     entity.model_version = model_version or ""
-                    entity.deterministic_id = compute_deterministic_id(
+                    deterministic_id = compute_deterministic_id(
                         tenant_id=tenant_id,
-                        source_url=source_url,
+                        source_hash=source_hash,
                         entity_type=entity_type,
                         entity=entity,
                         extraction_version=telemetry_context.get("extraction_version", "v1"),
                     )
+                    entity.id = deterministic_id
+                    entity.deterministic_id = deterministic_id
                     entities.append(entity)
                     if metrics:
                         metrics.record_confidence(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, entity_type=entity_type, confidence=float(entity.confidence))
@@ -621,6 +633,7 @@ class RelationshipExtractor:
             return []
 
         preprocessed = preprocess_source_content(text)
+        self.security_signals.append(security_metadata_from_preprocessed(preprocessed))
         prompt = render_relationship_prompt(text=preprocessed.delimited_content, entities=entities)
 
         context = telemetry_context or {}

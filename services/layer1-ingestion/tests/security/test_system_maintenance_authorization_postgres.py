@@ -298,6 +298,54 @@ class TestIntegrationWithCleanupOldContent:
         assert "Invalid tenant_id format" in str(exc_info.value)
 
 
+
+
+    def test_system_tenant_enumeration_uses_registry_only(self, postgres_db):
+        """Regression: system enumeration must not read tenant-owned tables without tenant context."""
+        from value_fabric.layer1.shared.tasks import _enumerate_authorized_tenants_for_cleanup
+
+        class _FakeQuery:
+            def __init__(self, target):
+                self.target = target
+
+            def filter(self, *_args, **_kwargs):
+                return self
+
+            def all(self):
+                return [(uuid4(),)]
+
+        class _FakeSession:
+            def __init__(self, tracker):
+                self._tracker = tracker
+
+            def query(self, target):
+                self._tracker.append(target)
+                return _FakeQuery(target)
+
+        class _FakeCtx:
+            def __init__(self, tracker):
+                self._tracker = tracker
+
+            def __enter__(self):
+                return _FakeSession(self._tracker)
+
+            def __exit__(self, *_args):
+                return False
+
+        query_targets = []
+
+        with patch('value_fabric.layer1.shared.tasks.authorize_maintenance_operation'):
+            with patch('value_fabric.layer1.shared.tasks.maintenance_audit_log') as mock_audit:
+                mock_audit.return_value.__enter__ = MagicMock()
+                mock_audit.return_value.__exit__ = MagicMock(return_value=False)
+                with patch('value_fabric.layer1.shared.tasks.get_db_session', return_value=_FakeCtx(query_targets)):
+                    tenant_ids = _enumerate_authorized_tenants_for_cleanup()
+
+        assert len(tenant_ids) == 1
+        assert query_targets
+        queried_target = query_targets[0]
+        assert 'tenant_registry' in str(queried_target).lower()
+        assert 'raw_content' not in str(queried_target).lower()
 class TestMaintenanceOperationEnum:
     """Test MaintenanceOperation enum functionality."""
 

@@ -51,6 +51,7 @@ Reference: `docs/reference/layer5-api-compatibility-policy.md`
 - [ ] I reviewed DR expectations in `docs/reliability/dr-policy.md` and updated recovery docs if service criticality changed.
 - [ ] For resilience-impacting changes, I updated or validated DR runbooks in `docs/runbooks/`.
 - [ ] If this PR claims Layer 5 Phase 0 closure/readiness, all discovered Layer 5 issues include owner and due date (per `docs/governance/layer5-backlog-issue-template.md`); otherwise Phase 0 remains open.
+- [ ] I validated release readiness with either successful chaos smoke + blue-green health-gate checks, or attached an approved exception.
 
 ## Validation
 

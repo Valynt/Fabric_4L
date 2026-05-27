@@ -33,6 +33,8 @@ spec:
         - name: api
           image: value-fabric/layer6-benchmarks:main
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:

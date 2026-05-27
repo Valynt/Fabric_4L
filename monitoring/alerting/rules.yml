@@ -322,6 +322,48 @@ groups:
           description: "Replay-suspected token events exceeded threshold in 10m window."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
 
+
+      # Layer 3 graph observability alerts
+      - alert: Layer3GraphQueryFailureSpike
+        expr: |
+          sum(rate(value_fabric_graph_query_failures_total[5m])) by (category, operation, route) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 3 graph query failures are spiking"
+          description: "Failure rate for category={{ $labels.category }}, operation={{ $labels.operation }}, route={{ $labels.route }} exceeded 0.5/sec for 10m."
+
+      - alert: Layer3SustainedSlowGraphQueries
+        expr: |
+          sum(rate(value_fabric_graph_slow_queries_total[10m])) by (operation) > 0.2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 3 sustained slow graph queries"
+          description: "Slow query events for operation={{ $labels.operation }} have remained elevated for 15m."
+
+      - alert: Layer3UnauthorizedTraversalAttempts
+        expr: |
+          sum(increase(value_fabric_unauthorized_traversals_total[5m])) by (category, route, violation_type) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 3 unauthorized traversal attempt detected"
+          description: "Unauthorized traversal category={{ $labels.category }}, route={{ $labels.route }}, violation_type={{ $labels.violation_type }} detected."
+
+      - alert: Layer3IndexConstraintHealthFailures
+        expr: |
+          sum(increase(value_fabric_graph_index_constraint_health_failures_total[15m])) by (check_type, component) > 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 3 index/constraint health failures detected"
+          description: "Index/constraint health failures found for check_type={{ $labels.check_type }}, component={{ $labels.component }}."
+
       # Ground truth staleness (L5)
       # `layer5_stale_objects_detected` is a Gauge reflecting the *current*
       # count of stale objects, so this alert auto-clears once staleness is
@@ -396,3 +438,44 @@ groups:
           summary: "Potential auth brute-force pattern"
           description: "High auth-route throttling indicates possible credential stuffing or brute-force attacks."
           runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/zero-trust-validation.md"
+
+      - alert: Layer1RepeatedCrawlFailures
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[15m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Layer 1 repeated crawl failures"
+          description: "Layer 1 retry events exceeded threshold in the last 15m."
+
+      - alert: Layer1StuckJobCandidates
+        expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 20
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 stuck-job candidates detected"
+          description: "Sustained Layer 1 retry volume over 30m suggests jobs are stuck or repeatedly failing to make progress."
+
+      - alert: Layer1RobotsBypassAttempts
+        expr: sum(increase(layer1_retry_events_total{reason="robots_bypass_attempt"}[10m])) > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 robots bypass attempts detected"
+          description: "Detected retries explicitly flagged as robots bypass attempts."
+
+      - alert: Layer1TenantContextErrors
+        expr: |
+          (
+            sum(increase(layer1_errors_total{error_type="tenant_context_error"}[10m])) > 0
+          ) or (
+            absent(layer1_errors_total{error_type="tenant_context_error"})
+          )
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Layer 1 tenant context errors detected or metric missing"
+          description: "Layer 1 tenant-context failures were observed, or the expected layer1_errors_total{error_type=\"tenant_context_error\"} metric is not being emitted; investigate tenant-isolation handling and instrumentation."

@@ -1,0 +1,83 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: layer4-agents-blue
+  namespace: value-fabric
+  labels:
+    app: layer4-agents
+    version: blue
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: layer4-agents
+      track: blue
+  template:
+    metadata:
+      labels:
+        app: layer4-agents
+        track: blue
+        version: blue
+    spec:
+      containers:
+        - name: layer4-agents
+          image: valuefabric/layer4-agents:blue
+          ports:
+            - containerPort: 8004
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: layer4-agents-green
+  namespace: value-fabric
+  labels:
+    app: layer4-agents
+    version: green
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: layer4-agents
+      track: green
+  template:
+    metadata:
+      labels:
+        app: layer4-agents
+        track: green
+        version: green
+    spec:
+      containers:
+        - name: layer4-agents
+          image: valuefabric/layer4-agents:green
+          ports:
+            - containerPort: 8004
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8004
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: layer4-agents-active
+  namespace: value-fabric
+spec:
+  selector:
+    app: layer4-agents
+    track: blue
+  ports:
+    - name: http
+      port: 80
+      targetPort: 8004

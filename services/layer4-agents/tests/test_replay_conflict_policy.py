@@ -9,17 +9,17 @@ import pytest
 from value_fabric.layer4.models.agent_state import WorkflowStatus
 from value_fabric.layer4.policies.replay_conflict import (
     CollisionAction,
+    ReplayDecision,
     ReplayConflictError,
     ReplayConflictPolicy,
     ReplayConflictResolver,
-    ReplayStrategy,
 )
 
 
 class TestReplayConflictPolicy:
     def test_default_policy_values(self) -> None:
         policy = ReplayConflictPolicy()
-        assert policy.strategy == ReplayStrategy.REJECT
+        assert policy.default_decision == ReplayDecision.REJECT
         assert policy.max_replay_age_seconds == 86400
         assert policy.require_exact_checkpoint_match is True
         assert policy.on_collision == CollisionAction.FAIL
@@ -31,12 +31,12 @@ class TestReplayConflictPolicy:
 
     def test_custom_policy(self) -> None:
         policy = ReplayConflictPolicy(
-            strategy=ReplayStrategy.MERGE,
+            default_decision=ReplayDecision.MERGE_SAFE,
             max_replay_age_seconds=3600,
             require_exact_checkpoint_match=False,
             on_collision=CollisionAction.OVERWRITE,
         )
-        assert policy.strategy == ReplayStrategy.MERGE
+        assert policy.default_decision == ReplayDecision.MERGE_SAFE
         assert policy.max_replay_age_seconds == 3600
         assert policy.require_exact_checkpoint_match is False
         assert policy.on_collision == CollisionAction.OVERWRITE
@@ -99,35 +99,69 @@ class TestReplayConflictResolver:
                 latest_checkpoint_hash="abc",
             )
 
-    def test_validate_resume_attempt_rejects_collision_when_fail(self) -> None:
+    def test_validate_resume_attempt_accepts_equal_canonical_hash_variants(self) -> None:
         resolver = ReplayConflictResolver()
-        with pytest.raises(ReplayConflictError, match="diverges from latest checkpoint"):
+        digest = "a" * 64
+        resolver.validate_resume_attempt(
+            workflow_status=WorkflowStatus.INTERRUPTED,
+            checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
+            checkpoint_hash=f"SHA256:{digest.upper()}",
+            expected_hash=f"0x{digest}",
+            latest_checkpoint_hash=digest,
+        )
+
+    def test_validate_resume_attempt_rejects_encoding_variant_safely(self) -> None:
+        resolver = ReplayConflictResolver()
+        with pytest.raises(ReplayConflictError, match="hash normalization failed"):
             resolver.validate_resume_attempt(
                 workflow_status=WorkflowStatus.INTERRUPTED,
                 checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
-                checkpoint_hash="abc",
-                expected_hash="abc",
-                latest_checkpoint_hash="def",
+                checkpoint_hash="not-hex-encoded",
+                expected_hash="a" * 64,
+                latest_checkpoint_hash="a" * 64,
             )
 
-    def test_check_duplicate_replay_rejects_on_reject_strategy(self) -> None:
+    def test_validate_resume_attempt_rejects_collision_when_fail(self) -> None:
+        resolver = ReplayConflictResolver()
+        with pytest.raises(ReplayConflictError, match="checkpoint collision/mismatch"):
+            resolver.validate_resume_attempt(
+                workflow_status=WorkflowStatus.INTERRUPTED,
+                checkpoint_created_at=datetime.now(UTC) - timedelta(hours=1),
+                checkpoint_hash="a" * 64,
+                expected_hash="a" * 64,
+                latest_checkpoint_hash="b" * 64,
+            )
+
+    def test_evaluate_duplicate_replay_rejects_without_audit_justification(self) -> None:
         resolver = ReplayConflictResolver()
         seen = {resolver.compute_replay_fingerprint("run_123", "tenant_a", "chk_456")}
-        with pytest.raises(ReplayConflictError, match="duplicate replay detected"):
-            resolver.check_duplicate_replay(
-                run_id="run_123",
-                tenant_id="tenant_a",
-                checkpoint_id="chk_456",
-                seen_fingerprints=seen,
-            )
-
-    def test_check_duplicate_replay_allows_new(self) -> None:
-        resolver = ReplayConflictResolver()
-        seen = set()
-        is_dup = resolver.check_duplicate_replay(
+        decision = resolver.evaluate_duplicate_replay(
             run_id="run_123",
             tenant_id="tenant_a",
             checkpoint_id="chk_456",
             seen_fingerprints=seen,
         )
-        assert is_dup is False
+        assert decision == ReplayDecision.REJECT
+
+    def test_evaluate_duplicate_replay_allows_new(self) -> None:
+        resolver = ReplayConflictResolver()
+        seen = set()
+        decision = resolver.evaluate_duplicate_replay(
+            run_id="run_123",
+            tenant_id="tenant_a",
+            checkpoint_id="chk_456",
+            seen_fingerprints=seen,
+        )
+        assert decision == ReplayDecision.MERGE_SAFE
+
+    def test_evaluate_duplicate_replay_force_replay_with_audit_justification(self) -> None:
+        resolver = ReplayConflictResolver()
+        seen = {resolver.compute_replay_fingerprint("run_123", "tenant_a", "chk_456")}
+        decision = resolver.evaluate_duplicate_replay(
+            run_id="run_123",
+            tenant_id="tenant_a",
+            checkpoint_id="chk_456",
+            seen_fingerprints=seen,
+            audit_justification="Incident 42 approved by on-call",
+        )
+        assert decision == ReplayDecision.FORCE_REPLAY

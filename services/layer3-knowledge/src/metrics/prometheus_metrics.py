@@ -269,21 +269,35 @@ class PrometheusMetrics:
         self._metrics["graph_mutations_total"] = Counter(
             f"{prefix}graph_mutations_total",
             "Total graph mutations",
-            ["operation_type", "status", "entity_type"],
+            ["operation", "route", "status", "entity_type"],
             registry=self.config.registry,
         )
 
         self._metrics["graph_mutation_rate"] = Gauge(
             f"{prefix}graph_mutation_rate",
             "Graph mutation rate per second",
-            ["operation_type"],
+            ["operation", "route"],
             registry=self.config.registry,
         )
 
         self._metrics["unauthorized_traversals_total"] = Counter(
             f"{prefix}unauthorized_traversals_total",
             "Total unauthorized graph traversals blocked",
-            ["traversal_type", "violation_type"],
+            ["category", "route", "violation_type"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_query_failures_total"] = Counter(
+            f"{prefix}graph_query_failures_total",
+            "Total failed graph queries by category",
+            ["category", "operation", "route"],
+            registry=self.config.registry,
+        )
+
+        self._metrics["graph_index_constraint_health_failures_total"] = Counter(
+            f"{prefix}graph_index_constraint_health_failures_total",
+            "Index/constraint health check failures",
+            ["check_type", "component"],
             registry=self.config.registry,
         )
 
@@ -553,30 +567,30 @@ class PrometheusMetrics:
         ).inc()
 
     # Phase 3 hardening: Graph mutation metrics methods
-    def increment_mutation_success(self, operation_type: str) -> None:
+    def increment_mutation_success(self, operation: str, route: str = "unknown", entity_type: str = "all") -> None:
         """Increment mutation success counter."""
         if not self.config.enabled:
             return
         self._metrics["graph_mutations_total"].labels(
-            operation_type=operation_type, status="success", entity_type="all"
+            operation=operation, route=route, status="success", entity_type=entity_type
         ).inc()
 
-    def increment_mutation_failure(self, error_type: str = "unknown") -> None:
+    def increment_mutation_failure(self, operation: str = "unknown", route: str = "unknown", entity_type: str = "all") -> None:
         """Increment mutation failure counter."""
         if not self.config.enabled:
             return
         self._metrics["graph_mutations_total"].labels(
-            operation_type="unknown", status="failure", entity_type="all"
+            operation=operation, route=route, status="failure", entity_type=entity_type
         ).inc()
 
     def increment_unauthorized_traversal(
-        self, traversal_type: str, violation_type: str
+        self, category: str, route: str, violation_type: str
     ) -> None:
         """Increment unauthorized traversal counter."""
         if not self.config.enabled:
             return
         self._metrics["unauthorized_traversals_total"].labels(
-            traversal_type=traversal_type, violation_type=violation_type
+            category=category, route=route, violation_type=violation_type
         ).inc()
 
     # Phase 3 hardening: Entity resolution metrics methods
@@ -609,6 +623,37 @@ class PrometheusMetrics:
         self._metrics["entity_resolution_confidence"].labels(
             strategy=strategy, entity_type=entity_type
         ).observe(confidence)
+
+
+    def increment_graph_query_failure(
+        self, category: str, operation: str, route: str
+    ) -> None:
+        """Increment failed graph query counter by category."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_query_failures_total"].labels(
+            category=category, operation=operation, route=route
+        ).inc()
+
+    def increment_index_constraint_health_failure(
+        self, check_type: str, component: str
+    ) -> None:
+        """Increment index/constraint health failure counter."""
+        if not self.config.enabled:
+            return
+        self._metrics["graph_index_constraint_health_failures_total"].labels(
+            check_type=check_type, component=component
+        ).inc()
+
+    def increment_graph_mutation_success(
+        self, operation_type: str, route: str = "unknown", entity_type: str = "all"
+    ) -> None:
+        self.increment_mutation_success(operation=operation_type, route=route, entity_type=entity_type)
+
+    def increment_graph_mutation_failure(
+        self, error_type: str = "unknown", route: str = "unknown", entity_type: str = "all"
+    ) -> None:
+        self.increment_mutation_failure(operation=error_type, route=route, entity_type=entity_type)
 
     def get_metrics(self) -> str:
         """Get Prometheus metrics output.

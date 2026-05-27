@@ -11,7 +11,7 @@ Covers:
 
 from __future__ import annotations
 
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import uuid4
 
@@ -440,6 +440,110 @@ async def test_handle_payment_failed_updates_status(mock_db):
     await service._handle_payment_failed({"subscription": "sub_stripe123"})
 
     assert subscription.status == SubscriptionStatus.PAST_DUE
+
+
+@pytest.mark.asyncio
+async def test_process_webhook_event_transient_retry(monkeypatch, mock_db):
+    """Transient failures should mark event retryable with bounded backoff."""
+    inbox = BillingWebhookEvent(id="evt_retry", type="invoice.payment_succeeded", status="pending", attempt_count=0)
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = inbox
+    mock_db.execute.return_value = result
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = {"id": "evt_retry", "type": "invoice.payment_succeeded", "data": {"object": {}}}
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        async def _boom(_: dict):
+            raise StripeError("temporary")
+        monkeypatch.setattr(service, "_handle_payment_succeeded", _boom)
+        with pytest.raises(StripeError):
+            await service.process_webhook_event("evt_retry", b'{}', "sig", "secret")
+    assert inbox.status == "retryable"
+    assert inbox.attempt_count == 1
+    assert inbox.next_retry_at is not None
+
+
+@pytest.mark.asyncio
+async def test_process_webhook_event_permanent_failure(mock_db):
+    """Permanent failures should not loop forever."""
+    inbox = BillingWebhookEvent(id="evt_dead", type="invoice.payment_succeeded", status="pending", attempt_count=4)
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = inbox
+    mock_db.execute.return_value = result
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = {"id": "evt_dead", "type": "invoice.payment_succeeded", "data": {"object": {}}}
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        with patch.object(service, "_handle_payment_succeeded", side_effect=ValueError("bad payload")):
+            with pytest.raises(ValueError):
+                await service.process_webhook_event("evt_dead", b'{}', "sig", "secret")
+    assert inbox.status == "failed"
+    assert inbox.next_retry_at is None
+
+
+@pytest.mark.asyncio
+async def test_process_webhook_event_duplicate_ignored(mock_db):
+    """Duplicate processed event must be ignored with no side-effects."""
+    inbox = BillingWebhookEvent(id="evt_done", type="invoice.payment_succeeded", status="processed", attempt_count=1)
+    result = MagicMock()
+    result.scalar_one_or_none.return_value = inbox
+    mock_db.execute.return_value = result
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = {"id": "evt_done", "type": "invoice.payment_succeeded", "data": {"object": {}}}
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        await service.process_webhook_event("evt_done", b"{}", "sig", "secret")
+    assert inbox.attempt_count == 1
+
+
+@pytest.mark.asyncio
+async def test_retry_queue_retries_then_succeeds(mock_db):
+    """Retry queue should reprocess due events once and mark processed on success."""
+    inbox = BillingWebhookEvent(
+        id="evt_retry_success",
+        type="invoice.payment_succeeded",
+        status="retryable",
+        attempt_count=1,
+        next_retry_at=datetime.now(UTC) - timedelta(seconds=1),
+    )
+    due_result = MagicMock()
+    due_result.scalars.return_value.all.return_value = [inbox]
+    by_id_result = MagicMock()
+    by_id_result.scalar_one_or_none.return_value = inbox
+    mock_db.execute.side_effect = [due_result, by_id_result]
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = {"id": "evt_retry_success", "type": "invoice.payment_succeeded", "data": {"object": {}}}
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        with patch.object(service, "_handle_payment_succeeded", return_value=None):
+            count = await service.process_due_webhook_retries({"evt_retry_success": b"{}"}, "sig", "secret")
+    assert count == 1
+    assert inbox.status == "processed"
+
+
+@pytest.mark.asyncio
+async def test_retry_queue_permanent_failure_dlq(mock_db):
+    """Retry queue should route permanent failures to durable DLQ state."""
+    inbox = BillingWebhookEvent(
+        id="evt_retry_dead",
+        type="invoice.payment_succeeded",
+        status="retryable",
+        attempt_count=4,
+        next_retry_at=datetime.now(UTC) - timedelta(seconds=1),
+    )
+    due_result = MagicMock()
+    due_result.scalars.return_value.all.return_value = [inbox]
+    by_id_result = MagicMock()
+    by_id_result.scalar_one_or_none.return_value = inbox
+    mock_db.execute.side_effect = [due_result, by_id_result]
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.return_value = {"id": "evt_retry_dead", "type": "invoice.payment_succeeded", "data": {"object": {}}}
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        with patch.object(service, "_handle_payment_succeeded", side_effect=ValueError("poison")):
+            with pytest.raises(ValueError):
+                await service.process_due_webhook_retries({"evt_retry_dead": b"{}"}, "sig", "secret")
+    assert inbox.status == "failed"
 
 
 # =============================================================================

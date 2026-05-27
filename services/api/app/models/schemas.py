@@ -1,7 +1,7 @@
 from datetime import UTC, datetime
 from typing import Any, Generic, Literal, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 T = TypeVar("T")
 
@@ -76,6 +76,18 @@ class Account(BaseModel):
     summary: str | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     updated_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class AccountUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1)
+    industry: str | None = None
+    segment: str | None = None
+    website: HttpUrl | None = None
+    annual_revenue: float | None = Field(default=None, ge=0)
+    employee_count: int | None = Field(default=None, ge=0)
+    crm_stage: str | None = None
+    value_pack_id: str | None = None
+    summary: str | None = None
 
 
 class Stakeholder(BaseModel):
@@ -200,6 +212,17 @@ class ValueDriver(BaseModel):
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
 
+class ValueTreeCategories(BaseModel):
+    revenue_uplift: list[ValueDriver] = Field(default_factory=list)
+    cost_savings: list[ValueDriver] = Field(default_factory=list)
+    risk_reduction: list[ValueDriver] = Field(default_factory=list)
+
+
+class ValueTreeResponse(BaseModel):
+    account_id: str
+    categories: ValueTreeCategories
+
+
 # ============================================================================
 # Formula & Scenario
 # ============================================================================
@@ -236,6 +259,19 @@ class Formula(BaseModel):
     validation_status: Literal["draft", "validated", "approved", "deprecated"] = "draft"
     version: str = "1.0.0"
     audit: AuditMeta = Field(default_factory=AuditMeta)
+
+
+class ContextEngineItem(BaseModel):
+    """Typed benchmark payload returned by Context Engine benchmark listing."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    id: str
+    name: str
+    industry: str
+    category: str
+    median_value: float | None = None
+    unit: str | None = None
 
 
 class Scenario(BaseModel):
@@ -316,6 +352,36 @@ class ROICalculation(BaseModel):
     audit: AuditMeta = Field(default_factory=AuditMeta)
 
 
+class RealizationPlanCreateRequest(BaseModel):
+    id: str
+    scenario_id: str
+    revenue_uplift: float | None = Field(default=None, ge=0)
+    cost_savings: float | None = Field(default=None, ge=0)
+    risk_reduction: float | None = Field(default=None, ge=0)
+    total_benefit: float | None = Field(default=None, ge=0)
+    solution_cost: float | None = Field(default=None, ge=0)
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = Field(default=None, ge=0)
+    calculation_trace: list[dict[str, Any]] = Field(default_factory=list)
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
+class RealizationPlanActualsPatchRequest(BaseModel):
+    revenue_uplift: float | None = Field(default=None, ge=0)
+    cost_savings: float | None = Field(default=None, ge=0)
+    risk_reduction: float | None = Field(default=None, ge=0)
+    total_benefit: float | None = Field(default=None, ge=0)
+    solution_cost: float | None = Field(default=None, ge=0)
+    net_benefit: float | None = None
+    roi_percent: float | None = None
+    payback_months: float | None = Field(default=None, ge=0)
+    calculation_trace: list[dict[str, Any]] | None = None
+    evidence_ids: list[str] = Field(default_factory=list)
+    assumption_ids: list[str] = Field(default_factory=list)
+
+
 class BusinessCase(BaseModel):
     id: str
     account_id: str
@@ -371,6 +437,10 @@ class AuditLogEvent(BaseModel):
     resource_id: str | None = None
     payload: dict[str, Any] | None = None
     created_at: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
+
+
+class AuditLogListResponse(BaseModel):
+    items: list[AuditLogEvent] = Field(default_factory=list)
 
 
 class GovernanceGate(BaseModel):
@@ -483,6 +553,52 @@ class WorkflowResponse(BaseModel):
     tenant_id: str
 
 
+class AccountSummaryResponse(BaseModel):
+    account: Account
+    signal_count: int = 0
+    hypothesis_count: int = 0
+    roi_calculation_count: int = 0
+
+
+class AccountShareLinkResponse(BaseModel):
+    share_token: str
+    account_id: str
+    role: str = "read_only"
+
+
+class AccountShareRevokeResponse(BaseModel):
+    revoked: bool
+    account_id: str
+
+
+class OntologyMatchResponse(BaseModel):
+    account_id: str
+    matched_pack: ValuePack | None = None
+    confidence: float = 0.0
+    gaps: list[str] = Field(default_factory=list)
+
+
+class FirmographicsResponse(BaseModel):
+    revenue: float | None = None
+    employees: int | None = None
+    industry: str | None = None
+    website: str | None = None
+
+
+class EnrichmentResponse(BaseModel):
+    account_id: str
+    firmographics: FirmographicsResponse
+    tech_stack: list[str] = Field(default_factory=list)
+    public_sources: list[str] = Field(default_factory=list)
+
+
+class GovernanceReviewQueueResponse(BaseModel):
+    hypotheses: list[ValueHypothesis] = Field(default_factory=list)
+    formulas: list[Formula] = Field(default_factory=list)
+    evidence: list[Evidence] = Field(default_factory=list)
+    total: int = 0
+
+
 class RealizationVarianceResponse(BaseModel):
     plan_id: str
     projected: float = 0.0
@@ -493,3 +609,36 @@ class RealizationVarianceResponse(BaseModel):
 class RealizationRecommendationsResponse(BaseModel):
     plan_id: str
     recommendations: list[str] = Field(default_factory=list)
+
+
+class DSARCreateResponse(BaseModel):
+    request: DSARRequestRecord
+    download_url: str
+
+
+class SnapshotDiffChange(BaseModel):
+    field: str
+    from_value: Any = Field(alias="from")
+    to_value: Any = Field(alias="to")
+
+
+class SnapshotDiffResponse(BaseModel):
+    base_snapshot_id: str
+    compare_snapshot_id: str
+    changes: list[SnapshotDiffChange] = Field(default_factory=list)
+    created_at_base: str
+    created_at_compare: str
+
+
+class ContextOntologyResponse(BaseModel):
+    packs: list[ValuePack] = Field(default_factory=list)
+    ontology: dict[str, Any] = Field(default_factory=dict)
+
+
+class ValueCaseExportResponse(BaseModel):
+    status: str
+    format: str
+    filename: str
+    download_url: str
+    generated_at: str
+    size_bytes: int

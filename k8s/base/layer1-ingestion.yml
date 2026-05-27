@@ -34,6 +34,8 @@ spec:
           image: busybox:1.36
           command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -50,6 +52,8 @@ spec:
         - name: api
           image: value-fabric/layer1-ingestion:main
           securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
             capabilities:
@@ -116,6 +120,14 @@ spec:
         - name: celery-worker
           image: value-fabric/layer1-ingestion:main
           command: ["celery", "-A", "src.shared.tasks", "worker", "-l", "info"]
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 1000
+            runAsGroup: 1000
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
           envFrom:
             - configMapRef:
                 name: value-fabric-config

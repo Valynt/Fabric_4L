@@ -1,3 +1,4 @@
+import asyncio
 from datetime import UTC, datetime, timedelta
 
 from fastapi.testclient import TestClient
@@ -20,18 +21,18 @@ def test_dsar_endpoint_authorization_and_tenant_scope():
 
 
 def test_sla_deadline_and_escalation_path():
-    req = dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "x@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a')
+    req = asyncio.run(dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "x@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a'))
     deadline = datetime.fromisoformat(req.sla_deadline_at)
     requested = datetime.fromisoformat(req.requested_at)
     assert deadline - requested == timedelta(days=30)
-    db.dsar_requests.update(req.id, tenant_id=TENANT_ALPHA, sla_deadline_at=(datetime.now(UTC)-timedelta(days=1)).isoformat())
-    escalated = dsar_service.maybe_escalate(db.dsar_requests.get(req.id, tenant_id=TENANT_ALPHA))
+    asyncio.run(db.dsar_requests.update(req.id, tenant_id=TENANT_ALPHA, sla_deadline_at=(datetime.now(UTC)-timedelta(days=1)).isoformat()))
+    escalated = asyncio.run(dsar_service.maybe_escalate(asyncio.run(db.dsar_requests.get(req.id, tenant_id=TENANT_ALPHA))))
     assert escalated.status == 'escalated'
     assert escalated.escalated_at is not None
 
 
 async def test_download_url_expiry_and_access_control():
-    req = dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "x@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a')
+    req = await dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "x@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a')
     pkg = await dsar_service.launch_export_pipeline(req)
     token_url = dsar_service.issue_download_url(pkg)
     token = token_url.split('token=')[1]
@@ -41,8 +42,8 @@ async def test_download_url_expiry_and_access_control():
         assert False
     except PermissionError:
         pass
-    db.dsar_packages.update(pkg.id, tenant_id=TENANT_ALPHA, expires_at=(datetime.now(UTC)-timedelta(seconds=1)).isoformat())
-    expired = db.dsar_packages.get(pkg.id, tenant_id=TENANT_ALPHA)
+    asyncio.run(db.dsar_packages.update(pkg.id, tenant_id=TENANT_ALPHA, expires_at=(datetime.now(UTC)-timedelta(seconds=1)).isoformat()))
+    expired = asyncio.run(db.dsar_packages.get(pkg.id, tenant_id=TENANT_ALPHA))
     try:
         dsar_service.validate_download_access(expired, requester_user_id='user-a', token=token)
         assert False
@@ -55,7 +56,84 @@ def test_cross_tenant_data_isolation_in_export_payload():
     payload = {"subject_identity": {"email": "a@example.com"}}
     ra = client.post('/v1/privacy/dsar', json=payload, headers=auth_headers(TENANT_ALPHA, 'user-a')).json()
     rb = client.post('/v1/privacy/dsar', json=payload, headers=auth_headers(TENANT_BETA, 'user-b')).json()
-    pa = db.dsar_packages.get(ra['request']['package_id'], tenant_id=TENANT_ALPHA)
-    pb = db.dsar_packages.get(rb['request']['package_id'], tenant_id=TENANT_BETA)
+    pa = asyncio.run(db.dsar_packages.get(ra['request']['package_id'], tenant_id=TENANT_ALPHA))
+    pb = asyncio.run(db.dsar_packages.get(rb['request']['package_id'], tenant_id=TENANT_BETA))
     assert all(item['tenant_id'] == TENANT_ALPHA for item in pa.export_payload['accounts'])
     assert all(item['tenant_id'] == TENANT_BETA for item in pb.export_payload['accounts'])
+
+
+def test_async_dsar_flow_uses_async_repository_calls():
+    req = asyncio.run(dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "bridge@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a'))
+    pkg = asyncio.run(dsar_service.launch_export_pipeline(req))
+    refreshed = asyncio.run(db.dsar_requests.get(req.id, tenant_id=TENANT_ALPHA))
+    completed = asyncio.run(dsar_service.reconcile_package(refreshed))
+
+    assert pkg.dsar_request_id == req.id
+    assert completed.status == "complete"
+
+
+def test_dsar_create_persists_request_before_response():
+    client = TestClient(app)
+    payload = {"subject_identity": {"email": "persisted@example.com"}}
+    response = client.post('/v1/privacy/dsar', json=payload, headers=auth_headers(TENANT_ALPHA, 'user-a'))
+    assert response.status_code == 202
+    request_id = response.json()["request"]["id"]
+    persisted = asyncio.run(db.dsar_requests.get(request_id, tenant_id=TENANT_ALPHA))
+    assert persisted is not None
+    assert persisted.tenant_id == TENANT_ALPHA
+
+
+def test_dsar_reconciliation_error_mapping_contract(monkeypatch):
+    client = TestClient(app)
+
+    async def _raise(_record):
+        raise ValueError("forced")
+
+    monkeypatch.setattr(dsar_service, "reconcile_package", _raise)
+    payload = {"subject_identity": {"email": "x@example.com"}, "scope": ["accounts"]}
+    response = client.post("/v1/privacy/dsar", json=payload, headers=auth_headers(TENANT_ALPHA, "user-a"))
+    assert response.status_code == 422
+    assert response.json()["detail"] == "Invalid DSAR request"
+
+
+def test_blocking_repo_calls_are_offloaded_for_parallelism():
+    async def _run_parallel():
+        start = asyncio.get_running_loop().time()
+        await asyncio.gather(
+            dsar_service._run_blocking_repo_call("test.sleep.1", lambda: __import__("time").sleep(0.12)),
+            dsar_service._run_blocking_repo_call("test.sleep.2", lambda: __import__("time").sleep(0.12)),
+            dsar_service._run_blocking_repo_call("test.sleep.3", lambda: __import__("time").sleep(0.12)),
+        )
+        return asyncio.get_running_loop().time() - start
+
+    elapsed = asyncio.run(_run_parallel())
+    assert elapsed < 0.28
+
+
+def test_dsar_service_responsive_under_moderate_parallel_load(monkeypatch):
+    original = dsar_service._run_blocking_repo_call
+
+    async def _slow_bridge(operation, fn, /, *args, **kwargs):
+        await asyncio.sleep(0.01)
+        return await original(operation, fn, *args, **kwargs)
+
+    monkeypatch.setattr(dsar_service, "_run_blocking_repo_call", _slow_bridge)
+
+    async def _submit():
+        loop = asyncio.get_running_loop()
+        started = loop.time()
+        payload = DSARRequestCreate(subject_identity={"email": "parallel@y.com"})
+        await asyncio.gather(
+            *[
+                dsar_service.register_request(
+                    payload,
+                    tenant_id=TENANT_ALPHA,
+                    requester_user_id=f"user-{i}",
+                )
+                for i in range(12)
+            ]
+        )
+        return loop.time() - started
+
+    elapsed = asyncio.run(_submit())
+    assert elapsed < 1.0

@@ -30,6 +30,34 @@ x-build-args: &build-args
   BASE_IMAGE: ${BASE_IMAGE:-python:3.11.11-slim-bookworm}
 
 services:
+  api-gateway:
+    build:
+      context: ./services/api
+      dockerfile: Dockerfile
+    container_name: value-fabric-api-gateway
+    <<: *app-hardening
+    expose:
+      - "8000"
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      - DEBUG=false
+      - ENVIRONMENT=production
+      - TESTING=false
+      - PYTHONPATH=/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - value-fabric-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
   # Layer 1: Data Ingestion Service
   layer1-ingestion:
     build:
@@ -580,16 +608,26 @@ services:
       - BADGER_DIRECTORY_VALUE=/badger/data
       - BADGER_DIRECTORY_KEY=/badger/key
       - BADGER_SPAN_STORE_TTL=336h  # 14 days retention (>7 days required)
+      - MEMORY_MAX_TRACES=50000
     volumes:
       - jaeger-data:/badger
     networks:
       - value-fabric-network
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 2G
+        reservations:
+          cpus: "0.50"
+          memory: 512M
     healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:16686/"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:14269/"]
+      interval: 20s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   # PgBouncer connection pool (for production database connection pooling)
   # NOTE: userlist.txt must be generated from environment variables before starting
@@ -662,8 +700,9 @@ services:
       timeout: 3s
       retries: 3
 
-  # Vault (dev mode) — optional local secrets backend
-  # F-6 FIX: Dev mode only enabled via 'dev' profile. Production must use proper Vault.
+  # Vault (dev mode) — optional local secrets backend.
+  # SECURITY: Vault `server -dev` is NEVER production-safe. It bypasses normal unseal
+  # and auth hardening. Do not use this compose service for staging or production.
   vault:
     image: hashicorp/vault:latest
     container_name: value-fabric-vault
@@ -672,7 +711,6 @@ services:
     cap_add:
       - IPC_LOCK
     environment:
-      - VAULT_DEV_ROOT_TOKEN_ID=root
       - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
     expose:
       - "8200"
@@ -681,7 +719,9 @@ services:
     networks:
       - value-fabric-network
     restart: "no"
-    command: server -dev -dev-root-token-id=root -dev-listen-address=0.0.0.0:8200
+    # Intentionally omit -dev-root-token-id here. Use docker-compose.full.dev-vault.yml
+    # to opt into a predictable local token during explicit local-dev workflows only.
+    command: server -dev -dev-listen-address=0.0.0.0:8200
     healthcheck:
       test: ["CMD", "vault", "status"]
       interval: 30s

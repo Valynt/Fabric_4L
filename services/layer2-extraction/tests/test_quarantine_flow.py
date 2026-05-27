@@ -16,6 +16,7 @@ async def test_quarantine_records_are_traceable_and_listable_by_tenant():
             source_hash="h1",
             model_version="gpt-4o",
             schema_version="v1",
+            prompt_template_version="entity_extraction_v1+relationship_extraction_v1",
             payload_json='{"bad":true}',
             validation_errors=["schema mismatch"],
         )
@@ -29,6 +30,7 @@ async def test_quarantine_records_are_traceable_and_listable_by_tenant():
             source_hash="h2",
             model_version="gpt-4o",
             schema_version="v1",
+            prompt_template_version="entity_extraction_v1+relationship_extraction_v1",
             payload_json='{"bad":true}',
             validation_errors=["schema mismatch 2"],
         )

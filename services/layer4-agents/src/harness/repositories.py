@@ -13,7 +13,7 @@ from __future__ import annotations
 import logging
 from datetime import UTC, datetime
 
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -265,24 +265,48 @@ class HarnessRunRepository:
             raise RunNotFoundError(f"Run '{run_id}' not found for tenant '{tenant_id}'")
         return _row_to_run(row)
 
-    async def update(self, run: HarnessRun) -> HarnessRun:
-        from harness.registry import HarnessRegistryError
+    async def update(self, run: HarnessRun, expected_updated_at: datetime | None = None) -> HarnessRun:
+        from harness.registry import HarnessRegistryError, TransitionConflictError
 
-        result = await self._session.execute(
-            select(HarnessRunRow).where(
+        stmt = (
+            update(HarnessRunRow)
+            .where(
                 HarnessRunRow.id == run.id,
                 HarnessRunRow.tenant_id == run.tenant_id,
             )
+            .values(
+                status=run.status.value,
+                current_state=run.current_state.value,
+                updated_at=run.updated_at,
+            )
+        )
+        if expected_updated_at is not None:
+            stmt = stmt.where(HarnessRunRow.updated_at == expected_updated_at)
+        result = await self._session.execute(stmt)
+        if result.rowcount == 0:
+            if expected_updated_at is not None:
+                raise TransitionConflictError(f"Stale run state for '{run.id}'")
+            raise HarnessRegistryError(f"Run '{run.id}' not found for update")
+
+        await self._session.flush()
+        return run
+
+    async def get_for_update(self, run_id: str, tenant_id: str) -> HarnessRun:
+        """Fetch a run row using a row lock while preserving tenant isolation."""
+        from harness.registry import RunNotFoundError
+
+        result = await self._session.execute(
+            select(HarnessRunRow)
+            .where(
+                HarnessRunRow.id == run_id,
+                HarnessRunRow.tenant_id == tenant_id,
+            )
+            .with_for_update()
         )
         row = result.scalar_one_or_none()
         if row is None:
-            raise HarnessRegistryError(f"Run '{run.id}' not found for update")
-
-        row.status = run.status.value
-        row.current_state = run.current_state.value
-        row.updated_at = run.updated_at
-        await self._session.flush()
-        return run
+            raise RunNotFoundError(f"Run '{run_id}' not found for tenant '{tenant_id}'")
+        return _row_to_run(row)
 
     async def list(
         self,
@@ -335,6 +359,23 @@ class HumanGateRepository:
                 HumanGateRow.id == gate_id,
                 HumanGateRow.tenant_id == tenant_id,
             )
+        )
+        row = result.scalar_one_or_none()
+        if row is None:
+            raise GateNotFoundError(f"Gate '{gate_id}' not found for tenant '{tenant_id}'")
+        return _row_to_gate(row)
+
+    async def get_for_update(self, gate_id: str, tenant_id: str) -> HumanGate:
+        """Fetch a gate row using a row lock while preserving tenant isolation."""
+        from harness.human_gates import GateNotFoundError
+
+        result = await self._session.execute(
+            select(HumanGateRow)
+            .where(
+                HumanGateRow.id == gate_id,
+                HumanGateRow.tenant_id == tenant_id,
+            )
+            .with_for_update()
         )
         row = result.scalar_one_or_none()
         if row is None:

@@ -31,6 +31,14 @@ class WorkflowExecutionError(Exception):
     pass
 
 
+class CheckpointConflictError(WorkflowExecutionError):
+    """Raised when checkpoint hash from caller is stale versus persisted latest state."""
+
+    def __init__(self, message: str, metadata: dict[str, Any]):
+        super().__init__(message)
+        self.metadata = metadata
+
+
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
@@ -38,7 +46,7 @@ from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
-from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver
+from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver, ReplayDecision
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
@@ -89,6 +97,14 @@ class OrchestrationController_get_cluster_healthResult(TypedDictModel):
 
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
+
+
+TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS: tuple[tuple[str, ...], ...] = (
+    ("layer4", "workflow", "timeout_seconds"),
+    ("layer4", "workflow_timeout_seconds"),
+    ("workflow", "timeout_seconds"),
+    ("workflow_timeout_seconds",),
+)
 
 
 # ---------------------------------------------------------------------------
@@ -234,9 +250,65 @@ class OrchestrationController:
         # Expected hash is the one stored when the checkpoint was originally saved
         expected_hash = (state.metadata or {}).get("checkpoint_hash")
 
-        # Determine latest checkpoint hash by loading current state again
-        latest_state = await self.state_manager.load_state(workflow_id)
-        latest_hash = self._compute_state_hash(latest_state) if latest_state else checkpoint_hash
+        checkpoint_id = target_checkpoint_id or str(state.current_node or "latest")
+        run_id = state.run_id or workflow_id
+        latest_hash = await self._get_latest_persisted_checkpoint_hash(
+            tenant_id=str(state.tenant_id),
+            workflow_id=workflow_id,
+            run_id=run_id,
+            checkpoint_id=checkpoint_id,
+        )
+
+        if latest_hash != checkpoint_hash:
+            try:
+                from ..metrics.prometheus_metrics import get_metrics
+
+                metrics = get_metrics()
+                if metrics:
+                    metrics.increment_checkpoint_collision_outcome(
+                        workflow_type=str(
+                            state.workflow_type.value
+                            if hasattr(state.workflow_type, "value")
+                            else state.workflow_type
+                        ),
+                        tenant_id=str(state.tenant_id or "unknown"),
+                        outcome="mismatch",
+                    )
+            except Exception:
+                logger.debug("Failed to record checkpoint collision mismatch metric", exc_info=True)
+            conflict_metadata = {
+                "workflow_id": workflow_id,
+                "run_id": run_id,
+                "checkpoint_id": checkpoint_id,
+                "expected_hash": checkpoint_hash,
+                "actual_hash": latest_hash,
+            }
+            lifecycle_logger.emit(
+                stage="checkpoint_conflict",
+                context=self._lifecycle_context(
+                    workflow_id,
+                    tenant_id=str(state.tenant_id or "unknown"),
+                    checkpoint_id=checkpoint_id,
+                ),
+                **conflict_metadata,
+            )
+            raise CheckpointConflictError("Checkpoint hash mismatch", conflict_metadata)
+        try:
+            from ..metrics.prometheus_metrics import get_metrics
+
+            metrics = get_metrics()
+            if metrics:
+                metrics.increment_checkpoint_collision_outcome(
+                    workflow_type=str(
+                        state.workflow_type.value
+                        if hasattr(state.workflow_type, "value")
+                        else state.workflow_type
+                    ),
+                    tenant_id=str(state.tenant_id or "unknown"),
+                    outcome="match",
+                )
+        except Exception:
+            logger.debug("Failed to record checkpoint collision match metric", exc_info=True)
 
         # Age guard uses paused_at or started_at
         checkpoint_created_at = state.paused_at or state.started_at
@@ -257,15 +329,16 @@ class OrchestrationController:
             raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 
         # Duplicate replay detection
-        run_id = state.run_id or workflow_id
         tenant_id = state.tenant_id or "unknown"
         try:
-            resolver.check_duplicate_replay(
+            decision = resolver.evaluate_duplicate_replay(
                 run_id=run_id,
                 tenant_id=tenant_id,
                 checkpoint_id=target_checkpoint_id,
                 seen_fingerprints=self._seen_replay_fingerprints,
             )
+            if decision == ReplayDecision.REJECT:
+                raise ReplayConflictError("Replay rejected: duplicate replay detected")
         except ReplayConflictError as rce:
             raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
 
@@ -276,6 +349,46 @@ class OrchestrationController:
             checkpoint_id=target_checkpoint_id,
         )
         self._seen_replay_fingerprints.add(fingerprint)
+
+    async def _get_latest_persisted_checkpoint_hash(
+        self,
+        *,
+        tenant_id: str,
+        workflow_id: str,
+        run_id: str,
+        checkpoint_id: str,
+    ) -> str:
+        """Load the latest persisted checkpoint hash from durable state.
+
+        Uses canonical checkpoint storage when available, scoped by tenant and
+        workflow identifiers. Falls back to persisted workflow state hash.
+        """
+        conn = self.checkpoint_saver.conn if self.checkpoint_saver and hasattr(self.checkpoint_saver, "conn") else None
+        if conn is not None and hasattr(conn, "fetchrow"):
+            row = await conn.fetchrow(
+                """
+                SELECT checkpoint->'channel_values' as state_data
+                FROM checkpoints
+                WHERE thread_id = $1
+                  AND checkpoint_id = $2
+                  AND checkpoint->'channel_values'->>'tenant_id' = $3
+                ORDER BY created_at DESC
+                LIMIT 1
+                """,
+                workflow_id,
+                checkpoint_id,
+                tenant_id,
+            )
+            if row and isinstance(row.get("state_data"), dict):
+                return self._compute_state_hash(AgentState.model_validate(row["state_data"]))
+
+        latest_state = await self.state_manager.load_state(workflow_id)
+        if latest_state is None:
+            raise WorkflowExecutionError(
+                f"No persisted checkpoint state for tenant={tenant_id} run_id={run_id} "
+                f"workflow_id={workflow_id} checkpoint_id={checkpoint_id}"
+            )
+        return self._compute_state_hash(latest_state)
 
     def __init__(
         self,
@@ -568,19 +681,27 @@ class OrchestrationController:
             tenant_id=tenant_id,
             workflow_type=workflow_type,
         )
+        # Resolve tenant-aware timeout and store metadata with timeout tracking
+        from ..config.settings import settings
+        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
+
         initial_state.run_envelope = envelope
         if approval_evidence is not None:
             initial_state.metadata["approval_decision"] = approval_evidence
-
-        # Store metadata with timeout tracking
-        from ..config.settings import settings
+        initial_state.metadata["workflow_timeout_seconds"] = resolved_timeout_seconds
+        initial_state.metadata["workflow_timeout_source"] = timeout_source
         self._workflow_metadata[workflow_id] = {
             "workflow_type": workflow_type,
             "tenant_id": tenant_id,
             "user_id": user_id,
             "priority": priority.value,
             "started_at": datetime.now(UTC).isoformat(),
-            "timeout_seconds": settings.workflow_timeout_seconds,  # P1-25
+            "timeout_seconds": resolved_timeout_seconds,
+            "timeout_resolution": {
+                "tenant_id": tenant_id,
+                "selected_timeout_seconds": resolved_timeout_seconds,
+                "source": timeout_source,
+            },
             "run_envelope": envelope.model_dump(),
             "approval_decision": approval_evidence,
         }
@@ -615,6 +736,7 @@ class OrchestrationController:
             workflow_type=workflow_type,
             workflow=workflow,
             initial_state=initial_state,
+            timeout_seconds=resolved_timeout_seconds,
             checkpoint_interval=checkpoint_interval,
             handler=self._run_workflow_task,
         )
@@ -623,7 +745,7 @@ class OrchestrationController:
 
         # P1-25: Wait for completion with global timeout
         result = await self._wait_for_workflow_with_timeout(
-            workflow_id, timeout_seconds=settings.workflow_timeout_seconds
+            workflow_id, timeout_seconds=resolved_timeout_seconds
         )
 
         # Hardening: validate reasoning trace with strict schema enforcement
@@ -1514,9 +1636,10 @@ class OrchestrationController:
 
         try:
             from ..config.settings import settings
+            timeout_seconds = int(task.parameters.get("timeout_seconds", settings.workflow_timeout_seconds))
             result = await asyncio.wait_for(
                 workflow.run(initial_state, thread_id=workflow_id),
-                timeout=settings.workflow_timeout_seconds,
+                timeout=timeout_seconds,
             )
 
             if result.status == WorkflowStatus.COMPLETED:
@@ -1569,7 +1692,7 @@ class OrchestrationController:
                 error_code="WORKFLOW_TIMEOUT",
             )
             raise WorkflowExecutionError(
-                f"Workflow {workflow_id} exceeded global timeout of {settings.workflow_timeout_seconds}s"
+                f"Workflow {workflow_id} exceeded global timeout of {timeout_seconds}s"
             ) from exc
         except NodeInterrupt:
             # Native LangGraph HITL - checkpoint already persisted by checkpointer
@@ -1644,6 +1767,54 @@ class OrchestrationController:
                 return state
 
             await asyncio.sleep(0.5)
+
+    def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:
+        if not tenant_settings:
+            return None
+        cursor: Any
+        for path in TENANT_WORKFLOW_TIMEOUT_SETTINGS_PATHS:
+            cursor = tenant_settings
+            for key in path:
+                if not isinstance(cursor, dict) or key not in cursor:
+                    cursor = None
+                    break
+                cursor = cursor[key]
+            if isinstance(cursor, int):
+                return cursor
+        return None
+
+    async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
+        from ..config.settings import settings
+        source = "service_default"
+        selected = settings.workflow_timeout_seconds
+
+        if tenant_id:
+            try:
+                from value_fabric.shared.identity.context import RequestContext
+                from ..database import db_session_for_context
+                from ..tenants.service import get_tenant_settings
+
+                tenant_uuid = UUID(str(tenant_id))
+                async with db_session_for_context(RequestContext(tenant_id=tenant_uuid)) as db:
+                    tenant_settings = await get_tenant_settings(db, tenant_uuid)
+                tenant_timeout = self._extract_tenant_timeout(tenant_settings)
+                if tenant_timeout is not None:
+                    selected = tenant_timeout
+                    source = "tenant_settings"
+            except Exception:
+                logger.debug("Tenant timeout override resolution failed for tenant_id=%s", tenant_id, exc_info=True)
+
+        min_timeout = settings.workflow_timeout_min_seconds
+        max_timeout = settings.workflow_timeout_max_seconds
+        if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
+            source = "safe_fallback"
+            selected = settings.workflow_timeout_fallback_seconds
+
+        if selected < min_timeout:
+            selected = min_timeout
+        if selected > max_timeout:
+            selected = max_timeout
+        return selected, source
 
     async def _wait_for_workflow(self, workflow_id: str) -> AgentState:
         """Wait for workflow completion (legacy, no timeout).

@@ -342,3 +342,43 @@ class TestCrawlUrlWithRoutingTenantContext:
             queried_job = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
             assert queried_job is not None
             assert queried_job.tenant_id == org_id
+
+
+class TestDecisionStoreTenantContext:
+    """Test that crawl decision persistence fails closed without tenant context."""
+
+    def test_decision_store_save_without_tenant_id_fails(self):
+        """Decision store write path must reject missing tenant_id."""
+        from datetime import UTC, datetime
+
+        from value_fabric.layer1.crawler.decision_store import (
+            CrawlDecisionRecord,
+            CrawlDecisionRepository,
+        )
+
+        repo = CrawlDecisionRepository()
+        record = CrawlDecisionRecord(
+            decision_id=str(uuid4()),
+            job_id=str(uuid4()),
+            tenant_id=None,
+            url="https://example.com",
+            domain="example.com",
+            requested_path="fast",
+            router_decision="fast",
+            router_rule="default",
+            quality_passed=True,
+            quality_checks={"ok": True},
+            fallback_reason=None,
+            final_path="fast",
+            status_code=200,
+            fast_duration_ms=10,
+            browser_duration_ms=None,
+            fetch_time_ms=10,
+            bytes_transferred=100,
+            spa_detected=False,
+            text_length=10,
+            created_at=datetime.now(UTC),
+        )
+
+        with pytest.raises(TenantContextError):
+            repo._save_sync(record)
