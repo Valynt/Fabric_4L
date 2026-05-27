@@ -14,6 +14,7 @@ from ..exceptions import (
     NotFoundError,
     RateLimitError,
     ServiceUnavailableError,
+    TenantIsolationError,
     ValidationError,
     ValueFabricException,
 )
@@ -80,6 +81,11 @@ class TestExceptionSubclasses:
         exc = AuthorizationError()
         assert exc.status_code == 403
         assert exc.error_code == ErrorCode.AUTHORIZATION_ERROR
+
+    def test_tenant_isolation_error(self):
+        exc = TenantIsolationError()
+        assert exc.status_code == 403
+        assert exc.error_code == ErrorCode.TENANT_ISOLATION_ERROR
 
     def test_not_found_error_default(self):
         exc = NotFoundError()
