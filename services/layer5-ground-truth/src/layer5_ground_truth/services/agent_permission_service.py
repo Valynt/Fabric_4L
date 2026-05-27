@@ -289,18 +289,26 @@ class AgentPermissionService:
             "evaluation_inputs": evaluation_inputs,
         }
 
-        await self.record_policy_application(
-            db=db,
-            tenant_id=tenant_id,
-            policy_id=policy.id,
-            entity_type=entity_type,
-            entity_id=entity_id,
-            entity_version=entity_version,
-            result=outcome,
-            rule_results=[result],
-            applied_by="policy_evaluator",
-            context=evaluation_inputs,
-        )
+        try:
+            await self.record_policy_application(
+                db=db,
+                tenant_id=tenant_id,
+                policy_id=policy.id,
+                entity_type=entity_type,
+                entity_id=entity_id,
+                entity_version=entity_version,
+                result=result["result"],
+                rule_results=[result],
+                applied_by="policy_evaluator",
+                context=evaluation_inputs,
+            )
+        except Exception as exc:  # pragma: no cover - defensive handling for audit persistence
+            logger.exception("Failed to record policy application for policy %s", policy.id)
+            audit_message = f"{result['message']}; audit write failed: {exc}"
+            result["message"] = audit_message
+            if policy.is_mandatory:
+                result["result"] = "failed"
+
         return result
 
     def _policy_evaluator(self, policy_type: str):
