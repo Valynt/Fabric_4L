@@ -113,6 +113,16 @@ jobs:
           echo "Environment health check placeholder"
           # curl -fsS "https://api.${{ env.ENVIRONMENT }}.value-fabric.com/health"
 
+      - name: Enforce deploy profile mandatory controls
+        run: |
+          case "${{ env.ENVIRONMENT }}" in
+            production) PROFILE="release-candidate" ;;
+            staging) PROFILE="mainline-full" ;;
+            dev) PROFILE="pr-fast" ;;
+            *) echo "Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
+          esac
+          python3 scripts/ci/validate_deploy_profile_controls.py             --policy-file .fabric/prod-gates.policy.yaml             --profile "$PROFILE"
+
       - name: Block unverified production promotion
         if: env.ENVIRONMENT == 'production'
         run: |

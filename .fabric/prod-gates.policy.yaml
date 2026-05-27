@@ -149,3 +149,26 @@ gate-definitions:
     class: artifact
     artifact-dir: artifacts/release
     required: true
+
+deployment_profiles:
+  pr-fast:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  mainline-full:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  release-candidate:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
