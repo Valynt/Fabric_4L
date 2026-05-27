@@ -28,6 +28,7 @@ from opentelemetry.trace import TraceFlags
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 from value_fabric.shared.observability.trace_context import canonical_trace_headers
+from value_fabric.shared.observability.tracing_contract import build_trace_attributes, span_name
 
 from logging_config import get_logger
 
@@ -67,7 +68,13 @@ class TracingMiddleware(BaseHTTPMiddleware):
         request_id = getattr(request.state, "request_id", None) or request.headers.get("X-Request-ID")
         correlation_id = getattr(request.state, "correlation_id", None) or request.headers.get("X-Correlation-ID")
 
-        attributes = {
+        attributes = build_trace_attributes(
+            tenant_id=getattr(request.state, "tenant_id", None),
+            request_id=request_id,
+            service="layer3-knowledge",
+            layer="L3",
+            route=request.url.path,
+            extras={
             "http.method": request.method,
             "http.url": str(request.url),
             "http.scheme": request.url.scheme,
@@ -76,7 +83,8 @@ class TracingMiddleware(BaseHTTPMiddleware):
             "http.query": request.url.query,
             "http.user_agent": request.headers.get("User-Agent", ""),
             "http.remote_addr": request.client.host if request.client else "",
-        }
+        },
+        )
         if request.url.port is not None:
             attributes["http.port"] = request.url.port
         if request_id:
@@ -85,7 +93,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
             attributes["http.correlation_id"] = correlation_id
 
         span = self._otel_tracer.start_span(
-            name=f"{request.method} {request.url.path}",
+            name=span_name(request.method, request.url.path),
             context=parent_ctx,
             attributes=attributes,
         )
@@ -129,6 +137,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
                 {
                     "error.type": type(exc).__name__,
                     "error.message": str(exc),
+                    "error_code": type(exc).__name__,
                 }
             )
 

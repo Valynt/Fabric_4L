@@ -43,7 +43,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts check-deprecated-tracer-imports platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -492,6 +492,10 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 	@echo "→ Checking tool contracts in Layer 4..."
 	$(PYTHON) scripts/ci/check_tool_contracts.py services/layer4-agents/src/tools/
 	@echo "✅ Tool contract check passed"
+
+check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
+	@echo "→ Checking for deprecated custom tracer imports..."
+	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 
