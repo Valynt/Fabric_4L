@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import io
 from datetime import UTC, datetime
 from typing import Literal
 
 from app.core.database import db
-from app.models.schemas import BusinessCase
+
+# Error codes for export service operations
+ERR_BUSINESS_CASE_NOT_FOUND = "business_case_not_found"
 
 ExportFormat = Literal["pdf", "docx", "pptx"]
 
@@ -26,7 +27,7 @@ def generate_export(
     """
     case = db.business_cases.get(business_case_id, tenant_id=tenant_id)
     if not case or case.account_id != account_id:
-        raise ValueError("business_case_not_found")
+        raise ValueError(ERR_BUSINESS_CASE_NOT_FOUND)
 
     # Generate a deterministic mock download path
     timestamp = datetime.now(UTC).strftime("%Y%m%d_%H%M%S")

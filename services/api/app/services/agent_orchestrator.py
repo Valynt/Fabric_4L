@@ -2,12 +2,20 @@ from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any
+from uuid import uuid4
 
 import httpx
 
 from app.core.config import get_settings
 from app.core.database import db
 from app.models.schemas import AgentRun, ToolResult
+
+# Error codes for agent orchestrator operations
+ERR_LAYER4_UNAVAILABLE = "layer4_unavailable"
+ERR_LAYER4_HTTP_ERROR = "layer4_http_error"
+ERR_LAYER4_INVALID_JSON = "layer4_invalid_json"
+ERR_LAYER4_INVALID_RESPONSE_TYPE = "layer4_invalid_response_type"
+ERR_RUN_NOT_FOUND = "run_not_found"
 
 
 class Layer4UnavailableError(RuntimeError):
@@ -53,14 +61,14 @@ class Layer4OrchestrationClient:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.post(f"{self.base_url}/internal/orchestrator/execute-step", json=payload)
         except httpx.HTTPError as exc:
-            raise Layer4UnavailableError("layer4_unavailable") from exc
+            raise Layer4UnavailableError(ERR_LAYER4_UNAVAILABLE) from exc
 
         if response.status_code in {502, 503, 504}:
-            raise Layer4UnavailableError("layer4_unavailable", status_code=response.status_code)
+            raise Layer4UnavailableError(ERR_LAYER4_UNAVAILABLE, status_code=response.status_code)
 
         if response.status_code >= 400:
             raise Layer4DependencyError(
-                "layer4_http_error",
+                ERR_LAYER4_HTTP_ERROR,
                 status_code=response.status_code,
                 body=response.text[:400],
             )
@@ -68,10 +76,10 @@ class Layer4OrchestrationClient:
         try:
             body = response.json()
         except ValueError as exc:
-            raise Layer4DependencyError("layer4_invalid_json") from exc
+            raise Layer4DependencyError(ERR_LAYER4_INVALID_JSON) from exc
 
         if not isinstance(body, dict):
-            raise Layer4DependencyError("layer4_invalid_response_type")
+            raise Layer4DependencyError(ERR_LAYER4_INVALID_RESPONSE_TYPE)
 
         return body
 
@@ -91,7 +99,7 @@ class AgentOrchestrator:
         account_id: str | None = None,
         input_data: dict[str, Any] | None = None,
     ) -> AgentRun:
-        run_id = f"run-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}-{tenant_id[:4]}"
+        run_id = f"run-{uuid4()}"
         run = AgentRun(
             id=run_id,
             tenant_id=tenant_id,
@@ -113,7 +121,7 @@ class AgentOrchestrator:
     ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
-            raise ValueError("run_not_found")
+            raise ValueError(ERR_RUN_NOT_FOUND)
 
         run.status = "running"
         run.current_step = step_name
@@ -154,23 +162,23 @@ class AgentOrchestrator:
         )
         return run
 
-    def resume_run(self, run_id: str) -> AgentRun:
-        run = db.agent_runs.get(run_id)
+    def resume_run(self, run_id: str, *, tenant_id: str) -> AgentRun:
+        run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
-            raise ValueError("run_not_found")
+            raise ValueError(ERR_RUN_NOT_FOUND)
         if run.status == "paused":
             run.status = "running"
             run.updated_at = datetime.now(UTC).isoformat()
-            db.agent_runs.update(run_id, status=run.status)
+            db.agent_runs.update(run_id, tenant_id=tenant_id, status=run.status)
         return run
 
-    def cancel_run(self, run_id: str) -> AgentRun:
-        run = db.agent_runs.get(run_id)
+    def cancel_run(self, run_id: str, *, tenant_id: str) -> AgentRun:
+        run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
-            raise ValueError("run_not_found")
+            raise ValueError(ERR_RUN_NOT_FOUND)
         run.status = "cancelled"
         run.updated_at = datetime.now(UTC).isoformat()
-        db.agent_runs.update(run_id, status=run.status)
+        db.agent_runs.update(run_id, tenant_id=tenant_id, status=run.status)
         return run
 
 

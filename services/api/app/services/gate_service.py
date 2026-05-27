@@ -7,7 +7,6 @@ from typing import Literal
 
 from app.core.database import db
 
-
 GateType = Literal["evidence", "formula", "benchmark", "approval", "pii"]
 GateStatus = Literal["open", "closed", "waived"]
 

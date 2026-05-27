@@ -20,9 +20,11 @@ SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "check_no_raw_httpexception_in_rout
 
 
 def _load_gate_module():
-    spec = importlib.util.spec_from_file_location("_vf_gate_httpexception", SCRIPT_PATH)
+    name = "_vf_gate_httpexception"
+    spec = importlib.util.spec_from_file_location(name, SCRIPT_PATH)
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
     spec.loader.exec_module(module)
     return module
 

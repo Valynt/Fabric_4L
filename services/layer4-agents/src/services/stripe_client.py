@@ -167,6 +167,10 @@ def report_meter_event(
     stripe_event_name = STRIPE_METER_EVENT_MAP.get(metric_name, metric_name)
 
     # Prepare payload
+    if quantity != int(quantity):
+        logger.warning(
+            f"Quantity {quantity} has fractional part, truncating to {int(quantity)} for Stripe MeterEvent"
+        )
     payload: dict[str, Any] = {
         "event_name": stripe_event_name,
         "payload": {

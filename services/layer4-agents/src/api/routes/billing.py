@@ -743,7 +743,8 @@ async def stripe_webhook(
                         await worker.process_webhook_event(inbox.id, body, stripe_signature, STRIPE_WEBHOOK_SECRET)
                         await worker_db.commit()
                     except Exception:
-                        await worker_db.commit()
+                        await worker_db.rollback()
+                        logger.exception("Webhook processing failed")
             background_tasks.add_task(_process)
         return stripe_webhookResult.model_validate({"received": True})  # type: ignore[no-any-return]
     except ValueError as e:
@@ -1212,7 +1213,7 @@ async def get_plan_limits(
             detail=f"Plan not found: {plan_id}",
         )
     
-    service = OverageService(None, tenant_id=None)  # No DB needed  # type: ignore[arg-type]
+    service = OverageService(None, tenant_id=None)  # No DB needed  # type: ignore
     limits = service.get_plan_limits(plan_id)
     
     return get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]

@@ -197,3 +197,12 @@ cUsers*
 /pytest_collect*.txt
 /layer1_test_results*.txt
 core
+
+# Accidental local installer artifacts (do not commit)
+/Codex Installer.exe
+/Microsoft.Services.Store.winmd
+
+# Layer 4 local mypy/scan scratch outputs
+services/layer4-agents/local_*.txt
+services/layer4-agents/module_list.txt
+services/layer4-agents/mypy_cleaned*.txt

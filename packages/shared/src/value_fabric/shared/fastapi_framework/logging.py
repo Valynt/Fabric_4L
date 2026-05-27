@@ -58,9 +58,10 @@ class StructuredLoggingConfig:
 
 
 def _redact_processor(redact_keys: Iterable[str]) -> Any:
+    import logging
     lowered = {k.lower() for k in redact_keys}
 
-    def processor(_logger: Any, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
+    def processor(_logger: logging.Logger, _method_name: str, event_dict: dict[str, Any]) -> dict[str, Any]:
         for key in list(event_dict.keys()):
             if key.lower() in lowered:
                 event_dict[key] = "***REDACTED***"

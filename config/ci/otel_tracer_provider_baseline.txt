@@ -1,0 +1,13 @@
+# OTel TracerProvider centralization baseline (PR5 of elevate-to-9 plan).
+#
+# Frozen pre-existing TracerProvider/set_tracer_provider call sites outside
+# the shared framework. New entries are not permitted; migrate sites to use
+# the shared `init_telemetry()` in fastapi_framework/app.py.
+#
+# Format: <repo-relative-posix-path>:<line>
+services/layer1-ingestion/src/crawler/telemetry.py:102
+services/layer1-ingestion/src/crawler/telemetry.py:74
+services/layer3-knowledge/src/api/main.py:107
+services/layer3-knowledge/src/api/main.py:110
+services/layer4-agents/src/api/app_factory.py:32
+services/layer4-agents/src/api/app_factory.py:35

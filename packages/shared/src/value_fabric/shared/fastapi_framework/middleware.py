@@ -203,6 +203,8 @@ def add_idempotency_middleware(
                 ctx = get_tenant_context()
                 tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else "anonymous"
             except Exception:  # noqa: BLE001
+                import logging
+                logging.getLogger(__name__).debug("Failed to extract tenant context, using anonymous")
                 tenant_id = "anonymous"
 
             try:
@@ -286,6 +288,8 @@ def add_tenant_enforcement_middleware(app: FastAPI) -> None:
                 ctx = get_tenant_context()
                 tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else None
             except Exception:  # noqa: BLE001
+                import logging
+                logging.getLogger(__name__).debug("Failed to extract tenant context in enforcement middleware")
                 tenant_id = None
 
             if tenant_id is None:

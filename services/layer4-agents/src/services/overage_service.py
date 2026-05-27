@@ -87,9 +87,9 @@ class OverageService:
             start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
             # End of month calculation
             if start.month == 12:
-                end = start.replace(year=start.year + 1, month=1)
+                end = start.replace(year=start.year + 1, month=1, day=1)
             else:
-                end = start.replace(month=start.month + 1)
+                end = start.replace(month=start.month + 1, day=1)
         elif period == "yearly":
             # Start of current year
             start = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)

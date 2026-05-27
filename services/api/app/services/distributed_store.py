@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import NoReturn, TypeVar
+
+logger = logging.getLogger(__name__)
 
 from redis import Redis
 from redis.exceptions import RedisError
@@ -77,8 +80,18 @@ class RedisDistributedStore(DistributedStore):
 
     def _mark_failure(self, exc: Exception, operation: str | None = None) -> NoReturn:
         self._consecutive_failures += 1
+        op_name = operation or "unknown"
         if self._consecutive_failures >= self.circuit_breaker_failures:
             self._circuit_opened_at = time.monotonic()
+            logger.error(
+                f"Circuit breaker opened after {self._consecutive_failures} failures",
+                extra={"error": str(exc), "operation": op_name},
+            )
+        else:
+            logger.warning(
+                f"Redis operation failed (failure {self._consecutive_failures}/{self.circuit_breaker_failures})",
+                extra={"error": str(exc), "operation": op_name},
+            )
         raise StoreUnavailableError(ERR_REDIS_UNAVAILABLE, operation=operation) from exc
 
     def _with_resilience(self, operation_name: str, fn: Callable[[], T]) -> T:

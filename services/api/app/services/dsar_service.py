@@ -12,11 +12,16 @@ from datetime import UTC, datetime, timedelta
 
 from prometheus_client import Counter, Histogram
 
+from app.core.config import get_settings as _get_settings
 from app.core.database import db
 from app.core.metrics import registry
 from app.models.schemas import DSARPackage, DSARRequestCreate, DSARRequestRecord
 
-from app.core.config import get_settings as _get_settings
+# Error codes for DSAR service operations
+ERR_DSAR_PACKAGE_INCOMPLETE = "dsar_package_incomplete"
+ERR_REQUESTER_MISMATCH = "requester_mismatch"
+ERR_DOWNLOAD_URL_EXPIRED = "download_url_expired"
+ERR_INVALID_TOKEN = "invalid_token"
 
 DSAR_QUERY_LATENCY_SECONDS = Histogram(
     "fabric_api_dsar_query_duration_seconds",
@@ -119,14 +124,19 @@ async def reconcile_package(record: DSARRequestRecord) -> DSARRequestRecord:
     pkg = await db.dsar_packages.get(record.package_id, tenant_id=record.tenant_id) if record.package_id else None
     complete = bool(pkg and any(pkg.export_payload.get(k) for k in ("accounts", "evidence", "hypotheses")))
     if not complete:
-        raise ValueError("dsar_package_incomplete")
+        raise ValueError(ERR_DSAR_PACKAGE_INCOMPLETE)
     await db.dsar_packages.update(pkg.id, tenant_id=record.tenant_id, completeness_verified=True)
     updated = await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="complete", completed_at=_now().isoformat(), completion_evidence=["completeness_verified"])
     return updated
 
 
 async def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
-    if record.status not in ("complete", "escalated") and _now() > datetime.fromisoformat(record.sla_deadline_at):
+    try:
+        deadline = datetime.fromisoformat(record.sla_deadline_at)
+    except (ValueError, TypeError) as exc:
+        logger.warning(f"Invalid sla_deadline_at format: {record.sla_deadline_at}", exc_info=exc)
+        return record
+    if record.status not in ("complete", "escalated") and _now() > deadline:
         return await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="escalated", escalated_at=_now().isoformat())
     return record
 
@@ -145,13 +155,13 @@ def issue_download_url(package: DSARPackage) -> str:
 
 def validate_download_access(package: DSARPackage, *, requester_user_id: str, token: str) -> None:
     if package.requester_user_id != requester_user_id:
-        raise PermissionError("requester_mismatch")
+        raise PermissionError(ERR_REQUESTER_MISMATCH)
     if _now() > datetime.fromisoformat(package.expires_at):
-        raise PermissionError("download_url_expired")
+        raise PermissionError(ERR_DOWNLOAD_URL_EXPIRED)
     expected = _sign_token(package.id, package.requester_user_id, package.expires_at).rsplit('.',1)[-1]
     provided_sig = token.rsplit('.',1)[-1]
     if not hmac.compare_digest(expected, provided_sig):
-        raise PermissionError("invalid_token")
+        raise PermissionError(ERR_INVALID_TOKEN)
 
 
 def serialize_package(package: DSARPackage) -> bytes:

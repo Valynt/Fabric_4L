@@ -66,10 +66,16 @@ async def get_harness_registry(
     """Inject a SqlHarnessRegistry wired to the current session and tenant."""
     l5_url = os.environ.get("LAYER5_GROUND_TRUTH_URL")
     if l5_url and os.environ.get("LAYER5_SERVICE_TOKEN"):
-        return await make_live_l5_registry(
-            session=db,
-            tenant_id=_ctx.tenant_id,
-        )
+        try:
+            return await make_live_l5_registry(
+                session=db,
+                tenant_id=_ctx.tenant_id,
+            )
+        except Exception as exc:
+            logger.warning(
+                "L5 registry initialization failed, falling back to SQL registry",
+                extra={"error": sanitize_log_error(exc)},
+            )
     return await make_sql_registry(session=db)
 
 
