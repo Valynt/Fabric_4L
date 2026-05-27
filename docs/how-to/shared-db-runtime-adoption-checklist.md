@@ -4,7 +4,7 @@ Adopt `value_fabric.shared.database.postgresql` for each maintained service entr
 
 ## Per-service checklist (`services/*`)
 
-1. Resolve DSN via `resolve_runtime_dsn(...)` using service-priority env vars.
+1. Resolve the **async runtime** DSN via `resolve_runtime_dsn(...)` using service-priority env vars (must be `postgresql+asyncpg://...` or `postgresql+psycopg://...`).
 2. Validate DSN with `validate_postgresql_dsn` before engine creation.
 3. Build engine with `create_postgresql_engine` and explicit `PostgresPoolConfig`.
 4. Build session maker with `create_session_maker`.
