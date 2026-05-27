@@ -5,6 +5,7 @@ from ..app import (
     EnforcementControlConfig,
     EnforcementMode,
     EnforcementRolloutConfig,
+    ExceptionHandlerRegistrationMode,
     create_fabric_app,
     install_metrics_middleware,
     mark_route_enforcement_opt_out,
@@ -198,3 +199,65 @@ def test_record_enforcement_decision_route_opt_out_increments_bypass() -> None:
 
     assert allowed is True
     assert app.state.enforcement_counters.bypass_total == 1
+
+
+def test_create_fabric_app_hook_defaults_are_inert() -> None:
+    app = create_fabric_app(
+        service_name="test-hooks",
+        title="Test Hooks",
+        version="1.0.0",
+        description="test app",
+    )
+
+    assert hasattr(app.state, "service_name")
+
+
+def test_create_fabric_app_executes_middleware_and_health_hooks_when_provided() -> None:
+    calls: list[str] = []
+
+    def pre_core_hook(app) -> None:
+        calls.append("pre")
+        app.state.pre_hook = True
+
+    def post_core_hook(app) -> None:
+        calls.append("post")
+        app.state.post_hook = True
+
+    def health_hook(app) -> None:
+        calls.append("health")
+        app.state.health_hook = True
+
+    app = create_fabric_app(
+        service_name="test-hooks",
+        title="Test Hooks",
+        version="1.0.0",
+        description="test app",
+        pre_core_middleware_hook=pre_core_hook,
+        post_core_middleware_hook=post_core_hook,
+        health_readiness_augmentation_hook=health_hook,
+    )
+
+    assert calls == ["pre", "post", "health"]
+    assert app.state.pre_hook is True
+    assert app.state.post_hook is True
+    assert app.state.health_hook is True
+
+
+def test_create_fabric_app_exception_handler_registration_mode_skip() -> None:
+    app = create_fabric_app(
+        service_name="test-exception-modes",
+        title="Test Exception Modes",
+        version="1.0.0",
+        description="test app",
+        exception_handler_registration_mode=ExceptionHandlerRegistrationMode.SKIP,
+    )
+
+    @app.get("/boom")
+    async def boom() -> None:
+        raise HTTPException(status_code=400, detail="bad request")
+
+    client = TestClient(app)
+    response = client.get("/boom")
+
+    assert response.status_code == 400
+    assert response.json() == {"detail": "bad request"}

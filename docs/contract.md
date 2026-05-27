@@ -255,15 +255,44 @@ interface ToolCall {
 - Agent runs without trace IDs or session correlation
 - Storing raw prompts/completions in application logs (PII exposure)
 
-**Enforcement:**
-- TypeScript: All agent outputs must conform to defined Pydantic model
-- ESLint: `no-json-parse-agent-output` - flags JSON.parse() on LLM responses
-- CI: OTel trace validation - verifies minimum required spans
-- Runtime: Unstructured outputs rejected at boundary
+---
+
+### 2.6 Canonical API Error Envelope
+
+**Status:** `ratified` | **Enforcement:** immediate
+
+All HTTP APIs must return the same top-level error envelope for 4xx/5xx responses:
+
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Human-readable message",
+    "request_id": "req_abc123",
+    "details": {
+      "safe_metadata_only": true
+    }
+  }
+}
+```
+
+Required guarantees:
+- `error.code` is machine-readable and stable.
+- `error.message` is safe for consumers and does not leak internal state.
+- `error.request_id` maps to trace/request correlation (`X-Request-ID` header).
+- `error.details` is optional and must contain only sanitized metadata.
+
+Common failure classes and canonical mapping:
+- Validation failures → `422` + `VALIDATION_ERROR`
+- Authentication failures → `401` + `AUTHENTICATION_ERROR`
+- Authorization failures → `403` + `AUTHORIZATION_ERROR`
+- Tenant boundary denials → `403` + `TENANT_ISOLATION_ERROR`
+- Throttling/rate limits → `429` + `THROTTLED`
+- Unhandled internal errors → `500` + `INTERNAL_ERROR`
 
 ---
 
-### 2.6 UI State Progression and Route Model
+### 2.7 UI State Progression and Route Model
 
 **Status:** `proposed` | **Target:** `ratified` 2026-05-23 | **Enforcement:** 2026-06-23
 

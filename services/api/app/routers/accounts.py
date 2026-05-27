@@ -1,7 +1,8 @@
 from datetime import UTC, datetime, timedelta
 import hashlib
 import secrets
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -16,8 +17,21 @@ from app.models.schemas import (
 )
 from app.repositories.session_store import ShareLinkRepository
 from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
+from value_fabric.shared.idempotency import (
+    IdempotencyConflictError,
+    IdempotencyRecord,
+    IdempotencyRequest,
+    IdempotencyService,
+    InMemoryIdempotencyStore,
+    build_request_fingerprint,
+)
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+_idempotency_service = IdempotencyService(store=InMemoryIdempotencyStore())
+
+
+def _idempotency_header_value(request: Request) -> str | None:
+    return request.headers.get("Idempotency-Key")
 
 
 def get_share_link_repo() -> ShareLinkRepository:
@@ -36,7 +50,25 @@ async def list_accounts(
 
 
 @router.post("", response_model=Account, status_code=201)
-async def create_account(account: Account, tenant_id: str = Depends(tenant_required)):
+async def create_account(account: Account, request: Request, tenant_id: str = Depends(tenant_required)):
+    key = _idempotency_header_value(request)
+    replay_request: IdempotencyRequest | None = None
+    if key:
+        replay_request = IdempotencyRequest(
+            tenant_id=tenant_id,
+            endpoint_key="POST:/v1/accounts",
+            idempotency_key=key,
+            request_fingerprint=build_request_fingerprint("POST", "/v1/accounts", account.model_dump()),
+        )
+        try:
+            replay = _idempotency_service.check_replay(replay_request)
+        except IdempotencyConflictError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        if replay:
+            headers = dict(replay.headers)
+            headers["X-Idempotent-Replay"] = "true"
+            return JSONResponse(status_code=replay.status_code, content=replay.body, headers=headers)
+
     enforce_authenticated_tenant(
         body_tenant_id=account.tenant_id,
         authenticated_tenant_id=tenant_id,
@@ -45,6 +77,11 @@ async def create_account(account: Account, tenant_id: str = Depends(tenant_requi
     )
     account.tenant_id = tenant_id
     db.accounts.insert(account.id, account)
+    if replay_request:
+        _idempotency_service.store_response(
+            replay_request,
+            IdempotencyRecord(status_code=201, body=account.model_dump(), headers={"X-Idempotent-Replay": "false"}),
+        )
     return account
 
 
@@ -60,8 +97,29 @@ async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)
 async def update_account(
     account_id: str,
     fields: AccountUpdateRequest,
+    request: Request,
     tenant_id: str = Depends(tenant_required),
 ):
+    key = _idempotency_header_value(request)
+    replay_request: IdempotencyRequest | None = None
+    if key:
+        replay_request = IdempotencyRequest(
+            tenant_id=tenant_id,
+            endpoint_key="PATCH:/v1/accounts/{account_id}",
+            idempotency_key=key,
+            request_fingerprint=build_request_fingerprint(
+                "PATCH", f"/v1/accounts/{account_id}", fields.model_dump(exclude_unset=True)
+            ),
+        )
+        try:
+            replay = _idempotency_service.check_replay(replay_request)
+        except IdempotencyConflictError as exc:
+            raise HTTPException(status_code=409, detail=str(exc))
+        if replay:
+            headers = dict(replay.headers)
+            headers["X-Idempotent-Replay"] = "true"
+            return JSONResponse(status_code=replay.status_code, content=replay.body, headers=headers)
+
     update_data = fields.model_dump(exclude_unset=True)
     if not update_data:
         raise HTTPException(status_code=422, detail="No fields provided for update")
@@ -69,6 +127,11 @@ async def update_account(
     acc = db.accounts.update(account_id, tenant_id=tenant_id, **update_data)
     if not acc:
         raise HTTPException(status_code=404, detail="Account not found")
+    if replay_request:
+        _idempotency_service.store_response(
+            replay_request,
+            IdempotencyRecord(status_code=200, body=acc.model_dump(), headers={"X-Idempotent-Replay": "false"}),
+        )
     return acc
 
 

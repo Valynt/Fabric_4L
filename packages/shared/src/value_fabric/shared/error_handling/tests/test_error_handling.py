@@ -14,6 +14,7 @@ from ..exceptions import (
     NotFoundError,
     RateLimitError,
     ServiceUnavailableError,
+    TenantIsolationError,
     ValidationError,
     ValueFabricException,
 )
@@ -27,6 +28,7 @@ from ..handlers import (
 from ..middleware import MAX_REQUEST_ID_LENGTH, RequestIDMiddleware, get_request_id
 from ..models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.observability.request_context import logging_context_dict
 
 
 class TestRequestIDMiddleware_test_endpointResult(TypedDictModel):
@@ -79,6 +81,11 @@ class TestExceptionSubclasses:
         exc = AuthorizationError()
         assert exc.status_code == 403
         assert exc.error_code == ErrorCode.AUTHORIZATION_ERROR
+
+    def test_tenant_isolation_error(self):
+        exc = TenantIsolationError()
+        assert exc.status_code == 403
+        assert exc.error_code == ErrorCode.TENANT_ISOLATION_ERROR
 
     def test_not_found_error_default(self):
         exc = NotFoundError()
@@ -509,3 +516,62 @@ class TestSanitizedPublicErrors:
         body = response.json()
         assert response.status_code == 500
         assert 'abc123' not in body['error']['message']
+
+
+class TestCorrelationContextMiddleware:
+    def test_generates_correlation_id_when_missing(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {
+                "request_id": getattr(request.state, "request_id", None),
+                "trace_id": getattr(request.state, "trace_id", None),
+                "correlation_id": getattr(request.state, "correlation_id", None),
+            }
+
+        client = TestClient(app)
+        response = client.get("/context")
+        payload = response.json()
+        assert response.status_code == 200
+        assert payload["request_id"]
+        assert payload["trace_id"] == payload["request_id"]
+        assert payload["correlation_id"] == payload["request_id"]
+        assert response.headers["X-Correlation-ID"] == payload["request_id"]
+
+    def test_propagates_provided_correlation_id(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/context")
+        def context(request: Request):
+            return {"correlation_id": getattr(request.state, "correlation_id", None)}
+
+        client = TestClient(app)
+        response = client.get("/context", headers={"X-Correlation-ID": "corr-shared-123"})
+        assert response.status_code == 200
+        assert response.json()["correlation_id"] == "corr-shared-123"
+
+    def test_logging_context_available_during_request(self):
+        app = FastAPI()
+        app.add_middleware(RequestIDMiddleware)
+
+        @app.get("/log-context")
+        def context():
+            ctx = logging_context_dict()
+            return {
+                "request_id": ctx.get("request_id"),
+                "correlation_id": ctx.get("correlation_id"),
+                "route": ctx.get("route"),
+                "method": ctx.get("method"),
+            }
+
+        client = TestClient(app)
+        response = client.get("/log-context", headers={"X-Request-ID": "req-shared-ctx"})
+        payload = response.json()
+        assert response.status_code == 200
+        assert payload["request_id"] == "req-shared-ctx"
+        assert payload["correlation_id"] == "req-shared-ctx"
+        assert payload["route"] == "/log-context"
+        assert payload["method"] == "GET"

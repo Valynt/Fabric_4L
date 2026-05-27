@@ -30,6 +30,7 @@ from value_fabric.shared.fastapi_framework import (
     add_request_id_middleware,
     add_security_validation_middleware,
     include_router_mounts,
+    install_metrics_middleware,
     resolve_cors_policy,
 )
 from value_fabric.shared.identity.vault_check import is_vault_healthy
@@ -206,12 +207,15 @@ async def lifespan(app: FastAPI):
                 )
             )
             logger.info("Prometheus metrics initialised")
-            if not getattr(app.state, "_metrics_middleware_installed", False):
-                try:
-                    app.middleware("http")(MetricsMiddleware(metrics))
-                    app.state._metrics_middleware_installed = True
-                except RuntimeError as exc:
-                    logger.warning("Skipping metrics middleware: %s", exc)
+            try:
+                install_metrics_middleware(
+                    app,
+                    metrics=metrics,
+                    middleware_factory=MetricsMiddleware,
+                    logger=None,
+                )
+            except RuntimeError as exc:
+                logger.warning("Skipping metrics middleware: %s", exc)
     except (ImportError, ConnectionError, RuntimeError, ValueError) as e:
         logger.warning("Metrics unavailable: %s", e)
 

@@ -59,6 +59,11 @@ from .jwt import decode_jwt as _decode_jwt
 from .permissions import ROLE_PERMISSIONS, Permission, Role, normalize_role_claims
 from .rate_limiter import RedisRateLimiter, RateLimitResult
 from .rate_limiting import RateLimitConfig, RateLimitScope, ROLE_DEFAULT_RATE_LIMITS
+from value_fabric.shared.rate_limiting.http_middleware import (
+    SharedRateLimitMiddlewareConfig,
+    build_rate_limit_key,
+    should_skip_rate_limit,
+)
 
 logger = logging.getLogger(__name__)
 _LEGACY_TEST_TENANT_ID_RE = re.compile(r"^tenant-[a-z0-9]+(?:-[a-z0-9]+)*$")
@@ -439,6 +444,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         self._on_rate_limit_hit = on_rate_limit_hit
         self._enforce_authentication = enforce_authentication
         self._validate_multi_worker_rate_limit_configuration(rate_limiter)
+        self._shared_rate_limit_config = SharedRateLimitMiddlewareConfig.from_env()
         # P0 FIX: Query param tenant authentication removed entirely
         self._allow_query_param = False
 
@@ -512,7 +518,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 request.state.governance_context = None
 
             # Rate limiting check (after identity, before request handling)
-            if ctx is not None and self._rate_limiter is not None:
+            if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
                 rate_limit_result = await self._check_rate_limit(request, ctx)
                 request.state.rate_limit_result = rate_limit_result
                 config = getattr(request.state, "rate_limit_config", None)
@@ -565,7 +571,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             response.headers["X-Tenant-ID-Resolved"] = str(ctx.tenant_id)
 
         # Add rate limit headers if we performed a rate limit check
-        if ctx is not None and self._rate_limiter is not None:
+        if ctx is not None and self._rate_limiter is not None and not should_skip_rate_limit(request.url.path, config=self._shared_rate_limit_config):
             config = getattr(request.state, "rate_limit_config", None)
             if config is not None:
                 result = getattr(request.state, "rate_limit_result", None)
@@ -880,11 +886,12 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
     ) -> str:
         """Build a Redis key for the rate limit window."""
         endpoint_class = self._classify_endpoint(request)
-        if config.scope == RateLimitScope.API_KEY and ctx.api_key_id:
-            return f"ratelimit:api_key:{ctx.api_key_id}:{endpoint_class}"
-        if config.scope == RateLimitScope.USER and ctx.user_id:
-            return f"ratelimit:user:{ctx.tenant_id}:{ctx.user_id}:{endpoint_class}"
-        return f"ratelimit:tenant:{ctx.tenant_id}:{endpoint_class}"
+        return build_rate_limit_key(
+            ctx=ctx,
+            config=config,
+            endpoint_class=endpoint_class,
+            key_strategy=self._shared_rate_limit_config.key_strategy,
+        )
 
     def _classify_endpoint(self, request: Request) -> str:
         path = request.url.path
