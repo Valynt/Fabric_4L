@@ -29,7 +29,7 @@ from app.core.security import (
 )
 from app.models.schemas import AuditLogEvent, Tenant, User
 from app.repositories.session_store import ImpersonationSessionRepository
-from app.services.distributed_store import StoreUnavailableError, get_distributed_store
+from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
@@ -375,7 +375,7 @@ async def start_impersonation(
             notify_email=payload.notify_email,
             notify_webhook=payload.notify_webhook,
         )
-    except StoreUnavailableError:
+    except (StoreUnavailableError, StorePayloadError):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
     event_payload = {
         "actor_user_id": current_user.id,
@@ -430,7 +430,7 @@ async def stop_impersonation(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
     try:
         session = repo.pop(tenant_id=auth.tenant_id, session_id=auth.impersonation_session_id)
-    except StoreUnavailableError:
+    except (StoreUnavailableError, StorePayloadError):
         raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
     stop_event_id = str(uuid.uuid4())
     db.audit_logs.insert(stop_event_id, AuditLogEvent(

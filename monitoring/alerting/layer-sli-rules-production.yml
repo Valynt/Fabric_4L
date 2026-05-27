@@ -1,0 +1,106 @@
+groups:
+  - name: layer-sli-production
+    interval: 30s
+    rules:
+      - alert: L1LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(layer1_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels:
+          severity: warning
+          layer: layer1
+          environment: production
+          oncall_owner: sre-l1
+        annotations:
+          summary: "L1 ingestion p95 latency SLI violated"
+          description: "Layer 1 p95 latency exceeded 1.5s for 10m."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/layer1/latency-sli"
+      - alert: L1ErrorRateSLOViolation
+        expr: sum(rate(layer1_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(layer1_http_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer1, environment: production, oncall_owner: sre-l1}
+        annotations: {summary: "L1 ingestion error SLI violated", description: "Layer 1 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer1/error-sli"}
+      - alert: L1AvailabilitySLOViolation
+        expr: avg_over_time(layer1_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer1, environment: production, oncall_owner: sre-l1}
+        annotations: {summary: "L1 ingestion availability SLI violated", description: "Layer 1 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer1/availability-sli"}
+
+      - alert: L2LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(layer2_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels: {severity: warning, layer: layer2, environment: production, oncall_owner: sre-l2}
+        annotations: {summary: "L2 extraction p95 latency SLI violated", description: "Layer 2 p95 latency exceeded 1.5s for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer2/latency-sli"}
+      - alert: L2ErrorRateSLOViolation
+        expr: sum(rate(layer2_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(layer2_http_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer2, environment: production, oncall_owner: sre-l2}
+        annotations: {summary: "L2 extraction error SLI violated", description: "Layer 2 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer2/error-sli"}
+      - alert: L2AvailabilitySLOViolation
+        expr: avg_over_time(layer2_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer2, environment: production, oncall_owner: sre-l2}
+        annotations: {summary: "L2 extraction availability SLI violated", description: "Layer 2 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer2/availability-sli"}
+
+      - alert: L3LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(value_fabric_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels: {severity: warning, layer: layer3, environment: production, oncall_owner: sre-l3}
+        annotations: {summary: "L3 knowledge p95 latency SLI violated", description: "Layer 3 p95 latency exceeded 1.5s for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer3/latency-sli"}
+      - alert: L3ErrorRateSLOViolation
+        expr: sum(rate(value_fabric_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(value_fabric_http_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer3, environment: production, oncall_owner: sre-l3}
+        annotations: {summary: "L3 knowledge error SLI violated", description: "Layer 3 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer3/error-sli"}
+      - alert: L3AvailabilitySLOViolation
+        expr: avg_over_time(value_fabric_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer3, environment: production, oncall_owner: sre-l3}
+        annotations: {summary: "L3 knowledge availability SLI violated", description: "Layer 3 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer3/availability-sli"}
+
+      - alert: L4LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(layer4_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels: {severity: warning, layer: layer4, environment: production, oncall_owner: sre-l4}
+        annotations: {summary: "L4 agents p95 latency SLI violated", description: "Layer 4 p95 latency exceeded 1.5s for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer4/latency-sli"}
+      - alert: L4ErrorRateSLOViolation
+        expr: sum(rate(layer4_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(layer4_http_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer4, environment: production, oncall_owner: sre-l4}
+        annotations: {summary: "L4 agents error SLI violated", description: "Layer 4 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer4/error-sli"}
+      - alert: L4AvailabilitySLOViolation
+        expr: avg_over_time(layer4_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer4, environment: production, oncall_owner: sre-l4}
+        annotations: {summary: "L4 agents availability SLI violated", description: "Layer 4 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer4/availability-sli"}
+
+      - alert: L5LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(layer5_http_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels: {severity: warning, layer: layer5, environment: production, oncall_owner: sre-l5}
+        annotations: {summary: "L5 ground-truth p95 latency SLI violated", description: "Layer 5 p95 latency exceeded 1.5s for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer5/latency-sli"}
+      - alert: L5ErrorRateSLOViolation
+        expr: sum(rate(layer5_http_requests_total{status_code=~"5.."}[5m])) / clamp_min(sum(rate(layer5_http_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer5, environment: production, oncall_owner: sre-l5}
+        annotations: {summary: "L5 ground-truth error SLI violated", description: "Layer 5 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer5/error-sli"}
+      - alert: L5AvailabilitySLOViolation
+        expr: avg_over_time(layer5_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer5, environment: production, oncall_owner: sre-l5}
+        annotations: {summary: "L5 ground-truth availability SLI violated", description: "Layer 5 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer5/availability-sli"}
+
+      - alert: L6LatencySLOViolation
+        expr: histogram_quantile(0.95, sum(rate(layer6_request_duration_seconds_bucket[5m])) by (le)) > 1.5
+        for: 10m
+        labels: {severity: warning, layer: layer6, environment: production, oncall_owner: sre-l6}
+        annotations: {summary: "L6 benchmarks p95 latency SLI violated", description: "Layer 6 p95 latency exceeded 1.5s for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer6/latency-sli"}
+      - alert: L6ErrorRateSLOViolation
+        expr: sum(rate(layer6_requests_total{status_class="5xx"}[5m])) / clamp_min(sum(rate(layer6_requests_total[5m])), 1) > 0.01
+        for: 10m
+        labels: {severity: warning, layer: layer6, environment: production, oncall_owner: sre-l6}
+        annotations: {summary: "L6 benchmarks error SLI violated", description: "Layer 6 5xx ratio exceeded 1% for 10m.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer6/error-sli"}
+      - alert: L6AvailabilitySLOViolation
+        expr: avg_over_time(layer6_health_status{component="api"}[10m]) < 1
+        for: 5m
+        labels: {severity: critical, layer: layer6, environment: production, oncall_owner: sre-l6}
+        annotations: {summary: "L6 benchmarks availability SLI violated", description: "Layer 6 API health failed during 10m window.", runbook_url: "https://docs.valuefabric.internal/runbooks/layer6/availability-sli"}

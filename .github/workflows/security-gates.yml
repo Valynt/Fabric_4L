@@ -217,9 +217,9 @@ jobs:
       - name: Start ephemeral Value Fabric stack
         run: |
           cat > .env << 'EOF'
-          OPENAI_API_KEY=dummy-key-for-ci
+          OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           ANTHROPIC_API_KEY=dummy-key-for-ci
-          JWT_SECRET=ci-jwt-secret
+          JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           NEO4J_PASSWORD=valuefabric
           EOF
           docker compose -f docker-compose.full.yml up -d --build

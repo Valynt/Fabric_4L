@@ -426,3 +426,69 @@ class TestScoring:
         assert len(response.candidates) > 0
         # Score should be between 0.5 and 1.0 for partial match
         assert 0.5 <= response.candidates[0].score <= 1.0
+
+
+class TestHybridRetrievalAndIsolation:
+    @pytest.mark.asyncio
+    async def test_ranked_pipeline_near_duplicate_and_multilingual(self):
+        driver = AsyncMock()
+        session = AsyncMock()
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+
+        exact_records = []
+        fuzzy_records = [
+            {"id": "ent-1", "properties": {"id": "ent-1", "name": "Cafe Central", "tenant_id": "t1"}},
+            {"id": "ent-2", "properties": {"id": "ent-2", "name": "Cafe Centrale", "tenant_id": "t1"}},
+        ]
+        vector_records = [
+            {"id": "ent-2", "properties": {"id": "ent-2", "name": "Cafe Centrale", "tenant_id": "t1"}, "vector_score": 0.91},
+            {"id": "ent-1", "properties": {"id": "ent-1", "name": "Cafe Central", "tenant_id": "t1"}, "vector_score": 0.75},
+        ]
+
+        with patch("src.services.entity_resolution.run_validated_query") as mocked_query:
+            mocked_query.side_effect = [
+                AsyncMock(data=AsyncMock(return_value=exact_records)),
+                AsyncMock(data=AsyncMock(return_value=fuzzy_records)),
+                AsyncMock(data=AsyncMock(return_value=vector_records)),
+            ]
+
+            request = EntityResolutionRequest(
+                entity_type="Organization",
+                tenant_id="t1",
+                query_attributes={"name": "Café Central", "embedding": [0.1, 0.2, 0.3]},
+                strategy=ResolutionStrategy.HYBRID,
+            )
+            response = await service.resolve(request)
+
+        assert response.matched_entity_id == "ent-1"
+        assert len(response.candidates) == 1
+        assert response.candidates[0].metadata["retrieval_metadata"]["sources"] == ["fuzzy", "vector"]
+        assert "decision_factors" in response.candidates[0].metadata
+
+    @pytest.mark.asyncio
+    async def test_tenant_scoped_vector_query_and_ambiguous_names(self):
+        driver = AsyncMock()
+        session = AsyncMock()
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+
+        with patch("src.services.entity_resolution.run_validated_query") as mocked_query:
+            mocked_query.return_value = AsyncMock(data=AsyncMock(return_value=[]))
+            request = EntityResolutionRequest(
+                entity_type="Person",
+                tenant_id="tenant-secure",
+                query_attributes={"name": "Alex Li", "embedding": [0.11, 0.22]},
+                strategy=ResolutionStrategy.VECTOR,
+            )
+            await service.resolve(request)
+
+            _, query, params = mocked_query.call_args[0]
+            assert "node.tenant_id = $tenant_id" in query
+            assert params["tenant_id"] == "tenant-secure"
+
+    @pytest.mark.asyncio
+    async def test_fuzzy_similarity_handles_case_and_accents(self):
+        service = EntityResolutionService(AsyncMock())
+        sim = service._name_similarity("MÜNCHEN AG", "Munchen ag")
+        assert sim >= 0.95

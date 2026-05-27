@@ -8,6 +8,7 @@ import uuid
 from datetime import UTC, datetime
 
 import pytest
+from sqlalchemy import select
 
 from layer5_ground_truth.models.formula_governance import (
     Formula,
@@ -19,6 +20,7 @@ from layer5_ground_truth.models.benchmark_governance import (
     BenchmarkStatus,
     BenchmarkVersion,
 )
+from layer5_ground_truth.models.policy_governance import Policy, PolicyApplication
 from layer5_ground_truth.services.agent_permission_service import (
     AgentPermissionError,
     AgentPermissionService,
@@ -410,3 +412,206 @@ class TestAgentPermissionService:
         assert application.policy_id == policy.id
         assert application.result == "passed"
         assert application.rule_results is not None
+
+    @pytest.mark.asyncio
+    async def test_check_policy_compliance_mandatory_pass(self, db):
+        service = AgentPermissionService()
+        formula = Formula(
+            id=uuid.uuid4(),
+            tenant_id=TEST_ORG_ID,
+            name="Compliant Formula",
+            slug="compliant-formula",
+            formula_type="roi_calculation",
+            current_version="1.0.0",
+            latest_version="1.0.0",
+            input_schema={},
+            output_schema={},
+            is_active=True,
+        )
+        db.add(formula)
+        db.add(
+            FormulaVersion(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                formula_id=formula.id,
+                version="1.0.0",
+                expression="return value",
+                expression_language="python",
+                status=FormulaStatus.APPROVED.value,
+            )
+        )
+        db.add(
+            Policy(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                name="Formula Must Be Approved",
+                slug="formula-approved",
+                policy_type="formula_approval",
+                current_version="2.0.0",
+                latest_version="2.0.0",
+                applies_to_entity_types=["formula"],
+                is_mandatory=True,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
+        compliant, results = await service.check_policy_compliance(
+            db=db, tenant_id=TEST_ORG_ID, entity_type="formula", entity_id=formula.id
+        )
+        assert compliant is True
+        assert len(results) == 1
+        assert results[0]["result"] == "passed"
+
+    @pytest.mark.asyncio
+    async def test_check_policy_compliance_mandatory_fail(self, db):
+        service = AgentPermissionService()
+        formula = Formula(
+            id=uuid.uuid4(),
+            tenant_id=TEST_ORG_ID,
+            name="Non-compliant Formula",
+            slug="non-compliant-formula",
+            formula_type="roi_calculation",
+            current_version="1.0.0",
+            latest_version="1.0.0",
+            input_schema={},
+            output_schema={},
+            is_active=True,
+        )
+        db.add(formula)
+        db.add(
+            FormulaVersion(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                formula_id=formula.id,
+                version="1.0.0",
+                expression="return value",
+                expression_language="python",
+                status=FormulaStatus.DRAFT.value,
+            )
+        )
+        db.add(
+            Policy(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                name="Formula Must Be Approved",
+                slug="formula-approved-fail",
+                policy_type="formula_approval",
+                current_version="2.0.0",
+                latest_version="2.0.0",
+                applies_to_entity_types=["formula"],
+                is_mandatory=True,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
+        compliant, results = await service.check_policy_compliance(
+            db=db, tenant_id=TEST_ORG_ID, entity_type="formula", entity_id=formula.id
+        )
+        assert compliant is False
+        assert results[0]["result"] == "failed"
+
+    @pytest.mark.asyncio
+    async def test_check_policy_compliance_advisory_warns(self, db):
+        service = AgentPermissionService()
+        formula_id = uuid.uuid4()
+        db.add(
+            Policy(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                name="Advisory Formula Approval",
+                slug="formula-advisory",
+                policy_type="formula_approval",
+                current_version="1.0.0",
+                latest_version="1.0.0",
+                applies_to_entity_types=["formula"],
+                is_mandatory=False,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
+        compliant, results = await service.check_policy_compliance(
+            db=db, tenant_id=TEST_ORG_ID, entity_type="formula", entity_id=formula_id
+        )
+        assert compliant is True
+        assert results[0]["result"] == "warning"
+
+    @pytest.mark.asyncio
+    async def test_check_policy_compliance_unknown_policy_type_fails_closed(self, db):
+        service = AgentPermissionService()
+        db.add(
+            Policy(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                name="Unknown Type",
+                slug="unknown-type-policy",
+                policy_type="new_unknown_type",
+                current_version="1.0.0",
+                latest_version="1.0.0",
+                applies_to_entity_types=["formula"],
+                is_mandatory=True,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
+        compliant, results = await service.check_policy_compliance(
+            db=db, tenant_id=TEST_ORG_ID, entity_type="formula", entity_id=uuid.uuid4()
+        )
+        assert compliant is False
+        assert results[0]["result"] == "failed"
+        assert "unknown policy type" in results[0]["message"].lower()
+
+    @pytest.mark.asyncio
+    async def test_check_policy_compliance_enforces_tenant_isolation(self, db):
+        service = AgentPermissionService()
+        tenant_b = uuid.uuid4()
+        formula_b = Formula(
+            id=uuid.uuid4(),
+            tenant_id=tenant_b,
+            name="Tenant B Formula",
+            slug="tenant-b-formula",
+            formula_type="roi_calculation",
+            current_version="1.0.0",
+            latest_version="1.0.0",
+            input_schema={},
+            output_schema={},
+            is_active=True,
+        )
+        db.add(formula_b)
+        db.add(
+            FormulaVersion(
+                id=uuid.uuid4(),
+                tenant_id=tenant_b,
+                formula_id=formula_b.id,
+                version="1.0.0",
+                expression="return value",
+                expression_language="python",
+                status=FormulaStatus.APPROVED.value,
+            )
+        )
+        db.add(
+            Policy(
+                id=uuid.uuid4(),
+                tenant_id=TEST_ORG_ID,
+                name="Tenant A Formula Approval",
+                slug="tenant-a-formula-approval",
+                policy_type="formula_approval",
+                current_version="1.0.0",
+                latest_version="1.0.0",
+                applies_to_entity_types=["formula"],
+                is_mandatory=True,
+                is_active=True,
+            )
+        )
+        await db.flush()
+
+        compliant, results = await service.check_policy_compliance(
+            db=db, tenant_id=TEST_ORG_ID, entity_type="formula", entity_id=formula_b.id
+        )
+        assert compliant is False
+        assert results[0]["result"] == "failed"
+        applications = (await db.execute(select(PolicyApplication))).scalars().all()
+        assert len(applications) >= 1
