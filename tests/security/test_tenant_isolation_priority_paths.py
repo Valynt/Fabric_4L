@@ -13,6 +13,8 @@ PRIORITY_FILES = [
     "services/layer4-agents/src/api/routes/prospects.py",
     "services/layer6-benchmarks/src/api/main.py",
     "services/layer6-benchmarks/src/repositories/benchmark_repository.py",
+    "services/layer5-ground-truth/src/layer5_ground_truth/services/assumption_approval_service.py",
+    "services/layer5-ground-truth/src/layer5_ground_truth/observability/structured_logging.py",
 ]
 
 FORBIDDEN_PATTERNS = [
@@ -27,6 +29,13 @@ REQUIRED_AUTH_PATTERNS = {
     "services/layer3-knowledge/src/api/routes/query_search.py": ["tenant_id", "ctx"],
     "services/layer4-agents/src/api/routes/intelligence.py": ["Depends(get_verified_tenant_id)", "tenant_id: str"],
     "services/layer6-benchmarks/src/api/main.py": ["_require_tenant_id", "ctx.tenant_id"],
+    "services/layer5-ground-truth/src/layer5_ground_truth/services/assumption_approval_service.py": [
+        "_require_assumption_tenant",
+        "ApprovalRequest.tenant_id == tenant_id",
+    ],
+    "services/layer5-ground-truth/src/layer5_ground_truth/observability/structured_logging.py": [
+        "governance_context",
+    ],
 }
 
 

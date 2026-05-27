@@ -259,6 +259,68 @@ class TestAssumptionApprovalService:
         assert result.status == AssumptionStatus.REJECTED.value
 
     @pytest.mark.asyncio
+    async def test_submit_for_approval_blocks_cross_tenant_request_lookup(self, db):
+        """Hostile case: Tenant A assumption cannot resolve Tenant B approval request."""
+        service = AssumptionApprovalService()
+        tenant_a = TEST_ORG_ID
+        tenant_b = uuid.uuid4()
+        assumption = Assumption(
+            id=uuid.uuid4(),
+            tenant_id=tenant_a,
+            name="Cross Tenant Assumption",
+            slug="cross-tenant-submit",
+            assumption_type="custom",
+            description="Test assumption",
+            value={"value": 100},
+            value_type="number",
+            impact_level=AssumptionImpact.HIGH.value,
+            status=AssumptionStatus.DRAFT.value,
+            approval_request_id=uuid.uuid4(),
+        )
+        db.add(assumption)
+        db.add(
+            ApprovalRequest(
+                id=assumption.approval_request_id,
+                tenant_id=tenant_b,
+                entity_type=EntityType.ASSUMPTION.value,
+                entity_id=assumption.id,
+                status=ApprovalStatus.DRAFT.value,
+                requested_by="user@example.com",
+            )
+        )
+        await db.flush()
+
+        with pytest.raises(ValueError, match="not found"):
+            await service.submit_for_approval(
+                db=db,
+                assumption=assumption,
+                submitter="user@example.com",
+            )
+
+    @pytest.mark.asyncio
+    async def test_create_approval_request_fails_closed_when_tenant_missing(self, db):
+        """Fail closed when assumption lacks tenant ownership metadata."""
+        service = AssumptionApprovalService()
+        assumption = Assumption(
+            id=uuid.uuid4(),
+            tenant_id=None,
+            name="No Tenant Assumption",
+            slug="no-tenant",
+            assumption_type="custom",
+            description="Test assumption",
+            value={"value": 100},
+            value_type="number",
+            impact_level=AssumptionImpact.HIGH.value,
+            status=AssumptionStatus.DRAFT.value,
+        )
+        with pytest.raises(ValueError, match="missing tenant_id"):
+            await service.create_approval_request(
+                db=db,
+                assumption=assumption,
+                requested_by="user@example.com",
+            )
+
+    @pytest.mark.asyncio
     async def test_check_approval_status_auto_approved(self, db):
         """Should return auto-approved for low/medium impact assumptions."""
         service = AssumptionApprovalService()
