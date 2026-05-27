@@ -180,6 +180,8 @@ tmp_gen_migration_baseline.py
 
 # Windows path artifacts (CUsers* filenames from shell redirection on Windows)
 CUsers*
+cUsers*
+*Users*Fabric_4L.env
 
 # Temporary diff/patch files in repo root
 /tmp_pr*.txt

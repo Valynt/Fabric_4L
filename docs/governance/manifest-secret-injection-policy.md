@@ -20,7 +20,9 @@ This policy defines approved secret injection paths for Kubernetes manifests and
 CI enforces these controls via:
 
 - `scripts/ci/check_manifest_secret_hygiene.py`
+- `scripts/ci/check_path_and_env_hygiene.py`
 - `make check-manifest-secret-hygiene`
+- `make check-path-env-hygiene`
 
 Current denylist checks include:
 
@@ -28,3 +30,23 @@ Current denylist checks include:
 - Inline `postgres:postgres`
 - `redis://redis:6379/...` without auth
 - Dev auth bypass env vars (`DEV_AUTH_BYPASS`, `ALLOW_DEV_AUTH_BYPASS`, `AUTH_BYPASS_ENABLED`, `ALLOW_INSECURE_DEV_AUTH_BYPASS`)
+
+## Repository Path and Env-Template Tracking Policy
+
+To prevent secret leakage and non-portable filesystem artifacts, the repository blocks:
+
+- Drive-letter-like path prefixes (for example `C:\...`) in tracked filenames.
+- Escaped/non-portable path-prefix artifacts (for example shell-escaped Windows-path fragments that become literal filenames).
+- Tracked `.env`-style files that are not approved templates.
+
+### Allowed tracked env-template patterns
+
+Only template files are allowed to be tracked:
+
+- `.env.example`
+- `.env.dev.example`
+- `.env.production-compose.template`
+- `*.env.example`
+- `*.env.template`
+
+Any other `.env`-style tracked filename is forbidden and must be untracked or renamed to an approved template pattern.
