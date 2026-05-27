@@ -1,6 +1,6 @@
 ---
 skill_id: evals
-name: Evals
+name: evals
 version: 1.0.0
 description: Evaluation frameworks for agent performance, output quality, and extraction accuracy with metrics collection and regression testing
 side_effects: none

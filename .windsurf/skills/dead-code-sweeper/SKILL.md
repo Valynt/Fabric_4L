@@ -1,6 +1,6 @@
 ---
 skill_id: dead-code-sweeper
-name: Dead Code Sweeper
+name: dead-code-sweeper
 version: 1.0.0
 description: Identify and safely remove dead code including orphan pages, unreachable routes, unused exports, mock data blocks, and duplicate workspace systems. Use when cleaning up the codebase, after major refactors, or when the FRONTEND_AUDIT_REPORT.md dead code list needs action. Targets 2,500+ confirmed dead lines plus uncatalogued backend dead code.
 side_effects: write

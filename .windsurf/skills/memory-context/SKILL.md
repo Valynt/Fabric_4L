@@ -1,6 +1,6 @@
 ---
 skill_id: memory-context
-name: Memory Context
+name: memory-context
 version: 1.0.0
 description: Vector store and knowledge graph integration for semantic memory, conversation context management, and cross-session persistence
 side_effects: none

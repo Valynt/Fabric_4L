@@ -1,6 +1,6 @@
 ---
 skill_id: frontend-audit-refactor
-name: Frontend Audit Refactor
+name: frontend-audit-refactor
 version: 1.0.0
 description: Audit a React/TypeScript frontend codebase and its backend API connections, then apply iterative refactoring loops to remove dead code and improve code efficiency and runtime performance. Use when asked to audit a frontend, review backend connections, find and remove stale code, or run refactoring loops on a React/Vite/TypeScript project.
 side_effects: write

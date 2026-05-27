@@ -1,6 +1,6 @@
 ---
 skill_id: fumadocs
-name: Fumadocs
+name: fumadocs
 version: 1.0.0
 description: Fumadocs documentation framework guidelines
 side_effects: none

@@ -1,6 +1,6 @@
 ---
 skill_id: test-quality-auditor
-name: Test Quality Auditor
+name: test-quality-auditor
 version: 1.0.0
 description: Evaluate test suites against quality principles and safely rewrite tests for Python/pytest and TypeScript/Vitest
 side_effects: none

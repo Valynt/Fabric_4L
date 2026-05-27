@@ -1,6 +1,6 @@
 ---
 skill_id: dil-hook-scaffolder
-name: DIL Hook Scaffolder
+name: dil-hook-scaffolder
 version: 1.0.0
 description: Scaffold TanStack Query hooks for DIL (Data Intelligence Layer) backend services that have zero frontend integration. Use when building frontend hooks for products, evidence, competitive-intel, roi, enrichment, value-hypotheses, narratives, or intelligence endpoints. Addresses 52 unintegrated backend endpoints identified in FRONTEND_AUDIT_REPORT.md.
 side_effects: write

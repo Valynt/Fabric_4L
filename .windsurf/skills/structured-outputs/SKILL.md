@@ -1,6 +1,6 @@
 ---
 skill_id: structured-outputs
-name: Structured Outputs
+name: structured-outputs
 version: 1.0.0
 description: Pydantic-based structured output validation and LLM response parsing with OpenAI/Anthropic function calling and JSON schema enforcement
 side_effects: none

@@ -41,7 +41,7 @@ for compose_file in "${PROD_COMPOSE_FILES[@]}"; do
   fi
 done
 
-if [ $errors_found -eq 1 ]; then
+if [ $errors_found -ne 0 ]; then
   echo ""
   echo "❌ Dev auth bypass flags found in production compose files"
   echo "   Remove all bypass flags from production compose files before deployment"

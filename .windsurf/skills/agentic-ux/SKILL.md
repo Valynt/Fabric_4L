@@ -1,6 +1,6 @@
 ---
 skill_id: agentic-ux
-name: Agentic UX
+name: agentic-ux
 version: 1.0.0
 description: UI patterns for agent-driven interfaces including streaming responses, tool execution visibility, confirmation flows, and progress indication
 side_effects: none

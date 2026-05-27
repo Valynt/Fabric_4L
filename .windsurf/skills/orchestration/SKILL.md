@@ -1,6 +1,6 @@
 ---
 skill_id: orchestration
-name: Orchestration
+name: orchestration
 version: 1.0.0
 description: LangGraph-based workflow orchestration for multi-step agent processes with state management, checkpointing, and human-in-the-loop integration
 side_effects: none

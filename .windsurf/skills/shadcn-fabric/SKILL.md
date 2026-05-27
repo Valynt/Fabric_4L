@@ -1,6 +1,6 @@
 ---
 skill_id: shadcn-fabric
-name: Shadcn Fabric
+name: shadcn-fabric
 version: 1.0.0
 description: shadcn/ui usage guidelines for Value Fabric frontend
 side_effects: none

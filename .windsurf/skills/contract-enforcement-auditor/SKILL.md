@@ -1,6 +1,6 @@
 ---
 skill_id: contract-enforcement-auditor
-name: Contract Enforcement Auditor
+name: contract-enforcement-auditor
 version: 1.0.0
 description: Scan for contract violations and enforcement gaps across all 6 canonical contracts in contract.md. Use when auditing compliance, checking if ESLint rules are actually running, verifying CI gates are blocking, or assessing the gap between documented contracts and runtime enforcement. Reports on the 58% enforcement rate identified in CONTRACT_ENFORCEMENT_ASSESSMENT.md.
 side_effects: read

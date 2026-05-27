@@ -112,7 +112,7 @@ class TestDebugFlagRejectedInProduction:
         """NEGATIVE: DEBUG=true raises in production."""
         _set_base_env(monkeypatch, "production")
         monkeypatch.setenv("DEBUG", "true")
-        with pytest.raises((RuntimeError, ValueError)):
+        with pytest.raises(RuntimeError):
             validate_production_safety(environment="production")
 
     def test_debug_false_accepted_in_production(self, monkeypatch: pytest.MonkeyPatch):
@@ -122,7 +122,7 @@ class TestDebugFlagRejectedInProduction:
         # Should not raise due to DEBUG
         try:
             validate_production_safety(environment="production")
-        except (RuntimeError, ValueError) as exc:
+        except RuntimeError as exc:
             if "DEBUG" in str(exc):
                 pytest.fail(f"DEBUG=false must not raise. Got: {exc}")
 
@@ -132,7 +132,7 @@ class TestDebugFlagRejectedInProduction:
         monkeypatch.delenv("DEBUG", raising=False)
         try:
             validate_production_safety(environment="production")
-        except (RuntimeError, ValueError) as exc:
+        except RuntimeError as exc:
             if "DEBUG" in str(exc):
                 pytest.fail(f"Unset DEBUG must not raise. Got: {exc}")
 

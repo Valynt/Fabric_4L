@@ -1,6 +1,6 @@
 ---
 skill_id: pytest
-name: Pytest
+name: pytest
 version: 1.0.0
 description: Python testing with pytest including fixtures, parametrization, markers, mocking, and async testing patterns.
 side_effects: exec

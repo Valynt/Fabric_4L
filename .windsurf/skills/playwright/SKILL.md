@@ -1,6 +1,6 @@
 ---
 skill_id: playwright
-name: Playwright
+name: playwright
 version: 1.0.0
 description: End-to-end test automation with Playwright for TypeScript, JavaScript, Python, Java, and C#. Covers local execution, cloud testing, POM patterns, and CI/CD integration.
 side_effects: exec

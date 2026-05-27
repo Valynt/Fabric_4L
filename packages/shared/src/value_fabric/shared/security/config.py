@@ -666,10 +666,7 @@ def validate_database_superuser() -> None:
     except Exception:
         username = ""
 
-    # Known PostgreSQL superuser names
-    superuser_names = {"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"}
-
-    if username.lower() in superuser_names:
+    if username.lower() in _SUPERUSER_NAMES:
         msg = (
             f"DATABASE_URL connects as '{username}', which is a PostgreSQL superuser. "
             f"Superusers bypass ALL Row-Level Security policies, meaning tenant "

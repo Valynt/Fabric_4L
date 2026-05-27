@@ -437,7 +437,7 @@ class BillingService:
                     "payload_hash": payload_hash,
                     "type": event_type,
                 },
-                where=BillingWebhookEvent.status != "processed",
+                where=(BillingWebhookEvent.status.in_(["failed", "retryable"])),
             )
         )
         await self.db.execute(stmt)
@@ -451,7 +451,7 @@ class BillingService:
         return inbox
 
     async def process_webhook_event(self, event_id: str, payload: bytes, signature: str, webhook_secret: str) -> None:
-        """Process persisted webhook inbox event with bounded retries."""
+        """Process persisted webhook inbox event with bounded retries and guaranteed rollback on failure."""
         stripe = _get_stripe()
         event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
         event_type = event["type"]
@@ -461,6 +461,9 @@ class BillingService:
             if inbox is not None:
                 self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
             return
+        
+        # Start transaction for guaranteed rollback on any exception
+        await self.db.begin()
         try:
             started_at = self._utc_now()
             inbox.status = "processing"
@@ -496,8 +499,11 @@ class BillingService:
                 },
             )
             await self.db.flush()
+            await self.db.commit()
             self._emit_webhook_metric("processed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
         except Exception as exc:
+            await self.db.rollback()
+            # Record failure state in separate transaction if needed
             transient = isinstance(exc, (StripeError, SQLAlchemyError, asyncio.TimeoutError))
             inbox.last_error = sanitize_log_error(exc)
             if transient and inbox.attempt_count < 5:
@@ -511,7 +517,14 @@ class BillingService:
                 logger.error("billing.webhook.terminal_failure", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
                 logger.error("billing.webhook.dlq_routed", extra={"event_id": event_id, "event_type": event_type, "last_error": inbox.last_error, "attempt_count": inbox.attempt_count})
                 self._emit_webhook_metric("failed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
-            await self.db.flush()
+            # Record failure state in a separate transaction
+            try:
+                await self.db.begin()
+                await self.db.flush()
+                await self.db.commit()
+            except Exception:
+                # If we can't even record the failure, log and continue
+                logger.error("billing.webhook.failure_recording_failed", extra={"event_id": event_id}, exc_info=True)
             raise
 
     async def process_due_webhook_retries(self, payload_lookup: dict[str, bytes], signature: str, webhook_secret: str, limit: int = 100) -> int:

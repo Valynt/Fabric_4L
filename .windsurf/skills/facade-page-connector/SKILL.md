@@ -1,6 +1,6 @@
 ---
 skill_id: facade-page-connector
-name: Facade Page Connector
+name: facade-page-connector
 version: 1.0.0
 description: Rewire frontend pages from static/mock data or generic useWorkspaceTabQuery to real backend hooks. Use when a page renders hardcoded data, uses MOCK_ arrays, or connects to the generic workspace endpoint instead of its dedicated DIL service. Fixes the 74% of pages with zero API calls identified in FRONTEND_AUDIT_REPORT.md.
 side_effects: write
