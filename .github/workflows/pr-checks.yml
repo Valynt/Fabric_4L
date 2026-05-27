@@ -1746,3 +1746,51 @@ jobs:
 
       - name: Enforce route auth dependency policy
         run: python scripts/ci/check_route_auth_dependencies.py
+
+  unified-readiness-gate:
+    name: Unified Readiness Gate
+    runs-on: ubuntu-latest
+    if: always()
+    needs:
+      - structural-preflight
+      - shared-and-tests-checks
+      - layer5-tenant-isolation-regression
+      - contract-checks
+      - runtime-contract-checks
+      - integration-checks
+      - k8s-dry-run
+      - docker-compose-config-contract
+      - docker-build-check
+      - route-auth-gate
+    steps:
+      - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
+        run: |
+          declare -A CHECKS=(
+            ["structural-preflight"]="${{ needs.structural-preflight.result }}"
+            ["shared-and-tests-checks"]="${{ needs.shared-and-tests-checks.result }}"
+            ["layer5-tenant-isolation-regression"]="${{ needs.layer5-tenant-isolation-regression.result }}"
+            ["contract-checks"]="${{ needs.contract-checks.result }}"
+            ["runtime-contract-checks"]="${{ needs.runtime-contract-checks.result }}"
+            ["integration-checks"]="${{ needs.integration-checks.result }}"
+            ["k8s-dry-run"]="${{ needs.k8s-dry-run.result }}"
+            ["docker-compose-config-contract"]="${{ needs.docker-compose-config-contract.result }}"
+            ["docker-build-check"]="${{ needs.docker-build-check.result }}"
+            ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
+          )
+
+          failed=0
+          for check in "${!CHECKS[@]}"; do
+            result="${CHECKS[$check]}"
+            if [[ "$result" != "success" ]]; then
+              echo "❌ ${check} => ${result}"
+              failed=1
+            else
+              echo "✅ ${check} => ${result}"
+            fi
+          done
+
+          if [[ "$failed" -ne 0 ]]; then
+            echo "Unified readiness gate failed."
+            exit 1
+          fi
+          echo "Unified readiness gate passed."

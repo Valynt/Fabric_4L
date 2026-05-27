@@ -120,7 +120,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           HEAD_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
-          required_checks=("PR Checks" "Security Gates" "Smoke Gate")
+          required_checks=("Unified Readiness Gate" "Security Gates" "Smoke Gate")
           can_promote=true
 
           for check in "${required_checks[@]}"; do
