@@ -4,7 +4,9 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
+from datetime import date
 from pathlib import Path
 
 # Allow importing sibling _lib without a package __init__.py
@@ -46,6 +48,12 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="repository root (default: auto-detected)",
     )
+    parser.add_argument(
+        "--write-report",
+        type=Path,
+        default=None,
+        help="Optional path to write JSON duplicate debt report.",
+    )
     args = parser.parse_args(argv)
 
     repo_root = args.repo_root.resolve() if args.repo_root else resolve_repo_root()
@@ -58,6 +66,24 @@ def main(argv: list[str] | None = None) -> int:
     current = sorted(prod & proto)
     baseline = _load_baseline(baseline_file)
     new_duplicates = sorted(set(current) - baseline)
+    stale_baseline_entries = sorted(baseline - set(current))
+
+    report = {
+        "generated_on": date.today().isoformat(),
+        "baseline_count": len(baseline),
+        "current_duplicate_count": len(current),
+        "new_duplicate_count": len(new_duplicates),
+        "stale_baseline_count": len(stale_baseline_entries),
+        "new_duplicates": new_duplicates,
+        "stale_baseline_entries": stale_baseline_entries,
+        "cleanup_actions": [
+            "Rename or delete prototype duplicate files listed under new_duplicates.",
+            "Remove stale_baseline_entries from scripts/ui_duplicate_baseline.txt after verification.",
+        ],
+    }
+    if args.write_report:
+        args.write_report.parent.mkdir(parents=True, exist_ok=True)
+        args.write_report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
     if new_duplicates:
         print(
@@ -76,6 +102,10 @@ def main(argv: list[str] | None = None) -> int:
         f"UI duplicate filename guard passed "
         f"(baseline={len(baseline)}, current={len(current)}, new={len(new_duplicates)})"
     )
+    if stale_baseline_entries:
+        print("\nStale baseline entries detected (candidates for baseline cleanup):")
+        for name in stale_baseline_entries:
+            print(f"  - {name}")
     return 0
 
 
