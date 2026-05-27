@@ -5,10 +5,12 @@ docs/api-contract-stability.md and contracts/frontend/01-api-boundary-contract.m
 
 Canonical error envelope:
 {
-  "message": "Human-readable error message",
-  "code": "ERROR_CODE",
-  "trace_id": "uuid-for-correlation",
-  "details": {}  // Optional sanitized details
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable error message",
+    "request_id": "uuid-for-correlation",
+    "details": {}  // Optional sanitized details
+  }
 }
 """
 
@@ -60,7 +62,6 @@ def is_canonical_error_schema(schema: dict[str, Any]) -> bool:
     
     # Check if it has the required fields inline
     properties = schema.get("properties", {})
-    required = schema.get("required", [])
     
     error = properties.get("error", {})
     error_props = error.get("properties", {}) if isinstance(error, dict) else {}
@@ -230,8 +231,6 @@ def test_error_envelope_canonical_exists_in_all_layers():
             # Verify ErrorResponse has required fields
             error_schema = components["ErrorEnvelope"]
             properties = error_schema.get("properties", {})
-            required = error_schema.get("required", [])
-            
             error_props = properties.get('error',{}).get('properties',{}) if isinstance(properties.get('error',{}),dict) else {}
             if 'code' not in error_props:
                 missing_schemas.append(f"{layer} (missing 'error.code' field)")
@@ -242,7 +241,7 @@ def test_error_envelope_canonical_exists_in_all_layers():
     
     if missing_schemas:
         # Print warning but don't fail - this is a migration in progress
-        print(f"\n⚠️  Warning: The following layers are missing canonical ErrorResponse schema or required fields:")
+        print(f"\n⚠️  Warning: The following layers are missing canonical ErrorEnvelope schema or required fields:")
         for item in missing_schemas:
             print(f"  - {item}")
         print("  This is acceptable during migration to the canonical error envelope.")

@@ -290,15 +290,9 @@ Common failure classes and canonical mapping:
 - Throttling/rate limits → `429` + `THROTTLED`
 - Unhandled internal errors → `500` + `INTERNAL_ERROR`
 
-**Enforcement:**
-- TypeScript: All agent outputs must conform to defined Pydantic model
-- ESLint: `no-json-parse-agent-output` - flags JSON.parse() on LLM responses
-- CI: OTel trace validation - verifies minimum required spans
-- Runtime: Unstructured outputs rejected at boundary
-
 ---
 
-### 2.6 UI State Progression and Route Model
+### 2.7 UI State Progression and Route Model
 
 **Status:** `proposed` | **Target:** `ratified` 2026-05-23 | **Enforcement:** 2026-06-23
 
