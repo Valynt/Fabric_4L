@@ -338,8 +338,8 @@ class AgentPermissionService:
         tenant_id: UUID,
         entity_id: UUID,
     ) -> tuple[bool, str]:
-        _ = db, entity_id
-        return True, f"Assumption approval policy satisfied for tenant {tenant_id}"
+        _ = db, tenant_id, entity_id
+        raise PolicyEvaluationError("assumption approval evaluation not implemented")
 
     async def require_formula_permission(
         self,
