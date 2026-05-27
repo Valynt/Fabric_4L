@@ -34,7 +34,12 @@ from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
 from ...api.exception_mapping import map_exception_to_http_error
-from ...api.exceptions import ContractViolationError, DatabaseError, TenantAccessError, ValidationError
+from ...api.exceptions import (
+    ContractViolationError,
+    DatabaseError,
+    TenantAccessError,
+    ValidationError,
+)
 from ...api.models import (
     EntityDetail,
     EntityFilterRequest,
