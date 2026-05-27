@@ -108,8 +108,8 @@ Phase 1 supported targets:
 | `dev-nginx` | dev | NGINX Ingress + cert-manager | Supported |
 | `staging-nginx` | staging | NGINX Ingress + cert-manager | Supported (pre-production validation) |
 | `prod-nginx` | prod | NGINX Ingress + cert-manager | Supported (default production path) |
-| `prod-gateway-api` | prod | Gateway API + cert-manager | Supported (requires Gateway API CRDs + controller) |
-| `prod-istio` | prod | Istio Gateway / VirtualService | EXPERIMENTAL (CI-render only) |
+| `prod-gateway-api` | prod | Gateway API + cert-manager | Experimental (non-production; validation only) |
+| `prod-istio` | prod | Istio Gateway / VirtualService | Experimental (CI-render only) |
 
 ```bash
 # Render manifests (use --load-restrictor=LoadRestrictionsNone for prod
