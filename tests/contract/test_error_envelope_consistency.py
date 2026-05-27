@@ -56,17 +56,16 @@ def is_canonical_error_schema(schema: dict[str, Any]) -> bool:
     # Check if it references the canonical ErrorResponse
     if "$ref" in schema:
         ref = schema["$ref"]
-        return "ErrorResponse" in ref or "HTTPValidationError" in ref
+        return any(x in ref for x in ["ErrorEnvelope","ErrorResponse","HTTPValidationError"])
     
     # Check if it has the required fields inline
     properties = schema.get("properties", {})
     required = schema.get("required", [])
     
-    has_message = "message" in properties
-    has_code = "code" in properties
-    has_trace_id = "trace_id" in properties
-    
-    return has_message and has_code and has_trace_id
+    error = properties.get("error", {})
+    error_props = error.get("properties", {}) if isinstance(error, dict) else {}
+    error_required = set(error.get("required", [])) if isinstance(error, dict) else set()
+    return {"code", "message", "request_id"}.issubset(error_required) or ({"code","message","request_id"}.issubset(set(error_props.keys())))
 
 
 def test_layer1_error_envelope_consistency():
@@ -212,8 +211,8 @@ def test_httpvalidationerror_deprecated_in_all_layers():
         print("  This is acceptable during migration to the canonical error envelope.")
 
 
-def test_error_response_canonical_exists_in_all_layers():
-    """All layers should have the canonical ErrorResponse schema defined.
+def test_error_envelope_canonical_exists_in_all_layers():
+    """All layers should have the canonical ErrorEnvelope schema defined.
     
     This is a soft check - it will report missing schemas but not fail the test
     to allow for gradual migration to the canonical error envelope.
@@ -225,20 +224,21 @@ def test_error_response_canonical_exists_in_all_layers():
         spec = load_openapi_spec(layer)
         components = spec.get("components", {}).get("schemas", {})
         
-        if "ErrorResponse" not in components:
+        if "ErrorEnvelope" not in components:
             missing_schemas.append(layer)
         else:
             # Verify ErrorResponse has required fields
-            error_schema = components["ErrorResponse"]
+            error_schema = components["ErrorEnvelope"]
             properties = error_schema.get("properties", {})
             required = error_schema.get("required", [])
             
-            if "message" not in properties:
-                missing_schemas.append(f"{layer} (missing 'message' field)")
-            if "code" not in properties:
-                missing_schemas.append(f"{layer} (missing 'code' field)")
-            if "trace_id" not in properties:
-                missing_schemas.append(f"{layer} (missing 'trace_id' field)")
+            error_props = properties.get('error',{}).get('properties',{}) if isinstance(properties.get('error',{}),dict) else {}
+            if 'code' not in error_props:
+                missing_schemas.append(f"{layer} (missing 'error.code' field)")
+            if 'message' not in error_props:
+                missing_schemas.append(f"{layer} (missing 'error.message' field)")
+            if 'request_id' not in error_props:
+                missing_schemas.append(f"{layer} (missing 'error.request_id' field)")
     
     if missing_schemas:
         # Print warning but don't fail - this is a migration in progress

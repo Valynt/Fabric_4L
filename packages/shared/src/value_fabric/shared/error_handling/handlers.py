@@ -249,11 +249,12 @@ async def value_fabric_exception_handler(
     )
 
 
-async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
-    """Handle FastAPI HTTPException with standardized response envelope."""
-    request_id = get_request_trace_id(request)
-
-    # Map HTTP status to error code
+def _map_http_status_to_error_code(exc: HTTPException) -> ErrorCode:
+    detail_text = str(getattr(exc, "detail", "") or "").lower()
+    if exc.status_code == 403 and "tenant" in detail_text:
+        return ErrorCode.TENANT_ISOLATION_ERROR
+    if exc.status_code == 429:
+        return ErrorCode.THROTTLED
     code_map = {
         400: ErrorCode.VALIDATION_ERROR,
         401: ErrorCode.AUTHENTICATION_ERROR,
@@ -261,12 +262,18 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
         404: ErrorCode.NOT_FOUND,
         409: ErrorCode.CONFLICT,
         422: ErrorCode.VALIDATION_ERROR,
-        429: ErrorCode.RATE_LIMIT_EXCEEDED,
         500: ErrorCode.INTERNAL_ERROR,
         503: ErrorCode.SERVICE_UNAVAILABLE,
     }
+    return code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
 
-    error_code = code_map.get(exc.status_code, ErrorCode.INTERNAL_ERROR)
+
+async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    """Handle FastAPI HTTPException with standardized response envelope."""
+    request_id = get_request_trace_id(request)
+
+    # Map HTTP status to error code
+    error_code = _map_http_status_to_error_code(exc)
 
     message = sanitize_public_error(exc, status_code=exc.status_code).message
 
