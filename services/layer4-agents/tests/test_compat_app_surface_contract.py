@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
+from fastapi.testclient import TestClient
+
 from value_fabric.layer4.api.app_factory import create_app
 
 
@@ -35,3 +37,20 @@ def test_l4_health_and_metrics_route_contract_presence(monkeypatch):
     paths = {route.path for route in app.routes}
     assert "/health" in paths
     assert "/metrics" in paths
+
+
+def test_l4_health_and_metrics_response_contract(monkeypatch):
+    app = _app_with_noop_lifespan(monkeypatch)
+
+    with TestClient(app) as client:
+        health = client.get("/health")
+        assert health.status_code == 200
+        payload = health.json()
+        assert payload["status"] in {"healthy", "degraded"}
+        assert payload["service"] == "layer4-agents"
+        assert "timestamp" in payload
+        assert "version" in payload
+
+        metrics = client.get("/metrics")
+        assert metrics.status_code in {200, 403, 503}
+        assert metrics.headers["content-type"].startswith("text/plain")
