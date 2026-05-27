@@ -53,6 +53,11 @@ Reference: `docs/reference/layer5-api-compatibility-policy.md`
 - [ ] If this PR claims Layer 5 Phase 0 closure/readiness, all discovered Layer 5 issues include owner and due date (per `docs/governance/layer5-backlog-issue-template.md`); otherwise Phase 0 remains open.
 - [ ] I validated release readiness with either successful chaos smoke + blue-green health-gate checks, or attached an approved exception.
 
+## Why overlap is expected
+
+- Required when overlap guard flags high changed-file overlap with recently merged PRs in the same area.
+- Explain why overlap is intentional, low-risk, and how conflicts/drift were mitigated.
+
 ## Validation
 
 - [ ] `make verify`

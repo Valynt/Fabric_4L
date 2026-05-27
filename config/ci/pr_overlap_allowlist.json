@@ -1,0 +1,16 @@
+{
+  "allow": [
+    {
+      "path": "Makefile",
+      "rationale": "Central automation entrypoint with frequent parallel edits across unrelated work."
+    },
+    {
+      "path": "docs/reliability/dr-policy.md",
+      "rationale": "Release/reliability policy updates are intentionally high-churn around release windows."
+    },
+    {
+      "path": ".github/pull_request_template.md",
+      "rationale": "Template policy updates often land concurrently with governance improvements."
+    }
+  ]
+}

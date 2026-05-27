@@ -353,6 +353,14 @@ jobs:
         run: |
           python scripts/ci/check_pr_governance_fields.py
 
+      - name: Enforce PR changed-file overlap review policy
+        if: github.event_name == 'pull_request'
+        env:
+          CHANGED_FILES: ${{ steps.governance-changed-files.outputs.all_changed_files }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python scripts/ci/check_pr_overlap_guard.py --allowlist config/ci/pr_overlap_allowlist.json --threshold 0.35 --recent 12
+
 
       - name: Validate docs claim verification map
         run: |
