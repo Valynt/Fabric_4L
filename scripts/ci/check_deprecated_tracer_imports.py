@@ -16,21 +16,29 @@ PATTERNS = [
     re.compile(r"import\s+value_fabric\.layer3\.tracing\.tracer(?:\s+as\s+\w+)?"),
     re.compile(r"import\s+\.\.?tracing\.tracer(?:\s+as\s+\w+)?"),
 ]
-violations: list[str] = []
-for scan_dir in SCAN_DIRS:
-    for file in scan_dir.rglob("*.py"):
-        if "services/layer3-knowledge/src/tracing/" in str(file):
-            continue
-        text = file.read_text(encoding="utf-8", errors="ignore")
-        for pattern in PATTERNS:
-            if pattern.search(text):
-                violations.append(str(file.relative_to(ROOT)))
-                break
 
-if violations:
-    print("Deprecated custom tracer imports detected:")
-    for v in sorted(set(violations)):
-        print(f" - {v}")
-    sys.exit(1)
 
-print("No deprecated custom tracer imports found.")
+def main() -> int:
+    violations: list[str] = []
+    for scan_dir in SCAN_DIRS:
+        for file in scan_dir.rglob("*.py"):
+            if "services/layer3-knowledge/src/tracing/" in str(file):
+                continue
+            text = file.read_text(encoding="utf-8", errors="ignore")
+            for pattern in PATTERNS:
+                if pattern.search(text):
+                    violations.append(str(file.relative_to(ROOT)))
+                    break
+
+    if violations:
+        print("Deprecated custom tracer imports detected:")
+        for v in sorted(set(violations)):
+            print(f" - {v}")
+        return 1
+
+    print("No deprecated custom tracer imports found.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
