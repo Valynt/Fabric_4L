@@ -20,7 +20,13 @@ from value_fabric.shared.identity import RequestContext
 
 from ...api.cache import get_request_deduplicator
 from ...api.exception_mapping import map_exception_to_http_error
-from ...api.exceptions import ContractViolationError, SearchError, TenantAccessError, ValidationError, VectorStoreError
+from ...api.exceptions import (
+    ContractViolationError,
+    SearchError,
+    TenantAccessError,
+    ValidationError,
+    VectorStoreError,
+)
 from ...api.models import (
     GraphRAGQuery,
     GraphRAGResponse,
