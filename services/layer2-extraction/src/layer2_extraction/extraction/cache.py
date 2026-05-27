@@ -87,24 +87,28 @@ class ExtractionCache:
     @staticmethod
     def _log_cache_failure(operation: str, exc: Exception, context: dict[str, str | None] | None = None) -> None:
         context = context or {}
+        tenant_id = context.get("tenant_id") or ""  # Use empty string as fallback for metrics
+        
+        # Always record metrics even without tenant context for observability
         metrics = get_metrics()
         if metrics:
             metrics.record_cache_failure(
                 failure_type="decode" if isinstance(exc, (pickle.UnpicklingError, AttributeError, EOFError, ValueError, TypeError)) else "corruption",
-                tenant_id=context.get("tenant_id") or "",
-                ingestion_id=context.get("ingestion_id") or "",
+                tenant_id=tenant_id,
+                ingestion_id=context.get("ingestion_id", ""),
                 extraction_job_id=context.get("extraction_job_id") or context.get("job_id") or "",
-                model_version=context.get("model_version") or "",
-                schema_version=context.get("schema_version") or "",
-                value_pack_id=context.get("value_pack_id") or "",
+                model_version=context.get("model_version", ""),
+                schema_version=context.get("schema_version", ""),
+                value_pack_id=context.get("value_pack_id", ""),
                 operation=operation,
             )
+        
         logger.warning(
             "Cache operation failed; continuing without cache",
             exc_info=exc,
             extra={
                 "operation": operation,
-                "tenant_id": context.get("tenant_id"),
+                "tenant_id": tenant_id or None,  # Use None in logs if empty
                 "job_id": context.get("job_id"),
                 "correlation_id": context.get("correlation_id"),
                 "exception_class": type(exc).__name__,

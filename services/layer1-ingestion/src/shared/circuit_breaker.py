@@ -4,13 +4,13 @@ P0-01: Prevents cascading failures by breaking connections to failing services.
 Supports HTTPX, Playwright, and Redis clients with configurable thresholds.
 """
 
+import asyncio
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Callable
 
 import structlog
-from pybreaker import CircuitBreaker, CircuitBreakerError
 
 from ..metrics.prometheus_metrics import get_metrics
 
@@ -33,15 +33,130 @@ class CircuitBreakerConfig:
     recovery_timeout: int = 30  # Seconds before attempting recovery
     expected_exception: type[Exception] | tuple[type[Exception], ...] = Exception
     name: str = "default"
+    success_threshold: int = 2  # Successes in half-open to close circuit
+
+
+@dataclass
+class CircuitBreakerStateData:
+    """Internal state for circuit breaker."""
+
+    failure_count: int = 0
+    last_failure_time: float = 0.0
+    state: CircuitBreakerState = CircuitBreakerState.CLOSED
+    success_count: int = 0  # Successes in half-open state
+
+
+class AsyncCircuitBreaker:
+    """Async-compatible circuit breaker implementation."""
+
+    def __init__(
+        self,
+        name: str,
+        failure_threshold: int = 5,
+        recovery_timeout: int = 30,
+        expected_exception: type[Exception] | tuple[type[Exception], ...] = Exception,
+        success_threshold: int = 2,
+    ):
+        self.name = name
+        self.config = CircuitBreakerConfig(
+            failure_threshold=failure_threshold,
+            recovery_timeout=recovery_timeout,
+            expected_exception=expected_exception,
+            name=name,
+            success_threshold=success_threshold,
+        )
+        self._state = CircuitBreakerStateData()
+        self._lock = asyncio.Lock()
+        self.metrics = get_metrics()
+
+    async def call(self, func: Callable, *args: Any, **kwargs: Any) -> Any:
+        """Execute function with circuit breaker protection.
+
+        Args:
+            func: Async function to call
+            *args: Function arguments
+            **kwargs: Function keyword arguments
+
+        Returns:
+            Function result
+
+        Raises:
+            CircuitBreakerError: If circuit is open
+            Exception: If function raises an exception
+        """
+        # Hold lock for entire operation to prevent race conditions
+        async with self._lock:
+            # Check if circuit is open and recovery timeout has passed
+            if self._state.state == CircuitBreakerState.OPEN:
+                if time.time() - self._state.last_failure_time > self.config.recovery_timeout:
+                    logger.info("Circuit breaker transitioning to half-open", name=self.name)
+                    self._state.state = CircuitBreakerState.HALF_OPEN
+                    self._state.success_count = 0
+                else:
+                    raise CircuitBreakerError(
+                        f"Circuit breaker '{self.name}' is open, rejecting call"
+                    )
+
+            # Call function while holding lock to prevent concurrent state transitions
+            try:
+                result = await func(*args, **kwargs)
+                
+                # Handle success path
+                if self._state.state == CircuitBreakerState.HALF_OPEN:
+                    self._state.success_count += 1
+                    if self._state.success_count >= self.config.success_threshold:
+                        logger.info("Circuit breaker closing after successful recovery", name=self.name)
+                        self._state.state = CircuitBreakerState.CLOSED
+                        self._state.failure_count = 0
+                elif self._state.state == CircuitBreakerState.CLOSED:
+                    self._state.failure_count = 0  # Reset on success
+                
+                return result
+
+            except self.config.expected_exception as e:
+                self._state.failure_count += 1
+                self._state.last_failure_time = time.time()
+
+                if self._state.failure_count >= self.config.failure_threshold:
+                    if self._state.state != CircuitBreakerState.OPEN:
+                        logger.warning(
+                            "Circuit breaker opening",
+                            name=self.name,
+                            failure_count=self._state.failure_count,
+                            threshold=self.config.failure_threshold,
+                        )
+                        self._state.state = CircuitBreakerState.OPEN
+                        if self.metrics and self.metrics.config.enabled:
+                            self.metrics._metrics["circuit_breaker_opens_total"].labels(
+                                service=self.name
+                            ).inc()
+                elif self._state.state == CircuitBreakerState.HALF_OPEN:
+                    # Failed in half-open, reopen immediately
+                    logger.warning("Circuit breaker reopening after half-open failure", name=self.name)
+                    self._state.state = CircuitBreakerState.OPEN
+
+                raise
+
+    def get_state(self) -> CircuitBreakerState:
+        """Get current circuit breaker state."""
+        return self._state.state
+
+    def reset(self) -> None:
+        """Manually reset circuit breaker to closed state."""
+        self._state = CircuitBreakerStateData()
+        logger.info("Circuit breaker manually reset", name=self.name)
+
+
+class CircuitBreakerError(Exception):
+    """Raised when circuit breaker is open and rejects a call."""
+    pass
 
 
 class CircuitBreakerManager:
     """Manages circuit breakers for external services."""
 
     def __init__(self):
-        self._breakers: dict[str, CircuitBreaker] = {}
-        self._configs: dict[str, CircuitBreakerConfig] = {}
-        self.metrics = get_metrics()
+        self._breakers: dict[str, AsyncCircuitBreaker] = {}
 
     def create_breaker(
         self,
@@ -49,7 +164,8 @@ class CircuitBreakerManager:
         failure_threshold: int = 5,
         recovery_timeout: int = 30,
         expected_exception: type[Exception] | tuple[type[Exception], ...] = Exception,
-    ) -> CircuitBreaker:
+        success_threshold: int = 2,
+    ) -> AsyncCircuitBreaker:
         """Create or retrieve a circuit breaker.
 
         Args:
@@ -57,29 +173,21 @@ class CircuitBreakerManager:
             failure_threshold: Number of failures before opening circuit
             recovery_timeout: Seconds to wait before attempting recovery
             expected_exception: Exception types that count as failures
+            success_threshold: Successes in half-open state to close circuit
 
         Returns:
-            CircuitBreaker instance
+            AsyncCircuitBreaker instance
         """
         if name in self._breakers:
             return self._breakers[name]
 
-        config = CircuitBreakerConfig(
+        breaker = AsyncCircuitBreaker(
+            name=name,
             failure_threshold=failure_threshold,
             recovery_timeout=recovery_timeout,
             expected_exception=expected_exception,
-            name=name,
+            success_threshold=success_threshold,
         )
-        self._configs[name] = config
-
-        breaker = CircuitBreaker(
-            fail_max=failure_threshold,
-            reset_timeout=recovery_timeout,
-            expected_exception=expected_exception,
-        )
-
-        # Add state change monitoring
-        breaker.add_listener(_CircuitBreakerListener(name, self.metrics))
 
         self._breakers[name] = breaker
         logger.info(
@@ -87,11 +195,12 @@ class CircuitBreakerManager:
             name=name,
             failure_threshold=failure_threshold,
             recovery_timeout=recovery_timeout,
+            success_threshold=success_threshold,
         )
 
         return breaker
 
-    def get_breaker(self, name: str) -> CircuitBreaker | None:
+    def get_breaker(self, name: str) -> AsyncCircuitBreaker | None:
         """Get existing circuit breaker by name."""
         return self._breakers.get(name)
 
@@ -100,46 +209,13 @@ class CircuitBreakerManager:
         breaker = self.get_breaker(name)
         if not breaker:
             return CircuitBreakerState.CLOSED
-
-        if breaker.open:
-            return CircuitBreakerState.OPEN
-        elif breaker.half_open:
-            return CircuitBreakerState.HALF_OPEN
-        else:
-            return CircuitBreakerState.CLOSED
+        return breaker.get_state()
 
     def reset(self, name: str) -> None:
         """Manually reset a circuit breaker to closed state."""
         breaker = self.get_breaker(name)
         if breaker:
-            breaker._state = CircuitBreaker._CLOSED_STATE
-            breaker._failure_count = 0
-            logger.info("Circuit breaker manually reset", name=name)
-
-
-class _CircuitBreakerListener:
-    """Listener for circuit breaker state changes for metrics."""
-
-    def __init__(self, name: str, metrics: Any):
-        self.name = name
-        self.metrics = metrics
-
-    def state_change(self, old_state: str, new_state: str) -> None:
-        """Handle circuit breaker state changes."""
-        logger.info(
-            "Circuit breaker state changed",
-            name=self.name,
-            old_state=old_state,
-            new_state=new_state,
-        )
-
-        # Emit metric for state change
-        if self.metrics and self.metrics.config.enabled:
-            # Track circuit breaker opens as failures
-            if new_state == "open":
-                self.metrics._metrics["circuit_breaker_opens_total"].labels(
-                    service=self.name
-                ).inc()
+            breaker.reset()
 
 
 # Global circuit breaker manager instance
@@ -156,14 +232,16 @@ def with_circuit_breaker(
     failure_threshold: int = 5,
     recovery_timeout: int = 30,
     expected_exception: type[Exception] | tuple[type[Exception], ...] = Exception,
+    success_threshold: int = 2,
 ):
-    """Decorator to apply circuit breaker to a function.
+    """Decorator to apply circuit breaker to an async function.
 
     Args:
         service_name: Name of the service for circuit breaker identification
         failure_threshold: Number of failures before opening circuit
         recovery_timeout: Seconds to wait before attempting recovery
         expected_exception: Exception types that count as failures
+        success_threshold: Successes in half-open state to close circuit
 
     Example:
         @with_circuit_breaker("httpx_client", failure_threshold=5, recovery_timeout=30)
@@ -172,17 +250,18 @@ def with_circuit_breaker(
     """
 
     def decorator(func: Callable) -> Callable:
-        def wrapper(*args: Any, **kwargs: Any) -> Any:
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
             manager = get_circuit_breaker_manager()
             breaker = manager.create_breaker(
                 name=service_name,
                 failure_threshold=failure_threshold,
                 recovery_timeout=recovery_timeout,
                 expected_exception=expected_exception,
+                success_threshold=success_threshold,
             )
 
             try:
-                return breaker.call(func, *args, **kwargs)
+                return await breaker.call(func, *args, **kwargs)
             except CircuitBreakerError:
                 logger.warning(
                     "Circuit breaker open, call rejected",
@@ -194,3 +273,4 @@ def with_circuit_breaker(
         return wrapper
 
     return decorator
+

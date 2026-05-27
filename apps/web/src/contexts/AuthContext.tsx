@@ -1,9 +1,13 @@
 /**
- * Auth Context — Clerk-only authentication state
+ * Auth Context — Clerk-only authentication state with mock/dev mode
  *
  * Thin wrapper around Clerk's useAuth/useUser hooks that exposes a
  * legacy-compatible interface so existing consumers (UnifiedRouteGuard,
  * AppHeader, settings pages) continue to work without modification.
+ *
+ * Mock/dev mode: When VITE_ENABLE_MOCK_AUTH=true (dev/test only), provides
+ * a mock authenticated user for local development and Playwright testing without
+ * requiring real Clerk credentials. Production builds fail closed if this is enabled.
  */
 
 import { createContext, useContext, useMemo } from 'react';
@@ -12,6 +16,29 @@ import { createFeatureLogger } from '@/lib/telemetry';
 import { type UserInfo, UserInfoSchema } from '../schemas/auth';
 
 export type { UserInfo } from '../schemas/auth';
+
+// Production guard: fail if mock auth is enabled in production builds
+if (import.meta.env.PROD && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true') {
+  throw new Error(
+    'VITE_ENABLE_MOCK_AUTH is enabled in production build. ' +
+    'Mock authentication is not allowed in production. ' +
+    'Disable VITE_ENABLE_MOCK_AUTH and rebuild.'
+  );
+}
+
+// Mock identity for dev/test mode (using valid UUID format to match production expectations)
+const MOCK_USER_ID = '00000000-0000-0000-0000-000000000001';
+const MOCK_TENANT_ID = '00000000-0000-0000-0000-000000000001';
+const MOCK_TENANT_SLUG = 'demo';
+const MOCK_ACCOUNT_ID = '00000000-0000-0000-0000-000000000001';
+
+const MOCK_USER_INFO: UserInfo = {
+  id: MOCK_USER_ID,
+  email: 'demo@valuepact.ai',
+  role: 'admin',
+  tenantId: MOCK_TENANT_ID,
+  tenantSlug: MOCK_TENANT_SLUG,
+};
 
 interface AuthContextType {
   isAuthenticated: boolean;
@@ -36,13 +63,24 @@ function safeNavigate(path: string) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  // Check if mock auth mode is enabled
+  const mockAuthEnabled = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+
+  // Clerk hooks (only used when mock auth is disabled)
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();
   const { isLoaded: userLoaded, user: clerkUser } = useClerkUser();
   const { organization } = useOrganization();
 
-  const isLoading = !authLoaded || !userLoaded;
+  // Determine loading state and user info based on mode
+  const isLoading = mockAuthEnabled ? false : (!authLoaded || !userLoaded);
 
   const user: UserInfo | null = useMemo(() => {
+    // Mock auth mode: return mock user immediately
+    if (mockAuthEnabled) {
+      return MOCK_USER_INFO;
+    }
+
+    // Clerk mode: map Clerk user to UserInfo
     if (!clerkUser) return null;
 
     // Users without organization membership are not fully authenticated for our multi-tenant app
@@ -75,11 +113,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
     const parsed = UserInfoSchema.safeParse(mapped);
     return parsed.success ? parsed.data : null;
-  }, [clerkUser, organization]);
+  }, [mockAuthEnabled, clerkUser, organization]);
 
-  const currentTenantSlug = organization?.slug ?? null;
+  const currentTenantSlug = mockAuthEnabled ? MOCK_TENANT_SLUG : (organization?.slug ?? null);
 
   const initiateLogin = async () => {
+    // In mock mode, no-op since we're already "authenticated"
+    if (mockAuthEnabled) return;
     safeNavigate('/sign-in');
   };
 
@@ -89,6 +129,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    // In mock mode, just reload to clear state
+    if (mockAuthEnabled) {
+      safeNavigate('/');
+      return;
+    }
     try {
       const { useClerk } = await import('@clerk/react');
       const clerk = useClerk();
@@ -100,7 +145,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const refreshToken = async () => {
-    // Clerk handles token refresh automatically
+    // Clerk handles token refresh automatically; mock mode always succeeds
     return true;
   };
 
@@ -113,14 +158,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   if (import.meta.env.DEV || import.meta.env.MODE === 'test') {
     devBypass = () => {
-      // Clerk doesn't support dev bypass in the same way as legacy auth
-      // This is a no-op for Clerk mode but kept for interface compatibility
-      log.warn('devBypass called in Clerk mode - not supported');
+      // In mock mode, devBypass is a no-op since we're already bypassing
+      // In Clerk mode, this remains a no-op for interface compatibility
+      if (mockAuthEnabled) {
+        log.info('devBypass called in mock auth mode - already bypassed');
+      } else {
+        log.warn('devBypass called in Clerk mode - not supported');
+      }
     };
   }
 
   const value: AuthContextType = {
-    isAuthenticated: authLoaded && !!isSignedIn,
+    isAuthenticated: mockAuthEnabled ? true : (authLoaded && !!isSignedIn),
     isLoading,
     user,
     currentTenantSlug,

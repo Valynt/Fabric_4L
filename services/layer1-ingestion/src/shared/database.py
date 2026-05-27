@@ -23,9 +23,12 @@ from ..metrics.prometheus_metrics import get_metrics
 from .config import settings
 
 # Database connection pool configuration from environment
+# P1-02: Tune pool sizes for higher concurrency
 # Tune these based on your load: pool_size + max_overflow = max concurrent connections
-DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "5"))
-DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "10"))
+DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "20"))  # Increased from 5 to 20
+DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "30"))  # Increased from 10 to 30
+# P0-05: Configurable statement timeout (default 5 minutes for long-running operations)
+DB_STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "300000"))  # 5 minutes default
 logger = logging.getLogger(__name__)
 _PRIVILEGED_REASON_HEADER = "X-Privileged-Reason"
 _TENANT_CONTEXT_STATE_KEY = "tenant_context_state"
@@ -33,12 +36,16 @@ _TENANT_CONTEXT_VALUE_KEY = "tenant_context_value"
 _TENANT_BYPASS_REASON_KEY = "tenant_context_bypass_reason"
 
 # Create engine with configurable pool settings
+# P0-05: Add statement_timeout for query timeout protection (configurable via env var)
 engine = create_engine(
     settings.database_url, 
     pool_size=DB_POOL_SIZE, 
     max_overflow=DB_MAX_OVERFLOW, 
     pool_pre_ping=True, 
-    echo=settings.debug
+    echo=settings.debug,
+    connect_args={
+        "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
+    }
 )
 
 # Session factory
