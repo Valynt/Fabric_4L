@@ -22,6 +22,7 @@ from app.routers import (
     value_cases,
     versioning,
 )
+from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 from app.services.seed_data import seed_all
 
 from .shared_bootstrap import (
@@ -44,9 +45,18 @@ def _assert_database_ready() -> None:
         raise RuntimeError(error_message) from exc
 
 
+def _assert_distributed_store_ready() -> None:
+    """Fail fast if the distributed store is unreachable or serialization is incompatible."""
+    try:
+        get_distributed_store().validate_backend()
+    except (StoreUnavailableError, StorePayloadError) as exc:
+        raise RuntimeError("FATAL: Distributed store initialization failed.") from exc
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     _assert_database_ready()
+    _assert_distributed_store_ready()
     validate_production_safety()
     if settings.seed_demo_data:
         seed_all()

@@ -42,10 +42,10 @@ jobs:
       - name: Start services
         run: |
           cat > .env <<'EOF'
-          OPENAI_API_KEY=sk-ci-test-key
+          OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
           ANTHROPIC_API_KEY=sk-ci-test-key
           NEO4J_PASSWORD=valuefabric
-          JWT_SECRET=ci-jwt-secret-value-for-ephemeral-compose-only
+          JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
           JWT_ALGORITHM=HS256
           AUTH_BYPASS_ENABLED=true
           ENVIRONMENT=ci
