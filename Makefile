@@ -496,6 +496,7 @@ check-tool-contracts: ## CI gate — validate tool error structure (CONTRACT.md 
 check-deprecated-tracer-imports: ## CI gate — block imports from deprecated custom tracer modules
 	@echo "→ Checking for deprecated custom tracer imports..."
 	$(PYTHON) scripts/ci/check_deprecated_tracer_imports.py
+	@echo "✅ Deprecated tracer import check passed"
 
 # ─── Developer Setup ─────────────────────────────────────────────────────────
 
