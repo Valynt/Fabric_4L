@@ -164,3 +164,44 @@ def test_patch_account_unknown_field_returns_422_when_extras_forbidden():
         detail = response.json()["detail"]
         assert isinstance(detail, list)
         assert any(err.get("loc") == ["body", "unknown_field"] for err in detail)
+
+
+def test_create_account_idempotency_replay_returns_stable_response():
+    with TestClient(app) as client:
+        payload = {
+            "id": "acc-test-idem-1",
+            "name": "Idem Account",
+            "industry": "Software",
+            "tenant_id": TENANT_ALPHA,
+        }
+        headers = {**HEADERS, "Idempotency-Key": "idem-create-1"}
+        first = client.post("/v1/accounts", json=payload, headers=headers)
+        second = client.post("/v1/accounts", json=payload, headers=headers)
+        assert first.status_code == 201
+        assert second.status_code == 201
+        assert first.json() == second.json()
+        assert second.headers.get("X-Idempotent-Replay") == "true"
+
+
+def test_create_account_idempotency_payload_mismatch_conflicts():
+    with TestClient(app) as client:
+        headers = {**HEADERS, "Idempotency-Key": "idem-create-conflict"}
+        first_payload = {"id": "acc-test-idem-2", "name": "A", "industry": "Software", "tenant_id": TENANT_ALPHA}
+        second_payload = {"id": "acc-test-idem-3", "name": "B", "industry": "Software", "tenant_id": TENANT_ALPHA}
+        first = client.post("/v1/accounts", json=first_payload, headers=headers)
+        assert first.status_code == 201
+        conflict = client.post("/v1/accounts", json=second_payload, headers=headers)
+        assert conflict.status_code == 409
+
+
+def test_create_account_idempotency_key_scoped_by_tenant():
+    with TestClient(app) as client:
+        key = "idem-tenant-scope"
+        alpha_headers = {**auth_headers(TENANT_ALPHA), "Idempotency-Key": key}
+        beta_headers = {**auth_headers(TENANT_BETA), "Idempotency-Key": key}
+        alpha_payload = {"id": "acc-alpha-idem", "name": "Alpha", "industry": "Software", "tenant_id": TENANT_ALPHA}
+        beta_payload = {"id": "acc-beta-idem", "name": "Beta", "industry": "Software", "tenant_id": TENANT_BETA}
+        alpha = client.post("/v1/accounts", json=alpha_payload, headers=alpha_headers)
+        beta = client.post("/v1/accounts", json=beta_payload, headers=beta_headers)
+        assert alpha.status_code == 201
+        assert beta.status_code == 201
