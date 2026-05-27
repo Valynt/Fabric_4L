@@ -204,6 +204,11 @@ jobs:
           pip install pytest
           pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
 
+      - name: Run webhook security matrix and build report artifact
+        run: |
+          pip install pytest
+          python3 scripts/ci/webhook_security_matrix_report.py
+
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
@@ -238,6 +243,7 @@ jobs:
             artifacts/violation-diff-summary.json
             artifacts/violation-diff-summary.md
             artifacts/layer-quality-scorecard.md
+            artifacts/webhook-security-matrix.md
           retention-days: 14
 
   governance-docs-check:

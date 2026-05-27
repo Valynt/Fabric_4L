@@ -15,7 +15,7 @@ from app.models.schemas import (
     PaginatedResponse,
 )
 from app.repositories.session_store import ShareLinkRepository
-from app.services.distributed_store import StoreUnavailableError, get_distributed_store
+from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
 
@@ -120,7 +120,7 @@ async def create_share_link(
             fingerprint_hash=token_fingerprint_hash,
             expires_at_ts=int(expires_at.timestamp()),
         )
-    except StoreUnavailableError:
+    except (StoreUnavailableError, StorePayloadError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Share-link store unavailable; try again later",
@@ -145,7 +145,7 @@ async def revoke_share_link(
 
     try:
         repo.revoke(tenant_id=tenant_id, account_id=account_id)
-    except StoreUnavailableError:
+    except (StoreUnavailableError, StorePayloadError):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Share-link store unavailable; try again later",

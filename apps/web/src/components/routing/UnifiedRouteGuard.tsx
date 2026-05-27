@@ -124,10 +124,11 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 7. Plan/entitlement guard
-  const { entitlementsMet } = useEntitlements(
+  const { entitlementsMet, isLoading: entitlementsLoading } = useEntitlements(
     policy.requiredEntitlements ?? []
   );
   if (policy.requiredEntitlements && policy.requiredEntitlements.length > 0) {
+    if (entitlementsLoading) return <RouteGuardSkeleton />;
     if (!entitlementsMet) {
       log.warn("Entitlement not met", {
         entitlements: policy.requiredEntitlements,
