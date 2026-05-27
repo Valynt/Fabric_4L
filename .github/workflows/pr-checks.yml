@@ -217,7 +217,9 @@ jobs:
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          python scripts/ci/check_route_tenant_propagation.py --base-ref "origin/${{ github.base_ref || 'main' }}"
           python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
+          python -m pytest tests/security/test_route_tenant_propagation_static.py -v --tb=short
 
       - name: Generate layer quality scorecard
         run: |
@@ -248,6 +250,8 @@ jobs:
             artifacts/violation-diff-summary.json
             artifacts/violation-diff-summary.md
             artifacts/layer-quality-scorecard.md
+            artifacts/route-tenant-propagation.json
+            artifacts/route-tenant-propagation.md
             artifacts/webhook-security-matrix.md
           retention-days: 14
 
