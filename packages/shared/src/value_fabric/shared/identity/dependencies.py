@@ -288,14 +288,29 @@ def require_action(action: str) -> Callable[[RequestContext | None], object]:
     return dependency
 
 
+# Explicit allowlist of administrative permissions. Wildcard patterns (e.g.
+# ``startswith("admin:")``) are intentionally rejected to prevent privilege
+# escalation if a compromised JWT includes a synthetic permission claim.
+_ADMIN_PERMISSION_ALLOWLIST: frozenset[str] = frozenset({
+    Permission.ADMIN_MODELS.value,
+    Permission.ADMIN_API_KEYS.value,
+    Permission.ADMIN_USERS.value,
+    Permission.ADMIN_TENANTS.value,
+    Permission.ADMIN_SYSTEM.value,
+})
+
+
 async def require_admin(context: RequestContext | None = None) -> RequestContext:
     """Require an administrative role or explicit administrative permission."""
 
     ctx = await require_authenticated(context)
     permission_values = {_permission_value(permission) for permission in (ctx.permissions or [])}
-    has_admin_permission = "admin" in permission_values or any(
-        permission == "all" or permission.startswith("admin:") for permission in permission_values
-    )
+    # Reject wildcard "all" and any permission not in the explicit allowlist.
+    if "all" in permission_values:
+        raise _forbidden(
+            "Wildcard permission 'all' is not permitted. Use explicit administrative permissions."
+        )
+    has_admin_permission = permission_values.intersection(_ADMIN_PERMISSION_ALLOWLIST)
     if not (ctx.has_any_role(Role.SUPER_ADMIN, Role.TENANT_ADMIN, Role.CONTENT_ADMIN) or has_admin_permission):
         raise _forbidden("Administrative role or permission is required")
     return ctx

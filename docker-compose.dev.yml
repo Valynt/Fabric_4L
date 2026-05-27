@@ -245,12 +245,18 @@ services:
     ports:
       - "8004:8000"
     environment:
+      - ENVIRONMENT=development
       # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
       # Auth bypass for local dev — injects a dev tenant context on every request
       - DEV_AUTH_BYPASS=true
       - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
+      - CORS_ORIGINS=http://localhost:3001,http://localhost:8004
       # JWT secret (required by jwt.py at import time, but bypassed at runtime)
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
+      - CREDENTIALS_MASTER_KEY=dev-local-encryption-key-32-chars-minimum
+      - API_KEY_HMAC_SECRET=dev-local-hmac-secret-32-chars-minimum
+      - DEFAULT_TENANT_ID=dev-tenant
+      - SERVICE_AUTH_SECRET=dev-local-service-auth-secret-32-chars
       # Database
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
       - CHECKPOINT_DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
@@ -298,6 +304,7 @@ services:
     volumes:
       # Mount source for hot-reload (optional — remove for production-like testing)
       - ./packages/shared/src/value_fabric:/app/value_fabric
+      - ./packages/platform-contract/src/python/canonical:/app/canonical
       - ./services/layer4-agents/src:/app/src:ro
     command: >
       uvicorn src.api.main:app
@@ -330,6 +337,7 @@ services:
       - VITE_ENABLE_MOCK_FALLBACK=true
       - VITE_ENABLE_QUERY_DEVTOOLS=true
       - VITE_API_LOG_LEVEL=debug
+      - VITE_ENABLE_MOCK_AUTH=true
     volumes:
       - ./apps/web:/app
       - /app/node_modules

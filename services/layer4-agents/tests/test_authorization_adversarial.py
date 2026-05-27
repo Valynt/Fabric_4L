@@ -58,10 +58,11 @@ async def authenticated_client():
 
     test_app.dependency_overrides[require_authenticated] = override_auth
 
-    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
-        yield ac
-
-    test_app.dependency_overrides.clear()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
+            yield ac
+    finally:
+        test_app.dependency_overrides.clear()
 
 
 @pytest_asyncio.fixture
@@ -131,10 +132,11 @@ async def regular_user_client():
 
     test_app.dependency_overrides[require_authenticated] = override_auth
 
-    async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
-        yield ac
-
-    test_app.dependency_overrides.clear()
+    try:
+        async with AsyncClient(transport=ASGITransport(app=test_app), base_url="http://test") as ac:
+            yield ac
+    finally:
+        test_app.dependency_overrides.clear()
 
 
 class TestRoleEscalationAttempts:

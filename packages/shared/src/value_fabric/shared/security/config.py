@@ -33,7 +33,7 @@ _APPROVED_JWT_ALGORITHMS = frozenset({
 })
 
 # Dev-only environment names — anything else is treated as production-like
-_TEST_ENVIRONMENTS = frozenset({"test", "testing", "ci"})
+_TEST_ENVIRONMENTS = frozenset({"local", "dev", "development", "test", "testing", "ci"})
 
 # Known PostgreSQL superuser names that bypass RLS
 _SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"})

@@ -31,6 +31,8 @@ os.environ.setdefault("LAYER4_LAYER2_API_URL", "http://localhost:8002")
 os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
 os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+# Allow insecure HTTP for test environment (local development only)
+os.environ.setdefault("ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
 
 # ── Stripe Mocking (must happen before any stripe imports) ───────────────────
 os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fake_key_for_testing")

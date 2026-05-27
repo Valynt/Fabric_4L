@@ -23,7 +23,6 @@ class GateTimeoutScheduler:
     """Background scheduler that expires overdue pending gates.
 
     Uses the SQL-backed HumanGateRepository so state survives restarts.
-    Supports per-tenant timeout configuration via tenant.settings JSONB.
     """
 
     def __init__(self, session_factory, timeout_seconds: int = SAFE_FALLBACK_GATE_TIMEOUT_SECONDS):
@@ -37,11 +36,7 @@ class GateTimeoutScheduler:
         if self._task is None:
             self._task = asyncio.create_task(self._run_loop())
             logger.info(
-<<<<<<< HEAD
-                "Gate timeout scheduler started (default_timeout=%ss)", self._timeout_seconds
-=======
                 "Gate timeout scheduler started (default_timeout=%ss)", self._default_timeout_seconds
->>>>>>> e3fd1bbcaefea111bf424fbae03610350be8f8fb
             )
 
     async def stop(self) -> None:
@@ -66,53 +61,19 @@ class GateTimeoutScheduler:
             await asyncio.sleep(10)
 
     async def _expire_overdue_gates(self) -> None:
-        """Find and expire all pending gates past their deadline.
-
-        Looks up per-tenant timeout from tenant.settings JSONB; falls back
-        to the scheduler default when no tenant-specific value is set.
-        """
+        """Find and expire all pending gates past their deadline."""
         from sqlalchemy import select
 
         now = datetime.now(UTC)
 
         async with self._session_factory() as session:
             from harness.db_models import HumanGateRow
-            from tenants.models.tenant import Tenant
-            from tenants.settings_schema import get_tenant_gate_timeout
 
-<<<<<<< HEAD
-            # Fetch all pending gates; per-tenant timeout requires
-            # in-Python filtering because the deadline varies by tenant.
-=======
->>>>>>> e3fd1bbcaefea111bf424fbae03610350be8f8fb
             stmt = select(HumanGateRow).where(HumanGateRow.status == "pending")
             result = await session.execute(stmt)
-            pending_gates = result.scalars().all()
-
-            # Build a tenant-settings cache to avoid duplicate lookups
-            tenant_timeouts: dict[str, int] = {}
+            overdue_gates = result.scalars().all()
 
             expired_count = 0
-<<<<<<< HEAD
-            for row in pending_gates:
-                tenant_id = row.tenant_id
-                if tenant_id not in tenant_timeouts:
-                    tenant_settings_result = await session.execute(
-                        select(Tenant.settings).where(Tenant.id == tenant_id)
-                    )
-                    raw_settings = tenant_settings_result.scalar_one_or_none()
-                    tenant_timeouts[tenant_id] = get_tenant_gate_timeout(raw_settings)
-
-                timeout_seconds = tenant_timeouts[tenant_id]
-                deadline = now - timedelta(seconds=timeout_seconds)
-
-                if row.created_at < deadline:
-                    row.status = "expired"
-                    row.decision_by = "system"
-                    row.decision_reason = f"Gate expired after {timeout_seconds}s timeout"
-                    row.decided_at = now
-                    expired_count += 1
-=======
             for row in overdue_gates:
                 timeout_seconds, source = await self._resolve_timeout_for_tenant(
                     session, tenant_id=row.tenant_id
@@ -126,7 +87,6 @@ class GateTimeoutScheduler:
                 row.decision_reason = f"Gate expired after {timeout_seconds}s timeout"
                 row.decided_at = now
                 expired_count += 1
->>>>>>> e3fd1bbcaefea111bf424fbae03610350be8f8fb
 
                 logger.info(
                     "Gate timeout decision",

@@ -15,6 +15,8 @@ const blockedMarkers = [
   'Development Bypass',
   'sarah-chen-001',
   'axiom-robotics',
+  'VITE_ENABLE_MOCK_FALLBACK',
+  'ENABLE_MOCK_FALLBACK',
 ];
 
 const textExtensions = new Set([

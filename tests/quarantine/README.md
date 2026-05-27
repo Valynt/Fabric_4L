@@ -10,6 +10,7 @@
 - **Tracking:** Issue #124
 - **Owner:** QA team
 - **Expected Resolution:** 2026-05-01
+- **Status:** ⚠️ OVERDUE (as of 2026-05-27) — must be restored or deleted within 7 days
 
 ## Running Quarantined Tests
 

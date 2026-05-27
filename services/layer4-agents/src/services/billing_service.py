@@ -37,6 +37,10 @@ from .plan_version_service import PlanVersionService
 from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, get_stripe
 
 
+# Constants for webhook processing
+MAX_WEBHOOK_RETRY_ATTEMPTS = 5
+
+
 class BillingService_create_checkout_sessionResult(TypedDictModel):
     session_id: Any
     url: Any
@@ -505,22 +509,28 @@ class BillingService:
             await self.db.rollback()
             # Record failure state in separate transaction if needed
             transient = isinstance(exc, (StripeError, SQLAlchemyError, asyncio.TimeoutError))
-            inbox.last_error = sanitize_log_error(exc)
-            if transient and inbox.attempt_count < 5:
-                inbox.status = "retryable"
-                inbox.next_retry_at = self._utc_now() + timedelta(seconds=self._retry_delay_seconds(inbox.attempt_count))
-                logger.warning("billing.webhook.retry_scheduled", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
-                self._emit_webhook_metric("retried", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
-            else:
-                inbox.status = "failed"
-                inbox.next_retry_at = None
-                logger.error("billing.webhook.terminal_failure", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
-                logger.error("billing.webhook.dlq_routed", extra={"event_id": event_id, "event_type": event_type, "last_error": inbox.last_error, "attempt_count": inbox.attempt_count})
-                self._emit_webhook_metric("failed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
-            # Record failure state in a separate transaction
+            error_message = sanitize_log_error(exc)
+            
+            # Re-fetch inbox in new transaction to avoid stale object from rollback
             try:
                 await self.db.begin()
-                await self.db.flush()
+                result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
+                inbox = result.scalar_one_or_none()
+                
+                if inbox:
+                    inbox.last_error = error_message
+                    if transient and inbox.attempt_count < MAX_WEBHOOK_RETRY_ATTEMPTS:
+                        inbox.status = "retryable"
+                        inbox.next_retry_at = self._utc_now() + timedelta(seconds=self._retry_delay_seconds(inbox.attempt_count))
+                        logger.warning("billing.webhook.retry_scheduled", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
+                        self._emit_webhook_metric("retried", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
+                    else:
+                        inbox.status = "failed"
+                        inbox.next_retry_at = None
+                        logger.error("billing.webhook.terminal_failure", extra={"event_id": event_id, "attempt_count": inbox.attempt_count})
+                        logger.error("billing.webhook.dlq_routed", extra={"event_id": event_id, "event_type": event_type, "last_error": inbox.last_error, "attempt_count": inbox.attempt_count})
+                        self._emit_webhook_metric("failed", event_id=event_id, event_type=event_type, attempt_count=inbox.attempt_count)
+                    await self.db.flush()
                 await self.db.commit()
             except Exception:
                 # If we can't even record the failure, log and continue
