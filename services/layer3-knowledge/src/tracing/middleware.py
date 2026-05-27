@@ -75,15 +75,15 @@ class TracingMiddleware(BaseHTTPMiddleware):
             layer="L3",
             route=request.url.path,
             extras={
-            "http.method": request.method,
-            "http.url": str(request.url),
-            "http.scheme": request.url.scheme,
-            "http.host": request.url.hostname,
-            "http.path": request.url.path,
-            "http.query": request.url.query,
-            "http.user_agent": request.headers.get("User-Agent", ""),
-            "http.remote_addr": request.client.host if request.client else "",
-        },
+                "http.method": request.method,
+                "http.url": str(request.url),
+                "http.scheme": request.url.scheme,
+                "http.host": request.url.hostname,
+                "http.path": request.url.path,
+                "http.query": request.url.query,
+                "http.user_agent": request.headers.get("User-Agent", ""),
+                "http.remote_addr": request.client.host if request.client else "",
+            },
         )
         if request.url.port is not None:
             attributes["http.port"] = request.url.port
@@ -122,6 +122,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
             # Set span status based on response
             if response.status_code >= 400:
                 span.set_status(trace.Status(trace.StatusCode.ERROR, f"HTTP {response.status_code}"))
+                span.set_attribute("error_code", f"http_{response.status_code}")
             else:
                 span.set_status(trace.Status(trace.StatusCode.OK))
 

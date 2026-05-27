@@ -13,6 +13,8 @@ SCAN_DIRS = [
 PATTERNS = [
     re.compile(r"from\s+value_fabric\.layer3\.tracing\.tracer\s+import"),
     re.compile(r"from\s+\.\.?tracing\.tracer\s+import"),
+    re.compile(r"import\s+value_fabric\.layer3\.tracing\.tracer(?:\s+as\s+\w+)?"),
+    re.compile(r"import\s+\.\.?tracing\.tracer(?:\s+as\s+\w+)?"),
 ]
 violations: list[str] = []
 for scan_dir in SCAN_DIRS:
