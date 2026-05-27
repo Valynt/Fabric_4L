@@ -167,7 +167,7 @@ def report_meter_event(
     stripe_event_name = STRIPE_METER_EVENT_MAP.get(metric_name, metric_name)
 
     # Prepare payload
-    payload = {
+    payload: dict[str, Any] = {
         "event_name": stripe_event_name,
         "payload": {
             "value": str(int(quantity)),  # Stripe requires string integer
@@ -202,7 +202,7 @@ def report_meter_event(
 def get_billing_meter(
     meter_id: str | None = None,
     meter_name: str | None = None,
-) -> dict[str, Any] | None:
+) -> dict[str, Any] | list[dict[str, Any]] | None:
     """Get or list Stripe billing meters.
 
     Args:

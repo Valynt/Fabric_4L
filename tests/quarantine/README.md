@@ -4,13 +4,7 @@
 
 ## Quarantined Tests
 
-### 1. `test_docker_integration.py`
-- **Reason:** Docker-dependent failures
-- **Issue:** Requires Docker-in-Docker for CI
-- **Tracking:** Issue #124
-- **Owner:** QA team
-- **Expected Resolution:** 2026-05-01
-- **Status:** ⚠️ OVERDUE (as of 2026-05-27) — must be restored or deleted within 7 days
+*No tests currently in quarantine.*
 
 ## Running Quarantined Tests
 

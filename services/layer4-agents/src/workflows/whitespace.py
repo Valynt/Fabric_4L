@@ -348,15 +348,16 @@ class WhitespaceAnalysisWorkflow(BaseWorkflow):
                         best_match = cap
 
             # Determine gap type based on match score
+            _match_name = best_match.get("name", "N/A") if isinstance(best_match, dict) else "N/A"
             if best_score >= 0.7:
                 gap_type = "none"
                 impact = "low"
-                recommendation = f"Strong match with capability: {best_match.get('name', 'N/A')}"
+                recommendation = f"Strong match with capability: {_match_name}"
             elif best_score >= 0.4:
                 gap_type = "coverage"
                 impact = "medium"
                 recommendation = (
-                    f"Partial match - explore {best_match.get('name', 'N/A')} with customizations"
+                    f"Partial match - explore {_match_name} with customizations"
                 )
             else:
                 gap_type = "capability"

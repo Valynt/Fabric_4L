@@ -118,3 +118,87 @@ export const TIER_CONFIG = {
     cannotAccess: [],
   },
 } as const;
+
+/**
+ * Billing and entitlement test data
+ */
+export interface TestBillingData {
+  plan: 'starter' | 'professional' | 'enterprise';
+  status: 'active' | 'past_due' | 'cancelled' | 'trial';
+  usage: {
+    api_calls: number;
+    storage_gb: number;
+    users: number;
+  };
+  limits: {
+    max_api_calls: number;
+    max_storage_gb: number;
+    max_users: number;
+  };
+  invoices: Array<{
+    id: string;
+    amount: number;
+    status: 'paid' | 'pending' | 'failed';
+    date: string;
+  }>;
+  webhooks: Array<{
+    id: string;
+    url: string;
+    events: string[];
+    status: 'active' | 'failed';
+    last_delivery: string | null;
+  }>;
+}
+
+/**
+ * Generate test billing data
+ */
+export function createTestBillingData(
+  plan: TestBillingData['plan'] = 'enterprise',
+  overrides?: Partial<TestBillingData>
+): TestBillingData {
+  const limits = {
+    starter: { max_api_calls: 10000, max_storage_gb: 10, max_users: 5 },
+    professional: { max_api_calls: 100000, max_storage_gb: 100, max_users: 25 },
+    enterprise: { max_api_calls: 1000000, max_storage_gb: 1000, max_users: 100 },
+  };
+
+  return {
+    plan,
+    status: 'active',
+    usage: {
+      api_calls: faker.number.int({ min: 1000, max: limits[plan].max_api_calls * 0.8 }),
+      storage_gb: faker.number.int({ min: 1, max: limits[plan].max_storage_gb * 0.8 }),
+      users: faker.number.int({ min: 1, max: limits[plan].max_users * 0.8 }),
+    },
+    limits: limits[plan],
+    invoices: Array.from({ length: 3 }, () => ({
+      id: faker.string.uuid(),
+      amount: faker.number.int({ min: 100, max: 10000 }),
+      status: faker.helpers.arrayElement(['paid', 'pending', 'failed']),
+      date: faker.date.recent({ days: 90 }).toISOString(),
+    })),
+    webhooks: [
+      {
+        id: faker.string.uuid(),
+        url: 'https://hooks.slack.com/services/TEST/WEBHOOK/URL',
+        events: ['invoice.paid', 'subscription.updated'],
+        status: 'active',
+        last_delivery: faker.date.recent({ days: 1 }).toISOString(),
+      },
+    ],
+    ...overrides,
+  };
+}
+
+/**
+ * Pre-configured billing scenarios for testing
+ */
+export const BILLING_SCENARIOS = {
+  enterprise_active: createTestBillingData('enterprise', { status: 'active' }),
+  professional_past_due: createTestBillingData('professional', { status: 'past_due' }),
+  starter_trial: createTestBillingData('starter', { status: 'trial' }),
+  enterprise_over_limit: createTestBillingData('enterprise', {
+    usage: { api_calls: 2000000, storage_gb: 2000, users: 150 },
+  }),
+} as const;

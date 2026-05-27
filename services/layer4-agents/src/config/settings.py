@@ -7,6 +7,7 @@ Fails fast on startup if required configuration is missing or invalid.
 from __future__ import annotations
 
 import importlib
+import importlib.util
 import logging
 import secrets
 from urllib.parse import urlparse
@@ -527,6 +528,8 @@ class Settings(BaseSettings):
     @classmethod
     def validate_layer_endpoint_url(cls, v: str, info: ValidationInfo) -> str:
         """Validate Layer 1/2/3/5 endpoint URLs with environment-aware transport rules."""
+        if not info.field_name:
+            raise ValueError("field_name is required for URL validation")
         field_name = info.field_name.upper()
         if not v or not v.strip():
             raise ValueError(

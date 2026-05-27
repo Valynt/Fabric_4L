@@ -51,21 +51,21 @@ try:
     from value_fabric.shared.testability import Clock, IDGenerator, SystemClock, UUIDGenerator
 except ImportError:
     # Fallback implementations when shared package unavailable
-    class Clock:
+    class Clock:  # type: ignore[no-redef]
         @staticmethod
         def now() -> datetime:
             return datetime.now()
     
-    class SystemClock(Clock):
+    class SystemClock(Clock):  # type: ignore[no-redef]
         pass
     
-    class IDGenerator:
+    class IDGenerator:  # type: ignore[no-redef]
         @staticmethod
         def generate() -> str:
             import uuid
             return str(uuid.uuid4())
     
-    class UUIDGenerator(IDGenerator):
+    class UUIDGenerator(IDGenerator):  # type: ignore[no-redef]
         pass
 
 
@@ -128,7 +128,7 @@ class AgentState:
 
     def to_dict(self) -> dict[str, Any]:
         """Convert state to dictionary."""
-        return AgentState_to_dictResult.model_validate({
+        return dict(AgentState_to_dictResult.model_validate({
             "agent_id": self.agent_id,
             "agent_type": self.agent_type,
             "status": self.status.name,
@@ -138,7 +138,7 @@ class AgentState:
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "errors": self.errors,
             "metadata": self.metadata,
-        })
+        }).model_dump())
 
 
 class BaseAgent(ABC):

@@ -7,7 +7,7 @@ import logging
 import re
 from collections import OrderedDict
 from datetime import UTC, datetime
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from pydantic import TypeAdapter, ValidationError
 
@@ -60,7 +60,7 @@ class StateManager:
         """
         self.redis = redis_client
         # P0-26: LRU cache with maxlen to prevent unbounded growth
-        self._memory_store: OrderedDict[str, dict] = OrderedDict()
+        self._memory_store: OrderedDict[str, Any] = OrderedDict()
         self._max_memory_entries = max_memory_entries
         self._ws_manager: WorkflowWebSocketManager | None = ws_manager
 
@@ -201,6 +201,8 @@ class StateManager:
         )
 
         workflow_type = state_dict.get("workflow_type")
+        if not isinstance(workflow_type, str):
+            raise ValueError(f"Invalid workflow_type for state deserialization: {workflow_type}")
 
         # Map to correct state type
         type_map = {
@@ -224,7 +226,7 @@ class StateManager:
                 except ValueError:
                     pass
 
-        return state_class(**state_dict)
+        return cast(ROIAgentState | WhitespaceAgentState | BusinessCaseAgentState | OrchestratorAgentState, state_class(**state_dict))
 
     async def delete_state(self, workflow_id: str) -> None:
         """Delete workflow state."""
@@ -328,7 +330,7 @@ class StateManager:
             return history
         else:
             history_key = f"{workflow_id}{_HISTORY_KEY_SUFFIX}"
-            history = self._memory_store.get(history_key, [])
+            history: list[Any] = self._memory_store.get(history_key, [])
             return history[:limit]
 
     async def list_active_workflows(self) -> list[str]:

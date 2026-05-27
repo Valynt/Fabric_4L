@@ -1,0 +1,58 @@
+=== src/workflows/roi_calculator.py ===
+=== src/workflows/business_case.py ===
+=== src/workflows/whitespace.py ===
+src\workflows\whitespace.py:354:67: error: Item "None" of "Any | None" has no attribute "get"  [union-attr]
+src\workflows\whitespace.py:359:48: error: Item "None" of "Any | None" has no attribute "get"  [union-attr]
+=== src/services/tenant_provisioning.py ===
+=== src/services/stripe_client.py ===
+src\services\stripe_client.py:181:32: error: Incompatible types in assignment (expression has type "int", target has type "Collection[str]")  [assignment]
+src\services\stripe_client.py:234:20: error: Incompatible return value type (got "list[dict[str, Any]]", expected "dict[str, Any] | None")  [return-value]
+=== src/services/usage_service.py ===
+=== src/services/invoice_service.py ===
+=== src/services/overage_service.py ===
+src\services\overage_service.py:212:17: error: "_Limit" has no attribute "period"  [attr-defined]
+src\services\overage_service.py:213:17: error: "_Limit" has no attribute "included_amount"  [attr-defined]
+src\services\overage_service.py:214:17: error: "_Limit" has no attribute "warning_threshold"  [attr-defined]
+src\services\overage_service.py:215:17: error: "_Limit" has no attribute "hard_limit"  [attr-defined]
+src\services\overage_service.py:216:17: error: "_Limit" has no attribute "overage_rate"  [attr-defined]
+src\services\overage_service.py:238:59: error: "_Limit" has no attribute "period"  [attr-defined]
+src\services\overage_service.py:249:24: error: "_Limit" has no attribute "included_amount"  [attr-defined]
+src\services\overage_service.py:261:33: error: "_Limit" has no attribute "warning_threshold"  [attr-defined]
+src\services\overage_service.py:263:30: error: "_Limit" has no attribute "hard_limit"  [attr-defined]
+src\services\overage_service.py:264:38: error: "_Limit" has no attribute "overage_rate"  [attr-defined]
+=== src/agents/signal_detection.py ===
+=== src/api/routes/workflows.py ===
+src\api\routes\workflows.py:313:1: error: Missing return statement  [return]
+src\api\routes\workflows.py:618:1: error: Missing return statement  [return]
+src\api\routes\workflows.py:694:13: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\workflows.py:726:1: error: Missing return statement  [return]
+src\api\routes\workflows.py:793:13: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\workflows.py:934:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+=== src/api/routes/billing.py ===
+src\api\routes\billing.py:1320:25: error: Item "str" of "str | None" has no attribute "HTTP_500_INTERNAL_SERVER_ERROR"  [union-attr]
+src\api\routes\billing.py:1320:25: error: Item "None" of "str | None" has no attribute "HTTP_500_INTERNAL_SERVER_ERROR"  [union-attr]
+src\api\routes\billing.py:1364:9: error: Unexpected keyword argument "error_code" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1364:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1496:9: error: Unexpected keyword argument "error_code" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1496:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1535:9: error: Unexpected keyword argument "error_code" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1535:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1569:9: error: Unexpected keyword argument "error_code" for "warning" of "Logger"  [call-arg]
+src\api\routes\billing.py:1569:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+=== src/api/routes/checkpoints.py ===
+=== src/api/routes/agent_stream.py ===
+=== src/api/routes/accounts.py ===
+src\api\routes\accounts.py:236:9: error: Unexpected keyword argument "error" for "warning" of "Logger"  [call-arg]
+src\api\routes\accounts.py:399:38: error: Cannot determine type of "activity"  [has-type]
+=== src/services/billing_service.py ===
+=== src/services/account_service.py ===
+=== src/models/billing.py ===
+=== src/config/settings.py ===
+src\config\settings.py:29:12: error: Module has no attribute "util"  [attr-defined]
+=== src/engine/executor.py ===
+src\engine\executor.py:1635:47: error: Incompatible types in assignment (expression has type "Task[Any] | None", target has type "Task[Any]")  [assignment]
+=== src/engine/state_manager.py ===
+src\engine\state_manager.py:213:36: error: Argument 1 to "get" of "dict" has incompatible type "Any | None"; expected "str"  [arg-type]
+src\engine\state_manager.py:302:51: error: Incompatible types in assignment (expression has type "list[Never]", target has type "dict[Any, Any]")  [assignment]
+src\engine\state_manager.py:303:13: error: "dict[Any, Any]" has no attribute "insert"  [attr-defined]
+src\engine\state_manager.py:331:23: error: Incompatible types in assignment (expression has type "dict[Any, Any] | list[Any]", variable has type "list[Any]")  [assignment]

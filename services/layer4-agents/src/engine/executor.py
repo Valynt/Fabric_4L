@@ -1632,7 +1632,10 @@ class OrchestrationController:
             workflow_id=workflow_id,
             initial_state=initial_state,
         )
-        self._active_workflows[workflow_id] = asyncio.current_task()
+        current_task = asyncio.current_task()
+        if current_task is None:
+            raise RuntimeError("No current task available")
+        self._active_workflows[workflow_id] = current_task
 
         try:
             from ..config.settings import settings

@@ -691,7 +691,7 @@ async def resume_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            logger.warning("workflow_resume_value_error", error=str(exc))
+            logger.warning("workflow_resume_value_error", extra={"error": str(exc)})
             raise HTTPException(status_code=404, detail="Workflow not found")
         if isinstance(exc, CheckpointConflictError):
             raise_normalized_with_log(
@@ -790,12 +790,13 @@ async def pause_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            logger.warning("workflow_pause_value_error", error=str(exc))
+            logger.warning("workflow_pause_value_error", extra={"error": str(exc)})
             raise HTTPException(status_code=404, detail="Workflow not found")
         raise_normalized_with_log(
             exc,
             status_code=500,
-            detail="Failed to pause workflow",
+            message="Failed to pause workflow",
+            error_code="WORKFLOW_PAUSE_FAILED",
             logger=logger,
             log_message=f"Unexpected error pausing workflow {workflow_id}",
         )
@@ -931,7 +932,7 @@ async def archive_workflow(
     try:
         result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
     except PermissionError as e:
-        logger.warning("workflow_archive_permission_denied", error=str(e))
+        logger.warning("workflow_archive_permission_denied", extra={"error": str(e)})
         raise HTTPException(status_code=403, detail="Permission denied to archive workflow")
 
     if result is None:

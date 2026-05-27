@@ -233,7 +233,7 @@ async def create_account(
             account_id=request.id,
         )
     except ValueError as exc:
-        logger.warning("account_create_conflict", error=str(exc))
+        logger.warning("account_create_conflict", extra={"error": str(exc)})
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account creation conflict") from exc
     except IntegrityError as exc:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists") from exc
@@ -388,12 +388,12 @@ async def get_account_activity(
             detail=f"Account not found: {account_id}",
         )
 
-        activity = await service.get_account_activity(
-            account_id=account_id,
-            limit=limit,
-            since_days=since_days,
-            tenant_id=str(_ctx.tenant_id),
-        )
+    activity = await service.get_account_activity(
+        account_id=account_id,
+        limit=limit,
+        since_days=since_days,
+        tenant_id=str(_ctx.tenant_id),
+    )
 
 
     return AccountActivityResponse(**activity)

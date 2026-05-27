@@ -1265,7 +1265,7 @@ class RecordChargeRequest(BaseModel):
 @router.get("/invoices", response_model=list_invoicesResult)
 async def list_invoices(
     customer_id: str | None = Query(None),
-    status: str | None = Query(None),
+    invoice_status: str | None = Query(None, alias="status"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_route_db),
@@ -1284,7 +1284,7 @@ async def list_invoices(
     try:
         invoices = await service.list_invoices(
             customer_id=customer_id,
-            status=status,
+            status=invoice_status,
             limit=limit,
             offset=offset,
         )
@@ -1361,7 +1361,10 @@ async def create_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_value_error", error_code="INVOICE_VALUE_ERROR", error=sanitize_log_error(e))
+        logger.warning(
+            "invoice_value_error",
+            extra={"error_code": "INVOICE_VALUE_ERROR", "error": sanitize_log_error(e)},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
@@ -1493,7 +1496,10 @@ async def add_invoice_item(
 
 
     except ValueError as e:
-        logger.warning("invoice_item_value_error", error_code="INVOICE_ITEM_VALUE_ERROR", error=sanitize_log_error(e))
+        logger.warning(
+            "invoice_item_value_error",
+            extra={"error_code": "INVOICE_ITEM_VALUE_ERROR", "error": sanitize_log_error(e)},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
@@ -1532,7 +1538,10 @@ async def finalize_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_finalize_value_error", error_code="INVOICE_FINALIZE_VALUE_ERROR", error=sanitize_log_error(e))
+        logger.warning(
+            "invoice_finalize_value_error",
+            extra={"error_code": "INVOICE_FINALIZE_VALUE_ERROR", "error": sanitize_log_error(e)},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
@@ -1566,7 +1575,10 @@ async def void_invoice(
 
 
     except ValueError as e:
-        logger.warning("invoice_void_value_error", error_code="INVOICE_VOID_VALUE_ERROR", error=sanitize_log_error(e))
+        logger.warning(
+            "invoice_void_value_error",
+            extra={"error_code": "INVOICE_VOID_VALUE_ERROR", "error": sanitize_log_error(e)},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
@@ -1584,7 +1596,7 @@ async def void_invoice(
 async def list_charges(
     customer_id: str | None = Query(None),
     invoice_id: str | None = Query(None),
-    status: str | None = Query(None),
+    charge_status: str | None = Query(None, alias="status"),
     limit: int = Query(50, ge=1, le=100),
     offset: int = Query(0, ge=0),
     db: AsyncSession = Depends(get_route_db),
@@ -1600,7 +1612,7 @@ async def list_charges(
         charges = await service.list_charges(
             customer_id=customer_id,
             invoice_id=invoice_id,
-            status=status,
+            status=charge_status,
             limit=limit,
             offset=offset,
         )
@@ -1672,7 +1684,10 @@ async def record_charge(
 
 
     except ValueError as e:
-        logger.warning("charge_value_error", error_code="CHARGE_VALUE_ERROR", error=sanitize_log_error(e))
+        logger.warning(
+            "charge_value_error",
+            extra={"error_code": "CHARGE_VALUE_ERROR", "error": sanitize_log_error(e)},
+        )
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")

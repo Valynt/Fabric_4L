@@ -1,4 +1,4 @@
-# syntax=docker/dockerfile:1
+ # syntax=docker/dockerfile:1
 FROM python:3.11.13-slim-bookworm
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
@@ -12,7 +12,7 @@ WORKDIR /app
 RUN pip install --no-cache-dir uv==0.11.6
 
 COPY pyproject.toml .
-RUN uv sync --frozen --no-install-project
+RUN uv sync --no-install-project || uv sync --frozen --no-install-project
 
 COPY app/ ./app/
 COPY migrations/ ./migrations/

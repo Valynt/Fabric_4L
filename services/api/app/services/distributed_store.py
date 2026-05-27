@@ -50,13 +50,13 @@ class RedisDistributedStore(DistributedStore):
             self._circuit_opened_at = None
             self._consecutive_failures = 0
             return
-        raise StoreUnavailableError("Distributed store circuit is open")
+        raise StoreUnavailableError("circuit_open")
 
     def _mark_failure(self, exc: Exception) -> "NoReturn":
         self._consecutive_failures += 1
         if self._consecutive_failures >= self.circuit_breaker_failures:
             self._circuit_opened_at = time.monotonic()
-        raise StoreUnavailableError("Redis unavailable") from exc
+        raise StoreUnavailableError("redis_unavailable") from exc
 
     def _with_resilience(self, operation_name: str, fn):
         self._ensure_circuit_closed()
@@ -72,7 +72,7 @@ class RedisDistributedStore(DistributedStore):
                 if attempt < self.max_retries:
                     continue
                 self._mark_failure(exc)
-        raise StoreUnavailableError(f"Redis unavailable during {operation_name}") from last_exc
+        raise StoreUnavailableError("redis_unavailable") from last_exc
 
     def get_json(self, key: str) -> dict[str, object] | None:
         payload = self._with_resilience("get", lambda: self.client.get(key))
@@ -83,16 +83,16 @@ class RedisDistributedStore(DistributedStore):
         try:
             obj = json.loads(payload)
         except (TypeError, json.JSONDecodeError) as exc:
-            raise StorePayloadError("Invalid JSON payload in distributed store") from exc
+            raise StorePayloadError("invalid_json_payload") from exc
         if not isinstance(obj, dict):
-            raise StorePayloadError("Distributed store payload must be a JSON object")
+            raise StorePayloadError("payload_not_dict")
         return obj
 
     def set_json(self, key: str, value: dict[str, object], ttl_seconds: int) -> None:
         try:
             payload = json.dumps(value)
         except (TypeError, ValueError) as exc:
-            raise StorePayloadError("Payload cannot be serialized to JSON") from exc
+            raise StorePayloadError("serialization_failed") from exc
         self._with_resilience("set", lambda: self.client.set(name=key, value=payload, ex=ttl_seconds))
 
     def delete(self, key: str) -> bool:
@@ -109,7 +109,7 @@ class RedisDistributedStore(DistributedStore):
         finally:
             self.delete(probe_key)
         if loaded != probe_payload:
-            raise StorePayloadError("Distributed store serialization compatibility check failed")
+            raise StorePayloadError("serialization_compatibility_failed")
 
 
 _store_singleton: DistributedStore | None = None
@@ -120,7 +120,7 @@ def get_distributed_store() -> DistributedStore:
     if _store_singleton is None:
         settings = get_settings()
         if not settings.redis_url:
-            raise StoreUnavailableError("REDIS_URL not configured")
+            raise StoreUnavailableError("redis_url_not_configured")
         client = Redis.from_url(settings.redis_url, decode_responses=False)
         _store_singleton = RedisDistributedStore(client=client)
     return _store_singleton

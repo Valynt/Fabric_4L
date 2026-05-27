@@ -36,24 +36,21 @@ class Layer4OrchestrationClient:
             with httpx.Client(timeout=self.timeout_seconds) as client:
                 response = client.post(f"{self.base_url}/internal/orchestrator/execute-step", json=payload)
         except httpx.HTTPError as exc:
-            raise Layer4UnavailableError("Layer 4 orchestration service is unavailable") from exc
+            raise Layer4UnavailableError("layer4_unavailable") from exc
 
         if response.status_code in {502, 503, 504}:
-            raise Layer4UnavailableError("Layer 4 orchestration service is unavailable")
+            raise Layer4UnavailableError("layer4_unavailable")
 
         if response.status_code >= 400:
-            detail = response.text[:400]
-            raise Layer4DependencyError(
-                f"Layer 4 orchestration call failed with status {response.status_code}: {detail}"
-            )
+            raise Layer4DependencyError("layer4_http_error")
 
         try:
             body = response.json()
         except ValueError as exc:
-            raise Layer4DependencyError("Layer 4 orchestration response was not valid JSON") from exc
+            raise Layer4DependencyError("layer4_invalid_json") from exc
 
         if not isinstance(body, dict):
-            raise Layer4DependencyError("Layer 4 orchestration response must be a JSON object")
+            raise Layer4DependencyError("layer4_invalid_response_type")
 
         return body
 
@@ -95,7 +92,7 @@ class AgentOrchestrator:
     ) -> AgentRun:
         run = db.agent_runs.get(run_id, tenant_id=tenant_id)
         if not run:
-            raise ValueError(f"Run {run_id} not found")
+            raise ValueError("run_not_found")
 
         run.status = "running"
         run.current_step = step_name
@@ -139,7 +136,7 @@ class AgentOrchestrator:
     def resume_run(self, run_id: str) -> AgentRun:
         run = db.agent_runs.get(run_id)
         if not run:
-            raise ValueError(f"Run {run_id} not found")
+            raise ValueError("run_not_found")
         if run.status == "paused":
             run.status = "running"
             run.updated_at = datetime.now(UTC).isoformat()
@@ -149,7 +146,7 @@ class AgentOrchestrator:
     def cancel_run(self, run_id: str) -> AgentRun:
         run = db.agent_runs.get(run_id)
         if not run:
-            raise ValueError(f"Run {run_id} not found")
+            raise ValueError("run_not_found")
         run.status = "cancelled"
         run.updated_at = datetime.now(UTC).isoformat()
         db.agent_runs.update(run_id, status=run.status)

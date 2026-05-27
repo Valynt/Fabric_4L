@@ -207,7 +207,11 @@ class OverageService:
             serialized = (effective_plan_version.usage_limits or {}).get(metric_name)
             if serialized:
                 class _Limit:
-                    pass
+                    period: str
+                    included_amount: float
+                    warning_threshold: float
+                    hard_limit: bool
+                    overage_rate: float
                 limit = _Limit()
                 limit.period = serialized.get("period", "monthly")
                 limit.included_amount = float(serialized.get("included_amount", 0.0))

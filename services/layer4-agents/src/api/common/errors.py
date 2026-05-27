@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from typing import NoReturn
 
 from fastapi import HTTPException
 from value_fabric.shared.error_handling import build_error_detail
@@ -29,7 +30,7 @@ def normalize_exception(
     )
 
 
-def raise_normalized(exc: Exception, **kwargs) -> None:
+def raise_normalized(exc: Exception, **kwargs) -> NoReturn:
     """Raise a normalized HTTPException while preserving existing HTTP payloads."""
     raise normalize_exception(exc, **kwargs)
 
@@ -44,7 +45,7 @@ def raise_normalized_with_log(
     log_message: str,
     request_id: str | None = None,
     **log_extra,
-) -> None:
+) -> NoReturn:
     """Log unexpected exceptions and raise a normalized HTTPException."""
     if not isinstance(exc, HTTPException):
         logger.exception(

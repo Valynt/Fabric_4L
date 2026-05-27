@@ -243,3 +243,96 @@ export async function clearAuthState(page: Page): Promise<void> {
     // Page may already be closed or on about:blank — safe to ignore
   }
 }
+
+/**
+ * Set an expired access token to simulate session expiry.
+ * This is used to test token refresh and expiry handling.
+ */
+export async function setExpiredToken(page: Page, user: TestUserInfo = DEFAULT_TEST_USER): Promise<void> {
+  await ensureSameOrigin(page);
+
+  await page.evaluate((u) => {
+    // Generate a token that is already expired
+    const payload = {
+      exp: Math.floor(Date.now() / 1000) - 3600, // Expired 1 hour ago
+      iat: Math.floor(Date.now() / 1000) - 7200,
+      sub: u.id,
+      tenant_id: u.tenantId,
+    };
+    const base64Payload = btoa(JSON.stringify(payload));
+    const token = `header.${base64Payload}.signature`;
+
+    localStorage.setItem('accessToken', token);
+    localStorage.setItem('userInfo', JSON.stringify(u));
+    localStorage.setItem('tenantId', u.tenantId);
+    sessionStorage.setItem('vf.auth.session.meta', JSON.stringify({ user: u, tenantId: u.tenantId }));
+  }, user);
+}
+
+/**
+ * Set a token that will expire soon (within 30 seconds).
+ * This is used to test proactive token refresh.
+ */
+export async function setExpiringToken(page: Page, user: TestUserInfo = DEFAULT_TEST_USER): Promise<void> {
+  await ensureSameOrigin(page);
+
+  await page.evaluate((u) => {
+    // Generate a token that expires in 30 seconds
+    const payload = {
+      exp: Math.floor(Date.now() / 1000) + 30,
+      iat: Math.floor(Date.now() / 1000),
+      sub: u.id,
+      tenant_id: u.tenantId,
+    };
+    const base64Payload = btoa(JSON.stringify(payload));
+    const token = `header.${base64Payload}.signature`;
+
+    localStorage.setItem('accessToken', token);
+    localStorage.setItem('userInfo', JSON.stringify(u));
+    localStorage.setItem('tenantId', u.tenantId);
+    sessionStorage.setItem('vf.auth.session.meta', JSON.stringify({ user: u, tenantId: u.tenantId }));
+  }, user);
+}
+
+/**
+ * Check if the current session is expired based on token payload.
+ */
+export async function isSessionExpired(page: Page): Promise<boolean> {
+  return page.evaluate(() => {
+    const token = localStorage.getItem('accessToken');
+    if (!token) return true;
+
+    try {
+      const parts = token.split('.');
+      if (parts.length < 2) return true;
+
+      const payload = JSON.parse(atob(parts[1]));
+      const now = Math.floor(Date.now() / 1000);
+      return payload.exp < now;
+    } catch {
+      return true;
+    }
+  });
+}
+
+/**
+ * Simulate a multi-tab session by copying session state to another page.
+ * This is used to test session synchronization across tabs.
+ */
+export async function syncSessionToPage(sourcePage: Page, targetPage: Page): Promise<void> {
+  const sessionData = await sourcePage.evaluate(() => {
+    return {
+      accessToken: localStorage.getItem('accessToken'),
+      userInfo: localStorage.getItem('userInfo'),
+      tenantId: localStorage.getItem('tenantId'),
+      sessionMeta: sessionStorage.getItem('vf.auth.session.meta'),
+    };
+  });
+
+  await targetPage.evaluate((data) => {
+    if (data.accessToken) localStorage.setItem('accessToken', data.accessToken);
+    if (data.userInfo) localStorage.setItem('userInfo', data.userInfo);
+    if (data.tenantId) localStorage.setItem('tenantId', data.tenantId);
+    if (data.sessionMeta) sessionStorage.setItem('vf.auth.session.meta', data.sessionMeta);
+  }, sessionData);
+}
