@@ -173,3 +173,37 @@ class ServiceUnavailableError(ValueFabricException):
             status_code=503,
             details=error_details,
         )
+
+
+class ConflictError(ValueFabricException):
+    """Raised when a request conflicts with current state."""
+
+    def __init__(
+        self,
+        message: str = "Conflict",
+        error_code: ErrorCode = ErrorCode.CONFLICT,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=409,
+            details=details,
+        )
+
+
+class BadRequestError(ValueFabricException):
+    """Raised when request input is malformed."""
+
+    def __init__(
+        self,
+        message: str = "Bad request",
+        error_code: ErrorCode = ErrorCode.INVALID_PARAMETER,
+        details: Optional[dict[str, Any]] = None,
+    ):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400,
+            details=details,
+        )

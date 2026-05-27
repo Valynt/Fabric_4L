@@ -26,6 +26,9 @@ from app.services.distributed_store import StorePayloadError, StoreUnavailableEr
 from app.services.seed_data import seed_all
 
 from .shared_bootstrap import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
     create_fabric_app,
     register_health_endpoint,
     validate_production_safety,
@@ -70,6 +73,11 @@ app = create_fabric_app(
     description="Fabric_4L unified API for value management",
     lifespan=lifespan,
     cors_policy=settings.cors_policy,
+    enforcement_rollout=EnforcementRolloutConfig(
+        tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        idempotency=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+    ),
 )
 
 app.include_router(accounts.router, prefix="/v1")

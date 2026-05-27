@@ -8,9 +8,14 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValueFabricException,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -33,21 +38,6 @@ async def suspend_tenant(
     db: AsyncSession | None = None,
     reason: str | None = None,
 ) -> dict[str, str | bool]:
-    """Suspend tenant (admin only) via the tenant lifecycle service.
-
-    Args:
-        tenant_id: Tenant UUID to suspend.
-        context: Request context (required for permission check).
-        db: Async SQLAlchemy session used to persist the lifecycle transition.
-        reason: Optional audit/lifecycle reason for the suspension.
-
-    Raises:
-        HTTPException: If permission is missing, persistence is unavailable,
-            tenant is missing, or the lifecycle transition is invalid.
-
-    Returns:
-        Dict with success flag on success.
-    """
     context = authorize_action(
         "layer4.tool.admin.suspend_tenant",
         context,
@@ -55,9 +45,8 @@ async def suspend_tenant(
     )
 
     if db is None:
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Tenant suspension requires a database session and cannot be completed as a dry-run tool.",
+        raise ServiceUnavailableError(
+            message="Tenant suspension requires a database session and cannot be completed as a dry-run tool."
         )
 
     admin_id = str(context.user_id or "unknown")
@@ -72,16 +61,13 @@ async def suspend_tenant(
             changed_by=admin_id,
         )
         if not updated:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Tenant {tenant_id} not found",
-            )
+            raise NotFoundError(resource_type="Tenant", resource_id=str(tenant_id))
         await db.commit()
-    except HTTPException:
+    except ValueFabricException:
         raise
     except ValueError as exc:
         logger.warning("admin_tool_value_error", error=str(exc))
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Admin operation conflict") from exc
+        raise ConflictError(message="Admin operation conflict") from exc
 
     emit_audit_event(
         AuditAction.TENANT_SUSPENDED,
