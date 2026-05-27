@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
 
@@ -60,23 +60,20 @@ def _emit_policy_decision(req: ArtifactAccessRequest, *, allowed: bool, reason: 
 def enforce_formula_benchmark_runtime_policy(req: ArtifactAccessRequest) -> None:
     if req.required_scope not in req.actor_scopes:
         _emit_policy_decision(req, allowed=False, reason="missing_scope")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Insufficient permission scope for artifact resolution.",
+        raise AuthorizationError(
+            message="Insufficient permission scope for artifact resolution.",
         )
 
     if req.artifact_status != ArtifactStatus.APPROVED:
         _emit_policy_decision(req, allowed=False, reason="not_approved")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Artifact must be approved for runtime use.",
+        raise AuthorizationError(
+            message="Artifact must be approved for runtime use.",
         )
 
     if req.artifact_status in _BLOCKED_STATUSES:
         _emit_policy_decision(req, allowed=False, reason="blocked_status")
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Artifact status is not permitted for runtime use.",
+        raise AuthorizationError(
+            message="Artifact status is not permitted for runtime use.",
         )
 
     _emit_policy_decision(req, allowed=True, reason="policy_pass")

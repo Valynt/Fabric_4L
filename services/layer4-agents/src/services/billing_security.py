@@ -13,7 +13,8 @@ import time
 from collections.abc import Iterable
 from dataclasses import dataclass
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 _DEFAULT_STRIPE_WEBHOOK_IP_CIDRS: tuple[str, ...] = (
     "3.18.12.63/32",
@@ -119,7 +120,7 @@ def ensure_timestamp_within_tolerance(timestamp: int, now: int | None = None) ->
 def validate_webhook_request_security(request: Request, stripe_signature: str, *, enforce_ip_check: bool = True) -> StripeSignatureComponents:
     client_ip = get_client_ip(request)
     if enforce_ip_check and not is_stripe_webhook_ip(client_ip):
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Invalid origin")
+        raise AuthorizationError(message="Invalid origin")
 
     components = parse_stripe_signature_header(stripe_signature)
     ensure_timestamp_within_tolerance(components.timestamp)
