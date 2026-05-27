@@ -28,7 +28,7 @@ class UsageService_ingest_batchResult(TypedDictModel):
 
 class UsageService_get_usage_summaryResult(TypedDictModel):
     customer_id: Any
-    event_count: bool
+    event_count: int
     first_event: Any
     last_event: Any
     metric_name: Any

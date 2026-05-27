@@ -84,6 +84,11 @@ jobs:
           pip install pyyaml
           python3 scripts/ci/check_graph_storage_encryption.py
 
+      - name: Check for dev auth bypass in production compose files
+        run: |
+          chmod +x .github/scripts/check-dev-auth-bypass.sh
+          .github/scripts/check-dev-auth-bypass.sh
+
       - name: Run Python contract lint
         run: |
           python scripts/ci/python_contract_lint.py --strict --json | tee artifacts/python-contract-lint.json

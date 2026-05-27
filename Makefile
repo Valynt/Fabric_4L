@@ -657,6 +657,18 @@ clean: ## Remove build artifacts and caches
 	find . -name "*.pyc" -delete 2>/dev/null || true
 	@echo "✅  Clean complete"
 
+clean-root-debris: ## Remove root-level temp artifacts, caches, and generated files
+	@echo "→ Removing root debris..."
+	@rm -rf "C:UsersBBBFabric_4L.bunny" \
+		"c:UsersBBBFabric_4Lappswebtest-resultsui-audit" \
+		"C:UsersBBBFabric_4Ltest_failures.txt" \
+		nul __pycache__ .pytest_cache .ruff_cache .hypothesis node_modules \
+		.tmp_conflict_resolver.py defer_billing_tests.py pytest.ini.test \
+		rotation_audit_*.json test_failures.txt
+	@rm -f generated/valuepacks_output-*.txt
+	@rm -rf generated/logs/*
+	@echo "✅  Root debris clean complete"
+
 # Platform Contract Lint
 platform-contract-lint:
 	@echo Running platform contract lint...

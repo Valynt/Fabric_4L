@@ -866,6 +866,15 @@ When adding environment variables:
 
 Do not rename environment variables without updating all consumers.
 
+**Dev Auth Bypass Flags:**
+The following environment variables are for local development only and MUST NEVER be set in production:
+- `DEV_AUTH_BYPASS=true`
+- `ALLOW_DEV_AUTH_BYPASS=true`
+- `AUTH_BYPASS_ENABLED=true`
+- `ALLOW_INSECURE_DEV_AUTH_BYPASS=true`
+
+These flags are validated by `ProductionSafetyValidator` and will cause startup failure in production-like environments. See SECURITY.md for details.
+
 ---
 
 ## 18. API Change Checklist

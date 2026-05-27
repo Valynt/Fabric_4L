@@ -164,8 +164,7 @@ class TenantProvisioningService:
             await emit_audit_event(
                 action=AuditAction.CREATE,
                 outcome=AuditOutcome.SUCCESS if status == "success" else AuditOutcome.ERROR,
-                actor_id=None,  # System action
-                actor_type="system",
+                user_id=None,  # System action
                 tenant_id=tenant_id,
                 resource_type="tenant",
                 resource_id=str(tenant_id),
@@ -203,8 +202,7 @@ class TenantProvisioningService:
             await emit_audit_event(
                 action=AuditAction.CREATE,
                 outcome=AuditOutcome.FAILURE,
-                actor_id=None,
-                actor_type="system",
+                user_id=None,
                 tenant_id=tenant_id,
                 resource_type="tenant",
                 resource_id=str(tenant_id),

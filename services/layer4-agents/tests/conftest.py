@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys
 import os
 from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
@@ -30,6 +31,27 @@ os.environ.setdefault("LAYER4_LAYER2_API_URL", "http://localhost:8002")
 os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
 os.environ.setdefault("LAYER4_ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
+os.environ.setdefault("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001")
+
+# ── Stripe Mocking (must happen before any stripe imports) ───────────────────
+os.environ.setdefault("STRIPE_SECRET_KEY", "sk_test_fake_key_for_testing")
+
+# Mock stripe module before any imports
+mock_stripe = MagicMock()
+mock_stripe.api_key = "sk_test_fake_key_for_testing"
+mock_stripe.error = MagicMock()
+mock_stripe.error.StripeError = Exception
+mock_stripe.error.SignatureVerificationError = Exception
+mock_stripe.Webhook = MagicMock()
+mock_stripe.Webhook.construct_event = MagicMock()
+mock_stripe.Webhook.verify_header = MagicMock()
+mock_stripe.Customer = MagicMock()
+mock_stripe.checkout = MagicMock()
+mock_stripe.billing_portal = MagicMock()
+
+sys.modules['stripe'] = mock_stripe
+sys.modules['stripe._error'] = mock_stripe.error
+sys.modules['stripe._webhook'] = mock_stripe.Webhook
 
 # ── PostgreSQL Test Lane ─────────────────────────────────────────────────────
 try:
@@ -65,35 +87,9 @@ def postgres_container():
 
 
 # ── External Dependency Mocking ───────────────────────────────────────────────
-@pytest.fixture(scope="session", autouse=True)
-def fake_stripe_provider():
-    """Provide a fake Stripe provider for all tests."""
-    from unittest.mock import MagicMock
-    
-    mock_stripe = MagicMock()
-    mock_stripe.api_key = "sk_test_fake_key_for_testing"
-    mock_stripe.error = MagicMock()
-    mock_stripe.error.StripeError = Exception
-    mock_stripe.error.SignatureVerificationError = Exception
-    mock_stripe.Webhook = MagicMock()
-    mock_stripe.Customer = MagicMock()
-    mock_stripe.checkout = MagicMock()
-    mock_stripe.billing_portal = MagicMock()
-    
-    # Patch sys.modules before any imports
-    import sys
-    import types as _types
-    
-    if 'stripe' not in sys.modules or sys.modules['stripe'] is None:
-        sys.modules['stripe'] = mock_stripe
-    
-    yield mock_stripe
-
-
 @pytest.fixture(scope="session")
 def fake_crm_provider():
     """Provide a fake CRM provider for Salesforce/HubSpot tests."""
-    from unittest.mock import MagicMock
     from value_fabric.layer4.models.account import CRMProvider
     
     mock_crm = MagicMock()

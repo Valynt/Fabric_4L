@@ -192,6 +192,21 @@ class ProductionSafetyValidator:
                 "JWT_FALLBACK_TO_QUERY_PARAM must be false or unset in production-like environments. "
                 "Passing tokens in query strings leaks credentials to logs and proxies."
             )
+        if os.getenv("DEV_AUTH_BYPASS", "").lower() in ("true", "1", "yes"):
+            self.errors.append(
+                "DEV_AUTH_BYPASS must be false or unset in production-like environments. "
+                "Development authentication bypass is a critical security risk."
+            )
+        if os.getenv("ALLOW_DEV_AUTH_BYPASS", "").lower() in ("true", "1", "yes"):
+            self.errors.append(
+                "ALLOW_DEV_AUTH_BYPASS must be false or unset in production-like environments. "
+                "Development authentication bypass is a critical security risk."
+            )
+        if os.getenv("AUTH_BYPASS_ENABLED", "").lower() in ("true", "1", "yes"):
+            self.errors.append(
+                "AUTH_BYPASS_ENABLED must be false or unset in production-like environments. "
+                "Development authentication bypass is a critical security risk."
+            )
 
     # ------------------------------------------------------------------
     # Persistence

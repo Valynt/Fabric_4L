@@ -74,7 +74,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"
@@ -166,7 +166,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             await provisioning_service.provision_tenant(request)
         
         # Verify execute was called (for INSERT statements)
@@ -189,7 +189,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
 
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
 
         password_payload = None
@@ -218,13 +218,13 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("value_fabric.layer4.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             await provisioning_service.provision_tenant(request)
             
             assert mock_emit.called
             call_kwargs = mock_emit.call_args.kwargs
             assert call_kwargs["resource_type"] == "tenant"
-            assert call_kwargs["actor_type"] == "system"
+            assert call_kwargs["user_id"] is None  # System-initiated
             assert "tenant_name" in call_kwargs["details"]
 
     @pytest.mark.asyncio
@@ -242,7 +242,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
 
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("value_fabric.layer4.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             result = await provisioning_service.provision_tenant(request)
 
             details = mock_emit.call_args.kwargs["details"]
@@ -264,7 +264,7 @@ class TestTenantProvisioningService:
         mock_db_session.execute.return_value = mock_result
         mock_db_session.commit.side_effect = Exception("Database error")
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             with pytest.raises(RuntimeError, match="provisioning failed"):
                 await provisioning_service.provision_tenant(request)
         
@@ -300,7 +300,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"
@@ -319,7 +319,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         # Should succeed (even if schema creation has issues, status is partial)
@@ -404,10 +404,12 @@ class TestTenantProvisioningIntegration:
         ]
         
         # Mock: no tenants exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         results = []
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             for request in tenants:
                 result = await provisioning_service.provision_tenant(request)
                 results.append(result)
@@ -431,9 +433,11 @@ class TestTenantProvisioningIntegration:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
-        with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
+        with patch("value_fabric.shared.audit.emitter.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
         
         assert result.status == "success"
