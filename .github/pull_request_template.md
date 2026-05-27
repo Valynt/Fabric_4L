@@ -72,6 +72,11 @@ For every incremental PR, provide explicit **Pass / Fail** status and evidence l
 
 - [ ] Behavior parity verified against baseline snapshots captured in Step 1 (attach snapshot references/diffs).
 
+## Why overlap is expected
+
+- Required when PR overlap guard reports high overlap with recently merged PRs.
+- Explain why overlap is intentional, what was reused/coordinated, and why risk is acceptable.
+
 ## Validation
 
 - [ ] `make verify`

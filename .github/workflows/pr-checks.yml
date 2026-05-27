@@ -260,6 +260,26 @@ jobs:
             artifacts/webhook-security-matrix.md
           retention-days: 14
 
+  pr-overlap-guard:
+    name: PR Overlap Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request'
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Detect high overlap with recent merged PRs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_BASE_REF: ${{ github.base_ref }}
+          PR_BODY: ${{ github.event.pull_request.body }}
+        run: |
+          python scripts/ci/check_pr_overlap_guard.py --lookback 20 --threshold 0.45
+
+
   governance-docs-check:
     name: Governance Docs Guard
     runs-on: ubuntu-latest
