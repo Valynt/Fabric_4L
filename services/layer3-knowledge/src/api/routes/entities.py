@@ -34,7 +34,7 @@ from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
 from ...api.exception_mapping import map_exception_to_http_error
-from ...api.exceptions import DatabaseError, ValidationError
+from ...api.exceptions import ContractViolationError, DatabaseError, TenantAccessError, ValidationError
 from ...api.models import (
     EntityDetail,
     EntityFilterRequest,
@@ -162,7 +162,7 @@ async def list_entities(
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities", "operation": "list_entities"}
         logger.warning("Entity listing mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities", "operation": "list_entities"}
         logger.error("Entity listing failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
@@ -259,7 +259,7 @@ async def get_entity_detail(
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}
         logger.warning("Entity detail mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}
         logger.error("Entity detail retrieval failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
@@ -340,7 +340,7 @@ async def query_entities(
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/query", "operation": "query_entities"}
         logger.warning("Entity query mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/query", "operation": "query_entities"}
         logger.error("Entity query failed", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
@@ -375,7 +375,7 @@ async def traverse_value_tree(
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/traverse", "operation": "traverse_value_tree"}
         logger.warning("Value tree traversal mapped exception", extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
-    except Exception as exc:
+    except (TenantAccessError, TimeoutError, RuntimeError, ContractViolationError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": "/entities/traverse", "operation": "traverse_value_tree"}
         logger.error("Value tree traversal failed for %s", request.root_entity_id, extra={"context": context}, exc_info=True)
         raise map_exception_to_http_error(exc, context=context)
