@@ -84,9 +84,11 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         )
 
         # Add request ID to response headers
-        for header, value in canonical_trace_headers(request_id).items():
-            response.headers[header] = value
-        clear_logging_context()
+        try:
+            for header, value in canonical_trace_headers(request_id).items():
+                response.headers[header] = value
+        finally:
+            clear_logging_context()
 
         return response
 
