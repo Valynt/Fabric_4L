@@ -322,7 +322,8 @@ class EntityResolutionService:
 
         ranked: dict[str, dict[str, Any]] = {}
         for source, records in (("exact", exact), ("fuzzy", fuzzy), ("vector", vector)):
-            for rank, record in enumerate(records):
+            stable_records = sorted(records, key=lambda r: str(r.get("id", "")))
+            for rank, record in enumerate(stable_records):
                 entity_id = record["id"]
                 if entity_id not in ranked:
                     ranked[entity_id] = record
