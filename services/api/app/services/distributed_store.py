@@ -70,7 +70,6 @@ class RedisDistributedStore(DistributedStore):
             except RedisError as exc:
                 last_exc = exc
                 if attempt < self.max_retries:
-                    time.sleep(self.retry_backoff_seconds * (2**attempt))
                     continue
                 self._mark_failure(exc)
         raise StoreUnavailableError(f"Redis unavailable during {operation_name}") from last_exc
