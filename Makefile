@@ -13,6 +13,7 @@
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
 	check-keycloak-realm-seed-security \
+	check-manifest-secret-hygiene \
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
@@ -44,7 +45,7 @@ help: ## Show this help
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
+verify: check-conflict-markers check-no-nul-bytes check-migration-heads check-keycloak-realm-seed-security check-manifest-secret-hygiene lint typecheck test contract-tests security-smoke check-deprecations check-tool-contracts platform-contract-lint check-ui-duplicates check-readiness-consistency check-workflow-matrix check-test-skip-register-uniqueness check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks (preflight + lint + typecheck + tests + contracts + security + deprecations + tool-contracts + ui-dup-guard + readiness-consistency + workflow-matrix + structure + harness-docs) — required before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -86,6 +87,9 @@ check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
 check-keycloak-realm-seed-security: ## Fail when committed Keycloak realm seed includes embedded secrets/default credentials
 	@python3 scripts/ci/check_keycloak_realm_seed_security.py
 
+
+check-manifest-secret-hygiene: ## Enforce secret-only references and denylisted sensitive patterns in production manifests
+	@python3 scripts/ci/check_manifest_secret_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
 	@python3 scripts/ci/check_migration_entrypoints.py
 
