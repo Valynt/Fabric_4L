@@ -284,3 +284,20 @@ For launch decisions, treat the following as authoritative in this order:
 4. Gate validator outputs referenced by the checklist (for example `scripts/ci/validate_final_testing_launch_gate.py`)
 
 `reports/` documents can support context but do not override the launch docs above.
+
+---
+
+## QA audit reproducibility requirement (PR merge triage)
+
+When running `scripts/audit/pr_bug_triage.py`, contributors must use explicit upstream history from `origin/main` (not local branch `HEAD` assumptions).
+
+Required behavior:
+
+- Preflight must verify `origin/main` exists locally; fail fast with a clear remediation message if unavailable.
+- The "last 20 PRs" retrieval must be executed against `origin/main`.
+- Audit output must record the exact commit window used, including:
+  - `start_sha` (oldest commit in the sampled window)
+  - `end_sha` (newest commit in the sampled window)
+  - full `retrieval_command`
+
+This is required so audit results are reproducible and independently verifiable across machines and CI environments.
