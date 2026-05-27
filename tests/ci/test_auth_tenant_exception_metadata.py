@@ -30,8 +30,7 @@ def test_python_contract_lint_allows_security_todo_with_valid_tag(tmp_path):
     file_path.parent.mkdir(parents=True)
     file_path.write_text(content, encoding="utf-8")
     findings = check_file_with_regex(Path("services/layer1/api.py"), content)
-    assert findings
-    assert findings[0].message.startswith("Unresolved security-critical TODO/FIXME")
+    assert not findings
 
 
 def test_python_contract_lint_fails_security_todo_without_valid_tag(tmp_path):
@@ -42,4 +41,9 @@ def test_python_contract_lint_fails_security_todo_without_valid_tag(tmp_path):
 
     findings = check_file_with_regex(Path("services/layer1/api.py"), content)
     assert findings
-    assert "missing valid exception metadata" in findings[0].message
+    assert any(
+        finding.contract_id == "security_todo"
+        and finding.severity == "critical"
+        and "missing valid exception metadata" in finding.message
+        for finding in findings
+    )
