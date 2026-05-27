@@ -29,17 +29,19 @@ def assert_single_head_per_service() -> list[str]:
             text = pyf.read_text(encoding="utf-8")
             rev_match = re.search(r"^revision\s*=\s*['\"]([^'\"]+)['\"]", text, flags=re.MULTILINE)
             if rev_match:
-                revisions.add(rev_match.group(1))
-            down_match = re.search(r"^down_revision\s*=\s*(.+)$", text, flags=re.MULTILINE)
-            if down_match:
-                rhs = down_match.group(1).strip()
-                if rhs not in {"None", "null"}:
-                    down_revisions.update(re.findall(r"['\"]([^'\"]+)['\"]", rhs))
-        heads = revisions - down_revisions
-        if len(heads) != 1:
-            errors.append(
-                f"{service}: expected exactly 1 Alembic head in migrations/versions, found {len(heads)}",
-            )
+def assert_single_head_per_service() -> list[str]:
+    errors: list[str] = []
+    services_dir = ROOT / "services"
+    for service, _ in SERVICE_ENVS.items():
+        versions = services_dir / service / "migrations" / "versions"
+        if not versions.exists():
+            continue
+        revision_markers = 0
+        for pyf in versions.glob("*.py"):
+            text = pyf.read_text(encoding="utf-8")
+            revision_markers += len(re.findall(r"^revision\s*=", text, flags=re.MULTILINE))
+        if revision_markers > 1:
+            errors.append(f"{service}: found {revision_markers} revision markers (expected 1)")
     return errors
 
 
