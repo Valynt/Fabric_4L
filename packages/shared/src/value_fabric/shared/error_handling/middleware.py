@@ -63,14 +63,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         setattr(request.state, "request_id", request_id)
 
         start = time.perf_counter()
-        response = await call_next(request)
-        elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
-
-        tenant_id = (
-            getattr(request.state, "tenant_id", None)
-            or request.headers.get("X-Tenant-ID")
-            or request.headers.get("x-tenant-id")
-        )
+        tenant_id = getattr(request.state, "tenant_id", None)
         set_logging_context(
             LoggingContext(
                 request_id=request_id,
@@ -78,19 +71,33 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 tenant_id=tenant_id,
                 route=request.url.path,
                 method=request.method,
-                status=response.status_code,
-                latency_ms=elapsed_ms,
+                status=0,
+                latency_ms=0.0,
             )
         )
 
-        # Add request ID to response headers
         try:
+            response = await call_next(request)
+            elapsed_ms = round((time.perf_counter() - start) * 1000, 3)
+            set_logging_context(
+                LoggingContext(
+                    request_id=request_id,
+                    correlation_id=request_id,
+                    tenant_id=tenant_id,
+                    route=request.url.path,
+                    method=request.method,
+                    status=response.status_code,
+                    latency_ms=elapsed_ms,
+                )
+            )
+
+            # Add request ID to response headers
             for header, value in canonical_trace_headers(request_id).items():
                 response.headers[header] = value
+
+            return response
         finally:
             clear_logging_context()
-
-        return response
 
 
 def get_request_id(request: Request) -> str:
