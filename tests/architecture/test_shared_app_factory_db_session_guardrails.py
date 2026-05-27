@@ -11,6 +11,10 @@ SHARED_APP_FACTORY_PATH = REPO_ROOT / "packages/shared/src/value_fabric/shared/f
 def test_create_fabric_app_module_does_not_introduce_db_session_side_effects() -> None:
     """Prevent shared app bootstrap from taking ownership of DB/session lifecycle."""
 
+    assert SHARED_APP_FACTORY_PATH.exists(), (
+        f"Shared app factory source not found at expected path: {SHARED_APP_FACTORY_PATH}. "
+        "Update SHARED_APP_FACTORY_PATH if the file was moved."
+    )
     source = SHARED_APP_FACTORY_PATH.read_text(encoding="utf-8")
 
     forbidden_markers = [
