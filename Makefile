@@ -16,6 +16,7 @@
 	check-layer3-legacy-tenant-dependency-imports \
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
+	check-raw-http-exception-usage \
 	harness-task harness-guard harness-check \
 	docs-harness
 
@@ -696,3 +697,7 @@ docs-harness: ## Validate harness documentation artifacts (endpoints, models, ru
 
 check-value-fabric-public-imports:
 	@$(PYTHON) scripts/ci/check_value_fabric_public_imports.py
+
+
+check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in boundary adapter files
+	@python3 scripts/ci/check_raw_http_exception_usage.py

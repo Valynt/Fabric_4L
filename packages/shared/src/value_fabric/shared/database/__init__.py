@@ -22,4 +22,15 @@ __all__ = [
     "TenantContextError",
     "MissingTenantContextError",
     "require_tenant_context",
+    "DatabaseAdapterConfig",
+    "RuntimeDatabaseAdapter",
+    "is_production_mode_from_env",
+    "normalize_sqlalchemy_url_scheme",
 ]
+
+from .runtime_adapter import (
+    DatabaseAdapterConfig,
+    RuntimeDatabaseAdapter,
+    is_production_mode_from_env,
+    normalize_sqlalchemy_url_scheme,
+)
