@@ -278,6 +278,14 @@ def create_fabric_app(
     This factory centralizes the common bootstrap concerns that are repeated
     across service entrypoints without constraining service-specific startup
     dependencies or router composition.
+
+    Guardrail policy:
+    - This shared factory must not create, open, close, or otherwise manage DB
+      sessions.
+    - Session lifecycle wiring belongs in each service's startup/shutdown hooks
+      and dependency injection modules.
+    - Any future shared DB/session helper must be explicit opt-in and validated
+      per service before adoption.
     """
 
     app = FastAPI(

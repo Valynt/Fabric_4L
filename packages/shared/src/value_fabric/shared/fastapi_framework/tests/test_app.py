@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
@@ -198,3 +200,26 @@ def test_record_enforcement_decision_route_opt_out_increments_bypass() -> None:
 
     assert allowed is True
     assert app.state.enforcement_counters.bypass_total == 1
+
+
+def test_shared_app_factory_policy_disallows_db_session_side_effects() -> None:
+    """Policy guard: shared app factory must stay DB/session-lifecycle neutral."""
+
+    app_module = Path(__file__).resolve().parents[1] / "app.py"
+    app_source = app_module.read_text(encoding="utf-8")
+
+    forbidden_markers = (
+        ".close(",
+        ".commit(",
+        ".rollback(",
+        "sessionmaker(",
+        "AsyncSession(",
+        "create_engine(",
+        "create_async_engine(",
+    )
+
+    for marker in forbidden_markers:
+        assert marker not in app_source, (
+            "Shared fastapi_framework/app.py must not introduce implicit DB/session lifecycle "
+            f"behavior. Found forbidden marker: {marker}"
+        )
