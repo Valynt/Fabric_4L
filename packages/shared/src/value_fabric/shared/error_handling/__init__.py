@@ -6,6 +6,7 @@ from .exceptions import (
     NotFoundError,
     RateLimitError,
     ServiceUnavailableError,
+    TenantIsolationError,
     ValidationError,
     ValueFabricException,
 )
@@ -39,6 +40,7 @@ __all__ = [
     "sanitize_error_for_log",
     "sanitize_public_error",
     "ServiceUnavailableError",
+    "TenantIsolationError",
     "ValidationError",
     "ValueFabricException",
 ]
