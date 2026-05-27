@@ -45,7 +45,7 @@ def _scan_k8s_manifests_for_bypass_flags(violations: list[str]) -> int:
                 for flag in BYPASS_FLAGS:
                     if flag in line:
                         violations.append(
-                            f"{rel}:{idx} staging/production Kubernetes manifests must not reference `{flag}`"
+                            f"{rel}:{idx} base/staging/production Kubernetes manifests must not reference `{flag}`"
                         )
     return scanned
 
