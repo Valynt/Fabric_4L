@@ -295,8 +295,11 @@ def create_fabric_app(
     - Exception handler mode defaults to current shared behavior.
     - Health/readiness augmentation runs only when explicitly provided.
 
-    Service-owned lifecycle behavior remains authoritative; this factory does
-    not create or manage DB/session lifecycle side effects.
+    Service-owned lifecycle behavior remains authoritative: this factory must
+    not open/close DB sessions automatically, and must not own DB engine/session
+    lifecycle. Session lifecycle remains in each service's startup/shutdown and
+    dependency wiring. Any future shared DB helper must be explicit opt-in and
+    validated per service before adoption.
     """
 
     app = FastAPI(
