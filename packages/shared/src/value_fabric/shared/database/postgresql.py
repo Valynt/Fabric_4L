@@ -117,3 +117,15 @@ async def transactional(
 async def get_db_session(session_maker: async_sessionmaker[AsyncSession]) -> AsyncGenerator[AsyncSession, None]:
     async with session_scope(session_maker) as session:
         yield session
+
+
+def get_db_session_dependency(
+    session_maker: async_sessionmaker[AsyncSession],
+) -> Callable[[], AsyncGenerator[AsyncSession, None]]:
+    """Build a FastAPI-friendly dependency callable from a session maker."""
+
+    async def _dependency() -> AsyncGenerator[AsyncSession, None]:
+        async with session_scope(session_maker) as session:
+            yield session
+
+    return _dependency
