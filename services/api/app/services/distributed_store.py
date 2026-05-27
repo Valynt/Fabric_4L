@@ -90,7 +90,11 @@ class RedisDistributedStore(DistributedStore):
         return obj
 
     def set_json(self, key: str, value: dict[str, object], ttl_seconds: int) -> None:
-        self._with_resilience("set", lambda: self.client.set(name=key, value=json.dumps(value), ex=ttl_seconds))
+        try:
+            payload = json.dumps(value)
+        except (TypeError, ValueError) as exc:
+            raise StorePayloadError("Payload cannot be serialized to JSON") from exc
+        self._with_resilience("set", lambda: self.client.set(name=key, value=payload, ex=ttl_seconds))
 
     def delete(self, key: str) -> bool:
         deleted = self._with_resilience("delete", lambda: self.client.delete(key))
