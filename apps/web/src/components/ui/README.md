@@ -12,10 +12,6 @@ components/ui/skeleton.tsx
 components/ui/SkeletonViews.tsx
   → Apple-quality page-level skeleton system
   → Import: import { PageSkeleton, CardGridSkeleton, DetailPanelSkeleton } from "@/components/ui/SkeletonViews"
-
-components/ui/fabric/LoadingSkeleton.tsx
-  → @deprecated - maintained for backward compatibility only
-  → Do not use in new code
 ```
 
 ### Migration Rules
@@ -40,9 +36,6 @@ import { PageSkeleton, CardGridSkeleton, DetailPanelSkeleton } from "@/component
 ```typescript
 // DEPRECATED - competing export removed from WfPrimitives
 import { Skeleton } from "@/components/WfPrimitives";
-
-// DEPRECATED - use SkeletonViews instead
-import { LoadingSkeleton } from "@/components/ui/fabric/LoadingSkeleton";
 ```
 
 ### Pages to Migrate

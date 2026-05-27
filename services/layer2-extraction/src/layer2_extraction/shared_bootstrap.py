@@ -30,6 +30,7 @@ install_metrics_middleware = cast(Callable[..., Any], _framework_app.install_met
 register_health_endpoint = cast(Callable[..., None], _framework_app.register_health_endpoint)
 resolve_cors_policy = cast(Callable[..., Any], _framework_middleware.resolve_cors_policy)
 verify_metrics_access = cast(Callable[..., bool], _observability.verify_metrics_access)
+get_metrics = cast(Callable[..., Any], _observability.get_metrics)
 validate_production_safety = cast(Callable[..., None], _security_config.validate_production_safety)
 SecurityConfig = _security_middleware.SecurityConfig
 add_security_middleware = cast(Callable[..., None], _security_middleware.add_security_middleware)

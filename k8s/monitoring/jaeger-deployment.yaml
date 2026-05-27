@@ -30,13 +30,16 @@ spec:
             - --memory.max-traces=100000
             - --query.base-path=/jaeger
             - --collector.otlp.enabled=true
+            - --badger.ephemeral=false
+            - --badger.directory=/badger/data
+            - --badger.span-store-ttl=168h
           env:
             - name: COLLECTOR_OTLP_ENABLED
               value: "true"
             - name: COLLECTOR_ZIPKIN_HOST_PORT
               value: ":9411"
             - name: SPAN_STORAGE_TYPE
-              value: "memory"
+              value: "badger"
             - name: JAEGER_SAMPLER_TYPE
               value: "const"
             - name: JAEGER_SAMPLER_PARAM
@@ -89,13 +92,26 @@ spec:
           volumeMounts:
             - name: tmp
               mountPath: /tmp
+            - name: badger-data
+              mountPath: /badger/data
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: false
+            capabilities:
+              drop:
+                - ALL
       volumes:
         - name: tmp
           emptyDir: {}
+        - name: badger-data
+          emptyDir:
+            sizeLimit: 5Gi
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000
         fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
       serviceAccountName: jaeger
       terminationGracePeriodSeconds: 30
 ---

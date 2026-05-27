@@ -17,5 +17,4 @@ export { DataTable } from "./DataTable";
 export { SidePanel } from "./SidePanel";
 export { FabricDialog } from "./FabricDialog";
 export { TeamMemberList } from "./TeamMemberList";
-export { LoadingSkeleton } from "./LoadingSkeleton";
 export { EntityBadge } from "../../../lib/entity-colors";

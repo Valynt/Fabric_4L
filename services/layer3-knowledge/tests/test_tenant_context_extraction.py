@@ -13,9 +13,8 @@ from unittest.mock import MagicMock
 import pytest
 
 # _extract_tenant_id is a module-private helper replicated in each domain
-# router that needs it. The graph_viz router is the canonical reference for
-# the full-graph / subgraph endpoints that were previously in app_monolith.
-from value_fabric.layer3.api.routes.graph_viz import _extract_tenant_id
+# router that needs it. The dependencies module is the canonical reference.
+from value_fabric.layer3.api.dependencies import _extract_tenant_id
 
 
 class TestExtractTenantId:

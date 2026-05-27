@@ -28,7 +28,7 @@ from value_fabric.layer1.shared.maintenance import (
 )
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestSystemMaintenanceIdentity:

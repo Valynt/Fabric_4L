@@ -519,4 +519,6 @@ __all__ = [
     "init_app_state",
     "init_telemetry",
     "lifespan",
+    "global_exception_handler",
+    "value_fabric_exception_handler",
 ]

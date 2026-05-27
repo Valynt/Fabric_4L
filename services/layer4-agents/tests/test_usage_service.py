@@ -19,12 +19,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventStatus
 from value_fabric.layer4.api.routes.billing import UsageBatchRequest, UsageEventRequest, ingest_usage_batch, ingest_usage_event
-
-# Mock stripe before importing
-mock_stripe_module = MagicMock()
-
-with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
-    from value_fabric.layer4.services.usage_service import UsageService, UsageValidationError
+from value_fabric.layer4.services.usage_service import UsageService, UsageValidationError
 
 
 # =============================================================================

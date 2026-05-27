@@ -23,7 +23,7 @@ from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, RawCo
 from value_fabric.layer1.shared.tasks import process_scraping_job, cleanup_old_content
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestTenantIdValidation:

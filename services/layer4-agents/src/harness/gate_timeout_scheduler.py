@@ -13,14 +13,15 @@ from datetime import UTC, datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
-# Default gate timeout: 60 seconds (P0 requirement)
-DEFAULT_GATE_TIMEOUT_SECONDS = 60
+# Default gate timeout: 300 seconds (5 minutes)
+DEFAULT_GATE_TIMEOUT_SECONDS = 300
 
 
 class GateTimeoutScheduler:
     """Background scheduler that expires overdue pending gates.
 
     Uses the SQL-backed HumanGateRepository so state survives restarts.
+    Supports per-tenant timeout configuration via tenant.settings JSONB.
     """
 
     def __init__(self, session_factory, timeout_seconds: int = DEFAULT_GATE_TIMEOUT_SECONDS):
@@ -34,7 +35,7 @@ class GateTimeoutScheduler:
         if self._task is None:
             self._task = asyncio.create_task(self._run_loop())
             logger.info(
-                "Gate timeout scheduler started (timeout=%ss)", self._timeout_seconds
+                "Gate timeout scheduler started (default_timeout=%ss)", self._timeout_seconds
             )
 
     async def stop(self) -> None:
@@ -59,31 +60,48 @@ class GateTimeoutScheduler:
             await asyncio.sleep(10)
 
     async def _expire_overdue_gates(self) -> None:
-        """Find and expire all pending gates past their deadline."""
+        """Find and expire all pending gates past their deadline.
+
+        Looks up per-tenant timeout from tenant.settings JSONB; falls back
+        to the scheduler default when no tenant-specific value is set.
+        """
         from sqlalchemy import select
 
-        deadline = datetime.now(UTC) - timedelta(seconds=self._timeout_seconds)
+        now = datetime.now(UTC)
 
         async with self._session_factory() as session:
             from harness.db_models import HumanGateRow
+            from tenants.models.tenant import Tenant
+            from tenants.settings_schema import get_tenant_gate_timeout
 
-            stmt = (
-                select(HumanGateRow)
-                .where(
-                    HumanGateRow.status == "pending",
-                    HumanGateRow.created_at < deadline,
-                )
-            )
+            # Fetch all pending gates; per-tenant timeout requires
+            # in-Python filtering because the deadline varies by tenant.
+            stmt = select(HumanGateRow).where(HumanGateRow.status == "pending")
             result = await session.execute(stmt)
-            overdue_gates = result.scalars().all()
+            pending_gates = result.scalars().all()
+
+            # Build a tenant-settings cache to avoid duplicate lookups
+            tenant_timeouts: dict[str, int] = {}
 
             expired_count = 0
-            for row in overdue_gates:
-                row.status = "expired"
-                row.decision_by = "system"
-                row.decision_reason = f"Gate expired after {self._timeout_seconds}s timeout"
-                row.decided_at = datetime.now(UTC)
-                expired_count += 1
+            for row in pending_gates:
+                tenant_id = row.tenant_id
+                if tenant_id not in tenant_timeouts:
+                    tenant_settings_result = await session.execute(
+                        select(Tenant.settings).where(Tenant.id == tenant_id)
+                    )
+                    raw_settings = tenant_settings_result.scalar_one_or_none()
+                    tenant_timeouts[tenant_id] = get_tenant_gate_timeout(raw_settings)
+
+                timeout_seconds = tenant_timeouts[tenant_id]
+                deadline = now - timedelta(seconds=timeout_seconds)
+
+                if row.created_at < deadline:
+                    row.status = "expired"
+                    row.decision_by = "system"
+                    row.decision_reason = f"Gate expired after {timeout_seconds}s timeout"
+                    row.decided_at = now
+                    expired_count += 1
 
             if expired_count:
                 await session.commit()

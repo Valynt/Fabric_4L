@@ -74,8 +74,8 @@ Recommended domains:
 
 ```txt
 dev:      http://localhost:3001
-staging:  https://staging.fabric4l.com
-prod:     https://app.fabric4l.com
+staging:  https://staging.valuepact.ai
+prod:     https://www.valuepact.ai
 ```
 
 ---
@@ -205,8 +205,8 @@ For staging/prod:
 
 ```txt
 Allowed origins:
-https://staging.fabric4l.com
-https://app.fabric4l.com
+https://staging.valuepact.ai
+https://www.valuepact.ai
 
 After sign-in: /workspaces
 After sign-up: /onboarding
@@ -468,7 +468,7 @@ Clerk tells you **who** the user is. Fabric4L decides **what tenant/account/reso
 Webhook endpoint:
 
 ```txt
-POST https://api.fabric4l.com/internal/webhooks/clerk
+POST https://api.valuepact.ai/internal/webhooks/clerk
 ```
 
 For dev, use a tunnel if needed:

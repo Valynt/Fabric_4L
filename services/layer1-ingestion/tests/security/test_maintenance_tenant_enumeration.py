@@ -21,7 +21,7 @@ from value_fabric.layer1.shared.models import (
 from value_fabric.layer1.shared.tasks import cleanup_old_content
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestTenantSpecificCleanupMode:

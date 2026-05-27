@@ -21,6 +21,7 @@ from urllib.parse import urljoin, urlparse
 import structlog
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
+from .browser_pool import BrowserPool, get_browser_pool
 from .crawler_config import CrawlerConfig, load_config
 from .telemetry import (
     CrawlMetrics,
@@ -60,6 +61,7 @@ class PlaywrightCrawler:
         user_agent: str | None = None,
         config: CrawlerConfig | None = None,
         enable_telemetry: bool = True,
+        use_browser_pool: bool = True,  # P1-01: Enable browser pool by default
     ):
         # Load config from file if not provided
         self.config = config or load_config()
@@ -70,6 +72,7 @@ class PlaywrightCrawler:
         self.navigation_timeout_ms = navigation_timeout_ms or self.config.navigation_timeout_ms
         self.user_agent = user_agent or self.config.user_agent
         self.enable_telemetry = enable_telemetry and self.config.enable_tracing
+        self.use_browser_pool = use_browser_pool
 
         # Initialize telemetry if enabled
         if self.enable_telemetry:
@@ -86,6 +89,9 @@ class PlaywrightCrawler:
         self._browser: Browser | None = None
         self._context: BrowserContext | None = None
         self._semaphore: asyncio.Semaphore | None = None
+        
+        # P1-01: Browser pool for instance reuse
+        self._browser_pool: BrowserPool | None = None
 
     async def __aenter__(self):
         """Async context manager entry."""
@@ -102,36 +108,38 @@ class PlaywrightCrawler:
 
         with tracer.start_as_current_span("crawler.start") if tracer else contextlib.nullcontext():
             logger.info(
-                "Starting Playwright browser",
+                "Starting Playwright crawler",
                 max_concurrent=self.max_concurrent,
                 timeout_ms=self.timeout_ms,
                 telemetry_enabled=self.enable_telemetry,
+                use_browser_pool=self.use_browser_pool,
             )
 
-            self._playwright = await async_playwright().start()
-
-            # Launch browser with config settings
-            self._browser = await self._playwright.chromium.launch(
-                headless=self.config.headless,
-                args=self.config.browser_args,
-            )
-
-            # Create context with custom settings from config
-            self._context = await self._browser.new_context(
-                user_agent=self.user_agent,
-                viewport=self.config.viewport,
-                java_script_enabled=True,
-                bypass_csp=True,
-            )
-
-            # Set default timeouts
-            self._context.set_default_timeout(self.timeout_ms)
-            self._context.set_default_navigation_timeout(self.navigation_timeout_ms)
+            # P1-01: Use browser pool if enabled
+            if self.use_browser_pool:
+                self._browser_pool = get_browser_pool()
+                await self._browser_pool.initialize()
+                logger.info("Browser pool initialized", stats=self._browser_pool.get_stats())
+            else:
+                # Legacy mode: create single browser instance
+                self._playwright = await async_playwright().start()
+                self._browser = await self._playwright.chromium.launch(
+                    headless=self.config.headless,
+                    args=self.config.browser_args,
+                )
+                self._context = await self._browser.new_context(
+                    user_agent=self.user_agent,
+                    viewport=self.config.viewport,
+                    java_script_enabled=True,
+                    bypass_csp=True,
+                )
+                self._context.set_default_timeout(self.timeout_ms)
+                self._context.set_default_navigation_timeout(self.navigation_timeout_ms)
 
             # Semaphore for concurrency control
             self._semaphore = asyncio.Semaphore(self.max_concurrent)
 
-            logger.info("Playwright browser started successfully")
+            logger.info("Playwright crawler started successfully")
 
     async def stop(self):
         """Close Playwright browser with metrics export."""
@@ -153,18 +161,24 @@ class PlaywrightCrawler:
                     for key, value in metrics_data.items():
                         span.set_attribute(key, value)
 
-            logger.info("Stopping Playwright browser")
+            logger.info("Stopping Playwright crawler")
 
-            if self._context:
-                await self._context.close()
+            # P1-01: Cleanup browser pool if used
+            if self._browser_pool:
+                await self._browser_pool.cleanup()
+                logger.info("Browser pool cleaned up", stats=self._browser_pool.get_stats())
+            else:
+                # Legacy mode cleanup
+                if self._context:
+                    await self._context.close()
 
-            if self._browser:
-                await self._browser.close()
+                if self._browser:
+                    await self._browser.close()
 
-            if self._playwright:
-                await self._playwright.stop()
+                if self._playwright:
+                    await self._playwright.stop()
 
-            logger.info("Playwright browser stopped")
+            logger.info("Playwright crawler stopped successfully")
 
     async def crawl_url(
         self,
@@ -195,9 +209,15 @@ class PlaywrightCrawler:
         ):
             async with self._semaphore:
                 page: Page | None = None
+                browser_instance = None
 
                 try:
-                    page = await self._context.new_page()
+                    # P1-01: Use browser pool if enabled
+                    if self._browser_pool:
+                        browser_instance, page = await self._browser_pool.get_page()
+                    else:
+                        # Legacy mode: create page from single context
+                        page = await self._context.new_page()
 
                     # Block unnecessary resources with counting
                     async def block_route(route):
@@ -318,8 +338,12 @@ class PlaywrightCrawler:
                     )
 
                 finally:
+                    # P1-01: Release page and browser instance back to pool
                     if page:
-                        await page.close()
+                        if self._browser_pool and browser_instance:
+                            await self._browser_pool.release_page(browser_instance, page)
+                        else:
+                            await page.close()
 
     async def crawl_urls(self, urls: list[str], delay_seconds: float | None = None) -> list[CrawlResult]:
         """Crawl multiple URLs with rate limiting and batch tracing.

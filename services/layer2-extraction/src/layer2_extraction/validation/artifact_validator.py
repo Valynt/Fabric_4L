@@ -31,7 +31,7 @@ _REQUIRED_ENTITY_FIELDS = {
     "tenant_id",
     "extraction_job_id",
     "schema_version",
-    "prompt_version",
+    "prompt_version_id",  # Entity models use prompt_version_id
     "model_version",
     "deterministic_id",
 }
@@ -41,7 +41,7 @@ _NON_EMPTY_STRING_FIELDS = {
     "tenant_id",
     "extraction_job_id",
     "schema_version",
-    "prompt_version",
+    "prompt_version_id",  # Entity models use prompt_version_id
     "model_version",
     "deterministic_id",
 }
@@ -118,7 +118,11 @@ def validate_extraction_result(result: Any) -> None:
     errors: list[str] = []
     
     # Check required top-level fields
-    required_fields = ["job_id", "tenant_id", "schema_version", "prompt_version", "model_version"]
+    # ExtractionResult uses prompt_version, entities use prompt_version_id
+    required_fields = ["job_id", "tenant_id", "schema_version", "model_version"]
+    prompt_version_field = "prompt_version_id" if hasattr(result, "prompt_version_id") else "prompt_version"
+    required_fields.append(prompt_version_field)
+    
     missing = [f for f in required_fields if not hasattr(result, f)]
     
     if missing:

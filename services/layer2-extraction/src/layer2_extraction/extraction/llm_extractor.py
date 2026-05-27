@@ -394,11 +394,11 @@ class EntityExtractor:
         model_version = context.get("model_version", self.model)
         schema_version = context.get("schema_version", "")
         value_pack_id = context.get("value_pack_id", "default")
-        tenant_id = context.get("tenant_id", "")
+        tenant_id = context.get("tenant_id")
         ingestion_id = context.get("ingestion_id", "")
         prompt_version = context.get("prompt_version", "")
-        if not tenant_id:
-            raise LLMExtractionError("tenant_id is required in telemetry_context")
+        if not tenant_id or not tenant_id.strip():
+            raise LLMExtractionError("tenant_id is required in telemetry_context (no fallbacks)")
         metrics = get_metrics()
         start = time.perf_counter()
         try:
@@ -418,7 +418,7 @@ class EntityExtractor:
                 metrics.record_model_latency(tenant_id=tenant_id, ingestion_id=ingestion_id, extraction_job_id=extraction_job_id, model_version=model_version, schema_version=schema_version, value_pack_id=value_pack_id, endpoint=endpoint, latency_seconds=latency)
             entities: list[T] = []
             entities_list: list[T] = getattr(response, entity_attr, [])
-            enforce_untrusted_output_policy(entities_list)
+            enforce_untrusted_output_policy(entities_list, tenant_id)
             for entity in entities_list:
                 if entity.confidence >= confidence_threshold:
                     entity.extraction_job_id = extraction_job_id
@@ -627,11 +627,11 @@ class RelationshipExtractor:
         model_version = context.get("model_version", self.model)
         schema_version = context.get("schema_version", "")
         value_pack_id = context.get("value_pack_id", "default")
-        tenant_id = context.get("tenant_id", "")
+        tenant_id = context.get("tenant_id")
         ingestion_id = context.get("ingestion_id", "")
         prompt_version = context.get("prompt_version", "")
-        if not tenant_id:
-            raise LLMExtractionError("tenant_id is required in telemetry_context")
+        if not tenant_id or not tenant_id.strip():
+            raise LLMExtractionError("tenant_id is required in telemetry_context (no fallbacks)")
         metrics = get_metrics()
         endpoint = "extract_relationships"
         try:
@@ -649,7 +649,7 @@ class RelationshipExtractor:
                 temperature=0.0,
             )
 
-            enforce_untrusted_output_policy(response.relationships)
+            enforce_untrusted_output_policy(response.relationships, tenant_id)
             relationships = []
             for rel in response.relationships:
                 if rel.confidence >= confidence_threshold:

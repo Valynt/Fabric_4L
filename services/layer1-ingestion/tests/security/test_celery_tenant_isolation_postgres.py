@@ -20,7 +20,7 @@ from value_fabric.layer1.shared.database import get_db_session, TenantContextErr
 from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestCeleryTaskTenantContext:

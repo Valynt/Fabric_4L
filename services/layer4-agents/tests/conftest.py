@@ -31,6 +31,89 @@ os.environ.setdefault("LAYER4_LAYER3_API_URL", "http://localhost:8003")
 os.environ.setdefault("LAYER4_LAYER5_API_URL", "http://localhost:8005")
 os.environ.setdefault("LAYER4_ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT", "true")
 
+# ── PostgreSQL Test Lane ─────────────────────────────────────────────────────
+try:
+    from testcontainers.postgres import PostgresContainer
+    POSTGRES_AVAILABLE = True
+except ImportError:
+    POSTGRES_AVAILABLE = False
+
+
+def pytest_configure(config):
+    """Register custom pytest markers."""
+    config.addinivalue_line("markers", "postgres: Tests requiring PostgreSQL (JSONB, RLS, etc.)")
+    config.addinivalue_line("markers", "integration: Integration tests requiring external services")
+
+
+def pytest_collection_modifyitems(config, items):
+    """Skip postgres tests if testcontainers is not available."""
+    if not POSTGRES_AVAILABLE:
+        skip_postgres = pytest.mark.skip(reason="testcontainers.postgres not installed - run: pip install testcontainers")
+        for item in items:
+            if "postgres" in item.keywords:
+                item.add_marker(skip_postgres)
+
+
+@pytest.fixture(scope="session")
+def postgres_container():
+    """Shared PostgreSQL container for all postgres-marked tests."""
+    if not POSTGRES_AVAILABLE:
+        pytest.skip("testcontainers.postgres not installed")
+    
+    with PostgresContainer("postgres:16-alpine") as postgres:
+        yield postgres
+
+
+# ── External Dependency Mocking ───────────────────────────────────────────────
+@pytest.fixture(scope="session", autouse=True)
+def fake_stripe_provider():
+    """Provide a fake Stripe provider for all tests."""
+    from unittest.mock import MagicMock
+    
+    mock_stripe = MagicMock()
+    mock_stripe.api_key = "sk_test_fake_key_for_testing"
+    mock_stripe.error = MagicMock()
+    mock_stripe.error.StripeError = Exception
+    mock_stripe.error.SignatureVerificationError = Exception
+    mock_stripe.Webhook = MagicMock()
+    mock_stripe.Customer = MagicMock()
+    mock_stripe.checkout = MagicMock()
+    mock_stripe.billing_portal = MagicMock()
+    
+    # Patch sys.modules before any imports
+    import sys
+    import types as _types
+    
+    if 'stripe' not in sys.modules or sys.modules['stripe'] is None:
+        sys.modules['stripe'] = mock_stripe
+    
+    yield mock_stripe
+
+
+@pytest.fixture(scope="session")
+def fake_crm_provider():
+    """Provide a fake CRM provider for Salesforce/HubSpot tests."""
+    from unittest.mock import MagicMock
+    from value_fabric.layer4.models.account import CRMProvider
+    
+    mock_crm = MagicMock()
+    mock_crm.SALESFORCE = CRMProvider.SALESFORCE
+    mock_crm.HUBSPOT = CRMProvider.HUBSPOT
+    
+    # Mock Salesforce OAuth client
+    mock_salesforce_client = MagicMock()
+    mock_salesforce_client.refresh_token.return_value = {
+        "access_token": "fake_access_token",
+        "instance_url": "https://test.salesforce.com",
+    }
+    mock_crm.salesforce_client = mock_salesforce_client
+    
+    # Mock HubSpot client
+    mock_hubspot_client = MagicMock()
+    mock_crm.hubspot_client = mock_hubspot_client
+    
+    yield mock_crm
+
 
 from unittest.mock import MagicMock, patch
 from value_fabric.shared.identity.context import RequestContext

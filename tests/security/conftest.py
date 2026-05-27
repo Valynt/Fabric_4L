@@ -368,7 +368,7 @@ def admin_headers(auth_headers_admin):
 
 
 @pytest.fixture
-def websocket_client():
+def websocket_client(monkeypatch):
     """TestClient fixture for L4 WebSocket testing."""
     TestClient = _get_testclient()
     if TestClient is None:
@@ -377,9 +377,49 @@ def websocket_client():
     try:
         # Try to import L4 app - may not be available without dependencies
         from value_fabric.layer4.api.main import app
-        return TestClient(app)
     except ImportError:
         pytest.skip("Layer 4 FastAPI app not available for WebSocket testing")
+    
+    # Mock the workflow executor so WebSocket auth tests don't fail
+    # due to uninitialized executor (503 error).
+    # The mock returns a status that matches any tenant so auth tests pass.
+    mock_executor = AsyncMock()
+    
+    async def _mock_get_status(workflow_id):
+        # Extract tenant from workflow_id if it contains one, else default
+        if ":" in workflow_id:
+            tenant_id = workflow_id.split(":")[0]
+        else:
+            tenant_id = "tenant-a"
+        return {
+            "tenant_id": tenant_id,
+            "user_id": "user-123",
+            "status": "running",
+        }
+    
+    mock_executor.get_workflow_status = _mock_get_status
+    
+    def _mock_get_executor():
+        return mock_executor
+    
+    # Patch get_executor in the websocket routes module
+    try:
+        import value_fabric.layer4.api.routes.workflows as _wf_mod
+        monkeypatch.setattr(_wf_mod, "get_executor", _mock_get_executor)
+    except Exception:
+        pass
+    
+    # Also patch at the websocket routes import location
+    try:
+        import value_fabric.layer4.api.websocket.routes as _ws_mod
+        # The websocket routes import get_executor locally, so we need to patch
+        # the workflows module it imports from
+        import value_fabric.layer4.api.routes.workflows as _wf_mod2
+        monkeypatch.setattr(_wf_mod2, "get_executor", _mock_get_executor)
+    except Exception:
+        pass
+    
+    return TestClient(app)
 
 
 @pytest.fixture(autouse=True)

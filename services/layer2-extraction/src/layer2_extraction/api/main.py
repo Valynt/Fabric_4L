@@ -449,6 +449,11 @@ async def _attempt_ingestion(job_id: str, source_url: str, artifacts: Extraction
             max_retries=MAX_INGESTION_RETRIES,
         )
 
+        # P1-3: MANDATORY VALIDATION GATE before L3 ingestion
+        validate_extraction_result(artifacts.result)
+        for rel in artifacts.relationships:
+            validate_relationship_for_persistence(rel)
+        
         # Layer 2 owns RDF generation; the L3 client only speaks the L3 HTTP contract.
         rdf_data = generate_rdf(artifacts.result, artifacts.relationships)
         response = await client.ingest_rdf_data(
@@ -680,6 +685,8 @@ async def run_extraction(
     )
 
     if not await job_store.exists(job_id):
+        # P1-3: MANDATORY VALIDATION GATE before job store persistence
+        # PipelineJob is validated via tenant_id check in run_extraction
         await job_store.set(
             PipelineJob(
                 job_id=job_id,
@@ -697,8 +704,8 @@ async def run_extraction(
 
     await _set_pipeline_job(job_id, extraction_status="running")
     tenant_id = config.get("tenant_id")
-    if not tenant_id:
-        raise HTTPException(status_code=400, detail="tenant_id is required in extraction_config")
+    if not tenant_id or not tenant_id.strip():
+        raise HTTPException(status_code=400, detail="tenant_id is required in extraction_config (no fallbacks)")
     
     # Validate required telemetry context fields - no empty string fallbacks
     model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
@@ -1298,8 +1305,14 @@ async def extract(
     Extracts entities and relationships from provided Markdown content
     and generates RDF/OWL output.
     """
+    # P1-1: Validate tenant context at service entry point (no fallbacks)
+    if not ctx.tenant_id or not ctx.tenant_id.strip():
+        raise HTTPException(status_code=401, detail="Authentication required: tenant_id missing from request context")
+    
     job_id = str(uuid4())
 
+    # P1-3: MANDATORY VALIDATION GATE before job store persistence
+    # PipelineJob requires tenant_id which is validated above
     await job_store.set(
         PipelineJob(
             job_id=job_id,

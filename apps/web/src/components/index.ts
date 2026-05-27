@@ -133,7 +133,6 @@ export {
   SidePanel,
   FabricDialog,
   TeamMemberList,
-  LoadingSkeleton,
   EntityBadge,
 } from "./ui/fabric";
 

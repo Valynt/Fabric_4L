@@ -30,9 +30,9 @@ def test_sla_deadline_and_escalation_path():
     assert escalated.escalated_at is not None
 
 
-def test_download_url_expiry_and_access_control():
+async def test_download_url_expiry_and_access_control():
     req = dsar_service.register_request(DSARRequestCreate(subject_identity={"email": "x@y.com"}), tenant_id=TENANT_ALPHA, requester_user_id='user-a')
-    pkg = dsar_service.launch_export_pipeline(req)
+    pkg = await dsar_service.launch_export_pipeline(req)
     token_url = dsar_service.issue_download_url(pkg)
     token = token_url.split('token=')[1]
     dsar_service.validate_download_access(pkg, requester_user_id='user-a', token=token)

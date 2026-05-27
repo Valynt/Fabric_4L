@@ -18,7 +18,7 @@ router = APIRouter(prefix="/privacy", tags=["Privacy"])
 @router.post('/dsar', status_code=202)
 async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)):
     record = dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
-    package = dsar_service.launch_export_pipeline(record)
+    package = await dsar_service.launch_export_pipeline(record)
     refreshed = db.dsar_requests.get(record.id, tenant_id=tenant_id)
     try:
         complete = dsar_service.reconcile_package(refreshed)

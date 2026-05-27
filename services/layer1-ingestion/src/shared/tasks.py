@@ -150,6 +150,32 @@ celery_app.conf.update(
     worker_prefetch_multiplier=1,
     result_expires=3600,
     task_routes={},
+    # P0-02: Dead letter queue configuration
+    task_reject_on_worker_lost=True,  # Reject tasks when worker dies
+    task_acks_late=True,  # Ack after task completes
+    task_default_retry_delay=60,  # Default retry delay in seconds
+    task_max_retries=3,  # Max retries before sending to DLQ
+    task_default_rate_limit="100/m",  # Rate limit per task
+    # Define dead letter queue
+    task_queues={
+        "default": {
+            "exchange": "default",
+            "routing_key": "default",
+        },
+        "layer1_dlq": {
+            "exchange": "layer1_dlq",
+            "routing_key": "layer1_dlq",
+        },
+    },
+    task_default_queue="default",
+    task_default_exchange="default",
+    task_default_routing_key="default",
+    # P0-03: Backpressure configuration
+    worker_max_tasks_per_child=100,  # Recycle worker after 100 tasks
+    worker_max_memory_per_child=500000,  # 500MB max memory per worker
+    # P0-06: Graceful shutdown configuration
+    worker_shutdown_timeout=30,  # 30s grace period for in-progress tasks
+    worker_cancel_long_running_tasks_on_shutdown=True,
 )
 
 

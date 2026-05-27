@@ -16,7 +16,7 @@ import re
 from pathlib import Path
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestRequireTenantFalseAllowlist:

@@ -32,6 +32,7 @@ def mock_db_session():
     session.execute = AsyncMock()
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
+    session.flush = AsyncMock()
     return session
 
 
@@ -69,7 +70,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
@@ -90,14 +93,24 @@ class TestTenantProvisioningService:
         )
         
         existing_tenant_id = uuid4()
+        admin_user_id = uuid4()
         
         # Mock: tenant exists
-        mock_db_session.execute.return_value.fetchone.side_effect = [
+        mock_result = MagicMock()
+        mock_result.fetchone.side_effect = [
             # First call: get_tenant_by_name returns existing tenant
-            (existing_tenant_id, "existing-tenant", datetime.utcnow(), "shared"),
+            MagicMock(
+                __getitem__=lambda self, key: {
+                    0: existing_tenant_id,
+                    1: "existing-tenant",
+                    2: datetime.utcnow(),
+                    3: "shared",
+                }.get(key)
+            ),
             # Second call: get admin user
-            (uuid4(),),
+            MagicMock(__getitem__=lambda self, key: {0: admin_user_id}.get(key)),
         ]
+        mock_db_session.execute.return_value = mock_result
         
         result = await provisioning_service.provision_tenant(request)
         
@@ -149,7 +162,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
             await provisioning_service.provision_tenant(request)
@@ -170,7 +185,9 @@ class TestTenantProvisioningService:
             admin_email="admin@test.com",
         )
 
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
 
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
@@ -197,7 +214,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             await provisioning_service.provision_tenant(request)
@@ -219,7 +238,9 @@ class TestTenantProvisioningService:
             tenant_name="test-tenant",
             admin_email="admin@test.com",
         )
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
 
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             result = await provisioning_service.provision_tenant(request)
@@ -238,7 +259,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist, but commit fails
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         mock_db_session.commit.side_effect = Exception("Database error")
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
@@ -273,7 +296,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)
@@ -290,7 +315,9 @@ class TestTenantProvisioningService:
         )
         
         # Mock: tenant doesn't exist
-        mock_db_session.execute.return_value.fetchone.return_value = None
+        mock_result = MagicMock()
+        mock_result.fetchone.return_value = None
+        mock_db_session.execute.return_value = mock_result
         
         with patch("src.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock):
             result = await provisioning_service.provision_tenant(request)

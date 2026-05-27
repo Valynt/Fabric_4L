@@ -20,7 +20,7 @@ from value_fabric.layer1.compliance.robots_checker import RobotsChecker
 from value_fabric.layer1.shared.models import RobotsTxtCache
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestGlobalRobotsCacheIsolation:

@@ -187,6 +187,22 @@ class PrometheusMetrics:
             registry=self.config.registry,
         )
 
+        # Circuit breaker metrics (P0)
+        self._metrics["circuit_breaker_opens_total"] = Counter(
+            f"{prefix}circuit_breaker_opens_total",
+            "Total circuit breaker state transitions to OPEN",
+            ["service"],
+            registry=self.config.registry,
+        )
+
+        # Dead letter queue metrics (P0)
+        self._metrics["dlq_tasks_total"] = Counter(
+            f"{prefix}dlq_tasks_total",
+            "Total tasks routed to dead letter queue",
+            ["task_name"],
+            registry=self.config.registry,
+        )
+
         # Build info
         self._metrics["build_info"] = Info(
             f"{prefix}build_info", "Build information", registry=self.config.registry

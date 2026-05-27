@@ -13,7 +13,7 @@ from layer2_extraction.validation.artifact_validator import (
     validate_relationship_for_persistence,
     ArtifactValidationError,
 )
-from layer2_extraction.models.extraction_response import ExtractionResult
+from layer2_extraction.models.ontology import ExtractionResult
 
 
 class TestEntityMetadataCompleteness:
@@ -177,42 +177,40 @@ class TestRelationshipMetadataCompleteness:
         validate_relationship_for_persistence(rel)
     
     def test_relationship_missing_source_id(self):
-        """Relationship without source_id should fail validation."""
-        rel = Relationship(
-            source_id="",  # Empty
-            target_id="entity-2",
-            predicate="enables",
-            tenant_id="tenant-123",
-            extraction_job_id="job-456",
-            deterministic_id="det-789",
-            schema_version="v1",
-            prompt_version_id="prompt-v1",
-            model_version="gpt-4o",
-        )
+        """Relationship without source_id should fail validation at model level."""
+        # Relationship model has built-in validation for source_id/target_id
+        # This will raise ValueError from the model validator, not our custom validator
+        with pytest.raises(ValueError) as exc_info:
+            Relationship(
+                source_id="",  # Empty
+                target_id="entity-2",
+                predicate="enables",
+                tenant_id="tenant-123",
+                extraction_job_id="job-456",
+                deterministic_id="det-789",
+                schema_version="v1",
+                prompt_version_id="prompt-v1",
+                model_version="gpt-4o",
+            )
         
-        with pytest.raises(ArtifactValidationError) as exc_info:
-            validate_relationship_for_persistence(rel)
-        
-        assert "source" in str(exc_info.value).lower()
+        assert "source_id" in str(exc_info.value).lower()
     
     def test_relationship_missing_target_id(self):
-        """Relationship without target_id should fail validation."""
-        rel = Relationship(
-            source_id="entity-1",
-            target_id="",  # Empty
-            predicate="enables",
-            tenant_id="tenant-123",
-            extraction_job_id="job-456",
-            deterministic_id="det-789",
-            schema_version="v1",
-            prompt_version_id="prompt-v1",
-            model_version="gpt-4o",
-        )
+        """Relationship without target_id should fail validation at model level."""
+        with pytest.raises(ValueError) as exc_info:
+            Relationship(
+                source_id="entity-1",
+                target_id="",  # Empty
+                predicate="enables",
+                tenant_id="tenant-123",
+                extraction_job_id="job-456",
+                deterministic_id="det-789",
+                schema_version="v1",
+                prompt_version_id="prompt-v1",
+                model_version="gpt-4o",
+            )
         
-        with pytest.raises(ArtifactValidationError) as exc_info:
-            validate_relationship_for_persistence(rel)
-        
-        assert "target" in str(exc_info.value).lower()
+        assert "target_id" in str(exc_info.value).lower()
 
 
 class TestExtractionResultCompleteness:
@@ -231,7 +229,7 @@ class TestExtractionResultCompleteness:
             chunks_processed=10,
             tenant_id="tenant-123",
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version="prompt-v1",  # ExtractionResult uses prompt_version
             model_version="gpt-4o",
         )
         
@@ -251,7 +249,7 @@ class TestExtractionResultCompleteness:
             chunks_processed=10,
             tenant_id="",  # Empty
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version="prompt-v1",  # ExtractionResult uses prompt_version
             model_version="gpt-4o",
         )
         
@@ -269,7 +267,7 @@ class TestExtractionResultCompleteness:
             extraction_job_id="job-456",
             deterministic_id="det-789",
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version_id="prompt-v1",  # Entity uses prompt_version_id
             model_version="gpt-4o",
         )
         
@@ -284,7 +282,7 @@ class TestExtractionResultCompleteness:
             chunks_processed=10,
             tenant_id="tenant-123",
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version="prompt-v1",  # ExtractionResult uses prompt_version
             model_version="gpt-4o",
         )
         
@@ -300,7 +298,7 @@ class TestExtractionResultCompleteness:
             extraction_job_id="job-456",
             deterministic_id="det-789",
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version_id="prompt-v1",  # Entity uses prompt_version_id
             model_version="gpt-4o",
         )
         
@@ -315,7 +313,7 @@ class TestExtractionResultCompleteness:
             chunks_processed=10,
             tenant_id="tenant-123",
             schema_version="v1",
-            prompt_version_id="prompt-v1",
+            prompt_version="prompt-v1",  # ExtractionResult uses prompt_version
             model_version="gpt-4o",
         )
         

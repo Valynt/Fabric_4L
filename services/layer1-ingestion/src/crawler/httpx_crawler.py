@@ -22,6 +22,8 @@ import trafilatura
 from selectolax.lexbor import LexborHTMLParser
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..shared.circuit_breaker import get_circuit_breaker_manager
+
 
 class SSRFProtectionError(Exception):
     """Raised when a request is blocked by SSRF protection rules."""
@@ -122,6 +124,14 @@ class HttpxCrawler:
         self._semaphore: asyncio.Semaphore | None = None
         self.logger = logger.bind(crawler="HttpxCrawler")
         self._total_retries: int = 0  # Cumulative retry count across all fetch calls
+        
+        # Initialize circuit breaker for HTTP calls
+        self._circuit_breaker = get_circuit_breaker_manager().create_breaker(
+            name="httpx_client",
+            failure_threshold=5,
+            recovery_timeout=30,
+            expected_exception=(httpx.RequestError, httpx.TimeoutException),
+        )
 
     async def __aenter__(self) -> HttpxCrawler:
         """Async context manager entry."""
@@ -209,8 +219,12 @@ class HttpxCrawler:
             start_time = time.monotonic()
 
             try:
-                async with self._semaphore:
-                    response = await self._client.get(url)
+                # Wrap HTTP call with circuit breaker
+                async def _make_http_request():
+                    async with self._semaphore:
+                        return await self._client.get(url)
+
+                response = await self._circuit_breaker.call(_make_http_request)
 
                 fetch_time = int((time.monotonic() - start_time) * 1000)
 
@@ -290,7 +304,7 @@ class HttpxCrawler:
                     retry_count=retry_count,
                 )
 
-            except httpx.TimeoutException:
+            except httpx.TimeoutException as e:
                 fetch_time = int((time.monotonic() - start_time) * 1000)
                 if attempt < max_attempts - 1:
                     retry_count += 1

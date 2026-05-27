@@ -55,7 +55,7 @@ from value_fabric.layer1.shared.models import (
 )
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestProductionGateTokenSeparation:

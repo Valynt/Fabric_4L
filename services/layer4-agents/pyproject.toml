@@ -368,6 +368,7 @@ markers = [
     "integration: Integration tests with real services (DB, cache)",
     "e2e: End-to-end tests with full container orchestration",
     "slow: Tests that take >5 seconds",
+    "requires_postgres: Tests requiring a live PostgreSQL instance",
 ]
 
 [tool.coverage.run]

@@ -15,7 +15,7 @@ import pytest
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.requires_postgres,
+    pytest.mark.postgres,
 ]
 
 from typing import Any
@@ -31,7 +31,6 @@ import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (
 
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
-from testcontainers.postgres import PostgresContainer
 
 from value_fabric.layer4.api.main import app as production_app
 from value_fabric.layer4.api.routes.accounts import router as accounts_router
@@ -55,13 +54,6 @@ class mock_sync_providerResult(TypedDictModel):
     errors: list[Any]
     failed: int
     updated: int
-
-
-@pytest.fixture(scope="session")
-def postgres_container():
-    """Start PostgreSQL container for test session."""
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        yield postgres
 
 
 @pytest_asyncio.fixture(scope="function")

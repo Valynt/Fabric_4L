@@ -25,6 +25,7 @@ from ..shared.exceptions import (
     TenantContextError,
     InvalidTenantContextError,
 )
+from ..shared.circuit_breaker import get_circuit_breaker_manager
 
 
 class RobotsChecker__get_robots_txtResult(TypedDictModel):
@@ -66,6 +67,14 @@ class RobotsChecker:
         self.strict_mode = strict_mode if strict_mode is not None else settings.robots_txt_strict_mode
         self._http_client: httpx.AsyncClient | None = None
         self.logger = logger
+        
+        # Initialize circuit breaker for robots.txt fetches
+        self._circuit_breaker = get_circuit_breaker_manager().create_breaker(
+            name="robots_txt_fetch",
+            failure_threshold=5,
+            recovery_timeout=30,
+            expected_exception=(httpx.RequestError, httpx.TimeoutException),
+        )
 
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
@@ -206,7 +215,12 @@ class RobotsChecker:
         # Fetch fresh robots.txt
         try:
             client = await self._get_client()
-            response = await client.get(robots_url)
+            
+            # Wrap HTTP call with circuit breaker
+            async def _fetch_robots():
+                return await client.get(robots_url)
+            
+            response = await self._circuit_breaker.call(_fetch_robots)
 
             if response.status_code == 404:
                 # No robots.txt - all allowed

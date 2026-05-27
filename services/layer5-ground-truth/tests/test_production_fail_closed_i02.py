@@ -12,6 +12,8 @@ from pydantic import ValidationError
 
 from layer5_ground_truth.config import Settings
 
+# Mark all tests in this file as requiring PostgreSQL
+pytestmark = pytest.mark.requires_postgres
 
 VALID_JWT_SECRET = "layer5-production-secret-with-more-than-32-characters"
 VALID_DATABASE_URL = "postgresql://layer5_app:strong-password@layer5-db.internal:5432/layer5_prod"
@@ -80,8 +82,8 @@ class TestLayer5ProductionSettingsFailClosed:
         monkeypatch.setenv("APP_ENV", "production")
         monkeypatch.setenv("JWT_SECRET", "")
         monkeypatch.setenv("CORS_ORIGINS", "")
-        monkeypatch.setenv("DATABASE_URL", "sqlite:///./ground_truth.db")
-        monkeypatch.setenv("DATABASE_URL_SYNC", "sqlite:///./ground_truth.db")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/layer5_test")
+        monkeypatch.setenv("DATABASE_URL_SYNC", "postgresql://postgres:postgres@localhost:5432/layer5_test")
 
         with pytest.raises(ValidationError) as exc_info:
             Settings()
@@ -101,8 +103,8 @@ class TestLayer5ProductionSettingsFailClosed:
         monkeypatch.setenv("APP_ENV", app_env_alias)
         monkeypatch.setenv("JWT_SECRET", "")
         monkeypatch.setenv("CORS_ORIGINS", "")
-        monkeypatch.setenv("DATABASE_URL", "sqlite:///./ground_truth.db")
-        monkeypatch.setenv("DATABASE_URL_SYNC", "sqlite:///./ground_truth.db")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/layer5_test")
+        monkeypatch.setenv("DATABASE_URL_SYNC", "postgresql://postgres:postgres@localhost:5432/layer5_test")
 
         with pytest.raises(ValidationError) as exc_info:
             Settings()
@@ -186,8 +188,8 @@ class TestLayer5ProductionSettingsFailClosed:
         monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         _set_valid_production_env(monkeypatch)
-        monkeypatch.setenv("DATABASE_URL", "sqlite:///./layer5.db")
-        monkeypatch.setenv("DATABASE_URL_SYNC", "sqlite:///./layer5.db")
+        monkeypatch.setenv("DATABASE_URL", "postgresql://postgres:postgres@localhost:5432/layer5_test")
+        monkeypatch.setenv("DATABASE_URL_SYNC", "postgresql://postgres:postgres@localhost:5432/layer5_test")
 
         with pytest.raises(ValidationError) as exc_info:
             Settings()

@@ -7,10 +7,7 @@ import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from value_fabric.layer4.models.billing import BillingPlanVersion, BillingSubscription, SubscriptionStatus
-
-mock_stripe_module = MagicMock()
-with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
-    from value_fabric.layer4.services.billing_service import BillingService
+from value_fabric.layer4.services.billing_service import BillingService
 
 
 @pytest.fixture

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import hmac
 import json
@@ -40,17 +41,19 @@ def register_request(payload: DSARRequestCreate, *, tenant_id: str, requester_us
     return record
 
 
-def _tenant_export_payload(*, tenant_id: str) -> dict:
-    return {
-        "accounts": [a.model_dump(mode="json") for a in db.accounts.list(tenant_id=tenant_id)],
-        "evidence": [e.model_dump(mode="json") for e in db.evidence.list(tenant_id=tenant_id)],
-        "hypotheses": [h.model_dump(mode="json") for h in db.hypotheses.list(tenant_id=tenant_id)],
-    }
+async def _tenant_export_payload(*, tenant_id: str) -> dict:
+    def _build() -> dict:
+        return {
+            "accounts": [a.model_dump(mode="json") for a in db.accounts.list(tenant_id=tenant_id)],
+            "evidence": [e.model_dump(mode="json") for e in db.evidence.list(tenant_id=tenant_id)],
+            "hypotheses": [h.model_dump(mode="json") for h in db.hypotheses.list(tenant_id=tenant_id)],
+        }
+    return await asyncio.to_thread(_build)
 
 
-def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
+async def launch_export_pipeline(record: DSARRequestRecord) -> DSARPackage:
     db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="exporting")
-    payload = _tenant_export_payload(tenant_id=record.tenant_id)
+    payload = await _tenant_export_payload(tenant_id=record.tenant_id)
     package_id = str(uuid.uuid4())
     package = DSARPackage(
         id=package_id,

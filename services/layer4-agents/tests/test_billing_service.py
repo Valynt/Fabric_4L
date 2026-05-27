@@ -34,19 +34,8 @@ from value_fabric.layer4.models.billing import (
     SubscriptionStatus,
 )
 
-# Mock stripe before importing billing service
-mock_stripe_module = MagicMock()
-mock_stripe_module.error = MagicMock()
-mock_stripe_module.error.StripeError = Exception
-mock_stripe_module.error.SignatureVerificationError = Exception
-mock_stripe_module.Webhook = MagicMock()
-mock_stripe_module.Customer = MagicMock()
-mock_stripe_module.checkout = MagicMock()
-mock_stripe_module.billing_portal = MagicMock()
-
-with patch.dict('sys.modules', {'stripe': mock_stripe_module}):
-    from value_fabric.layer4.services.billing_service import BillingService
-    from value_fabric.layer4.services.stripe_client import StripeError
+from value_fabric.layer4.services.billing_service import BillingService
+from value_fabric.layer4.services.stripe_client import StripeError
 
 
 # =============================================================================

@@ -141,7 +141,7 @@ def _calculate_risk_score(suspicious_hits: tuple[str, ...], high_risk_hits: tupl
 
 def check_untrusted_output_policy(
     items: Iterable[object],
-    tenant_id: str | None = None,
+    tenant_id: str,
 ) -> PolicyCheckResult:
     """Check if untrusted LLM output violates policy with risk scoring and telemetry.
 
@@ -150,11 +150,16 @@ def check_untrusted_output_policy(
 
     Args:
         items: Iterable of extracted items to check
-        tenant_id: Optional tenant ID for telemetry
+        tenant_id: Required tenant ID for telemetry (no fallbacks)
 
     Returns:
         PolicyCheckResult with safety status, risk score, and detected issues
+    
+    Raises:
+        ValueError: If tenant_id is missing or empty
     """
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required for security policy checks")
     blocked_terms = (
         "grant_admin",
         "delete_tenant",
@@ -196,13 +201,13 @@ def check_untrusted_output_policy(
         metrics = get_metrics()
         if metrics:
             metrics.record_prompt_injection_attempt(
-                tenant_id=tenant_id or "unknown",
+                tenant_id=tenant_id,
                 risk_level=risk_level,
                 violation_count=len(all_issues),
             )
         logger.warning(
             "Untrusted output policy violation detected - tenant=%s risk=%s score=%.2f issues=%s",
-            tenant_id or "unknown",
+            tenant_id,
             risk_level,
             risk_score,
             all_issues,
@@ -216,7 +221,7 @@ def check_untrusted_output_policy(
     )
 
 
-def enforce_untrusted_output_policy(items: Iterable[object]) -> None:
+def enforce_untrusted_output_policy(items: Iterable[object], tenant_id: str) -> None:
     """Reject LLM output containing privileged side-effect instructions.
 
     L2 extraction is data-only. Any instruction-like output that appears to
@@ -225,8 +230,19 @@ def enforce_untrusted_output_policy(items: Iterable[object]) -> None:
     
     This is a simplified version that raises on any violation. Use
     check_untrusted_output_policy for risk-based handling.
+    
+    Args:
+        items: Iterable of extracted items to check
+        tenant_id: Required tenant ID for telemetry (no fallbacks)
+    
+    Raises:
+        ValueError: If tenant_id is missing or empty
+        UntrustedLLMOutputPolicyError: If policy violation detected
     """
-    result = check_untrusted_output_policy(items)
+    if not tenant_id or not tenant_id.strip():
+        raise ValueError("tenant_id is required for security policy enforcement")
+    
+    result = check_untrusted_output_policy(items, tenant_id)
     
     if not result.is_safe:
         raise UntrustedLLMOutputPolicyError(

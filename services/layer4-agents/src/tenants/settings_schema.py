@@ -51,6 +51,17 @@ class RateLimitSettings(BaseModel):
         return v
 
 
+class GateTimeoutSettings(BaseModel):
+    """Gate timeout configuration per tenant."""
+
+    gate_timeout_seconds: int = Field(
+        default=300,
+        ge=30,
+        le=3600,
+        description="Pending human gate timeout in seconds",
+    )
+
+
 class TenantSettings(BaseModel):
     """Complete tenant settings schema with validation.
 
@@ -60,6 +71,11 @@ class TenantSettings(BaseModel):
     rate_limits: RateLimitSettings = Field(
         default_factory=RateLimitSettings,
         description="Rate limiting configuration",
+    )
+
+    gate_timeout: GateTimeoutSettings = Field(
+        default_factory=GateTimeoutSettings,
+        description="Human gate timeout configuration",
     )
 
     # Future settings can be added here with their own typed schemas
@@ -102,3 +118,18 @@ def get_tenant_rate_limits(settings: dict | None) -> RateLimitSettings:
     """
     tenant_settings = TenantSettings.from_json(settings)
     return tenant_settings.rate_limits
+
+
+def get_tenant_gate_timeout(settings: dict | None) -> int:
+    """Extract and validate gate timeout from tenant settings.
+
+    Convenience function for the gate timeout scheduler.
+
+    Args:
+        settings: Raw tenant.settings JSONB dict
+
+    Returns:
+        Gate timeout in seconds (default 300)
+    """
+    tenant_settings = TenantSettings.from_json(settings)
+    return tenant_settings.gate_timeout.gate_timeout_seconds

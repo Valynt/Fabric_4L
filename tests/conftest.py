@@ -468,6 +468,37 @@ def skip_if_infra_unavailable(*deps: str) -> None:
 # ---------------------------------------------------------------------------
 # Database fixtures (require live PostgreSQL)
 # ---------------------------------------------------------------------------
+@pytest.fixture(scope="session")
+def postgres_test_db():
+    """PostgreSQL test database for JSONB/RLS/security tests.
+
+    Uses TEST_DATABASE_URL or defaults to docker-compose dev stack.
+    Fails in CI if unavailable, skips locally with clear message.
+    """
+    if not _check_postgres():
+        if os.getenv("CI") == "true":
+            pytest.fail(make_infra_ci_failure_reason("postgres"))
+        pytest.skip(make_infra_skip_reason("postgres"))
+
+    from sqlalchemy import create_engine
+
+    db_url = os.getenv(
+        "TEST_DATABASE_URL",
+        "postgresql://postgres:postgres@localhost:5432/fabric_test",
+    )
+    engine = create_engine(db_url)
+
+    # Verify dialect
+    if engine.dialect.name != "postgresql":
+        pytest.fail(
+            f"PostgreSQL test configured with {engine.dialect.name} dialect. "
+            f"Set TEST_DATABASE_URL to a PostgreSQL connection string."
+        )
+
+    yield engine
+    engine.dispose()
+
+
 @pytest.fixture
 def db_connection(require_postgres):
     """Raw psycopg2 connection for RLS policy testing."""

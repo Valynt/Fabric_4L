@@ -55,20 +55,13 @@ from value_fabric.shared.identity.dependencies import require_authenticated
 
 pytestmark = [
     pytest.mark.integration,
-    pytest.mark.requires_postgres,
+    pytest.mark.postgres,
 ]
 
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Integration Test Fixtures
 # ──────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.fixture(scope="session")
-def postgres_container():
-    """Start PostgreSQL container for test session."""
-    with PostgresContainer("postgres:16-alpine") as postgres:
-        yield postgres
 
 
 @pytest_asyncio.fixture(scope="function")

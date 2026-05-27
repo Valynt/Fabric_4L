@@ -25,6 +25,31 @@ from sqlalchemy.types import CHAR, TypeDecorator
 
 from .config import get_settings
 
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------------------------
+# Optional metrics support
+# ---------------------------------------------------------------------------
+
+
+def _get_metrics():
+    """
+    Get the metrics module if available.
+
+    Prometheus metrics are optional - if the module is not installed,
+    this returns None gracefully. This allows the database layer to
+    function in environments without monitoring dependencies.
+
+    Returns:
+        Metrics object or None if not available.
+    """
+    try:
+        from metrics.prometheus_metrics import get_metrics
+        return get_metrics()
+    except ImportError:
+        return None
+
+
 # ---------------------------------------------------------------------------
 # SQLite UUID type adapter
 # ---------------------------------------------------------------------------
@@ -86,12 +111,10 @@ _privileged_db_session_metrics = {
 
 
 def _record_pool_state(engine: AsyncEngine) -> None:
+    metrics = _get_metrics()
+    if metrics is None:
+        return
     try:
-        from metrics.prometheus_metrics import get_metrics
-
-        metrics = get_metrics()
-        if metrics is None:
-            return
         pool = engine.sync_engine.pool
         active = int(pool.checkedout())
         size = int(pool.size())
@@ -184,14 +207,12 @@ class TenantEnforcedAsyncSession(AsyncSession):
         try:
             return await super().execute(statement, params, **kwargs)
         except SATimeoutError:
-            try:
-                from metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics is not None:
+            metrics = _get_metrics()
+            if metrics is not None:
+                try:
                     metrics.increment_db_pool_timeout()
-            except Exception:
-                logger.debug("DB pool timeout metric emission failed", exc_info=True)
+                except Exception:
+                    logger.debug("DB pool timeout metric emission failed", exc_info=True)
             raise
 
 
@@ -233,11 +254,12 @@ def get_engine() -> AsyncEngine:
         def _on_pool_checkin(dbapi_conn, connection_record) -> None:
             start = connection_record.info.pop("pool_checkout_start", None)
             if start is not None:
-                from metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
+                metrics = _get_metrics()
                 if metrics is not None:
-                    metrics.observe_db_pool_wait(time.perf_counter() - start)
+                    try:
+                        metrics.observe_db_pool_wait(time.perf_counter() - start)
+                    except Exception:
+                        logger.debug("DB pool wait metric emission failed", exc_info=True)
             _record_pool_state(_engine)
         _setup_sqlite_uuid_handling(settings.database_url)
     return _engine
@@ -374,7 +396,10 @@ from uuid import UUID
 from fastapi import Depends, HTTPException, Request, status
 from sqlalchemy import text
 
-from metrics.prometheus_metrics import get_metrics
+try:
+    from metrics.prometheus_metrics import get_metrics
+except ImportError:
+    get_metrics = None  # type: ignore
 
 try:
     from value_fabric.shared.identity.context import RequestContext, get_request_context

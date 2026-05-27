@@ -21,7 +21,7 @@ from value_fabric.layer1.crawler.decision_store import (
 from value_fabric.layer1.shared.models import CrawlDecision
 
 
-pytestmark = pytest.mark.postgres
+pytestmark = pytest.mark.requires_postgres
 
 
 class TestCrawlDecisionTenantIsolation:
