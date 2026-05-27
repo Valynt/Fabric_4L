@@ -52,7 +52,7 @@ class RedisDistributedStore(DistributedStore):
             return
         raise StoreUnavailableError("Distributed store circuit is open")
 
-    def _mark_failure(self, exc: Exception) -> None:
+    def _mark_failure(self, exc: Exception) -> "NoReturn":
         self._consecutive_failures += 1
         if self._consecutive_failures >= self.circuit_breaker_failures:
             self._circuit_opened_at = time.monotonic()
