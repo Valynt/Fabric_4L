@@ -287,10 +287,17 @@ class EntityResolutionService:
 
         threshold = float(request.query_attributes.get("vector_threshold", _DEFAULT_VECTOR_THRESHOLD))
         index_name = request.query_attributes.get("vector_index_name", "entity_embeddings")
+        entity_type = request.entity_type
+        if not entity_type or not (
+            (entity_type[0].isascii() and (entity_type[0].isalpha() or entity_type[0] == "_"))
+            and all(ch.isascii() and (ch.isalnum() or ch == "_") for ch in entity_type)
+        ):
+            raise ValueError(f"Invalid entity_type label: {entity_type!r}")
+
         query = f"""
         CALL db.index.vector.queryNodes($index_name, $k, $embedding)
         YIELD node, score
-        WHERE node:{request.entity_type} AND node.tenant_id = $tenant_id AND score >= $threshold
+        WHERE node:{entity_type} AND node.tenant_id = $tenant_id AND score >= $threshold
         RETURN node.id as id, node as properties, score as vector_score
         ORDER BY score DESC, id ASC
         LIMIT $k
