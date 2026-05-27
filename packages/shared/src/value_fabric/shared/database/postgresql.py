@@ -25,6 +25,7 @@ class PostgresPoolConfig:
 
 
 T = TypeVar("T")
+SYNC_POSTGRES_DRIVERS = {"psycopg2", "pg8000", "pygresql", "pypostgresql"}
 
 
 def validate_postgresql_dsn(dsn: str) -> str:
@@ -34,11 +35,6 @@ def validate_postgresql_dsn(dsn: str) -> str:
     url = make_url(dsn)
     if not url.drivername.startswith("postgresql"):
         raise ValueError(f"Expected PostgreSQL DSN, got '{url.drivername}'")
-    if "+" not in url.drivername:
-        raise ValueError(
-            "Async SQLAlchemy engines require an async PostgreSQL dialect, "
-            "for example 'postgresql+asyncpg://...'.",
-        )
     return dsn
 
 
@@ -64,8 +60,17 @@ def resolve_runtime_dsn(*env_vars: str, fallback: str | None = None) -> str:
 
 def create_postgresql_engine(dsn: str, *, pool: PostgresPoolConfig | None = None, **kwargs: Any) -> AsyncEngine:
     pool_cfg = pool or PostgresPoolConfig()
+    normalized_dsn = normalize_async_postgresql_dsn(dsn)
+    url = make_url(validate_postgresql_dsn(normalized_dsn))
+    driver = url.drivername.partition("+")[2]
+    if driver in SYNC_POSTGRES_DRIVERS:
+        raise ValueError(
+            f"Driver '{url.drivername}' is sync-only for SQLAlchemy async engine usage; "
+            "use postgresql+asyncpg:// or postgresql+psycopg://",
+        )
+
     return create_async_engine(
-        validate_postgresql_dsn(normalize_async_postgresql_dsn(dsn)),
+        normalized_dsn,
         pool_size=pool_cfg.pool_size,
         max_overflow=pool_cfg.max_overflow,
         pool_timeout=pool_cfg.pool_timeout,

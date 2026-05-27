@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import os
 import re
 from pathlib import Path
 
@@ -11,7 +10,7 @@ ENV_EXAMPLE = ROOT / ".env.example"
 SERVICE_ENVS = {
     "layer1-ingestion": ["LAYER1_DATABASE_URL", "DATABASE_URL"],
     "layer2-extraction": ["LAYER2_DATABASE_URL", "DATABASE_URL"],
-    "layer4-agents": ["LAYER4_DATABASE_URL", "CHECKPOINT_DATABASE_URL", "DATABASE_URL"],
+    "layer4-agents": ["LAYER4_DATABASE_URL", "LANGGRAPH_CHECKPOINT_DB_URL", "DATABASE_URL"],
     "layer5-ground-truth": ["LAYER5_DATABASE_URL", "LAYER5_DATABASE_URL_SYNC", "DATABASE_URL", "DATABASE_URL_SYNC"],
     "layer6-benchmarks": ["LAYER6_DATABASE_URL", "LAYER6_DATABASE_URL_SYNC", "DATABASE_URL", "DATABASE_URL_SYNC"],
 }
