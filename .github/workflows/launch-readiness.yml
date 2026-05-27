@@ -102,6 +102,8 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Compile launch readiness scripts
         run: python -m py_compile scripts/ci/classify_failure.py scripts/ci/generate_launch_evidence_bundle.py
+      - name: Enforce config bypass policy (including k8s staging/prod manifests)
+        run: python scripts/ci/check_config_policy.py
       - name: Run repository verification
         run: pnpm run verify
       - name: Web typecheck

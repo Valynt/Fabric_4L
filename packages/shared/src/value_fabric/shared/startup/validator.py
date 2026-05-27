@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from value_fabric.shared.security import is_production_like_environment
+from value_fabric.shared.security import detect_environment
 
 _TRUE_VALUES = {"true", "1", "yes", "on", "i_understand_risk"}
 _BYPASS_ENV_FLAGS = (
@@ -14,6 +14,14 @@ _BYPASS_ENV_FLAGS = (
     "AUTH_BYPASS_ENABLED",
     "ALLOW_DEV_AUTH_BYPASS",
 )
+_EXPLICIT_LOCAL_TEST_ENVIRONMENTS = frozenset({"local", "development", "dev", "test", "testing", "ci"})
+
+
+def _is_explicit_local_or_test_environment() -> bool:
+    env = detect_environment().strip().lower()
+    return env in _EXPLICIT_LOCAL_TEST_ENVIRONMENTS
+
+
 _BYPASS_SETTINGS_FIELDS = (
     "allow_insecure_dev_auth_bypass",
     "dev_auth_bypass",
@@ -32,7 +40,7 @@ def _flag_is_truthy(value: Any) -> bool:
 
 def reject_insecure_bypass_in_production(*, service_name: str, settings: Any | None = None) -> None:
     """Fail closed when production-like runtimes enable auth bypass toggles."""
-    if not is_production_like_environment():
+    if _is_explicit_local_or_test_environment():
         return
 
     active_flags: list[str] = []
