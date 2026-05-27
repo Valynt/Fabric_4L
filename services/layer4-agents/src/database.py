@@ -1,3 +1,5 @@
+INTENTIONAL_DB_ADAPTER_BYPASS = True
+
 """
 Async SQLAlchemy engine and session management for Layer 4.
 

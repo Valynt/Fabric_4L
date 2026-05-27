@@ -1,3 +1,5 @@
+INTENTIONAL_DB_ADAPTER_BYPASS = True
+
 """Database engine and session management.
 
 P0-08: Supports PostgreSQL Row-Level Security via SET LOCAL app.tenant_id

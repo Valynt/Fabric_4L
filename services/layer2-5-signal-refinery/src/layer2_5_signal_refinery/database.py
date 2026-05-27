@@ -20,9 +20,13 @@ from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
     async_sessionmaker,
-    create_async_engine,
 )
 from sqlalchemy.types import CHAR, TypeDecorator
+from value_fabric.shared.database import (
+    DatabaseAdapterConfig,
+    RuntimeDatabaseAdapter,
+    is_production_mode_from_env,
+)
 
 from .config import get_settings
 
@@ -33,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 _engine: AsyncEngine | None = None
 _session_factory: async_sessionmaker[AsyncSession] | None = None
+_runtime_adapter: RuntimeDatabaseAdapter | None = None
 
 
 # ---------------------------------------------------------------------------
@@ -74,14 +79,18 @@ class SQLiteUUID(TypeDecorator):
 
 
 def get_engine() -> AsyncEngine:
-    global _engine
+    global _engine, _runtime_adapter
     if _engine is None:
         settings = get_settings()
-        _engine = create_async_engine(
-            settings.database_url,
-            echo=False,
-            pool_pre_ping=True,
+        _runtime_adapter = RuntimeDatabaseAdapter(
+            DatabaseAdapterConfig(
+                database_url=settings.database_url,
+                service_name="layer2_5_signal_refinery",
+                production_mode=is_production_mode_from_env(),
+                allow_test_sqlite=True,
+            )
         )
+        _engine = _runtime_adapter.engine
     return _engine
 
 
