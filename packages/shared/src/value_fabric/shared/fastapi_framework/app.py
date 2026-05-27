@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from collections.abc import Callable
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
+from enum import StrEnum
 from typing import Any
 
 from fastapi import FastAPI
@@ -11,6 +13,142 @@ from fastapi import FastAPI
 from ..error_handling.handlers import register_exception_handlers
 
 from .middleware import CorsPolicy, add_cors_middleware, add_request_id_middleware
+
+
+class EnforcementMode(StrEnum):
+    """Rollout mode for security and governance controls."""
+
+    OFF = "off"
+    AUDIT = "audit"
+    ENFORCE = "enforce"
+
+
+@dataclass(frozen=True)
+class EnforcementControlConfig:
+    """Control-level rollout configuration for a single enforcement concern."""
+
+    mode: EnforcementMode = EnforcementMode.AUDIT
+
+
+@dataclass(frozen=True)
+class HealthChecksConfig:
+    """Health/readiness endpoint behavior configuration."""
+
+    mode: EnforcementMode = EnforcementMode.AUDIT
+    route_opt_out_paths: frozenset[str] = field(
+        default_factory=lambda: frozenset({"/health", "/health/detailed", "/ready", "/readiness"})
+    )
+
+
+@dataclass(frozen=True)
+class EnforcementRolloutConfig:
+    """Top-level progressive enforcement configuration attached to app.state."""
+
+    tenant_enforcement: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
+    rate_limiting: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
+    idempotency: EnforcementControlConfig = field(default_factory=EnforcementControlConfig)
+    health_checks: HealthChecksConfig = field(default_factory=HealthChecksConfig)
+
+
+@dataclass
+class EnforcementCounters:
+    """Structured counters for rollout observability."""
+
+    blocked_total: int = 0
+    bypass_total: int = 0
+    false_positive_candidate_total: int = 0
+
+
+def mark_route_enforcement_opt_out(
+    handler: Callable[..., Any],
+    *,
+    reason: str,
+) -> Callable[..., Any]:
+    """Mark a route handler as enforcement-opt-out for safe internal/public routes."""
+
+    setattr(handler, "_vf_enforcement_opt_out", True)
+    setattr(handler, "_vf_enforcement_opt_out_reason", reason)
+    return handler
+
+
+def _is_route_opted_out(path: str, route_handler: Callable[..., Any], config: EnforcementRolloutConfig) -> bool:
+    return path in config.health_checks.route_opt_out_paths or bool(
+        getattr(route_handler, "_vf_enforcement_opt_out", False)
+    )
+
+
+def record_enforcement_decision(
+    app: FastAPI,
+    *,
+    control: str,
+    violation: str,
+    route: str,
+    tenant_id: str | None,
+    actor_id: str | None,
+    logger: Any | None = None,
+    route_handler: Callable[..., Any] | None = None,
+) -> bool:
+    """Apply rollout semantics and emit structured audit context.
+
+    Returns ``True`` when request processing should continue, ``False`` when the
+    caller should block the request in enforce mode.
+    """
+
+    config: EnforcementRolloutConfig = getattr(app.state, "enforcement_rollout", EnforcementRolloutConfig())
+    counters: EnforcementCounters = getattr(app.state, "enforcement_counters", EnforcementCounters())
+    app.state.enforcement_counters = counters
+
+    if route_handler is not None and _is_route_opted_out(route, route_handler, config):
+        counters.bypass_total += 1
+        if logger is not None:
+            logger.info(
+                "enforcement.opt_out",
+                extra={
+                    "control": control,
+                    "route": route,
+                    "tenant_id": tenant_id,
+                    "actor_id": actor_id,
+                    "violation": violation,
+                    "mode": "bypass",
+                },
+            )
+        return True
+
+    mode = getattr(config, control, EnforcementControlConfig()).mode
+    if mode == EnforcementMode.OFF:
+        counters.bypass_total += 1
+        return True
+
+    if mode == EnforcementMode.AUDIT:
+        counters.false_positive_candidate_total += 1
+        if logger is not None:
+            logger.warning(
+                "enforcement.audit_violation",
+                extra={
+                    "control": control,
+                    "route": route,
+                    "tenant_id": tenant_id,
+                    "actor_id": actor_id,
+                    "violation": violation,
+                    "mode": mode.value,
+                },
+            )
+        return True
+
+    counters.blocked_total += 1
+    if logger is not None:
+        logger.warning(
+            "enforcement.blocked",
+            extra={
+                "control": control,
+                "route": route,
+                "tenant_id": tenant_id,
+                "actor_id": actor_id,
+                "violation": violation,
+                "mode": mode.value,
+            },
+        )
+    return False
 
 
 def init_telemetry(service_name: str, *, endpoint: str | None = None) -> Any | None:
@@ -77,12 +215,15 @@ def register_health_endpoint(
     handler: Callable[..., Any] | None = None,
 ) -> None:
     if handler is None:
+
         async def default_handler() -> dict[str, Any]:
             return build_health_response(service_name=service_name)
 
         route_handler = default_handler
     else:
         route_handler = handler
+
+    mark_route_enforcement_opt_out(route_handler, reason="health_or_readiness")
 
     app.add_api_route(
         path,
@@ -129,6 +270,7 @@ def create_fabric_app(
     include_request_id_middleware: bool = True,
     telemetry_service_name: str | None = None,
     instrument_telemetry: bool = False,
+    enforcement_rollout: EnforcementRolloutConfig | None = None,
     **fastapi_kwargs: Any,
 ) -> FastAPI:
     """Create a FastAPI application with Value Fabric defaults.
@@ -147,6 +289,8 @@ def create_fabric_app(
     )
     app.state.service_name = service_name
     app.state.telemetry_provider = None
+    app.state.enforcement_rollout = enforcement_rollout or EnforcementRolloutConfig()
+    app.state.enforcement_counters = EnforcementCounters()
 
     if telemetry_service_name is not None:
         app.state.telemetry_provider = init_telemetry(telemetry_service_name)

@@ -24,3 +24,7 @@ _security_config = import_module("value_fabric.shared.security.config")
 create_fabric_app = cast(Callable[..., Any], _framework_app.create_fabric_app)
 register_health_endpoint = cast(Callable[..., None], _framework_app.register_health_endpoint)
 validate_production_safety = cast(Callable[..., None], _security_config.validate_production_safety)
+
+EnforcementControlConfig = _framework_app.EnforcementControlConfig
+EnforcementMode = _framework_app.EnforcementMode
+EnforcementRolloutConfig = _framework_app.EnforcementRolloutConfig
