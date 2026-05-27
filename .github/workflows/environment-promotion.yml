@@ -449,7 +449,6 @@ jobs:
           echo "  - https://grafana.fabric.internal/d/production"
           echo "  - https://prometheus.fabric.internal"
 
-      # TODO(#infisical-transition): Remove `continue-on-error` and GitHub Secrets fallback
       # once Infisical project is fully populated and CI validation passes.
       # Target: after first successful Infisical-only CI run.
       - name: Fetch secrets from Infisical
@@ -461,14 +460,6 @@ jobs:
           project-slug: fabric4l
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /monitoring
-        continue-on-error: true
-
-      # TODO(#infisical-transition): Remove this fallback after Infisical is populated.
-      - name: Fallback to GitHub Secrets
-        if: steps.infisical.outcome == 'failure'
-        run: |
-          echo "::warning::Infisical fetch failed — falling back to GitHub Secrets (temporary, see issue #infisical-transition)"
-          echo "SLACK_WEBHOOK_URL=${{ secrets.SLACK_WEBHOOK_URL }}" >> "$GITHUB_ENV"
 
       - name: Notify on deployment success
         uses: slackapi/slack-github-action@v1
