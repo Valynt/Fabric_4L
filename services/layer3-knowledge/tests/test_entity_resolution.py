@@ -462,7 +462,7 @@ class TestHybridRetrievalAndIsolation:
             response = await service.resolve(request)
 
         assert response.matched_entity_id == "ent-1"
-        assert len(response.candidates) >= 2
+        assert len(response.candidates) == 1
         assert response.candidates[0].metadata["retrieval_metadata"]["sources"] == ["fuzzy", "vector"]
         assert "decision_factors" in response.candidates[0].metadata
 
