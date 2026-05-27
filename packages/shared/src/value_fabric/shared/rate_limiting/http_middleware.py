@@ -50,7 +50,6 @@ def should_skip_rate_limit(path: str, *, config: SharedRateLimitMiddlewareConfig
 
 def build_rate_limit_key(
     *,
-    request: Request,
     ctx: RequestContext,
     config: RateLimitConfig,
     endpoint_class: str,
