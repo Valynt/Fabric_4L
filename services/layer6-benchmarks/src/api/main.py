@@ -39,7 +39,7 @@ except Exception as exc:
 
 from ..database import close_driver, get_driver
 from ..database import health_check as neo4j_health_check
-from ..logging_config import configure_structured_logging
+from layer6_benchmarks.logging_config import configure_structured_logging
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..models.benchmark_dataset import (
     FINANCIAL_SERVICES_BENCHMARK_SEED,

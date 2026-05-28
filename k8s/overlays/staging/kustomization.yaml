@@ -1,7 +1,7 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
-namespace: fabric-4l-staging
+namespace: value-fabric-staging
 
 resources:
   - ../../base/
@@ -57,6 +57,18 @@ replicas:
     count: 1
   - name: frontend
     count: 1
+
+patches:
+  # Patch all ExternalSecrets to render into the staging namespace so generated
+  # Kubernetes Secrets are created in the same namespace as the pods that
+  # consume them.
+  - target:
+      kind: ExternalSecret
+      name: .*
+    patch: |
+      - op: replace
+        path: /metadata/namespace
+        value: value-fabric-staging
 
 patchesStrategicMerge:
   - staging-patch.yml

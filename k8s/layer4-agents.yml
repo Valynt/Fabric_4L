@@ -86,13 +86,13 @@ spec:
                   name: neo4j-secret
                   key: neo4j_password
             - name: LAYER1_API_URL
-              value: "https://layer1-ingestion.value-fabric.svc.cluster.local:8000"
+              value: "https://layer1-ingestion:8000"
             - name: LAYER2_API_URL
-              value: "https://layer2-extraction.value-fabric.svc.cluster.local:8000"
+              value: "https://layer2-extraction:8000"
             - name: LAYER3_API_URL
-              value: "https://layer3-knowledge.value-fabric.svc.cluster.local:8001"
+              value: "https://layer3-knowledge:8001"
             - name: LAYER5_API_URL
-              value: "https://layer5-ground-truth.value-fabric.svc.cluster.local:8005"
+              value: "https://layer5-ground-truth:8005"
             - name: SERVICE_MESH_MTLS_ENABLED
               value: "true"
             - name: LAYER6_BENCHMARKS_URL

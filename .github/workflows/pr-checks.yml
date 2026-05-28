@@ -84,6 +84,36 @@ jobs:
           python scripts/ci/structural_preflight.py --strict --json | tee artifacts/structural-preflight.json
           exit ${PIPESTATUS[0]}
 
+      - name: Validate staging namespace consistency
+        run: |
+          bash scripts/ci/validate-staging-namespace.sh k8s/envs/staging
+          bash scripts/ci/validate-staging-namespace.sh k8s/overlays/staging
+
+      - name: Validate staging DNS references
+        run: |
+          bash scripts/ci/validate-staging-dns.sh k8s/envs/staging
+          bash scripts/ci/validate-staging-dns.sh k8s/overlays/staging
+
+      - name: Validate Redis auth in production-like overlays
+        run: |
+          bash scripts/ci/validate-redis-auth.sh k8s/envs/prod
+          bash scripts/ci/validate-redis-auth.sh k8s/envs/staging
+
+      - name: Validate no mutable image tags in production-like overlays
+        run: |
+          bash scripts/ci/validate-k8s-image-tags.sh k8s/envs/prod
+          bash scripts/ci/validate-k8s-image-tags.sh k8s/envs/staging
+          bash scripts/ci/validate-k8s-image-tags.sh k8s/overlays/production
+          bash scripts/ci/validate-k8s-image-tags.sh k8s/overlays/staging
+
+      - name: Validate Gateway API integration in production overlay
+        run: |
+          bash scripts/ci/validate-gateway-api.sh k8s/envs/prod
+
+      - name: Validate deploy safety guardrails
+        run: |
+          bash scripts/ci/validate-deploy-safety.sh
+
       - name: Enforce graph storage encryption policy
         run: |
           pip install pyyaml

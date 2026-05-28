@@ -158,14 +158,53 @@ jobs:
 
       - name: Configure kubeconfig
         run: |
-          # This would typically use a cloud provider action to configure access
-          # For example:
-          # - aws eks update-kubeconfig --region us-east-1 --name value-fabric-${{ env.ENVIRONMENT }}
-          # - gcloud container clusters get-credentials value-fabric --zone us-central1
-          # - az aks get-credentials --resource-group value-fabric --name value-fabric
-          
-          echo "Kubeconfig configuration placeholder"
+          # =========================================================================
+          # PRODUCTION DEPLOYMENT SAFETY
+          #
+          # This workflow REQUIRES a real cloud-provider kubeconfig. The placeholder
+          # below must be replaced with the actual provider action before any
+          # production deploy can succeed.
+          #
+          # Supported options (uncomment ONE based on your cloud provider):
+          # -------------------------------------------------------------------------
+          # AWS EKS:
+          #   aws eks update-kubeconfig \
+          #     --region us-east-1 \
+          #     --name value-fabric-${{ env.ENVIRONMENT }}
+          #
+          # GKE:
+          #   gcloud container clusters get-credentials value-fabric \
+          #     --zone us-central1
+          #
+          # AKS:
+          #   az aks get-credentials \
+          #     --resource-group value-fabric \
+          #     --name value-fabric-${{ env.ENVIRONMENT }}
+          # =========================================================================
+
+          echo "::error::Kubeconfig is not configured. Replace the placeholder in"
+          echo "::error::.github/workflows/deploy.yml with your cloud-provider action."
           echo "Environment: ${{ env.ENVIRONMENT }}"
+          exit 1
+
+      - name: Confirm cluster context and namespace
+        run: |
+          # Safety gate: confirm kubectl is talking to the expected cluster
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          echo "Current context: ${CURRENT_CONTEXT}"
+
+          # Confirm the overlay namespace matches the intended target
+          OVERLAY="${{ steps.overlay.outputs.overlay }}"
+          EXPECTED_NS=$(grep "^namespace:" "${OVERLAY}/kustomization.yaml" | awk '{print $2}')
+          echo "Expected namespace: ${EXPECTED_NS}"
+
+          # Fail if context contains unexpected keywords (basic sanity check)
+          if [[ "${CURRENT_CONTEXT}" == *"prod"* && "${{ env.ENVIRONMENT }}" != "production" ]]; then
+            echo "::error::Context '${CURRENT_CONTEXT}' looks like production but environment is '${{ env.ENVIRONMENT }}'"
+            exit 1
+          fi
+
+          echo "Cluster context and namespace confirmed ✓"
 
       - name: Resolve deploy namespace
         run: |
@@ -197,21 +236,33 @@ jobs:
           kubectl create namespace "${{ env.DEPLOY_NS }}" \
             --dry-run=client -o yaml | kubectl apply -f -
 
-      - name: Inject image tag into overlay
+      - name: Resolve digests and render immutable manifest
         run: |
-          # Mutate a working copy of the overlay so the requested IMAGE_REF is
-          # what actually gets deployed, not whatever newTag is committed.
+          # Use prepare_kustomize_deploy.sh to resolve mutable tags to immutable
+          # SHA256 digests before deployment. This ensures every deployed image
+          # is addressable by digest, enabling reproducible rollbacks.
           OVERLAY="${{ steps.overlay.outputs.overlay }}"
           REF="${{ env.IMAGE_REF }}"
-          for svc in layer1-ingestion layer2-extraction layer3-knowledge \
-                     layer4-agents layer5-ground-truth layer6-benchmarks frontend; do
-            (cd "$OVERLAY" && kustomize edit set image \
-              "ghcr.io/${{ github.repository_owner }}/fabric_4l/${svc}=ghcr.io/${{ github.repository_owner }}/fabric_4l/${svc}:${REF}")
-          done
+          REGISTRY="${{ env.REGISTRY }}"
+          RENDERED="/tmp/rendered-manifest.yaml"
+
+          # The script resolves the tag to a digest and mutates the overlay
+          # in-place, then renders the final manifest.
+          export REGISTRY="${REGISTRY}"
+          export IMAGE_TAG="${REF}"
+          export GITHUB_REPOSITORY_OWNER="${{ github.repository_owner }}"
+
+          bash scripts/ci/prepare_kustomize_deploy.sh \
+            "$(basename "$OVERLAY")" \
+            "$RENDERED"
+
+          echo "rendered_manifest=${RENDERED}" >> "$GITHUB_ENV"
 
       - name: Deploy via kustomize
         run: |
           echo "Deploying ${{ env.IMAGE_REF }} to ${{ env.ENVIRONMENT }} (ns: ${{ env.DEPLOY_NS }})"
+          kubectl apply -f "${{ env.rendered_manifest }}"
+          # Also apply the mutated overlay for any remaining kustomize resources
           kubectl apply -k "${{ steps.overlay.outputs.overlay }}"
 
       - name: Wait for rollouts
@@ -328,10 +379,12 @@ jobs:
       - name: Configure kubeconfig
         run: |
           # Mirror the same kubeconfig setup as the deploy job.
-          # Replace this placeholder with the cloud-provider-specific action
-          # (e.g. aws eks update-kubeconfig, gcloud container clusters get-credentials).
-          echo "Kubeconfig configuration placeholder"
+          # This placeholder MUST be replaced with the cloud-provider-specific action.
+          # See the "Configure kubeconfig" step in the deploy job for examples.
+          echo "::error::Kubeconfig is not configured. Replace the placeholder in"
+          echo "::error::.github/workflows/deploy.yml with your cloud-provider action."
           echo "Environment: ${{ env.ENVIRONMENT }}"
+          exit 1
 
       - name: Alert on failure
         run: |
