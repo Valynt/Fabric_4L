@@ -8,6 +8,7 @@
     "confidence",
     "tie_break_rule",
     "source_evidence_ids",
+    "tie_break_evidence",
     "reasoning_trace_keys"
   ],
   "properties": {
@@ -27,6 +28,19 @@
     "source_evidence_ids": {
       "type": "array",
       "items": {"type": "string"}
+    },
+    "tie_break_evidence": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["entity_id", "updated_at", "reference_count"],
+        "properties": {
+          "entity_id": {"type": "string"},
+          "updated_at": {"type": ["string", "null"]},
+          "reference_count": {"type": "integer", "minimum": 0}
+        },
+        "additionalProperties": false
+      }
     },
     "reasoning_trace_keys": {
       "type": "array",

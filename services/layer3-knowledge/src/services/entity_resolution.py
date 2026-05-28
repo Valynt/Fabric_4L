@@ -233,7 +233,9 @@ class EntityResolutionService:
         query = f"""
         MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})
         WHERE {where_clause}
-        RETURN n.id as id, n as properties
+        OPTIONAL MATCH (n)--()
+        WITH n, count(*) as reference_count
+        RETURN n.id as id, n as properties, reference_count
         LIMIT {_CANDIDATE_LIMIT}
         """
         
@@ -251,7 +253,9 @@ class EntityResolutionService:
 
         query = f"""
         MATCH (n:{request.entity_type} {{tenant_id: $tenant_id}})
-        RETURN n.id as id, n as properties
+        OPTIONAL MATCH (n)--()
+        WITH n, count(*) as reference_count
+        RETURN n.id as id, n as properties, reference_count
         LIMIT {_CANDIDATE_LIMIT * 5}
         """
 
@@ -299,7 +303,9 @@ class EntityResolutionService:
         CALL db.index.vector.queryNodes($index_name, $k, $embedding)
         YIELD node, score
         WHERE node:{entity_type} AND node.tenant_id = $tenant_id AND score >= $threshold
-        RETURN node.id as id, node as properties, score as vector_score
+        OPTIONAL MATCH (node)--()
+        WITH node, score, count(*) as reference_count
+        RETURN node.id as id, node as properties, score as vector_score, reference_count
         ORDER BY score DESC, id ASC
         LIMIT $k
         """
@@ -413,10 +419,14 @@ class EntityResolutionService:
                 explanation=explanation,
                 metadata={
                     "raw_properties": props,
-                    "retrieval_metadata": candidate.get("retrieval_metadata", {}),
+                    "retrieval_metadata": {
+                        **candidate.get("retrieval_metadata", {}),
+                        "reference_count": candidate.get("reference_count", 0),
+                    },
                     "decision_factors": {
                         "matched_attributes_count": len(matched_attrs),
                         "query_attribute_count": num_attrs,
+                        "reference_count": candidate.get("reference_count", 0),
                     },
                 },
             ))
@@ -454,11 +464,11 @@ class EntityResolutionService:
             # Already sorted by score, return top
             return [candidates[0]]
         elif rule == TieBreakRule.MOST_RECENT:
-            # TODO: Implement most_recent tie-break using updated_at property
-            return [candidates[0]]
+            ranked = sorted(candidates, key=self._most_recent_sort_key)
+            return [ranked[0]]
         elif rule == TieBreakRule.MOST_REFERENCED:
-            # TODO: Implement most_referenced tie-break using relationship count
-            return [candidates[0]]
+            ranked = sorted(candidates, key=self._most_referenced_sort_key)
+            return [ranked[0]]
         else:
             return [candidates[0]]
 
@@ -476,6 +486,14 @@ class EntityResolutionService:
             "confidence": confidence_score,
             "tie_break_rule": tie_break_rule,
             "source_evidence_ids": [candidate.entity_id for candidate in candidates],
+            "tie_break_evidence": [
+                {
+                    "entity_id": candidate.entity_id,
+                    "updated_at": candidate.metadata.get("raw_properties", {}).get("updated_at"),
+                    "reference_count": self._extract_reference_count(candidate),
+                }
+                for candidate in candidates
+            ],
             "reasoning_trace_keys": [
                 "candidate_retrieval",
                 "candidate_scoring",
@@ -483,6 +501,41 @@ class EntityResolutionService:
                 "tie_break_resolution",
             ],
         }
+
+    @staticmethod
+    def _parse_updated_at(value: Any) -> datetime:
+        # Nulls are treated as oldest; invalid values are treated as oldest.
+        if value is None:
+            return datetime.min.replace(tzinfo=UTC)
+        if isinstance(value, datetime):
+            return value if value.tzinfo is not None else value.replace(tzinfo=UTC)
+        if isinstance(value, str):
+            try:
+                parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
+                return parsed if parsed.tzinfo is not None else parsed.replace(tzinfo=UTC)
+            except ValueError:
+                return datetime.min.replace(tzinfo=UTC)
+        return datetime.min.replace(tzinfo=UTC)
+
+    @staticmethod
+    def _extract_reference_count(candidate: MatchCandidate) -> int:
+        raw_properties = candidate.metadata.get("raw_properties", {})
+        retrieval_metadata = candidate.metadata.get("retrieval_metadata", {})
+        value = raw_properties.get("reference_count", retrieval_metadata.get("reference_count", 0))
+        try:
+            return int(value)
+        except (TypeError, ValueError):
+            return 0
+
+    def _most_recent_sort_key(self, candidate: MatchCandidate) -> tuple[Any, ...]:
+        updated_at = self._parse_updated_at(candidate.metadata.get("raw_properties", {}).get("updated_at"))
+        reference_count = self._extract_reference_count(candidate)
+        return (-updated_at.timestamp(), -reference_count, candidate.entity_id)
+
+    def _most_referenced_sort_key(self, candidate: MatchCandidate) -> tuple[Any, ...]:
+        reference_count = self._extract_reference_count(candidate)
+        updated_at = self._parse_updated_at(candidate.metadata.get("raw_properties", {}).get("updated_at"))
+        return (-reference_count, -updated_at.timestamp(), candidate.entity_id)
 
     def _determine_confidence(self, score: float, min_confidence: float) -> MatchConfidence:
         """Determine confidence level from score.
