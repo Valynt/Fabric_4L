@@ -10,6 +10,7 @@ from enum import StrEnum
 from typing import Any
 
 from fastapi import FastAPI
+from fastapi.responses import JSONResponse
 
 from ..error_handling.handlers import register_exception_handlers
 
@@ -306,8 +307,6 @@ def register_readiness_endpoint(
     Results are cached for ``cache_ttl_seconds`` to protect downstream
     dependencies from synthetic load by aggressive orchestrators.
     """
-
-    from fastapi.responses import JSONResponse
 
     state: dict[str, Any] = {"expires_at": 0.0, "payload": None, "healthy": False}
     _lock = asyncio.Lock()

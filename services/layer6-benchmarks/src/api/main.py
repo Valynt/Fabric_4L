@@ -21,8 +21,6 @@ from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-import logging
-
 logger = logging.getLogger(__name__)
 
 try:
@@ -213,10 +211,10 @@ async def lifespan(app: FastAPI):
         logger.info("Layer 6 Benchmark Service started with %d datasets", dataset_count)
     except Exception as exc:  # pragma: no cover - exercised through readiness tests
         _benchmark_repo = None
-        _neo4j_startup_error = str(exc)
+        _neo4j_startup_error = "Neo4j benchmark store unavailable"
         logger.warning(
-            "Layer 6 Benchmark Service starting degraded; Neo4j benchmark store unavailable: %s",
-            exc,
+            "Layer 6 Benchmark Service starting degraded; Neo4j benchmark store unavailable",
+            exc_info=exc,
         )
 
     yield
@@ -340,7 +338,7 @@ async def readiness_check() -> readiness_checkResult:
         checks["config"] = {"status": "failed", "detail": "Configuration validation failed"}
 
     if _benchmark_repo is None and _neo4j_startup_error:
-        neo4j_status = {"status": "unhealthy", "error": _neo4j_startup_error}
+        neo4j_status = {"status": "unhealthy", "error": "Neo4j benchmark store unavailable"}
     else:
         neo4j_status = await neo4j_health_check()
     neo4j_ready = neo4j_status.get("status") == "healthy"
@@ -352,7 +350,7 @@ async def readiness_check() -> readiness_checkResult:
     if _benchmark_repo is None:
         checks["benchmark_store"] = {
             "status": "failed",
-            "detail": _neo4j_startup_error or "Benchmark store not initialized",
+            "detail": "Benchmark store not initialized",
         }
     else:
         try:
@@ -368,7 +366,7 @@ async def readiness_check() -> readiness_checkResult:
 
     checks["startup"] = {
         "status": "ok" if _neo4j_startup_error is None else "failed",
-        "detail": _neo4j_startup_error,
+        "detail": None if _neo4j_startup_error is None else "Neo4j benchmark store unavailable",
     }
     status = "ready" if all(check["status"] == "ok" for check in checks.values()) else "not_ready"
     return readiness_checkResult.model_validate(

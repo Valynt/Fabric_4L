@@ -348,6 +348,22 @@ class TestRequestIDMiddleware:
         resp = client.get("/test")
         assert resp.headers["X-Request-ID"] == "custom-id"
 
+    def test_emits_structured_access_log(self, caplog):
+        with caplog.at_level("INFO", logger="fabric.access"):
+            client = TestClient(self._make_app())
+            resp = client.get("/test", headers={"X-Tenant-ID": "tenant-123"})
+        assert resp.status_code == 200
+        access_records = [r for r in caplog.records if r.name == "fabric.access"]
+        assert len(access_records) == 1
+        record = access_records[0]
+        assert record.message == "request"
+        assert record.request_id.startswith("req_")
+        assert record.tenant_id == "tenant-123"
+        assert record.route == "/test"
+        assert record.method == "GET"
+        assert record.status_code == 200
+        assert isinstance(record.latency_ms, float)
+
 
 class TestGetRequestId:
     def test_from_state(self):

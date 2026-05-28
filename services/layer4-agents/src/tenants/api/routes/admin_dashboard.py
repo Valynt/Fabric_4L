@@ -56,6 +56,13 @@ class get_daily_usageResult(TypedDictModel):
     days: Any
     tenant_id: Any
 
+class get_tier_usageResult(TypedDictModel):
+    """Response for tier usage endpoint."""
+    tier_id: str
+    limits: dict[str, Any]
+    current: dict[str, Any]
+    utilization: dict[str, Any]
+
 class get_top_endpointsResult(TypedDictModel):
     days: Any
     endpoints: Any
@@ -127,7 +134,7 @@ def _authorize_tenant_access(
 # ── Dashboard Endpoints ─────────────────────────────────────────────
 
 
-@router.get("/{tenant_id}/dashboard/usage")
+@router.get("/{tenant_id}/dashboard/usage", response_model=get_tenant_usageResult)
 async def get_tenant_usage(
     tenant_id: UUID,
     days: int = Query(30, ge=1, le=365, description="Number of days to aggregate"),
@@ -172,7 +179,7 @@ async def get_tenant_usage(
     })
 
 
-@router.get("/{tenant_id}/dashboard/daily-usage")
+@router.get("/{tenant_id}/dashboard/daily-usage", response_model=get_daily_usageResult)
 async def get_daily_usage(
     tenant_id: UUID,
     days: int = Query(30, ge=1, le=365),
@@ -204,7 +211,7 @@ async def get_daily_usage(
     })
 
 
-@router.get("/{tenant_id}/dashboard/tier-usage")
+@router.get("/{tenant_id}/dashboard/tier-usage", response_model=get_tier_usageResult)
 async def get_tier_usage(
     tenant_id: UUID,
     db: AsyncSession = Depends(get_db_from_context),
@@ -242,7 +249,7 @@ async def get_tier_usage(
     return usage_summary
 
 
-@router.get("/{tenant_id}/dashboard/top-endpoints")
+@router.get("/{tenant_id}/dashboard/top-endpoints", response_model=get_top_endpointsResult)
 async def get_top_endpoints(
     tenant_id: UUID,
     days: int = Query(30, ge=1, le=365),
@@ -266,7 +273,7 @@ async def get_top_endpoints(
     })
 
 
-@router.get("/{tenant_id}/dashboard/audit-log")
+@router.get("/{tenant_id}/dashboard/audit-log", response_model=get_tenant_audit_logResult)
 async def get_tenant_audit_log(
     tenant_id: UUID,
     limit: int = Query(100, ge=1, le=1000),
@@ -348,7 +355,7 @@ async def get_tenant_audit_log(
 # ── Settings Endpoints ──────────────────────────────────────────────
 
 
-@router.get("/{tenant_id}/settings")
+@router.get("/{tenant_id}/settings", response_model=get_tenant_settingsResult)
 async def get_tenant_settings(
     tenant_id: UUID,
     db: AsyncSession = Depends(get_db_from_context),
@@ -382,7 +389,7 @@ async def get_tenant_settings(
     })
 
 
-@router.patch("/{tenant_id}/settings")
+@router.patch("/{tenant_id}/settings", response_model=get_tenant_settingsResult)
 async def update_tenant_settings(
     tenant_id: UUID,
     update: TenantSettingsUpdate,

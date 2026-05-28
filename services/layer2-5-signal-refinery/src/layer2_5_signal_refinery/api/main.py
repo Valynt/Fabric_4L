@@ -43,7 +43,8 @@ async def _probe_database() -> ProbeResult:
             await session.execute(text("SELECT 1"))
         return ProbeResult(name="database", healthy=True, detail="postgresql:ok")
     except Exception as exc:
-        return ProbeResult(name="database", healthy=False, detail=f"postgresql:error:{exc}")
+        logger.warning("Database health probe failed", exc_info=exc)
+        return ProbeResult(name="database", healthy=False, detail="postgresql:unavailable")
 
 
 async def _probe_l3_client() -> ProbeResult:
@@ -53,7 +54,8 @@ async def _probe_l3_client() -> ProbeResult:
             return ProbeResult(name="l3_client", healthy=False, detail="l3_client:not_initialized")
         return ProbeResult(name="l3_client", healthy=True, detail="l3_client:ok")
     except Exception as exc:
-        return ProbeResult(name="l3_client", healthy=False, detail=f"l3_client:error:{exc}")
+        logger.warning("L3 client health probe failed", exc_info=exc)
+        return ProbeResult(name="l3_client", healthy=False, detail="l3_client:unavailable")
 
 
 # ---------------------------------------------------------------------------

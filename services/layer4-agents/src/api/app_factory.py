@@ -46,7 +46,10 @@ async def _postgres_probe() -> ProbeResult:
             return ProbeResult(name="postgres", healthy=True)
         return ProbeResult(name="postgres", healthy=False, detail="checkpointing_not_configured")
     except Exception as exc:
-        return ProbeResult(name="postgres", healthy=False, detail=str(exc))
+        import logging
+
+        logging.getLogger("fabric.health").warning("Postgres readiness probe failed", exc_info=exc)
+        return ProbeResult(name="postgres", healthy=False, detail="postgres:unavailable")
 
 
 async def _redis_probe() -> ProbeResult:
@@ -58,7 +61,10 @@ async def _redis_probe() -> ProbeResult:
             return ProbeResult(name="redis", healthy=True)
         return ProbeResult(name="redis", healthy=False, detail="redis_not_configured")
     except Exception as exc:
-        return ProbeResult(name="redis", healthy=False, detail=str(exc))
+        import logging
+
+        logging.getLogger("fabric.health").warning("Redis readiness probe failed", exc_info=exc)
+        return ProbeResult(name="redis", healthy=False, detail="redis:unavailable")
 
 
 def create_app() -> FastAPI:

@@ -19,10 +19,10 @@ router = APIRouter(prefix="/privacy", tags=["Privacy"])
 @router.post('/dsar', status_code=202, response_model=DSARCreateResponse)
 async def create_dsar(
     payload: DSARRequestCreate,
+    request: Request,
     tenant_id: str = Depends(tenant_required),
     auth: TokenPayload = Depends(require_authenticated),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
-    request: Request,
 ):
     """Create a DSAR (Data Subject Access Request) for privacy compliance.
 

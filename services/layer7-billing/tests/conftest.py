@@ -6,6 +6,9 @@ The DATABASE_URL is overridden before any imports touch the engine.
 Fixture hierarchy:
   engine (function-scoped) →  fresh in-memory DB per test
   db     (function-scoped) →  session with a nested transaction rolled back after each test
+
+This conftest.py is isolated from the root conftest.py to avoid mandatory dependency
+checks for layer1/layer3/layer4 packages that are not needed for layer7-billing tests.
 """
 
 import os
@@ -22,6 +25,11 @@ if str(SRC_PATH) not in sys.path:
 REPO_ROOT = Path(__file__).resolve().parents[3]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+# Add shared package to path (needed for value_fabric.shared imports)
+SHARED_SRC = REPO_ROOT / "packages" / "shared" / "src"
+if str(SHARED_SRC) not in sys.path:
+    sys.path.insert(0, str(SHARED_SRC))
 
 import pytest
 import pytest_asyncio

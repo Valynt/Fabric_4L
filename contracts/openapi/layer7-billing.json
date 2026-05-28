@@ -1,12 +1,674 @@
 {
   "openapi": "3.1.0",
-  "info": {"title": "Layer 7 Billing API", "version": "0.1.0"},
+  "info": {
+    "title": "Layer 7 Billing Service",
+    "description": "Usage event ingestion, plan entitlement checks, invoice listing, and payment state.",
+    "version": "0.1.0"
+  },
   "paths": {
-    "/v1/billing/plans": {"post": {"summary": "Upsert plan", "responses": {"200": {"description": "OK"}}}},
-    "/v1/billing/entitlements/{plan_id}/decision": {"get": {"summary": "Entitlement decision", "parameters": [{"name":"plan_id","in":"path","required":true,"schema":{"type":"string"}},{"name":"feature","in":"query","required":true,"schema":{"type":"string"}}],"responses":{"200":{"description":"OK"}}}},
-    "/v1/billing/usage-events": {"post": {"summary": "Append-only usage ingestion", "responses": {"200": {"description": "Accepted or duplicate"}}}},
-    "/v1/billing/usage-aggregates": {"get": {"summary": "Idempotent billable aggregates", "responses": {"200": {"description": "OK"}}}},
-    "/v1/billing/invoices": {"get": {"summary": "Tenant invoices", "responses": {"200": {"description": "OK"}}}},
-    "/v1/billing/payment-state": {"get": {"summary": "Payment state", "responses": {"200": {"description": "OK"}}}}
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/plans": {
+      "post": {
+        "summary": "Upsert Plan",
+        "operationId": "upsert_plan_v1_billing_plans_post",
+        "parameters": [
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Plan"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Upsert Plan V1 Billing Plans Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/entitlements/{plan_id}/decision": {
+      "get": {
+        "summary": "Entitlement Decision",
+        "operationId": "entitlement_decision_v1_billing_entitlements__plan_id__decision_get",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          },
+          {
+            "name": "feature",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Feature"
+            }
+          },
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Entitlement Decision V1 Billing Entitlements  Plan Id  Decision Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage-events": {
+      "post": {
+        "summary": "Ingest Usage",
+        "operationId": "ingest_usage_v1_billing_usage_events_post",
+        "parameters": [
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageEventIn"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Ingest Usage V1 Billing Usage Events Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage-aggregates": {
+      "get": {
+        "summary": "Usage Aggregates",
+        "operationId": "usage_aggregates_v1_billing_usage_aggregates_get",
+        "parameters": [
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Usage Aggregates V1 Billing Usage Aggregates Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/invoices": {
+      "get": {
+        "summary": "List Invoices",
+        "operationId": "list_invoices_v1_billing_invoices_get",
+        "parameters": [
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response List Invoices V1 Billing Invoices Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/payment-state": {
+      "get": {
+        "summary": "Payment State",
+        "operationId": "payment_state_v1_billing_payment_state_get",
+        "parameters": [
+          {
+            "name": "x-tenant-id",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Tenant-Id"
+            }
+          },
+          {
+            "name": "x-actor",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "X-Actor"
+            }
+          },
+          {
+            "name": "x-roles",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "billing:read",
+              "title": "X-Roles"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Payment State V1 Billing Payment State Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "HTTPValidationError": {
+        "type": "object",
+        "title": "HTTPValidationError",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "Plan": {
+        "properties": {
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "entitlements": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Entitlements"
+          }
+        },
+        "type": "object",
+        "required": [
+          "plan_id",
+          "name"
+        ],
+        "title": "Plan"
+      },
+      "UsageEventIn": {
+        "properties": {
+          "event_id": {
+            "type": "string",
+            "title": "Event Id"
+          },
+          "metric": {
+            "type": "string",
+            "title": "Metric"
+          },
+          "quantity": {
+            "type": "number",
+            "title": "Quantity"
+          },
+          "source": {
+            "type": "string",
+            "title": "Source"
+          },
+          "timestamp": {
+            "type": "string",
+            "title": "Timestamp"
+          },
+          "request_id": {
+            "type": "string",
+            "title": "Request Id"
+          }
+        },
+        "type": "object",
+        "required": [
+          "event_id",
+          "metric",
+          "quantity",
+          "source",
+          "timestamp",
+          "request_id"
+        ],
+        "title": "UsageEventIn"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "title": "ErrorEnvelope",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        }
+      },
+      "ErrorResponse": {
+        "type": "object",
+        "title": "ErrorResponse",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      }
+    }
   }
 }

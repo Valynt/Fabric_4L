@@ -1,5 +1,6 @@
 """Middleware for request correlation ID handling."""
 
+import logging
 import time
 from typing import Callable
 
@@ -23,6 +24,8 @@ from value_fabric.shared.observability.request_context import (
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
+
+_access_logger = logging.getLogger("fabric.access")
 
 
 class RequestIDMiddleware(BaseHTTPMiddleware):
@@ -96,6 +99,19 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                     status=response.status_code,
                     latency_ms=elapsed_ms,
                 )
+            )
+
+            # Emit structured access log
+            _access_logger.info(
+                "request",
+                extra={
+                    "request_id": request_id,
+                    "tenant_id": tenant_id,
+                    "route": request.url.path,
+                    "method": request.method,
+                    "status_code": response.status_code,
+                    "latency_ms": elapsed_ms,
+                },
             )
 
             # Add request ID to response headers

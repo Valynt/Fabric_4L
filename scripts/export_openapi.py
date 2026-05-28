@@ -73,6 +73,8 @@ EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
         "layer6-benchmarks.json",
         canonical_module="value_fabric.layer6.api.main",
     ),
+    OpenApiExportSpec("API Gateway", "api", "app", "main.py", "fabric-4l-api.json", canonical_module="app.main"),
+    OpenApiExportSpec("Layer 7 Billing", "layer7-billing", "layer7_billing", "layer7_billing/api/main.py", "layer7-billing.json"),
 )
 
 STATIC_CONTRACTS: tuple[str, ...] = ("signals.json",)
@@ -112,6 +114,7 @@ EXPORT_ENV: dict[str, str] = {
     "LAYER4_API_URL": "http://localhost:8004",
     "LAYER5_GROUND_TRUTH_URL": "http://localhost:8005",
     "LAYER6_API_URL": "http://localhost:8006",
+    "LAYER7_DATABASE_URL": "postgresql+asyncpg://fabric_export:fabric_export_secret@localhost:5432/layer7_billing",
 }
 
 def _module_stub(name: str, **attrs: Any) -> ModuleType:
@@ -223,6 +226,18 @@ def _install_common_openapi_dependency_shims() -> None:
         psycopg2.__spec__ = importlib.util.spec_from_loader("psycopg2", loader=None)  # type: ignore[attr-defined]
         sys.modules["psycopg2"] = psycopg2
         sys.modules["psycopg2.extras"] = _MockPsycopg2.extras
+
+    if importlib.util.find_spec("passlib") is None:
+        class _MockCryptContext:
+            def verify(self, secret: str, hash: str) -> bool:
+                return True
+
+            def hash(self, secret: str) -> str:
+                return "mock-hash"
+
+        passlib_context = _module_stub("passlib.context", CryptContext=_MockCryptContext)
+        sys.modules["passlib"] = _module_stub("passlib")
+        sys.modules["passlib.context"] = passlib_context
 
     _install_email_validator_shim()
 

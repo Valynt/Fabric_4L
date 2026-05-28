@@ -1,4 +1,5 @@
 from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError
+from value_fabric.shared.identity.dependencies import require_tenant_context
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -70,14 +71,13 @@ class ValueCaseResponse(BaseModel):
 async def get_value_levers(
     request: LeverConfigRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Get value lever configuration for value calculations.
-    
+
     Returns tenant-scoped lever configurations filtered by industry/company size.
     """
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise AuthenticationError(message = "Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         # Query for value levers in Neo4j
@@ -132,11 +132,10 @@ async def get_value_levers(
 async def create_value_case(
     case_data: ValueCaseRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Create a new value case with scenarios and calculations."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise AuthenticationError(message = "Missing tenant context")
+    tenant_id = context.tenant_id
     
     case_id = f"case_{datetime.utcnow().strftime('%Y%m%d%H%M%S')}"
     
@@ -187,11 +186,10 @@ async def create_value_case(
 async def get_value_case(
     case_id: str,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Get a value case by ID."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise AuthenticationError(message = "Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         query = """
@@ -229,11 +227,10 @@ async def update_value_case(
     case_id: str,
     case_data: ValueCaseRequest,
     http_request: Request,
+    context = Depends(require_tenant_context),
 ):
     """Update an existing value case."""
-    tenant_id = http_request.state.tenant_id if hasattr(http_request.state, "tenant_id") else None
-    if not tenant_id:
-        raise AuthenticationError(message = "Missing tenant context")
+    tenant_id = context.tenant_id
     
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         query = """

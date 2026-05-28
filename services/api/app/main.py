@@ -81,7 +81,10 @@ async def _api_db_probe() -> ProbeResult:
         from app.core.database import create_database
         create_database()
     except Exception as exc:
-        return ProbeResult(name="database", healthy=False, detail=str(exc))
+        import logging
+
+        logging.getLogger("fabric.health").warning("API gateway database readiness probe failed", exc_info=exc)
+        return ProbeResult(name="database", healthy=False, detail="database:unavailable")
     return ProbeResult(name="database", healthy=True)
 
 
@@ -95,7 +98,10 @@ async def _api_redis_probe() -> ProbeResult:
             return ProbeResult(name="redis", healthy=False, detail="store_has_no_client")
         await __import__("asyncio").to_thread(client.ping)
     except Exception as exc:
-        return ProbeResult(name="redis", healthy=False, detail=str(exc))
+        import logging
+
+        logging.getLogger("fabric.health").warning("API gateway redis readiness probe failed", exc_info=exc)
+        return ProbeResult(name="redis", healthy=False, detail="redis:unavailable")
     return ProbeResult(name="redis", healthy=True)
 
 

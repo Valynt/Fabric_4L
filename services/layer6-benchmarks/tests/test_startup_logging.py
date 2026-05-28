@@ -49,3 +49,20 @@ async def test_lifespan_emits_startup_metadata(monkeypatch) -> None:
     assert kwargs["build_sha"]
     assert "database_scheme" in kwargs["config"]
     main_module._neo4j_startup_error = original_startup_error
+
+
+@pytest.mark.asyncio
+async def test_lifespan_does_not_leak_raw_exception_to_health_check(monkeypatch) -> None:
+    monkeypatch.setattr(main_module, "get_driver", AsyncMock(side_effect=RuntimeError("connection refused: neo4j://secret-host:7687")))
+    monkeypatch.setattr(main_module, "close_driver", AsyncMock())
+    monkeypatch.setattr(main_module, "_init_seed_data", AsyncMock())
+    original_startup_error = main_module._neo4j_startup_error
+    main_module._neo4j_startup_error = None
+
+    async with main_module.lifespan(main_module.app):
+        pass
+
+    assert main_module._neo4j_startup_error is not None
+    assert "secret-host" not in main_module._neo4j_startup_error
+    assert "Neo4j benchmark store unavailable" in main_module._neo4j_startup_error
+    main_module._neo4j_startup_error = original_startup_error
