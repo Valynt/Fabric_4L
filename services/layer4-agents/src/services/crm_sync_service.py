@@ -261,7 +261,7 @@ class CRMSyncService:
                 provider.value, sanitize_log_error(e),
                 extra={"tenant_id": tenant_id, "provider": provider.value},
             )
-            stats["errors"].append(str(e))
+            stats["errors"].append("CRM sync failed due to internal error")
             return stats
 
     async def _execute_with_retry(

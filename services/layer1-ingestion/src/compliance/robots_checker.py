@@ -133,7 +133,8 @@ class RobotsChecker:
                     metrics.increment_strict_robots_block(domain=domain, reason="fetch_error")
                 
                 # Audit log entry
-                return False, f"robots.txt fetch failed (strict mode): {str(e)}", {
+                logger.error("robots.txt fetch failed in strict mode", exc_info=e, extra={"domain": domain})
+                return False, "robots.txt fetch failed (strict mode): internal error", {
                     "strict_mode": True,
                     "domain": domain,
                     "error": "ROBOTS_FETCH_ERROR",
@@ -506,8 +507,9 @@ class RobotsChecker:
 
         except Exception as e:
             # Convert to specific RobotsParseError for proper error classification
+            logger.error("Failed to parse robots.txt content", exc_info=e, extra={"domain": self.domain})
             raise RobotsParseError(
-                f"Failed to parse robots.txt content: {str(e)}",
+                "Failed to parse robots.txt content",
                 content_preview=content[:200] if content else None
             )
 

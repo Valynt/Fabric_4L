@@ -57,7 +57,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         """Process request and add correlation ID."""
         # Get and validate request ID from header, or generate new one
         trace_context = resolve_trace_context(request.headers, generator=self.generator)
-        request_id = trace_context.trace_id
+        request_id = sanitize_trace_id(trace_context.trace_id)
 
         # Store in request state for access in route handlers
         setattr(request.state, REQUEST_STATE_TRACE_ID_KEY, request_id)

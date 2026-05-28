@@ -300,6 +300,21 @@ _ADMIN_PERMISSION_ALLOWLIST: frozenset[str] = frozenset({
 })
 
 
+async def require_super_admin(context: RequestContext | None = None) -> RequestContext:
+    """Require an explicit super-admin role.
+
+    This is stricter than ``require_admin`` (which also accepts tenant-admin
+    and content-admin) and lighter than ``require_privileged_access`` (which
+    demands an audit-reason header).  Use it for endpoints that only the
+    platform super administrator may reach.
+    """
+
+    ctx = await require_authenticated(context)
+    if not ctx.is_super_admin():
+        raise _forbidden("Super admin role is required")
+    return ctx
+
+
 async def require_admin(context: RequestContext | None = None) -> RequestContext:
     """Require an administrative role or explicit administrative permission."""
 

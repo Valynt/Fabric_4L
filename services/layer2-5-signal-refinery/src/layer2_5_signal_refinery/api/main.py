@@ -9,6 +9,8 @@ Port: 8007
 """
 
 import logging
+import structlog
+import sys
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -21,9 +23,12 @@ from value_fabric.shared.startup import reject_insecure_bypass_in_production
 from ..clients.l3_graph_client import get_l3_client
 from ..config import get_settings
 from ..database import close_db, init_db
+from ..logging_config import configure_structured_logging
 from .routes.signals import router as signals_router
 
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_structured_logging()
+logger = structlog.get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------

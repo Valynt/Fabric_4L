@@ -15,6 +15,7 @@ import hashlib
 import json
 import logging
 import os
+import structlog
 import time
 from dataclasses import dataclass
 from datetime import UTC, datetime
@@ -51,6 +52,7 @@ except Exception as exc:
 
 from layer2_extraction.alignment import SemanticAligner
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
+from layer2_extraction.logging_config import configure_structured_logging
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
 from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
@@ -87,8 +89,11 @@ from layer2_extraction.validation.artifact_validator import (
 
 from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
+from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
 
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_structured_logging()
+logger = structlog.get_logger(__name__)
 
 PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}
 
@@ -123,13 +128,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Layer2 extraction service shutting down")
 
+_redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+_redis_client = None
+try:
+    import redis.asyncio as _redis_async
+    _redis_client = _redis_async.Redis.from_url(_redis_url, decode_responses=True)
+except Exception:
+    pass
+
 reject_insecure_bypass_in_production(service_name="layer2-extraction")
 app = create_fabric_app(
     service_name="layer2-extraction",
     title="Layer 2 Extraction Service",
     version="1.0.0",
     description="Extraction pipeline for entities and relationships from content",
-    lifespan=lifespan
+    lifespan=lifespan,
+    health_probes=[RedisHealthProbe(name="redis", _client=_redis_client)],
+    readiness_path="/ready",
 )
 
 # Register health endpoint
@@ -1086,8 +1101,9 @@ async def run_extraction(
         return ExtractionArtifacts(result=result, relationships=all_relationships)
 
     except Exception as e:
-        error_msg = str(e)
-        if "schema validation error" in error_msg.lower():
+        logger.error("Extraction failed", exc_info=e, extra={"job_id": job_id, "tenant_id": telemetry_context.get("tenant_id")})
+        error_msg = "Extraction failed due to internal error"
+        if "schema validation error" in str(e).lower():
             await _quarantine_validation_failure(
                 tenant_id=telemetry_context["tenant_id"],
                 job_id=job_id,

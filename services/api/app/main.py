@@ -1,5 +1,6 @@
 from contextlib import asynccontextmanager
 
+import structlog
 from fastapi import FastAPI
 
 from app.core.audit import AuditMiddleware
@@ -24,6 +25,7 @@ from app.routers import (
 )
 from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 from app.services.seed_data import seed_all
+from app.logging_config import configure_structured_logging
 
 from .shared_bootstrap import (
     EnforcementControlConfig,
@@ -35,6 +37,11 @@ from .shared_bootstrap import (
     register_health_endpoint,
     validate_production_safety,
 )
+from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
+
+# Configure structured logging
+configure_structured_logging()
+logger = structlog.get_logger(__name__)
 
 settings = get_settings()
 
@@ -68,6 +75,30 @@ async def lifespan(app: FastAPI):
     yield
 
 
+async def _api_db_probe() -> ProbeResult:
+    """Readiness probe for API gateway database."""
+    try:
+        from app.core.database import create_database
+        create_database()
+    except Exception as exc:
+        return ProbeResult(name="database", healthy=False, detail=str(exc))
+    return ProbeResult(name="database", healthy=True)
+
+
+async def _api_redis_probe() -> ProbeResult:
+    """Readiness probe for API gateway distributed store (Redis)."""
+    try:
+        from app.services.distributed_store import get_distributed_store
+        store = get_distributed_store()
+        client = getattr(store, "client", None)
+        if client is None:
+            return ProbeResult(name="redis", healthy=False, detail="store_has_no_client")
+        await __import__("asyncio").to_thread(client.ping)
+    except Exception as exc:
+        return ProbeResult(name="redis", healthy=False, detail=str(exc))
+    return ProbeResult(name="redis", healthy=True)
+
+
 app = create_fabric_app(
     service_name="fabric-4l-api",
     title=settings.app_name,
@@ -75,6 +106,11 @@ app = create_fabric_app(
     description="Fabric_4L unified API for value management",
     lifespan=lifespan,
     cors_policy=settings.cors_policy,
+    health_probes=[
+        CallableProbe(name="database", fn=_api_db_probe),
+        CallableProbe(name="redis", fn=_api_redis_probe),
+    ],
+    readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
         rate_limiting=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),

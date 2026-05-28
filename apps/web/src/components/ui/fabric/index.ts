@@ -1,8 +1,6 @@
 export { PageHeader } from "./PageHeader";
 export { Btn } from "./Btn";
 export type { BtnProps } from "./Btn";
-export { LegacyDataTable } from "./LegacyDataTable";
-export type { LegacyDataTableProps } from "./LegacyDataTable";
 export { Tabs } from "./LegacyTabs";
 export type { LegacyTabsProps } from "./LegacyTabs";
 export { Toolbar } from "./Toolbar";

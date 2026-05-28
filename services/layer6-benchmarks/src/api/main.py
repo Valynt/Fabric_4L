@@ -6,6 +6,8 @@ from value_fabric.shared.error_handling.exceptions import AuthenticationError, A
 
 import logging
 import os
+import structlog
+import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
@@ -39,6 +41,7 @@ except Exception as exc:
 
 from ..database import close_driver, get_driver
 from ..database import health_check as neo4j_health_check
+from ..logging_config import configure_structured_logging
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..models.benchmark_dataset import (
     FINANCIAL_SERVICES_BENCHMARK_SEED,
@@ -74,7 +77,9 @@ from .schemas import (
 )
 from .startup_logging import emit_startup_metadata, runtime_metadata_from_env
 
-logger = logging.getLogger(__name__)
+# Configure structured logging
+configure_structured_logging()
+logger = structlog.get_logger(__name__)
 
 SERVICE_NAME = "layer6-benchmarks"
 SERVICE_VERSION = "1.0.0"

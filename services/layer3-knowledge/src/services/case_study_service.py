@@ -538,10 +538,10 @@ class CaseStudyService:
                 })
                 logger.error(
                     "case_study_import_error",
+                    exc_info=e,
                     index=i,
                     title=cs_data.get("title"),
                     error_code="CASE_STUDY_IMPORT_ERROR",
-                    error=str(e) if "case_study" in str(e).lower() else "Import error",
                 )
 
         logger.info(

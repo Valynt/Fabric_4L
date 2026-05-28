@@ -11,6 +11,8 @@ from ..schemas import (
     DatasetDetail,
     DatasetSummary,
     DatasetUpsertPayload,
+    DatasetUpsertResponse,
+    IndustriesResponse,
     ValidationRequestPayload,
     ValidationResponse,
 )
@@ -55,7 +57,7 @@ async def validate(
     return await handlers.validate(payload, ctx=ctx)
 
 
-@router.get("/industries")
+@router.get("/industries", response_model=IndustriesResponse)
 async def list_industries(
     ctx = Depends(get_request_context),
 ):
@@ -63,7 +65,7 @@ async def list_industries(
     return await handlers.list_industries(ctx=ctx)
 
 
-@router.post("/datasets")
+@router.post("/datasets", response_model=DatasetUpsertResponse)
 async def upsert_dataset(
     payload: DatasetUpsertPayload,
     ctx=Depends(get_request_context),
@@ -72,7 +74,7 @@ async def upsert_dataset(
     return await handlers.upsert_dataset(payload, ctx=ctx)
 
 
-@router.put("/datasets/{dataset_id}")
+@router.put("/datasets/{dataset_id}", response_model=DatasetUpsertResponse)
 async def update_dataset(
     dataset_id: str,
     payload: DatasetUpsertPayload,

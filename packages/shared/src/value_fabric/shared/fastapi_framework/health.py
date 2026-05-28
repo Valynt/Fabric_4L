@@ -54,6 +54,54 @@ class CallableProbe:
             return ProbeResult(name=self.name, healthy=False, detail=str(exc))
 
 
+@dataclass(frozen=True)
+class RedisHealthProbe:
+    """Health probe for Redis using duck-typed client (sync or async)."""
+
+    _client: object = field(repr=False)
+    name: str = "redis"
+
+    async def check(self) -> ProbeResult:
+        client = self._client
+        if client is None:
+            return ProbeResult(name=self.name, healthy=False, detail="client_not_configured")
+        try:
+            ping = getattr(client, "ping", None)
+            if ping is None:
+                return ProbeResult(name=self.name, healthy=False, detail="client_has_no_ping")
+            if asyncio.iscoroutinefunction(ping):
+                await ping()
+            else:
+                await asyncio.to_thread(ping)
+        except Exception as exc:  # noqa: BLE001
+            return ProbeResult(name=self.name, healthy=False, detail=str(exc))
+        return ProbeResult(name=self.name, healthy=True)
+
+
+@dataclass(frozen=True)
+class Neo4jHealthProbe:
+    """Health probe for Neo4j using duck-typed driver."""
+
+    _driver: object = field(repr=False)
+    name: str = "neo4j"
+
+    async def check(self) -> ProbeResult:
+        driver = self._driver
+        if driver is None:
+            return ProbeResult(name=self.name, healthy=False, detail="driver_not_configured")
+        try:
+            verify = getattr(driver, "verify_connectivity", None)
+            if verify is None:
+                return ProbeResult(name=self.name, healthy=False, detail="driver_has_no_verify_connectivity")
+            if asyncio.iscoroutinefunction(verify):
+                await verify()
+            else:
+                await asyncio.to_thread(verify)
+        except Exception as exc:  # noqa: BLE001
+            return ProbeResult(name=self.name, healthy=False, detail=str(exc))
+        return ProbeResult(name=self.name, healthy=True)
+
+
 async def _run_probe_with_timeout(probe: HealthCheckProbe, timeout_seconds: float) -> ProbeResult:
     start = time.perf_counter()
     try:

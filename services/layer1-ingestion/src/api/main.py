@@ -36,6 +36,7 @@ try:
         FrameworkRateLimitConfig,
         create_fabric_app,
     )
+    from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -52,7 +53,7 @@ from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..crawler.decision_store import CrawlDecisionRepository
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..shared.config import is_production_like_environment, settings
-from ..shared.database import get_db_from_context_sync
+from ..shared.database import engine, get_db_from_context_sync, redis_client_async
 from ..shared.models import (
     AccountIntelligencePacket,
     AuthenticationType,
@@ -253,6 +254,17 @@ async def lifespan(app: FastAPI):
     yield
 
 
+async def _l1_db_probe() -> ProbeResult:
+    """Readiness probe for Layer 1 PostgreSQL (sync engine)."""
+    import asyncio
+    from sqlalchemy import text
+    try:
+        await asyncio.to_thread(lambda: engine.connect().execute(text("SELECT 1")).close())
+    except Exception as exc:
+        return ProbeResult(name="postgres", healthy=False, detail=str(exc))
+    return ProbeResult(name="postgres", healthy=True)
+
+
 app = create_fabric_app(
     service_name="layer1-ingestion",
     title="Value Fabric - Layer 1: Intelligent Data Ingestion",
@@ -264,6 +276,11 @@ app = create_fabric_app(
     cors_policy=settings.cors_policy,
     register_default_exception_handlers=False,
     include_request_id_middleware=True,
+    health_probes=[
+        CallableProbe(name="postgres", fn=_l1_db_probe),
+        RedisHealthProbe(name="redis", _client=redis_client_async),
+    ],
+    readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
         rate_limiting=EnforcementControlConfig(mode=EnforcementMode.AUDIT),

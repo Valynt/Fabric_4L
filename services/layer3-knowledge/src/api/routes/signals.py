@@ -172,7 +172,8 @@ async def persist_signal(
             tenant_id=tenant_id,
         )
     except Exception as e:
-        raise AuthorizationError(message = str(f"Account authorization failed: {str(e)}")) from e
+        logger.error("Account authorization failed", exc_info=e, extra={"tenant_id": tenant_id})
+        raise AuthorizationError(message = "Account authorization failed") from e
 
     params = {
         "id": body["id"],

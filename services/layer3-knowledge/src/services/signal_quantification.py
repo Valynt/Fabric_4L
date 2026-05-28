@@ -236,10 +236,10 @@ class SignalQuantificationService:
             )
 
         except Exception as e:
-            logger.error(f"Signal quantification failed: {e}")
+            logger.error("Signal quantification failed", exc_info=e, extra={"signal_id": signal_id})
             return QuantificationResult(
                 success=False,
-                errors=[str(e)],
+                errors=["Signal quantification failed due to internal error"],
             )
 
     async def _select_formula(

@@ -501,7 +501,8 @@ class EnrichmentOrchestrator:
         except httpx.HTTPStatusError as e:
             return EnrichmentOrchestrator__enrich_from_sec_edgarResult.model_validate({"success": False, "error": f"SEC API error: {e.response.status_code}"})
         except Exception as e:
-            return EnrichmentOrchestrator__enrich_from_sec_edgarResult.model_validate({"success": False, "error": f"SEC enrichment failed: {str(e)}"})
+            logger.error("SEC enrichment failed", exc_info=e, extra={"entity_name": entity_name, "filing_date": filing_date})
+            return EnrichmentOrchestrator__enrich_from_sec_edgarResult.model_validate({"success": False, "error": "SEC enrichment failed due to internal error"})
 
     async def _enrich_from_web_crawl(self, account: Account) -> dict[str, Any]:
         """Enrich account with tech stack detection via website crawl.
@@ -569,7 +570,8 @@ class EnrichmentOrchestrator:
         except httpx.ConnectError:
             return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": f"Connection failed for {url}"})
         except Exception as e:
-            return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": f"Web crawl failed: {str(e)}"})
+            logger.error("Web crawl failed", exc_info=e, extra={"account_id": str(account.id), "url": url})
+            return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": "Web crawl failed due to internal error"})
 
     async def _enrich_from_domain(self, account: Account) -> dict[str, Any]:
         """Enrich account with executive/leadership data from domain lookup.

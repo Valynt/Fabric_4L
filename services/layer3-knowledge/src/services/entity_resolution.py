@@ -145,7 +145,7 @@ class EntityResolutionService:
                 candidates=[],
                 provenance=provenance,
                 requires_manual_review=True,
-                error=str(e),
+                error="Entity resolution failed due to internal error",
                 explanation=self._build_explanation(
                     canonical_entity_id=None,
                     confidence_score=0.0,

@@ -75,6 +75,10 @@ class refresh_result(TypedDictModel):
     token_type: str
     user_id: Any
 
+class logout_result(TypedDictModel):
+    """Response from logout endpoint."""
+    detail: str
+
 class oidc_metadataResult(TypedDictModel):
     auto_provision_users: Any
     claim_mapping_keys: list[Any]
@@ -212,7 +216,7 @@ async def _get_client_secret(config: OIDCProviderConfig) -> str:
     )
 
 
-@router.get("/{tenant_slug}/login")
+@router.get("/{tenant_slug}/login", response_model=oidc_loginResult)
 async def oidc_login(
     request: Request,
     tenant_slug: str,
@@ -286,7 +290,7 @@ async def oidc_login(
     return oidc_loginResult.model_validate({"authorization_url": auth_url, "state": state})
 
 
-@router.get("/callback")
+@router.get("/callback", response_model=oidc_callbackResult)
 async def oidc_callback(
     request: Request,
     response: Response,
@@ -504,7 +508,7 @@ async def oidc_callback(
     })
 
 
-@router.get("/{tenant_slug}/metadata")
+@router.get("/{tenant_slug}/metadata", response_model=oidc_metadataResult)
 async def oidc_metadata(
     tenant_slug: str,
     db: AsyncSession = Depends(get_db_from_context),
@@ -537,7 +541,7 @@ async def oidc_metadata(
 # Session management endpoints
 # ---------------------------------------------------------------------------
 
-@router.post("/refresh")
+@router.post("/refresh", response_model=refresh_result)
 async def auth_refresh(
     response: Response,
     vf_session: str | None = Cookie(default=None, alias=SESSION_COOKIE_NAME),
@@ -618,7 +622,7 @@ async def auth_refresh(
     })
 
 
-@router.post("/logout")
+@router.post("/logout", response_model=logout_result)
 async def auth_logout(
     response: Response,
     _csrf_ok: None = Depends(validate_double_submit),

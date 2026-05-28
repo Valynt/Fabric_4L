@@ -1,8 +1,8 @@
-.PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer3 lint-layer4 \
-        lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 \
+.PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
+        lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer2 test-layer3 test-layer4 \
-        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
+        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
@@ -140,6 +140,10 @@ lint-layer2: ## Lint Layer 2 only
 	@echo "→ Linting Layer 2..."
 	@cd services/layer2-extraction && ruff check src/
 
+lint-layer2-5: ## Lint Layer 2.5 only
+	@echo "→ Linting Layer 2.5..."
+	@cd services/layer2-5-signal-refinery && ruff check src/
+
 lint-layer3: ## Lint Layer 3 only
 	@echo "→ Linting Layer 3..."
 	@cd services/layer3-knowledge && ruff check src/
@@ -159,6 +163,7 @@ lint-layer6: ## Lint Layer 6 only
 lint: ## Lint all Python layers with ruff (fails fast on first error)
 	@$(MAKE) lint-layer1 && \
 	 $(MAKE) lint-layer2 && \
+	 $(MAKE) lint-layer2-5 && \
 	 $(MAKE) lint-layer3 && \
 	 $(MAKE) lint-layer4 && \
 	 $(MAKE) lint-layer5 && \
@@ -176,6 +181,9 @@ MYPY_LAYER3_FLAGS = --strict --warn-return-any --warn-unused-configs
 MYPY_LAYER4_FLAGS = --warn-return-any --warn-unused-configs
 # Layer 5: Strict - fully typed codebase
 MYPY_LAYER5_FLAGS = --strict --warn-return-any --warn-unused-configs
+# Layer 2.5: Moderate - signal refinery with some flexibility
+MYPY_LAYER2_5_FLAGS = --warn-return-any --warn-unused-configs
+
 # Layer 6: Minimal - gradual typing
 MYPY_LAYER6_FLAGS = --warn-return-any --warn-unused-configs
 
@@ -192,6 +200,11 @@ typecheck-layer2: ## Type-check Layer 2 only
 	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 2..."
 	@cd services/layer2-extraction && mypy src/ $(MYPY_LAYER2_FLAGS)
+
+typecheck-layer2-5: ## Type-check Layer 2.5 only
+	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
+	@echo "→ Type-checking Layer 2.5..."
+	@cd services/layer2-5-signal-refinery && mypy src/ $(MYPY_LAYER2_5_FLAGS)
 
 typecheck-layer3: ## Type-check Layer 3 only
 	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
@@ -216,6 +229,7 @@ typecheck-layer6: ## Type-check Layer 6 only
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
 	@$(MAKE) typecheck-layer1 && \
 	 $(MAKE) typecheck-layer2 && \
+	 $(MAKE) typecheck-layer2-5 && \
 	 $(MAKE) typecheck-layer3 && \
 	 $(MAKE) typecheck-layer4 && \
 	 $(MAKE) typecheck-layer5 && \
@@ -224,7 +238,7 @@ typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
 
 # ─── Testing (4-Layer Strategy) ───────────────────────────────────────────────
 
-test: test-layer1 test-layer2 test-layer3 test-layer4 test-layer5 test-layer6 ## Run all backend unit tests
+test: test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 test-layer5 test-layer6 ## Run all backend unit tests
 
 test-e2e-contracts: ## Layer 1: Run Playwright isolated page contract tests (mocked)
 	cd apps/web && npx playwright test --project=contracts
@@ -301,6 +315,17 @@ test-fast: ## Run only fast tests (exclude slow and e2e)
 
 # ─── Setup ───────────────────────────────────────────────────────────────────
 
+setup-layer2-5: ## Install Layer 2.5 dev dependencies into the pytest pipx venv
+	@PYTEST_BIN=$$(which pytest 2>/dev/null); \
+	if [ -z "$$PYTEST_BIN" ]; then \
+	  echo "ERROR: pytest not found in PATH. Install via: pipx install pytest"; \
+	  exit 1; \
+	fi; \
+	PYTEST_PY=$$(head -1 "$$PYTEST_BIN" | sed 's|#!||'); \
+	echo "→ Installing Layer 2.5 dev dependencies into $$PYTEST_PY"; \
+	cd services/layer2-5-signal-refinery && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
+	echo "✅  Layer 2.5 dependencies installed"
+
 setup: ## Install all service dev dependencies into the pytest pipx venv
 	@PYTEST_BIN=$$(which pytest 2>/dev/null); \
 	if [ -z "$$PYTEST_BIN" ]; then \
@@ -316,6 +341,8 @@ setup: ## Install all service dev dependencies into the pytest pipx venv
 	cd services/layer1-ingestion && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
 	echo "→ Installing Layer 2 dev dependencies..."; \
 	cd services/layer2-extraction && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
+	echo "→ Installing Layer 2.5 dev dependencies..."; \
+	cd services/layer2-5-signal-refinery && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
 	echo "→ Installing Layer 3 dev dependencies..."; \
 	cd services/layer3-knowledge && ($$PYTEST_PY -m pip install -e ".[dev]" -q 2>/dev/null || $$PYTEST_PY -m pip install -e "." -q) && cd ../.. || (cd ../..; exit 1); \
 	echo "→ Installing Layer 4 dev dependencies..."; \
@@ -337,6 +364,9 @@ test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (
 
 test-layer2: ## Run Layer 2 tests
 	cd services/layer2-extraction && $(PYTEST) tests/
+
+test-layer2-5: ## Run Layer 2.5 tests
+	cd services/layer2-5-signal-refinery && $(PYTEST) tests/
 
 test-layer3: ## Run Layer 3 tests
 	python scripts/ci/check_layer3_source_mirror.py
@@ -429,6 +459,8 @@ migrate: ## Run Alembic migrations for all Alembic-managed layers
 	cd services/layer1-ingestion && alembic upgrade head
 	@echo "→ Migrating Layer 2..."
 	cd services/layer2-extraction && alembic upgrade head
+	@echo "→ Migrating Layer 2.5..."
+	cd services/layer2-5-signal-refinery && alembic upgrade head
 	@echo "→ Migrating Layer 4..."
 	cd services/layer4-agents && alembic upgrade head
 	@echo "→ Migrating Layer 5..."
@@ -439,6 +471,9 @@ migrate-layer1: ## Run Alembic migrations for Layer 1 only
 
 migrate-layer2: ## Run Alembic migrations for Layer 2 only
 	cd services/layer2-extraction && alembic upgrade head
+
+migrate-layer2-5: ## Run Alembic migrations for Layer 2.5 only
+	cd services/layer2-5-signal-refinery && alembic upgrade head
 
 migrate-layer4: ## Run Alembic migrations for Layer 4 only
 	cd services/layer4-agents && alembic upgrade head

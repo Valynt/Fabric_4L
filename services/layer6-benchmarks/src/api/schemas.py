@@ -87,3 +87,16 @@ class DatasetUpsertPayload(BaseModel):
     data_source: Optional[str] = None
     is_public: bool = False
     ownership_mode: str = "tenant"
+
+
+class IndustriesResponse(BaseModel):
+    """Response listing available industries."""
+
+    industries: List[str]
+
+
+class DatasetUpsertResponse(BaseModel):
+    """Response from dataset upsert operation."""
+
+    dataset_id: str
+    ownership_mode: str

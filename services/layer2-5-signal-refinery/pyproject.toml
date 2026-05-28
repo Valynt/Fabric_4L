@@ -55,6 +55,20 @@ packages = ["src/layer2_5_signal_refinery"]
 asyncio_mode = "auto"
 testpaths = ["tests"]
 
+[tool.coverage.run]
+source = ["src"]
+omit = ["*/tests/*", "*/migrations/*"]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+]
+fail_under = 80
+
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.0",

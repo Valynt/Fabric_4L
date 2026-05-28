@@ -59,77 +59,14 @@ def register_core_routes(app: FastAPI) -> None:
         uptime = time.time() - app_start_time
         memory_info = psutil.virtual_memory()
 
-        dependencies = []
-        overall_status = "healthy"
-
-        try:
-            if runtime_state.checkpoint_saver is not None and getattr(
-                runtime_state.checkpoint_saver, "conn", None
-            ):
-                await runtime_state.checkpoint_saver.conn.execute("SELECT 1")
-                dependencies.append(
-                    {
-                        "name": "postgres",
-                        "status": "healthy",
-                        "response_time_ms": None,
-                        "error": None,
-                        "failure_reason": None,
-                    }
-                )
-            else:
-                dependencies.append(
-                    {
-                        "name": "postgres",
-                        "status": "degraded",
-                        "response_time_ms": None,
-                        "error": "Checkpointing not configured",
-                        "failure_reason": "checkpointing_not_configured",
-                    }
-                )
-                overall_status = "degraded"
-        except Exception as exc:
-            dependencies.append(
-                {
-                    "name": "postgres",
-                    "status": "unhealthy",
-                    "response_time_ms": None,
-                    "error": "PostgreSQL health check failed",
-                    "error_code": "POSTGRES_HEALTH_ERROR",
-                }
-            )
-            overall_status = "degraded"
-
-        try:
-            if runtime_state.state_manager is not None and getattr(
-                runtime_state.state_manager, "redis_client", None
-            ):
-                await runtime_state.state_manager.redis_client.ping()
-                dependencies.append(
-                    {"name": "redis", "status": "healthy", "response_time_ms": None, "error": None, "failure_reason": None}
-                )
-            else:
-                dependencies.append(
-                    {
-                        "name": "redis",
-                        "status": "degraded",
-                        "response_time_ms": None,
-                        "error": "Redis not configured",
-                        "failure_reason": "redis_not_configured",
-                    }
-                )
-        except Exception as exc:
-            dependencies.append(
-                {"name": "redis", "status": "unhealthy", "response_time_ms": None, "error": "Redis health check failed", "error_code": "REDIS_HEALTH_ERROR"}
-            )
-
         return health_checkResult.model_validate({
-            "status": overall_status,
+            "status": "healthy",
             "service": "layer4-agents",
             "version": "0.2.0",
             "timestamp": datetime.now(UTC).isoformat(),
             "executor_ready": runtime_state.workflow_executor is not None,
             "uptime_seconds": uptime,
-            "dependencies": dependencies,
+            "dependencies": [],
             "metrics": {
                 "memory_usage_mb": memory_info.used / (1024 * 1024),
                 "cpu_percent": psutil.cpu_percent(),

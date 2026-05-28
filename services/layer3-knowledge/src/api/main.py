@@ -438,11 +438,10 @@ except ImportError:
         )
 
         logger.error(
-            "Unhandled %s at %s %s: %s",
+            "Unhandled %s at %s %s",
             type(exc).__name__,
             request.method,
             request.url.path,
-            str(exc),
             exc_info=_exception_trace(exc),
             extra={"trace_id": getattr(request.state, "trace_id", None)},
         )

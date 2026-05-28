@@ -80,7 +80,8 @@ def test_layer6_observability_endpoints_contract() -> None:
 def test_api_gateway_observability_endpoints_contract() -> None:
     from app.main import app
 
-    assert_paths_present(app, ("/health", "/metrics"))
+    assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)
     assert_probe_response_shape(client, path="/health", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
+    assert_probe_response_shape(client, path="/ready", expected_statuses={200, 503}, expected_json_keys={"status", "service"})
     assert_probe_response_shape(client, path="/metrics", expected_statuses={200}, content_type_prefix="text/plain")

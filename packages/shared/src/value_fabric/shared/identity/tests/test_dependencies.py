@@ -5,7 +5,7 @@ from uuid import uuid4
 import pytest
 
 from ..context import AUTH_SOURCE_JWT, RequestContext, RequestContextManager
-from ..dependencies import require_admin
+from ..dependencies import require_admin, require_super_admin
 from ..permissions import Permission, Role
 
 
@@ -83,4 +83,52 @@ class TestRequireAdmin:
     async def test_unauthenticated_is_rejected(self):
         with pytest.raises(Exception) as exc_info:
             await require_admin(context=None)
+        assert exc_info.value.status_code == 401
+
+
+class TestRequireSuperAdmin:
+    """Regression tests for require_super_admin (P1-004)."""
+
+    @pytest.mark.asyncio
+    async def test_super_admin_role_succeeds(self):
+        ctx = _admin_ctx(roles=[Role.SUPER_ADMIN.value])
+        result = await require_super_admin(context=ctx)
+        assert result is ctx
+
+    @pytest.mark.asyncio
+    async def test_tenant_admin_role_is_rejected(self):
+        ctx = _admin_ctx(roles=[Role.TENANT_ADMIN.value])
+        with pytest.raises(Exception) as exc_info:
+            await require_super_admin(context=ctx)
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_content_admin_role_is_rejected(self):
+        ctx = _admin_ctx(roles=[Role.CONTENT_ADMIN.value])
+        with pytest.raises(Exception) as exc_info:
+            await require_super_admin(context=ctx)
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_analyst_role_is_rejected(self):
+        ctx = _admin_ctx(roles=[Role.ANALYST.value])
+        with pytest.raises(Exception) as exc_info:
+            await require_super_admin(context=ctx)
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_admin_permission_is_rejected(self):
+        """Super-admin gate must reject permission-only admin access."""
+        ctx = _admin_ctx(
+            roles=[Role.ANALYST.value],
+            permissions=frozenset({Permission.ADMIN_SYSTEM.value}),
+        )
+        with pytest.raises(Exception) as exc_info:
+            await require_super_admin(context=ctx)
+        assert exc_info.value.status_code == 403
+
+    @pytest.mark.asyncio
+    async def test_unauthenticated_is_rejected(self):
+        with pytest.raises(Exception) as exc_info:
+            await require_super_admin(context=None)
         assert exc_info.value.status_code == 401

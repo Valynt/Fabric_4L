@@ -799,7 +799,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     # Dispatch task to L2 Celery worker
                     logger.info("Dispatching extraction task to L2 Celery", job_id=str(job_id))
                     result = l2_celery.send_task(
-                        "run_extraction_task",
+                        "layer2_extraction.shared.tasks.run_extraction_task",
                         args=[str(job_id), job.source_url or "", raw_content.meta_title or "", extraction_payload],
                         kwargs={"mark_pipeline_complete": False},
                     )

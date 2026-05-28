@@ -481,6 +481,12 @@ def validate_production_safety(environment: str | None = None) -> None:
         RuntimeError: If any required control is missing or misconfigured.
     """
     validator = ProductionSafetyValidator(environment=environment)
+    if validator.is_production_like:
+        logger.warning(
+            "RUNNING IN PRODUCTION-LIKE MODE (environment=%s). "
+            "Fail-closed safety gates are active. Unknown/custom environments are treated as production-like.",
+            validator.environment,
+        )
     validator.validate()
 
 

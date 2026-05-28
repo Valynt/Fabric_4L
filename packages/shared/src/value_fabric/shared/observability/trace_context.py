@@ -35,7 +35,7 @@ def resolve_trace_context(headers, *, generator: Callable | None = None) -> Cano
     for header in ALL_TRACE_HEADERS:
         incoming = headers.get(header)
         if incoming:
-            return CanonicalTraceContext(trace_id=sanitize_trace_id(incoming), source_header=header)
+            return CanonicalTraceContext(trace_id=sanitize_trace_id(incoming, generator=generator), source_header=header)
     return CanonicalTraceContext(trace_id=_new_trace_id(generator), source_header=None)
 
 

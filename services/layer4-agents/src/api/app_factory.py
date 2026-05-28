@@ -13,6 +13,7 @@ from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
 from value_fabric.shared.fastapi_framework import create_fabric_app
+from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult
 from value_fabric.shared.observability import configure_observability
 from value_fabric.shared.security import validate_production_safety
 
@@ -23,7 +24,7 @@ from ..metrics import initialize_metrics
 from .core_routes import register_core_routes
 from .middleware import configure_middleware
 from .routers import register_routers
-from .startup import build_lifespan, start_optional_integrations
+from .startup import build_lifespan, runtime_state, start_optional_integrations
 
 
 def init_telemetry() -> TracerProvider | None:
@@ -37,6 +38,29 @@ def init_telemetry() -> TracerProvider | None:
     return provider
 
 
+async def _postgres_probe() -> ProbeResult:
+    try:
+        saver = runtime_state.checkpoint_saver
+        if saver is not None and getattr(saver, "conn", None):
+            await saver.conn.execute("SELECT 1")
+            return ProbeResult(name="postgres", healthy=True)
+        return ProbeResult(name="postgres", healthy=False, detail="checkpointing_not_configured")
+    except Exception as exc:
+        return ProbeResult(name="postgres", healthy=False, detail=str(exc))
+
+
+async def _redis_probe() -> ProbeResult:
+    try:
+        sm = runtime_state.state_manager
+        redis_client = getattr(sm, "redis_client", None) if sm else None
+        if redis_client is not None:
+            await redis_client.ping()
+            return ProbeResult(name="redis", healthy=True)
+        return ProbeResult(name="redis", healthy=False, detail="redis_not_configured")
+    except Exception as exc:
+        return ProbeResult(name="redis", healthy=False, detail=str(exc))
+
+
 def create_app() -> FastAPI:
     app = create_fabric_app(
         service_name="layer4-agents",
@@ -48,6 +72,11 @@ def create_app() -> FastAPI:
             init_telemetry=init_telemetry,
             configure_optional_integrations=start_optional_integrations,
         ),
+        health_probes=[
+            CallableProbe(name="postgres", fn=_postgres_probe),
+            CallableProbe(name="redis", fn=_redis_probe),
+        ],
+        readiness_path="/ready",
     )
 
     if settings.otel_exporter_endpoint:
