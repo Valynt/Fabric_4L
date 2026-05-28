@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Compatibility metrics for deprecated Layer 3 usage."""
 
-from __future__ import annotations
 
 from collections import Counter
 

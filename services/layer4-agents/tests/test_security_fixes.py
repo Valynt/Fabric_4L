@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """C-06 active security regression tests for Layer 4 production fixes.
 
 These tests intentionally avoid optional import skip gates. If a security-critical
@@ -5,7 +7,6 @@ module cannot be imported, the test module must fail during collection rather
 than silently passing with no coverage.
 """
 
-from __future__ import annotations
 
 import inspect
 import pathlib

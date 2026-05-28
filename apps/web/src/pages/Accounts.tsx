@@ -226,7 +226,7 @@ function FilterChipBar({ filters, filterOptions, onChange }: FilterChipBarProps)
           }
           className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 ml-2"
         >
-          <X size={12} />
+          <X size={12} aria-hidden="true" />
           Clear
         </button>
       )}
@@ -604,8 +604,10 @@ function Accounts() {
             {/* Search */}
             <div className="mb-4">
               <div className="relative">
-                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                <label htmlFor="accounts-search" className="sr-only">Search accounts</label>
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                 <input
+                  id="accounts-search"
                   type="text"
                   placeholder="Search accounts by name, domain, or owner..."
                   value={filters.search}

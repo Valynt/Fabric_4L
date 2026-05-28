@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Security regressions for the ROI formula evaluator.
 
 The evaluator intentionally supports a small arithmetic expression language. These
@@ -6,7 +8,6 @@ so future refactors do not accidentally expand formula execution into code
 execution.
 """
 
-from __future__ import annotations
 
 import pytest
 

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Health check script for Docker HEALTHCHECK.
 
 Uses urllib from the standard library to avoid external dependencies.
 """
 
-from __future__ import annotations
 
 import sys
 import urllib.error

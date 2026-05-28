@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,7 +11,6 @@ constructed explicitly so pilot code cannot change production behavior by
 accident.
 """
 
-from __future__ import annotations
 
 from enum import StrEnum
 from typing import Any

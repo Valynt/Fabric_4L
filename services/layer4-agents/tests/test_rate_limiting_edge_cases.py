@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Edge case tests for rate limiting behavior.
 
 Covers:
@@ -7,7 +9,6 @@ Covers:
 - Identity hash collision handling
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

@@ -8,7 +8,7 @@ Provides account-scoped authorization for entity access:
 
 from typing import Any
 
-from fastapi import HTTPException, Request, status
+from fastapi import Request, status
 from value_fabric.shared.error_handling import sanitize_public_error
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
@@ -225,14 +225,11 @@ def require_account_context(request: Request) -> str:
         Account ID
 
     Raises:
-        HTTPException: If account context is missing
+       : If account context is missing
     """
     account_id = getattr(request.state, "account_id", None)
     if account_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account context is required for this operation",
-        )
+        raise AuthorizationError(message = "Account context is required for this operation")
     return account_id
 
 
@@ -261,7 +258,7 @@ def verify_entity_account_access(
         request: FastAPI request object
 
     Raises:
-        HTTPException: If access is denied
+       : If access is denied
     """
     entity_account_id = entity_data.get("account_id")
     request_account_id = await get_request_account_id(request)
@@ -275,7 +272,4 @@ def verify_entity_account_access(
             tenant_id=tenant_id or "",
         )
     except AccountAuthorizationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=sanitize_public_error(e, status_code=status.HTTP_403_FORBIDDEN).message,
-        ) from e
+        raise AuthorizationError(message = str(sanitize_public_error(e, status_code=status.HTTP_403_FORBIDDEN).message)) from e

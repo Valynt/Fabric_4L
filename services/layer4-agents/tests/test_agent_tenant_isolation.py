@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Focused Layer 4 agent tenant-isolation tests."""
 
-from __future__ import annotations
 
 from typing import Any
 from uuid import UUID

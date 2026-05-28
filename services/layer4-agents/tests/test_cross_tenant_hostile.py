@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Cross-tenant hostile invariants for layer4-agents."""
 
-from __future__ import annotations
 
 from pathlib import Path
 

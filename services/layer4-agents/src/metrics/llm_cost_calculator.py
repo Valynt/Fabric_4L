@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """LLM cost calculator with configurable pricing table."""
 
-from __future__ import annotations
 
 import json
 import logging

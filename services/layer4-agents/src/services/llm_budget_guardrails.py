@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tenant-level LLM budget guardrails with throttling and escalation signals."""
 
-from __future__ import annotations
 
 import asyncio
 import logging

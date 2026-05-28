@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """
 Narrative Builder API routes — Data Intelligence Layer Phase 3, Task 3.1.
 
@@ -10,12 +13,11 @@ Pre-fetched data is flagged as unverified (V-009).
 Status transitions are validated against an enum (V-010).
 """
 
-from __future__ import annotations
 
 from typing import Any
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, ConfigDict, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (
@@ -208,7 +210,7 @@ async def get_narrative(
 
     result = await svc.get_narrative(tenant_id, narrative_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Narrative not found")
+        raise NotFoundError(message = "Narrative not found")
     return result
 
 
@@ -233,7 +235,7 @@ async def update_narrative_status(
 
     result = await svc.update_status(tenant_id, narrative_id, body.status)
     if not result:
-        raise HTTPException(status_code=404, detail="Narrative not found")
+        raise NotFoundError(message = "Narrative not found")
     return result
 
 
@@ -251,5 +253,5 @@ async def delete_narrative(
 
     deleted = await svc.delete_narrative(tenant_id, narrative_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Narrative not found")
+        raise NotFoundError(message = "Narrative not found")
     return delete_narrativeResult.model_validate({"status": "deleted", "narrative_id": narrative_id})

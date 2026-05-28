@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tenant-validated Neo4j query helpers for Layer 4 services.
 
 Layer 4 services must not execute tenant-owned Cypher directly through
@@ -6,7 +8,6 @@ caller's tenant context, injects the canonical tenant parameters, and keeps
 result materialization inside the Neo4j session context.
 """
 
-from __future__ import annotations
 
 import re
 from typing import Any

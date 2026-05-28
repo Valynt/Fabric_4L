@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Feature flags API package."""
 
-from __future__ import annotations
 
 from .routes import router as feature_flags_router
 

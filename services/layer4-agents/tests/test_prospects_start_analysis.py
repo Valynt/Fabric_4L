@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for prospects start-analysis endpoint.
 
 Validates:
@@ -8,7 +10,6 @@ Validates:
 - Degraded mode handling when services unavailable
 """
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any

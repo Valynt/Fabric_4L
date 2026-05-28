@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """ROI Calculator workflow implementation.
 
 Calculates ROI from value driver formulas using prospect data and industry
@@ -6,7 +8,6 @@ errors surface early rather than propagating as missing keys or division-by-
 zero downstream.
 """
 
-from __future__ import annotations
 
 import json
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQLAlchemy ORM models for Fabric Harness persistence.
 
 Six tables back the harness stores:
@@ -13,7 +15,6 @@ JSONB columns store dict/list payloads (state_payload, tool_calls, metadata).
 Primary keys are String IDs matching the harness domain model ID format.
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

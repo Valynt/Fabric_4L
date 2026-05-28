@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -10,7 +12,6 @@ remain unchanged while future OSS-backed adapters can be tested against the same
 interface.
 """
 
-from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 

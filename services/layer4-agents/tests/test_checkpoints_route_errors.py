@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Regression tests for checkpoint query failure handling."""
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 

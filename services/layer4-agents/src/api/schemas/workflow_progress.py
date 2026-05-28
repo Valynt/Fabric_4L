@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Normalized workflow progress schemas for polling and streaming clients."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any, Literal

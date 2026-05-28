@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Adversarial tests for input validation edge cases.
 
 Tests that attempt to bypass input validation through:
@@ -18,7 +20,6 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-27
 """
 
-from __future__ import annotations
 
 import pytest
 import pytest_asyncio

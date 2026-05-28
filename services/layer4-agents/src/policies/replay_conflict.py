@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Canonical replay-conflict policy for Layer 4 workflows.
 
 Defines an explicit, enforceable contract for conflict handling during
 duplicate resumes / replays across all workflow types.
 """
 
-from __future__ import annotations
 
 import hashlib
 import json

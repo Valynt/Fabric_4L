@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Cypher query templates used by Layer 4 workflows.
 
 .. deprecated::
@@ -13,7 +15,6 @@
     will be removed once all callers are updated.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

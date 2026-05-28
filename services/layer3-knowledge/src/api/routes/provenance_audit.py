@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Provenance and audit read-only route group."""
 
 import logging
@@ -34,15 +35,15 @@ def _require_tenant_id_from_context(
     missing_tenant_detail: str,
 ) -> str:
     if not request:
-        raise HTTPException(status_code=401, detail="Authentication context is required")
+        raise AuthenticationError(message = "Authentication context is required")
 
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None:
-        raise HTTPException(status_code=401, detail="Authentication context is required")
+        raise AuthenticationError(message = "Authentication context is required")
 
     tenant_id = _extract_tenant_id(request)
     if not tenant_id:
-        raise HTTPException(status_code=400, detail=missing_tenant_detail)
+        raise ValidationError(message = str(missing_tenant_detail))
 
     return tenant_id
 
@@ -60,7 +61,7 @@ async def get_provenance(
     app_state: AppState = Depends(get_app_state),
 ):
     if not entity_id or not entity_id.strip():
-        raise HTTPException(status_code=400, detail="entity_id is required")
+        raise ValidationError(message = "entity_id is required")
 
     tenant_id = _require_tenant_id_from_context(
         request,
@@ -69,12 +70,12 @@ async def get_provenance(
 
     entity_id = entity_id.strip()
     if len(entity_id) > 255:
-        raise HTTPException(status_code=400, detail="entity_id too long (max 255 chars)")
+        raise ValidationError(message = "entity_id too long (max 255 chars)")
 
     try:
         neo4j = app_state.neo4j_driver
         if not neo4j:
-            raise HTTPException(status_code=503, detail="Neo4j not available")
+            raise ServiceUnavailableError(message = "Neo4j not available")
 
         entity_query = """
         MATCH (e:Entity {id: $entity_id, tenant_id: $tenant_id})
@@ -87,7 +88,7 @@ async def get_provenance(
         entity_result = await neo4j.execute_query(entity_query, query_params)
 
         if not entity_result:
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
 
         record = entity_result[0]
 

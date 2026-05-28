@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for resilience patterns: token-bucket rate limiter and circuit breaker.
 
 Covers:
@@ -5,7 +7,6 @@ Covers:
 - P1-18: Circuit breaker for external service calls
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

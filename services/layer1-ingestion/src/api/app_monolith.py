@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.
@@ -90,10 +91,7 @@ except ImportError as exc:
             self.import_error = import_error
 
         def delay(self, *args: Any, **kwargs: Any) -> None:
-            raise HTTPException(
-                status_code=503,
-                detail=f"Background task {self.task_name} is unavailable: {self.import_error}",
-            )
+            raise ServiceUnavailableError(message = str(f"Background task {self.task_name} is unavailable: {self.import_error}"))
 
     cleanup_old_content = _UnavailableTask("cleanup_old_content", exc)
     process_scraping_job = _UnavailableTask("process_scraping_job", exc)
@@ -473,10 +471,10 @@ def get_tenant_id(request: Request) -> UUID:
         try:
             return UUID(header_value)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid X-Organization-ID header format")
+            raise ValidationError(message = "Invalid X-Organization-ID header format")
 
     # P0-3 FIX: Never fall back to a hardcoded tenant — require authentication
-    raise HTTPException(status_code=401, detail="Authentication required")
+    raise AuthenticationError(message = "Authentication required")
 
 
 def get_current_user_id(request: Request) -> UUID:
@@ -495,9 +493,9 @@ def get_current_user_id(request: Request) -> UUID:
             metrics = get_metrics()
             if metrics:
                 metrics.increment_errors(error_type="invalid_uuid", component="auth")
-            raise HTTPException(status_code=401, detail="Invalid user ID format")
+            raise AuthenticationError(message = "Invalid user ID format")
     # P0 FIX: Never fall back to a hardcoded user — require authentication
-    raise HTTPException(status_code=401, detail="Authentication required")
+    raise AuthenticationError(message = "Authentication required")
 
 
 # =============================================================================
@@ -1224,16 +1222,14 @@ async def create_target(
     # Validate URL
     parsed = urlparse(request.url)
     if parsed.scheme not in ("http", "https") or not parsed.netloc:
-        raise HTTPException(status_code=400, detail="URL must use http/https protocol")
+        raise ValidationError(message = "URL must use http/https protocol")
 
     # Validate extraction schema if method requires LLM
     if (
         request.extraction_config.method == ExtractionMethod.AI_LLM
         and not request.extraction_config.llm_provider
     ):
-        raise HTTPException(
-            status_code=400, detail="llm_provider is required when method is AI_LLM"
-        )
+        raise ValidationError(message = "llm_provider is required when method is AI_LLM")
 
     # Build config objects
     extraction_config = {
@@ -1352,7 +1348,7 @@ async def get_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     return _target_to_detail(target)
 
@@ -1372,7 +1368,7 @@ async def update_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     # Check if jobs are in progress
     active_jobs = (
@@ -1523,7 +1519,7 @@ async def delete_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     job_count = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).count()
 
@@ -1557,7 +1553,7 @@ async def validate_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     errors = []
     warnings = []
@@ -1615,7 +1611,7 @@ async def execute_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
         raise HTTPException(
@@ -1713,7 +1709,7 @@ async def get_target_decisions(
     ).first()
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     # Get decisions for all jobs of this target
     jobs = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).all()
@@ -1765,7 +1761,7 @@ async def get_job_router_report(
     ).first()
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     repo = CrawlDecisionRepository(db)
     report = await repo.get_router_quality_report(str(job_id))
@@ -1815,7 +1811,7 @@ async def get_domain_fallback_stats(
         ).first()
 
         if not has_target:
-            raise HTTPException(status_code=403, detail="No access to this domain")
+            raise AuthorizationError(message = "No access to this domain")
 
     since = datetime.now(UTC) - timedelta(days=days)
     repo = CrawlDecisionRepository(db)
@@ -1946,7 +1942,7 @@ async def get_job(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     stages = (
         db.query(JobStageDetail)
@@ -2037,7 +2033,7 @@ async def cancel_job(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     # Can only cancel jobs that haven't completed
     terminal_states = [
@@ -2070,7 +2066,7 @@ async def get_job_progress(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     return JobProgressResponse(
         job_id=job.id,
@@ -2106,7 +2102,7 @@ async def get_job_results(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     query = db.query(ExtractedData).filter(
         ExtractedData.job_id == job_id, ExtractedData.tenant_id == org_id
@@ -2154,7 +2150,7 @@ async def retry_job(
     )
 
     if not original_job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     if original_job.status not in [JobStatus.FAILED.value, JobStatus.PARTIAL_SUCCESS.value]:
         raise HTTPException(
@@ -2223,25 +2219,22 @@ async def batch_operation(
     # Validate request based on operation type
     if request.operation == BatchOperationType.EXECUTE:
         if not request.target_ids:
-            raise HTTPException(status_code=400, detail="target_ids required for execute operation")
+            raise ValidationError(message = "target_ids required for execute operation")
         if request.job_ids:
-            raise HTTPException(status_code=400, detail="job_ids not allowed for execute operation")
+            raise ValidationError(message = "job_ids not allowed for execute operation")
     elif request.operation in (BatchOperationType.CANCEL, BatchOperationType.RETRY):
         if not request.job_ids:
-            raise HTTPException(status_code=400, detail="job_ids required for cancel/retry operations")
+            raise ValidationError(message = "job_ids required for cancel/retry operations")
         if request.target_ids:
-            raise HTTPException(status_code=400, detail="target_ids not allowed for cancel/retry operations")
+            raise ValidationError(message = "target_ids not allowed for cancel/retry operations")
     
     # Enforce batch size limit
     max_batch_size = 100
     requested_count = len(request.target_ids) if request.target_ids else len(request.job_ids)
     if requested_count == 0:
-        raise HTTPException(status_code=400, detail="At least one target_id or job_id is required")
+        raise ValidationError(message = "At least one target_id or job_id is required")
     if requested_count > max_batch_size:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Batch size exceeds maximum of {max_batch_size}"
-        )
+        raise ValidationError(message = str(f"Batch size exceeds maximum of {max_batch_size}"))
     
     results = []
     succeeded = 0
@@ -2450,7 +2443,7 @@ async def get_raw_content(
     )
 
     if not content:
-        raise HTTPException(status_code=404, detail="Content not found")
+        raise NotFoundError(message = "Content not found")
 
     storage = {}
     if include_html:
@@ -2503,7 +2496,7 @@ async def get_extracted_data(
     )
 
     if not data:
-        raise HTTPException(status_code=404, detail="Extracted data not found")
+        raise NotFoundError(message = "Extracted data not found")
 
     return ExtractedDataResponse(
         id=data.id,

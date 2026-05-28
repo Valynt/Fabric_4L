@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for workflow state machine and state transitions.
 
@@ -5,7 +7,6 @@ Tests the core workflow state management without external dependencies.
 Follows the test pyramid: fast, isolated, deterministic.
 """
 
-from __future__ import annotations
 
 import pytest
 from datetime import datetime, timezone

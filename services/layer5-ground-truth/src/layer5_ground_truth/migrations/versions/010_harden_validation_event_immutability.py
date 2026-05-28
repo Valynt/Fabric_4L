@@ -14,7 +14,7 @@ from sqlalchemy.dialects import postgresql
 
 # revision identifiers
 revision = "010_harden_validation_event_immutability"
-down_revision = "009_align_truth_lifecycle_states"
+down_revision = "009"
 branch_labels = None
 depends_on = None
 

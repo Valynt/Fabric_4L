@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Intelligence Orchestration API routes — Data Intelligence Layer Phase 3, Task 3.2.
 
@@ -8,7 +10,6 @@ All endpoints require authentication via GovernanceMiddleware.
 Tenant identity is extracted from the verified JWT/API-key context (V-001, V-002).
 """
 
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Query, Request
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id

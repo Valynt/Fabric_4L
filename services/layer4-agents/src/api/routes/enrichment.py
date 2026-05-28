@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """
 Account Enrichment API Routes — Data Intelligence Layer Phase 1.
 
@@ -13,13 +16,12 @@ Account lookups are tenant-scoped to prevent IDOR (V-003).
 Batch endpoint ignores body tenant_id and uses auth context (V-004).
 """
 
-from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
 
 import structlog
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -97,10 +99,7 @@ async def _get_tenant_scoped_account(
     result = await db.execute(stmt)
     account = result.scalar_one_or_none()
     if account is None:
-        raise HTTPException(
-            status_code=404,
-            detail=f"Account {account_id} not found",
-        )
+        raise NotFoundError(message = str(f"Account {account_id} not found"))
     return account
 
 
@@ -132,16 +131,13 @@ async def enrich_account(
                 sources = [EnrichmentSource(s) for s in request.sources]
             except ValueError as e:
                 logger.warning("Invalid enrichment source: %s", e)
-                raise HTTPException(
-                    status_code=400,
-                    detail="Invalid enrichment source",
-                ) from e
+                raise ValidationError(message = "Invalid enrichment source") from e
 
         force = request.force if request else False
         result = await orchestrator.enrich_account(account_id, sources=sources, force=force)
 
         if result.get("status") == "error":
-            raise HTTPException(status_code=404, detail=result.get("message"))
+            raise NotFoundError(message = str(result.get("message")))
 
         return result
     finally:

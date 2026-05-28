@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Deterministic workflow state machine for HarnessRun.
 
@@ -10,7 +12,6 @@ Rules:
   - Every transition emits a trace event.
 """
 
-from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import UTC, datetime

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Layer 4 core adapter interfaces for provider-agnostic LLM orchestration."""
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from enum import Enum

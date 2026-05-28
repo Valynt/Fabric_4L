@@ -305,11 +305,11 @@ jobs:
       - name: Create required secrets for ephemeral cluster
         run: |
           kubectl create namespace value-fabric --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic postgres-secret --from-literal=password=postgres --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic neo4j-secret --from-literal=auth=neo4j/password --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic openai-secret --from-literal=api-key=dummy --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic jwt-secret --from-literal=secret=abcdefghijklmnopqrstuvwxyz123456 --dry-run=client -o yaml | kubectl apply -f -
-          kubectl -n value-fabric create secret generic anthropic-secret --from-literal=api-key=dummy --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic postgres-secret --from-literal=password=$(openssl rand -base64 32) --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic neo4j-secret --from-literal=auth=$(openssl rand -base64 32) --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic openai-secret --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic jwt-secret --from-literal=secret=$(openssl rand -base64 48) --dry-run=client -o yaml | kubectl apply -f -
+          kubectl -n value-fabric create secret generic anthropic-secret --from-literal=api-key=ephemeral-dummy-$(openssl rand -hex 8) --dry-run=client -o yaml | kubectl apply -f -
 
       - name: Apply manifests to ephemeral environment
         run: kubectl apply -f /tmp/ephemeral.yaml

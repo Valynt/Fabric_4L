@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tenant governance API package."""
 
-from __future__ import annotations
 
 from .routes.admin import router as admin_router
 from .routes.admin_console import router as admin_console_router

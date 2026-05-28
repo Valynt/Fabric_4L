@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """FastAPI middleware for tenant extraction.
 
 DEPRECATED: This module is superseded by
@@ -7,7 +9,6 @@ It is kept temporarily so existing imports continue to work during the
 migration. New code should use GovernanceMiddleware directly.
 """
 
-from __future__ import annotations
 
 import logging
 

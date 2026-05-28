@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Layer 3 Knowledge Graph client with tenant propagation (Task 2.3).
 
 Provides async HTTP client for Layer 3 Knowledge Graph API with automatic
 tenant context injection for all queries.
 """
 
-from __future__ import annotations
 
 import logging
 import os

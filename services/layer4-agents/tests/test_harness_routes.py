@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Route-level tests for /v1/harness/* endpoints.
 
 Covers:
@@ -8,7 +10,6 @@ Covers:
   - POST /v1/harness/gates/{gate_id}/decide calls registry.decide_gate (telemetry emitted inside)
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock

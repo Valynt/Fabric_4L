@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for Salesforce OAuth token refresh and integration hardening.
 
@@ -8,7 +10,6 @@ Covers:
 - Environment fallback disabled
 """
 
-from __future__ import annotations
 
 import os
 from unittest.mock import AsyncMock, MagicMock, patch

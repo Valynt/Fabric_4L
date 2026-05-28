@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Tests for code quality issues identified in autonomous code review.
 
 TDD approach: tests define expected behavior for fixes.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any

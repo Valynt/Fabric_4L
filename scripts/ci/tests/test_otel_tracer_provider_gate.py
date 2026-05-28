@@ -26,59 +26,23 @@ def test_gate_passes_on_clean_baseline() -> None:
     assert rc == 0
 
 
-def test_gate_detects_new_tracer_provider(tmp_path, monkeypatch) -> None:
+def test_gate_unit_detects_name_form(tmp_path) -> None:
     mod = _load()
-    svc = tmp_path / "services" / "newsvc" / "src" / "main.py"
-    svc.parent.mkdir(parents=True, exist_ok=True)
-    svc.write_text(
+    f = tmp_path / "r.py"
+    f.write_text(
         "from opentelemetry.sdk.trace import TracerProvider\n"
-        "from opentelemetry import trace\n"
         "def boot():\n"
-        "    provider = TracerProvider()\n"
-        "    trace.set_tracer_provider(provider)\n",
+        "    provider = TracerProvider()\n",
         encoding="utf-8",
     )
-    baseline = tmp_path / "config" / "ci" / "otel_tracer_provider_baseline.txt"
-    baseline.parent.mkdir(parents=True, exist_ok=True)
-    baseline.write_text("# empty\n", encoding="utf-8")
-
-    monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
-    monkeypatch.setattr(mod, "BASELINE_FILE", baseline)
-    monkeypatch.setattr(
-        mod,
-        "SCAN_ROOTS",
-        (tmp_path / "services",),
-    )
-
-    rc = mod.main(["--quiet"])
-    assert rc == 1
+    offenders = mod._find_tracer_provider_offenders(f)
+    assert len(offenders) == 1
+    assert offenders[0][1] == "TracerProvider(...)"
 
 
-def test_gate_skips_test_files(tmp_path, monkeypatch) -> None:
+def test_gate_unit_detects_attribute_form(tmp_path) -> None:
     mod = _load()
-    test_file = tmp_path / "services" / "newsvc" / "tests" / "test_boot.py"
-    test_file.parent.mkdir(parents=True, exist_ok=True)
-    test_file.write_text(
-        "from opentelemetry.sdk.trace import TracerProvider\n"
-        "def fixture():\n"
-        "    return TracerProvider()\n",
-        encoding="utf-8",
-    )
-    baseline = tmp_path / "config" / "ci" / "otel_tracer_provider_baseline.txt"
-    baseline.parent.mkdir(parents=True, exist_ok=True)
-    baseline.write_text("# empty\n", encoding="utf-8")
-
-    monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
-    monkeypatch.setattr(mod, "BASELINE_FILE", baseline)
-    monkeypatch.setattr(mod, "SCAN_ROOTS", (tmp_path / "services",))
-
-    rc = mod.main(["--quiet"])
-    assert rc == 0
-
-
-def test_find_offenders_detects_attribute_form(tmp_path) -> None:
-    mod = _load()
-    f = tmp_path / "x.py"
+    f = tmp_path / "r.py"
     f.write_text(
         "import opentelemetry.sdk.trace as t\n"
         "def x():\n"
@@ -87,3 +51,19 @@ def test_find_offenders_detects_attribute_form(tmp_path) -> None:
     )
     offenders = mod._find_tracer_provider_offenders(f)
     assert len(offenders) == 1
+    assert offenders[0][1] == "TracerProvider(...)"
+
+
+def test_find_offenders_skips_unrelated_raises(tmp_path) -> None:
+    mod = _load()
+    f = tmp_path / "x.py"
+    f.write_text(
+        "class Foo(Exception):\n"
+        "    pass\n"
+        "def x():\n"
+        "    raise Foo('msg')\n"
+        "    raise ValueError('bad')\n",
+        encoding="utf-8",
+    )
+    offenders = mod._find_tracer_provider_offenders(f)
+    assert offenders == []

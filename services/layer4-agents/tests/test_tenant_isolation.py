@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for tenant context isolation and cross-tenant access prevention (Task 3.2).
 
 These tests verify that:
@@ -6,7 +8,6 @@ These tests verify that:
 3. RequestContext correctly propagates tenant information from JWT claims
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime, timedelta

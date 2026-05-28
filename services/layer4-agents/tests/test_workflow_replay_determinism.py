@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Replay determinism tests for restart/retry checkpoint scenarios."""
 
-from __future__ import annotations
 
 from utils.replay_assertions import (
     assert_semantically_equivalent_replay,

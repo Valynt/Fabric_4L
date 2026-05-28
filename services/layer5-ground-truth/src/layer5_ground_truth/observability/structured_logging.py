@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Layer 5 structured logging helpers aligned to platform contract."""
 
-from __future__ import annotations
 
 import contextvars
 import logging

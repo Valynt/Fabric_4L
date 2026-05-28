@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Canonical decision store for crawl routing decisions.
 
 Provides persistent, queryable decision history separate from operational logs.
 Enables replay analysis, audit lookup, and policy validation.
 """
 
-from __future__ import annotations
 
 import asyncio
 import json

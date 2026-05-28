@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Analytics domain router — community detection, centrality, similarity, batch ops.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -6,7 +9,6 @@ authenticated request context; the cypher_security allowlist is enforced
 via the shared TenantScopedCypher utility.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid
@@ -82,9 +84,7 @@ async def detect_communities(
         elif request.algorithm == "value_tree":
             result = await community_detector.detect_by_value_tree()
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown algorithm: {request.algorithm}"
-            )
+            raise ValidationError(message = str(f"Unknown algorithm: {request.algorithm}"))
 
         return CommunityDetectionResponse(
             algorithm=result["algorithm"],
@@ -103,10 +103,7 @@ async def detect_communities(
         raise
     except Exception as e:
         logger.error("Community detection failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Community detection failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Community detection failed. Please try again later.")
 
 
 @router.post("/analytics/centrality", response_model=CentralityResponse)
@@ -134,9 +131,7 @@ async def calculate_centrality(
         elif request.algorithm == "value_tree":
             result = await centrality_analyzer.get_value_tree_centrality()
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown algorithm: {request.algorithm}"
-            )
+            raise ValidationError(message = str(f"Unknown algorithm: {request.algorithm}"))
 
         return CentralityResponse(
             algorithm=result["algorithm"],
@@ -149,10 +144,7 @@ async def calculate_centrality(
         raise
     except Exception as e:
         logger.error("Centrality calculation failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Centrality calculation failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Centrality calculation failed. Please try again later.")
 
 
 @router.post("/analytics/similar", response_model=SimilarityResponse)
@@ -182,10 +174,7 @@ async def find_similar_entities(
         )
     except Exception as e:
         logger.error("Similarity analysis failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Similarity analysis failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Similarity analysis failed. Please try again later.")
 
 
 @router.post("/analytics/compare", response_model=EntityComparisonResponse)
@@ -200,7 +189,7 @@ async def compare_entities(
             entity_id2=request.entity_id2,
         )
         if "error" in result:
-            raise HTTPException(status_code=404, detail=result["error"])
+            raise NotFoundError(message = str(result["error"]))
 
         return EntityComparisonResponse(
             entity1=result["entity1"],
@@ -401,10 +390,7 @@ async def batch_entity_operations(
     """
     tenant_id = _extract_tenant_id(fastapi_request)
     if not tenant_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Authenticated tenant context required for batch entity operations",
-        )
+        raise AuthenticationError(message = "Authenticated tenant context required for batch entity operations")
 
     results: list[dict[str, Any]] = []
     successful = 0
@@ -597,6 +583,4 @@ async def batch_analytics(
         )
     except Exception as e:
         logger.error("Batch analytics failed: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Batch analytics failed. Please try again later."
-        )
+        raise ServiceUnavailableError(message="Batch analytics failed. Please try again later.")

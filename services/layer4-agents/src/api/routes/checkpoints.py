@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError
 """Checkpoint timeline API for workflow state history and rewind.
 
 Provides endpoints for:
@@ -7,7 +10,6 @@ Provides endpoints for:
 - State diff visualization
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
@@ -188,9 +190,7 @@ async def list_checkpoints(
         }
     """
     if executor.checkpoint_saver is None:
-        raise HTTPException(
-            status_code=503, detail="Checkpointing not configured - cannot retrieve checkpoints"
-        )
+        raise ServiceUnavailableError(message = "Checkpointing not configured - cannot retrieve checkpoints")
 
     request_id = get_request_id(request)
     try:
@@ -247,7 +247,7 @@ async def get_checkpoint_state(
         GET /v1/workflows/wf-123/checkpoints/chk-001/state
     """
     if executor.checkpoint_saver is None:
-        raise HTTPException(status_code=503, detail="Checkpointing not configured")
+        raise ServiceUnavailableError(message = "Checkpointing not configured")
 
     try:
         await _require_workflow_tenant_access(
@@ -258,10 +258,7 @@ async def get_checkpoint_state(
         )
 
         if not state_data:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Checkpoint {checkpoint_id} not found for workflow {workflow_id}",
-            )
+            raise NotFoundError(message = str(f"Checkpoint {checkpoint_id} not found for workflow {workflow_id}"))
 
         return StateSnapshotResponse(
             workflow_id=workflow_id,
@@ -322,7 +319,7 @@ async def compare_checkpoints(
         }
     """
     if executor.checkpoint_saver is None:
-        raise HTTPException(status_code=503, detail="Checkpointing not configured")
+        raise ServiceUnavailableError(message = "Checkpointing not configured")
 
     try:
         await _require_workflow_tenant_access(
@@ -342,9 +339,7 @@ async def compare_checkpoints(
                 missing.append(request.checkpoint_a_id)
             if not state_b:
                 missing.append(request.checkpoint_b_id)
-            raise HTTPException(
-                status_code=404, detail=f"Checkpoint(s) not found: {', '.join(missing)}"
-            )
+            raise NotFoundError(message = str(f"Checkpoint(s) not found: {', '.join(missing)}"))
 
         # Calculate diff
         diff = _calculate_state_diff(state_a.get("state", {}), state_b.get("state", {}))
@@ -395,9 +390,7 @@ async def resume_from_checkpoint(
         }
     """
     if executor.checkpoint_saver is None:
-        raise HTTPException(
-            status_code=503, detail="Checkpointing not configured - cannot resume from checkpoint"
-        )
+        raise ServiceUnavailableError(message = "Checkpointing not configured - cannot resume from checkpoint")
 
     try:
         await _require_workflow_tenant_access(
@@ -409,9 +402,7 @@ async def resume_from_checkpoint(
         )
 
         if not checkpoint_data:
-            raise HTTPException(
-                status_code=404, detail=f"Checkpoint {request.checkpoint_id} not found"
-            )
+            raise NotFoundError(message = str(f"Checkpoint {request.checkpoint_id} not found"))
 
         actor_user_id = str(_ctx.user_id) if _ctx.user_id is not None else "anonymous"
 
@@ -660,10 +651,7 @@ async def _require_workflow_tenant_access(
     """Fail-closed tenant gate for workflow-scoped checkpoint operations."""
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
     workflow_tenant = status.get("tenant_id")
     if not workflow_tenant or str(workflow_tenant) != str(tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))

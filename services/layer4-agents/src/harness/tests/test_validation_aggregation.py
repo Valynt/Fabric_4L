@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for validation aggregation, publish-gate enforcement, and human override auditing.
 
 Covers:
@@ -13,7 +15,6 @@ Covers:
   - HumanGate: human override is audited (decision_by is set)
 """
 
-from __future__ import annotations
 
 import sys
 from datetime import UTC, datetime, timedelta

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Triple store implementations for provenance storage.
 
 Supports:
@@ -6,7 +8,6 @@ Supports:
 - Neo4j with RDF extension
 """
 
-from __future__ import annotations
 
 import logging
 from abc import ABC, abstractmethod

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Stripe SDK client configuration and initialization.
 
 Includes support for Stripe MeterEvents (usage-based billing).
 """
 
-from __future__ import annotations
 
 import logging
 import os

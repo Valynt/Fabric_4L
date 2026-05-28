@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Factory functions for constructing harness registry instances.
 
 This is the single decision point for choosing between in-memory (tests)
@@ -15,7 +17,6 @@ Usage:
     registry = await make_live_l5_registry(session, tenant_id="...")
 """
 
-from __future__ import annotations
 
 import os
 

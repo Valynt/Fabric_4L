@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Replay harness for Layer 4 workflow state reconstruction.
 
 This module defines an immutable event envelope contract and a non-production
 replay harness that can rebuild workflow state from an ordered event stream.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime

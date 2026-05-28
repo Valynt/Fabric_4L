@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 """L3 Knowledge Graph client for L2.5 Signal Refinery.
 
 Pushes ValueSignal objects to L3 as graph nodes after refinement.
 All operations are best-effort — L2.5 remains operational if L3 is unavailable.
 """
-
-from __future__ import annotations
 
 import logging
 from typing import Any

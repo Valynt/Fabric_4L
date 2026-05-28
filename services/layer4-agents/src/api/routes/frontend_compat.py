@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Frontend compatibility aliases for path mismatches.
 
 These routes provide backward-compatible paths that the frontend expects,
@@ -25,7 +28,6 @@ NOTES
 - When adding a new alias, document it above and update the contract map.
 """
 
-from __future__ import annotations
 
 from uuid import UUID
 
@@ -122,7 +124,7 @@ async def get_current_tenant_settings(
     """DEPRECATED alias for GET /v1/tenants/current/settings. Planned removal: 2026-08-01."""
     tenant = await get_tenant(db, ctx.tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     settings = tenant.settings or {}
     tier_id = settings.get("tier_id", "free")
@@ -149,7 +151,7 @@ async def update_current_tenant_settings(
     """DEPRECATED alias for PATCH /v1/tenants/current/settings. Planned removal: 2026-08-01."""
     tenant = await get_tenant(db, ctx.tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     current_settings = tenant.settings or {}
     if update.settings:
@@ -205,9 +207,9 @@ async def register_tenant_frontend_alias(
     try:
         tier = get_tier_config(request.tier_id)
         if not tier.is_public:
-            raise HTTPException(status_code=400, detail="Invalid tier selection")
+            raise ValidationError(message = "Invalid tier selection")
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid tier")
+        raise ValidationError(message = "Invalid tier")
 
     # Create tenant
     create_request = TenantCreateRequest(

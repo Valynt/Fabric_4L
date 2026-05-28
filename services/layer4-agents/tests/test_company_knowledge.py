@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for Company Knowledge Onboarding API and service layer.
 
 Covers:
@@ -7,7 +9,6 @@ Covers:
 - Pipeline integration stubs (Layer 1/2/3 clients mocked)
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path

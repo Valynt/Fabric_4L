@@ -118,8 +118,17 @@ def _check_alembic_graph(service_dir: Path) -> list[str]:
                     pass
             if line.startswith("down_revision") and ("=" in line or ":" in line):
                 try:
-                    val = line.split("=")[-1].split(":")[-1].strip().strip('"').strip("'")
-                    down_rev = val if val and val != "None" else None
+                    val = line.split("=", 1)[-1].strip()
+                    if val.startswith("(") and val.endswith(")"):
+                        # Tuple of down revisions (merge migration)
+                        down_rev = tuple(
+                            v.strip().strip('"').strip("'")
+                            for v in val[1:-1].split(",")
+                            if v.strip()
+                        )
+                    else:
+                        down_rev = val.strip('"').strip("'")
+                        down_rev = down_rev if down_rev and down_rev != "None" else None
                 except Exception:
                     pass
         if rev:
@@ -139,7 +148,11 @@ def _check_alembic_graph(service_dir: Path) -> list[str]:
     for rev, info in revisions.items():
         down = info["down_revision"]
         if down:
-            children.setdefault(down, []).append(rev)
+            if isinstance(down, tuple):
+                for d in down:
+                    children.setdefault(d, []).append(rev)
+            else:
+                children.setdefault(down, []).append(rev)
 
     heads = [rev for rev in revisions if rev not in children]
     if len(heads) > 1:

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Runtime seed configuration for non-production lifecycle seeding.
 
 Values are intentionally neutral defaults; tests can override via env vars.
 """
 
-from __future__ import annotations
 
 import os
 from uuid import UUID

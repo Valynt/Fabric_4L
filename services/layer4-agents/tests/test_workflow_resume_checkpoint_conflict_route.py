@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Route-level regression for stale checkpoint resume conflicts."""
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 

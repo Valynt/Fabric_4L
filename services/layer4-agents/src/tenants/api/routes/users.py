@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """User management API routes (tenant_admin only).
 
 POST   /v1/users/invite          — invite a user to the caller's tenant
@@ -7,11 +10,10 @@ PATCH  /v1/users/{user_id}       — update a user's role / status
 DELETE /v1/users/{user_id}       — deactivate a user
 """
 
-from __future__ import annotations
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
@@ -64,7 +66,7 @@ async def api_get_user(
     """Get a user by ID. Requires ``tenant_admin`` role."""
     user = await get_user(db, ctx.tenant_id, user_id)
     if not user:
-        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        raise NotFoundError(message = str(f"User {user_id} not found"))
     return user
 
 
@@ -78,7 +80,7 @@ async def api_update_user(
     """Update a user's role or status. Requires ``tenant_admin`` role."""
     user = await update_user(db, ctx.tenant_id, user_id, request)
     if not user:
-        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        raise NotFoundError(message = str(f"User {user_id} not found"))
     return user
 
 
@@ -91,4 +93,4 @@ async def api_deactivate_user(
     """Deactivate a user. Requires ``tenant_admin`` role."""
     deactivated = await deactivate_user(db, ctx.tenant_id, user_id)
     if not deactivated:
-        raise HTTPException(status_code=404, detail=f"User {user_id} not found")
+        raise NotFoundError(message = str(f"User {user_id} not found"))

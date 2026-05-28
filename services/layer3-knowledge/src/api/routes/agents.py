@@ -1,9 +1,11 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, ServiceUnavailableError, ValidationError
 """Agents domain router — value-tree, whitespace, ROI, narrative, provenance, workflow.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import datetime
@@ -32,10 +34,7 @@ def _require_tenant_id(request: Request) -> str:
     ctx = getattr(request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
-        raise HTTPException(
-            status_code=401,
-            detail="Authenticated tenant context required",
-        )
+        raise AuthenticationError(message = "Authenticated tenant context required")
     return tenant_id
 
 
@@ -54,10 +53,7 @@ async def value_tree_projection(
         raise
     except Exception as e:
         logger.error("Value tree projection failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Value tree projection failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Value tree projection failed. Please try again later.")
 
 
 @router.post("/whitespace-analysis")
@@ -75,10 +71,7 @@ async def whitespace_analysis(
         raise
     except Exception as e:
         logger.error("Whitespace analysis failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Whitespace analysis failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Whitespace analysis failed. Please try again later.")
 
 
 @router.post("/roi-calculation")
@@ -96,10 +89,7 @@ async def roi_calculation(
         raise
     except Exception as e:
         logger.error("ROI calculation failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="ROI calculation failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="ROI calculation failed. Please try again later.")
 
 
 @router.post("/narrative-synthesis")
@@ -117,10 +107,7 @@ async def narrative_synthesis(
         raise
     except Exception as e:
         logger.error("Narrative synthesis failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Narrative synthesis failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Narrative synthesis failed. Please try again later.")
 
 
 @router.post("/provenance-tracking")
@@ -138,10 +125,7 @@ async def provenance_tracking(
         raise
     except Exception as e:
         logger.error("Provenance tracking failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Provenance tracking failed. Please try again later.",
-        )
+        raise ServiceUnavailableError(message="Provenance tracking failed. Please try again later.")
 
 
 @router.post("/workflow")
@@ -225,9 +209,7 @@ async def agent_workflow(
                 }
             )
         else:
-            raise HTTPException(
-                status_code=400, detail=f"Unknown workflow type: {workflow_type}"
-            )
+            raise ValidationError(message = str(f"Unknown workflow type: {workflow_type}"))
 
         return {
             "workflow_type": workflow_type,

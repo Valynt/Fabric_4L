@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
 """
 CRM Webhook handlers for real-time updates from Salesforce and HubSpot.
 
@@ -5,7 +8,6 @@ Handles push notifications when accounts are created/updated in CRM,
 triggering immediate sync to keep Account records fresh.
 """
 
-from __future__ import annotations
 
 import hashlib
 import hmac
@@ -19,7 +21,7 @@ from fastapi import (
     BackgroundTasks,
     Depends,
     Header,
-    HTTPException,
+   ,
     Query,
     Request,
     status,
@@ -231,10 +233,7 @@ async def _resolve_integration_from_token(
                     "CRM webhook token matched multiple integrations; refusing relaxed dev resolution",
                     extra={"provider": provider.value},
                 )
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid webhook credentials",
-                )
+                raise AuthenticationError(message = "Invalid webhook credentials")
             matched_integration = integration
 
     return matched_integration
@@ -259,10 +258,7 @@ async def _resolve_webhook_integration(
                 provider.value.capitalize(),
                 tenant_id,
             )
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"No {provider.value.capitalize()} integration configured for tenant {tenant_id}",
-            )
+            raise NotFoundError(message = str(f"No {provider.value.capitalize()} integration configured for tenant {tenant_id}"))
         if not integration.enabled:
             logger.warning(
                 "%s webhook rejected: %s integration disabled for tenant=%s",
@@ -270,10 +266,7 @@ async def _resolve_webhook_integration(
                 provider.value.capitalize(),
                 tenant_id,
             )
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"{provider.value.capitalize()} integration is disabled for this tenant",
-            )
+            raise AuthorizationError(message = str(f"{provider.value.capitalize()} integration is disabled for this tenant"))
         return integration, False
 
     if not _allow_dev_relaxed_tenant_resolution():
@@ -281,10 +274,7 @@ async def _resolve_webhook_integration(
             "%s webhook rejected: tenant_id query parameter is required",
             provider.value.capitalize(),
         )
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="tenant_id query parameter is required",
-        )
+        raise ValidationError(message = "tenant_id query parameter is required")
 
     integration = await _resolve_integration_from_token(
         db=db,
@@ -296,10 +286,7 @@ async def _resolve_webhook_integration(
             "%s webhook rejected: dev relaxed mode could not resolve tenant from authenticated token",
             provider.value.capitalize(),
         )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid webhook credentials",
-        )
+        raise AuthenticationError(message = "Invalid webhook credentials")
 
     logger.warning(
         "%s webhook resolved tenant=%s via development-only relaxed token binding. "
@@ -350,7 +337,7 @@ async def _authenticate_webhook(
     """Authenticate a CRM webhook using token + optional HMAC signature.
 
     Raises:
-        HTTPException: 401 if authentication fails.
+       : 401 if authentication fails.
     """
     creds = await _decrypt_integration_credentials(integration)
     stored_webhook_token = creds.get("webhook_token")
@@ -376,10 +363,7 @@ async def _authenticate_webhook(
             integration.tenant_id,
             integration.provider,
         )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid webhook credentials",
-        )
+        raise AuthenticationError(message = "Invalid webhook credentials")
 
     # Secondary auth: HMAC signature verification (defense-in-depth)
     if app_state_webhook_secret and provided_signature:
@@ -390,10 +374,7 @@ async def _authenticate_webhook(
                 integration.tenant_id,
                 integration.provider,
             )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid webhook signature",
-            )
+            raise AuthenticationError(message = "Invalid webhook signature")
     return creds, "token"
 
 
@@ -429,10 +410,7 @@ def _validate_webhook_metadata(
                 integration.salesforce_org_id,
                 sorted(payload_org_ids),
             )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid webhook tenant binding",
-            )
+            raise AuthenticationError(message = "Invalid webhook tenant binding")
 
     if provider == CRMProvider.HUBSPOT:
         configured_portal_id = (
@@ -450,10 +428,7 @@ def _validate_webhook_metadata(
                     configured_portal_id,
                     sorted(payload_portal_ids),
                 )
-                raise HTTPException(
-                    status_code=status.HTTP_401_UNAUTHORIZED,
-                    detail="Invalid webhook tenant binding",
-                )
+                raise AuthenticationError(message = "Invalid webhook tenant binding")
 
 
 # ============================================================================
@@ -785,7 +760,7 @@ async def hubspot_webhook(
         events = [e.model_dump() for e in events_data]
     except Exception as e:
         logger.warning(f"HubSpot webhook received invalid payload: {e}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid JSON payload") from e
+        raise ValidationError(message = "Invalid JSON payload") from e
     _validate_webhook_metadata(
         provider=CRMProvider.HUBSPOT,
         integration=integration,

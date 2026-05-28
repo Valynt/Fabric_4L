@@ -160,7 +160,7 @@ def test_configure_structlog_returns_false_when_dependency_missing() -> None:
     # Result depends on whether structlog is installed in the test env; both
     # branches must be truthy/falsy values that the framework treats as
     # soft failure.
-    assert result in (True, False)
+    assert isinstance(result, bool)
 
 
 # ----- Framework config defaults are AUDIT-first ---------------------------------

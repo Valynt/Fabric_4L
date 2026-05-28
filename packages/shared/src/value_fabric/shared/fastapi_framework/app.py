@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -129,10 +130,8 @@ def mark_route_enforcement_opt_out(
     return handler
 
 
-def _is_route_opted_out(path: str, route_handler: Callable[..., Any], config: EnforcementRolloutConfig) -> bool:
-    return path in config.health_checks.route_opt_out_paths or bool(
-        getattr(route_handler, "_vf_enforcement_opt_out", False)
-    )
+def _is_route_opted_out(path: str, config: EnforcementRolloutConfig) -> bool:
+    return path in config.health_checks.route_opt_out_paths
 
 
 def record_enforcement_decision(
@@ -144,7 +143,6 @@ def record_enforcement_decision(
     tenant_id: str | None,
     actor_id: str | None,
     logger: Any | None = None,
-    route_handler: Callable[..., Any] | None = None,
 ) -> bool:
     """Apply rollout semantics and emit structured audit context.
 
@@ -156,7 +154,7 @@ def record_enforcement_decision(
     counters: EnforcementCounters = getattr(app.state, "enforcement_counters", EnforcementCounters())
     app.state.enforcement_counters = counters
 
-    if route_handler is not None and _is_route_opted_out(route, route_handler, config):
+    if _is_route_opted_out(route, config):
         counters.bypass_total += 1
         if logger is not None:
             logger.info(
@@ -312,25 +310,27 @@ def register_readiness_endpoint(
     from fastapi.responses import JSONResponse
 
     state: dict[str, Any] = {"expires_at": 0.0, "payload": None, "healthy": False}
+    _lock = asyncio.Lock()
 
     async def readiness_handler() -> JSONResponse:
         import time
 
         now = time.monotonic()
-        if state["payload"] is not None and now < state["expires_at"]:
-            payload = state["payload"]
-            healthy = state["healthy"]
-        else:
-            healthy, results = await aggregate_probes(probes, timeout_seconds=timeout_seconds)
-            payload = build_readiness_payload(
-                service_name=service_name,
-                healthy=healthy,
-                probe_results=results,
-                version=version,
-            )
-            state["payload"] = payload
-            state["healthy"] = healthy
-            state["expires_at"] = now + cache_ttl_seconds
+        async with _lock:
+            if state["payload"] is not None and now < state["expires_at"]:
+                payload = state["payload"]
+                healthy = state["healthy"]
+            else:
+                healthy, results = await aggregate_probes(probes, timeout_seconds=timeout_seconds)
+                payload = build_readiness_payload(
+                    service_name=service_name,
+                    healthy=healthy,
+                    probe_results=results,
+                    version=version,
+                )
+                state["payload"] = payload
+                state["healthy"] = healthy
+                state["expires_at"] = now + cache_ttl_seconds
 
         return JSONResponse(
             status_code=200 if healthy else 503,

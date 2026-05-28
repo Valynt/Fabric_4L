@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """LLM cost metrics facade.
 
 Provides a clean interface to record CostRecord objects as Prometheus metrics.
 Actual metric objects live in prometheus_metrics.py to avoid duplication.
 """
 
-from __future__ import annotations
 
 from ..models.cost_record import CostRecord
 from .prometheus_metrics import get_metrics

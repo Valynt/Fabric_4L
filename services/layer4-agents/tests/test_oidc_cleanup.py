@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for OIDC session cleanup service."""
 
-from __future__ import annotations
 
 import os
 import sys

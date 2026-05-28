@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Integration tests for Neo4j schema layer (between unit and e2e).
 
 These tests verify real Neo4j behavior with actual schema constraints,
@@ -11,7 +13,6 @@ Run with:
     pytest tests/test_neo4j_schema_integration.py -v -m integration
 """
 
-from __future__ import annotations
 
 import pytest
 import pytest_asyncio

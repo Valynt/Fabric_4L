@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Unit tests for the Layer 4 correctness patch (4 issues) + taxonomy governance.
 
 Groups:
@@ -12,7 +14,6 @@ Groups:
   H — signal_detection.py supplemental coverage (initialisation, helpers, LLM layer)
 """
 
-from __future__ import annotations
 
 import os
 import types

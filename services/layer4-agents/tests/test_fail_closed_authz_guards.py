@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Regression tests for authentication and governance fail-closed safeguards.
 
 These tests intentionally inspect the route source text instead of importing the
@@ -7,7 +9,6 @@ C-03: optional security/governance imports that silently degraded into
 permissive runtime behavior.
 """
 
-from __future__ import annotations
 
 import unittest
 from pathlib import Path

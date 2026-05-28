@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
 import hmac
 import secrets
 
-from fastapi import Cookie, Header, HTTPException
+from fastapi import Cookie, Header
 
 CSRF_COOKIE_NAME = "vf_csrf_token"
 SESSION_COOKIE_NAME = "vf_session"
@@ -18,6 +20,6 @@ def validate_double_submit(
     csrf_header: str | None = Header(default=None, alias="X-CSRF-Token"),
 ) -> None:
     if not csrf_cookie or not csrf_header:
-        raise HTTPException(status_code=403, detail="CSRF token missing")
+        raise AuthorizationError(message = "CSRF token missing")
     if not hmac.compare_digest(csrf_cookie, csrf_header):
-        raise HTTPException(status_code=403, detail="CSRF token mismatch")
+        raise AuthorizationError(message = "CSRF token mismatch")

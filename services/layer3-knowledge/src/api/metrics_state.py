@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,7 +11,6 @@ monolith and decomposed route modules can access health metrics without importin
 each other during pytest collection or application startup.
 """
 
-from __future__ import annotations
 
 import logging
 import time

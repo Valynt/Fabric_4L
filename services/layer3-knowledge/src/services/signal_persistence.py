@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Signal persistence service for Layer 3 Knowledge Graph.
 
 Manages persistence of PainSignal entities and their relationships
 to Evidence, ValueDrivers, and Accounts in Neo4j.
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime

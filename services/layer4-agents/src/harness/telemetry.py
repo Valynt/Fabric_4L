@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Structured telemetry emitter for the Fabric_4L Harness.
 
@@ -7,7 +9,6 @@ Invariants:
   - Events support audit and replay.
 """
 
-from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any

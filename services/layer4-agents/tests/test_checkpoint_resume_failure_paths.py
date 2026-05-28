@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Failure-path tests for workflow checkpoint/resume.
 
 Tests corrupted state recovery, partial resume, missing dependencies,
 failed agent calls, and inconsistent state scenarios.
 """
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, Mock, patch

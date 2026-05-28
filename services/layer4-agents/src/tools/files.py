@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 """File tools with tenant isolation and path traversal protection.
 """
 
-from __future__ import annotations
 
 import logging
 import os

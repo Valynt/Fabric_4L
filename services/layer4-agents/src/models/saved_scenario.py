@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Persisted interactive business-case scenarios."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 

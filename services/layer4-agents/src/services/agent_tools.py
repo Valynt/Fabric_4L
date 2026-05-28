@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """AgentToolRegistry — Mutation tools for ValuePilot agent actions.
 
 Allows the agent to trigger real side-effects (promote signal, validate
@@ -9,7 +11,6 @@ Tools:
   - validate_hypothesis: Update hypothesis status based on user feedback
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any

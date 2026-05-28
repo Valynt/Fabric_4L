@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
 """
 Authentication and tenant-context dependency for Layer 5 Ground Truth API.
 
@@ -23,7 +24,7 @@ from dataclasses import dataclass, field
 from uuid import UUID
 
 import jwt
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request, status
 from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 from value_fabric.shared.identity.permissions import (
     Role,
@@ -40,8 +41,8 @@ logger = logging.getLogger(__name__)
 _AUTH_REQUIRED = "authentication_required"
 
 
-def _auth_http_exception(status_code: int, *, error_code: str, message: str) -> HTTPException:
-    return HTTPException(
+def _auth_http_exception(status_code: int, *, error_code: str, message: str) ->:
+    return(
         status_code=status_code,
         detail={
             "error": _AUTH_REQUIRED,
@@ -77,10 +78,7 @@ class TokenClaims:
 
     def require_role(self, role: str) -> None:
         if not self.has_role(role):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Role '{role}' is required for this operation.",
-            )
+            raise AuthorizationError(message = str(f"Role '{role}' is required for this operation."))
 
 
 # ---------------------------------------------------------------------------
@@ -190,11 +188,7 @@ def _token_claims_from_context(ctx) -> TokenClaims:
     try:
         tenant_uuid = tenant_raw if isinstance(tenant_raw, UUID) else UUID(str(tenant_raw))
     except (TypeError, ValueError) as exc:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant context is invalid.",
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from exc
+        raise AuthenticationError(message = "Tenant context is invalid.") from exc
     user_id = str(ctx.user_id) if ctx.user_id is not None else None
     roles = [str(role) for role in (ctx.roles or [])]
     return TokenClaims(

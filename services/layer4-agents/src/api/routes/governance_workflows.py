@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Canonical governance workflow objects/endpoints for L4/L5 traceability.
 
 All read routes require authentication (require_authenticated).
@@ -6,7 +9,6 @@ Tenant context is extracted from the authenticated RequestContext — never
 from request body or headers.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -161,7 +163,7 @@ async def list_reviews(
 @router.get("/reviews/{review_id}", response_model=ReviewRequest)
 async def get_review(review_id: str, _ctx: AuthDep) -> ReviewRequest:
     if review_id not in _REVIEWS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="review not found")
+        raise NotFoundError(message = "review not found")
     return _REVIEWS[review_id]
 
 
@@ -169,11 +171,11 @@ async def get_review(review_id: str, _ctx: AuthDep) -> ReviewRequest:
 async def create_decision(review_id: str, decision: ApprovalDecision, _ctx: ContentAdminDep) -> ApprovalDecision:
     review = _REVIEWS.get(review_id)
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="review not found")
+        raise NotFoundError(message = "review not found")
     if decision.review_id != review_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="decision review_id mismatch")
+        raise ValidationError(message = "decision review_id mismatch")
     if not _same_origin(review.lineage, decision.lineage):
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="decision lineage mismatch")
+        raise ValidationError(message = "decision lineage mismatch")
     _ensure_absent(_DECISIONS, decision.decision_id, "ApprovalDecision")
     expected_hash = _hash_payload("ApprovalDecision", decision)
     if decision.immutable_audit_hash != expected_hash:
@@ -185,7 +187,7 @@ async def create_decision(review_id: str, decision: ApprovalDecision, _ctx: Cont
 @router.get("/versions/{version_id}", response_model=VersionRecord)
 async def get_version(version_id: str, _ctx: AuthDep) -> VersionRecord:
     if version_id not in _VERSIONS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="version not found")
+        raise NotFoundError(message = "version not found")
     return _VERSIONS[version_id]
 
 
@@ -202,7 +204,7 @@ async def get_version_diff(version_id: str, compare_to_version_id: str, _ctx: Au
     source = _VERSIONS.get(version_id)
     target = _VERSIONS.get(compare_to_version_id)
     if not source or not target:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="version not found")
+        raise NotFoundError(message = "version not found")
     changed_fields = []
     if source.version_status != target.version_status:
         changed_fields.append("version_status")
@@ -227,11 +229,11 @@ async def create_audit_export(request: AuditExportCreateRequest, _ctx: ContentAd
     review = _REVIEWS.get(request.review_id)
     decisions = [item for item in _DECISIONS.values() if item.review_id == request.review_id]
     if not review:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="review not found")
+        raise NotFoundError(message = "review not found")
     if request.trace_id and request.trace_id != request.correlation_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="trace_id must match correlation_id")
+        raise ValidationError(message = "trace_id must match correlation_id")
     if review.lineage.correlation_id != request.correlation_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="export lineage mismatch")
+        raise ValidationError(message = "export lineage mismatch")
     approved = any(decision.decision == "approved" for decision in decisions)
     export_id = str(uuid4())
     job = AuditExportJob(
@@ -256,7 +258,7 @@ async def create_audit_export(request: AuditExportCreateRequest, _ctx: ContentAd
 @router.get("/audit/exports/{audit_export_id}", response_model=AuditExportJob)
 async def get_audit_export(audit_export_id: str, _ctx: AuthDep) -> AuditExportJob:
     if audit_export_id not in _EXPORTS:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="audit export not found")
+        raise NotFoundError(message = "audit export not found")
     return _EXPORTS[audit_export_id]
 
 

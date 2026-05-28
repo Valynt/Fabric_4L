@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -187,7 +188,7 @@ async def get_case_study(
     result = await service.get(tenant_id, case_study_id)
 
     if result is None:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return result
 
@@ -209,7 +210,7 @@ async def update_case_study(
     result = await service.update(tenant_id, case_study_id, updates)
 
     if result is None:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return result
 
@@ -225,7 +226,7 @@ async def delete_case_study(
     deleted = await service.delete(tenant_id, case_study_id)
 
     if not deleted:
-        raise HTTPException(status_code=404, detail=f"Case study {case_study_id} not found")
+        raise NotFoundError(message = str(f"Case study {case_study_id} not found"))
 
     return delete_case_studyResult.model_validate({"status": "deleted", "id": case_study_id})
 

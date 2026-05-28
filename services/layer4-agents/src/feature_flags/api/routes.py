@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Feature flags API routes.
 
 GET    /v1/feature-flags            — list flags (tenant-scoped)
@@ -7,12 +10,11 @@ DELETE /v1/feature-flags/{key}      — delete flag (tenant_admin)
 GET    /v1/feature-flags/{key}/evaluate — evaluate for current user
 """
 
-from __future__ import annotations
 
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
@@ -97,7 +99,7 @@ async def get_feature_flag(
     """Get a single feature flag by key."""
     flag = await FeatureFlagService.get_flag(db, flag_key, tenant_id=ctx.tenant_id)
     if flag is None:
-        raise HTTPException(status_code=404, detail=f"Feature flag '{flag_key}' not found")
+        raise NotFoundError(message = str(f"Feature flag '{flag_key}' not found"))
     return FeatureFlagResponse(
         id=flag.id,
         tenant_id=flag.tenant_id,
@@ -164,7 +166,7 @@ async def delete_feature_flag(
         ctx=ctx,
     )
     if not deleted:
-        raise HTTPException(status_code=404, detail=f"Feature flag '{flag_key}' not found")
+        raise NotFoundError(message = str(f"Feature flag '{flag_key}' not found"))
 
 
 @router.get("/{flag_key}/evaluate")

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 3 v2 bounded router: Entities domain.
 
 This module is the canonical home for entity endpoints going forward.
@@ -18,7 +20,6 @@ Security contract:
   never from request body or query parameters.
 """
 
-from __future__ import annotations
 
 # Re-export the canonical router.  The v2 prefix signals that this module
 # is the bounded, freeze-safe home for entity routes.  The underlying

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Layer 6 metrics contract loader.
 
 The JSON contract under ``contracts/observability/layer6-metrics.json`` is the
 single source of truth for metric names, labels, and cardinality limits.
 """
 
-from __future__ import annotations
 
 import json
 from dataclasses import dataclass

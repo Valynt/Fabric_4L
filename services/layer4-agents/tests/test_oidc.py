@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Unit tests for OIDC client, claim mapping, and configuration.
 
 Tests the shared OIDC client with PKCE support and role mapping.
 """
 
-from __future__ import annotations
 
 import base64
 import hashlib

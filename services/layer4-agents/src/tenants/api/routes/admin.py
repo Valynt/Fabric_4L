@@ -1,11 +1,13 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError
 """Tenant admin dashboard API."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -99,7 +101,7 @@ def _verify_tenant_access(tenant_id: UUID, context: RequestContext) -> None:
     """
     if str(context.tenant_id) != str(tenant_id):
         if not context.is_super_admin():
-            raise HTTPException(status_code=403, detail="Access denied")
+            raise AuthorizationError(message = "Access denied")
 
 
 @router.get("/users", response_model=list[TenantUserInfo])
@@ -218,7 +220,7 @@ async def get_tenant_settings(
 
     tenant = await get_tenant(db, tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     # Get tier_id from settings
     settings = tenant.settings or {}
@@ -250,7 +252,7 @@ async def update_tenant_settings(
     tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = tenant_result.scalar_one_or_none()
     if not tenant:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     # Update name if provided
     if update.name:

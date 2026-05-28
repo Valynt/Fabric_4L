@@ -61,14 +61,13 @@ async def test_postgres_health_probe_unhealthy_on_query_error() -> None:
 
 
 @pytest.mark.asyncio
-async def test_postgres_health_probe_does_not_raise_on_connect_error() -> None:
-    # Connect-time failures must bubble up as healthy=False (the framework
-    # aggregator catches exceptions, but the probe should also tolerate them
-    # via the underlying health_probe helper which catches SQLAlchemyError).
-    # Non-SQLAlchemyError exceptions are caught by the framework aggregator.
+async def test_postgres_health_probe_catches_connect_error() -> None:
+    # Connect-time failures are expected operational conditions.
+    # The probe must report unhealthy rather than raise.
     probe = PostgresHealthProbe(_FakeEngine(raises=True))  # type: ignore[arg-type]
-    with pytest.raises(RuntimeError):
-        await probe.check()
+    result = await probe.check()
+    assert result.healthy is False
+    assert result.detail == "health_check_failed"
 
 
 def test_pgruntime_dataclass_shape() -> None:

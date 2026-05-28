@@ -48,7 +48,10 @@ class PostgresHealthProbe:
         self._engine = engine
 
     async def check(self) -> ProbeResult:
-        ok = await health_probe(self._engine)
+        try:
+            ok = await health_probe(self._engine)
+        except Exception:  # noqa: BLE001 — expected operational failures must not raise
+            return ProbeResult(name=self.name, healthy=False, detail="health_check_failed")
         return ProbeResult(name=self.name, healthy=ok, detail=None if ok else "select_1_failed")
 
 

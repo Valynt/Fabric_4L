@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """I-02 production fail-closed regression tests for Layer 5.
 
 Production-like Layer 5 deployments must reject insecure startup settings instead
@@ -5,7 +7,6 @@ of relying on developer auth fallbacks, wildcard CORS, weak JWT secrets, or loca
 SQLite/default database credentials.
 """
 
-from __future__ import annotations
 
 import pytest
 from pydantic import ValidationError

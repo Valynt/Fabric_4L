@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Integration tools for notifications, tasks, meetings, and CRM exports."""
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta

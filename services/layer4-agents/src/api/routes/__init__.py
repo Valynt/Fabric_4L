@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """API routes package."""
 
-from __future__ import annotations
 
 from . import analysis, c1, tools, workflows
 

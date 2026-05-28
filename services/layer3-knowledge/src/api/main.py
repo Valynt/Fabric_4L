@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 3 FastAPI composition root.
 
 This module is the sole application entry point for the Layer 3 Knowledge
@@ -13,7 +15,6 @@ No business logic lives here. All endpoint implementations are in
 ``api/routes/`` domain modules.
 """
 
-from __future__ import annotations
 
 import os
 from contextlib import asynccontextmanager

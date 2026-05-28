@@ -67,7 +67,7 @@ def main() -> int:
                 print(f"  - {check}")
         return 1
 
-    print("✅ Branch protection required checks exactly match canonical config")
+    print("PASS Branch protection required checks exactly match canonical config")
     return 0
 
 

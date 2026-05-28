@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Layer 1 crawler package.
 
 Canonical implementation lives in services/layer1-ingestion/src/crawler/.
 """
 
-from __future__ import annotations
 
 from .decision_store import (
     CrawlDecisionRecord,

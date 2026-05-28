@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Centralised Cypher safety utilities for Layer 3 (GOV-L3-006).
 
 Single source of truth for:
@@ -40,7 +42,6 @@ existing callers (``product_service``, ``competitive_intel_service``) do not
 need immediate updates. The shim will be removed once all callers are migrated.
 """
 
-from __future__ import annotations
 
 import re
 

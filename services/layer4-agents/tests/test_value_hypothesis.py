@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Data Intelligence Layer Phase 2 — L4 Tests.
 
@@ -8,7 +10,6 @@ These tests use mock Neo4j drivers to isolate service logic from the database.
 Run with: pytest tests/test_value_hypothesis.py --noconftest -v
 """
 
-from __future__ import annotations
 
 import sys
 import types

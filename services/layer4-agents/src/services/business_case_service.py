@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Business case persistence service."""
 
-from __future__ import annotations
 
 from uuid import UUID
 

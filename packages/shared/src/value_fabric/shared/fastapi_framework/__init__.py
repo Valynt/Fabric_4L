@@ -53,6 +53,7 @@ __all__ = [
     "aggregate_probes",
     "build_health_response",
     "build_readiness_payload",
+    "CallableProbe",
     "configure_structlog",
     "create_fabric_app",
     "EnforcementControlConfig",

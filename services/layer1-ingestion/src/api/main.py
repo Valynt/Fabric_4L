@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.
@@ -106,10 +107,7 @@ class _UnavailableTask:
             error=str(self.import_error),
             exc_info=self.import_error,
         )
-        raise HTTPException(
-            status_code=503,
-            detail=_build_task_unavailable_detail(),
-        )
+        raise ServiceUnavailableError(message = str(_build_task_unavailable_detail()))
 
 
 try:
@@ -366,16 +364,16 @@ def get_tenant_id(request: Request) -> UUID:
     header_value = request.headers.get("X-Organization-ID")
     if ctx is not None:
         if header_value and str(header_value) != str(ctx.tenant_id):
-            raise HTTPException(status_code=403, detail="X-Organization-ID does not match authenticated tenant")
+            raise AuthorizationError(message = "X-Organization-ID does not match authenticated tenant")
         return ctx.tenant_id
 
     if header_value:
         try:
             UUID(header_value)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid X-Organization-ID header format")
+            raise ValidationError(message = "Invalid X-Organization-ID header format")
 
-    raise HTTPException(status_code=401, detail="Authentication required")
+    raise AuthenticationError(message = "Authentication required")
 
 
 def get_current_user_id(request: Request) -> UUID:
@@ -394,9 +392,9 @@ def get_current_user_id(request: Request) -> UUID:
             metrics = get_metrics()
             if metrics:
                 metrics.increment_errors(error_type="invalid_uuid", component="auth")
-            raise HTTPException(status_code=401, detail="Invalid user ID format")
+            raise AuthenticationError(message = "Invalid user ID format")
     # P0 FIX: Never fall back to a hardcoded user â€” require authentication
-    raise HTTPException(status_code=401, detail="Authentication required")
+    raise AuthenticationError(message = "Authentication required")
 
 
 # =============================================================================
@@ -1151,16 +1149,14 @@ async def create_target(
             request.url, allowlist_domains=request.compliance.domain_allowlist
         )
     except URLSafetyError as exc:
-        raise HTTPException(status_code=400, detail=_url_safety_error_payload(exc.reason_code)) from exc
+        raise ValidationError(message = str(_url_safety_error_payload(exc.reason_code))) from exc
 
     # Validate extraction schema if method requires LLM
     if (
         request.extraction_config.method == ExtractionMethod.AI_LLM
         and not request.extraction_config.llm_provider
     ):
-        raise HTTPException(
-            status_code=400, detail="llm_provider is required when method is AI_LLM"
-        )
+        raise ValidationError(message = "llm_provider is required when method is AI_LLM")
 
     # Build config objects
     extraction_config = {
@@ -1279,7 +1275,7 @@ async def get_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     return _target_to_detail(target)
 
@@ -1299,7 +1295,7 @@ async def update_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     # Check if jobs are in progress
     active_jobs = (
@@ -1450,7 +1446,7 @@ async def delete_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     job_count = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).count()
 
@@ -1484,7 +1480,7 @@ async def validate_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     errors = []
     warnings = []
@@ -1550,7 +1546,7 @@ async def execute_target(
     )
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
         raise HTTPException(
@@ -1700,7 +1696,7 @@ async def get_target_decisions(
     ).first()
 
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     # Get decisions for all jobs of this target
     jobs = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).all()
@@ -1750,7 +1746,7 @@ async def get_job_router_report(
     ).first()
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     repo = CrawlDecisionRepository(db)
     report = await repo.get_router_quality_report(str(job_id))
@@ -1798,7 +1794,7 @@ async def get_domain_fallback_stats(
         ).first()
 
         if not has_target:
-            raise HTTPException(status_code=403, detail="No access to this domain")
+            raise AuthorizationError(message = "No access to this domain")
 
     since = datetime.now(UTC) - timedelta(days=days)
     repo = CrawlDecisionRepository(db)
@@ -1929,7 +1925,7 @@ async def get_job(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     stages = (
         db.query(JobStageDetail)
@@ -2020,7 +2016,7 @@ async def cancel_job(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     # Can only cancel jobs that haven't completed
     terminal_states = [
@@ -2053,7 +2049,7 @@ async def get_job_progress(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     return JobProgressResponse(
         job_id=job.id,
@@ -2089,7 +2085,7 @@ async def get_job_results(
     )
 
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     query = db.query(ExtractedData).filter(
         ExtractedData.job_id == job_id, ExtractedData.tenant_id == org_id
@@ -2137,7 +2133,7 @@ async def retry_job(
     )
 
     if not original_job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     if original_job.status not in [JobStatus.FAILED.value, JobStatus.PARTIAL_SUCCESS.value]:
         raise HTTPException(
@@ -2247,7 +2243,7 @@ def _create_skill_job(
         .first()
     )
     if not target:
-        raise HTTPException(status_code=404, detail="Target not found")
+        raise NotFoundError(message = "Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
         raise HTTPException(
@@ -2256,7 +2252,7 @@ def _create_skill_job(
 
     skill = get_skill(job_type.value)
     if not skill:
-        raise HTTPException(status_code=400, detail=f"Unknown job_type: {job_type.value}")
+        raise ValidationError(message = str(f"Unknown job_type: {job_type.value}"))
 
     configuration = {
         "target_id": str(target.id),
@@ -2413,7 +2409,7 @@ async def get_source_corpus(
         .first()
     )
     if not corpus:
-        raise HTTPException(status_code=404, detail="Corpus not found")
+        raise NotFoundError(message = "Corpus not found")
     return _source_corpus_to_response(corpus)
 
 
@@ -2430,7 +2426,7 @@ async def get_account_intelligence_packet(
         .first()
     )
     if not packet:
-        raise HTTPException(status_code=404, detail="Intelligence packet not found")
+        raise NotFoundError(message = "Intelligence packet not found")
     return _account_packet_to_response(packet)
 
 
@@ -2447,10 +2443,10 @@ async def get_job_skill_output(
         .first()
     )
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     if not job.skill_name:
-        raise HTTPException(status_code=404, detail="Job has no skill output")
+        raise NotFoundError(message = "Job has no skill output")
 
     if job.output_contract == "SourceCorpus":
         corpus = (
@@ -2459,7 +2455,7 @@ async def get_job_skill_output(
             .first()
         )
         if not corpus:
-            raise HTTPException(status_code=404, detail="SourceCorpus not yet available")
+            raise NotFoundError(message = "SourceCorpus not yet available")
         return {
             "output_contract": "SourceCorpus",
             "data": _source_corpus_to_response(corpus).model_dump(),
@@ -2472,13 +2468,13 @@ async def get_job_skill_output(
             .first()
         )
         if not packet:
-            raise HTTPException(status_code=404, detail="AccountIntelligencePacket not yet available")
+            raise NotFoundError(message = "AccountIntelligencePacket not yet available")
         return {
             "output_contract": "AccountIntelligencePacket",
             "data": _account_packet_to_response(packet).model_dump(),
         }
 
-    raise HTTPException(status_code=400, detail=f"Unknown output_contract: {job.output_contract}")
+    raise ValidationError(message = str(f"Unknown output_contract: {job.output_contract}"))
 
 
 # =============================================================================
@@ -2554,7 +2550,7 @@ async def list_source_corpora(
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(SourceCorpus.created_at < cursor_dt)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid cursor format; expected ISO-8601 datetime")
+            raise ValidationError(message = "Invalid cursor format; expected ISO-8601 datetime")
 
     total = q.count()
     items = q.order_by(SourceCorpus.created_at.desc()).limit(limit).all()
@@ -2587,7 +2583,7 @@ async def get_source_corpus_detail(
         .first()
     )
     if not corpus:
-        raise HTTPException(status_code=404, detail="SourceCorpus not found")
+        raise NotFoundError(message = "SourceCorpus not found")
     return _source_corpus_to_response(corpus)
 
 
@@ -2625,7 +2621,7 @@ async def list_account_intelligence_packets(
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(AccountIntelligencePacket.created_at < cursor_dt)
         except ValueError:
-            raise HTTPException(status_code=400, detail="Invalid cursor format; expected ISO-8601 datetime")
+            raise ValidationError(message = "Invalid cursor format; expected ISO-8601 datetime")
 
     total = q.count()
     items = q.order_by(AccountIntelligencePacket.created_at.desc()).limit(limit).all()
@@ -2661,7 +2657,7 @@ async def get_account_intelligence_packet_detail(
         .first()
     )
     if not packet:
-        raise HTTPException(status_code=404, detail="AccountIntelligencePacket not found")
+        raise NotFoundError(message = "AccountIntelligencePacket not found")
     return _account_packet_to_response(packet)
 
 
@@ -2687,7 +2683,7 @@ async def get_raw_content(
     )
 
     if not content:
-        raise HTTPException(status_code=404, detail="Content not found")
+        raise NotFoundError(message = "Content not found")
 
     storage = {}
     if include_html:
@@ -2740,7 +2736,7 @@ async def get_extracted_data(
     )
 
     if not data:
-        raise HTTPException(status_code=404, detail="Extracted data not found")
+        raise NotFoundError(message = "Extracted data not found")
 
     return ExtractedDataResponse(
         id=data.id,

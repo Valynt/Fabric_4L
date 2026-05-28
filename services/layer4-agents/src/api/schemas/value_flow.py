@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Schemas for the UI-oriented value flow facade API."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum

@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 """
 Analytics tools with tenant isolation.
 """
 
-from __future__ import annotations
 
 import logging
 

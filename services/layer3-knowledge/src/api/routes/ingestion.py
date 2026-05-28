@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError
 """Ingestion domain router — RDF ingest, sync status, and source deletion.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -5,7 +8,6 @@ All write-paths use the sync_manager service; tenant_id is derived
 exclusively from authenticated request context (never from X-Tenant-ID).
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any, Literal
@@ -34,9 +36,7 @@ async def ingest_rdf(
     ctx = getattr(fastapi_request.state, "context", None)
     tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
     if not tenant_id:
-        raise HTTPException(
-            status_code=401, detail="Authenticated tenant context required for ingestion"
-        )
+        raise AuthenticationError(message = "Authenticated tenant context required for ingestion")
 
     try:
         stats = await sync_manager.sync_extraction_result(
@@ -71,9 +71,7 @@ async def ingest_rdf(
         )
     except Exception as e:
         logger.error("Ingestion failed: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Ingestion failed. Please try again later."
-        )
+        raise ServiceUnavailableError(message="Ingestion failed. Please try again later.")
 
 
 @router.get("/ingest/status/{source_id}", response_model=SyncStatusResponse)
@@ -84,7 +82,7 @@ async def get_sync_status(
     """Get synchronisation status for a source."""
     status = await sync_manager.get_sync_status(source_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Source {source_id} not found")
+        raise NotFoundError(message = str(f"Source {source_id} not found"))
 
     return SyncStatusResponse(
         source_id=source_id,

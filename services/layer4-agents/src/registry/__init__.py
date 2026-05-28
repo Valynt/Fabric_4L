@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Model Registry package for Layer 4 Agents."""
 
-from __future__ import annotations
 
 from .eval_gate import check_eval_gate
 from .models import ModelPromotionLog, ModelVersion

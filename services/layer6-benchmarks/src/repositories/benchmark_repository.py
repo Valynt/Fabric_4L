@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Neo4j repository for BenchmarkDataset persistence."""
 
-from __future__ import annotations
 
 import logging
 from datetime import datetime

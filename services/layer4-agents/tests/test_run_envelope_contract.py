@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for canonical run envelope across workflows, logs, and checkpoints."""
 
-from __future__ import annotations
 
 import pytest
 

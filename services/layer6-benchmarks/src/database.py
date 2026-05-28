@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Neo4j driver management for Layer 6 Benchmark Service."""
 
-from __future__ import annotations
 
 import asyncio
 import logging
@@ -64,7 +65,10 @@ async def close_driver() -> None:
         logger.info("Neo4j driver closed")
 
 async def health_check(settings: Settings | None = None) -> dict[str, str]:
-    """Check Neo4j connectivity without raising."""
+    """Check Neo4j connectivity without raising.
+
+    Returns sanitized status without exposing connection details.
+    """
     cfg = settings or get_settings()
     try:
         driver = await get_driver(cfg)
@@ -72,7 +76,7 @@ async def health_check(settings: Settings | None = None) -> dict[str, str]:
             result = await session.run("RETURN 1 AS check")
             record = await result.single()
             if record and record["check"] == 1:
-                return {"status": "healthy", "uri": cfg.neo4j_uri}
+                return {"status": "healthy"}
         return {"status": "unhealthy", "error": "Unexpected query result"}
     except Exception as exc:
         logger.error("Neo4j health check failed: %s", exc)

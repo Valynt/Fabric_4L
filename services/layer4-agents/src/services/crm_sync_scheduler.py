@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Background scheduler for periodic CRM account synchronization.
 
 Integrates CRMSyncService with TaskScheduler for automated background syncing
@@ -8,7 +10,6 @@ enumerates enabled integrations per-tenant and executes sync with RLS-enforced
 sessions. Never sets app.tenant_id to empty string.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

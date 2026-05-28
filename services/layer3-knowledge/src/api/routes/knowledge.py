@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -18,11 +20,11 @@ tracked in ``services/layer4-agents/src/workflows/queries.py``:
 All queries are tenant-scoped via ``create_neo4j_tenant_session``.
 """
 
-from __future__ import annotations
 
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import ValidationError
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context
@@ -163,7 +165,7 @@ async def get_value_driver_formulas(
     tenant_id = str(tenant.tenant_id)
 
     if not driver_ids:
-        raise HTTPException(status_code=422, detail="driver_ids must not be empty")
+        raise ValidationError(message="driver_ids must not be empty")
 
     # Deduplicate while preserving order for deterministic missing_ids reporting
     seen: set[str] = set()
@@ -174,7 +176,7 @@ async def get_value_driver_formulas(
             unique_ids.append(d)
 
     if not unique_ids:
-        raise HTTPException(status_code=422, detail="driver_ids must contain non-empty strings")
+        raise ValidationError(message="driver_ids must contain non-empty strings")
 
     query = """
         MATCH (v:ValueDriver)

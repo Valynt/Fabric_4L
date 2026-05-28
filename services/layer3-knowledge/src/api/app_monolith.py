@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -7,9 +10,8 @@ legacy app_monolith namespace. Tests and callers should migrate to
 value_fabric.layer3.api.services.tenant_resolution.resolve_ingest_tenant_id.
 """
 
-from __future__ import annotations
 
-from fastapi import HTTPException
+from fastapi import
 
 from .services.tenant_resolution import resolve_ingest_tenant_id as _canonical
 
@@ -23,11 +25,11 @@ def _resolve_ingest_tenant_id(
 ) -> str:
     """Compatibility wrapper — delegates to tenant_resolution.resolve_ingest_tenant_id.
 
-    Raises HTTPException(401) when authenticated_tenant_id is empty (legacy
+    Raises(401) when authenticated_tenant_id is empty (legacy
     behaviour expected by test_ingest_tenant_fail_closed.py).
     """
     if not (authenticated_tenant_id or "").strip():
-        raise HTTPException(status_code=401, detail="Authentication context is required")
+        raise AuthenticationError(message = "Authentication context is required")
     return _canonical(
         authenticated_tenant_id,
         header_tenant_id,

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """WebSocket connection manager for real-time workflow streaming.
 
 Provides pub/sub-style event broadcasting to connected clients with
@@ -10,7 +12,6 @@ Security (OBS-L4-009):
   correlation_id for BOLA/IDOR alerting.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

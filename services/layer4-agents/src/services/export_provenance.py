@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Provenance manifest generation for exported case packages."""
 
-from __future__ import annotations
 
 import json
 from datetime import UTC, datetime

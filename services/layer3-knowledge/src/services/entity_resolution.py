@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Phase 2: Deterministic Entity Resolution Policy.
 
 Implements the resolution policy with:
@@ -7,7 +9,6 @@ Implements the resolution policy with:
 - Provenance tracking
 """
 
-from __future__ import annotations
 
 import logging
 import math

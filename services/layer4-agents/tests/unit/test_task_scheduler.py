@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Unit tests for the TaskScheduler and ScheduledTask.
 
 Tests priority-based scheduling, backpressure, retry with exponential backoff,
 tenant-context propagation, and task lifecycle.
 """
 
-from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta

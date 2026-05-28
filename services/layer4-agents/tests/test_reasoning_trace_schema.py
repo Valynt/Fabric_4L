@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for structured reasoning trace schema enforcement."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Startup lifecycle management and dependency checks for Layer 4 API."""
 
-from __future__ import annotations
 
 import asyncio
 import logging

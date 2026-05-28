@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Resilience ports for OSS-0 substitution scaffolding.
 
 The interfaces intentionally separate Fabric-owned tenant fairness from generic
@@ -5,7 +7,6 @@ dependency circuit-breaking. Legacy adapters delegate to the current implementat
 so defaults remain unchanged.
 """
 
-from __future__ import annotations
 
 from collections.abc import Callable
 from typing import Any, Protocol, runtime_checkable

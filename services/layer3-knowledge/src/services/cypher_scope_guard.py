@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Backward-compatibility shim for cypher_scope_guard (GOV-L3-006).
 
 The canonical implementation has moved to:
@@ -9,7 +11,6 @@ immediate updates. Migrate callers to import directly from
 all consumers are updated.
 """
 
-from __future__ import annotations
 
 from value_fabric.layer3.utils.cypher_security import (  # noqa: F401
     ALLOWED_REL_TYPES,

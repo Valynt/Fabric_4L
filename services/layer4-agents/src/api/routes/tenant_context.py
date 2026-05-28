@@ -1,10 +1,12 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError
 """Canonical tenant context endpoint for authenticated frontend and API clients."""
 
-from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
@@ -56,14 +58,11 @@ async def get_tenant_context(
     current tenant metadata needed by onboarding and settings workflows.
     """
     if ctx.tenant_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Validated tenant context required",
-        )
+        raise AuthenticationError(message = "Validated tenant context required")
 
     tenant = await get_tenant(db, ctx.tenant_id)
     if tenant is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     settings = tenant.settings or {}
     return TenantContextResponse(

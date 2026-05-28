@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for Phase 1 Tenant Lifecycle Hardening.
 
 Covers:
@@ -6,7 +8,6 @@ Covers:
 - Task 1.7: Tenant service lifecycle methods and API routes
 """
 
-from __future__ import annotations
 
 import uuid
 from typing import Any

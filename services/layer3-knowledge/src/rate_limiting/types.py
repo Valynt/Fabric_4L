@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Typed structures for Layer 3 rate limiting internals."""
 
-from __future__ import annotations
 
 from typing import Any
 

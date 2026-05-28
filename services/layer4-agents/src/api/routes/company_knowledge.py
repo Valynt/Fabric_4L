@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Company Knowledge Onboarding API routes.
 
 Endpoints for managing company knowledge profiles, sources, extractions,
@@ -7,12 +10,11 @@ SECURITY: All endpoints use get_db_from_context for RLS tenant isolation
           and require_authenticated for mandatory auth enforcement.
 """
 
-from __future__ import annotations
 
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -57,10 +59,7 @@ def _require_profile(
     """Fetch profile or raise 404."""
     profile = service.get_profile(profile_id, tenant_id)
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Company knowledge profile {profile_id} not found",
-        )
+        raise NotFoundError(message = str(f"Company knowledge profile {profile_id} not found"))
     return profile
 
 
@@ -98,10 +97,7 @@ async def get_current_profile(
     service = CompanyKnowledgeService(db)
     profile = await service.get_active_profile(str(ctx.tenant_id))
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No company knowledge profile found for this tenant",
-        )
+        raise NotFoundError(message = "No company knowledge profile found for this tenant")
     return CompanyKnowledgeProfileResponse.model_validate(profile)
 
 
@@ -115,10 +111,7 @@ async def get_profile(
     service = CompanyKnowledgeService(db)
     profile = await service.get_profile(profile_id, str(ctx.tenant_id))
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Profile {profile_id} not found",
-        )
+        raise NotFoundError(message = str(f"Profile {profile_id} not found"))
     return CompanyKnowledgeProfileResponse.model_validate(profile)
 
 
@@ -134,10 +127,7 @@ async def update_profile(
     updates = request.model_dump(exclude_unset=True)
     profile = await service.update_profile(profile_id, str(ctx.tenant_id), updates)
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Profile {profile_id} not found",
-        )
+        raise NotFoundError(message = str(f"Profile {profile_id} not found"))
     return CompanyKnowledgeProfileResponse.model_validate(profile)
 
 
@@ -163,10 +153,7 @@ async def approve_profile(
         profile_id, str(ctx.tenant_id), request.approved_by
     )
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Profile {profile_id} not found",
-        )
+        raise NotFoundError(message = str(f"Profile {profile_id} not found"))
 
     # Sync approved profile to Layer 3 in the background
     background_tasks.add_task(
@@ -320,10 +307,7 @@ async def review_extraction_record(
         user_edits=request.user_edits,
     )
     if not record:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Extraction record {record_id} not found",
-        )
+        raise NotFoundError(message = str(f"Extraction record {record_id} not found"))
     return ValueExtractionRecordResponse.model_validate(record)
 
 
@@ -369,17 +353,11 @@ async def get_icp_for_current_profile(
     service = CompanyKnowledgeService(db)
     profile = await service.get_active_profile(str(ctx.tenant_id))
     if not profile:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No company knowledge profile found for this tenant",
-        )
+        raise NotFoundError(message = "No company knowledge profile found for this tenant")
 
     icp = await service.get_icp_for_profile(profile.id, str(ctx.tenant_id))
     if not icp:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="No ICP profile found for the current knowledge profile",
-        )
+        raise NotFoundError(message = "No ICP profile found for the current knowledge profile")
     return ICPProfileResponse.model_validate(icp)
 
 
@@ -395,10 +373,7 @@ async def update_icp_profile(
     updates = request.model_dump(exclude_unset=True)
     icp = await service.update_icp_profile(icp_id, str(ctx.tenant_id), updates)
     if not icp:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ICP profile {icp_id} not found",
-        )
+        raise NotFoundError(message = str(f"ICP profile {icp_id} not found"))
     return ICPProfileResponse.model_validate(icp)
 
 

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Overage detection service for usage limits and quota enforcement.
 
 Checks current usage against plan limits and returns warnings/errors.
 Supports both soft limits (warnings) and hard limits (rejections).
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass

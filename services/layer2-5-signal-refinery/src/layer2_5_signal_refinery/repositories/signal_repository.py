@@ -1,10 +1,10 @@
+from __future__ import annotations
+
 """Signal repository — tenant-scoped PostgreSQL persistence for ValueSignals.
 
 All methods require an explicit tenant_id derived from authenticated context.
 No method accepts tenant_id from request body.
 """
-
-from __future__ import annotations
 
 import logging
 import uuid

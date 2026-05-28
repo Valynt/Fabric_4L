@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 """
 Admin tools with strict permission enforcement.
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any

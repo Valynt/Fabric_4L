@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """OIDC state store implementations (migrated from monolithic oidc.py)."""
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta

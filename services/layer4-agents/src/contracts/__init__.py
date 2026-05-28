@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Canonical Artifact Contracts — Phase 3 of the Ontology Contract Migration.
 
@@ -17,7 +19,6 @@ Import from here:
     )
 """
 
-from __future__ import annotations
 
 from .artifacts import (
     # Constants

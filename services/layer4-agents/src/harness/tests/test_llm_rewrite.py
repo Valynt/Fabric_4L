@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for the LLM-powered agent rewrite components.
 
@@ -10,7 +12,6 @@ Covers:
   - get_llm_provider factory: provider selection from env
 """
 
-from __future__ import annotations
 
 import importlib.util
 import os

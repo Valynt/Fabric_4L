@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -289,7 +290,7 @@ async def get_formula_governance(
         record = await result.single()
 
         if not record or not record["f"]:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         f = record["f"]
         versions_data = record["versions"]
@@ -344,7 +345,7 @@ async def create_formula_version(
     async with await create_neo4j_tenant_session(tenant_id) as neo4j:
         result = await neo4j.run(check_query, formula_id=formula_id, tenant_id=tenant_id)
         if not await result.single():
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
     now = datetime.now(UTC).isoformat()
     version_id = str(uuid.uuid4())
@@ -432,7 +433,7 @@ async def submit_for_review(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         current_status = record["status"] or "draft"
 
@@ -535,7 +536,7 @@ async def approve_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula or version not found")
+            raise NotFoundError(message = "Formula or version not found")
 
         # Audit log the governance action
         logger.info(
@@ -579,7 +580,7 @@ async def activate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         old_status = record["status"] or "draft"
 
@@ -661,7 +662,7 @@ async def deprecate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Formula not found")
+            raise NotFoundError(message = "Formula not found")
 
         old_status = record["status"] or "draft"
 

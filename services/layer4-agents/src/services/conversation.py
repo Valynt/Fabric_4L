@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """ConversationService — ValuePilot backend orchestration.
 
 Bridges the ConversationAgent (GATE-governed intent classification and
@@ -16,7 +18,6 @@ Architecture:
                 4. Emit audit event + return response
 """
 
-from __future__ import annotations
 
 import json
 import logging

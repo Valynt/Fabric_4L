@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Identity and authentication shared components."""
 
-from __future__ import annotations
 
 from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig

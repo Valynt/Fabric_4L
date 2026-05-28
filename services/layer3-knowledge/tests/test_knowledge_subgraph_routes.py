@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Unit tests for the Layer 3 knowledge subgraph endpoints.
 
 Tests cover:
@@ -11,7 +13,6 @@ Tests cover:
 - Tenant isolation for value driver formulas
 """
 
-from __future__ import annotations
 
 from http import HTTPStatus
 from unittest.mock import AsyncMock, patch

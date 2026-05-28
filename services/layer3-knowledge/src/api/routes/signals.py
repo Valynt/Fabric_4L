@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -14,7 +17,6 @@ Routes:
   GET   /api/v1/graph/signals/{signal_id}/related Related entities
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any
@@ -154,15 +156,12 @@ async def persist_signal(
     required = ("id", "tenant_id", "account_id", "type", "content", "confidence")
     missing = [f for f in required if not body.get(f)]
     if missing:
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail=f"Missing required fields: {missing}",
-        )
+        raise ValidationError(message=f"Missing required fields: {missing}")
 
     # Enforce tenant from context, not body
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant context required")
+        raise AuthenticationError(message = "Tenant context required")
 
     # Phase 4 hardening: Check account authorization for account-scoped entity
     try:
@@ -173,10 +172,7 @@ async def persist_signal(
             tenant_id=tenant_id,
         )
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Account authorization failed: {str(e)}",
-        ) from e
+        raise AuthorizationError(message = str(f"Account authorization failed: {str(e)}")) from e
 
     params = {
         "id": body["id"],
@@ -202,10 +198,7 @@ async def persist_signal(
         return {"status": "ok", "signal": params}
     except Exception as exc:
         logger.exception("Failed to persist ValueSignal %s to Neo4j", body.get("id"))
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Graph persistence failed",
-        ) from exc
+        raise ServiceUnavailableError(message="Graph persistence failed") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -226,7 +219,7 @@ async def list_graph_signals(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant context required")
+        raise AuthenticationError(message = "Tenant context required")
 
     states = lifecycle_states or _ALL_LIFECYCLE_STATES
 
@@ -253,10 +246,7 @@ async def list_graph_signals(
         return {"items": items, "total": len(items), "limit": limit, "offset": offset}
     except Exception as exc:
         logger.exception("Failed to query ValueSignals from Neo4j")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Graph query failed",
-        ) from exc
+        raise ServiceUnavailableError(message="Graph query failed") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -272,22 +262,19 @@ async def get_graph_signal(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant context required")
+        raise AuthenticationError(message = "Tenant context required")
 
     try:
         result = await neo4j.run(_GET_SIGNAL_CYPHER, {"id": signal_id, "tenant_id": tenant_id})
         record = await result.single()
         if not record:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found in graph")
+            raise NotFoundError(message = "Signal not found in graph")
         return _node_to_dict(record["s"])
     except HTTPException:
         raise
     except Exception as exc:
         logger.exception("Failed to get ValueSignal %s from Neo4j", signal_id)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Graph query failed",
-        ) from exc
+        raise ServiceUnavailableError(message="Graph query failed") from exc
 
 
 # ---------------------------------------------------------------------------
@@ -303,7 +290,7 @@ async def get_signal_related(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Tenant context required")
+        raise AuthenticationError(message = "Tenant context required")
 
     try:
         result = await neo4j.run(_RELATED_CYPHER, {"id": signal_id, "tenant_id": tenant_id})
@@ -317,7 +304,4 @@ async def get_signal_related(
         }
     except Exception as exc:
         logger.exception("Failed to get related entities for signal %s", signal_id)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Graph query failed",
-        ) from exc
+        raise ServiceUnavailableError(message="Graph query failed") from exc

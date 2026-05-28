@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Service layer for Company Knowledge Onboarding.
 
 Business logic and data access for company knowledge profiles, sources,
 extraction records, and ICP profiles.
 """
 
-from __future__ import annotations
 
 import logging
 import os

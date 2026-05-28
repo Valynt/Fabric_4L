@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Unit tests for Layer3Client.get_benchmark_variables() and
 Layer3Client.get_value_driver_formulas().
 
@@ -10,7 +12,6 @@ Tests verify:
 - _make_request result is passed through unchanged
 """
 
-from __future__ import annotations
 
 import sys
 from pathlib import Path

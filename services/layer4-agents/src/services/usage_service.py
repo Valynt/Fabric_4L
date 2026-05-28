@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Usage metering service for event ingestion and aggregation.
 
 Handles high-throughput usage event ingestion with idempotency,
 tenant validation, and Stripe MeterEvents integration for usage-based billing.
 """
 
-from __future__ import annotations
 
 import logging
 import os

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Signal quantification service for Layer 3.
 
 Calculates impact values for pain signals using industry-specific
 formulas and prospect data.
 """
 
-from __future__ import annotations
 
 import ast
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Licensing Company Ontology Intake Skill.
 
 Used when the goal is: "Build the ontology of the company selling/licensing
@@ -5,7 +7,6 @@ the product."  Produces a SourceCorpus that feeds Layer 2/3 for ontology
 construction.  Does NOT finalize the ontology.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

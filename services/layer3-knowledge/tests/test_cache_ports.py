@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """OSS-0 tests for the L3 cache port and legacy adapter."""
 
-from __future__ import annotations
 
 from typing import Any
 

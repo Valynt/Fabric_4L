@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """
 Account service layer for CRM account operations.
 
 Business logic and data access for the accounts surface.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

@@ -18,7 +18,7 @@ with md.open('w') as f:
  f.write('# Webhook Security Test Matrix\n\n')
  f.write('| Test | Result |\n|---|---|\n')
  for name,res in rows:
-  f.write(f'| {name} | {"✅ PASS" if res=="PASSED" else "❌ FAIL"} |\n')
+  f.write(f'| {name} | {"PASS PASS" if res=="PASSED" else "FAIL FAIL"} |\n')
  f.write(f'\nOverall exit code: {proc.returncode}\n')
 print(out)
 raise SystemExit(proc.returncode)

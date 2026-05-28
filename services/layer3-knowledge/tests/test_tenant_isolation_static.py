@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Static tenant-isolation gates for Layer 3 Neo4j Cypher usage."""
 
-from __future__ import annotations
 
 import importlib.util
 import subprocess

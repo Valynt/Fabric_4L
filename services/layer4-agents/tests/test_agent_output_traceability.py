@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Agent Output Traceability Tests - P0 Critical Gap Remediation
 
 Validates that agent outputs include required traceability fields per
@@ -11,7 +13,6 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-23
 """
 
-from __future__ import annotations
 
 import pytest
 from uuid import uuid4

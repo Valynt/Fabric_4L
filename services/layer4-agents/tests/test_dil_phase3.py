@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Data Intelligence Layer — Phase 3 Tests.
 
@@ -8,7 +10,6 @@ Tests for:
 Uses mock Neo4j driver to avoid external dependencies.
 """
 
-from __future__ import annotations
 
 import json
 import sys

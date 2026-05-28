@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PROV-O / RDF* Provenance System for Layer 4.
 
 Provides provenance tracking and audit trails as specified:
@@ -7,7 +9,6 @@ Provides provenance tracking and audit trails as specified:
 - Decision trace construction
 """
 
-from __future__ import annotations
 
 from .models import (
     PROVActivity,

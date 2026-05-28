@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """State manager for workflow state persistence using Redis."""
 
-from __future__ import annotations
 
 import json
 import logging
@@ -216,7 +217,10 @@ class StateManager:
         if state_class is None:
             raise ValueError(f"Unknown workflow_type for state deserialization: {workflow_type}")
 
-        # Parse datetime fields
+        # Parse datetime fields.
+        # NOTE: _deserialize_state may raise ValidationError for malformed persisted
+        # data (e.g. corrupted datetime strings). load_state() catches this and
+        # returns None, treating the workflow as non-resumable.
         for field in ["started_at", "completed_at", "extracted_at"]:
             if state_dict.get(field) and isinstance(state_dict[field], str):
                 try:

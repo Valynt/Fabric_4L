@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """End-to-end vector index test for Layer 3 Knowledge Graph.
 
 This test focuses specifically on vector index functionality:
@@ -16,7 +18,6 @@ Requirements:
     - sentence-transformers package
 """
 
-from __future__ import annotations
 
 import asyncio
 from collections.abc import AsyncGenerator

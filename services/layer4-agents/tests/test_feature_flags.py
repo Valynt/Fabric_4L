@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for feature flags: service, API, evaluator, and audit."""
 
-from __future__ import annotations
 
 import json
 import os

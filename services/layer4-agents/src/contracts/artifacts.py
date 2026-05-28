@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Canonical Artifact Contracts for Value Fabric Layer 4 Agents.
 
@@ -17,7 +19,6 @@ Design principles:
   - No circular imports: this module has zero internal dependencies
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -1,6 +1,6 @@
-"""Alembic environment for L2.5 Signal Refinery migrations."""
-
 from __future__ import annotations
+
+"""Alembic environment for L2.5 Signal Refinery migrations."""
 
 import asyncio
 import os

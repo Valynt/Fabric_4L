@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Subscription tier configuration.
 
 Tiers are configuration-based (not database-driven) for Phase 3.
 Database-driven tiers with billing integration deferred to Phase 4+.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 

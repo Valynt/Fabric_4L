@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for LLM cost calculation and metric emission."""
 
-from __future__ import annotations
 
 import hashlib
 import json

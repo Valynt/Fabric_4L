@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for ValueFlowFacadeService.
 
@@ -5,7 +7,6 @@ Tests save/resume, idempotency, step transitions, and completion status
 without requiring Redis or any external dependencies.
 """
 
-from __future__ import annotations
 
 import pytest
 from unittest.mock import AsyncMock, MagicMock

@@ -110,7 +110,7 @@ def main() -> int:
         # GitHub Actions step summary format
         print("## Stack Health Check")
         for name, result in report["services"].items():
-            icon = "✅" if result["ok"] else "❌"
+            icon = "PASS" if result["ok"] else "FAIL"
             print(f"- {icon} **{name}**: {result.get('status') or result.get('error')}")
         if report["all_healthy"]:
             print("\n🟢 **All services healthy**")

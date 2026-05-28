@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Targeted tests for analysis routes executor integration."""
 
-from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass, field

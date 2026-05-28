@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """WebSocket routes for real-time workflow streaming.
 
 Provides a WebSocket endpoint for subscribing to workflow events with
@@ -16,7 +18,6 @@ Reconnection:
     Pass ``last_event_id`` query parameter to replay missed events.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Approved Neo4j execution surface for Layer 3 runtime modules.
 
 Runtime code in ``services/layer3-knowledge/src`` must not call
@@ -20,7 +22,6 @@ High-risk runtime folders (``api/routes``, ``services``, ``agents``, and
 unless they are moved behind this boundary.
 """
 
-from __future__ import annotations
 
 import asyncio
 import re

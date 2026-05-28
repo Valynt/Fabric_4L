@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Knowledge tools for querying the graph database and semantic search."""
 
-from __future__ import annotations
 
 import logging
 import os

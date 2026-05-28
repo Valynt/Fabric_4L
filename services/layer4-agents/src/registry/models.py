@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """SQLAlchemy ORM models for the Model Registry."""
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -1,9 +1,11 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
 """Documents domain router — business case PDF export via Layer 4.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
 """
 
-from __future__ import annotations
 
 import logging
 import os
@@ -41,10 +43,7 @@ async def export_document(
             )
 
             if l4_response.status_code == 404:
-                raise HTTPException(
-                    status_code=404,
-                    detail=f"Business case {request.business_case_id} not found",
-                )
+                raise NotFoundError(message = str(f"Business case {request.business_case_id} not found"))
             if l4_response.status_code != 200:
                 logger.error(
                     "L4 export service returned %s for case %s: %s",
@@ -52,7 +51,7 @@ async def export_document(
                     request.business_case_id,
                     l4_response.text,
                 )
-                raise HTTPException(status_code=502, detail="Export service error")
+                raise ServiceUnavailableError(message="Export service error")
 
             l4_data = l4_response.json()
 
@@ -108,22 +107,16 @@ async def export_document(
         logger.error(
             "Document export timed out for case %s", request.business_case_id
         )
-        raise HTTPException(status_code=504, detail="Document generation timed out")
+        raise ServiceUnavailableError(message="Document generation timed out")
     except httpx.ConnectError as e:
         logger.error("Cannot connect to L4 service: %s", e)
-        raise HTTPException(
-            status_code=503, detail="Document generation service unavailable"
-        )
+        raise ServiceUnavailableError(message = "Document generation service unavailable")
     except HTTPException:
         raise
     except Exception as exc:
         request_id = getattr(getattr(http_request, "state", None), "request_id", None)
         logger.exception("Document export failed", extra={"request_id": request_id, "correlation_id": request_id, "exception_type": type(exc).__name__})
-        raise HTTPException(
-            status_code=500,
-            detail=build_error_detail(
-                message="Document export failed",
-                error_code="L3_DOCUMENT_EXPORT_FAILED",
-                request_id=request_id,
-            ),
+        raise ServiceUnavailableError(
+            message="Document export failed",
+            details={"error_code": "L3_DOCUMENT_EXPORT_FAILED", "request_id": request_id}
         )

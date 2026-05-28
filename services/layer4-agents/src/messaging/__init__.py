@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Multi-agent messaging system for Layer 4.
 
 Provides pub/sub messaging, message routing, and inter-agent communication.
 """
 
-from __future__ import annotations
 
 from .bus import InMemoryMessageBus, MessageBus, RedisMessageBus
 from .router import MessageRouter

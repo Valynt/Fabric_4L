@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """SQLAlchemy model for Tenant Isolation Tier History (Task 4.1).
 
 Append-only audit log for isolation tier changes. Tracks who changed the tier,
 when, and why - essential for governance, compliance, and incident review.
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

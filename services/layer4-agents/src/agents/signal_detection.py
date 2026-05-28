@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Signal Detection Agent for operational pain signal discovery.
 
 Orchestrates the complete signal detection pipeline:
@@ -8,7 +10,6 @@ Orchestrates the complete signal detection pipeline:
 5. Emits streaming events to frontend
 """
 
-from __future__ import annotations
 
 import json
 import logging

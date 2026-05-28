@@ -214,6 +214,10 @@ jobs:
           pip install pytest
           pytest tests/contract/test_error_envelope_consistency.py -v --tb=short
 
+      - name: Enforce HTTPException static gate with baseline allowlist
+        run: |
+          python scripts/ci/check_no_raw_httpexception_in_routers.py
+
       - name: Run webhook security matrix and build report artifact
         run: |
           pip install pytest

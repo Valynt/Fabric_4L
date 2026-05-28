@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Resilience patterns for Layer 4 Agents.
 
 P1-15: Token bucket rate limiting per tenant
 P1-18: Circuit breaker for external service calls
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

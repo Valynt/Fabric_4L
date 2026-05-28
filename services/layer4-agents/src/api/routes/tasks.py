@@ -1,12 +1,14 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError
 """Tenant-scoped task workflow routes for collaboration validation."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import StrEnum
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -59,10 +61,7 @@ _TASKS_BY_TENANT: dict[str, dict[str, TaskRecord]] = {}
 
 def _tenant_key(ctx: RequestContext) -> str:
     if ctx.tenant_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Validated tenant context required",
-        )
+        raise AuthenticationError(message = "Validated tenant context required")
     return str(ctx.tenant_id)
 
 
@@ -128,7 +127,7 @@ async def update_task(
     tenant_tasks = _TASKS_BY_TENANT.get(_tenant_key(ctx), {})
     task = tenant_tasks.get(task_id)
     if task is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Task not found")
+        raise NotFoundError(message = "Task not found")
 
     update = request.model_dump(exclude_unset=True)
     task = task.model_copy(update={**update, "updated_at": _now_iso()})

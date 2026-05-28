@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQLAlchemy models for Stripe billing integration.
 
 Billing layer includes: subscription management, customer sync, webhook idempotency,
@@ -7,7 +9,6 @@ SECURITY: All tables have Row-Level Security (RLS) policies for multi-tenant iso
 IDEMPOTENCY: Duplicate event detection via unique constraints on (tenant_id, event_id).
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum as PyEnum

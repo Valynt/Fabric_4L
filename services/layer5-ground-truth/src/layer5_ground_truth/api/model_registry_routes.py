@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """
 FastAPI router for Model Registry API.
 
@@ -217,10 +218,7 @@ async def get_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
 
     return ModelVersionResponse.model_validate(model)
 
@@ -251,16 +249,10 @@ async def deprecate_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
 
     if model.deprecated_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"ModelVersion {model_id} is already deprecated",
-        )
+        raise ValidationError(message = str(f"ModelVersion {model_id} is already deprecated"))
 
     model.deprecated_at = datetime.now(UTC)
     model.deprecation_reason = reason or "Manually deprecated"
@@ -304,16 +296,10 @@ async def set_default_model_version(
     model = result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found",
-        )
+        raise NotFoundError(message = str(f"ModelVersion {model_id} not found"))
 
     if model.deprecated_at:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot set deprecated model as default",
-        )
+        raise ValidationError(message = "Cannot set deprecated model as default")
 
     # Clear other defaults for this provider
     await db.execute(
@@ -376,16 +362,10 @@ async def promote_model(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {model_id} not found or deprecated",
-        )
+        raise NotFoundError(message = str(f"ModelVersion {model_id} not found or deprecated"))
 
     if not model.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Cannot deploy inactive model version",
-        )
+        raise ValidationError(message = "Cannot deploy inactive model version")
 
     # Check for existing deployment
     existing_result = await db.execute(
@@ -547,10 +527,7 @@ async def rollback_deployment(
     deployment = result.scalar_one_or_none()
 
     if not deployment:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Deployment {deployment_id} not found",
-        )
+        raise NotFoundError(message = str(f"Deployment {deployment_id} not found"))
 
     previous_status = deployment.status
 
@@ -606,10 +583,7 @@ async def create_evaluation(
     model = model_result.scalar_one_or_none()
 
     if not model:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"ModelVersion {payload.model_version_id} not found",
-        )
+        raise NotFoundError(message = str(f"ModelVersion {payload.model_version_id} not found"))
 
     evaluation = ModelEvaluation(
         tenant_id=tenant_id,

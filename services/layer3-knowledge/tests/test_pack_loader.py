@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Tests for pack_loader module.
 
 Validates correct behavior for pack loading, version extraction,
 and path traversal protection.
 """
 
-from __future__ import annotations
 
 import json
 import tempfile

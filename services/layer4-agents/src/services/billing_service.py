@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Billing service for Stripe integration.
 
 Handles customer management, subscription lifecycle, and entitlement checks.
 Minimal scope: subscription status, customer portal, plan enforcement.
 """
 
-from __future__ import annotations
 
 import asyncio
 import hashlib

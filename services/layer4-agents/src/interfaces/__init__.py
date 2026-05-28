@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Service interfaces for Phase 2 Architecture Extensions.
 
 Provides clean extension points for:
@@ -7,7 +9,6 @@ Provides clean extension points for:
 - Variable Registry resolution
 """
 
-from __future__ import annotations
 
 from .benchmark_client import (
     BenchmarkDataset,

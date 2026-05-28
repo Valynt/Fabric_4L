@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Task execution ports for OSS-0 substitution scaffolding.
 
 The port captures the Fabric task-execution contract while the legacy adapter delegates
@@ -5,7 +7,6 @@ to the existing TaskScheduler. This creates a stable seam for future distributed
 execution pilots without changing scheduler defaults or orchestration semantics.
 """
 
-from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 

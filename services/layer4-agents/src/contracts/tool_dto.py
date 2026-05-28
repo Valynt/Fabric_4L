@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """DTOs for tool route contracts."""
 
-from __future__ import annotations
 
 from typing import Any, TypeAlias
 

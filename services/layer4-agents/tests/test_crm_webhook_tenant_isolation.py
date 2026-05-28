@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Route-level tests for CRM webhook tenant resolution hardening."""
 
-from __future__ import annotations
 
 import os
 from unittest.mock import AsyncMock, MagicMock, patch

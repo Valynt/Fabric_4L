@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Conftest for harness persistence tests.
 
 Sets the minimum env vars required by Settings() so that importing
 value_fabric.layer4.* at collection time does not raise a ValidationError.
 These tests use SQLite (aiosqlite) — no live services are required.
 """
-from __future__ import annotations
 
 import os
 

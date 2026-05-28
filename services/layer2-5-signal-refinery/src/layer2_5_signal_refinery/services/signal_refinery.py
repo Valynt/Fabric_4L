@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Signal Refinery — core scoring, classification, and trust computation.
 
 Responsibilities:
@@ -19,8 +21,6 @@ Where:
   provenance_weight: human=1.0, ai=0.7, system=0.5
   lifecycle_bonus: validated=1.0, extracted=0.5, draft=0.0
 """
-
-from __future__ import annotations
 
 import logging
 import uuid

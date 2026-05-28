@@ -47,13 +47,13 @@ def find_violations(files: list[Path]) -> list[Violation]:
 def main() -> int:
     violations = find_violations(DEFAULT_TARGETS)
     if violations:
-        print('❌ Manifest secret hygiene violations detected:')
+        print('FAIL: Manifest secret hygiene violations detected:')
         for v in violations:
             rel = v.file.relative_to(ROOT)
             print(f' - {rel}:{v.line} [{v.rule}] {v.text}')
         return 1
 
-    print('✅ Manifest secret hygiene checks passed.')
+    print('PASS: Manifest secret hygiene checks passed.')
     return 0
 
 

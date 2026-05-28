@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Evidence vector search service for Layer 3.
 
 Provides semantic search capabilities to match pain signals
 against evidence sources (case studies, benchmarks, etc.).
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Intelligence Orchestrator — Data Intelligence Layer Phase 3, Task 3.2.
 
@@ -18,7 +20,6 @@ Architecture:
   - All methods are tenant-scoped
 """
 
-from __future__ import annotations
 
 import asyncio
 import uuid

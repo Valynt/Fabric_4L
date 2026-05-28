@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Pydantic request/response models for the Harness FastAPI routes.
 
 These models are the API contract layer — they are separate from the domain
@@ -5,7 +7,6 @@ models in harness.models so that API shape changes don't require domain model
 changes and vice versa.
 """
 
-from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Literal

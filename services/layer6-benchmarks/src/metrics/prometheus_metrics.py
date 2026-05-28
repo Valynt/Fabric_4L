@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Prometheus metrics collection for Layer 6 Benchmark Service."""
 
-from __future__ import annotations
 
 import logging
 import time

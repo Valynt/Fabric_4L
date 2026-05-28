@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for OverageService.
 
@@ -5,7 +7,6 @@ Tests the pure-Python helpers and the plan-limits query
 without requiring a live database.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch

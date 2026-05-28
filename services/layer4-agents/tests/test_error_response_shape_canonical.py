@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Canonical error response shape consistency tests.
 
 Covers:
@@ -7,7 +9,6 @@ Covers:
 - HTTPException normalization
 """
 
-from __future__ import annotations
 
 import unittest
 from unittest.mock import MagicMock

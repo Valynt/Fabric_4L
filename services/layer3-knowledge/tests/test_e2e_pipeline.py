@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """End-to-end pipeline test for Layer 3 Knowledge Graph.
 
 This test verifies the complete flow from extraction to query:
@@ -17,7 +19,6 @@ Requirements:
     - Neo4j image available
 """
 
-from __future__ import annotations
 
 import asyncio
 import os

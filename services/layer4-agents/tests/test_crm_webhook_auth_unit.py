@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 CI-runnable unit tests for CRM webhook authentication logic.
 
@@ -12,7 +14,6 @@ Covers:
 - HMAC signature mismatch (defense-in-depth)
 """
 
-from __future__ import annotations
 
 import hashlib
 import hmac

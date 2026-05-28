@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tenant provisioning service for automated tenant lifecycle management.
 
 Task 3: Multi-Tenancy Hardening - Tenant Provisioning Automation
@@ -9,7 +11,6 @@ This service provides idempotent tenant provisioning with:
 - Rollback support for failed provisions
 """
 
-from __future__ import annotations
 
 import logging
 import secrets

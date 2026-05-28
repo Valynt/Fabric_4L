@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -12,7 +13,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Union
 
-from fastapi import HTTPException, Request, Response
+from fastapi import Request, Response
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
@@ -574,15 +575,12 @@ class VersionMiddleware:
 
         # Validate version
         if not self.compatibility.is_version_supported(api_version):
-            raise HTTPException(
-                status_code=400,
-                detail={
+            raise ValidationError(message = "Request failed", details = {
                     "error": "UNSUPPORTED_VERSION",
                     "message": f"API version '{api_version}' is not supported",
                     "supported_versions": self.compatibility.supported_versions,
                     "latest_version": self.compatibility.get_latest_version(),
-                },
-            )
+                })
 
         # Add version to request state
         request.state.api_version = api_version

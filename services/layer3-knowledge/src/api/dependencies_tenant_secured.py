@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -10,7 +13,6 @@ Provides secure Neo4j session injection with:
 3. Defense-in-depth for multi-tenant data isolation
 """
 
-from __future__ import annotations
 
 import inspect
 import logging
@@ -277,10 +279,7 @@ async def get_neo4j_secured(
         _require_request_context_provider()
     
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required"
-        )
+        raise ValidationError(message = "Tenant context required")
     
     driver = getattr(request.app.state, "neo4j_driver", None)
     if not driver:
@@ -290,10 +289,7 @@ async def get_neo4j_secured(
             driver = get_neo4j_driver()
         except Exception as exc:
             logger.error("Failed to create Neo4j session: %s", exc)
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Neo4j service unavailable",
-            ) from exc
+            raise ServiceUnavailableError(message = "Neo4j service unavailable") from exc
     
     return Neo4jTenantSessionSecured(
         driver=driver,
@@ -355,14 +351,8 @@ async def get_neo4j_with_optional_tenant(
     if context and context.tenant_id:
         return await get_neo4j_secured(request, context)
     if context and context.is_super_admin():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Super-admin Neo4j bypass must use an explicitly reviewed admin dependency.",
-        )
-    raise HTTPException(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        detail="Tenant context required or explicitly reviewed super-admin dependency.",
-    )
+        raise AuthorizationError(message = "Super-admin Neo4j bypass must use an explicitly reviewed admin dependency.")
+    raise ValidationError(message = "Tenant context required or explicitly reviewed super-admin dependency.")
 
 
 def require_tenant_header_for_internal():
@@ -380,10 +370,7 @@ def require_tenant_header_for_internal():
             ctx = await ctx
         if ctx and ctx.tenant_id:
             return str(ctx.tenant_id)
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant context required. Ensure request passed through GovernanceMiddleware.",
-        )
+        raise AuthenticationError(message = "Tenant context required. Ensure request passed through GovernanceMiddleware.")
 
     return _check_tenant_header
 
@@ -393,7 +380,7 @@ def require_request_tenant_id(request: Request) -> str:
     ctx = getattr(request.state, "context", None)
     tenant_id = getattr(ctx, "tenant_id", None) if ctx else None
     if not tenant_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="tenant_id is required")
+        raise ValidationError(message = "tenant_id is required")
     return str(tenant_id)
 
 

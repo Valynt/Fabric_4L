@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for tenant management API endpoints (Task 3).
 
@@ -8,7 +10,6 @@ Verifies:
 - Authorization and validation
 """
 
-from __future__ import annotations
 
 import pytest
 

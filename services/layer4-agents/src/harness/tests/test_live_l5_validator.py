@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for LiveL5Validator.
 
 Covers:
@@ -14,7 +16,6 @@ Covers:
   - ValidationHook async integration with LiveL5Validator
 """
 
-from __future__ import annotations
 
 import sys
 from datetime import UTC, datetime, timedelta

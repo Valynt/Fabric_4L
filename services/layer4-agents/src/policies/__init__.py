@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Policy artifacts for Layer 4 workflow governance."""
 
-from __future__ import annotations
 
 from ..harness.models import ActionClass, GateType
 from .approval_actions import (

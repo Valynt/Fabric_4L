@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Shared error helpers for API routes."""
 
-from __future__ import annotations
 
 import logging
 from typing import NoReturn

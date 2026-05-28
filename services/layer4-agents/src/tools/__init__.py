@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tools package for Layer 4 Agentic Workflow Engine.
 
 This package contains 25+ tools organized into 8 categories:
@@ -11,7 +13,6 @@ This package contains 25+ tools organized into 8 categories:
 - Signals (5): Value Signal Layer (L2.5) retrieval and creation
 """
 
-from __future__ import annotations
 
 from .calculation_tools import (
     CalculateROITool,

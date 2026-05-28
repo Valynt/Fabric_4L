@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Value Signal tools for L4 agents.
 
 Provides tenant-scoped tools for agents to retrieve and create ValueSignals
@@ -8,7 +10,7 @@ Agents MUST NOT invent signals without creating evidence/provenance records.
 Use create_signal() to emit new signals with traceable provenance.
 """
 
-from __future__ import annotations
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
 import logging
 import os
@@ -17,7 +19,7 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from fastapi import HTTPException, status
+from fastapi import status
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
@@ -51,10 +53,7 @@ def _require_tool_context(context: RequestContext | None = None) -> RequestConte
     """Resolve the explicit or ambient request context. Fail closed if missing."""
     ctx = context or get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant-scoped tool execution requires authenticated context",
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     return ctx
 
 
@@ -94,10 +93,7 @@ async def get_account_signals(
     _ctx = _require_tool_context(context)
     ctx = authorize_action("layer4.tool.signals.read", _ctx)
     if not isinstance(ctx, RequestContext) or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant-scoped tool execution requires authenticated context",
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     tenant_id = str(ctx.tenant_id)
 
     states = lifecycle_states or ["validated", "promoted"]
@@ -192,10 +188,7 @@ async def create_signal(
     _ctx = _require_tool_context(context)
     ctx = authorize_action("layer4.tool.signals.write", _ctx)
     if not isinstance(ctx, RequestContext) or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant-scoped tool execution requires authenticated context",
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     tenant_id = str(ctx.tenant_id)
 
     now = datetime.now(UTC).isoformat()

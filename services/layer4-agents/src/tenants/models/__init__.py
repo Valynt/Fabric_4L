@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """SQLAlchemy models for tenant governance."""
 
-from __future__ import annotations
 
 from .api_key import APIKey
 from .isolation_tier_history import TenantIsolationTierHistory

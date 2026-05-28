@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Focused service-level tests for Layer 4 agent grounding and refusal behavior."""
 
-from __future__ import annotations
 
 from typing import Any
 

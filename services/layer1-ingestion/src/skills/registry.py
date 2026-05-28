@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Skill registry for Layer 1 Source Intelligence.
 
 Maps job_type strings to skill instances.  Provides factory access
 for pipeline stages that need skill-aware behavior.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

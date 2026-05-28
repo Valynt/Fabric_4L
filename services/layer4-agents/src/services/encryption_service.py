@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Encryption service for at-rest credential encryption.
 
@@ -5,7 +7,6 @@ Canonical runtime algorithm:
 - Fernet tokens backed by AES-128-CBC + HMAC-SHA256 authentication.
 """
 
-from __future__ import annotations
 
 import asyncio
 import base64

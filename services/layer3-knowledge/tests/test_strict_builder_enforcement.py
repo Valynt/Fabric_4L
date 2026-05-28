@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Strict builder enforcement tests for Layer 3 Neo4j tenant isolation.
 
 These tests encode the application-layer tenant isolation contract used because
@@ -6,7 +8,6 @@ Layer 3 graph queries must carry explicit tenant scope metadata and fail closed
 when no tenant context is available.
 """
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from uuid import uuid4

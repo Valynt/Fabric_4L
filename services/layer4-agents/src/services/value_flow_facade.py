@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """UI-facing workflow facade service for value flow step endpoints."""
 
-from __future__ import annotations
 
 import json
 from typing import Any

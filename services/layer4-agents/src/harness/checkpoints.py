@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Deterministic checkpointing for HarnessRun state snapshots.
 
@@ -8,7 +10,6 @@ Invariants:
   - Cross-tenant checkpoint access is rejected.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

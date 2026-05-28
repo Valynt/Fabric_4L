@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """HTTPX-based fast path crawler for static content ingestion.
 
 Provides high-performance static page fetching with SPA detection,
 content extraction, retry logic, and execution metrics for Layer 1 ingestion.
 """
 
-from __future__ import annotations
 
 import asyncio
 import hashlib

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -12,13 +15,12 @@ raw ``Request`` object must be inspected outside the dependency graph (e.g.
 in unit tests or middleware that runs before FastAPI resolves dependencies).
 """
 
-from __future__ import annotations
 
 import base64
 import json
 from dataclasses import dataclass
 
-from fastapi import HTTPException
+from fastapi import
 from starlette.requests import Request
 
 
@@ -40,9 +42,9 @@ class TenantBearerContext:
 def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
     """Extract and validate tenant context from a JWT bearer token on a raw Request.
 
-    Raises HTTPException(401) if the token is absent, malformed, or missing
+    Raises(401) if the token is absent, malformed, or missing
     the ``tenant_id`` claim.
-    Raises HTTPException(403) if the ``X-Tenant-ID`` header is present but
+    Raises(403) if the ``X-Tenant-ID`` header is present but
     conflicts with the token claim.
 
     Note: signature verification is intentionally omitted — the auth
@@ -51,31 +53,28 @@ def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
     """
     auth_header = request.headers.get("authorization", "")
     if not auth_header.lower().startswith("bearer "):
-        raise HTTPException(status_code=401, detail="Missing or invalid authorization header")
+        raise AuthenticationError(message = "Missing or invalid authorization header")
 
     token = auth_header[7:]
     parts = token.split(".")
     if len(parts) != 3:
-        raise HTTPException(status_code=401, detail="Malformed JWT token")
+        raise AuthenticationError(message = "Malformed JWT token")
 
     try:
         padded = parts[1] + "=" * (-len(parts[1]) % 4)
         payload = json.loads(base64.urlsafe_b64decode(padded).decode("utf-8"))
     except Exception:
-        raise HTTPException(status_code=401, detail="Could not decode JWT payload")
+        raise AuthenticationError(message = "Could not decode JWT payload")
 
     tenant_id = str(payload.get("tenant_id") or payload.get("tid") or "").strip()
     if not tenant_id:
-        raise HTTPException(status_code=401, detail="JWT token missing tenant_id claim")
+        raise AuthenticationError(message = "JWT token missing tenant_id claim")
 
     user_id = payload.get("sub") or payload.get("user_id") or ""
 
     header_tenant = request.headers.get("x-tenant-id", "")
     if header_tenant and header_tenant != tenant_id:
-        raise HTTPException(
-            status_code=403,
-            detail="X-Tenant-ID header does not match authenticated tenant context",
-        )
+        raise AuthorizationError(message = "X-Tenant-ID header does not match authenticated tenant context")
 
     return TenantBearerContext(tenant_id=tenant_id, user_id=user_id)
 

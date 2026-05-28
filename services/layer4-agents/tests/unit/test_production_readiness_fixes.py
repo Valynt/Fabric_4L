@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Regression tests for Layer 4 production readiness fixes.
 
 Covers critical bugs fixed during the production readiness pass:
@@ -10,7 +12,6 @@ Covers critical bugs fixed during the production readiness pass:
 - Checkpoint connection lifecycle
 """
 
-from __future__ import annotations
 
 import asyncio
 import json

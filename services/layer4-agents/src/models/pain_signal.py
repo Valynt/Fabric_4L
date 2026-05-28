@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """PainSignal domain models for Layer 4.
 
 These models define the canonical signal representation used across
 Layer 2 extraction, Layer 3 knowledge graph, and Layer 4 orchestration.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from decimal import Decimal

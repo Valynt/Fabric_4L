@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """LiveL5Validator — ClaimValidator backed by the Layer 5 Ground Truth service.
 
 Implements the idempotent query-first / submit-if-missing flow described in
@@ -13,7 +15,6 @@ Tenant isolation invariant: list_truths is always called with
 organization_id=request.tenant_id. Cross-tenant TruthObjects are never reused.
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime, timedelta

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Agent Workflow Traceability Tests - P0 Critical Gap Remediation
 
 Validates that agent workflows propagate traceability context through
@@ -10,7 +12,6 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-23
 """
 
-from __future__ import annotations
 
 import pytest
 from uuid import uuid4

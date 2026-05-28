@@ -143,7 +143,7 @@ function ModeToggle({
         </button>
       </div>
       {onClose && (
-        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground" aria-label="Close panel">
           <X size={14} />
         </button>
       )}
@@ -303,6 +303,7 @@ function AgentStream({
           <button
             onClick={handleSend}
             disabled={!input.trim() || isStreaming}
+            aria-label="Send message"
             className={cn(
               "w-8 h-8 rounded-md flex items-center justify-center transition-colors",
               input.trim() && !isStreaming

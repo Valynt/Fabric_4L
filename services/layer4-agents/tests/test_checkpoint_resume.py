@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Integration tests for LangGraph checkpointing and workflow resume.
 
 Tests the pause/resume lifecycle for human-in-the-loop workflows.
 Verifies state persistence across interruptions and container restarts.
 """
 
-from __future__ import annotations
 
 import os
 from typing import Any

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import ValidationError
 """Audit logs API routes backed by persisted audit events.
 
 This endpoint exposes tenant-scoped audit records from the ``audit_events``
@@ -6,7 +9,6 @@ receive an explicit 501 when requesting a source that has no production
 integration in this service.
 """
 
-from __future__ import annotations
 
 import json
 from datetime import datetime
@@ -54,10 +56,7 @@ def _parse_iso_datetime(value: str | None, field_name: str) -> datetime | None:
     try:
         return datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError as exc:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"{field_name} must be an ISO-8601 datetime",
-        ) from exc
+        raise ValidationError(message = str(f"{field_name} must be an ISO-8601 datetime")) from exc
 
 
 def _coerce_details(raw_details: Any) -> dict[str, Any]:
@@ -111,7 +110,7 @@ async def list_audit_logs(
     start = _parse_iso_datetime(from_date, "from_date")
     end = _parse_iso_datetime(to_date, "to_date")
     if start and end and start > end:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="from_date must be before to_date")
+        raise ValidationError(message = "from_date must be before to_date")
 
     # WHERE clauses are composed from a fixed allowlist of (column_sql,
     # bind_name) pairs only — all caller-supplied values flow through

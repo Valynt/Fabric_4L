@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -7,7 +10,6 @@ Reason: Operational routes extracted from the Layer 3 monolith.
 
 # mypy: disable-error-code=import-untyped
 
-from __future__ import annotations
 
 import logging
 import platform
@@ -33,7 +35,7 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
             return SimpleNamespace(used=0)
 
     psutil = _PsutilFallback()
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
 from value_fabric.layer3.config import get_settings
 from value_fabric.shared.observability.metrics_access import (
@@ -187,7 +189,7 @@ def _derive_readiness(
 async def get_metrics(request: Request) -> Response:
     """Get Prometheus metrics from the app state registry."""
     if not verify_metrics_access(request):
-        raise HTTPException(status_code=403, detail="Metrics endpoint requires internal access")
+        raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
     metrics = getattr(request.app.state, "metrics", None)
 

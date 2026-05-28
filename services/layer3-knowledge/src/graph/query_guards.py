@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Centralized guardrails for graph query depth and timeout handling."""
 
-from __future__ import annotations
 
 DEFAULT_MAX_QUERY_DEPTH = 10
 DEFAULT_QUERY_TIMEOUT_SECONDS = 30.0

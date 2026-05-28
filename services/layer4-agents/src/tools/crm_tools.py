@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """CRM tools for Salesforce/HubSpot integration."""
 
-from __future__ import annotations
 
 import asyncio
 import logging

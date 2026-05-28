@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Prometheus metrics collection for Layer 4 Agentic Workflow Engine.
 
 SECURITY NOTE: Metrics use 'tenant_tier' instead of 'tenant_id' to prevent
@@ -5,7 +7,6 @@ high-cardinality label explosion which can cause Prometheus OOM.
 Endpoint paths are normalized to strip IDs and prevent unbounded cardinality.
 """
 
-from __future__ import annotations
 
 import logging
 import re

@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
+
 INTENTIONAL_DB_ADAPTER_BYPASS = True
 
 """
@@ -9,8 +13,6 @@ for accounts, CRM sync metadata, and workflow state.
 P0-08: Supports PostgreSQL Row-Level Security via SET LOCAL app.tenant_id
 SECURITY: Fail-safe tenant isolation - tenant context is mandatory
 """
-
-from __future__ import annotations
 
 import logging
 import os
@@ -297,6 +299,7 @@ def get_engine() -> AsyncEngine:
             pool_size=settings.database_pool_size,
             max_overflow=settings.database_max_overflow,
             pool_pre_ping=True,
+            pool_timeout=30.0,
             echo=False,
             future=True,
         )
@@ -335,6 +338,19 @@ def get_session_factory() -> async_sessionmaker[TenantEnforcedAsyncSession]:
             expire_on_commit=False,
         )
     return _session_factory
+
+
+async def close_db() -> None:
+    """Dispose of the database engine and connection pool.
+
+    Should be called during application shutdown to ensure clean connection cleanup.
+    """
+    global _engine, _session_factory
+    if _engine is not None:
+        await _engine.dispose()
+        _engine = None
+        logger.info("Layer 4 database engine disposed")
+    _session_factory = None
 
 
 # ---------------------------------------------------------------------------
@@ -538,18 +554,12 @@ def _require_privileged_cross_tenant_reason(
     """Require explicit super-admin context plus an audited reason for cross-tenant DB access."""
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cross-tenant database access requires super admin role.",
-        )
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.",
-        )
+        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
     return reason
 
 
@@ -651,20 +661,14 @@ async def get_db_from_context(
         raise RuntimeError("shared.identity package required for get_db_from_context")
 
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required. Ensure request has passed through GovernanceMiddleware.",
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request has passed through GovernanceMiddleware.")
 
     # SECURITY: Fail-safe validation via validate_tenant_id
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
-        logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
+        raise ValidationError(message = "Invalid tenant context") from e
 
     factory = get_session_factory()
     async with factory() as session:
@@ -746,11 +750,8 @@ async def get_db_with_optional_tenant(
             try:
                 effective_tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
-                logger.warning("tenant_context_error", error_code="TENANT_CONTEXT_ERROR")
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid tenant context",
-                ) from e
+                logger.warning("tenant_context_error", extra={"error_code": "TENANT_CONTEXT_ERROR"})
+                raise ValidationError(message = "Invalid tenant context") from e
             await _set_local_tenant_context(session, effective_tenant_id)
         elif context.is_super_admin():
             bypass_reason = _require_privileged_cross_tenant_reason(request, context)
@@ -763,10 +764,7 @@ async def get_db_with_optional_tenant(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cross-tenant database access requires super admin role.",
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
         # Task 3.1: Emit tenant context set audit event (with bypass flag for super-admin)
         await _emit_tenant_context_set_audit(
@@ -862,10 +860,7 @@ async def get_tiered_db_session(
         )
 
     else:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'.",
-        )
+        raise ValidationError(message = str(f"Unknown isolation tier: {isolation_tier!r}. Supported: 'shared'."))
 
 
 # ---------------------------------------------------------------------------

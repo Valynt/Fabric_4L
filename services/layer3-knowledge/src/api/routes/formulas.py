@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -608,9 +609,7 @@ async def evaluate_formula(
                 (f for f in FORMULA_REGISTRY if f.id == request.formula_id), None
             )
             if not formula:
-                raise HTTPException(
-                    status_code=404, detail=f"Formula {request.formula_id} not found"
-                )
+                raise NotFoundError(message = str(f"Formula {request.formula_id} not found"))
             expression = formula.expression
             output_unit = request.output_unit or formula.output_unit
         else:
@@ -624,9 +623,7 @@ async def evaluate_formula(
         try:
             result = evaluate_expression(expression, inputs_dict)
         except Exception:
-            raise HTTPException(
-                status_code=400, detail="Formula evaluation failed. Check expression syntax and variable values."
-            )
+            raise ValidationError(message = "Formula evaluation failed. Check expression syntax and variable values.")
 
         # Generate calculation steps for transparency
         steps = generate_calculation_steps(expression, inputs_dict, result)
@@ -642,9 +639,7 @@ async def evaluate_formula(
     except HTTPException:
         raise
     except Exception as e:
-        raise HTTPException(
-            status_code=500, detail="FORMULA_EVALUATION_ERROR"
-        )
+        raise ServiceUnavailableError(message="FORMULA_EVALUATION_ERROR")
 
 
 _VARIABLE_CATEGORY_PATTERNS: dict[str, list[str]] = {
@@ -756,7 +751,7 @@ async def get_formula(formula_id: str) -> FormulaMetadata:
     """Get details for a specific formula."""
     formula = next((f for f in FORMULA_REGISTRY if f.id == formula_id), None)
     if not formula:
-        raise HTTPException(status_code=404, detail=f"Formula {formula_id} not found")
+        raise NotFoundError(message = str(f"Formula {formula_id} not found"))
     return formula
 
 
@@ -908,10 +903,7 @@ async def calculate_scenario(
         raise
     except Exception as e:
         logger.error("Scenario calculation failed: %s", e, exc_info=True)
-        raise HTTPException(
-            status_code=500,
-            detail="SCENARIO_CALCULATION_ERROR",
-        )
+        raise ServiceUnavailableError(message="SCENARIO_CALCULATION_ERROR")
 
 
 # ============================================================================
@@ -1079,10 +1071,7 @@ async def create_formula(
         )
         existing = await check_result.single()
         if existing and existing.get("existing_id"):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Formula with name '{request.name}' already exists",
-            )
+            raise ConflictError(message=f"Formula with name '{request.name}' already exists")
 
         # Create formula, version, and variables
         await neo4j.run(
@@ -1162,10 +1151,7 @@ async def create_formula(
         )
         record = await result.single()
         if not record:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Failed to create formula",
-            )
+            raise ServiceUnavailableError(message="Failed to create formula")
 
         formula_node = record["f"]
         variables_nodes = record["variables"]
@@ -1219,20 +1205,14 @@ async def update_formula(
         )
         record = await check_result.single()
         if not record:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Formula {formula_id} not found",
-            )
+            raise NotFoundError(message = str(f"Formula {formula_id} not found"))
 
         current_status = record["status"]
         current_version = record["version"]
         current_expr = record["current_expr"]
 
         if current_status not in (STATUS_DRAFT, STATUS_UNDER_REVIEW):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Cannot update formula in status '{current_status}'",
-            )
+            raise ConflictError(message=f"Cannot update formula in status '{current_status}'")
 
         # Check if expression changed (requires new version)
         expr_changed = request.expression is not None and request.expression != current_expr
@@ -1347,10 +1327,7 @@ async def update_formula(
         )
         record = await result.single()
         if not record:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Formula {formula_id} not found after update",
-            )
+            raise NotFoundError(message = str(f"Formula {formula_id} not found after update"))
 
         formula_node = record["f"]
         variables_nodes = record["variables"]
@@ -1401,17 +1378,11 @@ async def delete_formula(
         )
         record = await check_result.single()
         if not record:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Formula {formula_id} not found",
-            )
+            raise NotFoundError(message = str(f"Formula {formula_id} not found"))
 
         ref_count = record["ref_count"]
         if ref_count > 0:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Cannot delete formula: referenced by {ref_count} ValuePack(s)",
-            )
+            raise ConflictError(message=f"Cannot delete formula: referenced by {ref_count} ValuePack(s)")
 
         # Delete formula and related nodes
         await neo4j.run(

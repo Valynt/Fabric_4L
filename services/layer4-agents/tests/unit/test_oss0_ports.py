@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """OSS-0 tests for legacy-backed ports used by future substitution pilots."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any

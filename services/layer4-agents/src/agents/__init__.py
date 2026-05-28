@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Agent taxonomy and implementations for Layer 4.
 
 Canonical 9-agent roster:
@@ -15,7 +17,6 @@ Backward-compatible aliases for deprecated names are re-exported
 from taxonomy.py.  See DEPRECATION_MAP.md for migration timeline.
 """
 
-from __future__ import annotations
 
 from .base import AgentCapability, AgentState, BaseAgent
 from .signal_detection import SignalDetectionAgent

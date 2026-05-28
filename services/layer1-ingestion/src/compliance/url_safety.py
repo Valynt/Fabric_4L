@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """URL safety and anti-SSRF validation helpers for Layer 1 ingestion."""
 
-from __future__ import annotations
 
 import ipaddress
 import socket

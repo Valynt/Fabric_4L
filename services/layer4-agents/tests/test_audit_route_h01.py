@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """H-01 regression tests for the audit-log route.
 
 The production route must query durable audit records rather than returning a
@@ -5,7 +7,6 @@ local-development stub, and unsupported provenance-only requests must fail
 closed instead of inventing data.
 """
 
-from __future__ import annotations
 
 from datetime import datetime, timezone
 from types import SimpleNamespace

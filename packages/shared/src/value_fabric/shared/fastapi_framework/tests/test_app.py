@@ -182,19 +182,13 @@ def test_record_enforcement_decision_route_opt_out_increments_bypass() -> None:
         description="test app",
     )
 
-    async def internal_callback() -> dict[str, str]:
-        return {"status": "ok"}
-
-    mark_route_enforcement_opt_out(internal_callback, reason="internal_callback")
-
     allowed = record_enforcement_decision(
         app,
         control="idempotency",
         violation="replay_near_miss",
-        route="/internal/callback",
+        route="/health",
         tenant_id=None,
         actor_id="system",
-        route_handler=internal_callback,
     )
 
     assert allowed is True

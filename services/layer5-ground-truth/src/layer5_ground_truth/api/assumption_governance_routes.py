@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -61,7 +62,7 @@ async def create_policy_rule(payload: PolicyRuleCreate, caller: TokenClaims = De
 async def apply_assumption_selection(assumption_id: UUID, payload: ApplySelectionRequest, caller: TokenClaims = Depends(get_current_user), db: AsyncSession = Depends(get_db_from_context)) -> dict[str, str]:
     assumption = (await db.execute(select(AssumptionRecord).where(and_(AssumptionRecord.id == assumption_id, AssumptionRecord.tenant_id == caller.tenant_id)))).scalar_one_or_none()
     if not assumption:
-        raise HTTPException(status_code=404, detail="AssumptionRecord not found")
+        raise NotFoundError(message = "AssumptionRecord not found")
 
     policies = (await db.execute(select(PolicyRule).where(and_(PolicyRule.tenant_id == caller.tenant_id, PolicyRule.active.is_(True))))).scalars().all()
     matched = next((p for p in policies if assumption.impact_value > p.min_impact_threshold), None)

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Graph query/search route helpers.
 
 Implements GraphRAG query, streaming GraphRAG, and hybrid search execution.
 Compatibility aliases for legacy paths are in ``routes/compat_aliases.py``.
 """
 
-from __future__ import annotations
 
 import json
 import logging

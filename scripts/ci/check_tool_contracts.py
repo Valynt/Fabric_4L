@@ -160,7 +160,7 @@ def main() -> int:
     print("=" * 60)
 
     if not all_violations:
-        print("✅ No contract violations found")
+        print("PASS No contract violations found")
         return 0
 
     # Group by rule

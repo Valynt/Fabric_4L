@@ -48,13 +48,13 @@ interface ScenarioButtonProps {
  * Renders a metric card component from C1 stream
  */
 function MetricCard({ label, value, delta, unit = '', trend = 'neutral' }: MetricCardProps) {
-  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-neutral-600';
+  const trendColor = trend === 'up' ? 'text-green-600' : trend === 'down' ? 'text-red-600' : 'text-muted-foreground';
   const deltaText = delta ? (delta > 0 ? `+${delta}%` : `${delta}%`) : '';
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-lg p-4 shadow-sm">
-      <div className="text-[11px] font-medium uppercase tracking-wider text-neutral-500 mb-1">{label}</div>
-      <div className="text-2xl font-bold text-neutral-900">
+    <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
+      <div className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground mb-1">{label}</div>
+      <div className="text-2xl font-bold text-foreground">
         {unit === '$' ? '$' : ''}{value.toLocaleString()}{unit === '%' ? '%' : ''}
       </div>
       {delta !== undefined && (
@@ -105,11 +105,11 @@ function SliderControl({
   const percentChange = ((value - originalValue) / originalValue) * 100;
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-lg p-4 mb-4">
+    <div className="bg-card border border-border rounded-lg p-4 mb-4">
       <div className="flex items-center justify-between mb-3">
-        <label className="text-sm font-medium text-neutral-700">{label}</label>
+        <label className="text-sm font-medium text-foreground">{label}</label>
         <div className="flex items-center gap-2">
-          <span className="text-sm font-semibold text-neutral-900">
+          <span className="text-sm font-semibold text-foreground">
             {unit === '$' ? '$' : ''}{value.toLocaleString()}{unit === '%' ? '%' : unit}
           </span>
           {isCalculating && <Loader2 className="w-4 h-4 animate-spin text-blue-600" />}
@@ -543,9 +543,9 @@ export default function InteractiveBusinessCase() {
               </div>
             </div>
 
-            <div className="mt-4 pt-4 border-t border-neutral-200">
-              <div className="text-sm font-medium text-neutral-700 mb-2">Implementation Cost</div>
-              <div className="text-lg font-semibold text-neutral-900">
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="text-sm font-medium text-foreground mb-2">Implementation Cost</div>
+              <div className="text-lg font-semibold text-foreground">
                 ${businessCase.implementation_cost.toLocaleString()}
               </div>
             </div>

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """H-01 regression tests for admin tenant suspension behavior."""
 
-from __future__ import annotations
 
 from uuid import uuid4
 

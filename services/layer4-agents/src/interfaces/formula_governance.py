@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Formula Governance interface for Layer 4 Agents.
 
 Provides versioned, governed financial logic with activation lifecycle.
 Internal interfaces for core operations, API contracts for management.
 """
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

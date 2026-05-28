@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tool Contract Registry — manages tool contracts with deterministic versioning.
 
@@ -8,7 +10,6 @@ Invariants:
   - Tool lookups are tenant-scoped where appropriate.
 """
 
-from __future__ import annotations
 
 from .models import ToolContract, ToolRiskLevel, ToolSideEffectClass
 

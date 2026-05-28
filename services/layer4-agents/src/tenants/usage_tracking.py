@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Usage tracking service for tenant resource consumption.
 
 Collects and aggregates usage metrics per tenant for:
@@ -17,7 +19,6 @@ Design Principles:
 - Time-windowed queries (default 30 days)
 """
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field

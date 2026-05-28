@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -14,7 +15,7 @@ All Cypher queries are tenant-scoped via `create_neo4j_tenant_session`.
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
 from logging_config import get_logger
@@ -213,7 +214,7 @@ async def get_benchmark(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Benchmark not found")
+            raise NotFoundError(message = "Benchmark not found")
 
         b = record["b"]
         current_year = datetime.now(UTC).year
@@ -263,7 +264,7 @@ async def update_benchmark_policy(
             params[py_field] = update_data[py_field]
 
     if not set_parts:
-        raise HTTPException(status_code=400, detail="No fields to update")
+        raise ValidationError(message = "No fields to update")
 
     now = datetime.now(UTC).isoformat()
     set_parts.append("bp.updatedAt = $updated_at")
@@ -283,7 +284,7 @@ async def update_benchmark_policy(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=404, detail="Policy not found")
+            raise NotFoundError(message = "Policy not found")
 
         bp = record["bp"]
         return BenchmarkPolicy(

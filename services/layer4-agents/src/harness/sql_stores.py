@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQL-backed drop-in replacements for the five harness in-memory stores.
 
 Each class satisfies the same interface as its in-memory counterpart so
@@ -11,7 +13,6 @@ Invariants preserved from in-memory stores:
   - Cross-tenant access raises the same domain errors.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """LLMIntentClassifier — OpenAI-based intent classification for ValuePilot.
 
 Replaces brittle keyword matching with a lightweight structured LLM call.
@@ -12,7 +14,6 @@ Intents:
   general_question
 """
 
-from __future__ import annotations
 
 import logging
 import os

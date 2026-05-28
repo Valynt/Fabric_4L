@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for Data Intelligence Layer Phase 1 — Layer 4 Components.
 
@@ -8,7 +10,6 @@ These tests use mock-based isolation to avoid the full import chain
 (database.py requires __future__ annotations for Python 3.11 compat).
 """
 
-from __future__ import annotations
 
 import sys
 import uuid

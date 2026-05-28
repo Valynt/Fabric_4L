@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Centralized, audited graph-mutation pipeline for Layer 3.
 
 All relationship writes (CREATE, MERGE, DELETE) should route through this
@@ -11,7 +13,6 @@ Enhanced for Phase 1 security hardening:
 - Metrics integration (mutation rate, failure tracking)
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Super admin cross-tenant console API routes.
 
 Provides platform administrators with a read-only, paginated view across
@@ -9,7 +11,6 @@ All endpoints require ``require_privileged_access`` which enforces:
 - automatic CROSS_TENANT_ACCESS audit event emission
 """
 
-from __future__ import annotations
 
 import logging
 

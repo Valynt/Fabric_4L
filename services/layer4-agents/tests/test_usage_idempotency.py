@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Idempotency and tenant isolation tests for usage metering.
 
 Covers P0 security requirements:
@@ -7,7 +9,6 @@ Covers P0 security requirements:
 - Missing tenant context is rejected
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock, patch

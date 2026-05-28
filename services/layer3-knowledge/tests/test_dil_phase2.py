@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Data Intelligence Layer Phase 2 — L3 Tests.
 
@@ -9,7 +11,6 @@ These tests use mock Neo4j drivers to isolate service logic from the database.
 Run with: pytest tests/test_dil_phase2.py --noconftest -v
 """
 
-from __future__ import annotations
 
 import json
 import uuid

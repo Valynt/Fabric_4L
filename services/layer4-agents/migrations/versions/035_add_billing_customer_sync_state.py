@@ -9,7 +9,7 @@ from alembic import op
 import sqlalchemy as sa
 
 revision = "035_add_billing_customer_sync_state"
-down_revision = "036_tenant_scoped_billing_customer_keys"
+down_revision = "034"
 branch_labels = None
 depends_on = None
 

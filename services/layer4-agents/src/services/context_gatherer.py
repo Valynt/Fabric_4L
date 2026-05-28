@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """ContextGatheringService - real data fetcher for ValuePilot conversations.
 
 When the GATE ConversationAgent is unavailable, this service queries
@@ -11,7 +13,6 @@ Design principles:
   - Optional dependencies: works without neo4j_driver or db_session
 """
 
-from __future__ import annotations
 
 import logging
 from collections.abc import Hashable

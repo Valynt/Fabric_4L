@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """WebSocket authentication utilities.
 
 Canonical auth transport: Sec-WebSocket-Protocol bearer format.
   Protocol subprotocols: ['base64url.bearer.authorization', '<jwt>']
 """
 
-from __future__ import annotations
 
 import logging
 

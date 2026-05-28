@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Comprehensive unit tests for ROICalculatorWorkflow.
 
 Covers:
@@ -9,7 +11,6 @@ Covers:
 - ToolResult unwrapping (production registry format) and raw-dict fallback
 """
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, Mock

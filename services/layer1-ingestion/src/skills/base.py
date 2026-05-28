@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Base classes for Layer 1 Source Intelligence Skills."""
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from typing import Any

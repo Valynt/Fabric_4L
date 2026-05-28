@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Add tenant isolation tier history table (Task 4.1).
 
 Revision ID: 012
@@ -6,7 +8,6 @@ Create Date: 2026-04-22
 
 """
 
-from __future__ import annotations
 
 from alembic import op
 from sqlalchemy import (

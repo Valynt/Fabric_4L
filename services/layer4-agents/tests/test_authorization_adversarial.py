@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Adversarial tests for authorization bypass attempts.
 
 Tests that attempt to bypass authorization mechanisms through:
@@ -17,7 +19,6 @@ Author: Autonomous Test Assurance Agent
 Date: 2026-05-27
 """
 
-from __future__ import annotations
 
 import pytest
 import pytest_asyncio

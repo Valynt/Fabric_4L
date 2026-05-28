@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Recovery test: workflow resumes from Postgres checkpoint after pod restart.
 
 Simulates a pod restart by creating a new BaseWorkflow instance with the same
 thread_id and checkpoint saver, then asserts that state resumes correctly.
 """
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock

@@ -45,14 +45,14 @@ const TYPE_CONFIG: Record<VariableType, { label: string; color: string; icon: Re
   integer:  { label: "Integer",  color: "bg-blue-50 text-blue-700",     icon: <Hash size={10}/> },
   float:    { label: "Float",    color: "bg-violet-50 text-violet-700",  icon: <Code2 size={10}/> },
   boolean:  { label: "Boolean",  color: "bg-amber-50 text-amber-700",    icon: <Check size={10}/> },
-  string:   { label: "String",   color: "bg-neutral-100 text-neutral-600", icon: <Type size={10}/> },
+  string:   { label: "String",   color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
 };
 
 const SOURCE_CONFIG: Record<SourceType, { color: string; icon: React.ReactNode }> = {
   CRM:      { color: "bg-blue-50 text-blue-700", icon: <Database size={10}/> },
   Billing:  { color: "bg-violet-50 text-violet-700", icon: <DollarSign size={10}/> },
   ERP:      { color: "bg-indigo-50 text-indigo-700", icon: <Database size={10}/> },
-  Manual:   { color: "bg-neutral-100 text-neutral-600", icon: <Type size={10}/> },
+  Manual:   { color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
   Model:    { color: "bg-amber-50 text-amber-700", icon: <Code2 size={10}/> },
   API:      { color: "bg-cyan-50 text-cyan-700", icon: <ExternalLink size={10}/> },
   Database: { color: "bg-emerald-50 text-emerald-700", icon: <Database size={10}/> },
@@ -62,7 +62,7 @@ const VALIDATION_CONFIG: Record<ValidationStatus, { color: string; icon: React.R
   validated:  { color: "text-emerald-500", icon: <CheckCircle2 size={14}/>, label: "Validated" },
   pending:    { color: "text-amber-500", icon: <AlertCircle size={14}/>, label: "Pending" },
   failed:     { color: "text-red-500", icon: <X size={14}/>, label: "Failed" },
-  deprecated: { color: "text-neutral-400", icon: <AlertCircle size={14}/>, label: "Deprecated" },
+  deprecated: { color: "text-muted-foreground", icon: <AlertCircle size={14}/>, label: "Deprecated" },
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -93,20 +93,20 @@ function ValidationIcon({ status }: { status: ValidationStatus }) {
 function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id: string) => void }) {
   const statusColors: Record<string, string> = {
     connected: "bg-emerald-50 text-emerald-700 border-emerald-200",
-    disconnected: "bg-neutral-100 text-neutral-600 border-neutral-200",
+    disconnected: "bg-muted text-muted-foreground border-border",
     error: "bg-red-50 text-red-600 border-red-200",
   };
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl p-4">
+    <div className="bg-card border border-border rounded-xl p-4">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-neutral-100 flex items-center justify-center text-neutral-600">
+          <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
             <Database size={18}/>
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">{binding.name}</h4>
-            <p className="text-[11px] text-neutral-500 font-mono">{binding.connection_string || "—"}</p>
+            <h4 className="text-[13px] font-semibold text-foreground">{binding.name}</h4>
+            <p className="text-[11px] text-muted-foreground font-mono">{binding.connection_string || "—"}</p>
           </div>
         </div>
         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusColors[binding.status]}`}>
@@ -116,11 +116,11 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
       
       <div className="flex items-center justify-between text-[11px]">
         <div className="flex items-center gap-4">
-          <span className="text-neutral-500">
-            <span className="font-semibold text-neutral-700">{binding.variables_bound}</span> variables bound
+          <span className="text-muted-foreground">
+            <span className="font-semibold text-foreground">{binding.variables_bound}</span> variables bound
           </span>
           {binding.last_sync && (
-            <span className="text-neutral-400">
+            <span className="text-muted-foreground">
               Last sync: {new Date(binding.last_sync).toLocaleString()}
             </span>
           )}
@@ -128,11 +128,11 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
         <div className="flex items-center gap-2">
           <button
             onClick={() => onTest(binding.id)}
-            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium text-neutral-600 hover:bg-neutral-100 rounded transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted rounded transition-colors"
           >
             <RefreshCw size={10}/> Test
           </button>
-          <button className="p-1.5 hover:bg-neutral-100 rounded text-neutral-400 hover:text-neutral-700 transition-colors" aria-label="Binding settings">
+          <button className="p-1.5 hover:bg-muted rounded text-muted-foreground hover:text-foreground transition-colors" aria-label="Binding settings">
             <Settings size={12}/>
           </button>
         </div>
@@ -164,7 +164,7 @@ function VariableRegistrySkeleton() {
       {/* Stats Row Skeleton */}
       <div className="grid grid-cols-5 gap-4 mb-6">
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div key={i} className="bg-card border border-border rounded-xl px-4 py-3">
             <Skeleton className="h-4 w-24 mb-2" />
             <Skeleton className="h-7 w-12" />
           </div>
@@ -172,14 +172,14 @@ function VariableRegistrySkeleton() {
       </div>
 
       {/* Table Skeleton */}
-      <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
-        <div className="bg-neutral-50 border-b border-neutral-100 px-4 py-3 flex gap-4">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+        <div className="bg-muted/50 border-b border-border px-4 py-3 flex gap-4">
           <Skeleton className="h-4 w-32" />
           <Skeleton className="h-4 w-24" />
           <Skeleton className="h-4 w-20" />
         </div>
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="px-4 py-4 border-b border-neutral-100 flex gap-4">
+          <div key={i} className="px-4 py-4 border-b border-border flex gap-4">
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-16" />
@@ -314,18 +314,18 @@ function VariableRegistryContent() {
           { label: "Failed", value: stats?.failed ?? variables.filter(v => v.validation_status === "failed").length, icon: <X size={14}/>, color: "text-red-600" },
           { label: "Total Usage", value: stats?.avg_usage ?? variables.reduce((s, v) => s + (v.used_in_count || 0), 0), icon: <Link2 size={14}/>, color: "text-blue-600" },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <span className={s.color || "text-neutral-500"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">{s.label}</span>
+              <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-neutral-800"}`}>{s.value}</p>
+            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-neutral-200 mb-4">
+      <div className="flex items-center gap-1 border-b border-border mb-4">
         {[
           { id: "catalog" as const, label: "Variable Catalog", count: variables.length },
           { id: "bindings" as const, label: "Source Bindings", count: bindings.length },
@@ -339,7 +339,7 @@ function VariableRegistryContent() {
               "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
               activeTab === tab.id
                 ? "text-blue-700"
-                : "text-neutral-500 hover:text-neutral-700"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             <span className="flex items-center gap-2">
@@ -347,7 +347,7 @@ function VariableRegistryContent() {
               {tab.count !== undefined && (
                 <span className={cn(
                   "px-1.5 py-0.5 rounded text-[10px]",
-                  activeTab === tab.id ? "bg-blue-100 text-blue-700" : "bg-neutral-100 text-neutral-600"
+                  activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                 )}>
                   {tab.count}
                 </span>
@@ -364,14 +364,14 @@ function VariableRegistryContent() {
         <>
           {/* Filters */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg px-3 py-2 max-w-sm flex-1">
-              <Search size={12} className="text-neutral-400 shrink-0"/>
+            <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm flex-1">
+              <Search size={12} className="text-muted-foreground shrink-0"/>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search variables..."
                 aria-label="Search variables"
-                className="flex-1 text-[12px] bg-transparent outline-none text-neutral-600 placeholder:text-neutral-400"
+                className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <select
@@ -381,7 +381,7 @@ function VariableRegistryContent() {
                 setTypeFilter(value === "all" ? "all" : value as VariableType);
               }}
               aria-label="Filter by variable type"
-              className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
+              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Types</option>
               {Object.keys(TYPE_CONFIG).map(t => (
@@ -395,7 +395,7 @@ function VariableRegistryContent() {
                 setSourceFilter(value === "all" ? "all" : value as SourceType);
               }}
               aria-label="Filter by source"
-              className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
+              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Sources</option>
               {Object.keys(SOURCE_CONFIG).map(s => (
@@ -403,64 +403,64 @@ function VariableRegistryContent() {
               ))}
             </select>
             <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
               </button>
             </div>
           </div>
 
           {/* Variable Table */}
-          <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
+                <tr className="border-b border-border bg-muted/50">
                   <th className="w-8 px-3 py-3"></th>
                   {["Variable Name", "Type", "Unit", "Source", "Binding", "Used In", "Status", ""].map(h => (
-                    <th key={h} className="text-left px-3 py-3 text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
+                    <th key={h} className="text-left px-3 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-border">
                 {filteredVariables.map(v => (
                   <>
                     <tr 
                       key={v.variable_id} 
-                      className="hover:bg-neutral-50 transition-colors group cursor-pointer"
+                      className="hover:bg-muted transition-colors group cursor-pointer"
                       onClick={() => setExpandedVariable(expandedVariable === v.variable_id ? null : v.variable_id)}
                     >
                       <td className="px-3 py-3">
                         {expandedVariable === v.variable_id ? 
-                          <ChevronDown size={14} className="text-neutral-400" aria-label="Collapse row"/> : 
-                          <ChevronRight size={14} className="text-neutral-400" aria-label="Expand row"/>
+                          <ChevronDown size={14} className="text-muted-foreground" aria-label="Collapse row"/> : 
+                          <ChevronRight size={14} className="text-muted-foreground" aria-label="Expand row"/>
                         }
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
                           <ListChecks size={14} className="text-violet-500 shrink-0"/>
                           <div>
-                            <span className="font-mono font-medium text-neutral-800 block">{v.name}</span>
-                            <span className="text-[10px] text-neutral-500">{v.display_name}</span>
+                            <span className="font-mono font-medium text-foreground block">{v.name}</span>
+                            <span className="text-[10px] text-muted-foreground">{v.display_name}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3"><TypeBadge type={v.type}/></td>
-                      <td className="px-3 py-3 text-neutral-500">{v.unit}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{v.unit}</td>
                       <td className="px-3 py-3"><SourceBadge source={v.source}/></td>
-                      <td className="px-3 py-3 font-mono text-[11px] text-neutral-500">{v.binding}</td>
-                      <td className="px-3 py-3 text-neutral-600">{v.used_in_count} formulas</td>
+                      <td className="px-3 py-3 font-mono text-[11px] text-muted-foreground">{v.binding}</td>
+                      <td className="px-3 py-3 text-muted-foreground">{v.used_in_count} formulas</td>
                       <td className="px-3 py-3"><ValidationIcon status={v.validation_status}/></td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View" aria-label="View variable">
+                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="View" aria-label="View variable">
                             <Eye size={13}/>
                           </button>
-                          <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit" aria-label="Edit variable">
+                          <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Edit" aria-label="Edit variable">
                             <Edit3 size={13}/>
                           </button>
                           <button
-                            className="p-1.5 rounded hover:bg-blue-50 text-neutral-400 hover:text-blue-600 disabled:opacity-50"
+                            className="p-1.5 rounded hover:bg-primary/10 text-muted-foreground hover:text-primary disabled:opacity-50"
                             title="Test binding"
                             aria-label="Test variable binding"
                             disabled={activeTestVariableId === v.variable_id}
@@ -471,30 +471,30 @@ function VariableRegistryContent() {
                           >
                             <RefreshCw size={13} className={cn(activeTestVariableId === v.variable_id && "animate-spin")} />
                           </button>
-                          <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete" aria-label="Delete variable">
+                          <button className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Delete" aria-label="Delete variable">
                             <Trash2 size={13}/>
                           </button>
                         </div>
                       </td>
                     </tr>
                     {expandedVariable === v.variable_id && (
-                      <tr className="bg-neutral-50/50">
+                      <tr className="bg-muted/50">
                         <td colSpan={9} className="px-3 py-4">
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold mb-1">Description</p>
-                              <p className="text-[12px] text-neutral-700">{v.description || "—"}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Description</p>
+                              <p className="text-[12px] text-foreground">{v.description || "—"}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold mb-1">Binding Details</p>
-                              <p className="text-[11px] font-mono text-neutral-600">{v.binding_path || v.binding}</p>
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Binding Details</p>
+                              <p className="text-[11px] font-mono text-muted-foreground">{v.binding_path || v.binding}</p>
                               {v.default_value && (
-                                <p className="text-[11px] text-neutral-500 mt-1">Default: {v.default_value}</p>
+                                <p className="text-[11px] text-muted-foreground mt-1">Default: {v.default_value}</p>
                               )}
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold mb-1">Metadata</p>
-                              <div className="space-y-1 text-[11px] text-neutral-600">
+                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Metadata</p>
+                              <div className="space-y-1 text-[11px] text-muted-foreground">
                                 <p>Version: {v.version}</p>
                                 <p>Created: {new Date(v.created_at).toLocaleDateString()}</p>
                                 <p>Updated: {new Date(v.updated_at).toLocaleDateString()}</p>
@@ -557,8 +557,8 @@ function VariableRegistryContent() {
               </tbody>
             </table>
             {filteredVariables.length === 0 && (
-              <div className="text-center py-12 text-neutral-400 text-[12px]">
-                <ListChecks size={32} className="mx-auto mb-3 text-neutral-300"/>
+              <div className="text-center py-12 text-muted-foreground text-[12px]">
+                <ListChecks size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
                 No variables match your filters.
               </div>
             )}
@@ -569,7 +569,7 @@ function VariableRegistryContent() {
           {/* Source Bindings */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] font-semibold text-neutral-800">Connected Data Sources</h3>
+              <h3 className="text-[14px] font-semibold text-foreground">Connected Data Sources</h3>
               <Btn variant="outline"><Plus size={12} className="mr-1"/> Add Connection</Btn>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -584,8 +584,8 @@ function VariableRegistryContent() {
           </div>
 
           {/* Binding Health Summary */}
-          <div className="bg-white border border-neutral-200 rounded-xl p-4">
-            <h3 className="text-[14px] font-semibold text-neutral-800 mb-4">Connection Health</h3>
+          <div className="bg-card border border-border rounded-xl p-4">
+            <h3 className="text-[14px] font-semibold text-foreground mb-4">Connection Health</h3>
             <div className="grid grid-cols-3 gap-4">
               <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
                 <CheckCircle2 size={20} className="text-emerald-600"/>
@@ -601,13 +601,13 @@ function VariableRegistryContent() {
                   <p className="text-[11px] text-red-600">Errors</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-neutral-50 rounded-lg">
-                <RefreshCw size={20} className="text-neutral-600"/>
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <RefreshCw size={20} className="text-muted-foreground"/>
                 <div>
-                  <p className="text-[18px] font-bold text-neutral-700">
+                  <p className="text-[18px] font-bold text-foreground">
                     {bindings.filter(b => b.last_sync).length}
                   </p>
-                  <p className="text-[11px] text-neutral-600">Synced Today</p>
+                  <p className="text-[11px] text-muted-foreground">Synced Today</p>
                 </div>
               </div>
             </div>

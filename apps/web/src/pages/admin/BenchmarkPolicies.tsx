@@ -28,15 +28,15 @@ import { PageHeader, Btn } from "@/components/ui/fabric";
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, { color: string; bg: string; icon: React.ReactNode }> = {
-  High:   { color: "text-emerald-600", bg: "bg-emerald-50", icon: <CheckCircle2 size={12}/> },
-  Medium: { color: "text-amber-600", bg: "bg-amber-50", icon: <Info size={12}/> },
-  Low:    { color: "text-red-600", bg: "bg-red-50", icon: <AlertTriangle size={12}/> },
+  High:   { color: "text-emerald-600", bg: "bg-emerald-500/10", icon: <CheckCircle2 size={12}/> },
+  Medium: { color: "text-amber-600", bg: "bg-amber-500/10", icon: <Info size={12}/> },
+  Low:    { color: "text-destructive", bg: "bg-destructive/10", icon: <AlertTriangle size={12}/> },
 };
 
 const STATUS_STYLES: Record<BenchmarkStatus, string> = {
-  active: "bg-emerald-50 text-emerald-700 border-emerald-200",
-  draft: "bg-neutral-100 text-neutral-600 border-neutral-200",
-  deprecated: "bg-red-50 text-red-500 border-red-200",
+  active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  draft: "bg-muted text-muted-foreground border-border",
+  deprecated: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
@@ -67,7 +67,7 @@ function StaleWarningBadge({ lastVerified }: { lastVerified?: string }) {
   if (lastVerifiedDate > oneYearAgo) return null;
   
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200 ml-2">
+    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 ml-2">
       <AlertTriangle size={10}/> Stale — Last verified {lastVerifiedDate.getFullYear()}
     </span>
   );
@@ -87,7 +87,7 @@ function BenchmarkPoliciesSkeleton() {
       {/* Stats Row Skeleton */}
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[1, 2, 3, 4].map(i => (
-          <div key={i} className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div key={i} className="bg-card border border-border rounded-xl px-4 py-3">
             <Skeleton className="h-4 w-28 mb-2" />
             <Skeleton className="h-7 w-12" />
           </div>
@@ -95,9 +95,9 @@ function BenchmarkPoliciesSkeleton() {
       </div>
 
       {/* Table Skeleton */}
-      <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
         {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="px-4 py-4 border-b border-neutral-100 flex gap-4">
+          <div key={i} className="px-4 py-4 border-b border-border flex gap-4">
             <Skeleton className="h-4 w-48" />
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-16" />
@@ -155,17 +155,17 @@ function BenchmarkPoliciesContent() {
   if (error) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-red-800 mb-1">Failed to load benchmark policies</h3>
-              <p className="text-[12px] text-red-600">
+              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">Failed to load benchmark policies</h3>
+              <p className="text-[12px] text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button 
                 onClick={() => { refetchBenchmarks(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 text-[12px] font-medium rounded-lg hover:bg-red-200 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -195,25 +195,25 @@ function BenchmarkPoliciesContent() {
           { label: "Active", value: stats.active, icon: <TrendingUp size={14}/>, color: "text-blue-600" },
           { label: "Total Usage", value: stats.totalUsage, icon: <Database size={14}/>, color: "text-violet-600" },
         ].map(s => (
-          <div key={s.label} className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+          <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
-              <span className={s.color || "text-neutral-500"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">{s.label}</span>
+              <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
+              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-neutral-800"}`}>{s.value}</p>
+            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>
 
       {/* Filters */}
           <div className="flex items-center gap-3 mb-4">
-            <div className="flex items-center gap-2 bg-white border border-neutral-200 rounded-lg px-3 py-2 max-w-sm flex-1">
-              <Search size={12} className="text-neutral-400 shrink-0"/>
+            <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm flex-1">
+              <Search size={12} className="text-muted-foreground shrink-0"/>
               <input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search benchmarks..."
-                className="flex-1 text-[12px] bg-transparent outline-none text-neutral-600 placeholder:text-neutral-400"
+                className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <select
@@ -222,7 +222,7 @@ function BenchmarkPoliciesContent() {
                 const value = e.target.value;
                 setConfidenceFilter(value === "all" ? "all" : value as ConfidenceLevel);
               }}
-              className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
+              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Confidence</option>
               <option value="High">High</option>
@@ -232,7 +232,7 @@ function BenchmarkPoliciesContent() {
             <select
               value={industryFilter}
               onChange={e => setIndustryFilter(e.target.value)}
-              className="px-3 py-2 text-[11px] border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none focus:border-blue-300"
+              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Industries</option>
               {industries.map(ind => (
@@ -240,19 +240,19 @@ function BenchmarkPoliciesContent() {
               ))}
             </select>
             <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-neutral-600 hover:bg-neutral-100 rounded-lg transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
               </button>
             </div>
           </div>
 
           {/* Benchmark Table */}
-          <div className="bg-white border border-neutral-200 rounded-xl shadow-sm overflow-hidden">
+          <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
             <table className="w-full text-[12px]">
               <thead>
-                <tr className="border-b border-neutral-100 bg-neutral-50">
+                <tr className="border-b border-border bg-muted">
                   {["Benchmark", "Industry", "Value Range", "Confidence", "Source", "Status", "Usage", ""].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
+                    <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                       {h}
                     </th>
                   ))}
@@ -260,16 +260,16 @@ function BenchmarkPoliciesContent() {
               </thead>
               <tbody className="divide-y divide-neutral-100">
                 {filteredBenchmarks.map(b => (
-                  <tr key={b.id} className="hover:bg-neutral-50 transition-colors group">
+                  <tr key={b.id} className="hover:bg-muted transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
                         <BarChart3 size={14} className="text-blue-500 shrink-0"/>
                         <div>
-                          <span className="font-medium text-neutral-800 block">{b.name}</span>
+                          <span className="font-medium text-foreground block">{b.name}</span>
                           {b.tags.length > 0 && (
                             <div className="flex items-center gap-1 mt-1">
                               {b.tags.map(tag => (
-                                <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-neutral-100 text-neutral-500 rounded">
+                                <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
                                   {tag}
                                 </span>
                               ))}
@@ -278,34 +278,34 @@ function BenchmarkPoliciesContent() {
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-neutral-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       {b.industry}
-                      {b.vertical && <span className="text-neutral-400"> / {b.vertical}</span>}
+                      {b.vertical && <span className="text-muted-foreground"> / {b.vertical}</span>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-neutral-700">{b.value_range}</td>
+                    <td className="px-4 py-3 font-mono text-[11px] text-foreground">{b.value_range}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center">
                         <ConfidenceBadge level={b.confidence}/>
                         <StaleWarningBadge lastVerified={b.last_verified} />
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-neutral-500">
+                    <td className="px-4 py-3 text-muted-foreground">
                       <div className="flex items-center gap-1">
                         <Globe size={10}/>
                         {b.source} {b.year}
                       </div>
                     </td>
                     <td className="px-4 py-3"><StatusBadge status={b.status}/></td>
-                    <td className="px-4 py-3 text-neutral-600">{b.usage_count || 0} formulas</td>
+                    <td className="px-4 py-3 text-foreground">{b.usage_count || 0} formulas</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="View">
+                        <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="View">
                           <Eye size={13}/>
                         </button>
-                        <button className="p-1.5 rounded hover:bg-neutral-100 text-neutral-400 hover:text-neutral-700" title="Edit">
+                        <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="Edit">
                           <Edit3 size={13}/>
                         </button>
-                        <button className="p-1.5 rounded hover:bg-red-50 text-neutral-400 hover:text-red-500" title="Delete">
+                        <button className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive" title="Delete">
                           <Trash2 size={13}/>
                         </button>
                       </div>
@@ -315,8 +315,8 @@ function BenchmarkPoliciesContent() {
               </tbody>
             </table>
             {filteredBenchmarks.length === 0 && (
-              <div className="text-center py-12 text-neutral-400 text-[12px]">
-                <BarChart3 size={32} className="mx-auto mb-3 text-neutral-300"/>
+              <div className="text-center py-12 text-muted-foreground text-[12px]">
+                <BarChart3 size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
                 No benchmarks match your filters.
               </div>
             )}

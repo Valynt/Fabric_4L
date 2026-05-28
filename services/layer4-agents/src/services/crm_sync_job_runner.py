@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Redis-backed durable CRM sync job runner."""
 
-from __future__ import annotations
 
 import asyncio
 import json

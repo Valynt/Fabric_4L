@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 """Pytest configuration for Layer 4 Agents tests.
 """
 
-from __future__ import annotations
 
 import sys
 import os

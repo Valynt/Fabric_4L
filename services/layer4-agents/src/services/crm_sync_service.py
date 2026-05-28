@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 CRM Sync Service for background account synchronization.
 
@@ -5,7 +7,6 @@ Handles periodic syncing of accounts from Salesforce and HubSpot,
 with rate limiting, deduplication, and error handling.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

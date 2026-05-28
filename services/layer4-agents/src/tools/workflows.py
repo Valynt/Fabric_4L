@@ -1,8 +1,9 @@
+from __future__ import annotations
+
 """
 Workflow tools that chain multiple operations.
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any

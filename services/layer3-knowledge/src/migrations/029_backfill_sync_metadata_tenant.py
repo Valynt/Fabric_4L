@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -10,7 +12,6 @@ Trusted ownership precedence:
 3. Existing :SyncMetadata.tenant_id fallback to DEFAULT_TENANT
 """
 
-from __future__ import annotations
 
 import argparse
 import asyncio

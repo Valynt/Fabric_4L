@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Value Pack service interface for Layer 4 Agents.
 
 Internal service interface for Value Pack composition and lifecycle.
 Tightly coupled domain seam — uses code-level interfaces.
 """
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field

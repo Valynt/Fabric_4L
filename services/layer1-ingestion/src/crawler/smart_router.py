@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Smart Router for hybrid HTTPX/Browser ingestion path selection.
 
 Provides per-URL routing decisions based on deterministic rules with
 SPA detection and quality-gated fallback support.
 """
 
-from __future__ import annotations
 
 import re
 from dataclasses import dataclass

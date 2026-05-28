@@ -23,9 +23,9 @@ function formatDate(iso: string): string {
 
 function TenantTable({ items }: { items: TenantOverviewItem[] }) {
   return (
-    <div className="overflow-auto border border-neutral-200 rounded-xl">
+    <div className="overflow-auto border border-border rounded-xl">
       <table className="w-full text-left text-sm">
-        <thead className="bg-neutral-50 text-neutral-600">
+        <thead className="bg-muted text-muted-foreground">
           <tr>
             <th className="px-4 py-3 font-medium">Tenant</th>
             <th className="px-4 py-3 font-medium">Status</th>
@@ -35,41 +35,41 @@ function TenantTable({ items }: { items: TenantOverviewItem[] }) {
             <th className="px-4 py-3 font-medium">Created At</th>
           </tr>
         </thead>
-        <tbody className="divide-y divide-neutral-100">
+        <tbody className="divide-y divide-border">
           {items.map((item) => (
-            <tr key={item.id} className="hover:bg-neutral-50">
+            <tr key={item.id} className="hover:bg-muted">
               <td className="px-4 py-3">
-                <div className="font-medium text-neutral-900">{item.name}</div>
-                <div className="text-xs text-neutral-500">{item.slug}</div>
+                <div className="font-medium text-foreground">{item.name}</div>
+                <div className="text-xs text-muted-foreground">{item.slug}</div>
               </td>
               <td className="px-4 py-3">
                 <span
                   className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                     item.status === "active"
-                      ? "bg-emerald-50 text-emerald-700"
+                      ? "bg-emerald-500/10 text-emerald-600"
                       : item.status === "pending"
-                        ? "bg-amber-50 text-amber-700"
-                        : "bg-neutral-100 text-neutral-600",
+                        ? "bg-amber-500/10 text-amber-600"
+                        : "bg-muted text-muted-foreground",
                   )}
                 >
                   {item.status}
                 </span>
               </td>
-              <td className="px-4 py-3 text-neutral-700">{item.tier_id}</td>
-              <td className="px-4 py-3 text-neutral-700">
+              <td className="px-4 py-3 text-foreground">{item.tier_id}</td>
+              <td className="px-4 py-3 text-foreground">
                 <div className="flex items-center gap-1">
-                  <Users size={14} className="text-neutral-400" />
+                  <Users size={14} className="text-muted-foreground" />
                   {item.user_count}
                 </div>
               </td>
-              <td className="px-4 py-3 text-neutral-700">
+              <td className="px-4 py-3 text-foreground">
                 <div className="flex items-center gap-1">
-                  <Activity size={14} className="text-neutral-400" />
+                  <Activity size={14} className="text-muted-foreground" />
                   {item.active_workflow_count}
                 </div>
               </td>
-              <td className="px-4 py-3 text-neutral-500 text-xs">
+              <td className="px-4 py-3 text-muted-foreground text-xs">
                 {formatDate(item.created_at)}
               </td>
             </tr>
@@ -96,14 +96,14 @@ export default function SuperAdminConsole() {
         />
 
         {isLoading && (
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <Loader2 size={16} className="animate-spin" />
             Loading tenant overview...
           </div>
         )}
 
         {error && (
-          <div className="flex items-center gap-2 text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg p-4">
+          <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 border border-destructive/20 rounded-lg p-4">
             <AlertCircle size={16} />
             Failed to load tenant overview. Ensure you have privileged access.
           </div>
@@ -112,7 +112,7 @@ export default function SuperAdminConsole() {
         {data && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-sm text-neutral-500">
+              <p className="text-sm text-muted-foreground">
                 Showing {data.items.length} of {data.total} tenants
               </p>
             </div>

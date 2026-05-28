@@ -16,6 +16,13 @@ Allowlist:
 
 A baseline file freezes pre-existing offenders. New offenders fail the build.
 
+.. note::
+
+    The gate flags **any** call named ``TracerProvider`` or ``set_tracer_provider``
+    regardless of the defining module. If a service defines its own unrelated class
+    with the same name, it will be flagged; add it to the baseline or rename the
+    class to avoid the collision.
+
 Usage::
 
     python scripts/ci/check_otel_tracer_provider_centralization.py
@@ -29,8 +36,10 @@ import ast
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[2]
-BASELINE_FILE = REPO_ROOT / "config" / "ci" / "otel_tracer_provider_baseline.txt"
+_DEFAULT_REPO_ROOT = Path(__file__).resolve().parents[2]
+
+REPO_ROOT: Path = _DEFAULT_REPO_ROOT
+BASELINE_FILE: Path = REPO_ROOT / "config" / "ci" / "otel_tracer_provider_baseline.txt"
 
 SCAN_ROOTS = (
     REPO_ROOT / "services",
@@ -155,10 +164,28 @@ def scan() -> tuple[set[str], int]:
 
 
 def main(argv: list[str] | None = None) -> int:
+    global REPO_ROOT, BASELINE_FILE, SCAN_ROOTS
+
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--update-baseline", action="store_true")
     parser.add_argument("--quiet", action="store_true")
+    parser.add_argument(
+        "--repo-root",
+        type=Path,
+        default=None,
+        dest="repo_root",
+        help="Override the repository root (for testing).",
+    )
     args = parser.parse_args(argv)
+
+    if args.repo_root is not None:
+        REPO_ROOT = args.repo_root.resolve()
+        BASELINE_FILE = REPO_ROOT / "config" / "ci" / "otel_tracer_provider_baseline.txt"
+        SCAN_ROOTS = (
+            REPO_ROOT / "services",
+            REPO_ROOT / "packages" / "shared" / "src",
+            REPO_ROOT / "value_fabric",
+        )
 
     offenders, scanned = scan()
 

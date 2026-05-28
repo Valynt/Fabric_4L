@@ -58,7 +58,7 @@ def main() -> int:
             violations.append(f"{path}: tracked .env-style file is not in approved template allowlist")
 
     if violations:
-        print("❌ path/env hygiene policy violations detected:", file=sys.stderr)
+        print("FAIL path/env hygiene policy violations detected:", file=sys.stderr)
         for item in violations:
             print(f"  - {item}", file=sys.stderr)
         print(
@@ -67,7 +67,7 @@ def main() -> int:
         )
         return 1
 
-    print("✅ path/env hygiene check passed")
+    print("PASS path/env hygiene check passed")
     return 0
 
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """LLM token and cost tracking tests.
 
 Tests verify:
@@ -6,7 +8,6 @@ Tests verify:
 3. Budget limit enforcement returns structured error (not raw exception).
 4. Cost aggregation by model and tenant.
 """
-from __future__ import annotations
 
 import os
 from datetime import UTC, datetime

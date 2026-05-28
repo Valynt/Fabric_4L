@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Cross-tenant hostile invariants for layer3-knowledge."""
 
-from __future__ import annotations
 
 from pathlib import Path
 

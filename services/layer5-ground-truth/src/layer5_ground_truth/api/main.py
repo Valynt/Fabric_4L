@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 """
 Layer 5 Ground Truth — FastAPI application entry point.
 
@@ -16,7 +17,7 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse, Response
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
@@ -538,7 +539,7 @@ def create_app() -> FastAPI:
 
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc:) -> JSONResponse:
         # Use canonical error envelope format
         try:
             from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
@@ -710,9 +711,7 @@ def create_app() -> FastAPI:
         # Verify internal access for metrics (blocks public ingress access).
         # Delegated to shared.observability so all layers stay aligned.
         if not verify_metrics_access(request):
-            raise HTTPException(
-                status_code=403, detail="Metrics endpoint requires internal access"
-            )
+            raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
         metrics = get_metrics()
         if not metrics:

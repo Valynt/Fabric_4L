@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """OSS-1 parity tests for the non-default aiocache CachePort pilot."""
 
-from __future__ import annotations
 
 import asyncio
 import fnmatch

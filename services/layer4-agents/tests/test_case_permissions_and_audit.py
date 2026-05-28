@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Security and audit tests for case routes."""
 
-from __future__ import annotations
 
 from typing import Any
 from types import SimpleNamespace

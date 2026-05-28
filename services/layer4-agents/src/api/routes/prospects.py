@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 """Prospect API routes — Composite context and analysis workflow initiation.
 
 Provides endpoints for:
@@ -6,7 +9,6 @@ Provides endpoints for:
 - Explicit degraded/pending state handling (no fabricated data)
 """
 
-from __future__ import annotations
 
 import os
 import uuid
@@ -365,10 +367,7 @@ async def start_prospect_analysis(
                 tenant_id=None,
                 user_id=ctx.user_id if ctx else None,
             )
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Tenant context required for prospect analysis",
-            )
+            raise AuthenticationError(message = "Tenant context required for prospect analysis")
 
         # -------------------------------------------------------------------
         # 2. Create or update prospect record

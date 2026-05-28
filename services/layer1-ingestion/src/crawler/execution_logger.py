@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Execution logging for crawler path decisions and performance metrics.
 
 Provides structured logging for cost attribution, fallback analysis,
 and performance monitoring without full cost tracking implementation.
 """
 
-from __future__ import annotations
 
 import json
 from dataclasses import asdict, dataclass

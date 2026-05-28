@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """PROV-O and RDF* data models for provenance tracking.
 
 Implements W3C PROV-O specification with RDF* extensions for
@@ -8,7 +10,6 @@ References:
 - RDF*: https://w3c.github.io/rdf-star/
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime

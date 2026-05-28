@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Explicit action-level human approval policies for Layer 4 high-impact actions.
 
 Maps the five required high-impact action classes to gate types and
 enforcement rules. Replaces category-based gating with action-level coverage.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

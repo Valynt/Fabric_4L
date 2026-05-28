@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Tenant provisioning workflow with async orchestration.
 
 Orchestrates tenant creation steps with retry, rollback, and audit logging.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

@@ -301,16 +301,16 @@ def main() -> int:
             violations.extend(check_layer_service_lifecycle_documentation(file_path, doc))
 
     if workload_count == 0:
-        print("❌ No workloads found in k8s/base/*.yml")
+        print("FAIL No workloads found in k8s/base/*.yml")
         return 1
 
     if violations:
-        print("❌ Kubernetes preflight failed:")
+        print("FAIL Kubernetes preflight failed:")
         for violation in violations:
             print(f"  - {violation.format()}")
         return 1
 
-    print(f"✅ Kubernetes preflight passed for {workload_count} workload(s).")
+    print(f"PASS Kubernetes preflight passed for {workload_count} workload(s).")
     return 0
 
 

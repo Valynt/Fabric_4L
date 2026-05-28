@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Whitespace Analysis workflow implementation."""
 
-from __future__ import annotations
 
 import asyncio
 import json

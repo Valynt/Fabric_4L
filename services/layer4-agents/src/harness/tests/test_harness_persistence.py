@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQL persistence tests for the Fabric Harness.
 
 Uses SQLite + aiosqlite — no external Postgres required in CI.
@@ -12,7 +14,6 @@ Test classes:
   TestSqlHarnessRegistryIntegration
 """
 
-from __future__ import annotations
 
 import asyncio
 import sys

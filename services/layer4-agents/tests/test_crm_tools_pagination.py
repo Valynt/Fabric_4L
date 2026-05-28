@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for CRM tools pagination and rate limit handling.
 
@@ -7,7 +9,6 @@ Covers:
 - Max page safety limit
 """
 
-from __future__ import annotations
 
 import json
 from unittest.mock import AsyncMock, MagicMock, patch

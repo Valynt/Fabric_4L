@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """GovernedLLMClient — harness-aware LLM call wrapper.
 
 Responsibilities:
@@ -13,7 +15,6 @@ The client is constructed once per workflow run and carries the ``HarnessRun``
 context so every trace event is correctly attributed.
 """
 
-from __future__ import annotations
 
 import asyncio
 import json

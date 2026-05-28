@@ -40,14 +40,14 @@ def main() -> int:
                 violations.append(f"[{rule['layer']}] {rule['id']} -> {rel}: {', '.join(found)}")
 
     if violations:
-        print("❌ No-net-new contract violations gate failed for touched modules:")
+        print("FAIL No-net-new contract violations gate failed for touched modules:")
         for v in violations:
             print(f"  - {v}")
         print("Remediation requirement: update runtime contract + schema/types + consumers + regression tests together.")
 
         return 1
 
-    print("✅ No-net-new contract violations gate passed for touched modules.")
+    print("PASS No-net-new contract violations gate passed for touched modules.")
     return 0
 
 

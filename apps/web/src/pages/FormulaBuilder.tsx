@@ -431,7 +431,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   onChange={(e) => setFormulaName(e.target.value)}
                   placeholder="Enter formula name..."
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 text-[13px] text-foreground bg-white outline-none focus:ring-2 focus:ring-primary/20",
+                    "w-full border rounded-md px-3 py-2 text-[13px] text-foreground bg-background outline-none focus:ring-2 focus:ring-primary/20",
                     validationErrors.name ? "border-red-300 focus:border-red-400" : "border-border focus:border-primary"
                   )}
                   aria-invalid={!!validationErrors.name}
@@ -452,7 +452,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   placeholder="Describe what this formula calculates..."
                   rows={2}
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 text-[12px] text-foreground bg-white outline-none resize-none focus:ring-2 focus:ring-primary/20",
+                    "w-full border rounded-md px-3 py-2 text-[12px] text-foreground bg-background outline-none resize-none focus:ring-2 focus:ring-primary/20",
                     validationErrors.description ? "border-red-300 focus:border-red-400" : "border-border focus:border-primary"
                   )}
                   aria-invalid={!!validationErrors.description}

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Canonical agent taxonomy — 9 GATE-governed agent types.
 
 Implements the validated agent roster for the Value Fabric Layer 4 system.
@@ -23,7 +25,6 @@ are preserved as aliases at module bottom for import compatibility.
 See DEPRECATION_MAP.md for migration timeline.
 """
 
-from __future__ import annotations
 
 import logging
 from enum import Enum

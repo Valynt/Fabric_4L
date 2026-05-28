@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """LangGraph checkpoint configuration for Postgres persistence.
 
 Provides AsyncPostgresSaver configuration for durable workflow state storage,
 enabling pause/resume and human-in-the-loop capabilities.
 """
 
-from __future__ import annotations
 
 import logging
 import os

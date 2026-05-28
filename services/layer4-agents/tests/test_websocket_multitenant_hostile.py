@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Hostile multi-tenant WebSocket test suite (TEST-SEC-005).
 
 Regression protection for SEC-L4-WS-001 and SEC-L4-WS-002.
@@ -13,7 +15,6 @@ infrastructure. The intent is to lock the security contracts in place so
 any future regression is caught immediately.
 """
 
-from __future__ import annotations
 
 import time
 from typing import Any

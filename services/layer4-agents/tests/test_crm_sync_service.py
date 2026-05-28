@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for CRMSyncService and CRM webhook handlers.
 
@@ -9,7 +11,6 @@ Covers:
 - Webhook handlers for Salesforce and HubSpot
 """
 
-from __future__ import annotations
 
 from typing import Any
 import os

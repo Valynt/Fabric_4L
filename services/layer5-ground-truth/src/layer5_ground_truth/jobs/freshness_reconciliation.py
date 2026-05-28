@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Dedicated runner for Layer 5 freshness reconciliation.
 
 Use this module from cron, Kubernetes CronJob, or another scheduler instead of
 starting per-process loops inside API workers.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

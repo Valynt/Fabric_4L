@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Regression tests for the Layer 3 approved Neo4j execution boundary."""
 
-from __future__ import annotations
 
 import ast
 import subprocess

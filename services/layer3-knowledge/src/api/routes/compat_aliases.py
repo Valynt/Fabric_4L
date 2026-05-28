@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -5,9 +7,9 @@ Removal/migration target: 2026-09-30
 Reason: Compatibility alias endpoints delegating to canonical route implementations.
 """
 
-from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity import RequestContext, require_authenticated
 
 from ...api.dependencies import get_graph_rag, get_hybrid_search
@@ -30,9 +32,9 @@ def _assert_legacy_alias_enabled(request: Request, alias_name: str) -> None:
     if phase == "disable_non_prod":
         env = getattr(request.app.state, "environment", "dev")
         if env.lower() != "prod":
-            raise HTTPException(status_code=410, detail=f"Legacy alias '{alias_name}' disabled in non-production")
+            raise ServiceUnavailableError(message=f"Legacy alias '{alias_name}' disabled in non-production")
     elif phase == "removed":
-        raise HTTPException(status_code=410, detail=f"Legacy alias '{alias_name}' has been removed")
+        raise ServiceUnavailableError(message=f"Legacy alias '{alias_name}' has been removed")
 
 
 def _record_route_hit(request: Request, route: str, tenant_id: str) -> None:

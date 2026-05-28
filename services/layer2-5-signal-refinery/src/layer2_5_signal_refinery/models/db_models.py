@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQLAlchemy ORM models for the L2.5 Signal Refinery.
 
 Design notes:
@@ -7,8 +9,6 @@ Design notes:
 - soft-delete via deleted_at
 - source_refs and related_signal_ids stored as JSON arrays
 """
-
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """
 Accounts API routes for CRM account management.
 
@@ -7,7 +10,6 @@ SECURITY: All endpoints use get_db_from_context for RLS tenant isolation
           and require_authenticated for mandatory auth enforcement.
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
@@ -361,10 +363,7 @@ async def get_account(
 
     account = await service.get_account(account_id, tenant_id=str(_ctx.tenant_id))
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Account not found: {account_id}",
-        )
+        raise NotFoundError(message = str(f"Account not found: {account_id}"))
 
     return to_detail_schema(account)
 
@@ -383,10 +382,7 @@ async def get_account_activity(
     # Verify account exists
     account = await service.get_account(account_id, tenant_id=str(_ctx.tenant_id))
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Account not found: {account_id}",
-        )
+        raise NotFoundError(message = str(f"Account not found: {account_id}"))
 
     activity = await service.get_account_activity(
         account_id=account_id,
@@ -411,10 +407,7 @@ async def refresh_account(
     # Verify account exists
     account = await service.get_account(account_id, tenant_id=str(_ctx.tenant_id))
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Account not found: {account_id}",
-        )
+        raise NotFoundError(message = str(f"Account not found: {account_id}"))
 
     # Trigger refresh
     refreshed = await service.refresh_account(account_id, tenant_id=str(_ctx.tenant_id))

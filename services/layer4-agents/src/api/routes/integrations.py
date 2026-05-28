@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
 """
 Integrations Management API Routes.
 
@@ -5,7 +8,6 @@ Provides CRUD operations for CRM provider configurations (Salesforce, HubSpot).
 All credentials are encrypted at rest and never returned in API responses.
 """
 
-from __future__ import annotations
 
 import base64
 import hashlib
@@ -18,7 +20,7 @@ from typing import Any
 from urllib.parse import parse_qsl, urlencode, urlparse, urlunparse
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -306,10 +308,7 @@ async def get_integration(
     integration = await service.get_integration(tenant_id, provider)
 
     if not integration:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No {provider.value} integration configured",
-        )
+        raise NotFoundError(message = str(f"No {provider.value} integration configured"))
 
     return IntegrationStatusResponse(**integration.to_dict())
 
@@ -396,10 +395,7 @@ async def create_or_update_integration(
 
     except IntegrationValidationError as e:
         logger.warning("integration_validation_error", extra={"error": str(e)})
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid integration request",
-        )
+        raise ValidationError(message = "Invalid integration request")
 
 
 @router.delete("/{provider}", status_code=status.HTTP_204_NO_CONTENT)
@@ -418,10 +414,7 @@ async def delete_integration(
     deleted = await service.delete_integration(tenant_id, provider, user_id=x_user_id)
 
     if not deleted:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No {provider.value} integration found",
-        )
+        raise NotFoundError(message = str(f"No {provider.value} integration found"))
 
     # Emit audit event (best-effort, log failure but don't fail request)
     try:
@@ -498,16 +491,10 @@ async def trigger_sync(
 
     except IntegrationNotFoundError as e:
         logger.warning("integration_not_found", extra={"error": str(e)})
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Integration not found",
-        )
+        raise NotFoundError(message = "Integration not found")
     except IntegrationValidationError as e:
         logger.warning("integration_validation_error", extra={"error": str(e)})
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid integration request",
-        )
+        raise ValidationError(message = "Invalid integration request")
 
 
 @router.get("/{provider}/sync-jobs", response_model=CRMSyncJobListResponse)
@@ -532,10 +519,7 @@ async def get_sync_job(
     tenant_id = str(context.tenant_id)
     job = await service.get_sync_job(tenant_id, provider, job_id)
     if not job:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"No sync job {job_id} found for {provider.value}",
-        )
+        raise NotFoundError(message = str(f"No sync job {job_id} found for {provider.value}"))
     return CRMSyncJobResponse(**job.to_dict())
 
 
@@ -547,10 +531,7 @@ async def _build_salesforce_oauth_response(
     tenant_id = str(context.tenant_id)
     client_id = os.getenv("SALESFORCE_CLIENT_ID")
     if not client_id:
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Salesforce OAuth is not configured",
-        )
+        raise ServiceUnavailableError(message = "Salesforce OAuth is not configured")
     oauth_base_url = (os.getenv("SALESFORCE_OAUTH_BASE_URL") or "https://login.salesforce.com").rstrip("/")
     state = _build_signed_state(
         tenant_id=tenant_id,
@@ -620,7 +601,7 @@ async def complete_salesforce_oauth(
         return RedirectResponse(destination, status_code=status.HTTP_303_SEE_OTHER)
 
     if not code or not state:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="code and state are required")
+        raise ValidationError(message = "code and state are required")
 
     try:
         decoded_state = _decode_signed_state(state)

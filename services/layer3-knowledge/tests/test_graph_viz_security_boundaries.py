@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Security boundary tests for Layer 3 graph visualisation routes.
 
 Coverage gaps addressed (autonomous-test-assurance-agent):
@@ -9,7 +11,6 @@ Coverage gaps addressed (autonomous-test-assurance-agent):
 - P1: Neo4j unavailability must return 503
 """
 
-from __future__ import annotations
 
 import asyncio
 from http import HTTPStatus

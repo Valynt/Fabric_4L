@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Typed domain models for the Fabric_4L Harness.
 
@@ -5,7 +7,6 @@ All models are immutable Pydantic v2 models. Timestamps use UTC.
 IDs are generated deterministically where possible.
 """
 
-from __future__ import annotations
 
 import hashlib
 import json

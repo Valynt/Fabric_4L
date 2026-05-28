@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """OIDC session cleanup service.
 
 Provides background cleanup of expired OIDC sessions to prevent database bloat.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
 """Tenant admin dashboard API routes.
 
 Provides tenant administrators with:
@@ -21,14 +24,13 @@ Routes:
     PATCH /v1/tenants/{tenant_id}/settings              — Update settings
 """
 
-from __future__ import annotations
 
 import json
 import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -116,13 +118,10 @@ def _authorize_tenant_access(
         is_super = is_super()
 
     if str(caller_tenant) != str(tenant_id) and not is_super:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail={
+        raise AuthorizationError(message = "Request failed", details = {
                 "error": "access_denied",
                 "message": "You can only access your own tenant's dashboard.",
-            },
-        )
+            })
 
 
 # ── Dashboard Endpoints ─────────────────────────────────────────────
@@ -225,7 +224,7 @@ async def get_tier_usage(
     )
     row = result.fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     tier_id = row[0] or "free"
 
@@ -369,7 +368,7 @@ async def get_tenant_settings(
     )
     row = result.fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     return get_tenant_settingsResult.model_validate({
         "id": str(row[0]),
@@ -404,7 +403,7 @@ async def update_tenant_settings(
     )
     row = result.fetchone()
     if not row:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     tier_id = row[0] or "free"
     current_settings = row[1] or {}
@@ -426,10 +425,7 @@ async def update_tenant_settings(
         updates["settings"] = current_settings
 
     if not updates:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="No fields to update",
-        )
+        raise ValidationError(message = "No fields to update")
 
     # Build SET clause dynamically
     set_parts = []

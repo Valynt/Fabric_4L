@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Agent state definitions for LangGraph workflows.
 
 Defines typed state schemas for all workflow types in Layer 4.
 """
 
-from __future__ import annotations
 
 from datetime import datetime
 from enum import Enum

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Competitive Intelligence Service — Data Intelligence Layer Phase 2, Task 2.2.
 
@@ -27,7 +29,6 @@ Neo4j Node Schema:
     last_reviewed_at, created_at, updated_at
 """
 
-from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field

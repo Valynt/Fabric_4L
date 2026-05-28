@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Active regression tests for per-tenant rate limiting.
 
 Validates:
@@ -7,7 +9,6 @@ Validates:
 - Middleware consumes tenant-specific rate-limit settings through the shared limiter
 """
 
-from __future__ import annotations
 
 import asyncio
 import time

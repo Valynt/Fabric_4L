@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 L5 Validation Hook — abstraction for claim validation with graceful fallback.
 
@@ -8,7 +10,6 @@ Rules:
   - Preserve room for real L5 integration.
 """
 
-from __future__ import annotations
 
 import abc
 

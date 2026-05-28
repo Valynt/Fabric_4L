@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """API key management routes (tenant_admin only).
 
 POST   /v1/api-keys              — create an API key (with tier limit check)
@@ -9,12 +12,11 @@ Phase 3 enhancements:
 - Audit event emission on create/revoke
 """
 
-from __future__ import annotations
 
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
@@ -118,7 +120,7 @@ async def api_revoke_key(
     """Revoke an API key. Requires ``tenant_admin`` role."""
     revoked = await revoke_api_key(db, ctx.tenant_id, key_id)
     if not revoked:
-        raise HTTPException(status_code=404, detail=f"API key {key_id!r} not found")
+        raise NotFoundError(message = str(f"API key {key_id!r} not found"))
 
     # Emit audit event
     if AUDIT_AVAILABLE and emit_audit_event:

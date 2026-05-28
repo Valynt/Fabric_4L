@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Approval and publication policies for the Fabric_4L Harness.
 
@@ -9,7 +11,6 @@ Rules:
   - Insufficient evidence blocks publication and routes to review.
 """
 
-from __future__ import annotations
 
 from .models import (
     ActionClass,

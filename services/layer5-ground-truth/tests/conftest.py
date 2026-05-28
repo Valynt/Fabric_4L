@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 pytest configuration and shared fixtures for Layer 5 Ground Truth tests.
 
@@ -11,7 +13,6 @@ Fixture hierarchy:
   client (function-scoped) →  httpx.AsyncClient wrapping the FastAPI app
 """
 
-from __future__ import annotations
 
 import os
 import sys

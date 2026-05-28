@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.distributed_store import RedisDistributedStore, StorePayloadError, StoreUnavailableError
+from app.services.distributed_store import (
+    ERR_CIRCUIT_OPEN,
+    ERR_INVALID_JSON_PAYLOAD,
+    ERR_REDIS_UNAVAILABLE,
+    RedisDistributedStore,
+    StorePayloadError,
+    StoreUnavailableError,
+)
 
 
 class FakeRedis:
@@ -77,3 +84,39 @@ def test_startup_validation_checks_roundtrip_serialization() -> None:
     fake = FakeRedis()
     store = RedisDistributedStore(client=fake)  # type: ignore[arg-type]
     store.validate_backend()
+
+
+def test_store_unavailable_error_preserves_operation() -> None:
+    err = StoreUnavailableError(ERR_REDIS_UNAVAILABLE, operation="get_json")
+    assert err.code == ERR_REDIS_UNAVAILABLE
+    assert err.operation == "get_json"
+
+
+def test_store_payload_error_preserves_operation() -> None:
+    from app.services.distributed_store import StorePayloadError
+
+    err = StorePayloadError(ERR_INVALID_JSON_PAYLOAD, operation="set_json")
+    assert err.code == ERR_INVALID_JSON_PAYLOAD
+    assert err.operation == "set_json"
+
+
+def test_backend_unavailable_preserves_operation_name() -> None:
+    """Verify _with_resilience threads operation name into the exception."""
+    fake = FakeRedis()
+    fake.fail = True
+    store = RedisDistributedStore(client=fake, max_retries=0)  # type: ignore[arg-type]
+    with pytest.raises(StoreUnavailableError) as exc_info:
+        store.get_json("k")
+    assert exc_info.value.operation == "get"
+
+
+def test_circuit_open_error_has_no_operation() -> None:
+    """Circuit-open errors don't have an operation since they pre-empt execution."""
+    fake = FakeRedis()
+    store = RedisDistributedStore(client=fake)  # type: ignore[arg-type]
+    # Manually open the circuit
+    store._circuit_opened_at = 9999999999.0  # far in the future so it stays open
+    with pytest.raises(StoreUnavailableError) as exc_info:
+        store.get_json("k")
+    assert exc_info.value.code == ERR_CIRCUIT_OPEN
+    assert exc_info.value.operation is None

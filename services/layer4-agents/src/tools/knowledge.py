@@ -1,17 +1,19 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 """
 Knowledge graph tools with tenant isolation.
 
 All tools enforce tenant boundaries and audit tool invocations.
 """
 
-from __future__ import annotations
 
 import logging
 import os
 from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import status
 from neo4j import AsyncGraphDatabase
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext, get_request_context
@@ -38,10 +40,7 @@ def _require_tool_context(context: RequestContext | None = None) -> RequestConte
     """Resolve the explicit or ambient request context and fail closed otherwise."""
     ctx = context or get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Tenant-scoped tool execution requires authenticated context",
-        )
+        raise AuthenticationError(message = "Tenant-scoped tool execution requires authenticated context")
     return ctx
 
 

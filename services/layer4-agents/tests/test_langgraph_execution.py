@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 LangGraph workflow execution tests with mocked LLM.
 
@@ -9,7 +11,6 @@ Tests verify:
 5. Workflow handles LLM errors gracefully (error section, not crash).
 6. WorkflowStatus enum values match what the frontend expects.
 """
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, Mock, patch

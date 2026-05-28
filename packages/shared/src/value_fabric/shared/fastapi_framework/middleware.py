@@ -139,12 +139,12 @@ def add_rate_limit_middleware(
     if mode == EnforcementMode.OFF:
         return
 
-    rate_limiter = rate_limiter_factory()
     try:
         from value_fabric.shared.rate_limiting import TenantRateLimitMiddleware
     except ImportError:
         return
 
+    rate_limiter = rate_limiter_factory()
     app.add_middleware(
         TenantRateLimitMiddleware,
         rate_limiter=rate_limiter,
@@ -196,36 +196,34 @@ def add_idempotency_middleware(
             if not idem_key:
                 return await call_next(request)
 
-            try:
-                from value_fabric.shared.boundaries.tenant_boundary import (
-                    get_tenant_context,
-                )
-                ctx = get_tenant_context()
-                tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else "anonymous"
-            except Exception:  # noqa: BLE001
-                import logging
-                logging.getLogger(__name__).debug("Failed to extract tenant context, using anonymous")
-                tenant_id = "anonymous"
+            from value_fabric.shared.boundaries.tenant_boundary import get_tenant_context
+
+            ctx = get_tenant_context()
+            tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else "anonymous"
 
             try:
                 body_bytes = await request.body()
-                try:
-                    import json as _json
+            except Exception:  # noqa: BLE001 — client disconnect or unreadable body
+                return await call_next(request)
 
-                    body = _json.loads(body_bytes) if body_bytes else {}
-                    if not isinstance(body, dict):
-                        body = {"_raw": body}
-                except Exception:  # noqa: BLE001
-                    body = {"_raw_len": len(body_bytes)}
+            try:
+                import json as _json
 
-                fingerprint = build_request_fingerprint(request.method, request.url.path, body)
-                idem_request = IdempotencyRequest(
-                    tenant_id=tenant_id,
-                    endpoint_key=f"{request.method.upper()} {request.url.path}",
-                    idempotency_key=idem_key,
-                    request_fingerprint=fingerprint,
-                )
+                body = _json.loads(body_bytes) if body_bytes else {}
+                if not isinstance(body, dict):
+                    body = {"_raw": body}
+            except Exception:  # noqa: BLE001
+                body = {"_raw_len": len(body_bytes)}
 
+            fingerprint = build_request_fingerprint(request.method, request.url.path, body)
+            idem_request = IdempotencyRequest(
+                tenant_id=tenant_id,
+                endpoint_key=f"{request.method.upper()} {request.url.path}",
+                idempotency_key=idem_key,
+                request_fingerprint=fingerprint,
+            )
+
+            try:
                 replay = service.check_replay(idem_request)
                 if replay is not None:
                     return JSONResponse(
@@ -281,16 +279,10 @@ def add_tenant_enforcement_middleware(app: FastAPI) -> None:
     class _TenantEnforcementMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
             path = request.url.path
-            try:
-                from value_fabric.shared.boundaries.tenant_boundary import (
-                    get_tenant_context,
-                )
-                ctx = get_tenant_context()
-                tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else None
-            except Exception:  # noqa: BLE001
-                import logging
-                logging.getLogger(__name__).debug("Failed to extract tenant context in enforcement middleware")
-                tenant_id = None
+            from value_fabric.shared.boundaries.tenant_boundary import get_tenant_context
+
+            ctx = get_tenant_context()
+            tenant_id = str(ctx.tenant_id) if ctx and ctx.tenant_id else None
 
             if tenant_id is None:
                 allowed = record_enforcement_decision(

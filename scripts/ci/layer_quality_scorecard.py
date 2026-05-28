@@ -147,7 +147,7 @@ def main() -> int:
         "|---|---:|---:|---|",
     ]
     for layer, data in report["layers"].items():
-        emoji = "✅" if data["status"] == "pass" else "❌"
+        emoji = "PASS" if data["status"] == "pass" else "FAIL"
         lines.append(
             f"| {layer} | {data['score']} | {data['passed_checks']}/{data['total_checks']} | {emoji} {data['status']} |"
         )

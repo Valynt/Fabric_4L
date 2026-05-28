@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """SQLAlchemy model for persistent API keys.
 
 Persists what was previously stored only in L3's in-memory APIKeyManager,
 adding tenant_id scoping, issuing user, and HMAC-SHA256 key hashing.
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for tenant LLM budget guardrails."""
 
-from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Auth and governance test infrastructure for Layer 4 Agents tests.
 
 This module provides reusable fixtures and utilities for testing auth/governance
 behavior without bypassing security or weakening production middleware.
 """
 
-from __future__ import annotations
 
 from typing import Any, Callable, Optional
 from unittest.mock import MagicMock, patch

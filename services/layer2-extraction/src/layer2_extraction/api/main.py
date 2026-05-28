@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
 """FastAPI application for Layer 2: Extraction Pipeline.
 
 Provides REST API endpoints for:
@@ -26,7 +27,7 @@ try:
 except ImportError:
     psutil = None  # type: ignore[assignment]  # Health check will work without system metrics
 
-from fastapi import BackgroundTasks, FastAPI, HTTPException, Query, Request
+from fastapi import BackgroundTasks, FastAPI, Query, Request
 from fastapi.responses import Response, StreamingResponse
 from pydantic import BaseModel, Field
 
@@ -672,22 +673,16 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
 def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
     """Require authenticated tenant context and fail closed when missing."""
     if tenant_id is None:
-        raise HTTPException(
-            status_code=403,
-            detail={
+        raise AuthorizationError(message = "Request failed", details = {
                 "code": "tenant_context_required",
                 "message": f"Authenticated tenant context is required for {operation}.",
-            },
-        )
+            })
     normalized = str(tenant_id).strip()
     if not normalized:
-        raise HTTPException(
-            status_code=403,
-            detail={
+        raise AuthorizationError(message = "Request failed", details = {
                 "code": "tenant_context_required",
                 "message": f"Authenticated tenant context is required for {operation}.",
-            },
-        )
+            })
     return normalized
 
 async def run_extraction(
@@ -742,15 +737,15 @@ async def run_extraction(
     # Validate required telemetry context fields - no empty string fallbacks
     model_version = config.get("model_version") or os.getenv("EXTRACTION_MODEL")
     if not model_version:
-        raise HTTPException(status_code=400, detail="model_version is required in extraction_config or EXTRACTION_MODEL env var")
+        raise ValidationError(message = "model_version is required in extraction_config or EXTRACTION_MODEL env var")
     
     schema_version = config.get("schema_version")
     if not schema_version:
-        raise HTTPException(status_code=400, detail="schema_version is required in extraction_config")
+        raise ValidationError(message = "schema_version is required in extraction_config")
     
     prompt_version = config.get("prompt_version")
     if not prompt_version:
-        raise HTTPException(status_code=400, detail="prompt_version is required in extraction_config")
+        raise ValidationError(message = "prompt_version is required in extraction_config")
     
     telemetry_context = {
         "tenant_id": tenant_id,
@@ -1336,7 +1331,7 @@ async def health_check():
 async def metrics_endpoint(request: Request):
     """Prometheus metrics endpoint."""
     if not verify_metrics_access(request):
-        raise HTTPException(status_code=403, detail="Metrics endpoint requires internal access")
+        raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
     metrics = get_metrics()
 
@@ -1490,7 +1485,7 @@ async def get_extraction_status(job_id: str):
     """Get status of a combined extraction and ingestion job."""
     job = await job_store.get(job_id)
     if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     return _pipeline_response(job)
 
@@ -1501,7 +1496,7 @@ async def get_quarantine_status(job_id: str, ctx: RequestContext):
     tenant_id = str(ctx.tenant_id)
     record = await quarantine_store.get_by_job(tenant_id=tenant_id, job_id=job_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Quarantine record not found")
+        raise NotFoundError(message = "Quarantine record not found")
     return QuarantineStatusResponse.model_validate(record.model_dump())
 
 
@@ -1569,7 +1564,7 @@ async def get_provenance(
     activity = tracker.get_activity(job_id)
 
     if not activity:
-        raise HTTPException(status_code=404, detail="Job not found")
+        raise NotFoundError(message = "Job not found")
 
     chain = activity.get_provenance_chain()
 
@@ -1591,7 +1586,7 @@ async def get_entity_provenance(
     chain = tracker.get_provenance_for_entity(entity_id)
 
     if not chain:
-        raise HTTPException(status_code=404, detail="Entity provenance not found")
+        raise NotFoundError(message = "Entity provenance not found")
 
     return chain
 
@@ -1753,7 +1748,7 @@ async def stream_job_events(job_id: str):
     """
 
     if not await job_store.exists(job_id):
-        raise HTTPException(status_code=404, detail=f"Job {job_id} not found")
+        raise NotFoundError(message = str(f"Job {job_id} not found"))
 
     return StreamingResponse(
         _job_event_generator(job_id),

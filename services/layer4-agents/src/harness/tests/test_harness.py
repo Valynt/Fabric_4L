@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Comprehensive test suite for the Fabric_4L Harness.
 
@@ -14,7 +16,6 @@ Covers:
 All tests must prove behavior, not just imports.
 """
 
-from __future__ import annotations
 
 # Ensure harness is importable
 import sys

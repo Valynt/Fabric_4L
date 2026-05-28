@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Quality gate for validating fast path extraction results.
 
 Evaluates HTTPX fetch results to determine if content meets quality
 thresholds or requires fallback to browser path.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from typing import Any

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Contract tests for frontend-consumed Layer 4 endpoints.
 
 Prevents drift between frontend API clients and backend endpoint contracts.
 """
 
-from __future__ import annotations
 
 import pytest
 

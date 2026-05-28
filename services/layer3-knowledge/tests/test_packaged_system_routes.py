@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Packaged-app proof tests for extracted Layer 3 operational routes."""
 
-from __future__ import annotations
 
 from typing import Any
 

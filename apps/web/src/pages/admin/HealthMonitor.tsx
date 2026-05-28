@@ -45,25 +45,25 @@ const STATUS_CONFIG: Record<ServiceStatus, {
   healthy: {
     label: "Healthy",
     color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    bgColor: "bg-emerald-500/10",
     icon: <CheckCircle2 size={16} />,
   },
   degraded: {
     label: "Degraded",
     color: "text-amber-600",
-    bgColor: "bg-amber-50",
+    bgColor: "bg-amber-500/10",
     icon: <AlertTriangle size={16} />,
   },
   unhealthy: {
     label: "Unhealthy",
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
     icon: <XCircle size={16} />,
   },
   unknown: {
     label: "Unknown",
-    color: "text-neutral-500",
-    bgColor: "bg-neutral-100",
+    color: "text-muted-foreground",
+    bgColor: "bg-muted",
     icon: <AlertCircle size={16} />,
   },
 };
@@ -74,18 +74,18 @@ const ALERT_SEVERITY_CONFIG: Record<HealthAlert['severity'], {
   icon: React.ReactNode;
 }> = {
   critical: {
-    color: "text-red-600",
-    bgColor: "bg-red-50",
+    color: "text-destructive",
+    bgColor: "bg-destructive/10",
     icon: <XCircle size={14} />,
   },
   warning: {
     color: "text-amber-600",
-    bgColor: "bg-amber-50",
+    bgColor: "bg-amber-500/10",
     icon: <AlertTriangle size={14} />,
   },
   info: {
-    color: "text-blue-600",
-    bgColor: "bg-blue-50",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
     icon: <Bell size={14} />,
   },
 };
@@ -131,7 +131,7 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
   const icon = SERVICE_ICONS[service.name] || <Server size={18} />;
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl p-4 hover:border-neutral-300 transition-colors">
+    <div className="bg-card border border-border rounded-xl p-4 hover:border-primary transition-colors">
       <div className="flex items-start justify-between mb-3">
         <div className="flex items-center gap-3">
           <div className={cn(
@@ -141,10 +141,10 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
             {icon}
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">
+            <h4 className="text-[13px] font-semibold text-foreground">
               {service.name.replace(/-/g, ' ').replace(/^l\d-/, 'L$1 ')}
             </h4>
-            <p className="text-[11px] text-neutral-500">v{service.version}</p>
+            <p className="text-[11px] text-muted-foreground">v{service.version}</p>
           </div>
         </div>
         <span className={cn(
@@ -156,17 +156,17 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
       </div>
 
       <div className="grid grid-cols-2 gap-3 text-[11px]">
-        <div className="bg-neutral-50 rounded-lg p-2">
-          <span className="text-neutral-400 block">Uptime</span>
-          <span className="text-neutral-700 font-medium">
+        <div className="bg-muted rounded-lg p-2">
+          <span className="text-muted-foreground block">Uptime</span>
+          <span className="text-foreground font-medium">
             {formatDuration(service.uptime_seconds)}
           </span>
         </div>
-        <div className="bg-neutral-50 rounded-lg p-2">
-          <span className="text-neutral-400 block">Response</span>
+        <div className="bg-muted rounded-lg p-2">
+          <span className="text-muted-foreground block">Response</span>
           <span className={cn(
             "font-medium",
-            service.response_time_ms > 1000 ? "text-amber-600" : "text-neutral-700"
+            service.response_time_ms > 1000 ? "text-amber-600" : "text-foreground"
           )}>
             {service.response_time_ms}ms
           </span>
@@ -174,14 +174,14 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
       </div>
 
       {service.error_message && (
-        <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded-lg text-[11px] text-red-600">
+        <div className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive">
           {service.error_message}
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between text-[10px] text-neutral-400">
+      <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
         <span>Last check: {formatTimeAgo(service.last_check_at)}</span>
-        <button className="text-blue-600 hover:underline flex items-center gap-0.5">
+        <button className="text-primary hover:underline flex items-center gap-0.5">
           Details <ExternalLink size={10} />
         </button>
       </div>
@@ -196,7 +196,7 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
     <div className={cn(
       "flex items-start gap-3 p-3 rounded-lg border",
       alert.resolved_at
-        ? "bg-neutral-50 border-neutral-200 opacity-60"
+        ? "bg-muted border-border opacity-60"
         : severity.bgColor.replace('bg-', 'bg-opacity-50 bg-') + " " + severity.bgColor.replace('bg-', 'border-')
     )}>
       <span className={cn("shrink-0 mt-0.5", severity.color)}>
@@ -204,7 +204,7 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-medium text-neutral-800">
+          <span className="text-[12px] font-medium text-foreground">
             {alert.service_name}
           </span>
           <span className={cn(
@@ -214,10 +214,10 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
             {alert.severity}
           </span>
         </div>
-        <p className="text-[11px] text-neutral-600 mt-0.5 truncate">
+        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
           {alert.message}
         </p>
-        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-neutral-400">
+        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
           <span>Started: {formatTimeAgo(alert.started_at)}</span>
           {alert.resolved_at && (
             <span className="text-emerald-600">
@@ -244,10 +244,10 @@ function SummaryCard({
   const config = STATUS_CONFIG[status];
 
   return (
-    <div className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+    <div className="bg-card border border-border rounded-xl px-4 py-3">
       <div className="flex items-center gap-2 mb-1">
         <span className={config.color}>{icon}</span>
-        <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
+        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
           {label}
         </span>
       </div>
@@ -343,19 +343,19 @@ function HealthMonitorContent() {
   if (error) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-red-800 mb-1">
+              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">
                 Failed to load health data
               </h3>
-              <p className="text-[12px] text-red-600">
+              <p className="text-[12px] text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button
                 onClick={handleRefresh}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 text-[12px] font-medium rounded-lg hover:bg-red-200 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -369,9 +369,9 @@ function HealthMonitorContent() {
   if (!health) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-          <h3 className="text-[14px] font-semibold text-amber-800">No Health Data</h3>
-          <p className="text-[12px] text-amber-600 mt-1">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
+          <h3 className="text-[14px] font-semibold text-amber-900 dark:text-amber-100">No Health Data</h3>
+          <p className="text-[12px] text-amber-700 dark:text-amber-300 mt-1">
             System health information is unavailable. Please check the API status.
           </p>
         </div>
@@ -390,7 +390,7 @@ function HealthMonitorContent() {
           subtitle="Monitor real-time status of all platform services"
         />
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-neutral-400">
+          <span className="text-[11px] text-muted-foreground">
             Updated {lastUpdated}
           </span>
           <Btn variant="outline" onClick={handleRefresh}>
@@ -405,22 +405,22 @@ function HealthMonitorContent() {
         "mb-6 p-4 rounded-xl border flex items-center gap-3",
         overallStatus.bgColor, overallStatus.bgColor.replace('bg-', 'border-')
       )}>
-        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center bg-white", overallStatus.color)}>
+        <div className={cn("w-12 h-12 rounded-full flex items-center justify-center bg-card", overallStatus.color)}>
           {overallStatus.icon}
         </div>
         <div className="flex-1">
           <h3 className={cn("text-[16px] font-bold", overallStatus.color)}>
             System {overallStatus.label}
           </h3>
-          <p className="text-[12px] text-neutral-600">
+          <p className="text-[12px] text-muted-foreground">
             {health.summary.healthy} of {health.summary.total} services operating normally
             {health.summary.degraded > 0 && ` • ${health.summary.degraded} degraded`}
             {health.summary.unhealthy > 0 && ` • ${health.summary.unhealthy} unhealthy`}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] text-neutral-400">Last check</p>
-          <p className="text-[12px] font-medium text-neutral-700">
+          <p className="text-[11px] text-muted-foreground">Last check</p>
+          <p className="text-[12px] font-medium text-foreground">
             {formatTimeAgo(health.checked_at)}
           </p>
         </div>
@@ -457,13 +457,13 @@ function HealthMonitorContent() {
       {/* Services Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] font-semibold text-neutral-800">Services</h3>
+          <h3 className="text-[14px] font-semibold text-foreground">Services</h3>
           <div className="flex items-center gap-2">
-            <Filter size={14} className="text-neutral-400" />
+            <Filter size={14} className="text-muted-foreground" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as FilterStatus)}
-              className="text-[11px] px-2 py-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none"
+              className="text-[11px] px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
             >
               <option value="all">All Status</option>
               <option value="healthy">Healthy</option>
@@ -480,8 +480,8 @@ function HealthMonitorContent() {
         </div>
 
         {filteredServices.length === 0 && (
-          <div className="text-center py-8 text-neutral-400 text-[12px]">
-            <Server size={32} className="mx-auto mb-2 text-neutral-300" />
+          <div className="text-center py-8 text-muted-foreground text-[12px]">
+            <Server size={32} className="mx-auto mb-2 text-muted-foreground/50" />
             No services match the selected filter.
           </div>
         )}
@@ -490,23 +490,23 @@ function HealthMonitorContent() {
       {/* Alerts Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] font-semibold text-neutral-800">
+          <h3 className="text-[14px] font-semibold text-foreground">
             Active Alerts {filteredAlerts.length > 0 && `(${filteredAlerts.length})`}
           </h3>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-neutral-600">
+            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
               <input
                 type="checkbox"
                 checked={showResolved}
                 onChange={(e) => setShowResolved(e.target.checked)}
-                className="rounded border-neutral-300"
+                className="rounded border-border"
               />
               Show resolved
             </label>
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value as AlertSeverity)}
-              className="text-[11px] px-2 py-1.5 border border-neutral-200 rounded-lg bg-white text-neutral-600 outline-none"
+              className="text-[11px] px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
             >
               <option value="all">All Severities</option>
               <option value="critical">Critical</option>
@@ -523,8 +523,8 @@ function HealthMonitorContent() {
         </div>
 
         {filteredAlerts.length === 0 && (
-          <div className="text-center py-8 text-neutral-400 text-[12px]">
-            <Bell size={32} className="mx-auto mb-2 text-neutral-300" />
+          <div className="text-center py-8 text-muted-foreground text-[12px]">
+            <Bell size={32} className="mx-auto mb-2 text-muted-foreground/50" />
             {showResolved ? "No alerts found." : "No active alerts. Great!"}
           </div>
         )}

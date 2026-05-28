@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Plan and feature configuration for billing bootstrap defaults.
 
 This module is intended for defaults/bootstrapping only.
 Production billing should use persisted, versioned plan configuration.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum as PyEnum

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Message router for intelligent message routing.
 
 Provides routing logic for:
@@ -6,7 +8,6 @@ Provides routing logic for:
 - Workflow-aware message routing
 """
 
-from __future__ import annotations
 
 import logging
 import random

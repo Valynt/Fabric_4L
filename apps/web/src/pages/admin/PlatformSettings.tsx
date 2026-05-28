@@ -72,19 +72,19 @@ function FeatureToggle({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex items-start justify-between p-4 bg-white border border-neutral-200 rounded-xl">
+    <div className="flex items-start justify-between p-4 bg-card border border-border rounded-xl">
       <div className="flex items-start gap-3">
         <div className={cn(
           "w-10 h-10 rounded-lg flex items-center justify-center shrink-0",
-          enabled ? "bg-blue-50 text-blue-600" : "bg-neutral-100 text-neutral-400"
+          enabled ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
         )}>
           {FEATURE_ICONS[feature]}
         </div>
         <div>
-          <h4 className="text-[13px] font-semibold text-neutral-800 capitalize">
+          <h4 className="text-[13px] font-semibold text-foreground capitalize">
             {feature.replace('_', ' ')}
           </h4>
-          <p className="text-[11px] text-neutral-500 mt-0.5">
+          <p className="text-[11px] text-muted-foreground mt-0.5">
             {FEATURE_DESCRIPTIONS[feature]}
           </p>
         </div>
@@ -113,14 +113,14 @@ function NotificationsPanel({
   return (
     <div className="space-y-4">
       {/* Email Alerts Toggle */}
-      <div className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Bell size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Email Alerts</h4>
-            <p className="text-[11px] text-neutral-500">Receive notifications via email</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Email Alerts</h4>
+            <p className="text-[11px] text-muted-foreground">Receive notifications via email</p>
           </div>
         </div>
         <Switch
@@ -131,14 +131,14 @@ function NotificationsPanel({
       </div>
 
       {/* Slack Webhook */}
-      <div className="p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-purple-500/10 text-purple-600 flex items-center justify-center shrink-0">
             <ExternalLink size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Slack Integration</h4>
-            <p className="text-[11px] text-neutral-500">Post alerts to Slack channel</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Slack Integration</h4>
+            <p className="text-[11px] text-muted-foreground">Post alerts to Slack channel</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -147,7 +147,7 @@ function NotificationsPanel({
             value={localSlack}
             onChange={(e) => setLocalSlack(e.target.value)}
             placeholder="https://hooks.slack.com/services/..."
-            className="flex-1 px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="flex-1 px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <Btn
             variant="outline"
@@ -160,14 +160,14 @@ function NotificationsPanel({
       </div>
 
       {/* Custom Webhook */}
-      <div className="p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-violet-50 text-violet-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-violet-500/10 text-violet-600 flex items-center justify-center shrink-0">
             <ExternalLink size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Custom Webhook</h4>
-            <p className="text-[11px] text-neutral-500">POST events to custom URL</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Custom Webhook</h4>
+            <p className="text-[11px] text-muted-foreground">POST events to custom URL</p>
           </div>
         </div>
         <div className="flex gap-2">
@@ -176,7 +176,7 @@ function NotificationsPanel({
             value={localWebhook}
             onChange={(e) => setLocalWebhook(e.target.value)}
             placeholder="https://your-domain.com/webhook"
-            className="flex-1 px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="flex-1 px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <Btn
             variant="outline"
@@ -217,14 +217,14 @@ function SecurityPanel({
   return (
     <div className="space-y-4">
       {/* 2FA Toggle */}
-      <div className="flex items-center justify-between p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-emerald-500/10 text-emerald-600 flex items-center justify-center shrink-0">
             <Shield size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Require Two-Factor Auth</h4>
-            <p className="text-[11px] text-neutral-500">Mandate 2FA for all tenant users</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Require Two-Factor Auth</h4>
+            <p className="text-[11px] text-muted-foreground">Mandate 2FA for all tenant users</p>
           </div>
         </div>
         <Switch
@@ -235,14 +235,14 @@ function SecurityPanel({
       </div>
 
       {/* Session Timeout */}
-      <div className="p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 text-amber-600 flex items-center justify-center shrink-0">
             <Users size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Session Timeout</h4>
-            <p className="text-[11px] text-neutral-500">Auto-logout after inactivity</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Session Timeout</h4>
+            <p className="text-[11px] text-muted-foreground">Auto-logout after inactivity</p>
           </div>
         </div>
         <div className="flex items-center gap-4">
@@ -255,7 +255,7 @@ function SecurityPanel({
             onChange={(e) => setLocalTimeout(parseInt(e.target.value))}
             className="flex-1"
           />
-          <span className="text-[13px] font-medium text-neutral-700 w-24">
+          <span className="text-[13px] font-medium text-foreground w-24">
             {localTimeout} min
           </span>
           <Btn
@@ -269,14 +269,14 @@ function SecurityPanel({
       </div>
 
       {/* IP Allowlist */}
-      <div className="p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Shield size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">IP Allowlist</h4>
-            <p className="text-[11px] text-neutral-500">Restrict access to specific IPs (empty = allow all)</p>
+            <h4 className="text-[13px] font-semibold text-foreground">IP Allowlist</h4>
+            <p className="text-[11px] text-muted-foreground">Restrict access to specific IPs (empty = allow all)</p>
           </div>
         </div>
         <div className="flex gap-2 mb-3">
@@ -285,7 +285,7 @@ function SecurityPanel({
             value={newIp}
             onChange={(e) => setNewIp(e.target.value)}
             placeholder="192.168.1.1 or 10.0.0.0/8"
-            className="flex-1 px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="flex-1 px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             onKeyDown={(e) => e.key === 'Enter' && addIp()}
           />
           <Btn variant="outline" onClick={addIp} disabled={!newIp}>
@@ -297,12 +297,12 @@ function SecurityPanel({
             {settings.ip_allowlist.map(ip => (
               <span
                 key={ip}
-                className="inline-flex items-center gap-1 px-2 py-1 bg-blue-50 text-blue-700 text-[11px] rounded-lg"
+                className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary text-[11px] rounded-lg"
               >
                 {ip}
                 <button
                   onClick={() => removeIp(ip)}
-                  className="hover:text-blue-900"
+                  className="hover:text-primary/80"
                   disabled={isPending}
                 >
                   ×
@@ -331,20 +331,20 @@ function BrandingPanel({
 
   return (
     <div className="space-y-4">
-      <div className="p-4 bg-white border border-neutral-200 rounded-xl">
+      <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-pink-50 text-pink-600 flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-pink-500/10 text-pink-600 flex items-center justify-center shrink-0">
             <Palette size={16} />
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-neutral-800">Custom Branding</h4>
-            <p className="text-[11px] text-neutral-500">Customize your tenant appearance</p>
+            <h4 className="text-[13px] font-semibold text-foreground">Custom Branding</h4>
+            <p className="text-[11px] text-muted-foreground">Customize your tenant appearance</p>
           </div>
         </div>
 
         {/* Logo URL */}
         <div className="mb-4">
-          <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+          <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
             Logo URL
           </label>
           <div className="flex gap-2">
@@ -353,14 +353,14 @@ function BrandingPanel({
               value={localLogo}
               onChange={(e) => setLocalLogo(e.target.value)}
               placeholder="https://cdn.example.com/logo.png"
-              className="flex-1 px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              className="flex-1 px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             />
           </div>
         </div>
 
         {/* Primary Color */}
         <div className="mb-4">
-          <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+          <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
             Primary Color
           </label>
           <div className="flex items-center gap-3">
@@ -368,20 +368,20 @@ function BrandingPanel({
               type="color"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
-              className="w-10 h-10 rounded-lg border border-neutral-200 cursor-pointer"
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer"
             />
             <input
               type="text"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
-              className="flex-1 px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 font-mono"
+              className="flex-1 px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
             />
           </div>
         </div>
 
         {/* Favicon URL */}
         <div className="mb-4">
-          <label className="block text-[11px] font-medium text-neutral-600 mb-1.5">
+          <label className="block text-[11px] font-medium text-muted-foreground mb-1.5">
             Favicon URL
           </label>
           <input
@@ -389,7 +389,7 @@ function BrandingPanel({
             value={localFavicon}
             onChange={(e) => setLocalFavicon(e.target.value)}
             placeholder="https://cdn.example.com/favicon.ico"
-            className="w-full px-3 py-2 text-[12px] border border-neutral-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="w-full px-3 py-2 text-[12px] border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -422,7 +422,7 @@ function PlatformSettingsSkeleton() {
       </div>
 
       {/* Tabs Skeleton */}
-      <div className="flex items-center gap-1 border-b border-neutral-200 mb-6">
+      <div className="flex items-center gap-1 border-b border-border mb-6">
         {[1, 2, 3, 4].map(i => (
           <Skeleton key={i} className="h-10 w-24 mx-1" />
         ))}
@@ -431,7 +431,7 @@ function PlatformSettingsSkeleton() {
       {/* Content Skeleton */}
       <div className="space-y-4">
         {[1, 2, 3].map(i => (
-          <div key={i} className="bg-white border border-neutral-200 rounded-xl p-4">
+          <div key={i} className="bg-card border border-border rounded-xl p-4">
             <div className="flex items-start gap-4">
               <Skeleton className="h-10 w-10 rounded-lg" />
               <div className="flex-1">
@@ -496,19 +496,19 @@ function PlatformSettingsContent() {
   if (error) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-red-800 mb-1">
+              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">
                 Failed to load platform settings
               </h3>
-              <p className="text-[12px] text-red-600">
+              <p className="text-[12px] text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 text-[12px] font-medium rounded-lg hover:bg-red-200 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -522,9 +522,9 @@ function PlatformSettingsContent() {
   if (!settings) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-amber-50 border border-amber-200 rounded-xl p-6">
-          <h3 className="text-[14px] font-semibold text-amber-800">No Settings Available</h3>
-          <p className="text-[12px] text-amber-600 mt-1">
+        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
+          <h3 className="text-[14px] font-semibold text-amber-900 dark:text-amber-100">No Settings Available</h3>
+          <p className="text-[12px] text-amber-700 dark:text-amber-300 mt-1">
             Platform settings could not be loaded. Please contact support.
           </p>
         </div>
@@ -542,7 +542,7 @@ function PlatformSettingsContent() {
         />
         <div className="flex items-center gap-2">
           {saveSuccess && (
-            <span className="flex items-center gap-1 text-[12px] text-emerald-600">
+            <span className="flex items-center gap-1 text-[12px] text-emerald-600 dark:text-emerald-400">
               <CheckCircle2 size={14} /> Saved
             </span>
           )}
@@ -570,21 +570,21 @@ function PlatformSettingsContent() {
             { label: "Daily API Limit", value: formatNumber(settings.limits.max_api_calls_per_day), icon: <Database size={14} /> },
             { label: "Storage", value: `${settings.limits.storage_gb} GB`, icon: <Database size={14} /> },
           ].map(s => (
-            <div key={s.label} className="bg-white border border-neutral-200 rounded-xl px-4 py-3">
+            <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-neutral-500">{s.icon}</span>
-                <span className="text-[10px] uppercase tracking-wider text-neutral-400 font-semibold">
+                <span className="text-muted-foreground">{s.icon}</span>
+                <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
                   {s.label}
                 </span>
               </div>
-              <p className="text-[22px] font-extrabold text-neutral-800">{s.value}</p>
+              <p className="text-[22px] font-extrabold text-foreground">{s.value}</p>
             </div>
           ))}
         </div>
       )}
 
       {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-neutral-200 mb-6">
+      <div className="flex items-center gap-1 border-b border-border mb-6">
         {[
           { id: "features" as const, label: "Features", icon: <Zap size={13} /> },
           { id: "notifications" as const, label: "Notifications", icon: <Bell size={13} /> },
@@ -597,13 +597,13 @@ function PlatformSettingsContent() {
             className={cn(
               "px-4 py-2.5 text-[12px] font-medium transition-colors relative flex items-center gap-2",
               activeTab === tab.id
-                ? "text-blue-700"
-                : "text-neutral-500 hover:text-neutral-700"
+                ? "text-primary"
+                : "text-muted-foreground hover:text-foreground"
             )}
           >
             {tab.icon} {tab.label}
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
             )}
           </button>
         ))}

@@ -91,3 +91,32 @@ def test_gate_treats_placeholder_as_safe(tmp_path, monkeypatch) -> None:
 
     rc = mod.main(["--enforce", "--quiet"])
     assert rc == 0
+
+
+def test_gate_detects_k8s_env_array_literal(tmp_path, monkeypatch) -> None:
+    mod = _load_module()
+    f = tmp_path / "k8s" / "deployment.yml"
+    f.parent.mkdir(parents=True, exist_ok=True)
+    f.write_text(
+        "apiVersion: apps/v1\n"
+        "spec:\n"
+        "  template:\n"
+        "    spec:\n"
+        "      containers:\n"
+        "        - name: api\n"
+        "          env:\n"
+        "            - name: POSTGRES_PASSWORD\n"
+        "              value: hunter2hardcoded\n"
+        "            - name: SAFE_VAR\n"
+        "              value: ${SAFE_VAR}\n",
+        encoding="utf-8",
+    )
+    baseline = tmp_path / "config" / "ci" / "infra_secret_baseline.txt"
+    baseline.parent.mkdir(parents=True, exist_ok=True)
+    baseline.write_text("# empty\n", encoding="utf-8")
+
+    monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+    monkeypatch.setattr(mod, "BASELINE_FILE", baseline)
+
+    rc = mod.main(["--enforce", "--quiet"])
+    assert rc == 1

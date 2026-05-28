@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for S2-07: Unsupported isolation tiers rejected at provisioning time.
 
 Verifies:
@@ -8,7 +10,6 @@ Verifies:
 - get_tiered_db_session raises 422 (not 501) for schema/database tiers
 """
 
-from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock
 

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Tenant management API routes (super_admin only).
 
 POST   /v1/tenants                          — create tenant
@@ -10,7 +13,6 @@ POST   /v1/tenants/{tenant_id}/activate     — activate tenant
 POST   /v1/tenants/{tenant_id}/status       — change status with reason
 """
 
-from __future__ import annotations
 
 import logging
 from uuid import UUID
@@ -78,7 +80,7 @@ async def api_get_current_tenant_settings(
 ) -> CurrentTenantSettingsResponse:
     tenant = await get_tenant(db, ctx.tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail='Tenant not found')
+        raise NotFoundError(message = 'Tenant not found')
     settings = tenant.settings or {}
     tier_id = settings.get('tier_id', 'free')
     return CurrentTenantSettingsResponse(
@@ -102,7 +104,7 @@ async def api_update_current_tenant_settings(
 ) -> CurrentTenantSettingsUpdateResponse:
     tenant = await get_tenant(db, ctx.tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail='Tenant not found')
+        raise NotFoundError(message = 'Tenant not found')
 
     current_settings = tenant.settings or {}
     if update.settings:
@@ -173,7 +175,7 @@ async def api_get_tenant(
     """Get a tenant by ID. Requires ``super_admin`` role."""
     tenant = await get_tenant(db, tenant_id)
     if not tenant:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     return tenant
 
 
@@ -187,7 +189,7 @@ async def api_update_tenant(
     """Update a tenant. Requires ``super_admin`` role."""
     tenant = await update_tenant(db, tenant_id, request)
     if not tenant:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     return tenant
 
 
@@ -200,7 +202,7 @@ async def api_delete_tenant(
     """Soft-delete a tenant. Requires ``super_admin`` role."""
     deleted = await delete_tenant(db, tenant_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
 
 
 # ---------------------------------------------------------------------------
@@ -223,10 +225,10 @@ async def api_suspend_tenant(
             db, tenant_id, "suspended", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_suspend_conflict", error_code="TENANT_SUSPEND_ERROR")
+        logger.warning("tenant_suspend_conflict", extra={"error_code": "TENANT_SUSPEND_ERROR"})
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)
     return tenant
 
@@ -246,10 +248,10 @@ async def api_activate_tenant(
             db, tenant_id, "active", reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_activate_conflict", error_code="TENANT_ACTIVATE_ERROR")
+        logger.warning("tenant_activate_conflict", extra={"error_code": "TENANT_ACTIVATE_ERROR"})
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)
     return tenant
 
@@ -270,9 +272,9 @@ async def api_change_tenant_status(
             db, tenant_id, target_status, reason=reason, changed_by=changed_by,
         )
     except ValueError as e:
-        logger.warning("tenant_status_change_conflict", error_code="TENANT_STATUS_ERROR")
+        logger.warning("tenant_status_change_conflict", extra={"error_code": "TENANT_STATUS_ERROR"})
         raise HTTPException(status_code=409, detail="Invalid tenant status transition")
     if not updated:
-        raise HTTPException(status_code=404, detail=f"Tenant {tenant_id} not found")
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)
     return tenant

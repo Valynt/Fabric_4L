@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Pydantic schemas for Company Knowledge Onboarding API.
 
 Request/response models for profiles, sources, extraction records, and ICP.
 """
 
-from __future__ import annotations
 
 from datetime import datetime
 from typing import Any

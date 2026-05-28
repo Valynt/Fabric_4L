@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Durable business case records."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from uuid import UUID

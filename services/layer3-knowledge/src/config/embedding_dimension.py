@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Embedding dimension policy and validation helpers for Layer 3."""
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 

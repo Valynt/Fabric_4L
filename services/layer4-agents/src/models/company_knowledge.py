@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """SQLAlchemy models for Company Knowledge Onboarding.
 
 Stores the tenant's approved company knowledge profile, knowledge sources,
@@ -9,7 +11,6 @@ Architecture:
 - Layer 1/2 = upstream ingestion and extraction pipelines
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

@@ -37,8 +37,15 @@ export function DataTable<T>({
   // Ensure data is always an array to prevent runtime errors
   const safeData = data ?? [];
 
+  const handleKeyDown = (item: T, e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onRowClick?.(item);
+    }
+  };
+
   return (
-    <div className={cn("rounded-lg border border-border overflow-hidden", className)}>
+    <div className={cn("rounded-lg border border-border overflow-hidden overflow-x-auto", className)}>
       <Table>
         <TableHeader>
           <TableRow className="bg-muted/50 hover:bg-muted/50">
@@ -64,8 +71,11 @@ export function DataTable<T>({
               <TableRow
                 key={keyExtractor(item)}
                 onClick={() => onRowClick?.(item)}
+                onKeyDown={(e) => handleKeyDown(item, e)}
+                tabIndex={onRowClick ? 0 : -1}
+                role={onRowClick ? "button" : "row"}
                 className={cn(
-                  "h-12 border-t border-border hover:bg-muted/30 transition-colors",
+                  "h-12 border-t border-border hover:bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                   onRowClick && "cursor-pointer",
                   selectedKey === keyExtractor(item) && "bg-primary/5"
                 )}

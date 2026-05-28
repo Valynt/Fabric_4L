@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Competitive Intelligence Tools for Value Fabric Layer 4 Agents.
 
@@ -21,7 +23,6 @@ A competitive fact is only included if it affects:
   - capability delta  (EconomicDifferenceCategory.CAPABILITY_TO_OUTCOME)
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any

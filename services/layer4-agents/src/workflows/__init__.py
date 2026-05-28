@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Workflows package for Layer 4 Agentic Workflow Orchestrator."""
 
-from __future__ import annotations
 
 from typing import Any
 

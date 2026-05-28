@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 4: Agentic Workflow Engine for Value Fabric.
 
 LangGraph-powered workflow orchestration layer providing:
@@ -7,6 +9,5 @@ LangGraph-powered workflow orchestration layer providing:
 - 24+ tools for knowledge, calculation, CRM, and generation
 """
 
-from __future__ import annotations
 
 __version__ = "0.1.0"

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """L4 Ground Truth Proxy Routes
 
 Exposes L5 Ground Truth endpoints via L4 for frontend consumption.
@@ -13,7 +15,6 @@ Endpoints:
   GET    /v1/ground-truth/maturity-ladder           -> L5 GET /maturity-ladder
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any

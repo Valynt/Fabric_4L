@@ -1,8 +1,9 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
 """FastAPI authentication middleware and dependencies."""
 
 from collections.abc import Callable
 
-from fastapi import Depends, HTTPException, Request, Security
+from fastapi import Depends, Request, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
@@ -110,7 +111,7 @@ async def get_current_api_key(
         Authenticated API key or None
 
     Raises:
-        HTTPException: If authentication fails
+       : If authentication fails
     """
     # Check if already authenticated by middleware
     if hasattr(request.state, "authenticated") and request.state.authenticated:
@@ -130,15 +131,11 @@ async def get_current_api_key(
             api_key = request.headers.get("X-API-Key")
 
     if not api_key:
-        raise HTTPException(
-            status_code=401,
-            detail={
+        raise AuthenticationError(message = "Request failed", details = {
                 "error": "AUTHENTICATION_REQUIRED",
                 "message": "API key required for this endpoint",
                 "schemes": ["Bearer", "X-API-Key"],
-            },
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+            })
 
     # Authenticate API key
     auth_result = api_key_manager.authenticate_api_key(
@@ -146,11 +143,7 @@ async def get_current_api_key(
     )
 
     if not auth_result.success:
-        raise HTTPException(
-            status_code=401,
-            detail={"error": "AUTHENTICATION_FAILED", "message": auth_result.error},
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthenticationError(message = "Request failed", details = {"error": "AUTHENTICATION_FAILED", "message": auth_result.error})
 
     return auth_result.api_key
 
@@ -172,7 +165,7 @@ async def get_optional_api_key(
     """
     try:
         return await get_current_api_key(credentials, request, api_key_manager)
-    except HTTPException:
+    except:
         return None
 
 
@@ -192,15 +185,12 @@ def require_permission(permission: Permission):
     ) -> APIKey:
         """Check if API key has required permission."""
         if not api_key.has_permission(permission):
-            raise HTTPException(
-                status_code=403,
-                detail={
+            raise AuthorizationError(message = "Request failed", details = {
                     "error": "INSUFFICIENT_PERMISSIONS",
                     "message": f"Insufficient permissions. Required: {permission.value}",
                     "required_permission": permission.value,
                     "current_permissions": list(api_key.permissions),
-                },
-            )
+                })
 
         return api_key
 
@@ -222,15 +212,12 @@ def require_role(role: "Role"):
     ) -> APIKey:
         """Check if API key has required role."""
         if api_key.role != role:
-            raise HTTPException(
-                status_code=403,
-                detail={
+            raise AuthorizationError(message = "Request failed", details = {
                     "error": "INSUFFICIENT_ROLE",
                     "message": f"Insufficient role. Required: {role.value}",
                     "required_role": role.value,
                     "current_role": api_key.role.value,
-                },
-            )
+                })
 
         return api_key
 
@@ -252,15 +239,12 @@ def require_any_permission(*permissions: Permission):
     ) -> APIKey:
         """Check if API key has any of the required permissions."""
         if not any(api_key.has_permission(perm) for perm in permissions):
-            raise HTTPException(
-                status_code=403,
-                detail={
+            raise AuthorizationError(message = "Request failed", details = {
                     "error": "INSUFFICIENT_PERMISSIONS",
                     "message": f"Insufficient permissions. Required any of: {[p.value for p in permissions]}",
                     "required_permissions": [p.value for p in permissions],
                     "current_permissions": list(api_key.permissions),
-                },
-            )
+                })
 
         return api_key
 
@@ -286,16 +270,13 @@ def require_all_permissions(*permissions: Permission):
         ]
 
         if missing_permissions:
-            raise HTTPException(
-                status_code=403,
-                detail={
+            raise AuthorizationError(message = "Request failed", details = {
                     "error": "INSUFFICIENT_PERMISSIONS",
                     "message": f"Insufficient permissions. Missing: {[p.value for p in missing_permissions]}",
                     "required_permissions": [p.value for p in permissions],
                     "missing_permissions": [p.value for p in missing_permissions],
                     "current_permissions": list(api_key.permissions),
-                },
-            )
+                })
 
         return api_key
 

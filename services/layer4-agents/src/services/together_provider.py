@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Together.ai LLM provider.
 
 Uses the OpenAI-compatible API at https://api.together.ai/v1.
@@ -9,7 +11,6 @@ Together.ai does not support OpenAI's ``response_format: json_schema`` mode.
 parse, which is sufficient for all Layer 4 extraction prompts.
 """
 
-from __future__ import annotations
 
 import json
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Harness Registry — coordinates runs, checkpoints, gates, and validation.
 
@@ -5,7 +7,6 @@ This is the top-level orchestrator that ties together all harness components.
 It does not replace individual layers but governs how they interact.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

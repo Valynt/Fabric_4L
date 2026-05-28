@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Tenant context management for multi-tenancy.
 
 Provides thread-safe tenant context storage and retrieval.
 """
 
-from __future__ import annotations
 
 from contextvars import ContextVar
 from dataclasses import dataclass

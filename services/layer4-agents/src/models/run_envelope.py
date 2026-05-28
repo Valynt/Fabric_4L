@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Canonical run envelope for uniform run identity across Layer 4 surfaces.
 
 Provides a single, explicit run-ID contract enforced across all workflow types,
 logs, checkpoints, and output envelopes. run_id is distinct from workflow_id.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

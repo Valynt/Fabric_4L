@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """OSS-0 characterization tests for L3 cache behavior.
 
 These tests freeze observable cache-manager and request-deduplication behavior before
 future OSS-backed cache implementations are introduced behind CachePort.
 """
 
-from __future__ import annotations
 
 import asyncio
 from typing import Any

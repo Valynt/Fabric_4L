@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for BillingService and billing API routes.
 
@@ -9,7 +11,6 @@ Covers:
 - Plan configuration
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch

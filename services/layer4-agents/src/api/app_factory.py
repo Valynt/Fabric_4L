@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Layer 4 FastAPI application factory."""
 
-from __future__ import annotations
 
 import logging
 

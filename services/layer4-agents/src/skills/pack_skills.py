@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Value Pack skill family for Layer 4 Agents.
 
 Skills for pack discovery, loading, execution, and customization.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass
 from typing import Any

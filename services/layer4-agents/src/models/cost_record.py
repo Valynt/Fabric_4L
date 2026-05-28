@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """CostRecord model for LLM usage tracking.
 
 Captures token consumption and calculated cost for a single inference call.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Phase 3 tests: Tier enforcement, usage tracking, and admin dashboard.
 
 Tests are organized into three groups:
@@ -10,7 +12,6 @@ Tests are designed to FAIL initially until the application code is
 correctly wired — per Agent Workflow Testing Best Practices.
 """
 
-from __future__ import annotations
 
 import asyncio
 from datetime import UTC, datetime, timedelta

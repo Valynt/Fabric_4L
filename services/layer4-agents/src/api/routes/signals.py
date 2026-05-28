@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import ValidationError
 """Signal API routes for operational pain signal management.
 
 Provides REST API endpoints for:
@@ -6,7 +9,6 @@ Provides REST API endpoints for:
 - WebSocket streaming for real-time signal discovery
 """
 
-from __future__ import annotations
 
 import logging
 import os
@@ -358,7 +360,7 @@ async def review_signal(
 ) -> SignalReviewResponse:
     """Review a signal and persist reviewer metadata/timestamp."""
     if request.review_status not in {"approved", "rejected"}:
-        raise HTTPException(status_code=400, detail="review_status must be approved or rejected")
+        raise ValidationError(message = "review_status must be approved or rejected")
 
     reviewed_at = datetime.now(UTC).isoformat()
     _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
@@ -587,7 +589,7 @@ async def decide_evidence(
     ctx: RequestContext = Depends(require_authenticated),
 ) -> EvidenceDecisionResponse:
     if request.decision not in {"accepted", "rejected"}:
-        raise HTTPException(status_code=400, detail="decision must be accepted or rejected")
+        raise ValidationError(message = "decision must be accepted or rejected")
     now = datetime.now(UTC).isoformat()
     _l3_url = os.getenv("LAYER3_URL", "http://layer3-knowledge:8000")
     async with Layer3Client(base_url=_l3_url) as client:

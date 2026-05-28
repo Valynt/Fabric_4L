@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Value Hypothesis Engine — Data Intelligence Layer Phase 2, Task 2.1.
 
@@ -21,7 +23,6 @@ Architecture:
     and may invoke LLM-based enrichment for hypothesis text generation
 """
 
-from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass, field

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Invoice and charge management service.
 
 Handles invoice generation, retrieval, payment tracking, and charge records.
 Integrates with Stripe for invoice synchronization and payment processing.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

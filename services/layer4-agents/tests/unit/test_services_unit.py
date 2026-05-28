@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """
 Unit tests for Neo4jValuePackService._increment_version and BusinessCaseService.
 
 Tests the pure-Python helpers that require no external dependencies.
 """
 
-from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, patch
 from uuid import UUID, uuid4

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Integration-ish tests for deterministic claim promotion into Layer 5."""
 
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import AsyncMock

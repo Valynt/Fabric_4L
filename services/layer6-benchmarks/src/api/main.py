@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Layer 6 Benchmark Service FastAPI application."""
 
-from __future__ import annotations
 
 import logging
 import os
@@ -10,7 +12,7 @@ from decimal import Decimal
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from fastapi import Depends, FastAPI, HTTPException, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.responses import Response
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
@@ -273,7 +275,7 @@ except ImportError:
 @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
 async def metrics_endpoint(request: Request):
     if not verify_metrics_access(request):
-        raise HTTPException(status_code=403, detail="Metrics endpoint requires internal access")
+        raise AuthorizationError(message = "Metrics endpoint requires internal access")
 
     metrics = get_metrics()
     if metrics is None:
@@ -299,13 +301,13 @@ async def metrics_endpoint(request: Request):
 
 def _require_tenant_id(ctx: RequestContext | None) -> str:
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(status_code=401, detail="Tenant context required")
+        raise AuthenticationError(message = "Tenant context required")
     return str(ctx.tenant_id)
 
 
 def _assert_global_benchmark_admin(ctx: RequestContext) -> None:
     if not (ctx.is_super_admin() or ctx.has_role("system")):
-        raise HTTPException(status_code=403, detail="Global benchmark baselines require privileged admin role")
+        raise AuthorizationError(message = "Global benchmark baselines require privileged admin role")
 
 
 async def health_check(request: Request):
@@ -382,7 +384,7 @@ async def list_datasets(
 ):
     authorize_action("layer6.benchmarks.list", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(
         industry=industry,
@@ -409,11 +411,11 @@ async def list_datasets(
 async def get_dataset(dataset_id: str, ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.read", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(dataset_id, tenant_id=tenant_id)
     if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        raise NotFoundError(message = "Dataset not found")
 
     return DatasetDetail(
         dataset_id=dataset.dataset_id,
@@ -439,23 +441,23 @@ async def get_dataset(dataset_id: str, ctx: RequestContext = Depends(get_request
 async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.compare", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(payload.dataset_id, tenant_id=tenant_id)
     if not dataset:
         _record_compare_metric(industry=payload.industry, outcome="dataset_not_found")
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        raise NotFoundError(message = "Dataset not found")
 
     metric = dataset.get_metric(payload.metric)
     if not metric:
         _record_compare_metric(industry=dataset.industry, outcome="metric_not_found")
-        raise HTTPException(status_code=404, detail=f"Metric '{payload.metric}' not found")
+        raise NotFoundError(message = str(f"Metric '{payload.metric}' not found"))
 
     try:
         company_value = Decimal(payload.company_value)
     except Exception:
         _record_compare_metric(industry=dataset.industry, outcome="invalid_input")
-        raise HTTPException(status_code=400, detail="Invalid company_value format")
+        raise ValidationError(message = "Invalid company_value format")
 
     profile = metric.profile
     if company_value <= profile.p10:
@@ -503,20 +505,20 @@ async def compare(payload: ComparisonRequestPayload, ctx: RequestContext = Depen
 async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.validate", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     dataset = await _benchmark_repo.get_dataset(payload.dataset_id, tenant_id=tenant_id)
     if not dataset:
-        raise HTTPException(status_code=404, detail="Dataset not found")
+        raise NotFoundError(message = "Dataset not found")
 
     metric = dataset.get_metric(payload.metric)
     if not metric:
-        raise HTTPException(status_code=404, detail=f"Metric '{payload.metric}' not found")
+        raise NotFoundError(message = str(f"Metric '{payload.metric}' not found"))
 
     try:
         value = Decimal(payload.value)
     except Exception:
-        raise HTTPException(status_code=400, detail="Invalid value format")
+        raise ValidationError(message = "Invalid value format")
 
     profile = metric.profile
     tolerance_factor = Decimal(payload.tolerance_percent) / Decimal(100)
@@ -554,7 +556,7 @@ async def validate(payload: ValidationRequestPayload, ctx: RequestContext = Depe
 async def list_industries(ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.industries", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     datasets = await _benchmark_repo.list_datasets(tenant_id=tenant_id)
     return list_industriesResult.model_validate({"industries": sorted({d.industry for d in datasets})})
@@ -563,10 +565,10 @@ async def list_industries(ctx: RequestContext = Depends(get_request_context)):
 async def upsert_dataset(payload: DatasetUpsertPayload, ctx: RequestContext = Depends(get_request_context)):
     authorize_action("layer6.benchmarks.write", ctx)
     if _benchmark_repo is None:
-        raise HTTPException(status_code=503, detail="Benchmark store not initialized")
+        raise ServiceUnavailableError(message = "Benchmark store not initialized")
     tenant_id = _require_tenant_id(ctx)
     if payload.ownership_mode not in {"tenant", "global_system"}:
-        raise HTTPException(status_code=400, detail="ownership_mode must be one of: tenant, global_system")
+        raise ValidationError(message = "ownership_mode must be one of: tenant, global_system")
 
     dataset_tenant_id = tenant_id
     if payload.ownership_mode == "global_system":

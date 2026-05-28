@@ -1,13 +1,15 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Model Registry API routes."""
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
@@ -128,7 +130,7 @@ async def api_get_model(
     """Get a single model version by ID."""
     model = await ModelRegistryService.get_model(db, model_id)
     if model is None or model.tenant_id != ctx.tenant_id:
-        raise HTTPException(status_code=404, detail="Model version not found")
+        raise NotFoundError(message = "Model version not found")
     return ModelVersionResponse.model_validate(model)
 
 
@@ -153,9 +155,9 @@ async def api_promote_model(
         )
     except ModelRegistryService.PromotionError as exc:
         logger.warning("model_promotion_error", extra={"error": str(exc)})
-        raise HTTPException(status_code=400, detail="Model promotion failed") from exc
+        raise ValidationError(message = "Model promotion failed") from exc
     if model.tenant_id != ctx.tenant_id:
-        raise HTTPException(status_code=404, detail="Model version not found")
+        raise NotFoundError(message = "Model version not found")
     return ModelVersionResponse.model_validate(model)
 
 
@@ -172,7 +174,7 @@ async def api_get_promotion_history(
     """Get promotion history for a model version."""
     model = await ModelRegistryService.get_model(db, model_id)
     if model is None or model.tenant_id != ctx.tenant_id:
-        raise HTTPException(status_code=404, detail="Model version not found")
+        raise NotFoundError(message = "Model version not found")
     history = await ModelRegistryService.get_promotion_history(db, model_id)
     return [PromotionLogResponse.model_validate(h) for h in history]
 
@@ -190,7 +192,7 @@ async def api_get_active_model(
     """Get the active production model for a provider."""
     model = await ModelRegistryService.get_active_production_model(db, ctx.tenant_id, provider)
     if model is None:
-        raise HTTPException(status_code=404, detail="No active production model found")
+        raise NotFoundError(message = "No active production model found")
     return ModelVersionResponse.model_validate(model)
 
 
@@ -226,11 +228,8 @@ async def api_record_eval_run(
     if model is None:
         # No active model found - this is expected if evaluations run before
         # any model is promoted to production. Log warning but don't fail.
-        raise HTTPException(
-            status_code=404,
-            detail=f"No active production model found for provider '{provider}'. "
-            "Register and promote a model first.",
-        )
+        raise NotFoundError(message = str(f"No active production model found for provider '{provider}'. "
+            "Register and promote a model first."))
 
     # Update the model's evaluation score
     model.eval_score = request.overall_pass_rate

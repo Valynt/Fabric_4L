@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Workflow API routes - OpenAPI spec compliant.
 
 Implements the workflow API as specified in value_fabric_backend_logic_specifications.md:
@@ -7,7 +10,6 @@ Implements the workflow API as specified in value_fabric_backend_logic_specifica
 - DELETE /api/v1/workflows/{instance_id} - Cancel workflow
 """
 
-from __future__ import annotations
 
 import asyncio
 import json
@@ -305,7 +307,7 @@ def get_executor() -> OrchestrationController:
     from ..startup import runtime_state
 
     if runtime_state.workflow_executor is None:
-        raise HTTPException(status_code=503, detail="Workflow executor not initialized")
+        raise ServiceUnavailableError(message = "Workflow executor not initialized")
     return runtime_state.workflow_executor
 
 
@@ -337,7 +339,7 @@ async def create_workflow(
 
     # Validate tenant_id is required
     if not tenant_id:
-        raise HTTPException(status_code=400, detail="tenant_id is required")
+        raise ValidationError(message = "tenant_id is required")
 
     try:
         # Map priority string to enum
@@ -506,15 +508,12 @@ async def get_workflow_status(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     return WorkflowStatusResponse(
         id=status.get("workflow_id", workflow_id),
@@ -548,25 +547,19 @@ async def get_workflow_result(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     if status.get("status") not in TERMINAL_STATUSES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Workflow {workflow_id} not complete (status: {status.get('status')})",
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} not complete (status: {status.get('status')})"))
 
     result = await executor.get_result(workflow_id)
     if not result:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} result not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} result not found"))
 
     output_data = result.get("output") or {}
     response = WorkflowResultResponse.model_validate({
@@ -594,22 +587,17 @@ async def cancel_workflow(
     status = await executor.get_workflow_status(workflow_id)
 
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     cancelled = await executor.cancel_workflow(workflow_id)
 
     if not cancelled:
-        raise HTTPException(
-            status_code=400, detail=f"Workflow {workflow_id} could not be cancelled"
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} could not be cancelled"))
 
     return WorkflowCancelResponse(workflow_id=workflow_id, status="cancelled")
 
@@ -645,28 +633,20 @@ async def resume_workflow(
     """
     # Verify checkpointing is available
     if executor.checkpoint_saver is None:
-        raise HTTPException(
-            status_code=503, detail="Checkpointing not configured - cannot resume workflows"
-        )
+        raise ServiceUnavailableError(message = "Checkpointing not configured - cannot resume workflows")
 
     # Check current status
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     if status.get("status") in TERMINAL_STATUSES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Workflow {workflow_id} is {status.get('status')} and cannot be resumed",
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} is {status.get('status')} and cannot be resumed"))
 
     # Resume execution
     try:
@@ -692,7 +672,7 @@ async def resume_workflow(
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_resume_value_error", extra={"error": str(exc)})
-            raise HTTPException(status_code=404, detail="Workflow not found")
+            raise NotFoundError(message = "Workflow not found")
         if isinstance(exc, CheckpointConflictError):
             raise_normalized_with_log(
                 exc,
@@ -750,25 +730,19 @@ async def pause_workflow(
     # Check current status
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     current_status = status.get("status")
     if current_status in TERMINAL_STATUSES:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Workflow {workflow_id} is {current_status} and cannot be paused",
-        )
+        raise ValidationError(message = str(f"Workflow {workflow_id} is {current_status} and cannot be paused"))
 
     if current_status == "paused":
-        raise HTTPException(status_code=400, detail=f"Workflow {workflow_id} is already paused")
+        raise ValidationError(message = str(f"Workflow {workflow_id} is already paused"))
 
     # Pause execution
     try:
@@ -791,7 +765,7 @@ async def pause_workflow(
     except Exception as exc:
         if isinstance(exc, ValueError):
             logger.warning("workflow_pause_value_error", extra={"error": str(exc)})
-            raise HTTPException(status_code=404, detail="Workflow not found")
+            raise NotFoundError(message = "Workflow not found")
         raise_normalized_with_log(
             exc,
             status_code=500,
@@ -823,14 +797,11 @@ async def get_workflow_events(
     # Enforce tenant isolation before streaming
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     async def event_generator():
         """Generate SSE events for workflow."""
@@ -919,21 +890,18 @@ async def archive_workflow(
     """
     status = await executor.get_workflow_status(workflow_id)
     if not status:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Enforce tenant isolation
     workflow_tenant = status.get("tenant_id")
     if workflow_tenant and str(workflow_tenant) != str(_ctx.tenant_id):
-        raise HTTPException(
-            status_code=403,
-            detail=f"Workflow {workflow_id} does not belong to the current tenant",
-        )
+        raise AuthorizationError(message = str(f"Workflow {workflow_id} does not belong to the current tenant"))
 
     try:
         result = await executor.archive_workflow(workflow_id, tenant_id=_ctx.tenant_id)
     except PermissionError as e:
         logger.warning("workflow_archive_permission_denied", extra={"error": str(e)})
-        raise HTTPException(status_code=403, detail="Permission denied to archive workflow")
+        raise AuthorizationError(message = "Permission denied to archive workflow")
 
     if result is None:
         raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")

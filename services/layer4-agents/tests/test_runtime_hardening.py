@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Runtime hardening regressions for production blocker closure."""
 
-from __future__ import annotations
 
 import asyncio
 from types import SimpleNamespace

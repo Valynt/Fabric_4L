@@ -52,8 +52,7 @@ class RaiseTransformer(cst.CSTTransformer):
         if not exc or not m.matches(exc, m.Call(func=m.Name("HTTPException"))):
             return updated_node
 
-        call = exc.value
-        assert isinstance(call, cst.Call)
+        call = exc
         kwargs: dict[str, cst.BaseExpression] = {}
         for arg in call.args:
             if arg.keyword and arg.star == "":

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Health tracking service for graceful degradation and status badges.
 
 Provides real-time health status for:
@@ -10,7 +12,6 @@ Provides real-time health status for:
 Emits events when health status changes for UI badge updates.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

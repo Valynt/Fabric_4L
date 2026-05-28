@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Model Registry Client with observability for fallback scenarios.
 
 P2 Risk #14: Model Registry Observability
@@ -5,7 +7,6 @@ Provides audit logging for registry fallback scenarios to ensure
 degraded mode operations are visible and traceable.
 """
 
-from __future__ import annotations
 
 import os
 from dataclasses import dataclass

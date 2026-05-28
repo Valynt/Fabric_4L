@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Checkpoint/resume boundary tests.
 
 Tests verify:
@@ -6,7 +8,6 @@ Tests verify:
 3. Concurrent resume attempts (race condition).
 4. Partial state recovery after crash.
 """
-from __future__ import annotations
 
 from unittest.mock import AsyncMock, MagicMock, Mock, patch
 from uuid import uuid4

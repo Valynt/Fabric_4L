@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -136,13 +137,10 @@ def _validate_pack_id(pack_id: str) -> None:
         HTTPException: 400 if pack_id format is invalid or too long.
     """
     if not pack_id:
-        raise HTTPException(status_code=400, detail="pack_id is required")
+        raise ValidationError(message = "pack_id is required")
 
     if len(pack_id) > MAX_PACK_ID_LENGTH:
-        raise HTTPException(
-            status_code=400,
-            detail=f"pack_id exceeds maximum length ({MAX_PACK_ID_LENGTH} chars): {pack_id[:50]}..."
-        )
+        raise ValidationError(message = str(f"pack_id exceeds maximum length ({MAX_PACK_ID_LENGTH} chars): {pack_id[:50]}..."))
 
     # Check if it's a valid UUID
     try:
@@ -153,10 +151,7 @@ def _validate_pack_id(pack_id: str) -> None:
 
     # Check slug format (alphanumeric, hyphens, underscores)
     if not VALID_PACK_ID_PATTERN.match(pack_id):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid pack_id format: {pack_id}. Must be UUID or slug-style (alphanumeric, hyphens, underscores)."
-        )
+        raise ValidationError(message = str(f"Invalid pack_id format: {pack_id}. Must be UUID or slug-style (alphanumeric, hyphens, underscores)."))
 
 router = APIRouter()
 
@@ -359,10 +354,7 @@ async def _update_relationships(
         found_ids = set(record["found_ids"]) if record else set()
         missing = set(target_ids) - found_ids
         if missing:
-            raise HTTPException(
-                status_code=400,
-                detail=f"{target_label} IDs not found: {sorted(missing)}"
-            )
+            raise ValidationError(message = str(f"{target_label} IDs not found: {sorted(missing)}"))
 
     # Phase 1 hardening: Use AuditedGraphMutation for all relationship writes
     mutation = AuditedGraphMutation(
@@ -572,7 +564,7 @@ async def get_pack(
 
     pack = await _get_pack_detail(driver, pack_id, tenant_id)
     if not pack:
-        raise HTTPException(status_code=404, detail="Pack not found")
+        raise NotFoundError(message = "Pack not found")
     return pack
 
 
@@ -646,7 +638,7 @@ async def create_pack(
             )
             record = await result.single()
             if not record:
-                raise HTTPException(status_code=500, detail="Failed to create pack")
+                raise ServiceUnavailableError(message="Failed to create pack")
 
             vp = record["vp"]
 
@@ -786,7 +778,7 @@ async def update_pack(
     async with driver.session() as session:
         result = await run_validated_query(session, check_query, pack_id=pack_id, tenant_id=tenant_id)
         if not await result.single():
-            raise HTTPException(status_code=404, detail="Pack not found")
+            raise NotFoundError(message = "Pack not found")
 
     # Build and execute update
     set_clauses, params = _build_update_params(request, pack_id)
@@ -809,7 +801,7 @@ async def update_pack(
         # Re-query for consistent view with relationships
         pack = await _get_pack_detail(driver, pack_id, tenant_id)
         if not pack:
-            raise HTTPException(status_code=500, detail="Failed to update pack")
+            raise ServiceUnavailableError(message="Failed to update pack")
         return pack
 
 
@@ -912,10 +904,7 @@ async def execute_pack(
     pack_formulas = await _get_pack_formulas(driver, pack_id, tenant_id)
 
     if not pack_formulas:
-        raise HTTPException(
-            status_code=400,
-            detail=f"Pack {pack_id} has no formulas to execute"
-        )
+        raise ValidationError(message = str(f"Pack {pack_id} has no formulas to execute"))
 
     # Create execution record
     create_query = """
@@ -947,7 +936,7 @@ async def execute_pack(
             tenant_id=tenant_id,
         )
         if not await result.single():
-            raise HTTPException(status_code=500, detail="Failed to create execution record")
+            raise ServiceUnavailableError(message="Failed to create execution record")
 
     # Execute formulas
     outputs: dict[str, Any] = {"pack_id": pack_id, "formulas_evaluated": 0}
@@ -1037,7 +1026,7 @@ async def _get_original_pack(
         result = await run_validated_query(session, query, pack_id=pack_id, tenant_id=tenant_id)
         record = await result.single()
         if not record:
-            raise HTTPException(status_code=404, detail="Pack not found")
+            raise NotFoundError(message = "Pack not found")
         return record["vp"]
 
 
@@ -1119,7 +1108,7 @@ async def _execute_fork(
         result = await run_validated_query(session, fork_query, **params)
         record = await result.single()
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to fork pack")
+            raise ServiceUnavailableError(message="Failed to fork pack")
         return record["new"]
 
 
@@ -1246,7 +1235,7 @@ async def get_valuepack(
     _init_default_valuepacks()
     
     if industry_id not in _valuepack_db:
-        raise HTTPException(status_code=404, detail=f"ValuePack not found: {industry_id}")
+        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
     
     vp = _valuepack_db[industry_id]
     return ValuePackResponse(**vp.model_dump(), completeness_score=1.0)
@@ -1288,7 +1277,7 @@ async def update_valuepack(
     _init_default_valuepacks()
     
     if industry_id not in _valuepack_db:
-        raise HTTPException(status_code=404, detail=f"ValuePack not found: {industry_id}")
+        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
     
     existing = _valuepack_db[industry_id]
     update_data = request.model_dump(exclude_unset=True)
@@ -1310,7 +1299,7 @@ async def delete_valuepack(
     _init_default_valuepacks()
     
     if industry_id not in _valuepack_db:
-        raise HTTPException(status_code=404, detail=f"ValuePack not found: {industry_id}")
+        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
     
     _valuepack_db[industry_id].is_active = False
     logger.info(f"Soft-deleted ValuePack: {industry_id}")
@@ -1430,7 +1419,7 @@ async def compare_valuepacks(
     # Validate all IDs exist
     for ind_id in request.industry_ids:
         if ind_id not in _valuepack_db:
-            raise HTTPException(status_code=404, detail=f"ValuePack not found: {ind_id}")
+            raise NotFoundError(message = str(f"ValuePack not found: {ind_id}"))
     
     # Get full ValuePacks
     valuepacks = [
@@ -1495,7 +1484,7 @@ async def seed_valuepack_data(
     _init_default_valuepacks()
     
     if industry_id not in _valuepack_db:
-        raise HTTPException(status_code=404, detail=f"ValuePack not found: {industry_id}")
+        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
     
     vp = _valuepack_db[industry_id]
     tenant_id = _tenant_id_from_api_key(api_key)

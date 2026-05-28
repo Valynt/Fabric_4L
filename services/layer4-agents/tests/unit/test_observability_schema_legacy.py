@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Observability schema invariants for value_fabric.layer4."""
 
-from __future__ import annotations
 
 import logging
 

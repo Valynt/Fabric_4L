@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Async repository layer for Fabric Harness persistence.
 
 Each repository translates between Pydantic v2 domain models and SQLAlchemy
@@ -8,7 +10,6 @@ All queries filter by tenant_id. Cross-tenant access raises the same domain
 errors as the in-memory stores so callers need no conditional logic.
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime

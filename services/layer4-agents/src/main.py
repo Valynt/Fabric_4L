@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 4 FastAPI application compatibility export.
 
 The canonical Layer 4 application lives in :mod:`value_fabric.layer4.api.main`.
@@ -6,7 +8,6 @@ entrypoints can import ``value_fabric.layer4.main`` without duplicating route,
 authentication, tenant-isolation, or orchestration logic.
 """
 
-from __future__ import annotations
 
 from value_fabric.shared.security.config import validate_all_controls
 

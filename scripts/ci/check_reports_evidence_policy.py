@@ -46,7 +46,7 @@ def main() -> int:
             )
 
     if violations:
-        print("❌ reports evidence policy violations detected:")
+        print("FAIL reports evidence policy violations detected:")
         for violation in violations:
             print(f" - {violation}")
         print(
@@ -54,7 +54,7 @@ def main() -> int:
         )
         return 1
 
-    print("✅ reports evidence policy check passed")
+    print("PASS reports evidence policy check passed")
     return 0
 
 

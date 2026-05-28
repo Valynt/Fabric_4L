@@ -1,11 +1,13 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 """Tenant-scoped collaboration comment routes."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -43,10 +45,7 @@ _COMMENTS_BY_TENANT: dict[str, dict[str, CommentRecord]] = {}
 
 def _tenant_key(ctx: RequestContext) -> str:
     if ctx.tenant_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Validated tenant context required",
-        )
+        raise AuthenticationError(message = "Validated tenant context required")
     return str(ctx.tenant_id)
 
 

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Health Badges API for graceful degradation visibility.
 
 Provides endpoints for:
@@ -7,13 +10,12 @@ Provides endpoints for:
 - Component health history
 """
 
-from __future__ import annotations
 
 import logging
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -302,9 +304,7 @@ async def dismiss_badge(
             dismissed_badge_id=request.badge_id,
         )
     else:
-        raise HTTPException(
-            status_code=400, detail=f"Badge {request.badge_id} not found or cannot be dismissed"
-        )
+        raise ValidationError(message = str(f"Badge {request.badge_id} not found or cannot be dismissed"))
 
 
 @health_badges_router.post("/health/report-connection-quality", tags=["health"])
@@ -383,9 +383,7 @@ async def get_component_health(
     health = tracker.get_component_health(component_name)
 
     if not health:
-        raise HTTPException(
-            status_code=404, detail=f"Component {component_name} not found or has no health data"
-        )
+        raise NotFoundError(message = str(f"Component {component_name} not found or has no health data"))
 
     return ComponentHealthInfo(
         name=health.name,

@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Tests for Layer 4 interfaces package exports and basic interface behavior.
 
 Uses src.* imports with pytest pythonpath configuration.
 """
 
-from __future__ import annotations
 
 import pytest
 

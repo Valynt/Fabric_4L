@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """I-03 production fail-closed regression tests for Layer 3 variables endpoint.
 
 These tests lock the service-level policy that production-like runtimes must
 not silently fall back to mock benchmark or formula calculation values.
 """
 
-from __future__ import annotations
 
 import os
 

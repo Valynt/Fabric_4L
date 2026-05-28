@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Billing API routes for Stripe integration.
 
 Provides endpoints for subscription management, customer portal,
@@ -5,13 +8,12 @@ entitlement checks, and usage-based billing. Includes high-throughput
 usage event ingestion with idempotency and tenant isolation.
 """
 
-from __future__ import annotations
 
 import logging
 import os
 import re
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, status
 from pydantic import BaseModel, Field
@@ -41,15 +43,9 @@ def validate_customer_id(customer_id: str) -> str:
         HTTPException: If customer_id contains invalid characters
     """
     if not customer_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="customer_id is required"
-        )
+        raise ValidationError(message = "customer_id is required")
     if not CUSTOMER_ID_PATTERN.match(customer_id):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="customer_id contains invalid characters"
-        )
+        raise ValidationError(message = "customer_id contains invalid characters")
     return customer_id
 
 from value_fabric.shared.identity.context import RequestContext
@@ -413,10 +409,7 @@ async def create_checkout(
         return result
     except ValueError as e:
         logger.warning(f"Checkout creation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Checkout creation failed",
-        ) from e
+        raise ValidationError(message = "Checkout creation failed") from e
 
 
 @router.post("/portal", response_model=PortalResponse)
@@ -445,10 +438,7 @@ async def create_portal(
         return result
     except ValueError as e:
         logger.warning(f"Portal creation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Portal creation failed",
-        ) from e
+        raise ValidationError(message = "Portal creation failed") from e
 
 
 @router.get("/invoices/{invoice_id}/reconciliation", response_model=reconcile_invoiceResult)
@@ -463,7 +453,7 @@ async def reconcile_invoice(
         return await service.reconcile_invoice_usage(context.tenant_id, invoice_id)
     except ValueError as e:
         logger.warning("Invoice reconciliation failed: %s", e)
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Invoice not found or cannot be reconciled") from e
+        raise NotFoundError(message = "Invoice not found or cannot be reconciled") from e
 
 
 # ============================================================================
@@ -511,10 +501,7 @@ async def cancel_subscription(
         }
     except ValueError as e:
         logger.warning(f"Subscription cancellation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Subscription cancellation failed",
-        ) from e
+        raise ValidationError(message = "Subscription cancellation failed") from e
 
 
 @router.post("/subscription/update-plan", response_model=UpdatePlanResponse)
@@ -549,10 +536,7 @@ async def update_subscription_plan(
         }
     except ValueError as e:
         logger.warning(f"Plan update failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Plan update failed",
-        ) from e
+        raise ValidationError(message = "Plan update failed") from e
 
 
 @router.post("/subscription/reactivate", response_model=ReactivateSubscriptionResponse)
@@ -583,10 +567,7 @@ async def reactivate_subscription(
         }
     except ValueError as e:
         logger.warning(f"Subscription reactivation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Subscription reactivation failed",
-        ) from e
+        raise ValidationError(message = "Subscription reactivation failed") from e
 
 
 # ============================================================================
@@ -725,7 +706,7 @@ async def stripe_webhook(
         raise
     except ValueError as e:
         logger.warning(f"Webhook security validation failed: {e}")
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid webhook payload") from e
+        raise ValidationError(message = "Invalid webhook payload") from e
 
     # Read raw body for signature verification
     body = await request.body()
@@ -749,10 +730,7 @@ async def stripe_webhook(
         return stripe_webhookResult.model_validate({"received": True})  # type: ignore[no-any-return]
     except ValueError as e:
         logger.warning(f"Webhook validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid webhook payload",
-        ) from e
+        raise ValidationError(message = "Invalid webhook payload") from e
     except StripeError as e:
         logger.error(f"Stripe API error during webhook: {e}")
         raise HTTPException(
@@ -829,10 +807,7 @@ async def ingest_usage_event(
 
         
     except UsageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": e.message, "field": e.field},
-        )
+        raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
     except Exception as e:
         logger.exception(f"Usage event ingestion failed: {e}")
         raise HTTPException(
@@ -892,10 +867,7 @@ async def ingest_usage_batch(
 
         
     except UsageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": e.message, "field": e.field},
-        )
+        raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
     except Exception as e:
         logger.exception(f"Batch ingestion failed: {e}")
         raise HTTPException(
@@ -938,10 +910,7 @@ async def get_usage_summary(
         return summary
         
     except UsageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": e.message},
-        )
+        raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Usage summary failed: {e}")
         raise HTTPException(
@@ -1004,10 +973,7 @@ async def list_usage_events(
         ]
         
     except UsageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": e.message},
-        )
+        raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Usage events listing failed: {e}")
         raise HTTPException(
@@ -1052,10 +1018,7 @@ async def sync_usage_to_stripe(
         # Check for errors in result
         if "error" in result and result["synced"] == 0:
             if "No Stripe customer ID" in result["error"]:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail={"error": result["error"], "action": "Sync customer with Stripe first via /billing/sync-customer"},
-                )
+                raise ValidationError(message = "Request failed", details = {"error": result["error"], "action": "Sync customer with Stripe first via /billing/sync-customer"})
             if "Stripe not configured" in result["error"]:
                 raise HTTPException(
                     status_code=status.HTTP_502_BAD_GATEWAY,
@@ -1065,10 +1028,7 @@ async def sync_usage_to_stripe(
         return result
         
     except UsageValidationError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"error": e.message},
-        )
+        raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Stripe sync failed: {e}")
         raise HTTPException(
@@ -1208,12 +1168,9 @@ async def get_plan_limits(
     
     plan = get_plan(plan_id)
     if not plan:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Plan not found: {plan_id}",
-        )
+        raise NotFoundError(message = str(f"Plan not found: {plan_id}"))
     
-    service = OverageService(None, tenant_id=None)  # No DB needed  # type: ignore
+    service = OverageService(cast(AsyncSession, None), tenant_id=None)  # No DB needed
     limits = service.get_plan_limits(plan_id)
     
     return get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]
@@ -1366,7 +1323,7 @@ async def create_invoice(
             "invoice_value_error",
             extra={"error_code": "INVOICE_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice request")
+        raise ValidationError(message = "Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
         raise HTTPException(
@@ -1391,10 +1348,7 @@ async def get_invoice(
         invoice = await service.get_invoice(invoice_id, include_items=True, include_charges=True)
         
         if not invoice:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Invoice not found",
-            )
+            raise NotFoundError(message = "Invoice not found")
         
         return get_invoiceResult.model_validate({  # type: ignore[no-any-return]
             "id": invoice.id,
@@ -1501,7 +1455,7 @@ async def add_invoice_item(
             "invoice_item_value_error",
             extra={"error_code": "INVOICE_ITEM_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice item request")
+        raise ValidationError(message = "Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
         raise HTTPException(
@@ -1543,7 +1497,7 @@ async def finalize_invoice(
             "invoice_finalize_value_error",
             extra={"error_code": "INVOICE_FINALIZE_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice finalize request")
+        raise ValidationError(message = "Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
         raise HTTPException(
@@ -1580,7 +1534,7 @@ async def void_invoice(
             "invoice_void_value_error",
             extra={"error_code": "INVOICE_VOID_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid invoice void request")
+        raise ValidationError(message = "Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
         raise HTTPException(
@@ -1689,7 +1643,7 @@ async def record_charge(
             "charge_value_error",
             extra={"error_code": "CHARGE_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid charge request")
+        raise ValidationError(message = "Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")
         raise HTTPException(

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 4 Agents custom exceptions.
 
 P1-25: WorkflowTimeoutError - Global workflow timeout enforcement
@@ -5,7 +7,6 @@ P1-42: ConcurrencyLimitExceeded - Max concurrent workflow limit
 """
 
 
-from __future__ import annotations
 
 
 class WorkflowTimeoutError(TimeoutError):

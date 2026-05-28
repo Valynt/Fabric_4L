@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Minimal LLM provider abstraction for Layer 4 runtime calls."""
 
-from __future__ import annotations
 
 import logging
 from dataclasses import dataclass

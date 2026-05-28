@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Regression coverage for Layer 3 query execution tenant fail-closed behavior."""
 
-from __future__ import annotations
 
 import pytest
 from value_fabric.shared.identity.isolation import QueryScope

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 PromptRegistry — loads and caches versioned prompt files from disk.
 
@@ -14,7 +16,6 @@ Usage::
     rendered = template.render(account_name="Acme", context_json="...")
 """
 
-from __future__ import annotations
 
 import json
 import re

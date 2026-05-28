@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Phase 2: Deterministic Entity Resolution Schema.
 
 Defines the contract for entity resolution operations with:
@@ -7,7 +9,6 @@ Defines the contract for entity resolution operations with:
 - Provenance tracking for resolution decisions
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for explicit action-level human approval policies."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 

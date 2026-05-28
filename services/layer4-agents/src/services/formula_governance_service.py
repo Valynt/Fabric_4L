@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Formula Governance Service implementation for Layer 4 Agents.
 
 Neo4j-backed implementation of formula versioning and governance lifecycle.
 """
 
-from __future__ import annotations
 
 import re
 import uuid

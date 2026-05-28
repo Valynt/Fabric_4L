@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Focused tests for agent mutation gates and audit-producing safety paths."""
 
-from __future__ import annotations
 
 from types import SimpleNamespace
 from typing import Any

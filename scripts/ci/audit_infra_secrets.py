@@ -60,7 +60,7 @@ SAFE_VALUE_PATTERNS = (
 )
 
 # Known-safe literal sentinels (development-only, gated by env flag elsewhere).
-DEV_SENTINELS = frozenset({"dev", "development", "local", "test"})
+DEV_SENTINELS = frozenset({"dev", "development", "local"})
 
 
 SCAN_GLOBS = (
@@ -124,6 +124,12 @@ def _collect_files() -> list[Path]:
     return sorted(seen)
 
 
+# K8s env array syntax: matches lines like "- name: POSTGRES_PASSWORD"
+K8S_ENV_NAME_RE = re.compile(r"^\s+-\s+name:\s*(?P<key>[A-Z_][A-Z0-9_\-]+)\s*$")
+# K8s env array value line: matches lines like "  value: secret123"
+K8S_ENV_VALUE_RE = re.compile(r"^\s+value:\s*(?P<value>[^#\n]*?)\s*$")
+
+
 def _scan_file(path: Path) -> list[SecretFinding]:
     findings: list[SecretFinding] = []
     try:
@@ -132,7 +138,10 @@ def _scan_file(path: Path) -> list[SecretFinding]:
         return findings
 
     rel = path.resolve().relative_to(REPO_ROOT).as_posix()
-    for line_no, raw_line in enumerate(text.splitlines(), start=1):
+    lines = text.splitlines()
+
+    # Pass 1 — single-line KEY: value / KEY=value assignments.
+    for line_no, raw_line in enumerate(lines, start=1):
         stripped_line = raw_line.strip()
         if not stripped_line or stripped_line.startswith("#"):
             continue
@@ -153,6 +162,34 @@ def _scan_file(path: Path) -> list[SecretFinding]:
                 excerpt=raw_line.strip()[:120],
             )
         )
+
+    # Pass 2 — K8s env: array syntax (adjacent name + value lines).
+    for idx, raw_line in enumerate(lines):
+        name_match = K8S_ENV_NAME_RE.match(raw_line)
+        if not name_match:
+            continue
+        key = name_match.group("key").upper()
+        if not SECRET_KEY_PATTERN.match(key):
+            continue
+        next_idx = idx + 1
+        if next_idx >= len(lines):
+            continue
+        value_match = K8S_ENV_VALUE_RE.match(lines[next_idx])
+        if not value_match:
+            continue
+        value = value_match.group("value") or ""
+        if _is_safe_value(value):
+            continue
+        line_no = idx + 1  # 1-based for the "name:" line
+        findings.append(
+            SecretFinding(
+                path=rel,
+                line=line_no,
+                key=key,
+                excerpt=raw_line.strip()[:120],
+            )
+        )
+
     return findings
 
 

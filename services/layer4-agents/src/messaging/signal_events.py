@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Signal streaming event models for WebSocket communication.
 
 Defines the event schema for real-time signal discovery streaming
 from Layer 4 to frontend clients.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum as PyEnum

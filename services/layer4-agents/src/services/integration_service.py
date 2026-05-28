@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Integration Service for managing CRM provider configurations.
 
@@ -5,7 +7,6 @@ Handles CRUD operations for integrations with credential encryption,
 validation, and audit logging. Supports Salesforce and HubSpot.
 """
 
-from __future__ import annotations
 
 import json
 import logging

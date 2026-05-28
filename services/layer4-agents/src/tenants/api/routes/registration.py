@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import ValidationError
 """Public tenant registration endpoints."""
 
-from __future__ import annotations
 
 import logging
 from uuid import UUID
@@ -113,15 +115,9 @@ async def register_tenant(
     try:
         tier = get_tier_config(request.tier_id)
         if not tier.is_public:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid tier selection",
-            )
+            raise ValidationError(message = "Invalid tier selection")
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tier",
-        )
+        raise ValidationError(message = "Invalid tier")
 
     # Create tenant
     from value_fabric.shared.identity.models import TenantCreateRequest
@@ -174,10 +170,7 @@ async def verify_email(
     # Verify token
     verification = await email_service.verify_token(request.token)
     if not verification:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid or expired verification token",
-        )
+        raise ValidationError(message = "Invalid or expired verification token")
 
     # Mark token used
     await email_service.mark_token_used(request.token)

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Unit tests for workflow API routes.
 
 Validates request/response models and route behavior to prevent
 frontend-backend contract drift.
 """
 
-from __future__ import annotations
 
 import pytest
 from fastapi import HTTPException

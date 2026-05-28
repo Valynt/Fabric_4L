@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Canonical endpoint surface regression tests for Layer 3 route normalization.
 
 Validates that the double-prefix bugs are fixed and legacy aliases remain governed.
 """
 
-from __future__ import annotations
 
 import pytest
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Pack Variable Loader — Phase 2 of the Canonical Contract Migration.
 
@@ -15,7 +17,6 @@ Usage:
     # All variables now in Neo4j Variable Registry with full provenance
 """
 
-from __future__ import annotations
 
 import json
 import logging

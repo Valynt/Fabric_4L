@@ -1,10 +1,12 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError
 """Tenant provisioning status and webhook endpoints.
 
 Webhook security uses HMAC-SHA256 signature verification with idempotency
 tracking to prevent duplicate processing.
 """
 
-from __future__ import annotations
 
 import hashlib
 import hmac
@@ -141,17 +143,11 @@ async def get_provisioning_status(
     # Verify tenant exists
     tenant = await get_tenant(db, tenant_id)
     if not tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found",
-        )
+        raise NotFoundError(message = "Tenant not found")
 
     # Check permissions - only tenant admin or super admin can view
     if str(context.tenant_id) != str(tenant_id) and not context.is_super_admin():
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied",
-        )
+        raise AuthorizationError(message = "Access denied")
 
     # Create provisioning service to get state
     service = TenantProvisioningService(db)
@@ -188,10 +184,7 @@ async def retry_provisioning(
     # Verify tenant exists
     tenant = await get_tenant(db, tenant_id)
     if not tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found",
-        )
+        raise NotFoundError(message = "Tenant not found")
 
     # Retry provisioning with force flag
     service = TenantProvisioningService(db)
@@ -277,10 +270,7 @@ async def webhook_provisioning(
                 "reason": "invalid_signature",
             },
         )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid webhook signature",
-        )
+        raise AuthenticationError(message = "Invalid webhook signature")
 
     # --- Step 2: Parse and validate payload ---
     import json
@@ -302,10 +292,7 @@ async def webhook_provisioning(
             x_webhook_id,
             abs(now - payload.timestamp),
         )
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Webhook timestamp expired or too far in the future",
-        )
+        raise AuthenticationError(message = "Webhook timestamp expired or too far in the future")
 
     # --- Step 3: Idempotency check ---
     _cleanup_expired_webhooks()
@@ -322,10 +309,7 @@ async def webhook_provisioning(
     # --- Step 4: Verify tenant exists ---
     tenant = await get_tenant(db, payload.tenant_id)
     if not tenant:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tenant not found",
-        )
+        raise NotFoundError(message = "Tenant not found")
 
     # --- Step 5: Execute provisioning ---
     state = await provision_tenant(db, payload.tenant_id)

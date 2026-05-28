@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Security-focused tests for WebSocket authentication (SEC-L3-012 / ARCH-L4-008).
 
 Covers:
@@ -7,7 +9,6 @@ Covers:
 - Success path: ws_manager.connect receives correct claims
 """
 
-from __future__ import annotations
 
 import inspect
 from unittest.mock import AsyncMock, MagicMock, patch

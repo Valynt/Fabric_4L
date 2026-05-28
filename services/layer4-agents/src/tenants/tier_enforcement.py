@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 """Tier enforcement for tenant resource limits.
 
 Provides FastAPI dependency functions that check tenant tier limits
@@ -12,13 +15,12 @@ Design Principles (Phase 3):
 - Audit event emission on limit exceeded
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import HTTPException, status
+from fastapi import status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -282,9 +284,7 @@ class TierEnforcement:
             enforcer.require_feature(tier_id, "sso_integration")
         """
         if not self.check_feature(tier_id, feature_name):
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail={
+            raise AuthorizationError(message = "Request failed", details = {
                     "error": "feature_not_available",
                     "feature": feature_name,
                     "tier": tier_id,
@@ -292,8 +292,7 @@ class TierEnforcement:
                         f"Feature '{feature_name}' is not available on the "
                         f"'{tier_id}' tier. Please upgrade to access this feature."
                     ),
-                },
-            )
+                })
 
     async def get_usage_summary(
         self,

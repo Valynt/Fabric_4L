@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 SQLAlchemy models for CRM Integration configurations.
 
@@ -5,7 +7,6 @@ Stores encrypted credentials and sync configuration for Salesforce and HubSpot.
 Credentials are encrypted at rest using AES-256 via the encryption service.
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

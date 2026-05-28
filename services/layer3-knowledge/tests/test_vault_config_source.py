@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tests for S3-01: Vault config source raises VaultSourceNotSupportedError.
 
 Verifies:
@@ -8,7 +10,6 @@ Verifies:
 - No silent empty-dict return from vault source
 """
 
-from __future__ import annotations
 
 import pytest
 

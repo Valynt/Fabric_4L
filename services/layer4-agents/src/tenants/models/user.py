@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """SQLAlchemy model for User.
 
 User passwords are hashed with bcrypt (appropriate for human credentials,
 unlike API keys which use HMAC-SHA256 for throughput reasons).
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

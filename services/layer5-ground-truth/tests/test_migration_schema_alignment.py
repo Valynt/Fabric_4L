@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Smoke/integration checks for Layer 5 migration-to-runtime schema alignment.
 
 These tests fail closed on schema drift that would break tenant-scoped queries
 or degrade expected query plans on high-traffic list/summary/evaluation paths.
 """
 
-from __future__ import annotations
 
 from pathlib import Path
 

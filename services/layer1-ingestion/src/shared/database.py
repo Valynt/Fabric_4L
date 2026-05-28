@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ValidationError
 INTENTIONAL_DB_ADAPTER_BYPASS = True
 
 """Database engine and session management.
@@ -17,7 +18,7 @@ from collections.abc import Generator
 from contextlib import contextmanager
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Request, status
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -52,6 +53,17 @@ engine = create_engine(
 
 # Session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+
+def close_db() -> None:
+    """Dispose of the database engine and connection pool.
+
+    Should be called during application shutdown to ensure clean connection cleanup.
+    """
+    global engine
+    if engine is not None:
+        engine.dispose()
+        logger.info("Layer 1 database engine disposed")
 
 # Redis client (used by health checks and Celery)
 redis_client = None
@@ -198,18 +210,12 @@ def _record_privileged_db_session_activation(context, *, mode: str, reason: str)
 def _require_privileged_cross_tenant_reason(request: Request, context) -> str:
     if not context.is_super_admin():
         _privileged_db_session_metrics["denials_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cross-tenant database access requires super admin role.",
-        )
+        raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
 
     reason = (request.headers.get(_PRIVILEGED_REASON_HEADER) or "").strip()
     if not reason:
         _privileged_db_session_metrics["missing_reason_total"] += 1
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header.",
-        )
+        raise ValidationError(message = str(f"Cross-tenant database access requires {_PRIVILEGED_REASON_HEADER} header."))
     return reason
 
 
@@ -299,24 +305,18 @@ def get_db_with_tenant(
             ...
 
     Raises:
-        HTTPException: 401 if authenticated tenant context is missing
+       : 401 if authenticated tenant context is missing
 
     .. deprecated:: Use get_db_from_context() instead (deadline: 2026-06-01).
     """
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-        )
+        raise AuthenticationError(message = "Authentication required")
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     session = SessionLocal()
     try:
@@ -350,22 +350,16 @@ def get_db_from_context(
             ...
 
     Raises:
-        HTTPException: 401 if authenticated tenant context is missing
+       : 401 if authenticated tenant context is missing
     """
     ctx = getattr(request.state, "governance_context", None)
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Authentication required",
-        )
+        raise AuthenticationError(message = "Authentication required")
     try:
         tenant_id = validate_tenant_id(ctx.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     session = SessionLocal()
     try:
@@ -442,7 +436,7 @@ def get_db_from_context_sync(
             ...
 
     Raises:
-        HTTPException: 400 if tenant context is missing
+       : 400 if tenant context is missing
     """
     if not SYNC_IDENTITY_AVAILABLE:
         raise RuntimeError(
@@ -450,20 +444,14 @@ def get_db_from_context_sync(
         )
 
     if not context or not context.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required. Ensure request passed through GovernanceMiddlewareSync.",
-        )
+        raise ValidationError(message = "Tenant context required. Ensure request passed through GovernanceMiddlewareSync.")
 
     # Validate tenant ID
     try:
         tenant_id = validate_tenant_id(context.tenant_id)
     except TenantContextError as e:
         logger.warning("Tenant context validation failed: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid tenant context",
-        ) from e
+        raise ValidationError(message = "Invalid tenant context") from e
 
     # Create session with RLS context
     session = SessionLocal()
@@ -500,7 +488,7 @@ def get_db_with_optional_tenant_sync(
             ...
 
     Raises:
-        HTTPException: 400 if non-super-admin without tenant context
+       : 400 if non-super-admin without tenant context
     """
     if not SYNC_IDENTITY_AVAILABLE:
         raise RuntimeError(
@@ -514,10 +502,7 @@ def get_db_with_optional_tenant_sync(
                 tenant_id = validate_tenant_id(context.tenant_id)
             except TenantContextError as e:
                 logger.warning("Tenant context validation failed: %s", e)
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="Invalid tenant context",
-                ) from e
+                raise ValidationError(message = "Invalid tenant context") from e
             session.execute(
                 text("SET LOCAL app.tenant_id = :tenant_id"),
                 {"tenant_id": tenant_id}
@@ -533,10 +518,7 @@ def get_db_with_optional_tenant_sync(
             )
         else:
             _privileged_db_session_metrics["denials_total"] += 1
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Cross-tenant database access requires super admin role.",
-            )
+            raise AuthorizationError(message = "Cross-tenant database access requires super admin role.")
         yield session
         session.commit()
     except Exception:

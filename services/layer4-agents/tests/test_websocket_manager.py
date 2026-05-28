@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Tests for WebSocket manager workflow streaming.
 
 Tests the pub/sub-style event broadcasting system with connection resilience,
 event replay, and workflow-scoped channels.
 """
 
-from __future__ import annotations
 
 from collections.abc import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock, patch

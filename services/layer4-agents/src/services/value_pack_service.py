@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Value Pack Service implementation for Layer 4 Agents.
 
 Neo4j-backed implementation of the Value Pack domain service.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

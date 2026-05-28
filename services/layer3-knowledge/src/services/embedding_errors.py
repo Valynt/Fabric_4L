@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Stable error types for embedding provider failures."""
 
-from __future__ import annotations
 
 
 class EmbeddingProviderUnavailableError(RuntimeError):

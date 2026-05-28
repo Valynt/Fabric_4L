@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Orchestration Controller - Enhanced workflow execution engine.
 
 Provides comprehensive workflow orchestration with:
@@ -10,7 +12,6 @@ Provides comprehensive workflow orchestration with:
 This implements the OrchestrationController agent type from the specification.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

@@ -1,2 +1,3 @@
-"""Layer 4 test fixtures."""
 from __future__ import annotations
+
+"""Layer 4 test fixtures."""

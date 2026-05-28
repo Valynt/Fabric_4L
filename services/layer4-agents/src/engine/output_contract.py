@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Canonical output-envelope contract validation for workflow finalization."""
 
-from __future__ import annotations
 
 from typing import Any
 

@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Typed validation layer for tenant settings JSONB (Task 84).
 
 Prevents JSON drift by providing Pydantic models for structured access
 to tenant configuration data.
 """
 
-from __future__ import annotations
 
 from pydantic import BaseModel, Field, field_validator
 

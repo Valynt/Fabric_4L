@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Object storage helpers for export artifacts (S3/MinIO)."""
 
-from __future__ import annotations
 
 import asyncio
 from dataclasses import dataclass

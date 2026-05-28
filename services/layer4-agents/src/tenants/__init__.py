@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tenant governance service package."""
 
-from __future__ import annotations
 
 # Phase 3: Self-service control plane exports
 from .email_verification import EmailVerificationService, send_verification_email

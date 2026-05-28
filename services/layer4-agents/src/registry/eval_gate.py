@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Evaluation gate checker for model promotions."""
 
-from __future__ import annotations
 
 from uuid import UUID
 

@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Lifecycle matrix and approval-gating regression tests for governance objects."""
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

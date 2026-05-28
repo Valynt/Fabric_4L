@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for tenant provisioning service (Task 3).
 
@@ -9,7 +11,6 @@ Verifies automated tenant lifecycle management with:
 - Rollback on failure
 """
 
-from __future__ import annotations
 
 import pytest
 from datetime import datetime

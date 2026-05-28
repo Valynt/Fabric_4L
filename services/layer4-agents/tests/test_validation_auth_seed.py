@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Security regression tests for the backend-integrated validation auth seed."""
 
-from __future__ import annotations
 
 import os
 from typing import Any

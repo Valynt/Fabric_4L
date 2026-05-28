@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Variable Registry Service implementation for Layer 4 Agents.
 
 Neo4j-backed implementation of variable definitions and resolution.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any

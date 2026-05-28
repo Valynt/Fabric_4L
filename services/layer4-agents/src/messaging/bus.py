@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Message bus implementations for inter-agent communication.
 
 Provides pub/sub messaging with support for:
@@ -7,7 +9,6 @@ Provides pub/sub messaging with support for:
 - Subscription management
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

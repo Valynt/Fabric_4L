@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tenant context propagation guardrails for layer5-ground-truth."""
 
-from __future__ import annotations
 
 from pathlib import Path
 

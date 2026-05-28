@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Gate timeout scheduler — automatically expires pending human gates.
 
 Runs as a background asyncio task within the Layer 4 FastAPI lifespan.
@@ -5,7 +7,6 @@ Queries for gates in PENDING status whose created_at exceeds the timeout
 and transitions them to EXPIRED.
 """
 
-from __future__ import annotations
 
 import asyncio
 import logging

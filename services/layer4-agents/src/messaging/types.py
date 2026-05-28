@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Message types and structures for inter-agent communication.
 
 Based on the specification's agent messaging patterns.
 """
 
-from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import UTC, datetime

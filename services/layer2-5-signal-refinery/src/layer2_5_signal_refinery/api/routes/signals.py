@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Signal API routes for L2.5 Signal Refinery.
 
 All endpoints enforce tenant_id from authenticated context.
@@ -15,7 +17,7 @@ Routes:
   POST   /api/v1/signals/refine                 Trigger L2.5 refinement batch
 """
 
-from __future__ import annotations
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
 
 import asyncio
 import logging
@@ -234,7 +236,7 @@ async def get_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -255,7 +257,7 @@ async def update_signal(
 
     updates = {k: v for k, v in body.model_dump().items() if v is not None}
     if not updates:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No fields to update")
+        raise ValidationError(message = "No fields to update")
 
     # Stringify UUID fields
     for field in ("reviewer_id", "value_driver_id", "supersedes_signal_id"):
@@ -270,7 +272,7 @@ async def update_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -290,7 +292,7 @@ async def delete_signal(
 
     deleted = await repo.soft_delete(signal_id)
     if not deleted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
 
 # ---------------------------------------------------------------------------
@@ -310,10 +312,7 @@ async def review_signal(
 
     new_state = str(body.status) if hasattr(body.status, "value") else body.status
     if new_state not in _VALID_REVIEW_STATES:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Review status must be one of: {_VALID_REVIEW_STATES}",
-        )
+        raise ValidationError(message = str(f"Review status must be one of: {_VALID_REVIEW_STATES}"))
 
     updates: dict[str, Any] = {
         "lifecycle_state": new_state,
@@ -324,7 +323,7 @@ async def review_signal(
 
     signal = await repo.update(signal_id, updates)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
     return signal
 
 
@@ -345,13 +344,10 @@ async def promote_signal(
 
     signal = await repo.get(signal_id)
     if not signal:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     if signal["lifecycle_state"] not in ("validated", "extracted"):
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted.",
-        )
+        raise ConflictError(message=f"Cannot promote signal in state '{signal['lifecycle_state']}'. Must be validated or extracted.")
 
     updates: dict[str, Any] = {"lifecycle_state": "promoted"}
     if body.value_driver_id:
@@ -359,7 +355,7 @@ async def promote_signal(
 
     promoted = await repo.update(signal_id, updates)
     if not promoted:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Signal not found")
+        raise NotFoundError(message = "Signal not found")
 
     return {
         **promoted,
@@ -409,10 +405,7 @@ async def refine_signals(
         # Backward-compatible fallback: source_refs only.
         # Produces signals with synthetic content — not suitable for production use.
         if not body.source_refs:
-            raise HTTPException(
-                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-                detail="Provide raw_signals (preferred) or source_refs.",
-            )
+            raise ValidationError(message="Provide raw_signals (preferred) or source_refs.")
         raws = [
             {
                 "account_id": str(body.account_id),

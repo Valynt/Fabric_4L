@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for the centralized AuditedGraphMutation pipeline."""
 
-from __future__ import annotations
 
 import pytest
 from unittest.mock import AsyncMock

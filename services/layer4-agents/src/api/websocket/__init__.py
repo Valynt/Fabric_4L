@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """WebSocket support for real-time workflow streaming."""
 
-from __future__ import annotations
 
 from .auth import WebSocketAuthError, decode_ws_token, extract_token_from_protocol_header
 from .manager import WorkflowWebSocketManager, get_ws_manager

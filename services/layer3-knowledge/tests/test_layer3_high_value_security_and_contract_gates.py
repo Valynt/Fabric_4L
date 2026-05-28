@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """High-value Layer 3 regression gates for mutation, determinism, tenant traversal, and observability."""
 
-from __future__ import annotations
 
 import ast
 import itertools

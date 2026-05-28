@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Deterministic replay normalization helpers for Layer 4 workflow tests."""
 
-from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
 from copy import deepcopy

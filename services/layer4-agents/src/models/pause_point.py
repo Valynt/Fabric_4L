@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Structured pause point definitions for human-in-the-loop workflows.
 
 Defines typed pause point schemas that enable contextual user interactions
 when workflows require human input or approval.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from enum import Enum

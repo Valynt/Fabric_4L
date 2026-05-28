@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for tier configuration module (Phase 3)."""
 
-from __future__ import annotations
 
 import pytest
 

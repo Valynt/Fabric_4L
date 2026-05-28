@@ -185,7 +185,7 @@ def main():
         
         if results["incomplete_endpoints"] or results["incomplete_schemas"]:
             total_issues += len(results["incomplete_endpoints"]) + len(results["incomplete_schemas"])
-            print(f"\n❌ {layer_file}:")
+            print(f"\nFAIL {layer_file}:")
             
             for path, method, missing in results["incomplete_endpoints"]:
                 print(f"  - {method} {path}: missing {', '.join(missing)}")
@@ -196,28 +196,28 @@ def main():
             if args.fix:
                 fixed = fix_deprecation_markers(spec_path, args.owner)
                 total_fixed += fixed
-                print(f"  ✅ Fixed {fixed} items")
+                print(f"  PASS Fixed {fixed} items")
         else:
             if results["total_deprecated"] > 0:
-                print(f"✅ {layer_file}: All {results['total_deprecated']} deprecated items have complete metadata")
+                print(f"PASS {layer_file}: All {results['total_deprecated']} deprecated items have complete metadata")
             else:
-                print(f"✅ {layer_file}: No deprecated items")
+                print(f"PASS {layer_file}: No deprecated items")
     
     if args.check:
         if total_issues > 0:
-            print(f"\n❌ Found {total_issues} incomplete deprecation markers")
+            print(f"\nFAIL Found {total_issues} incomplete deprecation markers")
             exit(1)
         else:
-            print("\n✅ All deprecation markers are complete")
+            print("\nPASS All deprecation markers are complete")
             exit(0)
     
     if args.fix:
         if total_fixed > 0:
-            print(f"\n✅ Fixed {total_fixed} deprecation markers across all layers")
+            print(f"\nPASS Fixed {total_fixed} deprecation markers across all layers")
             print("⚠️  Please review the changes and set appropriate removal dates")
             exit(0)
         else:
-            print("\n✅ No fixes needed")
+            print("\nPASS No fixes needed")
             exit(0)
 
 

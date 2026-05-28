@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for export provenance manifest determinism and completeness."""
 
-from __future__ import annotations
 
 from typing import Any
 

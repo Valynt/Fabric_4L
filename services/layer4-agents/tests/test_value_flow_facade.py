@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Tests for ValueFlowFacadeService.
 
@@ -11,7 +13,6 @@ Covers:
 - In-memory fallback (no Redis)
 """
 
-from __future__ import annotations
 
 import pytest
 

@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Analysis API routes for quick ROI and whitespace calculations."""
 
-from __future__ import annotations
 
 import json
 import logging
@@ -301,7 +303,7 @@ def get_executor() -> WorkflowExecutor:
     from ..startup import runtime_state
 
     if runtime_state.workflow_executor is None:
-        raise HTTPException(status_code=503, detail="Workflow executor not initialized")
+        raise ServiceUnavailableError(message = "Workflow executor not initialized")
     return runtime_state.workflow_executor
 
 
@@ -426,22 +428,19 @@ async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: R
     """Load an account through the authenticated tenant boundary or fail closed."""
     account = await AccountService(db).get_account(account_id, tenant_id=str(context.tenant_id))
     if not account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Account not found: {account_id}",
-        )
+        raise NotFoundError(message = str(f"Account not found: {account_id}"))
     return account
 
 
 def _require_validation_seed_allowed(http_request: Request, context: RequestContext) -> None:
     """Fail closed unless this is an authenticated, non-production seed request."""
     if settings.environment == "production":
-        raise HTTPException(status_code=403, detail="Validation seeding is disabled in production")
+        raise AuthorizationError(message = "Validation seeding is disabled in production")
     if not context.tenant_id:
-        raise HTTPException(status_code=403, detail="Validation seeding requires tenant context")
+        raise AuthorizationError(message = "Validation seeding requires tenant context")
     reason = http_request.headers.get("X-Privileged-Reason", "").strip()
     if reason != SEED_PRIVILEGED_REASON:
-        raise HTTPException(status_code=403, detail="Validation seeding requires privileged reason")
+        raise AuthorizationError(message = "Validation seeding requires privileged reason")
 
 
 def _context_tenant_uuid(context: RequestContext) -> UUID:
@@ -450,7 +449,7 @@ def _context_tenant_uuid(context: RequestContext) -> UUID:
     try:
         return UUID(str(context.tenant_id))
     except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=400, detail="Validation seeding requires UUID tenant context") from exc
+        raise ValidationError(message = "Validation seeding requires UUID tenant context") from exc
 
 
 async def _upsert_validation_tenant(
@@ -595,7 +594,7 @@ async def seed_validation_auth_context(
     _require_validation_seed_allowed(http_request, context)
     tenant_id = _context_tenant_uuid(context)
     if payload.tenant_id is not None and payload.tenant_id != tenant_id:
-        raise HTTPException(status_code=403, detail="Validation seed tenant mismatch")
+        raise AuthorizationError(message = "Validation seed tenant mismatch")
 
     await _upsert_validation_tenant(
         db,
@@ -966,10 +965,7 @@ async def generate_business_case(
         account_service = AccountService(db)
         account = await account_service.get_account(request.account_id, tenant_id=str(context.tenant_id))
         if not account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Account not found: {request.account_id}",
-            )
+            raise NotFoundError(message = str(f"Account not found: {request.account_id}"))
 
         custom_inputs = dict(request.custom_inputs)
         custom_inputs["provider_record_id"] = account.provider_record_id
@@ -1038,7 +1034,7 @@ async def regenerate_business_case(
     """Regenerate a business case with latest inputs and preserve revision lineage."""
     authorize_action("layer4.analysis.regenerate_case", context)
     if request.previous_case_id != case_id:
-        raise HTTPException(status_code=400, detail="previous_case_id must match route case_id")
+        raise ValidationError(message = "previous_case_id must match route case_id")
     previous_result = await executor.get_result(case_id)
     previous_assemble = (previous_result or {}).get("output", {}).get("assemble_document", {})
     response = await generate_business_case(request, background_tasks, http_request, executor, db, context)
@@ -1072,7 +1068,7 @@ async def get_business_case(
     result = await executor.get_result(case_id)
 
     if not result:
-        raise HTTPException(status_code=404, detail=f"Business case {case_id} not found")
+        raise NotFoundError(message = str(f"Business case {case_id} not found"))
 
     record = await db.get(BusinessCaseRecord, case_id)
     if record and record.account_id:
@@ -1080,10 +1076,7 @@ async def get_business_case(
     else:
         result_tenant = result.get("metadata", {}).get("tenant_id")
         if result_tenant and str(result_tenant) != str(context.tenant_id):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Business case {case_id} does not belong to the current tenant",
-            )
+            raise AuthorizationError(message = str(f"Business case {case_id} does not belong to the current tenant"))
 
     output = result.get("output", {})
     assemble_data = output.get("assemble_document", {})
@@ -1264,7 +1257,7 @@ async def export_business_case(
     authorize_action("layer4.analysis.export_case", context)
     record = await db.get(BusinessCaseRecord, case_id)
     if not record:
-        raise HTTPException(status_code=404, detail=f"Business case {case_id} not found")
+        raise NotFoundError(message = str(f"Business case {case_id} not found"))
 
     try:
         account = await _require_tenant_account(db, record.account_id, context)
@@ -1338,7 +1331,7 @@ async def export_business_case(
         document_bytes = bytes(document_bytes)
 
     if not settings.export_storage_endpoint:
-        raise HTTPException(status_code=503, detail="Export storage endpoint is not configured")
+        raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
 
     workflow_id = (
         result.get("workflow_id")
@@ -1516,7 +1509,7 @@ async def _create_workspace_case_record(
     tenant_id = str(context.tenant_id)
     account = await AccountService(db).get_account(account_uuid, tenant_id=tenant_id)
     if account is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Account not found: {request.account_id}")
+        raise NotFoundError(message = str(f"Account not found: {request.account_id}"))
 
     case_id = str(uuid4())
     now = datetime.now(UTC).isoformat()
@@ -1713,7 +1706,7 @@ async def get_saved_scenario(
     )
     record = result.scalar_one_or_none()
     if record is None:
-        raise HTTPException(status_code=404, detail="Saved scenario not found")
+        raise NotFoundError(message = "Saved scenario not found")
     return SavedScenarioDetail(
         id=record.scenario_id,
         name=record.name,
@@ -1739,7 +1732,7 @@ async def delete_saved_scenario(
         )
     )
     if result.rowcount == 0:
-        raise HTTPException(status_code=404, detail="Saved scenario not found")
+        raise NotFoundError(message = "Saved scenario not found")
 
 
 @router.get("/cases/{case_id}/workspace/evidence", response_model=WorkspaceEvidenceResponse)
@@ -1793,7 +1786,7 @@ async def get_workspace_tab(
     authorize_action("layer4.analysis.read_case", context)
     valid_tabs = {"signals", "drivers", "evidence", "stakeholders", "action-plan", "value-model", "narrative", "intake", "evidence-links"}
     if tab_key not in valid_tabs:
-        raise HTTPException(status_code=400, detail=f"Invalid tab_key. Must be one of: {valid_tabs}")
+        raise ValidationError(message = str(f"Invalid tab_key. Must be one of: {valid_tabs}"))
 
     tenant_id = str(context.tenant_id)
     result = await db.execute(
@@ -1822,7 +1815,7 @@ async def update_workspace_tab(
     authorize_action("layer4.analysis.write_case", context)
     valid_tabs = {"signals", "drivers", "evidence", "stakeholders", "action-plan", "value-model", "narrative", "intake", "evidence-links"}
     if tab_key not in valid_tabs:
-        raise HTTPException(status_code=400, detail=f"Invalid tab_key. Must be one of: {valid_tabs}")
+        raise ValidationError(message = str(f"Invalid tab_key. Must be one of: {valid_tabs}"))
 
     tenant_id = str(context.tenant_id)
     result = await db.execute(
@@ -1862,7 +1855,7 @@ async def generate_workspace_intelligence(
     authorize_action("layer4.analysis.write_case", context)
     record = await db.get(BusinessCaseRecord, case_id)
     if not record:
-        raise HTTPException(status_code=404, detail=f"Case {case_id} not found")
+        raise NotFoundError(message = str(f"Case {case_id} not found"))
 
     tenant_id = str(context.tenant_id) if context.tenant_id else "default"
     account_id = str(record.account_id)

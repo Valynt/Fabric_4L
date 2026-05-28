@@ -1,10 +1,11 @@
+from __future__ import annotations
+
 """Benchmark Service client interface for Layer 4 Agents.
 
 Provides clean extension point for Layer 6 Benchmark Service integration.
 Uses REST API contracts for cross-service operations.
 """
 
-from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass

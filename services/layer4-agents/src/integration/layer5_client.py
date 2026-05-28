@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Layer 5 Ground Truth API Client.
 
 Used by Layer 4 agent workflows to:
@@ -11,7 +13,6 @@ exceptions and returns a structured error dict rather than raising, so
 a Layer 5 outage never blocks a business case generation.
 """
 
-from __future__ import annotations
 
 import logging
 import os

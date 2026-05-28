@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Narrative Builder Service — Data Intelligence Layer Phase 3, Task 3.1.
 
@@ -24,7 +26,6 @@ Neo4j Node Schema:
     version, status, created_at, updated_at
 """
 
-from __future__ import annotations
 
 import json
 import uuid

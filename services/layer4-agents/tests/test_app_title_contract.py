@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Contract test for FastAPI application metadata.
 
 Ensures the approved service title rename does not regress.
 """
 
-from __future__ import annotations
 
 import pytest
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Tenant Service — business logic for Tenant, User, and APIKey lifecycle.
 
 This service is the single source of truth for:
@@ -8,7 +10,6 @@ This service is the single source of truth for:
 All methods are async to integrate with SQLAlchemy's async session.
 """
 
-from __future__ import annotations
 
 import logging
 import uuid

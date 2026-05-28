@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 #!/usr/bin/env python3
 """Fail CI when Layer 5 compatibility modules drift from shim-only adapters."""
 
-from __future__ import annotations
 
 import argparse
 import ast

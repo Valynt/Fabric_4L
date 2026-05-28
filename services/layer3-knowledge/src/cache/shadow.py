@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,7 +11,6 @@ primary provider result is always returned, while shadow mismatches are recorded
 for tests or future staging telemetry.
 """
 
-from __future__ import annotations
 
 from collections.abc import Awaitable, Callable
 from dataclasses import dataclass, field

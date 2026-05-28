@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Unit tests for HealthTracker service.
 
 Tests health status tracking, badge generation, and callback mechanisms.
 """
 
-from __future__ import annotations
 
 import asyncio
 

@@ -1,11 +1,13 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError
 """Tenant-scoped notification feed routes."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -46,10 +48,7 @@ _NOTIFICATIONS_BY_TENANT: dict[str, dict[str, NotificationRecord]] = {}
 
 def _tenant_key(ctx: RequestContext) -> str:
     if ctx.tenant_id is None:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Validated tenant context required",
-        )
+        raise AuthenticationError(message = "Validated tenant context required")
     return str(ctx.tenant_id)
 
 
@@ -131,7 +130,7 @@ async def mark_notification_read(
     tenant_notifications = _NOTIFICATIONS_BY_TENANT.get(_tenant_key(ctx), {})
     notification = tenant_notifications.get(notification_id)
     if notification is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Notification not found")
+        raise NotFoundError(message = "Notification not found")
 
     notification = notification.model_copy(update={"read": True, "updated_at": _now_iso()})
     tenant_notifications[notification_id] = notification

@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, RateLimitError, ValidationError
 """OIDC SSO routes for tenant authentication with PKCE support (P0-10).
 
 GET  /auth/oidc/{tenant_slug}/login    — initiate OIDC flow with PKCE
@@ -7,7 +10,6 @@ POST /auth/refresh                     — rotate session cookie; returns update
 POST /auth/logout                      — expire session cookie
 """
 
-from __future__ import annotations
 
 import base64
 import hashlib
@@ -126,17 +128,7 @@ def _check_preauth_rate_limit(request: Request, endpoint: str, discriminator: st
 
     if count >= AUTH_PREAUTH_MAX_ATTEMPTS:
         retry_after = max(1, int(AUTH_PREAUTH_WINDOW_SECONDS - (now - window_start)))
-        raise HTTPException(
-            status_code=429,
-            detail="Too many authentication attempts",
-            headers={
-                "Retry-After": str(retry_after),
-                "X-RateLimit-Limit": str(AUTH_PREAUTH_MAX_ATTEMPTS),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": str(int(window_start + AUTH_PREAUTH_WINDOW_SECONDS)),
-                "X-RateLimit-Policy": "oidc_preauth",
-            },
-        )
+        raise RateLimitError(message = "Too many authentication attempts")
 
     _auth_preauth_buckets[key] = (window_start, count + 1)
 
@@ -235,11 +227,11 @@ async def oidc_login(
 
     tenant = await _get_tenant_by_slug(db, tenant_slug)
     if tenant is None:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     raw_config = OIDCProviderConfig.from_settings(tenant.settings or {})
     if raw_config is None or not raw_config.enabled:
-        raise HTTPException(status_code=400, detail="OIDC is not enabled for this tenant")
+        raise ValidationError(message = "OIDC is not enabled for this tenant")
 
     # Apply provider-specific presets (Google/Apple endpoints, scopes, etc.)
     oidc_config = resolve_oidc_config(raw_config)
@@ -332,7 +324,7 @@ async def oidc_callback(
             outcome=AuditOutcome.FAILURE,
             details={"reason": "invalid_state"},
         )
-        raise HTTPException(status_code=400, detail="Invalid or expired state parameter")
+        raise ValidationError(message = "Invalid or expired state parameter")
 
     if row["expires_at"] < datetime.now(UTC):
         await db.execute(text("DELETE FROM oidc_sessions WHERE state = :state"), {"state": state})
@@ -343,7 +335,7 @@ async def oidc_callback(
             outcome=AuditOutcome.FAILURE,
             details={"reason": "expired_state"},
         )
-        raise HTTPException(status_code=400, detail="OIDC session expired")
+        raise ValidationError(message = "OIDC session expired")
 
     tenant_id: UUID = row["tenant_id"]
     nonce: str = row["nonce"]
@@ -356,11 +348,11 @@ async def oidc_callback(
     tenant_result = await db.execute(select(Tenant).where(Tenant.id == tenant_id))
     tenant = tenant_result.scalar_one_or_none()
     if tenant is None:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     raw_config = OIDCProviderConfig.from_settings(tenant.settings or {})
     if raw_config is None or not raw_config.enabled:
-        raise HTTPException(status_code=400, detail="OIDC is not enabled for this tenant")
+        raise ValidationError(message = "OIDC is not enabled for this tenant")
 
     # Apply provider-specific presets (Google/Apple endpoints, scopes, etc.)
     oidc_config = resolve_oidc_config(raw_config)
@@ -416,7 +408,7 @@ async def oidc_callback(
             outcome=AuditOutcome.FAILURE,
             details={"reason": "nonce_mismatch"},
         )
-        raise HTTPException(status_code=400, detail="OIDC nonce mismatch")
+        raise ValidationError(message = "OIDC nonce mismatch")
 
     # Map claims to role
     email = claims.get("email", "")
@@ -459,9 +451,7 @@ async def oidc_callback(
                 outcome=AuditOutcome.FAILURE,
                 details={"reason": "user_not_found", "email": email},
             )
-            raise HTTPException(
-                status_code=403, detail="User not found and auto-provisioning is disabled"
-            )
+            raise AuthorizationError(message = "User not found and auto-provisioning is disabled")
     else:
         # Update role if claim mapping changed (optional behaviour)
         if user.role != mapped_role:
@@ -526,11 +516,11 @@ async def oidc_metadata(
     """Return non-sensitive OIDC configuration for a tenant."""
     tenant = await _get_tenant_by_slug(db, tenant_slug)
     if tenant is None:
-        raise HTTPException(status_code=404, detail="Tenant not found")
+        raise NotFoundError(message = "Tenant not found")
 
     raw_config = OIDCProviderConfig.from_settings(tenant.settings or {})
     if raw_config is None:
-        raise HTTPException(status_code=400, detail="OIDC is not configured for this tenant")
+        raise ValidationError(message = "OIDC is not configured for this tenant")
 
     # Apply provider-specific presets so metadata reflects resolved values
     oidc_config = resolve_oidc_config(raw_config)
@@ -571,11 +561,11 @@ async def auth_refresh(
     from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt
 
     if not vf_session:
-        raise HTTPException(status_code=401, detail="No active session")
+        raise AuthenticationError(message = "No active session")
 
     claims = decode_jwt(vf_session)
     if claims is None:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
+        raise AuthenticationError(message = "Invalid or expired session")
 
     # Re-fetch user to pick up any role changes since last login
     from uuid import UUID
@@ -586,14 +576,14 @@ async def auth_refresh(
         tenant_id = UUID(str(claims.tenant_id))
         user_id = UUID(str(claims.sub))
     except (ValueError, TypeError):
-        raise HTTPException(status_code=401, detail="Invalid session claims")
+        raise AuthenticationError(message = "Invalid session claims")
 
     user_result = await db.execute(
         select(User).where(User.id == user_id, User.tenant_id == tenant_id)
     )
     user = user_result.scalar_one_or_none()
     if user is None or user.status != "active":
-        raise HTTPException(status_code=401, detail="User not found or inactive")
+        raise AuthenticationError(message = "User not found or inactive")
 
     new_token = encode_jwt(
         tenant_id=tenant_id,

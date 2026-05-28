@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Async SQLAlchemy engine and session management for L2.5 Signal Refinery.
 
 Follows the same pattern as Layer 5's database.py:
@@ -6,7 +8,7 @@ Follows the same pattern as Layer 5's database.py:
 - get_db_from_context() as the canonical FastAPI dependency
 """
 
-from __future__ import annotations
+from value_fabric.shared.error_handling.exceptions import ValidationError
 
 import logging
 import uuid
@@ -14,7 +16,7 @@ from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 from typing import TYPE_CHECKING
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, status
 from sqlalchemy import event, text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -143,10 +145,7 @@ async def get_db_from_context(
     """
     ctx = _get_request_context()
     if ctx is None or not getattr(ctx, "tenant_id", None):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant context required.",
-        )
+        raise ValidationError(message = "Tenant context required.")
 
     tenant_id = str(ctx.tenant_id)
     factory = get_session_factory()

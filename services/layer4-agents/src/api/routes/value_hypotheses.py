@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """
 Value Hypotheses API routes — Data Intelligence Layer Phase 2, Task 2.1.
 
@@ -10,14 +13,13 @@ Tenant identity is extracted from the verified JWT/API-key context (V-001, V-002
 Hypothesis status transitions are validated against an enum (V-008).
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (
@@ -191,7 +193,7 @@ async def promote_signal(
         )
     except ValueError as exc:
         logger.warning("signal_promotion_value_error", extra={"error": str(exc)})
-        raise HTTPException(status_code=404, detail="Signal not found") from exc
+        raise NotFoundError(message = "Signal not found") from exc
 
     return PromoteSignalResponse.model_validate({
         "status": "success",
@@ -216,7 +218,7 @@ async def get_hypothesis(
 
     result = await engine.get_hypothesis(tenant_id, hypothesis_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Hypothesis not found")
+        raise NotFoundError(message = "Hypothesis not found")
 
     return result
 
@@ -279,7 +281,7 @@ async def validate_hypothesis(
     )
 
     if not result:
-        raise HTTPException(status_code=404, detail="Hypothesis not found")
+        raise NotFoundError(message = "Hypothesis not found")
 
     promoted_artifacts = await engine.orchestrate_post_validation(
         tenant_id,
@@ -308,7 +310,7 @@ async def delete_hypothesis(
 
     deleted = await engine.delete_hypothesis(tenant_id, hypothesis_id)
     if not deleted:
-        raise HTTPException(status_code=404, detail="Hypothesis not found")
+        raise NotFoundError(message = "Hypothesis not found")
 
     return delete_hypothesisResult.model_validate({"status": "deleted", "hypothesis_id": hypothesis_id})
 
@@ -327,7 +329,7 @@ async def convert_hypothesis_to_tree(
 
     result = await engine.convert_hypothesis_to_tree(tenant_id, hypothesis_id)
     if not result:
-        raise HTTPException(status_code=404, detail="Hypothesis not found")
+        raise NotFoundError(message = "Hypothesis not found")
 
     return convert_hypothesisResult.model_validate(result)
 
@@ -367,7 +369,7 @@ async def rank_hypotheses(
             hypotheses.append(h)
 
     if not hypotheses:
-        raise HTTPException(status_code=404, detail="No valid hypotheses found")
+        raise NotFoundError(message = "No valid hypotheses found")
 
     ranked = engine.rank_hypotheses(hypotheses, body.strategy)
 

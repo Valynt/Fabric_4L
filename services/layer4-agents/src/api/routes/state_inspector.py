@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """State Inspector API for debugging and analyzing workflow state.
 
 Provides endpoints for:
@@ -8,7 +11,6 @@ Provides endpoints for:
 - Performance metrics per node
 """
 
-from __future__ import annotations
 
 import logging
 import sys
@@ -20,7 +22,7 @@ try:
 except ImportError:
     dateutil_parser = None
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -180,7 +182,7 @@ async def get_state_schema(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     # Extract schema from Pydantic model
     schema = state.model_json_schema()
@@ -241,7 +243,7 @@ async def get_state_values(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     state_dict = state.model_dump()
     values = {}
@@ -307,7 +309,7 @@ async def inspect_output_data(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     output_data = state.output_data if hasattr(state, "output_data") else {}
 
@@ -358,7 +360,7 @@ async def analyze_errors(
     """
     state = await executor.state_manager.load_state(workflow_id)
     if not state:
-        raise HTTPException(status_code=404, detail=f"Workflow {workflow_id} not found")
+        raise NotFoundError(message = str(f"Workflow {workflow_id} not found"))
 
     errors = state.errors if hasattr(state, "errors") else []
 

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Unit tests for PackVariableLoader — Phase 2 of Canonical Contract Migration.
 
@@ -9,7 +11,6 @@ Tests cover:
 - Type mapping from pack format to VariableRegistry format
 """
 
-from __future__ import annotations
 
 import json
 from pathlib import Path

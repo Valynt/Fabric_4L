@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 #!/usr/bin/env python3
 """Verify that app_monolith.py has been fully removed (ARCH-L3-011 cutover).
 
@@ -6,7 +8,6 @@ bounded domain routers under api/routes/. This script asserts the file is
 absent so CI catches any accidental re-introduction.
 """
 
-from __future__ import annotations
 
 import argparse
 import sys

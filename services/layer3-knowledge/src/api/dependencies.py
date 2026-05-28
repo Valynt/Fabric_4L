@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -7,7 +8,7 @@ Reason: FastAPI dependencies for Layer 3 API.
 
 import logging
 
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, Request
 from neo4j import AsyncDriver
 from neo4j.exceptions import (
     ConfigurationError,
@@ -465,10 +466,7 @@ def get_neo4j_driver(request: Request) -> AsyncDriver:
     """Get Neo4j driver from application state."""
     driver = get_app_state(request).neo4j_driver
     if driver is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Neo4j database is currently unavailable. Please retry shortly.",
-        )
+        raise ServiceUnavailableError(message = "Neo4j database is currently unavailable. Please retry shortly.")
     return driver
 
 
@@ -476,7 +474,7 @@ def get_vector_store(request: Request) -> VectorStore:
     """Get vector store from application state."""
     store = get_app_state(request).vector_store
     if store is None:
-        raise HTTPException(status_code=503, detail="Vector store not available")
+        raise ServiceUnavailableError(message = "Vector store not available")
     return store
 
 

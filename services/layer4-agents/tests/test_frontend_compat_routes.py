@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Integration tests for frontend compatibility routes.
 
 Tests the following alias routes:
@@ -8,7 +10,6 @@ Tests the following alias routes:
 Uses inline FastAPI app with in-memory stores to avoid heavy DB setup.
 """
 
-from __future__ import annotations
 
 from typing import Any
 from uuid import UUID, uuid4

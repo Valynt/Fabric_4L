@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Re-export from top-level shared.security.dil_auth.
 
 This module exists because layer4-agents/src/shared/ shadows the top-level
 packages/shared/src/value_fabric/shared/ package when 'src' is on sys.path.
 """
-from __future__ import annotations
 
 import importlib.util
 from pathlib import Path

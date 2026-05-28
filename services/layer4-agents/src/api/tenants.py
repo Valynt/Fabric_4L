@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
 """Tenant management API endpoints.
 
 Task 3: Multi-Tenancy Hardening - Tenant Provisioning Automation
@@ -8,7 +11,6 @@ Provides admin endpoints for tenant lifecycle management:
 - GET /v1/tenants - List all tenants (super-admin only)
 """
 
-from __future__ import annotations
 
 import logging
 from typing import Any
@@ -226,10 +228,7 @@ async def provision_tenant(
         
     except ValueError as e:
         logger.warning(f"Tenant provisioning validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Tenant provisioning validation failed",
-        )
+        raise ValidationError(message = "Tenant provisioning validation failed")
     except RuntimeError as e:
         logger.error(f"Tenant provisioning failed: {e}")
         raise HTTPException(
@@ -285,10 +284,7 @@ async def get_tenant(
     row = result.fetchone()
     
     if not row:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Tenant {tenant_id} not found",
-        )
+        raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     
     # Get user count
     user_count_query = text("""

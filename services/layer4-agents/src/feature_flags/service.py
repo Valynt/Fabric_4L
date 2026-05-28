@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """FeatureFlagService — business logic for feature flag CRUD and evaluation."""
 
-from __future__ import annotations
 
 import logging
 from typing import Any

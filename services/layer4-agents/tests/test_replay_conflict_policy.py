@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for canonical replay-conflict policy enforcement."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 

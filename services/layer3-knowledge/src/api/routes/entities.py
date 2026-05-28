@@ -1,3 +1,4 @@
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -16,7 +17,7 @@ architectural decomposition effort (Weakness #3).
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from value_fabric.shared.identity import RequestContext, require_authenticated
 from value_fabric.shared.identity.isolation import TenantScopedCypher
 
@@ -196,7 +197,7 @@ async def get_entity_detail(
         entity_result = await neo4j.execute_query(entity_query, {"entity_id": entity_id})
 
         if not entity_result:
-            raise HTTPException(status_code=404, detail=f"Entity {entity_id} not found")
+            raise NotFoundError(message = str(f"Entity {entity_id} not found"))
 
         entity_node = entity_result[0]["e"]
 
@@ -258,7 +259,7 @@ async def get_entity_detail(
             updated_at=entity_node.get("updated_at"),
         )
 
-    except HTTPException:
+    except:
         raise
     except (ValidationError, DatabaseError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}

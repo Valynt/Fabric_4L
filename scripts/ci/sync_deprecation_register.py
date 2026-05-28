@@ -222,7 +222,7 @@ def main() -> None:
         
         deprecations = extract_deprecations_from_spec(spec_path)
         all_deprecations.extend(deprecations)
-        print(f"✅ {layer_file}: {len(deprecations)} deprecations found")
+        print(f"PASS {layer_file}: {len(deprecations)} deprecations found")
     
     register = load_deprecation_register()
     
@@ -239,7 +239,7 @@ def main() -> None:
         obsolete_in_register = existing_endpoint_schema_keys - new_endpoint_schema_keys
         
         if missing_in_register or obsolete_in_register:
-            print(f"\n❌ Deprecation register is out of sync:")
+            print(f"\nFAIL Deprecation register is out of sync:")
             if missing_in_register:
                 print(f"  - {len(missing_in_register)} deprecations in OpenAPI but not in register")
                 for key in list(missing_in_register)[:5]:
@@ -256,16 +256,16 @@ def main() -> None:
         else:
             field_count = len(existing_field_keys)
             endpoint_count = len(new_endpoint_schema_keys)
-            print(f"\n✅ Deprecation register is in sync ({endpoint_count} endpoint/schema deprecations, {field_count} field-level deprecations)")
+            print(f"\nPASS Deprecation register is in sync ({endpoint_count} endpoint/schema deprecations, {field_count} field-level deprecations)")
             exit(0)
     
     if args.update:
         updated_register = sync_deprecation_register(register, all_deprecations)
         if save_deprecation_register(updated_register):
-            print(f"\n✅ Updated deprecation register with {len(all_deprecations)} deprecations")
+            print(f"\nPASS Updated deprecation register with {len(all_deprecations)} deprecations")
             exit(0)
         else:
-            print("\n❌ Failed to update deprecation register")
+            print("\nFAIL Failed to update deprecation register")
             exit(1)
 
 

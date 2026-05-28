@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Cypher query validator for tenant isolation enforcement.
 
 .. deprecated::
@@ -30,7 +32,6 @@ Usage:
     ...     print("Query rejected - missing tenant_id")
 """
 
-from __future__ import annotations
 
 import logging
 import re

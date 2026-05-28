@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Structured reasoning trace schema for Layer 4 workflow outputs.
 
 Enforces a guaranteed, schema-validated reasoning trace with required fields
@@ -5,7 +7,6 @@ Enforces a guaranteed, schema-validated reasoning trace with required fields
 agent output.
 """
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from typing import Any

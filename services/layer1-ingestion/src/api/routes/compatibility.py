@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
 """Compatibility and shared security probe routes for Layer 1."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime
 from hashlib import sha256
@@ -64,7 +66,7 @@ async def create_ingestion_source_compatibility_boundary(
     try:
         payload = await request.json()
     except Exception as exc:
-        raise HTTPException(status_code=400, detail="Invalid source payload") from exc
+        raise ValidationError(message = "Invalid source payload") from exc
     if not isinstance(payload, dict):
         raise HTTPException(status_code=422, detail="Source payload must be an object")
     source_id = str(payload.get("id") or uuid4())
@@ -93,10 +95,10 @@ async def get_ingestion_source_compatibility_boundary(
     )
     record = _INGESTION_SOURCE_COMPAT_STORE.get(source_id)
     if record is None:
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise NotFoundError(message = "Source not found")
     if str(record.get("tenant_id")) != str(ctx.tenant_id):
         # Fail closed and do not disclose whether another tenant owns the record.
-        raise HTTPException(status_code=404, detail="Source not found")
+        raise NotFoundError(message = "Source not found")
     return record
 
 
@@ -134,7 +136,7 @@ async def user_private_data_security_boundary(
     ctx: RequestContext = Depends(require_authenticated),
 ) -> dict[str, str]:
     if str(ctx.user_id) != user_id:
-        raise HTTPException(status_code=403, detail="User cannot access another user's private data")
+        raise AuthorizationError(message = "User cannot access another user's private data")
     return {"user_id": user_id}
 
 

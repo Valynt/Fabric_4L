@@ -1,11 +1,11 @@
+from __future__ import annotations
+
 """Initial value_signals table with RLS policies.
 
 Revision ID: 001
 Revises: —
 Create Date: 2026-05-14
 """
-
-from __future__ import annotations
 
 from collections.abc import Sequence
 

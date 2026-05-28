@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Regression tests for Layer 3 Cypher tenant-scope hardening."""
 
-from __future__ import annotations
 
 import pytest
 

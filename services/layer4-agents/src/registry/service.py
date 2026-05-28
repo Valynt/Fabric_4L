@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Model Registry service layer."""
 
-from __future__ import annotations
 
 import logging
 import os

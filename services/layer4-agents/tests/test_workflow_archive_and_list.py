@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Integration tests for workflow archive and list endpoints.
 
 Tests the following routes added for frontend-backend contract alignment:
@@ -8,7 +10,6 @@ Uses inline FastAPI app (same pattern as test_workflow_controls.py) to avoid
 heavy app-level imports.
 """
 
-from __future__ import annotations
 
 import json
 from datetime import UTC, datetime

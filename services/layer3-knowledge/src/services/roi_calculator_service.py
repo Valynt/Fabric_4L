@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 ROI Calculator Service — Data Intelligence Layer Phase 2, Task 2.3.
 
@@ -32,7 +34,6 @@ Neo4j Node Schema:
     created_at
 """
 
-from __future__ import annotations
 
 import json
 import math

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Real LangGraph workflow execution tests with InMemory checkpointing.
 
 Tier A: Fast tests using InMemorySaver (no Redis required).
@@ -11,7 +13,6 @@ Key scenarios:
 - Thread-based checkpoint isolation
 """
 
-from __future__ import annotations
 
 from typing import Annotated, Any, TypedDict
 

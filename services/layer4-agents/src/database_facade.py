@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Stable Layer 4 database facade used by cross-repo tests.
 
 This module prefers the canonical implementation at
@@ -5,7 +7,6 @@ This module prefers the canonical implementation at
 dependency-minimal shim when optional service dependencies are unavailable.
 """
 
-from __future__ import annotations
 
 import importlib
 import logging

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Human Gate Manager — manages approval gates with decision immutability.
 
@@ -7,7 +9,6 @@ Invariants:
   - All decisions are traceable (who, when, why).
 """
 
-from __future__ import annotations
 
 from .models import (
     ActionClass,

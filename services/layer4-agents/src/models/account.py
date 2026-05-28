@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 SQLAlchemy models for CRM Accounts.
 
@@ -10,7 +12,6 @@ Architecture:
 - Layer 3 KG = optional downstream graph projection (deferred to Phase 2+)
 """
 
-from __future__ import annotations
 
 import uuid
 from datetime import UTC, datetime

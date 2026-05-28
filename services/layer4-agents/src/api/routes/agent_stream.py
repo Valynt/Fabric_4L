@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from value_fabric.shared.error_handling.exceptions import ValidationError
 """Agent Stream route for RightRail conversational assistant (ValuePilot).
 
 Wires the frontend RightRail chat to the ConversationService, which
@@ -11,7 +14,6 @@ The response contract is unchanged from the original stub:
   { content: str, metadata: AgentGovernanceMetadata }
 """
 
-from __future__ import annotations
 
 import json
 import logging
@@ -19,7 +21,7 @@ import os
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Request, status
 from fastapi.responses import StreamingResponse
 from opentelemetry import trace
 from pydantic import BaseModel, ConfigDict, Field
@@ -201,10 +203,7 @@ async def agent_stream_chat(
     4. Return response with governance metadata
     """
     if not ctx.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Validated tenant context required for agent requests",
-        )
+        raise ValidationError(message = "Validated tenant context required for agent requests")
 
     # Extract the last user message
     last_user_message = next(
@@ -314,10 +313,7 @@ async def agent_stream_chat_sse(
       RUN_STARTED → STEP_STARTED/STEP_FINISHED → TEXT_MESSAGE_* → RUN_FINISHED
     """
     if not ctx.tenant_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Validated tenant context required for agent requests",
-        )
+        raise ValidationError(message = "Validated tenant context required for agent requests")
 
     last_user_message = next(
         (msg.content for msg in reversed(payload.messages) if msg.role.lower() == "user"),

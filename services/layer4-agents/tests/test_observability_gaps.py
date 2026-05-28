@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 """Tests for Layer 4 observability gaps (approval latency, failure alerting)."""
 
-from __future__ import annotations
 
 from datetime import UTC, datetime, timedelta
 

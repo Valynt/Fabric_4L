@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """System Maintenance Identity and Authorization Framework.
 
 Provides dedicated system maintenance identity separate from tenant admin roles.
@@ -19,7 +21,6 @@ Usage:
         pass
 """
 
-from __future__ import annotations
 
 import os
 from contextlib import contextmanager

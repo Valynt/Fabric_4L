@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 #!/usr/bin/env python3
 """Fail CI if Layer 3 backup compatibility shims drift from canonical forwarders."""
 
-from __future__ import annotations
 
 import argparse
 import sys

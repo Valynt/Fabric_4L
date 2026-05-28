@@ -1,9 +1,10 @@
+from __future__ import annotations
+
 """Tenant context domain model for secure multi-tenant operations.
 
 This module provides the canonical TenantContext model used across Layer 4
 to enforce tenant isolation at the tool and service level.
 """
-from __future__ import annotations
 
 import os
 import sys

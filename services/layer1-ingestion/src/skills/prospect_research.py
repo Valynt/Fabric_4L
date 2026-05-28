@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Prospect Research Skill.
 
 Used when the goal is: "Research this account so we can understand likely pain,
@@ -6,7 +8,6 @@ AccountIntelligencePacket that feeds Layer 2/4 for signal extraction and
 value hypothesis generation.
 """
 
-from __future__ import annotations
 
 from typing import Any
 

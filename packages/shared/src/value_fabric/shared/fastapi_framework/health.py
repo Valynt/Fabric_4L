@@ -54,15 +54,6 @@ class CallableProbe:
             return ProbeResult(name=self.name, healthy=False, detail=str(exc))
 
 
-@dataclass
-class _CachedReadiness:
-    """Internal cache cell for readiness aggregation."""
-
-    expires_at: float = 0.0
-    payload: dict[str, object] = field(default_factory=dict)
-    healthy: bool = False
-
-
 async def _run_probe_with_timeout(probe: HealthCheckProbe, timeout_seconds: float) -> ProbeResult:
     start = time.perf_counter()
     try:

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """Notification service for human-in-the-loop workflows.
 
 Provides multi-channel notifications:
@@ -7,7 +9,6 @@ Provides multi-channel notifications:
 - Push notifications (for mobile/PWA)
 """
 
-from __future__ import annotations
 
 import asyncio
 import hashlib
