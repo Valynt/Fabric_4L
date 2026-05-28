@@ -92,11 +92,15 @@ class TestApprovalWorkflow:
             description="Approval workflow for formulas",
             required_approval_levels=1,
             approver_roles=["admin", "reviewer"],
+            level_definitions=[{"level": 1, "quorum": 1}],
+            default_level_quorum=1,
+            escalation_mode="manual",
             is_active=True,
             version="1.0",
         )
         assert workflow.entity_type == EntityType.FORMULA.value
         assert workflow.required_approval_levels == 1
+        assert workflow.level_definitions[0]["level"] == 1
         assert workflow.is_active is True
 
 
