@@ -15,7 +15,7 @@ async def list_value_packs(
     offset: int = Query(0, ge=0),
 ):
     items = db.value_packs.list(limit=limit, offset=offset)
-    total = len(db.value_packs.list())
+    total = db.value_packs.count()
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -34,7 +34,7 @@ async def list_formulas(
     offset: int = Query(0, ge=0),
 ):
     items = db.formulas.list(limit=limit, offset=offset)
-    total = len(db.formulas.list())
+    total = db.formulas.count()
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

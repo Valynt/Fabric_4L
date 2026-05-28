@@ -42,7 +42,7 @@ async def list_prod_gates(
     offset: int = Query(0, ge=0),
 ):
     items = db.governance_gates.list(tenant_id=tenant_id, limit=limit, offset=offset)
-    total = len(db.governance_gates.list(tenant_id=tenant_id))
+    total = db.governance_gates.count(tenant_id=tenant_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

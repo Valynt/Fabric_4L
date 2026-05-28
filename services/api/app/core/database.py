@@ -161,6 +161,26 @@ class InMemoryTable(Generic[T]):
             items = items[:limit]
         return items
 
+    def count(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+    ) -> int:
+        """Return the total count of matching rows without fetching them."""
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="count")
+        with self._lock:
+            items = list(self._store.values())
+        if _is_tenant_scoped_field(self.tenant_field):
+            if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
+                pass  # intentional cross-tenant read
+            else:
+                items = [i for i in items if self._get_tenant_id(i) == normalized_tenant_id]
+        if filter_fn:
+            items = [i for i in items if filter_fn(i)]
+        return len(items)
+
     def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
         normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="update")
         with self._lock:
@@ -397,6 +417,19 @@ class AsyncInMemoryTable(InMemoryTable[T]):
             allow_system_scope=allow_system_scope,
             limit=limit,
             offset=offset,
+        )
+
+    async def count(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+    ) -> int:
+        return super().count(
+            tenant_id=tenant_id,
+            filter_fn=filter_fn,
+            allow_system_scope=allow_system_scope,
         )
 
     async def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:

@@ -19,7 +19,7 @@ async def list_drivers(
     offset: int = Query(0, ge=0),
 ):
     items = db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.drivers.list(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id))
+    total = db.drivers.count(tenant_id=tenant_id, filter_fn=lambda d: d.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

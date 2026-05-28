@@ -20,7 +20,7 @@ async def list_scenarios(
     offset: int = Query(0, ge=0),
 ):
     items = db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.scenarios.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.scenarios.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

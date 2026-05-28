@@ -35,7 +35,7 @@ async def list_snapshots(
         limit=limit,
         offset=offset,
     )
-    total = len(db.snapshots.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.snapshots.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

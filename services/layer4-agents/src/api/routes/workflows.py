@@ -439,7 +439,7 @@ async def _filter_and_paginate_workflows(
     )
 
 
-@router.get("/workflows")
+@router.get("/workflows", response_model=WorkflowListResponse)
 async def list_workflows(
     request: Request,
     limit: int = Query(default=50, ge=1, le=100, description="Maximum number of workflows to return"),
@@ -460,7 +460,7 @@ async def list_workflows(
     return result
 
 
-@router.get("/workflows/active")
+@router.get("/workflows/active", response_model=WorkflowListResponse)
 async def list_active_workflows(
     request: Request,
     limit: int = Query(default=50, ge=1, le=100, description="Maximum number of workflows to return"),

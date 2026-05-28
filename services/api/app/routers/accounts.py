@@ -46,7 +46,7 @@ async def list_accounts(
     offset: int = Query(0, ge=0),
 ):
     items = db.accounts.list(tenant_id=tenant_id, limit=limit, offset=offset)
-    total = len(db.accounts.list(tenant_id=tenant_id))
+    total = db.accounts.count(tenant_id=tenant_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

@@ -132,7 +132,7 @@ def _get_neo4j_driver(request: Request):
 # ---------------------------------------------------------------------------
 
 
-@router.post("/generate")
+@router.post("/generate", response_model=generate_hypothesesResult)
 async def generate_hypotheses(
     body: GenerateHypothesesRequest,
     request: Request,
@@ -255,7 +255,7 @@ async def get_account_hypotheses(
     )
 
 
-@router.post("/{hypothesis_id}/validate")
+@router.post("/{hypothesis_id}/validate", response_model=validate_hypothesisResult)
 async def validate_hypothesis(
     hypothesis_id: str,
     body: ValidateHypothesisRequest,
@@ -296,7 +296,7 @@ async def validate_hypothesis(
     })
 
 
-@router.delete("/{hypothesis_id}")
+@router.delete("/{hypothesis_id}", response_model=delete_hypothesisResult)
 async def delete_hypothesis(
     hypothesis_id: str,
     request: Request,
@@ -349,7 +349,7 @@ async def get_hypothesis_summary(
     return await engine.get_hypothesis_summary(tenant_id, account_id)
 
 
-@router.post("/rank")
+@router.post("/rank", response_model=rank_hypothesesResult)
 async def rank_hypotheses(
     body: RankHypothesesRequest,
     request: Request,

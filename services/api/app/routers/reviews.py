@@ -35,7 +35,7 @@ async def list_review_requests(
         limit=limit,
         offset=offset,
     )
-    total = len(db.review_requests.list(tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id))
+    total = db.review_requests.count(tenant_id=tenant_id, filter_fn=lambda r: r.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -101,5 +101,5 @@ async def list_review_comments(
         limit=limit,
         offset=offset,
     )
-    total = len(db.review_comments.list(tenant_id=tenant_id, filter_fn=lambda c: c.review_id == review_id))
+    total = db.review_comments.count(tenant_id=tenant_id, filter_fn=lambda c: c.review_id == review_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)

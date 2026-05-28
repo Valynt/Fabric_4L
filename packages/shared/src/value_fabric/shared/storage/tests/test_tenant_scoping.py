@@ -89,8 +89,9 @@ class TestStorageKeyNormalization:
 class TestStorageOperationsWithTenantScoping:
     """Test storage operations use normalized keys with tenant scoping."""
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_put_object_uses_normalized_key(self, mock_boto3_client):
+    async def test_put_object_uses_normalized_key(self, mock_boto3_client):
         """put_object should use tenant-scoped normalized key."""
         # Setup
         mock_s3_client = MagicMock()
@@ -104,7 +105,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.put_object(
+        result = await client.put_object(
             key="documents/file.pdf",
             data=b"test data",
             tenant_id="tenant-123",
@@ -116,8 +117,9 @@ class TestStorageOperationsWithTenantScoping:
         assert call_kwargs["Key"] == "tenant-tenant-123/documents/file.pdf"
         assert call_kwargs["Bucket"] == "test-bucket"
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_get_object_uses_normalized_key(self, mock_boto3_client):
+    async def test_get_object_uses_normalized_key(self, mock_boto3_client):
         """get_object should use tenant-scoped normalized key."""
         # Setup
         mock_s3_client = MagicMock()
@@ -134,7 +136,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.get_object(key="documents/file.pdf", tenant_id="tenant-123")
+        result = await client.get_object(key="documents/file.pdf", tenant_id="tenant-123")
         
         # Assert
         mock_s3_client.get_object.assert_called_once()
@@ -142,8 +144,9 @@ class TestStorageOperationsWithTenantScoping:
         assert call_kwargs["Key"] == "tenant-tenant-123/documents/file.pdf"
         assert call_kwargs["Bucket"] == "test-bucket"
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_delete_object_uses_normalized_key(self, mock_boto3_client):
+    async def test_delete_object_uses_normalized_key(self, mock_boto3_client):
         """delete_object should use tenant-scoped normalized key."""
         # Setup
         mock_s3_client = MagicMock()
@@ -157,7 +160,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.delete_object(key="documents/file.pdf", tenant_id="tenant-123")
+        result = await client.delete_object(key="documents/file.pdf", tenant_id="tenant-123")
         
         # Assert
         mock_s3_client.delete_object.assert_called_once()
@@ -165,8 +168,9 @@ class TestStorageOperationsWithTenantScoping:
         assert call_kwargs["Key"] == "tenant-tenant-123/documents/file.pdf"
         assert call_kwargs["Bucket"] == "test-bucket"
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_list_objects_uses_normalized_prefix(self, mock_boto3_client):
+    async def test_list_objects_uses_normalized_prefix(self, mock_boto3_client):
         """list_objects should use tenant-scoped normalized prefix."""
         # Setup
         mock_s3_client = MagicMock()
@@ -186,7 +190,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.list_objects(prefix="documents/", tenant_id="tenant-123")
+        result = await client.list_objects(prefix="documents/", tenant_id="tenant-123")
         
         # Assert
         mock_s3_client.list_objects_v2.assert_called_once()
@@ -195,8 +199,9 @@ class TestStorageOperationsWithTenantScoping:
         assert call_kwargs["Bucket"] == "test-bucket"
         assert len(result) == 2
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_generate_presigned_url_uses_normalized_key(self, mock_boto3_client):
+    async def test_generate_presigned_url_uses_normalized_key(self, mock_boto3_client):
         """generate_presigned_url should use tenant-scoped normalized key."""
         # Setup
         mock_s3_client = MagicMock()
@@ -211,7 +216,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.generate_presigned_url(key="documents/file.pdf", tenant_id="tenant-123")
+        result = await client.generate_presigned_url(key="documents/file.pdf", tenant_id="tenant-123")
         
         # Assert
         mock_s3_client.generate_presigned_url.assert_called_once()
@@ -219,8 +224,9 @@ class TestStorageOperationsWithTenantScoping:
         assert call_kwargs["Params"]["Key"] == "tenant-tenant-123/documents/file.pdf"
         assert call_kwargs["Params"]["Bucket"] == "test-bucket"
 
+    @pytest.mark.asyncio
     @patch("value_fabric.shared.storage.client.boto3.client")
-    def test_object_exists_uses_normalized_key(self, mock_boto3_client):
+    async def test_object_exists_uses_normalized_key(self, mock_boto3_client):
         """object_exists should use tenant-scoped normalized key."""
         # Setup
         mock_s3_client = MagicMock()
@@ -234,7 +240,7 @@ class TestStorageOperationsWithTenantScoping:
         )
         
         # Act
-        result = client.object_exists(key="documents/file.pdf", tenant_id="tenant-123")
+        result = await client.object_exists(key="documents/file.pdf", tenant_id="tenant-123")
         
         # Assert
         mock_s3_client.head_object.assert_called_once()

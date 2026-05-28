@@ -22,7 +22,7 @@ async def list_signals(
 ):
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/signals")
     items = db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.signals.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.signals.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 
@@ -53,7 +53,7 @@ async def list_stakeholders(
 ):
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/stakeholders")
     items = db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.stakeholders.list(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id))
+    total = db.stakeholders.count(tenant_id=tenant_id, filter_fn=lambda s: s.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

@@ -22,7 +22,7 @@ async def list_evidence(
 ):
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/evidence")
     items = db.evidence.list(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id, limit=limit, offset=offset)
-    total = len(db.evidence.list(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id))
+    total = db.evidence.count(tenant_id=tenant_id, filter_fn=lambda e: e.account_id == account_id)
     return PaginatedResponse(items=items, total=total, limit=limit, offset=offset)
 
 

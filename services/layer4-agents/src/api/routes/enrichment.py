@@ -167,7 +167,7 @@ async def enrich_batch(
         await orchestrator.close()
 
 
-@router.get("/status", summary="Get enrichment coverage statistics")
+@router.get("/status", summary="Get enrichment coverage statistics", response_model=EnrichmentStatusResponse)
 async def get_enrichment_status(
     tenant_id: str = Depends(get_verified_tenant_id),
     db: AsyncSession = Depends(get_db_from_context),
