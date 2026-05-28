@@ -209,6 +209,75 @@ class TestAmbiguityHandling:
         assert len(response.candidates) == 1
         assert response.provenance.tie_break_applied is False
 
+    @pytest.mark.asyncio
+    async def test_most_recent_prefers_latest_non_null_updated_at(self):
+        driver = AsyncMock()
+        session = AsyncMock()
+        result = AsyncMock()
+        result.data = AsyncMock(return_value=[
+            {"id": "product-a", "properties": {"id": "product-a", "name": "Test Product", "updated_at": None}, "reference_count": 9},
+            {"id": "product-b", "properties": {"id": "product-b", "name": "Test Product", "updated_at": "2026-05-01T00:00:00Z"}, "reference_count": 1},
+        ])
+        session.run = AsyncMock(return_value=result)
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+        request = EntityResolutionRequest(
+            entity_type="Product",
+            tenant_id="tenant-1",
+            query_attributes={"name": "Test Product"},
+            strategy=ResolutionStrategy.EXACT,
+            tie_break_rule=TieBreakRule.MOST_RECENT,
+        )
+        response = await service.resolve(request)
+        assert response.matched_entity_id == "product-b"
+        assert response.explanation["tie_break_evidence"][0]["entity_id"] == "product-b"
+
+    @pytest.mark.asyncio
+    async def test_most_referenced_prefers_highest_reference_count(self):
+        driver = AsyncMock()
+        session = AsyncMock()
+        result = AsyncMock()
+        result.data = AsyncMock(return_value=[
+            {"id": "product-a", "properties": {"id": "product-a", "name": "Test Product", "updated_at": "2026-05-01T00:00:00Z"}, "reference_count": 3},
+            {"id": "product-b", "properties": {"id": "product-b", "name": "Test Product", "updated_at": "2026-04-01T00:00:00Z"}, "reference_count": 8},
+        ])
+        session.run = AsyncMock(return_value=result)
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+        request = EntityResolutionRequest(
+            entity_type="Product",
+            tenant_id="tenant-1",
+            query_attributes={"name": "Test Product"},
+            strategy=ResolutionStrategy.EXACT,
+            tie_break_rule=TieBreakRule.MOST_REFERENCED,
+        )
+        response = await service.resolve(request)
+        assert response.matched_entity_id == "product-b"
+
+    @pytest.mark.asyncio
+    async def test_equal_metrics_collision_uses_canonical_id_order(self):
+        driver = AsyncMock()
+        session = AsyncMock()
+        result = AsyncMock()
+        result.data = AsyncMock(return_value=[
+            {"id": "product-z", "properties": {"id": "product-z", "name": "Test Product", "updated_at": "2026-05-01T00:00:00Z"}, "reference_count": 5},
+            {"id": "product-a", "properties": {"id": "product-a", "name": "Test Product", "updated_at": "2026-05-01T00:00:00Z"}, "reference_count": 5},
+        ])
+        session.run = AsyncMock(return_value=result)
+        driver.session = MagicMock(return_value=session)
+        service = EntityResolutionService(driver)
+        request = EntityResolutionRequest(
+            entity_type="Product",
+            tenant_id="tenant-1",
+            query_attributes={"name": "Test Product"},
+            strategy=ResolutionStrategy.EXACT,
+            tie_break_rule=TieBreakRule.MOST_REFERENCED,
+        )
+        response1 = await service.resolve(request)
+        response2 = await service.resolve(request)
+        assert response1.matched_entity_id == "product-a"
+        assert response2.matched_entity_id == "product-a"
+
 
 class TestExplainability:
     """Test that resolution responses include explainability metadata."""
