@@ -14,6 +14,7 @@ from layer5_ground_truth.models.approval_workflow import (
     ApprovalDecisionType,
     ApprovalRequest,
     ApprovalStatus,
+    ApprovalWorkflow,
     EntityType,
 )
 from layer5_ground_truth.services.approval_state_machine import (
@@ -25,6 +26,23 @@ from tests.conftest import TEST_ORG_ID
 
 
 class TestApprovalStateMachine:
+    @staticmethod
+    async def _add_active_workflow(db, tenant_id, levels=1, level_definitions=None):
+        workflow = ApprovalWorkflow(
+            id=uuid.uuid4(),
+            tenant_id=tenant_id,
+            entity_type=EntityType.FORMULA.value,
+            workflow_name="Formula Approval",
+            required_approval_levels=levels,
+            approver_roles=["admin"],
+            is_active=True,
+            level_definitions=level_definitions,
+            default_level_quorum=1,
+        )
+        db.add(workflow)
+        await db.flush()
+        return workflow
+
     @pytest.mark.asyncio
     async def test_submit_for_approval(self, db):
         """Should transition DRAFT → PENDING when submitted."""
@@ -90,6 +108,7 @@ class TestApprovalStateMachine:
         db.add(request)
         await db.flush()
 
+        await self._add_active_workflow(db, TEST_ORG_ID)
         result = await sm.approve(
             db=db,
             request=request,
@@ -100,6 +119,49 @@ class TestApprovalStateMachine:
         assert result.status == ApprovalStatus.APPROVED.value
         assert result.reviewed_by == "approver@example.com"
         assert result.approved_at is not None
+
+    @pytest.mark.asyncio
+    async def test_approve_rejects_when_multilevel_quorum_not_met(self, db):
+        sm = ApprovalStateMachine()
+        await self._add_active_workflow(
+            db,
+            TEST_ORG_ID,
+            levels=2,
+            level_definitions=[{"level": 1, "quorum": 1}, {"level": 2, "quorum": 1}],
+        )
+        request = ApprovalRequest(
+            id=uuid.uuid4(),
+            tenant_id=TEST_ORG_ID,
+            entity_type=EntityType.FORMULA.value,
+            entity_id=uuid.uuid4(),
+            status=ApprovalStatus.PENDING.value,
+            requested_by="user@example.com",
+            requested_at=datetime.now(UTC),
+        )
+        db.add(request)
+        await db.flush()
+        with pytest.raises(Exception, match="quorum unmet"):
+            await sm.approve(db=db, request=request, approver="approver@example.com")
+
+    @pytest.mark.asyncio
+    async def test_approve_blocks_cross_tenant_workflow_and_decisions(self, db):
+        sm = ApprovalStateMachine()
+        tenant_a = TEST_ORG_ID
+        tenant_b = uuid.uuid4()
+        await self._add_active_workflow(db, tenant_b)
+        request = ApprovalRequest(
+            id=uuid.uuid4(),
+            tenant_id=tenant_a,
+            entity_type=EntityType.FORMULA.value,
+            entity_id=uuid.uuid4(),
+            status=ApprovalStatus.PENDING.value,
+            requested_by="user@example.com",
+            requested_at=datetime.now(UTC),
+        )
+        db.add(request)
+        await db.flush()
+        with pytest.raises(Exception, match="No active approval workflow"):
+            await sm.approve(db=db, request=request, approver="approver@example.com")
 
     @pytest.mark.asyncio
     async def test_reject_pending_request(self, db):

@@ -137,7 +137,6 @@ services:
       DEBUG: 'true'
       API_PORT: 8000
       RELEASE_SMOKE_LIGHT_HEALTH: 'true'
-      DEV_AUTH_BYPASS: 'true'
       JWT_SECRET: ${JWT_SECRET}
       SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
     volumes:

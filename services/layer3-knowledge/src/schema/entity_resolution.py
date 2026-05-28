@@ -214,7 +214,7 @@ class EntityResolutionResponse(BaseModel):
     @classmethod
     def sort_candidates_by_score(cls, v: list[MatchCandidate]) -> list[MatchCandidate]:
         """Ensure candidates are sorted by score descending."""
-        return sorted(v, key=lambda c: c.score, reverse=True)
+        return sorted(v, key=lambda c: (-c.score, c.entity_id))
 
 
 class BatchResolutionRequest(BaseModel):

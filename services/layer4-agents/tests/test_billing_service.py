@@ -35,7 +35,7 @@ from value_fabric.layer4.models.billing import (
     SubscriptionStatus,
 )
 
-from value_fabric.layer4.services.billing_service import BillingService
+from value_fabric.layer4.services.billing_service import BillingService, WebhookErrorCode, WebhookValidationError
 from value_fabric.layer4.services.stripe_client import StripeError
 
 
@@ -407,19 +407,53 @@ async def test_create_checkout_session_no_stripe_sync(mock_db, sample_customer):
 
 @pytest.mark.asyncio
 async def test_webhook_invalid_signature(mock_db):
-    """Test webhook rejects invalid signatures."""
+    """Test webhook rejects invalid signatures using structured provider exception type."""
+    SignatureVerificationError = type("SignatureVerificationError", (Exception,), {})
     mock_stripe = MagicMock()
-    mock_stripe.Webhook.construct_event.side_effect = Exception("Invalid signature")
+    mock_stripe.Webhook.construct_event.side_effect = SignatureVerificationError("signature mismatch")
 
-    with patch('src.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('src.services.billing_service._get_stripe', return_value=mock_stripe), patch(
+        "src.services.billing_service.logger"
+    ) as mock_logger:
         service = BillingService(mock_db)
 
-        with pytest.raises(ValueError, match="Invalid signature"):
+        with pytest.raises(WebhookValidationError, match="Invalid signature") as exc_info:
             await service.handle_webhook(
                 payload=b'{"test": "payload"}',
                 signature="invalid_sig",
                 webhook_secret="whsec_test",
             )
+    assert exc_info.value.code == WebhookErrorCode.INVALID_SIGNATURE
+    assert mock_logger.warning.call_args.kwargs["extra"]["error_code"] == WebhookErrorCode.INVALID_SIGNATURE.value
+
+
+@pytest.mark.asyncio
+async def test_webhook_payload_corruption_classified_without_provider_message_coupling(mock_db):
+    """Corrupted payload should map to malformed payload code without message matching."""
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.side_effect = TypeError()
+
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe):
+        service = BillingService(mock_db)
+        with pytest.raises(WebhookValidationError, match="Malformed webhook payload") as exc_info:
+            await service.handle_webhook(payload=b"\x80\x81", signature="sig", webhook_secret="whsec_test")
+    assert exc_info.value.code == WebhookErrorCode.MALFORMED_PAYLOAD
+
+
+@pytest.mark.asyncio
+async def test_webhook_unexpected_exception_category_maps_to_internal_error_code(mock_db):
+    """Unknown provider categories should normalize to stable internal classification."""
+    mock_stripe = MagicMock()
+    mock_stripe.Webhook.construct_event.side_effect = RuntimeError("boom")
+
+    with patch("src.services.billing_service._get_stripe", return_value=mock_stripe), patch(
+        "src.services.billing_service.logger"
+    ) as mock_logger:
+        service = BillingService(mock_db)
+        with pytest.raises(WebhookValidationError, match="Invalid payload") as exc_info:
+            await service.handle_webhook(payload=b"{}", signature="sig", webhook_secret="whsec_test")
+    assert exc_info.value.code == WebhookErrorCode.INTERNAL_ERROR
+    assert mock_logger.warning.call_args.kwargs["extra"]["error_class"] == "RuntimeError"
 
 
 @pytest.mark.asyncio

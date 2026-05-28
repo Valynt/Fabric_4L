@@ -22,8 +22,6 @@ x-common-env: &common-env
   PYTHONUNBUFFERED: "1"
   JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET via secure env}
   SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?set SERVICE_AUTH_SECRET via secure env}
-  DEV_AUTH_BYPASS: "true"
-  ALLOW_INSECURE_DEV_AUTH_BYPASS: "true"
   DEFAULT_TENANT_ID: tenant-release-smoke-a
   FABRIC_TENANT_HEADER: X-Tenant-ID
   FABRIC_USER_HEADER: X-User-ID

@@ -134,6 +134,9 @@ class ApprovalStateMachine:
           - approver must have required role (checked at API layer)
         """
         self._assert_approval_transition(request, ApprovalStatus.APPROVED)
+        workflow = await self._require_tenant_workflow(db=db, request=request)
+        await self._assert_decision_tenant_consistency(db=db, request=request)
+        await self._assert_approval_requirements_met(db=db, request=request, workflow=workflow)
 
         request.reviewed_by = approver
         request.reviewed_at = datetime.now(UTC)
@@ -149,6 +152,7 @@ class ApprovalStateMachine:
             actor_type="human",
             decision_type=ApprovalDecisionType.APPROVE,
             notes=notes or "Approved",
+            workflow=workflow,
         )
 
     async def reject(
@@ -301,6 +305,7 @@ class ApprovalStateMachine:
         actor_type: str,
         decision_type: ApprovalDecisionType,
         notes: str | None = None,
+        workflow: ApprovalWorkflow | None = None,
     ) -> ApprovalRequest:
         """Apply a validated approval transition and record decision."""
         old_status = request.status
@@ -337,6 +342,7 @@ class ApprovalStateMachine:
             request.rejected_at = datetime.now(UTC)
 
         # Record approval decision
+        decision_level = await self._compute_decision_level(db=db, request=request, workflow=workflow)
         decision = ApprovalDecision(
             tenant_id=request.tenant_id,
             approval_request_id=request.id,
@@ -344,7 +350,7 @@ class ApprovalStateMachine:
             decided_by=actor,
             decided_at=datetime.now(UTC),
             decision_notes=notes,
-            approval_level=1,  # TODO: Support multi-level approval chains
+            approval_level=decision_level,
         )
         db.add(decision)
 
@@ -358,6 +364,97 @@ class ApprovalStateMachine:
 
         await db.flush()
         return request
+
+    async def _compute_decision_level(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        workflow: ApprovalWorkflow | None,
+    ) -> int:
+        """Compute decision level from workflow and existing decision history."""
+        if workflow is None:
+            return 1
+        level_defs = workflow.level_definitions or []
+        if not level_defs:
+            return 1
+        level_counts: dict[int, int] = {}
+        for row in (
+            await db.execute(
+                select(ApprovalDecision.approval_level, func.count(ApprovalDecision.id))
+                .where(
+                    and_(
+                        ApprovalDecision.approval_request_id == request.id,
+                        ApprovalDecision.tenant_id == request.tenant_id,
+                        ApprovalDecision.decision_type == ApprovalDecisionType.APPROVE.value,
+                    )
+                )
+                .group_by(ApprovalDecision.approval_level)
+            )
+        ).all():
+            level_counts[int(row[0])] = int(row[1])
+        for level_def in sorted(level_defs, key=lambda v: int(v.get("level", 1))):
+            level = int(level_def.get("level", 1))
+            quorum = int(level_def.get("quorum", workflow.default_level_quorum or 1))
+            if level_counts.get(level, 0) < quorum:
+                return level
+        return int(level_defs[-1].get("level", 1))
+
+    async def _require_tenant_workflow(self, db: AsyncSession, request: ApprovalRequest) -> ApprovalWorkflow:
+        workflow = await self.get_workflow_for_entity(db, request.tenant_id, EntityType(request.entity_type))
+        if workflow is None:
+            raise ApprovalRequirementError("No active approval workflow found for tenant/entity.")
+        if workflow.tenant_id != request.tenant_id:
+            raise ApprovalRequirementError("Workflow tenant mismatch for approval request.")
+        return workflow
+
+    async def _assert_decision_tenant_consistency(self, db: AsyncSession, request: ApprovalRequest) -> None:
+        mismatched = (
+            await db.execute(
+                select(ApprovalDecision.id).where(
+                    and_(
+                        ApprovalDecision.approval_request_id == request.id,
+                        ApprovalDecision.tenant_id != request.tenant_id,
+                    )
+                )
+            )
+        ).scalar_one_or_none()
+        if mismatched is not None:
+            raise ApprovalRequirementError("Existing decisions include foreign-tenant records.")
+
+    async def _assert_approval_requirements_met(
+        self,
+        db: AsyncSession,
+        request: ApprovalRequest,
+        workflow: ApprovalWorkflow,
+    ) -> None:
+        """Enforce quorum/level guard before allowing APPROVED transition."""
+        level_defs = workflow.level_definitions or []
+        required_levels = workflow.required_approval_levels or 1
+        if not level_defs:
+            level_defs = [{"level": level, "quorum": workflow.default_level_quorum or 1} for level in range(1, required_levels + 1)]
+        rows = (
+            await db.execute(
+                select(ApprovalDecision.approval_level, func.count(ApprovalDecision.id))
+                .where(
+                    and_(
+                        ApprovalDecision.approval_request_id == request.id,
+                        ApprovalDecision.tenant_id == request.tenant_id,
+                        ApprovalDecision.decision_type == ApprovalDecisionType.APPROVE.value,
+                    )
+                )
+                .group_by(ApprovalDecision.approval_level)
+            )
+        ).all()
+        approved_by_level = {int(level): int(count) for level, count in rows}
+        next_level = await self._compute_decision_level(db=db, request=request, workflow=workflow)
+        approved_by_level[next_level] = approved_by_level.get(next_level, 0) + 1
+        for level_def in sorted(level_defs, key=lambda v: int(v.get("level", 1))):
+            level = int(level_def.get("level", 1))
+            quorum = int(level_def.get("quorum", workflow.default_level_quorum or 1))
+            if approved_by_level.get(level, 0) < quorum:
+                raise ApprovalRequirementError(
+                    f"Cannot approve: level {level} quorum unmet ({approved_by_level.get(level, 0)}/{quorum})."
+                )
 
     async def get_workflow_for_entity(
         self,

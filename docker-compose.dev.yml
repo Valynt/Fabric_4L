@@ -210,7 +210,6 @@ services:
     environment:
       - ENVIRONMENT=development
       # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
-      - DEV_AUTH_BYPASS=true
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/extraction
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
@@ -282,7 +281,6 @@ services:
     environment:
       - ENVIRONMENT=development
       # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
-      - DEV_AUTH_BYPASS=true
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/signal_refinery
       - LAYER2_BASE_URL=http://layer2:8000
@@ -322,7 +320,6 @@ services:
       - ENVIRONMENT=development
       # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
       # Auth bypass for local dev — injects a dev tenant context on every request
-      - DEV_AUTH_BYPASS=true
       - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - CORS_ORIGINS=http://localhost:3001,http://localhost:8004
       # JWT secret (required by jwt.py at import time, but bypassed at runtime)

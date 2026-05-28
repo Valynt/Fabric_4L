@@ -87,8 +87,6 @@ services:
     ports:
       - "8004:8000"
     environment:
-      # Auth bypass — E2E tests inject tenant context via DEV_AUTH_BYPASS
-      - DEV_AUTH_BYPASS=true
       - DEV_TENANT_ID=00000000-0000-4000-e2e0-000000000001
       # JWT secret (required at import time, bypassed at runtime)
       - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars

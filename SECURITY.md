@@ -88,7 +88,7 @@ SLSA level details, and the full production readiness checklist, see:
 
 For local development, the following environment variables may be set to bypass authentication:
 - `DEV_AUTH_BYPASS=true` - Bypasses JWT validation and injects dev tenant context
-- `ALLOW_DEV_AUTH_BYPASS=true` - Allows dev auth bypass in services
+- `ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK` - Legacy explicit acknowledgement token
 - `AUTH_BYPASS_ENABLED=true` - Global auth bypass flag
 - `ALLOW_INSECURE_DEV_AUTH_BYPASS=true` - Allows insecure dev auth bypass
 
@@ -99,7 +99,7 @@ For local development, the following environment variables may be set to bypass 
 - ProductionSafetyValidator validates at service startup
 - Security tests verify bypass rejection in production-like environments (`tests/security/test_dev_bypass.py`)
 
-**Local Development:**
-- Use `docker-compose.dev.yml` for local development (contains `DEV_AUTH_BYPASS=true`)
-- Never copy `docker-compose.dev.yml` or its environment variables to production
-- Production deployments must use `docker-compose.prod.yml` with proper authentication
+**Local Development (only accepted path):**
+- Keep bypass flags out of committed compose baselines (CI preflight enforces this).
+- Put bypass flags only in a local uncommitted env file such as `.env.dev` and an uncommitted compose override (for example `docker-compose.override.yml`).
+- Never copy local override env variables to shared, staging, or production environments.
