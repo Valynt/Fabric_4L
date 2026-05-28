@@ -69,7 +69,11 @@ spec:
             - name: DATABASE_URL
               value: "postgresql://postgres:postgres@postgres:5432/ingestion"
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:
@@ -136,7 +140,11 @@ spec:
             - name: DATABASE_URL
               value: "postgresql://postgres:postgres@postgres:5432/ingestion"
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: OPENAI_API_KEY
               valueFrom:
                 secretKeyRef:

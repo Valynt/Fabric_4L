@@ -59,8 +59,9 @@ spec:
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -163,8 +164,9 @@ spec:
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: JWT_SECRET
           valueFrom:
             secretKeyRef:
@@ -278,8 +280,9 @@ spec:
         - name: REDIS_URL
           valueFrom:
             secretKeyRef:
-              name: layer1-secrets
-              key: redis_url
+              name: redis-secret
+              key: REDIS_URL
+              optional: false
         - name: PYTHONPATH
           value: "/app"
         - name: C_FORCE_ROOT

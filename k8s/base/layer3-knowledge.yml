@@ -87,7 +87,11 @@ spec:
                   name: neo4j-secret
                   key: auth
             - name: REDIS_URL
-              value: "redis://redis:6379/0"
+              valueFrom:
+                secretKeyRef:
+                  name: redis-secret
+                  key: REDIS_URL
+                  optional: false
             - name: PINECONE_API_KEY
               valueFrom:
                 secretKeyRef:

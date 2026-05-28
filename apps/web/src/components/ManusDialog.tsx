@@ -56,7 +56,7 @@ export function ManusDialog({
         <div className="flex flex-col items-center gap-2 p-5 pt-12">
           {logo ? (
             <div className="w-16 h-16 bg-card rounded-xl border border-border flex items-center justify-center">
-              <OptimizedImage src={logo} alt="Dialog graphic" className="w-10 h-10 rounded-md" />
+              <OptimizedImage src={logo} alt="Provider logo" className="w-10 h-10 rounded-md" />
             </div>
           ) : null}
 

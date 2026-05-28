@@ -195,7 +195,7 @@ export function RelationshipMap({
               )}
               style={{ left: pos.x, top: pos.y }}
             >
-              <span className={cn("text-muted-foreground", colors.text)}>
+              <span aria-hidden="true" className={cn("text-muted-foreground", colors.text)}>
                 {getTypeIcon(type.id)}
               </span>
               <span className={cn("text-[10px] font-medium whitespace-nowrap", colors.text)}>
@@ -219,7 +219,7 @@ export function RelationshipMap({
             return (
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
-                  {getTypeIcon(type.id)}
+                  <span aria-hidden="true">{getTypeIcon(type.id)}</span>
                   <span className="text-[12px] font-semibold">{type.name}</span>
                 </div>
                 <div className="flex gap-4 text-[10px] text-muted-foreground">

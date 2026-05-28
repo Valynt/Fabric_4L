@@ -18,6 +18,10 @@ from uuid import UUID
 
 import httpx
 from pydantic import ValidationError
+from value_fabric.shared.resilience.circuit_breaker import (
+    CircuitBreaker,
+    CircuitBreakerOpen,
+)
 
 from metrics.prometheus_metrics import get_metrics
 
@@ -31,6 +35,7 @@ ERR_LAYER3_CONTRACT_INVALID = "L5_LAYER3_CONTRACT_INVALID"
 ERR_LAYER3_POLICY_DENIED = "L5_LAYER3_POLICY_DENIED"
 ERR_LAYER3_TENANT_MISMATCH = "L5_LAYER3_TENANT_MISMATCH"
 ERR_LAYER3_SERVER_ERROR = "L5_LAYER3_SERVER_ERROR"
+ERR_LAYER3_CIRCUIT_OPEN = "L5_LAYER3_CIRCUIT_OPEN"
 
 
 class Layer3ClientError(RuntimeError):
@@ -138,6 +143,12 @@ class Layer3Client:
         if self._settings.layer3_api_key:
             self._headers["Authorization"] = f"Bearer {self._settings.layer3_api_key}"
         self._client: httpx.AsyncClient | None = None
+        self._breaker = CircuitBreaker(
+            service_name="layer3-knowledge",
+            failure_threshold=5,
+            recovery_timeout=60.0,
+            half_open_max_calls=3,
+        )
 
     def _get_client(self) -> httpx.AsyncClient:
         """Return (or lazily create) the persistent HTTP client."""
@@ -154,6 +165,24 @@ class Layer3Client:
             await self._client.aclose()
             self._client = None
 
+    def get_breaker_state(self) -> dict[str, Any]:
+        """Return current circuit-breaker state for health probes."""
+        return self._breaker.get_state()
+
+    async def _post_with_breaker(self, url: str, json: dict) -> httpx.Response:
+        """Execute POST through circuit breaker."""
+        client = self._get_client()
+        return await self._breaker.call(
+            client.post, url, json=json, headers=self._headers
+        )
+
+    async def _get_with_breaker(self, url: str, params: dict | None = None) -> httpx.Response:
+        """Execute GET through circuit breaker."""
+        client = self._get_client()
+        return await self._breaker.call(
+            client.get, url, params=params, headers=self._headers
+        )
+
     # ------------------------------------------------------------------
     # Health check
     # ------------------------------------------------------------------
@@ -161,9 +190,16 @@ class Layer3Client:
     async def ping(self) -> bool:
         """Return True if Layer 3 is reachable."""
         try:
-            client = self._get_client()
-            resp = await client.get(f"{self._base_url}/health", headers=self._headers)
+            resp = await self._get_with_breaker(
+                f"{self._base_url}/health",
+            )
             return resp.status_code == 200
+        except CircuitBreakerOpen:
+            logger.debug(
+                "layer3_ping_circuit_open",
+                extra=_log_context(tenant_id=None, error_code=ERR_LAYER3_CIRCUIT_OPEN),
+            )
+            return False
         except httpx.TimeoutException:
             logger.debug(
                 "layer3_ping_timeout",
@@ -237,11 +273,9 @@ class Layer3Client:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                client = self._get_client()
-                resp = await client.post(
+                resp = await self._post_with_breaker(
                     f"{self._base_url}/api/v1/nodes",
-                    json=payload,
-                    headers=self._headers,
+                    payload,
                 )
                 resp.raise_for_status()
                 data = self._parse_node_response(
@@ -461,6 +495,21 @@ class Layer3Client:
                     ),
                 )
                 raise
+            except CircuitBreakerOpen as exc:
+                self._record_sync_failure("circuit_open", transition)
+                logger.warning(
+                    "layer3_circuit_open",
+                    extra=_log_context(
+                        tenant_id=tenant_id,
+                        truth_object_id=truth_object_id,
+                        request_id=request_id,
+                        error_code=ERR_LAYER3_CIRCUIT_OPEN,
+                        transition=transition,
+                        sync_status="circuit_open",
+                        retry_after=exc.retry_after,
+                    ),
+                )
+                return None
             except Layer3ContractValidationError:
                 self._record_sync_failure("contract_invalid", transition)
                 logger.warning(
@@ -599,11 +648,9 @@ class Layer3Client:
         max_retries = 3
         for attempt in range(max_retries):
             try:
-                client = self._get_client()
-                resp = await client.post(
+                resp = await self._post_with_breaker(
                     f"{self._base_url}/api/v1/relationships",
-                    json=payload,
-                    headers=self._headers,
+                    payload,
                 )
                 resp.raise_for_status()
                 logger.info(
@@ -670,6 +717,18 @@ class Layer3Client:
                     ),
                 )
                 return False
+            except CircuitBreakerOpen as exc:
+                logger.warning(
+                    "layer3_link_circuit_open",
+                    extra=_log_context(
+                        tenant_id=None,
+                        request_id=None,
+                        error_code=ERR_LAYER3_CIRCUIT_OPEN,
+                        sync_status="circuit_open",
+                        retry_after=exc.retry_after,
+                    ),
+                )
+                return False
 
     # ------------------------------------------------------------------
     # Query Layer 3 for entity context
@@ -687,11 +746,9 @@ class Layer3Client:
         """
         request_tenant = str(tenant_id)
         try:
-            client = self._get_client()
-            resp = await client.get(
+            resp = await self._get_with_breaker(
                 f"{self._base_url}/api/v1/entities/{entity_id}",
                 params={"tenant_id": str(tenant_id)},
-                headers=self._headers,
             )
             if resp.status_code == 404:
                 return None
@@ -787,6 +844,18 @@ class Layer3Client:
                 },
             )
             logger.debug("Layer 3 contract validation details for entity %s: %s", entity_id, exc)
+            return None
+        except CircuitBreakerOpen as exc:
+            logger.warning(
+                "layer3_entity_context_circuit_open",
+                extra=_log_context(
+                    tenant_id=tenant_id,
+                    request_id=None,
+                    error_code=ERR_LAYER3_CIRCUIT_OPEN,
+                    sync_status="circuit_open",
+                    retry_after=exc.retry_after,
+                ),
+            )
             return None
         except Exception as exc:
             logger.debug("Layer 3 entity context fetch failed for %s: %s", entity_id, exc)

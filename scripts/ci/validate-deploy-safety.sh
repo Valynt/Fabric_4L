@@ -27,7 +27,7 @@ ERRORS=0
 # -----------------------------------------------------------------------------
 echo "==> Checking deploy kubeconfig step fails closed ..."
 
-if ! grep -A 5 "echo \"::error::Kubeconfig is not configured\"" "${DEPLOY_WORKFLOW}" | grep -q "exit 1"; then
+if ! grep -A 5 "::error::Kubeconfig is not configured" "${DEPLOY_WORKFLOW}" | grep -q "exit 1"; then
   echo "::error::Deploy workflow kubeconfig step does not exit with error (fail-closed)"
   ERRORS=$((ERRORS + 1))
 fi
@@ -37,10 +37,11 @@ fi
 # -----------------------------------------------------------------------------
 echo "==> Checking rollback kubeconfig step fails closed ..."
 
-ROLLBACK_KUBECONFIG=$(grep -n "Configure kubeconfig" "${DEPLOY_WORKFLOW}" | tail -1 | cut -d: -f1)
-if [[ -n "${ROLLBACK_KUBECONFIG}" ]]; then
-  # Check the second occurrence (rollback job) has exit 1
-  if ! sed -n "${ROLLBACK_KUBECONFIG},+20p" "${DEPLOY_WORKFLOW}" | grep -q "exit 1"; then
+# Find the rollback job's Configure kubeconfig step (not the comment referencing it)
+# Search after the "rollback-on-failure" job header for the step
+ROLLBACK_SECTION=$(grep -n "rollback-on-failure:" "${DEPLOY_WORKFLOW}" | tail -1 | cut -d: -f1)
+if [[ -n "${ROLLBACK_SECTION}" ]]; then
+  if ! sed -n "${ROLLBACK_SECTION},+30p" "${DEPLOY_WORKFLOW}" | grep "exit 1" > /dev/null 2>&1; then
     echo "::error::Rollback workflow kubeconfig step does not exit with error (fail-closed)"
     ERRORS=$((ERRORS + 1))
   fi

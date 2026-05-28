@@ -4,8 +4,24 @@ from __future__ import annotations
 
 import logging
 import sys
+from typing import Any
 
 import structlog
+
+
+def _merge_request_context(
+    logger: Any, method_name: str, event_dict: dict[str, Any]
+) -> dict[str, Any]:
+    """Merge per-request logging context (request_id, tenant_id, etc.) into event dict."""
+    try:
+        from value_fabric.shared.observability.request_context import (
+            logging_context_dict,
+        )
+
+        event_dict.update(logging_context_dict())
+    except Exception:  # noqa: BLE001
+        pass
+    return event_dict
 
 
 def configure_structured_logging() -> None:
@@ -13,6 +29,7 @@ def configure_structured_logging() -> None:
     structlog.configure(
         processors=[
             structlog.contextvars.merge_contextvars,
+            _merge_request_context,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.JSONRenderer(),
