@@ -121,6 +121,7 @@ spec:
         app: prometheus
         component: monitoring
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 65534

@@ -22,6 +22,7 @@ spec:
         app: neo4j
         component: database
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 7474

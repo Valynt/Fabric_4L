@@ -153,7 +153,7 @@ def _setup_sqlite_uuid_handling(url: str) -> None:
 def _is_production_like_runtime() -> bool:
     env = get_settings().effective_environment if hasattr(get_settings(), "effective_environment") else ""
     value = str(env or "").strip().lower()
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+    return value == "production"
 
 
 def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:

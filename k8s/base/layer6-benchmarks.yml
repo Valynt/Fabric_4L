@@ -22,6 +22,7 @@ spec:
         app: layer6-benchmarks
         component: layer6
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

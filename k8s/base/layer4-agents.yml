@@ -22,6 +22,7 @@ spec:
         app: layer4-agents
         component: layer4
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

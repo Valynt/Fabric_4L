@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import logging
+import structlog
 
 from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import Response
@@ -12,7 +12,7 @@ from app.models.schemas import DSARCreateResponse, DSARRequestCreate, DSARReques
 from app.services import dsar_service
 from app.core.database import db
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 router = APIRouter(prefix="/privacy", tags=["Privacy"])
 
 
@@ -61,10 +61,10 @@ async def create_dsar(
 
                 replay = service.check_replay(idem_request)
                 if replay is not None:
-                    logger.info("DSAR request replayed from idempotency cache", idempotency_key=idempotency_key)
+                    logger.info("DSAR request replayed from idempotency cache", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", idempotency_key=idempotency_key)
                     return replay.body
         except Exception as e:
-            logger.warning("Idempotency check failed, proceeding with request", error=str(e))
+            logger.warning("Idempotency check failed, proceeding with request", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=str(e))
     
     record = await dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
     package = await dsar_service.launch_export_pipeline(record)
@@ -72,7 +72,7 @@ async def create_dsar(
     try:
         complete = await dsar_service.reconcile_package(refreshed)
     except ValueError as exc:
-        logger.warning("DSAR reconciliation failed: %s", exc)
+        logger.warning("DSAR reconciliation failed", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_reconcile", route="/privacy/dsar", error=str(exc))
         raise ValidationError(message="Invalid DSAR request") from exc
     
     response = {"request": complete, "download_url": dsar_service.issue_download_url(package)}
@@ -91,7 +91,7 @@ async def create_dsar(
                 )
             )
         except Exception as e:
-            logger.warning("Failed to store idempotency response", error=str(e))
+            logger.warning("Failed to store idempotency response", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=str(e))
     
     return response
 
@@ -112,6 +112,6 @@ async def download_dsar_package(package_id: str, token: str = Query(...), tenant
     try:
         dsar_service.validate_download_access(package, requester_user_id=auth.sub, token=token)
     except PermissionError as exc:
-        logger.warning("DSAR download access denied: %s", exc)
+        logger.warning("DSAR download access denied", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_download", route="/privacy/dsar/packages/download", error=str(exc))
         raise AuthorizationError(message="Access denied") from exc
     return Response(content=dsar_service.serialize_package(package), media_type='application/json')

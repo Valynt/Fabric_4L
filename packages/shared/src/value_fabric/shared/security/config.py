@@ -122,13 +122,30 @@ def is_test_runtime(environment: str | None = None) -> bool:
 
 
 def is_production_like_environment(environment: str | None = None) -> bool:
-    """Return True for production, staging, or any unknown environment.
+    """Return True only when the environment is explicitly ``production``.
 
-    This is the canonical fail-safe policy: unknown/custom environments are
-    treated as production-like so that security controls are never accidentally
-    relaxed.
+    Per BE-010, only the literal ``production`` environment is treated as
+    production-like. Staging, demo, and unknown environments are *not*
+    production-like. Safety-critical callers should use
+    ``is_strict_environment()`` when they need to enforce checks for both
+    production and staging.
     """
     env = (environment or detect_environment()).strip().lower()
+    return env == "production"
+
+
+def is_strict_environment(environment: str | None = None) -> bool:
+    """Return True for production or staging environments.
+
+    Use this for safety checks that must run in both production and staging
+    (e.g. JWT secret strength, database TLS, auth mode enforcement).
+    Unknown environments are treated as strict so that security controls are
+    never accidentally relaxed.
+    """
+    env = (environment or detect_environment()).strip().lower()
+    if env in {"production", "staging"}:
+        return True
+    # Unknown / custom environments are treated as strict (fail-safe)
     return not is_test_runtime(env)
 
 
@@ -138,7 +155,7 @@ def is_production_like_environment(environment: str | None = None) -> bool:
 
 
 class ProductionSafetyValidator:
-    """Fail-closed validator for required production dependencies.
+    """Fail-closed validator for required production/staging dependencies.
 
     Authentication, persistence, encryption, API keys, CORS origins, and tenant
     isolation must never downgrade to mock, fallback, or development behavior in
@@ -153,6 +170,7 @@ class ProductionSafetyValidator:
     def __init__(self, environment: str | None = None) -> None:
         self.environment = (environment or detect_environment()).strip().lower()
         self.is_production_like = is_production_like_environment(self.environment)
+        self.is_strict = is_strict_environment(self.environment)
         self.errors: list[str] = []
 
     # ------------------------------------------------------------------
@@ -443,7 +461,7 @@ class ProductionSafetyValidator:
     # ------------------------------------------------------------------
     def validate(self) -> None:
         """Run all production-safety checks."""
-        if not self.is_production_like:
+        if not self.is_strict:
             # In dev/test environments, run validations as warnings only
             self._run_all()
             if self.errors:
@@ -481,10 +499,10 @@ def validate_production_safety(environment: str | None = None) -> None:
         RuntimeError: If any required control is missing or misconfigured.
     """
     validator = ProductionSafetyValidator(environment=environment)
-    if validator.is_production_like:
+    if validator.is_strict:
         logger.warning(
-            "RUNNING IN PRODUCTION-LIKE MODE (environment=%s). "
-            "Fail-closed safety gates are active. Unknown/custom environments are treated as production-like.",
+            "RUNNING IN STRICT MODE (environment=%s). "
+            "Fail-closed safety gates are active.",
             validator.environment,
         )
     validator.validate()
@@ -587,9 +605,9 @@ def validate_jwt_secret_strength() -> None:
             "Generate one with: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
         )
 
-    # Enforce minimum length in production-like environments for consistency
+    # Enforce minimum length in strict environments for consistency
     # with other JWT config checks (JWT_ISSUER, JWT_AUDIENCE)
-    if is_production_like_environment() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
+    if is_strict_environment() and len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
         raise ValueError(
             f"JWT_SECRET is too short ({len(jwt_secret)} chars). "
             f"Production-like environments require at least {_MIN_JWT_SECRET_LENGTH} characters "
@@ -616,8 +634,8 @@ def validate_jwt_config() -> None:
     Raises:
         ValueError: If JWT configuration is unsafe for the current environment
     """
-    # Check presence of required JWT config in production-like environments
-    if is_production_like_environment():
+    # Check presence of required JWT config in strict environments
+    if is_strict_environment():
         jwt_secret = os.getenv("JWT_SECRET", "")
         if not jwt_secret:
             raise ValueError(

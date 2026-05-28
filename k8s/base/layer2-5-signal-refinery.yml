@@ -20,6 +20,7 @@ spec:
         layer: layer2-5
         component: signal-refinery
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

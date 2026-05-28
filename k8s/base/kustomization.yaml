@@ -6,10 +6,16 @@ kind: Kustomization
 # Overlays override `newTag` (or `newName`) to deploy a specific version.
 #
 # Registry: ghcr.io/bmsull560/fabric_4l
-# To deploy a specific tag in an overlay, add:
+#
+# PRODUCTION: Use SHA256 digest pinning in overlays:
 #   images:
 #     - name: services/layer4-agents
-#       newTag: v1.2.3
+#       newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
+#       digest: sha256:<real_digest>
+#
+# Dev/staging may use mutable tags (:main) for convenience.
+# CI gate scripts/ci/check-k8s-image-digests.sh enforces digest pinning in production overlays.
+# Actual digest injection is handled by release pipeline, not manual guessing.
 images:
   - name: services/api
     newName: ghcr.io/bmsull560/fabric_4l/api-gateway

@@ -222,7 +222,7 @@ def _is_production_like_runtime() -> bool:
     env = os.getenv("ENVIRONMENT", "").strip().lower()
     app_env = os.getenv("APP_ENV", "").strip().lower()
     value = env or app_env
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+    return value == "production"
 
 
 def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:

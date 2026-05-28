@@ -606,6 +606,26 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             except HTTPException:
                 # ExpiredSignatureError → propagate 401 to client
                 raise
+            except Exception as exc:
+                if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
+                    logger.warning(
+                        "jwt_validation_failed",
+                        extra={"event": "jwt_validation_failed", "error_code": ERR_AUTH_INVALID_TOKEN, **_request_log_context(request)},
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail={"error_code": ERR_AUTH_INVALID_TOKEN, "message": "Invalid token."},
+                        headers={"WWW-Authenticate": "Bearer"},
+                    ) from exc
+                logger.exception(
+                    "jwt_decode_failed_closed",
+                    extra={"event": "jwt_decode_failed_closed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, **_request_log_context(request)},
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={"error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "message": "Authentication failed."},
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from exc
             if claims is not None:
                 try:
                     if isinstance(claims, dict):
@@ -647,6 +667,26 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                 claims = await asyncio.to_thread(decode_jwt, session_token)
             except HTTPException:
                 raise
+            except Exception as exc:
+                if jwt is not None and isinstance(exc, jwt.InvalidTokenError):
+                    logger.warning(
+                        "session_jwt_validation_failed",
+                        extra={"event": "session_jwt_validation_failed", "error_code": ERR_AUTH_INVALID_TOKEN, **_request_log_context(request)},
+                    )
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail={"error_code": ERR_AUTH_INVALID_TOKEN, "message": "Invalid session."},
+                        headers={"WWW-Authenticate": "Bearer"},
+                    ) from exc
+                logger.exception(
+                    "session_jwt_decode_failed_closed",
+                    extra={"event": "session_jwt_decode_failed_closed", "error_code": ERR_AUTH_SERVICE_UNAVAILABLE, **_request_log_context(request)},
+                )
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail={"error_code": ERR_AUTH_SERVICE_UNAVAILABLE, "message": "Authentication failed."},
+                    headers={"WWW-Authenticate": "Bearer"},
+                ) from exc
             if claims is not None:
                 try:
                     if isinstance(claims, dict):

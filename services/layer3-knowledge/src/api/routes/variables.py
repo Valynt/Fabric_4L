@@ -25,9 +25,6 @@ from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 
 logger = get_logger(__name__)
 
-# Production-like environment detection
-_PRODUCTION_ENVS = {"production", "prod", "staging", "stage"}
-
 # Error messages for fail-closed scenarios
 _ERROR_BENCHMARK_NOT_CONFIGURED = (
     "Benchmark integration not configured. Configure BENCHMARK_API_URL and "
@@ -40,9 +37,13 @@ _ERROR_FORMULA_NOT_CONFIGURED = (
 
 
 def _is_production_like() -> bool:
-    """Whether the current runtime must fail closed on mock data."""
+    """Return True only for the exact 'production' environment.
+
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    """
     env = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "development").strip().lower()
-    return env in _PRODUCTION_ENVS
+    return env == "production"
 
 router = APIRouter()
 

@@ -22,6 +22,7 @@ spec:
         app: layer2-extraction
         component: layer2
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

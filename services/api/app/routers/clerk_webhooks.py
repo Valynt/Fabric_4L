@@ -18,7 +18,7 @@ from __future__ import annotations
 import hashlib
 import hmac
 import json
-import logging
+import structlog
 import time
 from base64 import b64decode, b64encode
 from enum import StrEnum
@@ -30,7 +30,7 @@ from value_fabric.shared.error_handling.exceptions import AuthenticationError, B
 from app.core.auth_directory import AuthDirectory, get_auth_directory
 from app.core.clerk_config import get_auth_settings
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 router = APIRouter(prefix="/internal/webhooks", tags=["internal-webhooks"])
 
@@ -80,7 +80,7 @@ def _verify_svix_signature(
         try:
             key = b64decode(secret[len("whsec_") :])
         except Exception as exc:
-            logger.exception("CLERK_WEBHOOK_SECRET base64 decode failed")
+            logger.error("CLERK_WEBHOOK_SECRET base64 decode failed", operation="webhook_signature_verify", error=str(exc))
             raise ServiceUnavailableError(message="Misconfigured.") from exc
     else:
         key = secret.encode()
@@ -167,7 +167,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
                 clerk_org_id=clerk_org_id, clerk_user_id=clerk_user_id
             )
     else:
-        logger.info("ignoring unhandled clerk event type: %s", event_type)
+        logger.info("ignoring unhandled clerk event type", event_type=event_type, operation="webhook_event_apply")
 
 
 @router.post("/clerk", status_code=status.HTTP_204_NO_CONTENT)
@@ -188,7 +188,7 @@ async def clerk_webhook(request: Request) -> None:
     try:
         payload = json.loads(body.decode("utf-8") or "{}")
     except json.JSONDecodeError as exc:
-        logger.warning("clerk webhook body not valid JSON: %s", exc)
+        logger.warning("clerk webhook body not valid JSON", operation="webhook_payload_parse", error=str(exc))
         raise BadRequestError(message="Bad request.") from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
@@ -199,7 +199,7 @@ async def clerk_webhook(request: Request) -> None:
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
-        logger.info("clerk webhook replay ignored: id=%s type=%s", event_id, event_type)
+        logger.info("clerk webhook replay ignored", event_id=event_id, event_type=event_type, operation="webhook_idempotency_check")
         return None
 
     try:
@@ -207,17 +207,19 @@ async def clerk_webhook(request: Request) -> None:
     except KeyError as exc:
         # Apply ordering: a membership may arrive before its user/org event.
         # Surface a 409 so Clerk retries with backoff.
-        logger.warning("clerk webhook ordering: %s", exc)
+        logger.warning("clerk webhook ordering error", event_id=event_id, event_type=event_type, operation="webhook_event_apply", error=str(exc))
         raise ConflictError(message="Retry later.") from exc
     except HTTPException:
         raise
     except Exception as exc:
         # Catch-all for truly unexpected programming errors.
         # Alerting/monitoring should flag these as they indicate a bug.
-        logger.exception(
-            "clerk webhook handler failed: event_id=%s event_type=%s error=%s",
-            event_id,
-            event_type,
+        logger.error(
+            "clerk webhook handler failed",
+            event_id=event_id,
+            event_type=event_type,
+            operation="webhook_event_apply",
+            error=str(exc),
         )
         raise ServiceUnavailableError(message="Internal error.") from exc
 

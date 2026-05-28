@@ -36,8 +36,12 @@ def _normalize_environment(value: str | None) -> str:
 
 
 def is_production_like_environment(value: str | None) -> bool:
-    """Return whether a runtime environment must fail closed on unsafe config."""
-    return _normalize_environment(value) in PRODUCTION_LIKE_ENVIRONMENTS
+    """Return True only for the exact 'production' environment.
+
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    """
+    return _normalize_environment(value) == "production"
 
 
 def _parse_cors_origins(raw: str) -> list[str]:

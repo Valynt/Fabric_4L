@@ -4,12 +4,12 @@ import asyncio
 import hashlib
 import hmac
 import json
-import logging
 import secrets
 import time
 import uuid
 from datetime import UTC, datetime, timedelta
 
+import structlog
 from prometheus_client import Counter, Histogram
 
 from app.core.config import get_settings as _get_settings
@@ -38,7 +38,7 @@ DSAR_EVENT_LOOP_BLOCKING_RISK_TOTAL = Counter(
     registry=registry,
 )
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def _get_signing_key() -> bytes:
@@ -63,11 +63,9 @@ async def _run_blocking_repo_call(operation: str, fn, /, *args, **kwargs):
     DSAR_QUERY_LATENCY_SECONDS.labels(operation).observe(duration_seconds)
     logger.info(
         "DSAR repository call completed",
-        extra={
-            "operation": operation,
-            "db_call_duration_seconds": round(duration_seconds, 6),
-            "db_call_execution_mode": execution_mode,
-        },
+        operation=operation,
+        db_call_duration_seconds=round(duration_seconds, 6),
+        db_call_execution_mode=execution_mode,
     )
     return result
 
@@ -134,7 +132,7 @@ async def maybe_escalate(record: DSARRequestRecord) -> DSARRequestRecord:
     try:
         deadline = datetime.fromisoformat(record.sla_deadline_at)
     except (ValueError, TypeError) as exc:
-        logger.warning(f"Invalid sla_deadline_at format: {record.sla_deadline_at}", exc_info=exc)
+        logger.warning("Invalid sla_deadline_at format", tenant_id=record.tenant_id, operation="dsar_escalate", error=str(exc))
         return record
     if record.status not in ("complete", "escalated") and _now() > deadline:
         return await db.dsar_requests.update(record.id, tenant_id=record.tenant_id, status="escalated", escalated_at=_now().isoformat())

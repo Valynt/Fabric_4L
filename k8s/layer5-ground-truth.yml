@@ -23,6 +23,7 @@ spec:
         app: layer5-ground-truth
         component: layer5
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

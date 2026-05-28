@@ -18,7 +18,6 @@ except ImportError:
 logger = logging.getLogger(__name__)
 
 _DEV_ENVIRONMENTS = {"local", "dev", "development", "test", "testing", "ci"}
-_PRODUCTION_ENVS = {"production", "prod", "staging"}
 _DEV_CORS_ORIGINS = ["http://localhost:5173", "http://localhost:3000"]
 _EXPLICIT_CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 _EXPLICIT_CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID", "X-Tenant-ID"]
@@ -34,15 +33,14 @@ def detect_environment() -> str:
 
 
 def is_production_like_environment(environment: str | None = None) -> bool:
-    """Check if the environment is production-like (requires strict security validation).
+    """Return True only for the exact 'production' environment.
 
-    Explicitly listed production environments are treated as production-like.
-    Unknown/custom environments are also treated as production-like for security
-    (fail-safe: better to be too strict than too permissive).
-    Only known development environments are treated as non-production.
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    Callers that need staging-specific gating should check explicitly.
     """
     env = (environment or detect_environment()).strip().lower()
-    return env in _PRODUCTION_ENVS or env not in _DEV_ENVIRONMENTS
+    return env == "production"
 
 
 def parse_cors_origins(value: object) -> list[str]:

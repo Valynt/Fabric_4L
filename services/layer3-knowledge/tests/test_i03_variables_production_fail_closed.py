@@ -30,14 +30,14 @@ class TestLayer3VariablesProductionFailClosed:
 
         assert _is_production_like() is True
 
-    def test_staging_rejects_mock_formula_calculation(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Staging environments must fail closed on formula_calculation without integration."""
+    def test_staging_is_not_production_like(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Staging is no longer treated as production-like (explicit allowlist)."""
         _clear_layer3_env(monkeypatch)
         monkeypatch.setenv("APP_ENV", "staging")
 
         from value_fabric.layer3.api.routes.variables import _is_production_like
 
-        assert _is_production_like() is True
+        assert _is_production_like() is False
 
     def test_development_allows_mock_fallback_with_warning(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """Development environments allow mock fallback with warning logs."""

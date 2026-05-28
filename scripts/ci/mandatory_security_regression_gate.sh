@@ -61,8 +61,7 @@ CROSS_LAYER_TENANT_MATRIX_TESTS=(
 )
 
 LAYER4_C06_SECURITY_TESTS=(
-  # Note: test_tenant_rate_limits.py has test failures (fixture issues, implementation gaps)
-  # Excluded from mandatory gate for now.
+  services/layer4-agents/tests/test_tenant_rate_limits.py
   services/layer4-agents/tests/test_security_fixes.py
 )
 

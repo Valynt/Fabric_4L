@@ -21,6 +21,7 @@ spec:
       backoffLimit: 3
       template:
         spec:
+          automountServiceAccountToken: false
           restartPolicy: OnFailure
           containers:
             - name: neo4j-backup

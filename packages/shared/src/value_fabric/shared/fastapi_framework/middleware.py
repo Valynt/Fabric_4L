@@ -17,7 +17,7 @@ from value_fabric.shared.error_handling import RequestIDMiddleware
 from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
 from value_fabric.shared.identity.middleware import GovernanceMiddleware, audit_protected_routes
 from value_fabric.shared.security import SecurityConfig, add_security_middleware
-from value_fabric.shared.security.config import is_production_like_environment
+from value_fabric.shared.security.config import is_strict_environment
 
 _EXPLICIT_CORS_METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"]
 _EXPLICIT_CORS_HEADERS = ["Authorization", "Content-Type", "X-Request-ID", "X-Tenant-ID"]
@@ -55,9 +55,9 @@ def resolve_cors_policy(
     raw_origins = origins_env if origins_env is not None else os.getenv("CORS_ORIGINS", "")
     origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
 
-    is_production_like = is_production_like_environment(environment_name)
+    is_strict = is_strict_environment(environment_name)
 
-    if is_production_like and not origins:
+    if is_strict and not origins:
         raise RuntimeError(
             "FATAL: CORS_ORIGINS environment variable must be set in production-like environments. "
             "Use 'https://yourdomain.com' or comma-separated list of allowed origins."
@@ -65,7 +65,7 @@ def resolve_cors_policy(
 
     allow_origins = origins or ["*"]
 
-    if is_production_like:
+    if is_strict:
         if "*" in allow_origins:
             raise RuntimeError(
                 "FATAL: wildcard CORS origins are not permitted in production-like environments."

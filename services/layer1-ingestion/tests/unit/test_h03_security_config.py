@@ -22,14 +22,14 @@ def _load_config(monkeypatch, **env):
     return importlib.reload(module)
 
 
-def test_layer1_treats_unknown_environment_as_production_like(monkeypatch):
+def test_layer1_unknown_environment_is_not_production_like(monkeypatch):
+    """Unknown environments are no longer treated as production-like (explicit allowlist)."""
     config = _load_config(monkeypatch, ENVIRONMENT="development")
 
-    with pytest.raises(Exception, match="Unsafe production configuration") as exc_info:
-        config.Settings(environment="qa")
-
-    assert "CORS_ORIGINS" in str(exc_info.value)
-    assert "JWT secret" in str(exc_info.value)
+    # 'qa' is NOT production-like, so dev defaults are accepted without error
+    settings = config.Settings(environment="qa")
+    assert settings.redis_url == "redis://localhost:6379/0"
+    assert settings.s3_access_key == "minioadmin"
 
 
 def test_layer1_rejects_wildcard_and_placeholder_cors_in_production_like_env(monkeypatch):
@@ -125,16 +125,17 @@ def test_layer1_allows_dev_test_defaults(monkeypatch):
     assert test_settings.s3_access_key == "minioadmin"
 
 
-def test_layer1_unknown_environment_is_production_like_and_rejects_defaults(monkeypatch):
+def test_layer1_unknown_environment_allows_dev_defaults(monkeypatch):
+    """Unknown environments are not production-like, so dev defaults are allowed."""
     config = _load_config(monkeypatch, ENVIRONMENT="development")
-    with pytest.raises(Exception, match="Unsafe production configuration") as exc_info:
-        config.Settings(
-            environment="qa-sandbox",
-            jwt_secret="x" * 48,
-            database_url="postgresql://fabric:strong-pass@db.internal:5432/layer1",
-            cors_origins=["https://app.example.com"],
-        )
-    assert "REDIS_URL is using default localhost value" in str(exc_info.value)
+    settings = config.Settings(
+        environment="qa-sandbox",
+        jwt_secret="x" * 48,
+        database_url="postgresql://fabric:strong-pass@db.internal:5432/layer1",
+        cors_origins=["https://app.example.com"],
+    )
+    assert settings.redis_url == "redis://localhost:6379/0"
+    assert settings.s3_access_key == "minioadmin"
 
 
 def test_layer1_rejects_non_tls_storage_endpoint_unless_private_host_is_allowlisted(monkeypatch):

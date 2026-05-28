@@ -22,6 +22,7 @@ spec:
         app: layer1-ingestion
         component: layer1
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

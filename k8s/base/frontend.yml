@@ -22,6 +22,7 @@ spec:
         app: frontend
         component: frontend
     spec:
+      automountServiceAccountToken: false
       securityContext:
         runAsNonRoot: true
         runAsUser: 1000

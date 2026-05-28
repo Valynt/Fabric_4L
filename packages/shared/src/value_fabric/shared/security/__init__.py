@@ -18,6 +18,7 @@ from .config import (
     ProductionSafetyValidator,
     validate_production_safety,
     is_production_like_environment,
+    is_strict_environment,
     detect_environment,
     get_startup_summary,
 )
@@ -35,6 +36,7 @@ __all__ = [
     "ProductionSafetyValidator",
     "validate_production_safety",
     "is_production_like_environment",
+    "is_strict_environment",
     "detect_environment",
     "get_startup_summary",
 ]

@@ -45,9 +45,8 @@ def test_production_like_environment_rejects_postgres_until_rls_facade_exists():
         )
 
 
-def test_database_factory_rejects_durable_persistence_when_not_configured(
-    monkeypatch, tmp_path
-):
+def test_database_factory_accepts_postgresql_in_development(monkeypatch, tmp_path):
+    """PostgreSQL async engine is now supported; facade is returned for router compatibility."""
     monkeypatch.setenv("APP_ENV", "development")
     database = importlib.import_module("app.core.database")
 
@@ -61,26 +60,24 @@ def test_database_factory_rejects_durable_persistence_when_not_configured(
     )
     monkeypatch.setattr(database, "get_settings", lambda: safe_dev_settings)
 
-    with pytest.raises(
-        database.UnsupportedDatabaseURL,
-        match="PostgreSQL persistence is required but not yet implemented",
-    ):
-        database.create_database()
+    db = database.create_database()
+    assert isinstance(db, database.InMemoryDatabase)
 
 
-def test_unknown_environment_is_treated_as_production_like_and_fails_closed():
-    with pytest.raises(Exception, match="Unsafe production configuration") as exc_info:
-        Settings(
-            app_env="qa",
-            mock_persistence=False,
-            database_url="postgresql://fabric:secret@postgres:5432/fabric",
-            llm_provider="openai",
-            seed_demo_data=False,
-            secret_key="x" * 48,
-            cors_origins=[],
-        )
-
-    assert "cors_origins must be configured" in str(exc_info.value)
+def test_unknown_environment_is_not_production_like_and_allows_dev_defaults():
+    """Unknown environments are no longer treated as production-like (explicit allowlist)."""
+    settings = Settings(
+        app_env="qa",
+        mock_persistence=False,
+        database_url="postgresql://fabric:secret@postgres:5432/fabric",
+        llm_provider="openai",
+        seed_demo_data=False,
+        secret_key="x" * 48,
+        cors_origins=["https://app.example.com"],
+    )
+    # qa is NOT production-like, so settings are accepted without production validation
+    assert settings.is_production_like is False
+    assert settings.cors_policy["allow_origins"] == ["https://app.example.com"]
 
 
 def test_production_like_environment_rejects_placeholder_and_wildcard_cors():

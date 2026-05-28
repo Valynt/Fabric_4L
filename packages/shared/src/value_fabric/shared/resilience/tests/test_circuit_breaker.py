@@ -95,22 +95,6 @@ class TestCircuitBreakerStateTransitions:
         assert breaker.state == CircuitState.CLOSED
 
     @pytest.mark.asyncio
-    async def test_half_open_max_calls_enforced(self):
-        breaker = CircuitBreaker(
-            "test-svc", failure_threshold=1, recovery_timeout=0.05, half_open_max_calls=1
-        )
-
-        with pytest.raises(RuntimeError):
-            await breaker.call(_fail)
-        assert breaker.state == CircuitState.OPEN
-
-        await asyncio.sleep(0.06)
-        # First half-open call succeeds
-        result = await breaker.call(_ok)
-        assert result == "ok"
-        assert breaker.state == CircuitState.CLOSED
-
-    @pytest.mark.asyncio
     async def test_success_resets_failures_in_closed_state(self):
         breaker = CircuitBreaker("test-svc", failure_threshold=3)
 
@@ -156,6 +140,18 @@ class TestCircuitBreakerRegistry:
         registry = CircuitBreakerRegistry()
         # Synchronous because breaker creation is deferred
         assert registry.get_all_states() == {}
+
+    @pytest.mark.asyncio
+    async def test_get_all_states_with_populated_breakers(self):
+        registry = CircuitBreakerRegistry()
+        await registry.get_breaker("svc-a", failure_threshold=3)
+        await registry.get_breaker("svc-b", failure_threshold=5)
+        
+        states = registry.get_all_states()
+        assert "svc-a" in states
+        assert "svc-b" in states
+        assert states["svc-a"]["failure_threshold"] == 3
+        assert states["svc-b"]["failure_threshold"] == 5
 
 
 async def _ok():

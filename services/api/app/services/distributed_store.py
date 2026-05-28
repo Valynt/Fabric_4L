@@ -1,19 +1,19 @@
 from __future__ import annotations
 
 import json
-import logging
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import NoReturn, TypeVar
 
-logger = logging.getLogger(__name__)
-
+import structlog
 from redis import Redis
 from redis.exceptions import RedisError
 
 from app.core.config import get_settings
+
+logger = structlog.get_logger(__name__)
 
 T = TypeVar("T")
 
@@ -84,13 +84,20 @@ class RedisDistributedStore(DistributedStore):
         if self._consecutive_failures >= self.circuit_breaker_failures:
             self._circuit_opened_at = time.monotonic()
             logger.error(
-                f"Circuit breaker opened after {self._consecutive_failures} failures",
-                extra={"error": str(exc), "operation": op_name},
+                "Circuit breaker opened",
+                operation=op_name,
+                error=str(exc),
+                circuit_state="open",
+                consecutive_failures=self._consecutive_failures,
             )
         else:
             logger.warning(
-                f"Redis operation failed (failure {self._consecutive_failures}/{self.circuit_breaker_failures})",
-                extra={"error": str(exc), "operation": op_name},
+                "Redis operation failed",
+                operation=op_name,
+                error=str(exc),
+                circuit_state="closed",
+                consecutive_failures=self._consecutive_failures,
+                circuit_breaker_failures=self.circuit_breaker_failures,
             )
         raise StoreUnavailableError(ERR_REDIS_UNAVAILABLE, operation=operation) from exc
 

@@ -4,7 +4,8 @@ import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Header
+import structlog
+from fastapi import Depends, FastAPI
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,8 +15,12 @@ from value_fabric.shared.database import (
     PostgresHealthProbe,
 )
 from value_fabric.shared.fastapi_framework.health import ProbeResult
+from value_fabric.shared.identity.context import RequestContext
+from value_fabric.shared.identity.dependencies import require_authenticated
 
 from .models import Base
+
+logger = structlog.get_logger(__name__)
 
 DATABASE_URL = os.getenv("LAYER7_DATABASE_URL", "postgresql+asyncpg://postgres:postgres@localhost:5432/layer7_billing")
 
@@ -45,19 +50,33 @@ async def db_session_for_context(tenant_id: str) -> AsyncGenerator[AsyncSession,
 
 
 async def get_db_from_context(
-    x_tenant_id: str = Header(...),
+    ctx: RequestContext = Depends(require_authenticated),
 ) -> AsyncGenerator[AsyncSession, None]:
-    async with db_session_for_context(x_tenant_id) as session:
+    """Yield a tenant-scoped DB session from authenticated context.
+
+    P0-02 hardening: tenant_id is extracted from the canonical
+    RequestContext set by GovernanceMiddleware, never from a raw header.
+    """
+    async with db_session_for_context(str(ctx.tenant_id)) as session:
         yield session
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    logger.info("Starting Layer 7 billing service", component="layer7-billing", version="0.1.0")
     await init_db()
+    logger.info("Layer 7 billing database initialized", dependency="database", status="healthy")
     yield
+    logger.info("Shutting down Layer 7 billing service", component="layer7-billing")
     await close_db()
+    logger.info("Layer 7 billing database disconnected", dependency="database", status="disconnected")
 
 
 async def health_probe() -> ProbeResult:
     probe = PostgresHealthProbe(engine)
-    return await probe.check()
+    result = await probe.check()
+    if result.healthy:
+        logger.info("Layer 7 billing health check passed", dependency="database", status="healthy")
+    else:
+        logger.warning("Layer 7 billing health check failed", dependency="database", status="unhealthy", detail=result.detail)
+    return result

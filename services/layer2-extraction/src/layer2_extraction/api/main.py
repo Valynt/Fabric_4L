@@ -95,9 +95,6 @@ from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
 configure_structured_logging()
 logger = structlog.get_logger(__name__)
 
-PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}
-
-
 def _current_environment() -> str:
     """Return the normalized runtime environment for production fail-closed policy checks."""
     return (
@@ -109,8 +106,12 @@ def _current_environment() -> str:
 
 
 def _is_production_like() -> bool:
-    """Whether the current Layer 2 runtime must fail closed on unsafe defaults."""
-    return _current_environment() in PRODUCTION_LIKE_ENVIRONMENTS
+    """Return True only for the exact 'production' environment.
+
+    This changes the previous fail-safe policy to an explicit allowlist.
+    Staging and unknown/custom environments are NOT treated as production-like.
+    """
+    return _current_environment() == "production"
 
 
 # App start time for uptime calculation

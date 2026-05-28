@@ -5,7 +5,8 @@ from app.models.schemas import Account
 
 
 
-def test_database_factory_rejects_unsupported_durable_backend(monkeypatch):
+def test_database_factory_accepts_postgresql_and_returns_inmemory_facade(monkeypatch):
+    """PostgreSQL is now supported via get_pg_engine(); create_database returns the facade."""
     from app.core import database
 
     settings = Settings(
@@ -17,11 +18,8 @@ def test_database_factory_rejects_unsupported_durable_backend(monkeypatch):
     )
     monkeypatch.setattr(database, "get_settings", lambda: settings)
 
-    with pytest.raises(
-        database.UnsupportedDatabaseURL,
-        match="PostgreSQL persistence is required but not yet implemented",
-    ):
-        database.create_database()
+    db = database.create_database()
+    assert isinstance(db, database.InMemoryDatabase)
 
 
 def test_production_like_settings_reject_demo_seed_data_even_with_durable_database():

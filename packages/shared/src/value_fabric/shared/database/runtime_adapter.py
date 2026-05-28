@@ -109,8 +109,9 @@ class RuntimeDatabaseAdapter:
 
 
 def is_production_mode_from_env() -> bool:
-    value = (os.getenv("ENVIRONMENT") or os.getenv("APP_ENV") or "").strip().lower()
-    return value not in {"", "local", "dev", "development", "test", "testing", "ci"}
+    """Return True for production or staging (strict environments)."""
+    from value_fabric.shared.security.config import is_strict_environment
+    return is_strict_environment()
 
 
 def normalize_sqlalchemy_url_scheme(database_url: str) -> str:
