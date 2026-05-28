@@ -84,7 +84,7 @@ spec:
               value: "info"
           livenessProbe:
             httpGet:
-              path: /health
+              path: /health/live
               port: 8007
             initialDelaySeconds: 30
             periodSeconds: 10

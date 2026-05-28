@@ -2938,6 +2938,7 @@ app.include_router(router)
 
 # Legacy compatibility routes (redirect to new endpoints)
 @app.get("/health")
+@app.get("/health/live", include_in_schema=False)
 async def legacy_health_check():
     """Legacy-compatible health check with dependency status."""
     if os.getenv("LAYER1_RELEASE_SMOKE_LIGHT_HEALTH", "").lower() in {"1", "true", "yes"}:

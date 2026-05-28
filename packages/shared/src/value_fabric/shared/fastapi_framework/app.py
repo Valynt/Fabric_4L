@@ -290,6 +290,16 @@ def register_health_endpoint(
         tags=["health"],
     )
 
+    # Alias /health/live for Kubernetes livenessProbe compatibility
+    if path == "/health":
+        app.add_api_route(
+            "/health/live",
+            route_handler,
+            methods=["GET"],
+            include_in_schema=include_in_schema,
+            tags=["health"],
+        )
+
 
 def register_readiness_endpoint(
     app: FastAPI,

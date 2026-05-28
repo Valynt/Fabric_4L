@@ -106,6 +106,7 @@ def _health_augmentation_hook(app: FastAPI) -> None:
     settings = get_settings()
 
     @app.get("/health", include_in_schema=False)
+    @app.get("/health/live", include_in_schema=False)
     async def health() -> dict[str, Any]:
         return {
             "status": "ok",

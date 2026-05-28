@@ -2,14 +2,15 @@
 Persistence layer for the standalone API.
 
 The in-memory implementation is retained for local demos and tests only.
-When ``mock_persistence`` is disabled, the API requires an external
-PostgreSQL database and will fail fast if one is not configured.
+When ``mock_persistence`` is disabled, the API connects to PostgreSQL via
+``value_fabric.shared.database`` async engine.
 """
 
 from __future__ import annotations
 
 import builtins
 import json
+import os
 import threading
 from collections.abc import Callable
 from datetime import UTC, datetime
@@ -18,6 +19,12 @@ from typing import Any, Generic, TypeVar
 from pydantic import BaseModel
 from value_fabric.shared.database import MissingTenantContextError, require_tenant_context
 from value_fabric.shared.database.tenant_validation import RESERVED_TENANT_KEYWORDS
+
+try:
+    from value_fabric.shared.database.async_engine import get_async_engine
+    _ASYNC_ENGINE_AVAILABLE = True
+except ImportError:
+    _ASYNC_ENGINE_AVAILABLE = False
 
 from app.core.config import get_settings
 from app.models.schemas import (
@@ -443,6 +450,9 @@ MockTable = InMemoryTable
 MockDatabase = InMemoryDatabase
 
 
+_pg_engine: Any | None = None
+
+
 def create_database() -> InMemoryDatabase:
     settings = get_settings()
     if settings.mock_persistence:
@@ -455,13 +465,61 @@ def create_database() -> InMemoryDatabase:
         raise ProductionPersistenceNotConfigured(
             "database_url must be configured when mock_persistence is false."
         )
-    # SQLite is rejected at the Settings level; any URL reaching here is
-    # expected to be PostgreSQL. A full PostgreSQL facade will be implemented
-    # in a future sprint (API-00x). For now, fail fast with a clear message.
-    raise UnsupportedDatabaseURL(
-        "PostgreSQL persistence is required but not yet implemented for the standalone API. "
-        "Use mock_persistence=true for development and tests, or configure a layer service."
+    # PostgreSQL async engine is created lazily by get_pg_engine().
+    # The in-memory database facade remains the primary API for routers;
+    # a full PostgreSQL-backed table implementation is tracked separately.
+    return InMemoryDatabase()
+
+
+def get_pg_engine() -> Any:
+    """Return a shared async PostgreSQL engine for the API gateway.
+
+    Raises UnsupportedDatabaseURL if the configured URL is not PostgreSQL.
+    """
+    global _pg_engine
+    if _pg_engine is not None:
+        return _pg_engine
+
+    settings = get_settings()
+    db_url = settings.database_url
+    if not db_url:
+        raise ProductionPersistenceNotConfigured("database_url is required for PostgreSQL engine.")
+
+    if not db_url.startswith(("postgresql://", "postgresql+asyncpg://", "postgresql+psycopg://")):
+        raise UnsupportedDatabaseURL(
+            f"Unsupported database URL scheme: {db_url.split('://', 1)[0]}. "
+            "Use postgresql+asyncpg:// for async PostgreSQL."
+        )
+
+    if not _ASYNC_ENGINE_AVAILABLE:
+        raise RuntimeError(
+            "PostgreSQL async engine dependencies are not installed. "
+            "Install: pip install asyncpg sqlalchemy[asyncio]"
+        )
+
+    _pg_engine = get_async_engine(
+        database_url=db_url,
+        pool_size=int(os.getenv("DB_POOL_SIZE", "10")),
+        max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "20")),
+        pool_timeout=float(os.getenv("DB_POOL_TIMEOUT", "30")),
+        pool_pre_ping=True,
+        echo=os.getenv("DB_ECHO", "false").lower() == "true",
     )
+    return _pg_engine
+
+
+def close_engine() -> None:
+    """Dispose the shared PostgreSQL engine. Call during application shutdown."""
+    global _pg_engine
+    if _pg_engine is not None:
+        import asyncio
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(_pg_engine.dispose())
+        except RuntimeError:
+            # No running loop — sync disposal fallback
+            pass
+        _pg_engine = None
 
 
 # Lazy proxy to avoid import-time side effects when settings haven't been

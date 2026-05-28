@@ -86,6 +86,8 @@ export function GraphVisualization({
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
         className="w-full h-full"
         style={{ minHeight: "400px" }}
+        role="img"
+        aria-label="Graph visualization showing nodes and edges"
       >
         {/* Background grid */}
         <defs>
@@ -98,7 +100,7 @@ export function GraphVisualization({
             />
           </pattern>
         </defs>
-        <rect width="100%" height="100%" fill="url(#grid)" />
+        <rect width="100%" height="100%" fill="url(#grid)" aria-hidden="true" />
 
         {/* Viewport transform group */}
         <g transform={transform}>

@@ -739,6 +739,12 @@ def create_app() -> FastAPI:
         tags=["system"],
         include_in_schema=False,
     )
+    @app.get(
+        "/health/live",
+        response_model=HealthResponse,
+        tags=["system"],
+        include_in_schema=False,
+    )
     async def public_health() -> HealthResponse:
         return HealthResponse(
             status="ok",

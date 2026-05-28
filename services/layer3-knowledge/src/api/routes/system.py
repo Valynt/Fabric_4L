@@ -219,6 +219,14 @@ async def get_metrics(request: Request) -> Response:
     summary="Basic Health Check",
     responses=SYSTEM_HEALTH_RESPONSES,
 )
+@router.get(
+    "/health/live",
+    response_model=HealthResponse,
+    tags=["Health"],
+    summary="Basic Health Check (Liveness)",
+    responses=SYSTEM_HEALTH_RESPONSES,
+    include_in_schema=False,
+)
 async def health_check(
     request: Request,
     schema_initializer: Any = Depends(get_schema_initializer),

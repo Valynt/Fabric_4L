@@ -137,6 +137,8 @@ export function RelationshipMap({
           width={dimensions.width}
           height={dimensions.height}
           className="absolute inset-0"
+          role="img"
+          aria-label="Relationship map showing ontology types and their connections"
         >
           {/* Edges */}
           {relationships.map((rel) => {

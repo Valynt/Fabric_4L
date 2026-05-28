@@ -128,7 +128,7 @@ export default function AIModel() {
                   <div className="flex items-start gap-4">
                     <div className="shrink-0">
                       <div className="relative w-12 h-12">
-                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48">
+                        <svg className="w-12 h-12 -rotate-90" viewBox="0 0 48 48" aria-hidden="true">
                           <circle cx="24" cy="24" r="20" fill="none" stroke="oklch(var(--muted))" strokeWidth="4" />
                           <circle cx="24" cy="24" r="20" fill="none" stroke={h.confidence >= 80 ? "oklch(0.696 0.17 145)" : h.confidence >= 60 ? "oklch(0.75 0.17 80)" : "oklch(0.637 0.207 25)"} strokeWidth="4" strokeDasharray={`${h.confidence * 1.26} 126`} strokeLinecap="round" />
                         </svg>

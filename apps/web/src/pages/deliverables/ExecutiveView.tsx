@@ -127,7 +127,7 @@ export default function ExecutiveView() {
           <h3 className="text-[14px] font-bold text-neutral-800 mb-3">Decision Confidence</h3>
           <div className="flex items-center gap-4 mb-4">
             <div className="relative w-20 h-20">
-              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90" aria-hidden="true">
                 <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e5e7eb" strokeWidth="3" />
                 <circle cx="18" cy="18" r="15.9" fill="none" stroke="#3b82f6" strokeWidth="3"
                   strokeDasharray={`${bc.confidence_score * 100} ${100 - bc.confidence_score * 100}`} />

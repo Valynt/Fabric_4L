@@ -3194,6 +3194,7 @@ app.include_router(router)
 
 # Legacy compatibility routes (redirect to new endpoints)
 @app.get("/health")
+@app.get("/health/live", include_in_schema=False)
 async def legacy_health_check():
     """Legacy-compatible health check with dependency status."""
     from ..shared.database import SessionLocal, redis_client

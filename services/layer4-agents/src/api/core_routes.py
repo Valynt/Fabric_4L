@@ -53,6 +53,7 @@ def register_core_routes(app: FastAPI) -> None:
     app_start_time = time.time()
 
     @app.get("/health")
+    @app.get("/health/live", include_in_schema=False)
     async def health_check():
         import psutil
 

@@ -131,7 +131,7 @@ export default function ValueCase() {
               <div className="p-4">
                 <div className="flex justify-center mb-3">
                   <div className="relative w-20 h-20">
-                    <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80">
+                    <svg className="w-20 h-20 -rotate-90" viewBox="0 0 80 80" aria-hidden="true">
                       <circle cx="40" cy="40" r="34" fill="none" stroke="oklch(var(--muted))" strokeWidth="8" />
                       <circle cx="40" cy="40" r="34" fill="none" stroke="oklch(var(--primary))" strokeWidth="8" strokeDasharray="175 213" strokeLinecap="round" />
                     </svg>
