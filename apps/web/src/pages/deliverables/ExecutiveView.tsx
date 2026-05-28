@@ -37,7 +37,7 @@ export default function ExecutiveView() {
   if (error || !bc) return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex flex-col items-center py-16">
-        <AlertCircle size={24} className="text-red-500 mb-2" />
+        <AlertCircle size={24} className="text-red-500 mb-2" aria-hidden="true" />
         <p className="text-[13px] text-neutral-600">{caseId ? "Failed to load business case." : "No case selected."}</p>
         {tenantSlug && accountId ? (
           <Link to={deliverableRoutes.businessCaseList(tenantSlug, accountId)} className="mt-3 text-[12px] text-blue-600 hover:underline">Back to Cases</Link>

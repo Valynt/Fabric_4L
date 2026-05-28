@@ -8,6 +8,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Literal
 
+import structlog
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, BadRequestError, ConflictError, NotFoundError, RateLimitError, ServiceUnavailableError, ValidationError
@@ -33,6 +34,7 @@ from app.repositories.session_store import ImpersonationSessionRepository
 from app.services.distributed_store import StorePayloadError, StoreUnavailableError, get_distributed_store
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
+logger = structlog.get_logger(__name__)
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +111,7 @@ async def signup(payload: SignupRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        logger.warning("Password strength validation failed: %s", exc)
+        logger.warning("Password strength validation failed", error=str(exc))
         raise ValidationError(message="Password does not meet strength requirements") from exc
 
     # Cross-tenant email uniqueness check — requires explicit allow_system_scope
@@ -267,7 +269,7 @@ async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
     try:
         validate_password_strength(payload.password)
     except ValueError as exc:
-        logger.warning("Password strength validation failed: %s", exc)
+        logger.warning("Password strength validation failed", error=str(exc))
         raise ValidationError(message="Password does not meet strength requirements") from exc
 
     users = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)

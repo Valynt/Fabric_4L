@@ -1,7 +1,8 @@
 import json
-import logging
 import os
 from typing import Any
+
+import structlog
 
 from app.core.database import db
 from app.core.security import hash_password
@@ -25,7 +26,7 @@ from app.models.schemas import (
 
 PACKS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "packs")
 
-logger = logging.getLogger(__name__)
+logger = structlog.get_logger(__name__)
 
 
 def load_json(path: str) -> Any:

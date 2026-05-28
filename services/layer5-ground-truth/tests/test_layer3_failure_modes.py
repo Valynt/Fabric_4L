@@ -272,3 +272,103 @@ def test_security_http_exception_uses_explicit_security_error_payload() -> None:
     assert response.status_code == 403
     assert response.json()["error"] == "security_error"
     assert response.json()["error_code"] == "INSUFFICIENT_SCOPE"
+
+
+@pytest.mark.asyncio
+async def test_layer3_circuit_opens_after_threshold_failures(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Circuit breaker opens after repeated failures and fast-fails subsequent calls."""
+    metrics = _DummyMetrics()
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.get_metrics", lambda: metrics
+    )
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.asyncio.sleep", AsyncMock()
+    )
+    fake = _FakePostClient(httpx.ReadTimeout("timed out", request=_request()))
+    client = _enabled_client(fake)
+
+    # Two full sync attempts with 3 retries each = 6 breaker failures > threshold 5
+    for _ in range(2):
+        assert await _sync(client) is None
+
+    # Circuit should now be open; next call returns None immediately
+    assert await _sync(client) is None
+    assert "circuit_open" in metrics.statuses
+    record = next(rec for rec in caplog.records if rec.msg == "layer3_circuit_open")
+    assert record.error_code == "L5_LAYER3_CIRCUIT_OPEN"
+    assert record.sync_status == "circuit_open"
+
+
+@pytest.mark.asyncio
+async def test_layer3_circuit_closes_after_recovery(
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Circuit transitions HALF_OPEN → CLOSED after a successful call."""
+    import time as _time
+
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.asyncio.sleep", AsyncMock()
+    )
+
+    responses = [
+        httpx.ReadTimeout("timed out", request=_request())
+        for _ in range(6)
+    ]
+    responses.append(_response(200, json_payload={"id": "kg-node-1", "node_id": "kg-node-1"}))
+
+    call_count = 0
+
+    async def _side_effect(*_args, **_kwargs):
+        nonlocal call_count
+        result = responses[call_count]
+        call_count += 1
+        if isinstance(result, Exception):
+            raise result
+        return result
+
+    fake = _FakePostClient(_side_effect)
+    client = _enabled_client(fake)
+
+    # Open the circuit
+    for _ in range(2):
+        assert await _sync(client) is None
+
+    state = client.get_breaker_state()
+    assert state["state"] == "open"
+
+    # Fast-forward recovery timeout
+    base_time = _time.time()
+    monkeypatch.setattr("time.time", lambda: base_time + 120)
+
+    # HALF_OPEN call should succeed and close the circuit
+    result = await _sync(client)
+    assert result == "kg-node-1"
+    state = client.get_breaker_state()
+    assert state["state"] == "closed"
+
+
+@pytest.mark.asyncio
+async def test_layer3_ping_returns_false_when_circuit_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Health probe (ping) respects the circuit breaker."""
+    monkeypatch.setattr(
+        "layer5_ground_truth.integration.layer3_client.asyncio.sleep", AsyncMock()
+    )
+    fake = _FakePostClient(httpx.ReadTimeout("timed out", request=_request()))
+    fake.get = fake.post  # _get_with_breaker calls client.get
+    client = _enabled_client(fake)
+
+    # Open the circuit
+    for _ in range(6):
+        await client.ping()
+
+    state = client.get_breaker_state()
+    assert state["state"] == "open"
+
+    # Ping should fast-fail when circuit is open
+    assert await client.ping() is False

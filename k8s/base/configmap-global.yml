@@ -21,7 +21,10 @@ data:
   NEO4J_USER: "neo4j"
   
   # Redis configuration
-  REDIS_URL: "redis://redis:6379/0"
+  # REDIS_URL is injected via Secret redis-secret (created by
+  # k8s/external-secrets/redis-secrets.yaml) for environments using
+  # authenticated Redis. Dev environments may inject this via
+  # docker-compose overrides or local secrets instead.
   
   # Log level
   LOG_LEVEL: "info"
