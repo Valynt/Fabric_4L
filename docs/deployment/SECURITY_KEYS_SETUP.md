@@ -136,7 +136,7 @@ kubectl exec -n value-fabric deploy/layer4-agents -- env | grep -E "JWT|ENVIRONM
 
 ### "DEV_AUTH_BYPASS cannot be enabled in production"
 - Check ENVIRONMENT is set to "production": `kubectl set env deploy/layer4-agents ENVIRONMENT=production`
-- Verify DEV_AUTH_BYPASS is not set in any config
+- Verify bypass flags (DEV_AUTH_BYPASS, ALLOW_INSECURE_DEV_AUTH_BYPASS, ALLOW_DEV_AUTH_BYPASS, AUTH_BYPASS_ENABLED) are not set in committed/shared configs
 
 ### API key cache returns different hashes on restart
 - Verify API_KEY_CACHE_SECRET is set consistently across all pods

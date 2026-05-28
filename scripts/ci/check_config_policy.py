@@ -26,7 +26,7 @@ K8S_PRODUCTION_TARGETS = (
     "k8s/overlays/staging",
     "k8s/overlays/production",
 )
-BYPASS_FLAGS = ("DEV_AUTH_BYPASS", "ALLOW_INSECURE_DEV_AUTH_BYPASS")
+BYPASS_FLAGS = ("DEV_AUTH_BYPASS", "ALLOW_INSECURE_DEV_AUTH_BYPASS", "ALLOW_DEV_AUTH_BYPASS", "AUTH_BYPASS_ENABLED")
 
 
 def _scan_k8s_manifests_for_bypass_flags(violations: list[str]) -> int:
@@ -83,6 +83,9 @@ def main() -> int:
             regex = re.compile(rf"{re.escape(flag)}\s*[:=]\s*[\"']?(true|1|yes)[\"']?", re.IGNORECASE)
             for m in regex.finditer(text):
                 line_no = text[: m.start()].count("\n") + 1
+                line = text.splitlines()[line_no-1].lstrip()
+                if line.startswith("#"):
+                    continue
                 violations.append(
                     f"{rel}:{line_no} disallowed `{flag}=true` outside approved dev-only locations"
                 )
