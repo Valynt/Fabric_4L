@@ -6,34 +6,37 @@ namespace: fabric-4l-prod
 resources:
   - ../../base/
 
-# Image overrides: match exact base image names, redirect to GHCR with release tag.
+# Image overrides: match exact base image names, redirect to GHCR.
 # Base manifests use bare names (services/<name>:main, apps/web:main).
-# newName rewrites the registry/repository; newTag pins the release.
+#
+# Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
+# This file must not contain mutable tags (latest, main, semver, branch names).
+# CI enforces this via scripts/ci/validate-k8s-image-tags.sh.
 images:
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer4-agents
     newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer5-ground-truth
     newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/layer6-benchmarks
     newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: services/api
     newName: ghcr.io/bmsull560/fabric_4l/api-gateway
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
-    newTag: v1.1.0
+    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
 
 replicas:
   - name: layer1-ingestion

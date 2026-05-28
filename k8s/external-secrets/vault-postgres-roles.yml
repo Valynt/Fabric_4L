@@ -69,9 +69,9 @@ spec:
       type: Opaque
       data:
         # Connection string format for SQLAlchemy/psycopg2
-        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres.value-fabric.svc.cluster.local:5432/ingestion?sslmode=require"
+        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres:5432/ingestion?sslmode=require"
         # Individual components for apps that need them
-        DB_HOST: "postgres.value-fabric.svc.cluster.local"
+        DB_HOST: "postgres"
         DB_PORT: "5432"
         DB_NAME: "ingestion"
         DB_USER: "{{ .username }}"
@@ -104,8 +104,8 @@ spec:
     template:
       type: Opaque
       data:
-        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres.value-fabric.svc.cluster.local:5432/postgres?sslmode=require"
-        DB_HOST: "postgres.value-fabric.svc.cluster.local"
+        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres:5432/postgres?sslmode=require"
+        DB_HOST: "postgres"
         DB_PORT: "5432"
         DB_NAME: "postgres"
         DB_USER: "{{ .username }}"
@@ -138,7 +138,7 @@ spec:
     template:
       type: Opaque
       data:
-        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres.value-fabric.svc.cluster.local:5432/ingestion?sslmode=require&options=-cdefault_transaction_read_only=on"
+        DATABASE_URL: "postgresql://{{ .username }}:{{ .password }}@postgres:5432/ingestion?sslmode=require&options=-cdefault_transaction_read_only=on"
         DB_USER: "{{ .username }}"
         DB_PASSWORD: "{{ .password }}"
   data:
