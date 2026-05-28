@@ -28,15 +28,17 @@ def test_inmemory_table_count_parity_without_filter() -> None:
     from app.core.database import InMemoryTable
 
     table: InMemoryTable[dict] = InMemoryTable("test", "tenant_id")
+    t1 = "11111111-1111-1111-1111-111111111111"
+    t2 = "22222222-2222-2222-2222-222222222222"
     for i in range(5):
-        table.insert(f"id-{i}", {"tenant_id": "t1", "val": i})
+        table.insert(f"id-{i}", {"tenant_id": t1, "val": i})
     for i in range(3):
-        table.insert(f"id-t2-{i}", {"tenant_id": "t2", "val": i})
+        table.insert(f"id-t2-{i}", {"tenant_id": t2, "val": i})
 
-    assert table.count(tenant_id="t1") == 5
-    assert table.count(tenant_id="t2") == 3
-    assert table.count(tenant_id="t1") == len(table.list(tenant_id="t1"))
-    assert table.count(tenant_id="t2") == len(table.list(tenant_id="t2"))
+    assert table.count(tenant_id=t1) == 5
+    assert table.count(tenant_id=t2) == 3
+    assert table.count(tenant_id=t1) == len(table.list(tenant_id=t1))
+    assert table.count(tenant_id=t2) == len(table.list(tenant_id=t2))
 
 
 @pytest.mark.contract_static_no_service
@@ -46,13 +48,14 @@ def test_inmemory_table_count_parity_with_filter() -> None:
     from app.core.database import InMemoryTable
 
     table: InMemoryTable[dict] = InMemoryTable("test", "tenant_id")
+    t1 = "11111111-1111-1111-1111-111111111111"
     for i in range(10):
-        table.insert(f"id-{i}", {"tenant_id": "t1", "account_id": "a1" if i % 2 == 0 else "a2"})
+        table.insert(f"id-{i}", {"tenant_id": t1, "account_id": "a1" if i % 2 == 0 else "a2"})
 
     filter_a1 = lambda d: d["account_id"] == "a1"  # noqa: E731
-    assert table.count(tenant_id="t1", filter_fn=filter_a1) == 5
-    assert table.count(tenant_id="t1", filter_fn=filter_a1) == len(
-        table.list(tenant_id="t1", filter_fn=filter_a1)
+    assert table.count(tenant_id=t1, filter_fn=filter_a1) == 5
+    assert table.count(tenant_id=t1, filter_fn=filter_a1) == len(
+        table.list(tenant_id=t1, filter_fn=filter_a1)
     )
 
 
@@ -63,9 +66,10 @@ def test_inmemory_table_count_returns_int_not_list() -> None:
     from app.core.database import InMemoryTable
 
     table: InMemoryTable[dict] = InMemoryTable("test", "tenant_id")
-    table.insert("id-1", {"tenant_id": "t1"})
+    t1 = "11111111-1111-1111-1111-111111111111"
+    table.insert("id-1", {"tenant_id": t1})
 
-    result = table.count(tenant_id="t1")
+    result = table.count(tenant_id=t1)
     assert isinstance(result, int)
     assert result == 1
 
@@ -78,17 +82,18 @@ def test_async_inmemory_table_count_parity() -> None:
     from app.core.database import AsyncInMemoryTable
 
     table: AsyncInMemoryTable[dict] = AsyncInMemoryTable("test", "tenant_id")
+    t1 = "11111111-1111-1111-1111-111111111111"
     for i in range(4):
         asyncio.get_event_loop().run_until_complete(
-            table.insert(f"id-{i}", {"tenant_id": "t1", "account_id": "a1" if i < 2 else "a2"})
+            table.insert(f"id-{i}", {"tenant_id": t1, "account_id": "a1" if i < 2 else "a2"})
         )
 
     filter_a1 = lambda d: d["account_id"] == "a1"  # noqa: E731
     count_result = asyncio.get_event_loop().run_until_complete(
-        table.count(tenant_id="t1", filter_fn=filter_a1)
+        table.count(tenant_id=t1, filter_fn=filter_a1)
     )
     list_result = asyncio.get_event_loop().run_until_complete(
-        table.list(tenant_id="t1", filter_fn=filter_a1)
+        table.list(tenant_id=t1, filter_fn=filter_a1)
     )
     assert count_result == len(list_result)
     assert count_result == 2

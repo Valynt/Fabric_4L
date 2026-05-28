@@ -176,13 +176,12 @@ class TestGovernanceMiddlewareFailureModes:
         request = self._build_request({"Authorization": "Bearer invalid-token", "X-Request-ID": "req-123"})
 
         with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
-            import jwt as pyjwt
-            mock_decode.side_effect = pyjwt.InvalidTokenError("bad token")
+            mock_decode.return_value = None
             with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)
 
         assert exc_info.value.status_code == 401
-        assert exc_info.value.detail["error_code"] == "AUTH_INVALID_TOKEN"
+        assert "Invalid token" in exc_info.value.detail
 
     @pytest.mark.asyncio
     async def test_malformed_claims_fail_closed_with_tenant_context_error(self):
@@ -198,14 +197,90 @@ class TestGovernanceMiddlewareFailureModes:
         assert exc_info.value.detail["error_code"] == "AUTH_CONTEXT_INVALID"
 
     @pytest.mark.asyncio
-    async def test_auth_backend_outage_denies_by_default(self):
+    async def test_unexpected_exception_in_decode_jwt_is_not_masked_as_auth_failure(self):
+        """Programming errors must bubble up as 500, not be masked as 401 (P1-012)."""
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer service-down", "X-Correlation-ID": "corr-456"})
 
         with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
             mock_decode.side_effect = RuntimeError("auth service outage")
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(RuntimeError) as exc_info:
                 await middleware._resolve_identity(request)
 
-        assert exc_info.value.status_code == 401
-        assert exc_info.value.detail["error_code"] == "AUTH_SERVICE_UNAVAILABLE"
+        assert "auth service outage" in str(exc_info.value)
+
+
+class TestGovernanceMiddlewareDispatch:
+    """Integration tests for GovernanceMiddleware.dispatch (P1-012)."""
+
+    def _make_app(self) -> Mock:
+        app = Mock()
+        app.routes = []
+        return app
+
+    @pytest.mark.asyncio
+    async def test_public_path_bypasses_auth(self):
+        """POSITIVE: /health bypasses authentication via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        async def mock_app(scope, receive, send):
+            response = JSONResponse({"status": "ok"})
+            await response(scope, receive, send)
+
+        middleware = GovernanceMiddleware(app=mock_app, api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/health",
+            "headers": [],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"status": "ok"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 200
+
+    @pytest.mark.asyncio
+    async def test_missing_credentials_returns_401(self):
+        """NEGATIVE: Missing auth header on protected path → 401 via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/protected",
+            "headers": [],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"data": "secret"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 401
+        body = response.body.decode()
+        assert "authentication_required" in body
+
+    @pytest.mark.asyncio
+    async def test_invalid_jwt_returns_401(self):
+        """NEGATIVE: Invalid JWT token → 401 via dispatch."""
+        from unittest.mock import AsyncMock
+        from starlette.responses import JSONResponse
+
+        middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
+        request = Request({
+            "type": "http",
+            "method": "GET",
+            "path": "/api/v1/protected",
+            "headers": [
+                (b"authorization", b"Bearer invalid-token"),
+            ],
+        })
+        call_next = AsyncMock()
+        call_next.return_value = JSONResponse({"data": "secret"})
+
+        response = await middleware.dispatch(request, call_next)
+        assert response.status_code == 401
+        body = response.body.decode()
+        assert "Invalid token" in body or "AUTH_INVALID_TOKEN" in body

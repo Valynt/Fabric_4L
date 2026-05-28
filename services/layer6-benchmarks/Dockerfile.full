@@ -1,14 +1,14 @@
 # syntax=docker/dockerfile:1
 # Root-context build for full/live compose stacks.
-FROM python:3.11.11-slim-bookworm
+FROM python:3.11.11-slim-bookworm AS builder
 
-RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
-
-WORKDIR /app
-
-RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
 RUN pip install --no-cache-dir uv
+
+WORKDIR /app
 
 COPY services/layer6-benchmarks/pyproject.toml services/layer6-benchmarks/uv.lock ./
 RUN uv sync --frozen --no-install-project
@@ -20,8 +20,24 @@ COPY value_fabric/ ./value_fabric/
 COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
 COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/
 
+FROM python:3.11.11-slim-bookworm AS runtime
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -r appgroup && useradd -r -g appgroup -m appuser
+
+WORKDIR /app
+
+COPY --from=builder /app/.venv /app/.venv
 ENV PATH="/app/.venv/bin:$PATH"
 ENV PYTHONPATH=/app:/app/src
+
+COPY services/layer6-benchmarks/src/ ./src/
+COPY value_fabric/ ./value_fabric/
+COPY packages/shared/src/value_fabric/shared/ ./value_fabric/shared/
+COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/
 
 RUN chown -R appuser:appgroup /app
 USER appuser

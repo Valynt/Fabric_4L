@@ -75,43 +75,36 @@ pnpm install
 pnpm --dir apps/web install
 ```
 
-## Quickstart
+## Quickstart (5 minutes)
 
-### Package manager policy (required)
-
-This monorepo is **pnpm-only**. Use the root lockfile `pnpm-lock.yaml` as the canonical dependency snapshot.
-
+### 1. Clone and configure
 ```bash
-# Enable Corepack and activate the pinned pnpm version
-corepack enable
-corepack prepare pnpm@10.18.1 --activate
-
-# Install dependencies at repo root
-pnpm install --frozen-lockfile
-```
-
-Running `npm install` or `npm ci` at repo root is not supported and will fail fast via `preinstall` checks.
-
-```bash
-# 1. Clone and enter repo
 git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
-
-# 2. Copy environment template
 cp .env.example .env
 # Fill in OPENAI_API_KEY and JWT_SECRET
+```
 
-# 3. Start all services
+### 2. Start infrastructure
+```bash
 docker compose -f docker-compose.full.yml up -d
+```
 
-# 4. Run database migrations
+### 3. Run migrations
+```bash
 make migrate
+```
 
-# 5. Verify everything works
+### 4. Verify everything works
+```bash
 make verify
+```
 
-# 6. Open the UI
+### 5. Open the UI
+```bash
 open http://localhost:5173
 ```
+
+**For detailed setup instructions:** See [docs/getting-started/quickstart.md](docs/getting-started/quickstart.md)
 
 ## Repository map
 
@@ -160,86 +153,57 @@ and CI enforces this via
 import-topology tests under [`tests/arch/`](tests/arch/) and
 [`tests/contract/`](tests/contract/).
 
-## Core concepts
+## Core Concepts
 
-- **Contracts** — All tool schemas and API shapes live in `contracts/`. They are the source of truth.
-- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/engine/`.
-- **Agents** — Behavior defined as versioned artifacts in `layer4-agents/agents/` and `layer4-agents/skills/`.
-- **Providers** — Vendor-specific adapters (OpenAI, Anthropic, Neo4j, pgvector) isolated from core logic.
-- **Packs** — Domain vertical extensions that add ontology, formulas, and variables without touching core.
-- **Drift Detection** — Automated checks for API contract drift, schema drift, and documentation staleness via CI/CD workflows and the Drift Assessor agent.
+| Document | Description |
+|----------|-------------|
+| [System Architecture](docs/core-concepts/architecture.md) | 6-layer pipeline architecture |
+| [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
+| [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
+| [Canonical Platform Contract](docs/contract.md) | Enforced direction for 6 cross-layer concerns |
+
+## Developer Guide
+
+| Document | Description |
+|----------|-------------|
+| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer |
+| [Testing Strategy](docs/reference/testing-strategy.md) | Test pyramid and coverage requirements |
+| [API Reference](docs/reference/api-overview.md) | Multi-layer API structure and patterns |
+| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, and generated-client rules |
+
+## For AI Agents
+
+| Document | Description |
+|----------|-------------|
+| [AGENTS.md](AGENTS.md) | Practical commands and directory map for AI agents |
+| [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
+
+## Operations
+
+| Document | Description |
+|----------|-------------|
+| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
+| [Operator Runbooks](docs/how-to-guides/operators.md) | Single jumping-off point for operator-facing runbooks |
+| [Release Runbook](docs/operations/RELEASE_RUNBOOK.md) | Release procedures |
+| [Keycloak Integration](docs/operations/keycloak-integration.md) | Keycloak setup and configuration |
+
+## Governance
+
+| Document | Description |
+|----------|-------------|
+| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical registry for compatibility shims |
+| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract/tenant/shim changes |
+| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve |
 
 ## Documentation
 
 📚 **[Complete Documentation →](docs/README.md)**
 
-🚀 **[Platform Launch Checklist →](docs/launch-checklists/platform-launch.md)** (Sprint 4 Release Hardening)
-
 Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with tutorials, how-to guides, reference, and explanations.
 
-### Getting Started
+## Contributing
 
-| Document | Description |
-|----------|-------------|
-| [Quickstart (15 min)](docs/getting-started/quickstart.md) | Get a local instance running fast |
-| [Environment Setup](docs/getting-started/environment.md) | Configure secrets, env vars, and services |
-
-### Core Concepts
-
-| Document | Description |
-|----------|-------------|
-| [System Architecture](docs/core-concepts/architecture.md) | C4 model diagrams and layer interactions |
-| [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
-| [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
-
-### API Reference
-
-| Document | Description |
-|----------|-------------|
-| [API Overview](docs/reference/api-overview.md) | Authentication patterns and common formats |
-| [Layer 1: Ingestion](docs/reference/layer1-ingestion-api.md) | Web scraping and job management |
-| [Layer 2: Extraction](docs/reference/layer2-extraction-api.md) | LLM-based entity extraction |
-| [Layer 3: Knowledge Graph](docs/reference/layer3-knowledge-api.md) | Neo4j + pgvector hybrid search |
-| [Layer 4: Agents](docs/reference/layer4-agents-api.md) | Workflow orchestration with LangGraph |
-| [Layer 5: Ground Truth](docs/reference/layer5-ground-truth-api.md) | Evaluation and benchmarking |
-
-### Troubleshooting & Operations
-
-| Document | Description |
-|----------|-------------|
-| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
-| [Runbooks](docs/troubleshooting/runbooks/) | 38 operational procedures |
-| [Drift Detection](docs/how-to-guides/drift-detection.md) | API contract, schema, and documentation drift detection |
-
-### Architecture Decisions
-
-| Document | Description |
-|----------|-------------|
-| [All ADRs](docs/explanations/adr/) | Architecture Decision Records |
-| [ADR-027: Service-first canonical paths](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) | Why `services/` is the implementation tree and `value_fabric/` is shim-only |
-
-### Reference & Governance
-
-| Document | Description |
-|----------|-------------|
-| [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer; canonical vs shim paths |
-| [Service Routing & API Version Matrix](docs/reference/service-routing-and-api-version-matrix.md) | Per-service ports, base paths, and version compatibility |
-| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, generated-client rules for `apps/web/` |
-| [Testing Strategy](docs/reference/testing-strategy.md) | Test layers, commands, and contract-test requirements |
-| [Operators' Runbook Index](docs/how-to-guides/operators.md) | Single jumping-off point for every operator-facing runbook |
-| [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve; what requires an RFC |
-| [Compatibility Debt Registry](docs/governance/compatibility-debt-registry.md) | Canonical list of compatibility shims and deprecations |
-| [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract / tenant / shim changes |
-
-### Meta
-
-| Document | Description |
-|----------|-------------|
-| [`AGENTS.md`](AGENTS.md) | How to work with this repo as an AI agent |
-| [`DESIGN.md`](DESIGN.md) | Production frontend governance contract for `apps/web/` |
-| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Developer contribution guide |
-| [`SECURITY.md`](SECURITY.md) | Vulnerability reporting |
-| [`ROADMAP.md`](ROADMAP.md) | Completion status and roadmap |
+See [`CONTRIBUTING.md`](CONTRIBUTING.md) for developer contribution guide.
 
 ## SDK Installation
 

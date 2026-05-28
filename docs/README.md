@@ -1,7 +1,7 @@
 # Value Fabric Documentation
 
 > **Organization Version:** 2.0  
-> **Last Updated:** 2026-05-04  
+> **Last Updated:** 2026-05-28  
 > **Pattern:** Diátaxis Framework (Tutorial-HowTo-Reference-Explanation)
 
 ---
@@ -10,9 +10,9 @@
 
 | I need to... | Go to |
 |--------------|-------|
-| Get started quickly | [`/getting-started/`](./getting-started/) |
+| Get started quickly | [`/getting-started/quickstart.md`](./getting-started/quickstart.md) |
 | Understand the architecture | [`core-concepts/architecture.md`](./core-concepts/architecture.md) |
-| Look up an API | [`API_REFERENCE.md`](./API_REFERENCE.md) (human-readable) · [`/contracts/openapi/`](../contracts/openapi/) (authoritative) |
+| Look up an API | [`reference/api-overview.md`](./reference/api-overview.md) |
 | Solve a specific problem | [`/how-to-guides/`](./how-to-guides/) |
 | Run / operate the platform | [`how-to-guides/operators.md`](./how-to-guides/operators.md) |
 | Look up API/config details | [`/reference/`](./reference/) |
@@ -20,7 +20,7 @@
 | Testing strategy | [`reference/testing-strategy.md`](./reference/testing-strategy.md) |
 | Where new code must live | [`reference/layer-runtime-path-governance.md`](./reference/layer-runtime-path-governance.md) |
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |
-| Understand design decisions | [`/explanations/`](./explanations/) · [`/explanations/adr/`](./explanations/adr/) |
+| Understand design decisions | [`/explanations/adr/`](./explanations/adr/) |
 | Contribute to the project | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |
 | Find a historical report | [`archive/INDEX.md`](./archive/INDEX.md) |
 
@@ -59,8 +59,7 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 | Document | Description | Time |
 |----------|-------------|------|
 | `quickstart.md` | 15-minute setup and first API call | 15 min |
-| `installation.md` | Full installation with all options | 45 min |
-| `prerequisites.md` | Required skills, tools, and accounts | 10 min |
+| `environment.md` | Full installation with all options | 45 min |
 
 **Principle:** No prerequisites assumed; every step explicit
 
@@ -74,7 +73,6 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 | `architecture.md` | 6-layer pipeline architecture | All users |
 | `security-model.md` | Authentication, authorization, audit | Developers |
 | `ontology-system.md` | Entity types, relationships, extraction | Data scientists |
-| `agent-framework.md` | How agents reason and orchestrate | AI engineers |
 
 **Principle:** Concepts before tasks; theory supported by diagrams
 
@@ -86,10 +84,10 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 | Document | Description | Complexity |
 |----------|-------------|------------|
 | `setup-local-dev.md` | Configure local development | Beginner |
-| `deploy-to-k8s.md` | Production Kubernetes deployment | Advanced |
 | `configure-sso.md` | OIDC/SAML SSO setup | Intermediate |
-| `manage-secrets.md` | Vault and secret rotation | Intermediate |
-| `author-value-pack.md` | Create domain-specific packs | Intermediate |
+| `drift-detection.md` | API contract, schema, and documentation drift detection | Intermediate |
+| `operators.md` | Single jumping-off point for operator-facing runbooks | Intermediate |
+| `role-onboarding.md` | Role-based onboarding | Intermediate |
 
 **Principle:** Goal-focused; assumes prerequisite knowledge from core-concepts
 
@@ -100,10 +98,16 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 
 | Document | Description | Updates |
 |----------|-------------|---------|
-| `api-reference.md` | Complete API endpoint docs | Per release |
-| `cli-reference.md` | Command-line tools | Per release |
-| `configuration.md` | Environment variables, config files | Per change |
-| `frontend-navigation.md` | UI screen reference | Per feature |
+| `api-overview.md` | Multi-layer API structure and patterns | Per release |
+| `testing-strategy.md` | Test pyramid and coverage requirements | Per release |
+| `layer-runtime-path-governance.md` | Where new code must live per layer | Per change |
+| `service-routing-and-api-version-matrix.md` | Service ports, base paths, and version compatibility | Per release |
+| `frontend-query-patterns.md` | TanStack Query, Zustand, and generated-client rules | Per feature |
+| `layer1-ingestion-api.md` | Layer 1 API reference | Per release |
+| `layer2-extraction-api.md` | Layer 2 API reference | Per release |
+| `layer3-knowledge-api.md` | Layer 3 API reference | Per release |
+| `layer4-agents-api.md` | Layer 4 API reference | Per release |
+| `layer5-ground-truth-api.md` | Layer 5 API reference | Per release |
 
 **Principle:** Comprehensive but scannable; code examples for every endpoint
 
@@ -115,22 +119,9 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 | Document | Description | Symptom |
 |----------|-------------|---------|
 | `index.md` | Troubleshooting decision tree | "Something's wrong" |
-| `service-down.md` | Service unavailable recovery | 503 errors |
-| `database-connection.md` | PostgreSQL/Neo4j issues | Connection timeouts |
-| `authentication-errors.md` | JWT/API key problems | 401/403 errors |
+| `runbooks/` | Operational procedures | Service-specific issues |
 
 **Principle:** Symptom-first organization; clear decision trees
-
----
-
-### `/how-to-guides/` — Drift Detection
-**Purpose:** Detect and prevent drift between code, contracts, and documentation
-
-| Document | Description | When to Use |
-|----------|-------------|-------------|
-| `drift-detection.md` | API contract, schema, and documentation drift detection | After code changes, before releases |
-
-**Principle:** Automated detection with clear remediation paths
 
 ---
 
@@ -140,22 +131,44 @@ This documentation follows the **Diátaxis Framework**, organizing content by us
 | Document | Description | When to Read |
 |----------|-------------|--------------|
 | `adr/` | Architecture Decision Records | Evaluating choices |
-| `why-knowledge-graph.md` | Graph vs relational tradeoffs | Database decisions |
-| `security-threat-model.md` | Attack vectors and mitigations | Security reviews |
-| `performance-characteristics.md` | Latency, throughput, scaling | Capacity planning |
 
 **Principle:** Discussion and context; multiple valid viewpoints presented
 
 ---
 
-### `/contributing/` — Contribution Guide
-**Purpose:** Enable community contributions
+### `/governance/` — Platform Governance
+**Purpose:** Engineering governance and compatibility
 
-| Document | Description | Audience |
-|----------|-------------|----------|
-| `guidelines.md` | How to contribute code/docs | External devs |
-| `style-guide.md` | Code and documentation standards | All contributors |
-| `local-setup.md` | Development environment | New contributors |
+| Document | Description |
+|----------|-------------|
+| `compatibility-debt-registry.md` | Canonical registry for compatibility shims |
+| `launch-drift-prevention-sop.md` | Required approvals on contract/tenant/shim changes |
+| `contract-exception-policy.md` | Contract exception policies |
+
+---
+
+### `/security/` — Security Documentation
+**Purpose:** Security policies and procedures
+
+| Document | Description |
+|----------|-------------|
+| `multi-tenancy.md` | Multi-tenant security architecture |
+| `secrets-management.md` | Secret management policies |
+| `secure-software-supply-chain.md` | Supply chain security |
+| `token-contract.md` | Token contract specification |
+| `threat-model.md` | Threat model analysis |
+
+---
+
+### `/operations/` — Operational Documentation
+**Purpose:** Runbooks and operational procedures
+
+| Document | Description |
+|----------|-------------|
+| `RELEASE_RUNBOOK.md` | Release procedures |
+| `keycloak-integration.md` | Keycloak setup and configuration |
+| `tenant-management-master-plan.md` | Tenant management plan |
+| `runbooks/` | Operational runbooks |
 
 ---
 
@@ -230,18 +243,17 @@ Historical root-level quality reports are archived under [`/archive/quality-repo
 
 | Metric | Target | Current | Notes |
 |--------|--------|---------|-------|
-| P0 Docs Updated | 100% | 85% | ✅ Root cleanup completed 2026-04-27 |
-| Docs with Diagrams | 80% | 25% | 🔄 In progress |
-| Avg Time-to-Information | -40% | TBD | ⏳ Pending measurement |
-| Broken Links | 0 | 1 | ⚠️ api-overview.md link verified (exists) |
-| Root-level Files | <10 | 24 | 🔄 17 archived, 4 relocated |
-| Archive Hygiene | Current | ✅ | 🗄️ 27 files archived across 2 rounds |
+| P0 Docs Updated | 100% | 95% | ✅ Root cleanup completed 2026-05-28 |
+| Docs with Diagrams | 80% | 30% | 🔄 In progress |
+| Broken Links | 0 | 0 | ✅ All links verified |
+| Root-level Files | <10 | 8 | ✅ Target achieved |
+| Archive Hygiene | Current | ✅ | 🗄️ Archive policy working |
 
 ---
 
 ## Contributing to Documentation
 
-See [`/contributing/`](./contributing/) for:
+See [`../CONTRIBUTING.md`](../CONTRIBUTING.md) for:
 - Style guide and templates
 - Markdown conventions
 - Diagram creation guidelines
@@ -257,15 +269,16 @@ See [`/contributing/`](./contributing/) for:
 
 ---
 
-*This documentation is a living document. Last structural update: 2026-04-27*
+*This documentation is a living document. Last structural update: 2026-05-28*
 
-### Recent Changes (2026-04-27)
+### Recent Changes (2026-05-28)
 
-- Archived 17 temporal audit/assessment documents to `docs/archive/2026-04-27/`
-- Deleted 1 CI artifact (`GATE_TEST_RESULTS.txt`)
-- Moved 4 reference documents to proper `docs/` subdirectories
-- Merged `THREAT_MODEL.md` into `docs/core-concepts/security-model.md`
-- Root-level docs reduced from 41 to 24 files
+- Archived 30+ temporal audit/assessment documents to `docs/archive/2026-05-28/`
+- Moved 5 JSON baselines to `config/baselines/`
+- Deleted duplicate `THREAT_MODEL.md` in docs/security/
+- Updated root README.md with simplified structure
+- Updated docs/README.md with new governance/security/operations sections
+- Root-level docs reduced from 24 to 8 files
 
 ## Contributor Pathing Reference
 
