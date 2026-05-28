@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Tenant provisioning status and webhook endpoints.
 
 Webhook security uses HMAC-SHA256 signature verification with idempotency
@@ -197,10 +197,9 @@ async def retry_provisioning(
             status=state.status.value,
         )
     elif state.status == ProvisioningStatus.FAILED:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "message": "Provisioning retry failed",
+        raise ServiceUnavailableError(
+            message="Provisioning retry failed",
+            details={
                 "error": state.error,
                 "retryable": state.retryable,
             },
@@ -249,10 +248,7 @@ async def webhook_provisioning(
     webhook_secret = os.getenv("PROVISIONING_WEBHOOK_SECRET", "")
     if not webhook_secret:
         logger.error("PROVISIONING_WEBHOOK_SECRET not configured")
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Webhook provisioning not configured",
-        )
+        raise ServiceUnavailableError(message="Webhook provisioning not configured")
 
     body = await http_request.body()
     if not _verify_hmac_signature(body, x_webhook_signature, webhook_secret):
@@ -279,10 +275,7 @@ async def webhook_provisioning(
         payload = WebhookProvisioningRequest(**json.loads(body))
     except Exception as e:
         logger.warning("Invalid webhook payload: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Invalid webhook payload",
-        ) from e
+        raise ValidationError(message="Invalid webhook payload") from e
 
     # Validate timestamp (replay protection)
     now = int(time.time())
@@ -345,10 +338,9 @@ async def webhook_provisioning(
             webhook_id=x_webhook_id,
         )
     elif state.status == ProvisioningStatus.FAILED:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "message": "Provisioning failed",
+        raise ServiceUnavailableError(
+            message="Provisioning failed",
+            details={
                 "error": state.error,
                 "retryable": state.retryable,
                 "webhook_id": x_webhook_id,

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import datetime, timezone
 from fastapi import Depends, Header
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -96,7 +97,7 @@ async def ingest_usage(
         **event_dict,
         "tenant_id": principal.tenant_id,
         "actor": principal.actor,
-        "ingested_at": __import__("datetime").datetime.now(__import__("datetime").timezone.utc).isoformat(),
+        "ingested_at": datetime.now(timezone.utc).isoformat(),
     }
     return {"status": "accepted", "event": audit}
 

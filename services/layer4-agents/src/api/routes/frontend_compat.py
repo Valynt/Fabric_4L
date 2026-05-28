@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """Frontend compatibility aliases for path mismatches.
 
 These routes provide backward-compatible paths that the frontend expects,
@@ -176,7 +176,7 @@ async def update_current_tenant_settings(
         settings_update=current_settings,
     )
     if not updated:
-        raise HTTPException(status_code=500, detail="Failed to update tenant settings")
+        raise ServiceUnavailableError(message="Failed to update tenant settings")
 
     return TenantSettingsUpdateResponse(
         id=str(updated.id),
@@ -201,7 +201,7 @@ async def register_tenant_frontend_alias(
     # Check slug uniqueness
     existing = await get_tenant_by_slug(db, request.slug)
     if existing:
-        raise HTTPException(status_code=409, detail="Tenant slug already exists")
+        raise ConflictError(message="Tenant slug already exists")
 
     # Validate tier
     try:

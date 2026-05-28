@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -60,7 +61,7 @@ async def update_actuals(
 ):
     plan = db.roi_calculations.get(plan_id, tenant_id=tenant_id)
     if not plan or plan.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise NotFoundError(message="Plan not found")
     updated_fields = fields.model_dump(exclude_unset=True)
     updated = db.roi_calculations.update(plan_id, tenant_id=tenant_id, **updated_fields)
     return updated
@@ -74,7 +75,7 @@ async def get_variance(
 ):
     plan = db.roi_calculations.get(plan_id, tenant_id=tenant_id)
     if not plan or plan.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise NotFoundError(message="Plan not found")
     return {
         "plan_id": plan_id,
         "projected": getattr(plan, "total_benefit", 0),
@@ -91,7 +92,7 @@ async def get_recommendations(
 ):
     plan = db.roi_calculations.get(plan_id, tenant_id=tenant_id)
     if not plan or plan.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Plan not found")
+        raise NotFoundError(message="Plan not found")
     return {
         "plan_id": plan_id,
         "recommendations": [

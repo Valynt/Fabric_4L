@@ -413,7 +413,7 @@ async def create_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to create variable")
+            raise ServiceUnavailableError(message="Failed to create variable")
 
         v = record["v"]
 
@@ -512,7 +512,7 @@ async def update_variable(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to update variable")
+            raise ServiceUnavailableError(message="Failed to update variable")
 
     # Return updated variable
     return await get_variable(variable_id, tenant=tenant)

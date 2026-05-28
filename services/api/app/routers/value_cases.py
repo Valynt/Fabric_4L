@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -17,7 +18,7 @@ async def get_value_case(account_id: str, tenant_id: str = Depends(tenant_requir
         tenant_id=tenant_id, filter_fn=lambda c: c.account_id == account_id
     )
     if not cases:
-        raise HTTPException(status_code=404, detail="No value case found for account")
+        raise NotFoundError(message="No value case found for account")
     return cases[0]
 
 
@@ -39,7 +40,7 @@ async def update_value_case(
 ):
     bc = db.business_cases.update(value_case_id, tenant_id=tenant_id, **fields)
     if not bc:
-        raise HTTPException(status_code=404, detail="Value case not found")
+        raise NotFoundError(message="Value case not found")
     return bc
 
 
@@ -58,10 +59,9 @@ async def export_value_case(
     gates = check_gates(account_id, tenant_id)
     open_gates = [g for g in gates if not g.passed()]
     if open_gates:
-        raise HTTPException(
-            status_code=403,
-            detail={
-                "message": "Export blocked: required gates are not closed",
+        raise AuthorizationError(
+            message="Export blocked: required gates are not closed",
+            details={
                 "open_gates": [
                     {"type": g.gate_type, "reason": g.reason} for g in open_gates
                 ],
@@ -69,6 +69,6 @@ async def export_value_case(
         )
     case = db.business_cases.get(value_case_id, tenant_id=tenant_id)
     if not case or case.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Value case not found")
+        raise NotFoundError(message="Value case not found")
     result = generate_export(account_id, value_case_id, tenant_id, format)  # type: ignore[arg-type]
     return result

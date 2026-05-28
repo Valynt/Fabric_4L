@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ValueFabricException
 """
 Authentication and tenant-context dependency for Layer 5 Ground Truth API.
 
@@ -41,15 +41,17 @@ logger = logging.getLogger(__name__)
 _AUTH_REQUIRED = "authentication_required"
 
 
-def _auth_http_exception(status_code: int, *, error_code: str, message: str) ->:
-    return(
-        status_code=status_code,
-        detail={
-            "error": _AUTH_REQUIRED,
-            "error_code": error_code,
-            "message": message,
-        },
-        headers={"WWW-Authenticate": "Bearer"},
+def _auth_http_exception(status_code: int, *, error_code: str, message: str) -> ValueFabricException:
+    if status_code == status.HTTP_401_UNAUTHORIZED:
+        return AuthenticationError(
+            message=message,
+            error_code=error_code,
+            details={"error": _AUTH_REQUIRED, "error_code": error_code},
+        )
+    return AuthorizationError(
+        message=message,
+        error_code=error_code,
+        details={"error": _AUTH_REQUIRED, "error_code": error_code},
     )
 
 
@@ -78,7 +80,7 @@ class TokenClaims:
 
     def require_role(self, role: str) -> None:
         if not self.has_role(role):
-            raise AuthorizationError(message = str(f"Role '{role}' is required for this operation."))
+            raise AuthorizationError(message=f"Role '{role}' is required for this operation.")
 
 
 # ---------------------------------------------------------------------------

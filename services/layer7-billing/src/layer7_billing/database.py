@@ -4,18 +4,16 @@ import os
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
 
-from fastapi import Header
+from fastapi import FastAPI, Header
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from contextlib import asynccontextmanager
-from fastapi import FastAPI
 
 from value_fabric.shared.database import (
     create_postgresql_engine,
     create_session_maker,
     PostgresHealthProbe,
 )
+from value_fabric.shared.fastapi_framework.health import ProbeResult
 
 from .models import Base
 
@@ -38,8 +36,12 @@ async def close_db() -> None:
 async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
     async with session_maker() as session:
         await session.execute(text("SELECT set_config('app.tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id})
-        yield session
-        await session.commit()
+        try:
+            yield session
+            await session.commit()
+        except Exception:
+            await session.rollback()
+            raise
 
 
 async def get_db(
@@ -56,6 +58,6 @@ async def lifespan(app: FastAPI):
     await close_db()
 
 
-async def health_probe() -> None:
+async def health_probe() -> ProbeResult:
     probe = PostgresHealthProbe(engine)
     return await probe.check()

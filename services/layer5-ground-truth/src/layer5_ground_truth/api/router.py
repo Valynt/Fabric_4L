@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
 """
 FastAPI router for Layer 5 Ground Truth API.
 
@@ -512,11 +512,10 @@ async def validate_truth(
         raise ValidationError(message = "Request failed", details = {"code": "INSUFFICIENT_EVIDENCE", "message": "Insufficient evidence for requested operation"})
     except TransitionConflictError as exc:
         logger.warning("truth_transition_conflict: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={
+        raise ConflictError(
+            message="Conflict during state transition",
+            details={
                 "code": "TRANSITION_CONFLICT",
-                "message": "Conflict during state transition",
                 "expected": previous_status,
                 "actual": truth.status if truth else "unknown",
             },

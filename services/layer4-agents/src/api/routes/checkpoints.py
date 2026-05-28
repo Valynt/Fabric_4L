@@ -215,11 +215,10 @@ async def list_checkpoints(
             "Failed to retrieve checkpoints",
             extra={"workflow_id": workflow_id, "thread_id": workflow_id, "request_id": request_id},
         )
-        raise HTTPException(
-            status_code=500,
-            detail={
+        raise ServiceUnavailableError(
+            message="Failed to retrieve checkpoints",
+            details={
                 "code": "CHECKPOINT_QUERY_FAILED",
-                "message": "Failed to retrieve checkpoints",
                 "workflow_id": workflow_id,
                 "request_id": request_id,
             },
@@ -273,9 +272,7 @@ async def get_checkpoint_state(
         raise
     except Exception as e:
         logger.error(f"Error retrieving checkpoint {checkpoint_id}: {e}")
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve checkpoint state"
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve checkpoint state")
 
 
 @checkpoint_router.post(
@@ -361,7 +358,7 @@ async def compare_checkpoints(
         raise
     except Exception as e:
         logger.error(f"Error comparing checkpoints: {e}")
-        raise HTTPException(status_code=500, detail="Failed to compare checkpoints")
+        raise ServiceUnavailableError(message="Failed to compare checkpoints")
 
 
 @checkpoint_router.post(
@@ -427,7 +424,7 @@ async def resume_from_checkpoint(
         raise
     except Exception as e:
         logger.error(f"Error resuming from checkpoint: {e}")
-        raise HTTPException(status_code=500, detail="Failed to resume from checkpoint")
+        raise ServiceUnavailableError(message="Failed to resume from checkpoint")
 
 
 # ============================================================================

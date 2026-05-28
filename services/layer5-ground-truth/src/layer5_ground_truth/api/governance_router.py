@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """
 FastAPI router for Layer 5 Governance APIs.
 
@@ -317,19 +317,13 @@ async def create_formula(
         duration = time.time() - start_time
         record_governance_operation_duration("create", "formula", duration)
         record_governance_operation("create", "formula", "conflict")
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=_safe_http_detail(e, status_code=500),
-        )
+        raise ConflictError(message=_safe_http_detail(e, status_code=500))
     except Exception as e:
         duration = time.time() - start_time
         record_governance_operation_duration("create", "formula", duration)
         record_governance_operation("create", "formula", "error")
         logger.error("Error creating formula: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create formula",
-        )
+        raise ServiceUnavailableError(message="Failed to create formula")
 
 
 @governance_router.get(
@@ -393,10 +387,7 @@ async def list_formulas(
 
     except Exception as e:
         logger.error("Error listing formulas: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list formulas",
-        )
+        raise ServiceUnavailableError(message="Failed to list formulas")
 
 
 @governance_router.get(
@@ -444,10 +435,7 @@ async def get_formula(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error getting formula: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get formula",
-        )
+        raise ServiceUnavailableError(message="Failed to get formula")
 
 
 @governance_router.post(
@@ -506,16 +494,10 @@ async def create_formula_version(
     except FormulaNotFoundError as e:
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except FormulaVersionConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=_safe_http_detail(e, status_code=500),
-        )
+        raise ConflictError(message=_safe_http_detail(e, status_code=500))
     except Exception as e:
         logger.error("Error creating formula version: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create formula version",
-        )
+        raise ServiceUnavailableError(message="Failed to create formula version")
 
 
 @governance_router.post(
@@ -573,10 +555,7 @@ async def submit_formula_version(
         raise ValidationError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error submitting formula version: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit formula version",
-        )
+        raise ServiceUnavailableError(message="Failed to submit formula version")
 
 
 @governance_router.post(
@@ -632,10 +611,7 @@ async def approve_formula_version(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error approving formula version: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to approve formula version",
-        )
+        raise ServiceUnavailableError(message="Failed to approve formula version")
 
 
 @governance_router.post(
@@ -691,10 +667,7 @@ async def reject_formula_version(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error rejecting formula version: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reject formula version",
-        )
+        raise ServiceUnavailableError(message="Failed to reject formula version")
 
 
 @governance_router.post(
@@ -753,10 +726,7 @@ async def deprecate_formula(
         raise ValidationError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error deprecating formula: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to deprecate formula",
-        )
+        raise ServiceUnavailableError(message="Failed to deprecate formula")
 
 
 @governance_router.post(
@@ -812,10 +782,7 @@ async def archive_formula(
         raise ValidationError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error archiving formula: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to archive formula",
-        )
+        raise ServiceUnavailableError(message="Failed to archive formula")
 
 
 # ---------------------------------------------------------------------------
@@ -969,16 +936,10 @@ async def create_benchmark(
         )
 
     except BenchmarkSlugConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=_safe_http_detail(e, status_code=500),
-        )
+        raise ConflictError(message=_safe_http_detail(e, status_code=500))
     except Exception as e:
         logger.error("Error creating benchmark: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create benchmark",
-        )
+        raise ServiceUnavailableError(message="Failed to create benchmark")
 
 
 @governance_router.get(
@@ -1045,10 +1006,7 @@ async def list_benchmarks(
 
     except Exception as e:
         logger.error("Error listing benchmarks: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list benchmarks",
-        )
+        raise ServiceUnavailableError(message="Failed to list benchmarks")
 
 
 @governance_router.post(
@@ -1104,16 +1062,10 @@ async def create_benchmark_version(
     except BenchmarkNotFoundError as e:
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except BenchmarkVersionConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=_safe_http_detail(e, status_code=500),
-        )
+        raise ConflictError(message=_safe_http_detail(e, status_code=500))
     except Exception as e:
         logger.error("Error creating benchmark version: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create benchmark version",
-        )
+        raise ServiceUnavailableError(message="Failed to create benchmark version")
 
 
 # ---------------------------------------------------------------------------
@@ -1241,16 +1193,10 @@ async def create_policy(
         )
 
     except PolicySlugConflictError as e:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=_safe_http_detail(e, status_code=500),
-        )
+        raise ConflictError(message=_safe_http_detail(e, status_code=500))
     except Exception as e:
         logger.error("Error creating policy: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create policy",
-        )
+        raise ServiceUnavailableError(message="Failed to create policy")
 
 
 @governance_router.get(
@@ -1312,10 +1258,7 @@ async def list_policies(
 
     except Exception as e:
         logger.error("Error listing policies: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list policies",
-        )
+        raise ServiceUnavailableError(message="Failed to list policies")
 
 
 @governance_router.post(
@@ -1364,10 +1307,7 @@ async def evaluate_policy(
         raise ValidationError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error evaluating policy: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to evaluate policy",
-        )
+        raise ServiceUnavailableError(message="Failed to evaluate policy")
 
 
 # ---------------------------------------------------------------------------
@@ -1494,10 +1434,7 @@ async def create_assumption(
 
     except Exception as e:
         logger.error("Error creating assumption: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create assumption",
-        )
+        raise ServiceUnavailableError(message="Failed to create assumption")
 
 
 @governance_router.get(
@@ -1567,10 +1504,7 @@ async def list_assumptions(
 
     except Exception as e:
         logger.error("Error listing assumptions: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list assumptions",
-        )
+        raise ServiceUnavailableError(message="Failed to list assumptions")
 
 
 @governance_router.post(
@@ -1634,10 +1568,7 @@ async def add_assumption_evidence(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error adding assumption evidence: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to add assumption evidence",
-        )
+        raise ServiceUnavailableError(message="Failed to add assumption evidence")
 
 
 @governance_router.post(
@@ -1691,10 +1622,7 @@ async def submit_assumption(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error submitting assumption: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to submit assumption",
-        )
+        raise ServiceUnavailableError(message="Failed to submit assumption")
 
 
 # ---------------------------------------------------------------------------
@@ -1828,10 +1756,7 @@ async def create_value_entry(
 
     except Exception as e:
         logger.error("Error creating value entry: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create value entry",
-        )
+        raise ServiceUnavailableError(message="Failed to create value entry")
 
 
 @governance_router.get(
@@ -1901,10 +1826,7 @@ async def list_value_entries(
 
     except Exception as e:
         logger.error("Error listing value entries: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list value entries",
-        )
+        raise ServiceUnavailableError(message="Failed to list value entries")
 
 
 @governance_router.post(
@@ -1969,10 +1891,7 @@ async def add_value_update(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error adding value update: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to add value update",
-        )
+        raise ServiceUnavailableError(message="Failed to add value update")
 
 
 # ---------------------------------------------------------------------------
@@ -2070,10 +1989,7 @@ async def list_approvals(
 
     except Exception as e:
         logger.error("Error listing approval requests: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list approval requests",
-        )
+        raise ServiceUnavailableError(message="Failed to list approval requests")
 
 
 @governance_router.get(
@@ -2120,10 +2036,7 @@ async def get_approval_request(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error getting approval request: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get approval request",
-        )
+        raise ServiceUnavailableError(message="Failed to get approval request")
 
 
 @governance_router.post(
@@ -2172,10 +2085,7 @@ async def approve_request(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error approving request: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to approve request",
-        )
+        raise ServiceUnavailableError(message="Failed to approve request")
 
 
 @governance_router.post(
@@ -2224,7 +2134,4 @@ async def reject_request(
         raise NotFoundError(message = str(_safe_http_detail(e, status_code=500)))
     except Exception as e:
         logger.error("Error rejecting request: %s", e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to reject request",
-        )
+        raise ServiceUnavailableError(message="Failed to reject request")

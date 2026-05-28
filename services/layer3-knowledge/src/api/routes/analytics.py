@@ -203,9 +203,8 @@ async def compare_entities(
         raise
     except Exception as e:
         logger.error("Entity comparison failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Entity comparison failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Entity comparison failed. Please try again later."
         )
 
 
@@ -513,9 +512,8 @@ async def batch_entity_operations(
         raise
     except Exception as e:
         logger.error("Batch entity operations failed: %s", e)
-        raise HTTPException(
-            status_code=500,
-            detail="Batch operations failed. Please try again later.",
+        raise ServiceUnavailableError(
+            message="Batch operations failed. Please try again later."
         )
 
 

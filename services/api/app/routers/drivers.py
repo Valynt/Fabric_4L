@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
@@ -59,5 +60,5 @@ async def update_driver(
 ):
     drv = db.drivers.update(driver_id, tenant_id=tenant_id, **fields)
     if not drv:
-        raise HTTPException(status_code=404, detail="Driver not found")
+        raise NotFoundError(message="Driver not found")
     return drv

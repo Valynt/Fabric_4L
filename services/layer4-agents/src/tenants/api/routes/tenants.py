@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 """Tenant management API routes (super_admin only).
 
 POST   /v1/tenants                          — create tenant
@@ -128,7 +128,7 @@ async def api_update_current_tenant_settings(
         TenantUpdateRequest(settings=current_settings),
     )
     if not updated:
-        raise HTTPException(status_code=500, detail='Failed to update tenant settings')
+        raise ServiceUnavailableError(message='Failed to update tenant settings')
 
     return CurrentTenantSettingsUpdateResponse(
         id=str(updated.id),
@@ -150,7 +150,7 @@ async def api_create_tenant(
     except IntegrityError as exc:
         message = str(exc.orig if getattr(exc, "orig", None) is not None else exc)
         if "uix_tenant_slug" in message or "duplicate key value" in message and "slug" in message:
-            raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Tenant slug already exists") from exc
+            raise ConflictError(message="Tenant slug already exists") from exc
         raise
 
 
@@ -226,7 +226,7 @@ async def api_suspend_tenant(
         )
     except ValueError as e:
         logger.warning("tenant_suspend_conflict", extra={"error_code": "TENANT_SUSPEND_ERROR"})
-        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
+        raise ConflictError(message="Invalid tenant status transition")
     if not updated:
         raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)
@@ -249,7 +249,7 @@ async def api_activate_tenant(
         )
     except ValueError as e:
         logger.warning("tenant_activate_conflict", extra={"error_code": "TENANT_ACTIVATE_ERROR"})
-        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
+        raise ConflictError(message="Invalid tenant status transition")
     if not updated:
         raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)
@@ -273,7 +273,7 @@ async def api_change_tenant_status(
         )
     except ValueError as e:
         logger.warning("tenant_status_change_conflict", extra={"error_code": "TENANT_STATUS_ERROR"})
-        raise HTTPException(status_code=409, detail="Invalid tenant status transition")
+        raise ConflictError(message="Invalid tenant status transition")
     if not updated:
         raise NotFoundError(message = str(f"Tenant {tenant_id} not found"))
     tenant = await get_tenant(db, tenant_id)

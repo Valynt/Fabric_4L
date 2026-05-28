@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Compatibility and shared security probe routes for Layer 1."""
 
 
@@ -49,10 +49,7 @@ async def short_ingest_compatibility_boundary(
 ) -> dict[str, str]:
     _add_deprecation_headers(response)
     _record_compatibility_usage(endpoint="/v1/ingest", tenant_id=str(ctx.tenant_id), user_id=str(ctx.user_id))
-    raise HTTPException(
-        status_code=410,
-        detail="Use the canonical /api/v1/ingestion endpoints for Layer 1 ingestion operations.",
-    )
+    raise ServiceUnavailableError(message="Use the canonical /api/v1/ingestion endpoints for Layer 1 ingestion operations.")
 
 
 @router.post("/api/v1/ingestion/sources", tags=["Compatibility"], status_code=201)
@@ -68,7 +65,7 @@ async def create_ingestion_source_compatibility_boundary(
     except Exception as exc:
         raise ValidationError(message = "Invalid source payload") from exc
     if not isinstance(payload, dict):
-        raise HTTPException(status_code=422, detail="Source payload must be an object")
+        raise ValidationError(message="Source payload must be an object")
     source_id = str(payload.get("id") or uuid4())
     record = {
         **payload,
@@ -106,10 +103,7 @@ async def get_ingestion_source_compatibility_boundary(
 async def entity_security_boundary(
     _ctx: RequestContext = Depends(require_authenticated),
 ) -> dict[str, list[Any]]:
-    raise HTTPException(
-        status_code=501,
-        detail="Entity listing is owned by the Layer 3 Knowledge Graph API. Use /api/v1/knowledge/entities instead.",
-    )
+    raise ServiceUnavailableError(message="Entity listing is owned by the Layer 3 Knowledge Graph API. Use /api/v1/knowledge/entities instead.")
 
 
 @router.delete("/api/v1/entities/{entity_id}", tags=["Security Compatibility"])
@@ -117,10 +111,7 @@ async def entity_delete_security_boundary(
     entity_id: str,
     _ctx: RequestContext = Depends(require_role(Role.TENANT_ADMIN, Role.SUPER_ADMIN)),
 ) -> dict[str, str]:
-    raise HTTPException(
-        status_code=501,
-        detail=f"Entity deletion for {entity_id} is owned by the Layer 3 entity API contract.",
-    )
+    raise ServiceUnavailableError(message=f"Entity deletion for {entity_id} is owned by the Layer 3 entity API contract.")
 
 
 @router.get("/api/v1/user/profile", tags=["Security Compatibility"])
@@ -147,7 +138,6 @@ async def user_private_data_security_boundary(
 async def admin_read_security_boundary(
     _ctx: RequestContext = Depends(require_role(Role.TENANT_ADMIN, Role.SUPER_ADMIN)),
 ) -> dict[str, str]:
-    raise HTTPException(
-        status_code=501,
-        detail="Admin read endpoints are not implemented in Layer 1. Query the Layer 4 tenant admin API instead.",
+    raise ServiceUnavailableError(
+        message="Admin read endpoints are not implemented in Layer 1. Query the Layer 4 tenant admin API instead."
     )

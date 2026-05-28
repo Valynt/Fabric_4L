@@ -25,7 +25,7 @@ from zoneinfo import available_timezones
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
+
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -43,6 +43,7 @@ from value_fabric.shared.error_handling.models import ErrorCode, ErrorResponse
 from value_fabric.shared.fastapi_framework import (
     add_governance_middleware,
     add_security_validation_middleware,
+    create_fabric_app,
 )
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 from value_fabric.shared.identity.vault_check import is_vault_healthy
@@ -240,15 +241,27 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
+app = create_fabric_app(
+    service_name="layer1-ingestion",
     title="Value Fabric - Layer 1: Intelligent Data Ingestion",
     description="Production-grade web data ingestion service with spec-compliant API",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+    cors_policy=settings.cors_policy,
+    register_default_exception_handlers=False,
+    include_request_id_middleware=True,
 )
 
+# Effective middleware/request order (outermost -> innermost):
+#   CORS (from create_fabric_app)
+#   RequestIDMiddleware (from create_fabric_app)  -- NEW, additive
+#   SecurityValidationMiddleware (added below)
+#   Custom exception handlers (@app.exception_handler)
+#   GovernanceMiddleware (with RedisRateLimiter)
+#   MetricsMiddleware (innermost, via app.middleware("http"))
+# DB engine/session lifecycle remains service-owned.
 
 @app.exception_handler(HTTPException)
 async def layer1_http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
@@ -316,12 +329,6 @@ async def layer1_global_exception_handler(request: Request, exc: Exception) -> J
     """Route unhandled errors through canonical shared envelope."""
     return await shared_global_exception_handler(request, exc)
 
-
-# CORS middleware with production validation (P0-20) — OUTERMOST.
-# The policy comes from Settings so production-like environments fail before
-# middleware installation, and credentials are never combined with wildcard
-# origins or broad method/header exposure.
-app.add_middleware(CORSMiddleware, **settings.cors_policy)
 
 # SecurityMiddleware — input validation and security headers (mandatory)
 _security_config_l1 = add_security_validation_middleware(

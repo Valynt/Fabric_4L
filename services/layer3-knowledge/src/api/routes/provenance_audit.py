@@ -143,7 +143,7 @@ async def get_provenance(
         raise
     except Exception as e:
         logger.error(f"Provenance query failed: {e}")
-        raise HTTPException(status_code=500, detail="Provenance query failed. Please try again later.")
+        raise ServiceUnavailableError(message="Provenance query failed. Please try again later.")
 
 
 @router.get(
@@ -240,4 +240,4 @@ async def list_audit_logs(
         raise
     except Exception as e:
         logger.error(f"Audit log query failed: {e}")
-        raise HTTPException(status_code=500, detail="Failed to query audit logs")
+        raise ServiceUnavailableError(message="Failed to query audit logs")

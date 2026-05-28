@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.account_scope import require_account_scope
@@ -65,7 +66,7 @@ async def get_ontology_match(
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/ontology-match")
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
     pack = db.value_packs.get(acc.value_pack_id) if acc.value_pack_id else None
     return OntologyMatchResponse(
         account_id=account_id,
@@ -84,7 +85,7 @@ async def get_enrichment(
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/enrichment")
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
     return EnrichmentResponse(
         account_id=account_id,
         firmographics=FirmographicsResponse(

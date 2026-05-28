@@ -22,6 +22,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
@@ -41,10 +42,7 @@ def _handle_l5_result(result: dict[str, Any]) -> dict[str, Any]:
     error = result.get("error")
     if error:
         logger.error("L5 proxy error: %s", error)
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail=f"Ground Truth service error: {error}",
-        )
+        raise ServiceUnavailableError(message=f"Ground Truth service error: {error}")
     return result
 
 

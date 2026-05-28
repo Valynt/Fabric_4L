@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -1253,10 +1253,7 @@ async def create_valuepack(
     _init_default_valuepacks()
     
     if request.industry_id in _valuepack_db:
-        raise HTTPException(
-            status_code=409, 
-            detail=f"ValuePack already exists: {request.industry_id}"
-        )
+        raise ConflictError(message=f"ValuePack already exists: {request.industry_id}")
     
     _valuepack_db[request.industry_id] = request
     logger.info(f"Created ValuePack: {request.industry_id}")
@@ -1546,7 +1543,7 @@ async def seed_valuepack_data(
         result = await run_validated_query(session, cypher, **params)
         record = await result.single()
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to seed ValuePack data")
+            raise ServiceUnavailableError(message="Failed to seed ValuePack data")
     
     logger.info(f"Seeded ValuePack data to Neo4j: {industry_id}")
     return seed_valuepack_dataResult.model_validate({"status": "seeded", "industry_id": industry_id})

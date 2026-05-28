@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
 """
 Accounts API routes for CRM account management.
 
@@ -236,9 +236,9 @@ async def create_account(
         )
     except ValueError as exc:
         logger.warning("account_create_conflict", extra={"error": str(exc)})
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account creation conflict") from exc
+        raise ConflictError(message="Account creation conflict") from exc
     except IntegrityError as exc:
-        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Account already exists") from exc
+        raise ConflictError(message="Account already exists") from exc
     return to_detail_schema(account)
 
 
@@ -412,9 +412,6 @@ async def refresh_account(
     # Trigger refresh
     refreshed = await service.refresh_account(account_id, tenant_id=str(_ctx.tenant_id))
     if not refreshed:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to refresh account from CRM",
-        )
+        raise ServiceUnavailableError(message="Failed to refresh account from CRM")
 
     return to_detail_schema(refreshed)

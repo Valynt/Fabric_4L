@@ -3,6 +3,7 @@ import hashlib
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -63,7 +64,7 @@ async def create_account(account: Account, request: Request, tenant_id: str = De
         try:
             replay = _idempotency_service.check_replay(replay_request)
         except IdempotencyConflictError as exc:
-            raise HTTPException(status_code=409, detail=str(exc))
+            raise ConflictError(message=str(exc))
         if replay:
             headers = dict(replay.headers)
             headers["X-Idempotent-Replay"] = "true"
@@ -89,7 +90,7 @@ async def create_account(account: Account, request: Request, tenant_id: str = De
 async def get_account(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
     return acc
 
 
@@ -114,7 +115,7 @@ async def update_account(
         try:
             replay = _idempotency_service.check_replay(replay_request)
         except IdempotencyConflictError as exc:
-            raise HTTPException(status_code=409, detail=str(exc))
+            raise ConflictError(message=str(exc))
         if replay:
             headers = dict(replay.headers)
             headers["X-Idempotent-Replay"] = "true"
@@ -122,11 +123,11 @@ async def update_account(
 
     update_data = fields.model_dump(exclude_unset=True)
     if not update_data:
-        raise HTTPException(status_code=422, detail="No fields provided for update")
+        raise ValidationError(message="No fields provided for update")
 
     acc = db.accounts.update(account_id, tenant_id=tenant_id, **update_data)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
     if replay_request:
         _idempotency_service.store_response(
             replay_request,
@@ -139,7 +140,7 @@ async def update_account(
 async def get_account_summary(account_id: str, tenant_id: str = Depends(tenant_required)):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
 
     signals = db.signals.list(
         tenant_id=tenant_id,
@@ -170,7 +171,7 @@ async def create_share_link(
 ):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
 
     raw_token = secrets.token_urlsafe(32)
     token_fingerprint_hash = hashlib.sha256(raw_token.encode("utf-8")).hexdigest()
@@ -184,10 +185,7 @@ async def create_share_link(
             expires_at_ts=int(expires_at.timestamp()),
         )
     except (StoreUnavailableError, StorePayloadError):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Share-link store unavailable; try again later",
-        )
+        raise ServiceUnavailableError(message="Share-link store unavailable; try again later")
 
     return AccountShareLinkResponse(
         share_token=raw_token,
@@ -204,15 +202,12 @@ async def revoke_share_link(
 ):
     acc = db.accounts.get(account_id, tenant_id=tenant_id)
     if not acc:
-        raise HTTPException(status_code=404, detail="Account not found")
+        raise NotFoundError(message="Account not found")
 
     try:
         repo.revoke(tenant_id=tenant_id, account_id=account_id)
     except (StoreUnavailableError, StorePayloadError):
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="Share-link store unavailable; try again later",
-        )
+        raise ServiceUnavailableError(message="Share-link store unavailable; try again later")
 
     return AccountShareRevokeResponse(
         revoked=True,

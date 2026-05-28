@@ -753,7 +753,7 @@ async def pause_workflow(
         )
 
         if not paused:
-            raise HTTPException(status_code=500, detail="Failed to pause workflow")
+            raise ServiceUnavailableError(message="Failed to pause workflow")
 
         return WorkflowPauseResponse(
             workflow_instance_id=workflow_id,
@@ -904,7 +904,7 @@ async def archive_workflow(
         raise AuthorizationError(message = "Permission denied to archive workflow")
 
     if result is None:
-        raise HTTPException(status_code=500, detail=f"Failed to archive workflow {workflow_id}")
+        raise ServiceUnavailableError(message=f"Failed to archive workflow {workflow_id}")
 
     archived_at = result.get("archived_at", datetime.now(UTC).isoformat())
 

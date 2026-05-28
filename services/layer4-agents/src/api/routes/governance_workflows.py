@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
 """Canonical governance workflow objects/endpoints for L4/L5 traceability.
 
 All read routes require authentication (require_authenticated).
@@ -109,10 +109,7 @@ _EXPORTS: dict[str, AuditExportJob] = {}
 
 def _ensure_absent(store: dict[str, BaseModel], object_id: str, object_name: str) -> None:
     if object_id in store:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"{object_name} is immutable and already exists",
-        )
+        raise ConflictError(message=f"{object_name} is immutable and already exists")
 
 
 def _hash_payload(kind: str, payload: BaseModel) -> str:

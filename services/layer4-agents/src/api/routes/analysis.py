@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """Analysis API routes for quick ROI and whitespace calculations."""
 
 
@@ -507,7 +507,7 @@ async def _upsert_validation_users(db: AsyncSession, *, tenant_id: UUID) -> list
             db.add(user)
         else:
             if user.tenant_id != tenant_id:
-                raise HTTPException(status_code=409, detail=f"Seeded user tenant mismatch: {user_id}")
+                raise ConflictError(message=f"Seeded user tenant mismatch: {user_id}")
             user.email = str(user_data["email"])
             user.display_name = str(user_data["display_name"])
             user.role = str(user_data["role"])
@@ -532,7 +532,7 @@ async def _upsert_validation_api_key(
     api_key_payload: ValidationSeededApiKey,
 ) -> dict[str, Any]:
     if not re.fullmatch(r"[a-f0-9]{64}", api_key_payload.key_hash):
-        raise HTTPException(status_code=422, detail="Seeded API key hash must be HMAC-SHA256 hex")
+        raise ValidationError(message="Seeded API key hash must be HMAC-SHA256 hex")
 
     metadata = {
         **api_key_payload.metadata,
@@ -558,7 +558,7 @@ async def _upsert_validation_api_key(
         db.add(key)
     else:
         if key.tenant_id != tenant_id:
-            raise HTTPException(status_code=409, detail=f"Seeded API key tenant mismatch: {key.key_id}")
+            raise ConflictError(message=f"Seeded API key tenant mismatch: {key.key_id}")
         key.name = api_key_payload.name
         key.key_hash = api_key_payload.key_hash
         key.prefix = api_key_payload.prefix
@@ -826,7 +826,7 @@ async def quick_roi_analysis(
     try:
         prospect_id = request.prospect_id or request.account_id
         if not prospect_id:
-            raise HTTPException(status_code=422, detail="prospect_id or account_id is required")
+            raise ValidationError(message="prospect_id or account_id is required")
         value_driver_ids = request.value_driver_ids or ([request.formula_id] if request.formula_id else list(request.variables.keys()))
         if not value_driver_ids:
             value_driver_ids = ["roi"]
@@ -834,11 +834,11 @@ async def quick_roi_analysis(
 
         if _is_smoke_mode(http_request):
             if not request.account_id:
-                raise HTTPException(status_code=422, detail="account_id is required for smoke-mode ROI validation")
+                raise ValidationError(message="account_id is required for smoke-mode ROI validation")
             try:
                 account_uuid = UUID(request.account_id)
             except ValueError as exc:
-                raise HTTPException(status_code=422, detail="account_id must be a UUID for smoke-mode ROI validation") from exc
+                raise ValidationError(message="account_id must be a UUID for smoke-mode ROI validation") from exc
             account = await _require_tenant_account(db, account_uuid, context)
             return await _smoke_roi_response(http_request, prospect_id, account, context)
 
@@ -1280,10 +1280,7 @@ async def export_business_case(
 
     result = await executor.get_result(case_id)
     if not result:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Business case draft is not approved or document bytes unavailable",
-        )
+        raise ConflictError(message="Business case draft is not approved or document bytes unavailable")
 
     output = result.get("output", {})
     assemble_data = output.get("assemble_document", {})
@@ -1325,7 +1322,7 @@ async def export_business_case(
 
 
     if not document_bytes:
-        raise HTTPException(status_code=409, detail="Business case document bytes unavailable")
+        raise ConflictError(message="Business case document bytes unavailable")
 
     if not isinstance(document_bytes, bytes):
         document_bytes = bytes(document_bytes)
@@ -1481,7 +1478,7 @@ def _parse_case_account_uuid(account_id: str) -> UUID:
     try:
         return UUID(account_id)
     except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="account_id must be a UUID") from exc
+        raise ValidationError(message="account_id must be a UUID") from exc
 
 
 def _isoformat_or_none(value: Any) -> str | None:
@@ -1756,7 +1753,7 @@ async def get_workspace_evidence(
     payload = record.data if isinstance(record.data, dict) else {}
     evidence_items = payload.get("evidence", [])
     if not isinstance(evidence_items, list):
-        raise HTTPException(status_code=500, detail="Invalid persisted evidence payload shape")
+        raise ServiceUnavailableError(message="Invalid persisted evidence payload shape")
     normalized_items: list[dict[str, Any]] = []
     for item in evidence_items:
         if not isinstance(item, dict):

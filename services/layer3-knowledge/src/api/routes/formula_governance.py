@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -398,7 +398,7 @@ async def create_formula_version(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to create version")
+            raise ServiceUnavailableError(message="Failed to create version")
 
         fv = record["fv"]
 
@@ -621,7 +621,7 @@ async def activate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to activate formula")
+            raise ServiceUnavailableError(message="Failed to activate formula")
 
         # Audit log the governance action
         logger.info(
@@ -699,7 +699,7 @@ async def deprecate_formula(
         record = await result.single()
 
         if not record:
-            raise HTTPException(status_code=500, detail="Failed to deprecate formula")
+            raise ServiceUnavailableError(message="Failed to deprecate formula")
 
         # Audit log the governance action
         logger.info(

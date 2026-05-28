@@ -194,7 +194,7 @@ async def transition_run(
         raise AuthorizationError(message = "Harness registry access denied")
     except Exception:
         logger.exception("Unexpected error transitioning run %s", run_id)
-        raise HTTPException(status_code=422, detail="Run transition failed")
+        raise ValidationError(message="Run transition failed")
 
     return TransitionResponse(
         run=RunResponse.from_domain(run),
@@ -222,10 +222,7 @@ async def cancel_run(
         raise AuthorizationError(message = "Harness registry access denied")
 
     if run.current_state.is_terminal:
-        raise HTTPException(
-            status_code=422,
-            detail=f"Run {run_id} is already in terminal state {run.current_state}",
-        )
+        raise ValidationError(message=f"Run {run_id} is already in terminal state {run.current_state}")
 
     try:
         await registry.transition(
@@ -239,7 +236,7 @@ async def cancel_run(
         raise AuthorizationError(message = "Harness registry access denied")
     except Exception:
         logger.exception("Error cancelling run %s", run_id)
-        raise HTTPException(status_code=422, detail="Run cancellation failed")
+        raise ValidationError(message="Run cancellation failed")
 
 
 # ---------------------------------------------------------------------------

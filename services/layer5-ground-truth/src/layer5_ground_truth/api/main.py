@@ -11,13 +11,14 @@ Or via Docker:
 """
 
 import inspect
+import logging
 import re
 from collections.abc import AsyncGenerator, Awaitable, Callable
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
-from fastapi import FastAPI, Request
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse, Response
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
@@ -539,7 +540,7 @@ def create_app() -> FastAPI:
 
 
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc:) -> JSONResponse:
+    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
         # Use canonical error envelope format
         try:
             from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail

@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.
@@ -22,7 +22,6 @@ from zoneinfo import available_timezones
 
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
-from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -30,6 +29,7 @@ from sqlalchemy.orm import Session
 
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
+    from value_fabric.shared.fastapi_framework import create_fabric_app
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -247,20 +247,28 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
+app = create_fabric_app(
+    service_name="layer1-ingestion",
     title="Value Fabric - Layer 1: Intelligent Data Ingestion",
     description="Production-grade web data ingestion service with spec-compliant API",
     version="1.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan,
+    cors_policy=settings.cors_policy,
+    register_default_exception_handlers=False,
+    include_request_id_middleware=True,
 )
 
-# CORS middleware with production validation (P0-20) â€” OUTERMOST.
-# The policy comes from Settings so production-like environments fail before
-# middleware installation, and credentials are never combined with wildcard
-# origins or broad method/header exposure.
-app.add_middleware(CORSMiddleware, **settings.cors_policy)
+# Effective middleware/request order (outermost -> innermost):
+#   CORS (from create_fabric_app)
+#   RequestIDMiddleware (from create_fabric_app)  -- NEW, additive
+#   SecurityMiddleware (added below)
+#   Exception handlers (register_exception_handlers)
+#   Fabric auth registration (register_fabric_auth_from_env)
+#   GovernanceMiddleware (with RedisRateLimiter)
+#   MetricsMiddleware (innermost, via app.middleware("http"))
+# DB engine/session lifecycle remains service-owned.
 
 # SecurityMiddleware â€” input validation and security headers (mandatory)
 _security_config_l1 = SecurityConfig.from_env(
@@ -1319,9 +1327,7 @@ async def update_target(
     )
 
     if active_jobs > 0:
-        raise HTTPException(
-            status_code=409, detail=f"Cannot modify target with {active_jobs} active jobs"
-        )
+        raise ConflictError(message=f"Cannot modify target with {active_jobs} active jobs")
 
     # Update fields
     if request.name is not None:
@@ -1549,9 +1555,7 @@ async def execute_target(
         raise NotFoundError(message = "Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
-        raise HTTPException(
-            status_code=409, detail=f"Target is not active (status: {target.status})"
-        )
+        raise ConflictError(message=f"Target is not active (status: {target.status})")
 
     # P0-04: Idempotency check with atomic SET NX to prevent race condition
     if request.idempotency_key:
@@ -2027,7 +2031,7 @@ async def cancel_job(
     ]
 
     if job.status in terminal_states:
-        raise HTTPException(status_code=409, detail=f"Job already in terminal state: {job.status}")
+        raise ConflictError(message=f"Job already in terminal state: {job.status}")
 
     job.status = JobStatus.CANCELLED.value
     job.completed_at = datetime.now(UTC)
@@ -2136,9 +2140,7 @@ async def retry_job(
         raise NotFoundError(message = "Job not found")
 
     if original_job.status not in [JobStatus.FAILED.value, JobStatus.PARTIAL_SUCCESS.value]:
-        raise HTTPException(
-            status_code=409, detail="Only failed or partially successful jobs can be retried"
-        )
+        raise ConflictError(message="Only failed or partially successful jobs can be retried")
 
     # Create new job with same configuration
     correlation_id = f"retry:{job_id}:{uuid4()}"
@@ -2246,9 +2248,7 @@ def _create_skill_job(
         raise NotFoundError(message = "Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
-        raise HTTPException(
-            status_code=409, detail=f"Target is not active (status: {target.status})"
-        )
+        raise ConflictError(message=f"Target is not active (status: {target.status})")
 
     skill = get_skill(job_type.value)
     if not skill:

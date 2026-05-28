@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
 """Billing API routes for Stripe integration.
 
 Provides endpoints for subscription management, customer portal,
@@ -688,10 +688,7 @@ async def stripe_webhook(
     """
     if not STRIPE_WEBHOOK_SECRET:
         logger.error("STRIPE_WEBHOOK_SECRET not configured")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Webhook processing not configured",
-        )
+        raise ServiceUnavailableError(message="Webhook processing not configured")
 
     # SECURITY: Canonical ingress checks for source IP + signature/timestamp shape.
     try:
@@ -733,16 +730,10 @@ async def stripe_webhook(
         raise ValidationError(message = "Invalid webhook payload") from e
     except StripeError as e:
         logger.error(f"Stripe API error during webhook: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_502_BAD_GATEWAY,
-            detail="Stripe processing failed",
-        ) from e
+        raise ServiceUnavailableError(message="Stripe processing failed") from e
     except Exception as e:
         logger.exception(f"Unexpected webhook error: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Webhook processing failed",
-        ) from e
+        raise ServiceUnavailableError(message="Webhook processing failed") from e
 
 
 # ============================================================================
@@ -810,10 +801,7 @@ async def ingest_usage_event(
         raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
     except Exception as e:
         logger.exception(f"Usage event ingestion failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to ingest usage event",
-        )
+        raise ServiceUnavailableError(message="Failed to ingest usage event")
 
 
 @router.post("/events/batch", response_model=ingest_usage_batchResult)
@@ -870,10 +858,7 @@ async def ingest_usage_batch(
         raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
     except Exception as e:
         logger.exception(f"Batch ingestion failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to process batch",
-        )
+        raise ServiceUnavailableError(message="Failed to process batch")
 
 
 @router.get("/usage/{customer_id}/summary", response_model=UsageSummaryResponse)
@@ -913,10 +898,7 @@ async def get_usage_summary(
         raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Usage summary failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve usage summary",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve usage summary")
 
 
 @router.get("/usage/{customer_id}/events", response_model=list[UsageEventResponse])
@@ -976,10 +958,7 @@ async def list_usage_events(
         raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Usage events listing failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve usage events",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve usage events")
 
 
 @router.post("/usage/{customer_id}/sync", response_model=UsageSyncResponse)
@@ -1020,9 +999,8 @@ async def sync_usage_to_stripe(
             if "No Stripe customer ID" in result["error"]:
                 raise ValidationError(message = "Request failed", details = {"error": result["error"], "action": "Sync customer with Stripe first via /billing/sync-customer"})
             if "Stripe not configured" in result["error"]:
-                raise HTTPException(
-                    status_code=status.HTTP_502_BAD_GATEWAY,
-                    detail={"error": "Stripe MeterEvents not configured"},
+                raise ServiceUnavailableError(
+                    message="Stripe MeterEvents not configured",
                 )
         
         return result
@@ -1031,10 +1009,7 @@ async def sync_usage_to_stripe(
         raise ValidationError(message = "Request failed", details = {"error": e.message})
     except Exception as e:
         logger.exception(f"Stripe sync failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to sync usage to Stripe",
-        )
+        raise ServiceUnavailableError(message="Failed to sync usage to Stripe")
 
 
 # ============================================================================
@@ -1095,10 +1070,7 @@ async def get_usage_limits(
         
     except Exception as e:
         logger.exception(f"Usage limits check failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve usage limits",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve usage limits")
 
 
 @router.post("/limits/{customer_id}/check", response_model=LimitsCheckResponse)
@@ -1143,10 +1115,7 @@ async def check_request_allowed(
         raise
     except Exception as e:
         logger.exception(f"Request validation failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to validate request",
-        )
+        raise ServiceUnavailableError(message="Failed to validate request")
 
 
 @router.get("/plans/{plan_id}/limits", response_model=get_plan_limitsResult)
@@ -1274,10 +1243,7 @@ async def list_invoices(
 
     except Exception as e:
         logger.exception(f"Failed to list invoices: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve invoices",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve invoices")
 
 
 @router.post("/invoices", response_model=create_invoiceResult)
@@ -1326,10 +1292,7 @@ async def create_invoice(
         raise ValidationError(message = "Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to create invoice",
-        )
+        raise ServiceUnavailableError(message="Failed to create invoice")
 
 
 @router.get("/invoices/{invoice_id}", response_model=get_invoiceResult)
@@ -1407,10 +1370,7 @@ async def get_invoice(
         raise
     except Exception as e:
         logger.exception(f"Failed to get invoice: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve invoice",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve invoice")
 
 
 @router.post("/invoices/{invoice_id}/items", response_model=add_invoice_itemResult)
@@ -1458,10 +1418,7 @@ async def add_invoice_item(
         raise ValidationError(message = "Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to add invoice item",
-        )
+        raise ServiceUnavailableError(message="Failed to add invoice item")
 
 
 @router.post("/invoices/{invoice_id}/finalize", response_model=finalize_invoiceResult)
@@ -1500,10 +1457,7 @@ async def finalize_invoice(
         raise ValidationError(message = "Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to finalize invoice",
-        )
+        raise ServiceUnavailableError(message="Failed to finalize invoice")
 
 
 @router.post("/invoices/{invoice_id}/void", response_model=void_invoiceResult)
@@ -1537,10 +1491,7 @@ async def void_invoice(
         raise ValidationError(message = "Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to void invoice",
-        )
+        raise ServiceUnavailableError(message="Failed to void invoice")
 
 
 # ============================================================================
@@ -1598,10 +1549,7 @@ async def list_charges(
 
     except Exception as e:
         logger.exception(f"Failed to list charges: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve charges",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve charges")
 
 
 @router.post("/charges", response_model=record_chargeResult)
@@ -1646,10 +1594,7 @@ async def record_charge(
         raise ValidationError(message = "Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to record charge",
-        )
+        raise ServiceUnavailableError(message="Failed to record charge")
 
 
 # ============================================================================
@@ -1677,10 +1622,7 @@ async def get_revenue_summary(
         return summary
     except Exception as e:
         logger.exception(f"Failed to get revenue summary: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve revenue summary",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve revenue summary")
 
 
 @router.get("/customers/{customer_id}/balance", response_model=CustomerBalanceResponse)
@@ -1703,17 +1645,12 @@ async def get_customer_balance(
         return balance
     except Exception as e:
         logger.exception(f"Failed to get customer balance: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve customer balance",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve customer balance")
 def _raise_quota_exceeded(metric_name: str, result: dict[str, Any]) -> None:
     """Raise a standardized hard-limit response for quota failures."""
-    raise HTTPException(
-        status_code=status.HTTP_402_PAYMENT_REQUIRED,
-        detail={
-            "error": "quota_exceeded",
-            "message": result.get("error", f"Usage limit exceeded for {metric_name}"),
+    raise ServiceUnavailableError(
+        message=result.get("error", f"Usage limit exceeded for {metric_name}"),
+        details={
             "metric": metric_name,
             "limit": result.get("limit"),
             "current_usage": result.get("current_usage"),

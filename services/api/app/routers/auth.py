@@ -10,6 +10,7 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, EmailStr
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, BadRequestError, ConflictError, NotFoundError, RateLimitError, ServiceUnavailableError, ValidationError
 
 from app.core.config import get_settings
 from app.core.database import db
@@ -109,16 +110,13 @@ async def signup(payload: SignupRequest) -> TokenResponse:
         validate_password_strength(payload.password)
     except ValueError as exc:
         logger.warning("Password strength validation failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
+        raise ValidationError(message="Password does not meet strength requirements") from exc
 
     # Cross-tenant email uniqueness check — requires explicit allow_system_scope
     # so the bypass cannot be triggered by an arbitrary caller passing "system".
     existing = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="An account with this email already exists",
-        )
+        raise ConflictError(message="An account with this email already exists")
 
     tenant_id = str(uuid.uuid4())
     tenant = Tenant(
@@ -174,24 +172,12 @@ async def login(payload: LoginRequest) -> TokenResponse:
 
     # Check account lockout before any other status check (F-05).
     if is_account_locked(user):
-        raise HTTPException(
-            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail="Account temporarily locked due to repeated failed login attempts. Try again later.",
-            headers={"WWW-Authenticate": "Bearer", "Retry-After": "900"},
-        )
+        raise RateLimitError(message="Account temporarily locked due to repeated failed login attempts. Try again later.")
 
     if user.status == "invited":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account pending activation. Please accept your invitation.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthorizationError(message="Account pending activation. Please accept your invitation.")
     if user.status == "deactivated":
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Account deactivated. Contact your tenant administrator.",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
+        raise AuthorizationError(message="Account deactivated. Contact your tenant administrator.")
     if not user.password_hash or not verify_password(payload.password, user.password_hash):
         # Record the failure and persist the updated attempt count.
         updated = record_failed_login(user)
@@ -247,17 +233,11 @@ async def invite_user(
     inviter_rank = _ROLE_RANK.get(current_user.role, 0)
     invitee_rank = _ROLE_RANK.get(payload.role, 0)
     if inviter_rank == 0 or invitee_rank >= inviter_rank:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Cannot invite a user to a role equal to or higher than your own",
-        )
+        raise AuthorizationError(message="Cannot invite a user to a role equal to or higher than your own")
 
     existing = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="User with this email already exists",
-        )
+        raise ConflictError(message="User with this email already exists")
 
     user_id = str(uuid.uuid4())
     user = User(
@@ -288,21 +268,15 @@ async def accept_invite(payload: AcceptInviteRequest) -> TokenResponse:
         validate_password_strength(payload.password)
     except ValueError as exc:
         logger.warning("Password strength validation failed: %s", exc)
-        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Password does not meet strength requirements") from exc
+        raise ValidationError(message="Password does not meet strength requirements") from exc
 
     users = db.users.list(tenant_id=SYSTEM_TENANT_ID, filter_fn=lambda u: u.email == payload.email, allow_system_scope=True)
     if not users:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Invitation not found",
-        )
+        raise NotFoundError(message="Invitation not found")
 
     user = users[0]
     if user.status != "invited":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invitation already accepted or account deactivated",
-        )
+        raise ConflictError(message="Invitation already accepted or account deactivated")
 
     # Update user to active with password
     updated = user.model_copy(update={
@@ -357,12 +331,12 @@ async def start_impersonation(
     repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> ImpersonationStartResponse:
     if current_user.role not in {"tenant_admin", "super_admin"}:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient role for impersonation")
+        raise AuthorizationError(message="Insufficient role for impersonation")
     target_user = db.users.get(payload.target_user_id, tenant_id=current_user.tenant_id)
     if target_user is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Target user not found in tenant scope")
+        raise NotFoundError(message="Target user not found in tenant scope")
     if target_user.tenant_id != current_user.tenant_id:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Cross-tenant impersonation is forbidden")
+        raise AuthorizationError(message="Cross-tenant impersonation is forbidden")
 
     session_id = str(uuid.uuid4())
     try:
@@ -376,7 +350,7 @@ async def start_impersonation(
             notify_webhook=payload.notify_webhook,
         )
     except (StoreUnavailableError, StorePayloadError):
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
+        raise ServiceUnavailableError(message="Impersonation store unavailable")
     event_payload = {
         "actor_user_id": current_user.id,
         "impersonated_user_id": target_user.id,
@@ -427,11 +401,11 @@ async def stop_impersonation(
     repo: ImpersonationSessionRepository = Depends(get_impersonation_repo),
 ) -> None:
     if not auth.impersonation_session_id:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="No active impersonation session")
+        raise BadRequestError(message="No active impersonation session")
     try:
         session = repo.pop(tenant_id=auth.tenant_id, session_id=auth.impersonation_session_id)
     except (StoreUnavailableError, StorePayloadError):
-        raise HTTPException(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, detail="Impersonation store unavailable")
+        raise ServiceUnavailableError(message="Impersonation store unavailable")
     stop_event_id = str(uuid.uuid4())
     db.audit_logs.insert(stop_event_id, AuditLogEvent(
         id=stop_event_id,

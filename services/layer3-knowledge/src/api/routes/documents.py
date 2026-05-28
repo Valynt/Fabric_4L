@@ -73,8 +73,8 @@ async def export_document(
                         request.business_case_id,
                         gen_response.text,
                     )
-                    raise HTTPException(
-                        status_code=502, detail="Document generation failed"
+                    raise ServiceUnavailableError(
+                        message="Document generation failed"
                     )
                 gen_data = gen_response.json()
                 return DocumentExportResponse(

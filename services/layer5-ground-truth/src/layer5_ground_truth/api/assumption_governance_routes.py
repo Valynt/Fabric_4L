@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -69,9 +69,9 @@ async def apply_assumption_selection(assumption_id: UUID, payload: ApplySelectio
     if matched and not assumption.is_approved_for_use:
         approval = ApprovalRequest(tenant_id=caller.tenant_id, assumption_id=assumption.id, policy_rule_id=matched.id, requested_by=caller.user_id or caller.email)
         db.add(approval)
-        raise HTTPException(status_code=409, detail=f"Approval required for high-impact assumption. required_reviewer_role={matched.required_reviewer_role}")
+        raise ConflictError(message=f"Approval required for high-impact assumption. required_reviewer_role={matched.required_reviewer_role}")
 
     if assumption.lifecycle_state not in {LifecycleState.APPROVED.value, LifecycleState.PUBLISHED.value}:
-        raise HTTPException(status_code=409, detail="Assumption is not in an approved lifecycle state")
+        raise ConflictError(message="Assumption is not in an approved lifecycle state")
 
     return {"status": "applied", "context": payload.context}

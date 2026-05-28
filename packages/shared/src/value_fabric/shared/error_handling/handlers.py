@@ -13,7 +13,7 @@ from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from ..observability.trace_context import ALL_TRACE_HEADERS, sanitize_trace_id
 from ..testability import IDGenerator
-from .exceptions import ValueFabricException
+from .exceptions import AuthenticationError, ValueFabricException
 from .models import ErrorCode, ErrorResponse, ErrorEnvelope, ErrorDetail
 from .sanitizer import sanitize_error_for_log, sanitize_public_error
 
@@ -242,10 +242,14 @@ async def value_fabric_exception_handler(
         )
     )
 
+    response_headers = {"X-Request-ID": request_id}
+    if isinstance(exc, AuthenticationError):
+        response_headers["WWW-Authenticate"] = "Bearer"
+
     return JSONResponse(
         status_code=exc.status_code,
         content=error_envelope.model_dump(),
-        headers={"X-Request-ID": request_id},
+        headers=response_headers,
     )
 
 

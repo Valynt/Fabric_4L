@@ -288,9 +288,7 @@ async def get_value_tree(
         raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve value tree: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve value tree"
-        ) from e
+        raise ServiceUnavailableError(message="Failed to retrieve value tree") from e
 
 
 @router.get(
@@ -360,6 +358,4 @@ async def get_value_tree_paths(
         raise ValidationError(message = "Query timed out after 30s (code: CYPHER_TIMEOUT)")
     except Exception as e:
         logger.error("Failed to retrieve value tree paths: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Failed to retrieve paths"
-        ) from e
+        raise ServiceUnavailableError(message="Failed to retrieve paths") from e

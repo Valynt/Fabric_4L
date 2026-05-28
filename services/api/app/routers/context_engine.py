@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_context import tenant_required
@@ -22,7 +23,7 @@ async def list_value_packs(
 async def get_value_pack(value_pack_id: str, tenant_id: str = Depends(tenant_required)):
     pack = db.value_packs.get(value_pack_id)
     if not pack:
-        raise HTTPException(status_code=404, detail="Value pack not found")
+        raise NotFoundError(message="Value pack not found")
     return pack
 
 
@@ -41,7 +42,7 @@ async def list_formulas(
 async def get_formula(formula_id: str, tenant_id: str = Depends(tenant_required)):
     formula = db.formulas.get(formula_id)
     if not formula:
-        raise HTTPException(status_code=404, detail="Formula not found")
+        raise NotFoundError(message="Formula not found")
     return formula
 
 

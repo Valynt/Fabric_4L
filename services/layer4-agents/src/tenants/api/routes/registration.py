@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, ServiceUnavailableError, ValidationError
 """Public tenant registration endpoints."""
 
 
@@ -106,10 +106,7 @@ async def register_tenant(
     # Check slug uniqueness
     existing = await get_tenant_by_slug(db, request.slug)
     if existing:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Tenant slug already exists",
-        )
+        raise ConflictError(message="Tenant slug already exists")
 
     # Validate tier
     try:
@@ -180,10 +177,9 @@ async def verify_email(
     state = await provisioning_service.provision_tenant(verification.tenant_id)
 
     if state.status != ProvisioningStatus.COMPLETED:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={
-                "message": "Provisioning failed",
+        raise ServiceUnavailableError(
+            message="Provisioning failed",
+            details={
                 "error": state.error,
                 "retryable": state.retryable,
             },

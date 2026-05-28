@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
@@ -60,5 +61,5 @@ async def run_roi_calculation(
 async def get_roi_calculation(calculation_id: str, tenant_id: str = Depends(tenant_required)):
     calc = db.roi_calculations.get(calculation_id, tenant_id=tenant_id)
     if not calc:
-        raise HTTPException(status_code=404, detail="ROI calculation not found")
+        raise NotFoundError(message="ROI calculation not found")
     return calc

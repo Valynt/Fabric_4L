@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError
+from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -388,7 +388,7 @@ async def link_evidence_to_driver(
         raise
     except Exception as e:
         logger.error("Failed to link evidence to driver", error_code="LINK_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link creation failed") from e
+        raise ServiceUnavailableError(message="Link creation failed") from e
 
 
 @router.delete("/links", summary="Unlink evidence from a value driver")
@@ -416,7 +416,7 @@ async def unlink_evidence_from_driver(
             return {"evidence_id": evidence_id, "driver_id": driver_id, "deleted": deleted}
     except Exception as e:
         logger.error("Failed to unlink evidence from driver", error_code="UNLINK_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link deletion failed") from e
+        raise ServiceUnavailableError(message="Link deletion failed") from e
 
 
 @router.get("/links", summary="List evidence links for a driver")
@@ -448,4 +448,4 @@ async def list_evidence_links(
             }
     except Exception as e:
         logger.error("Failed to list evidence links", error_code="LIST_ERROR", tenant_id=tenant_id)
-        raise HTTPException(status_code=500, detail="Link listing failed") from e
+        raise ServiceUnavailableError(message="Link listing failed") from e

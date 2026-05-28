@@ -1,12 +1,12 @@
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
-INTENTIONAL_DB_ADAPTER_BYPASS = True
-
-"""
-Async SQLAlchemy engine and session management for Layer 5.
+"""Async SQLAlchemy engine and session management for Layer 5.
 
 Uses asyncpg for production and aiosqlite for tests (via DATABASE_URL override).
 Follows the same pattern as Layer 1's database.py but with async support.
 """
+
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
+
+INTENTIONAL_DB_ADAPTER_BYPASS = True
 
 import logging
 import time
@@ -466,7 +466,7 @@ async def get_db_from_context(
             ...
 
     Raises:
-       : 400 if tenant context is missing
+        ValidationError: If tenant context is missing.
     """
     if not SHARED_IDENTITY_AVAILABLE:
         raise RuntimeError(
@@ -516,7 +516,7 @@ async def get_db_with_optional_tenant(
             ...
 
     Raises:
-       : 400 if non-super-admin without tenant context
+        ValidationError: If non-super-admin request lacks tenant context.
     """
     if not SHARED_IDENTITY_AVAILABLE:
         raise RuntimeError(

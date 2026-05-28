@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, RateLimitError, ValidationError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, RateLimitError, ServiceUnavailableError, ValidationError
 """OIDC SSO routes for tenant authentication with PKCE support (P0-10).
 
 GET  /auth/oidc/{tenant_slug}/login    — initiate OIDC flow with PKCE
@@ -241,9 +241,7 @@ async def oidc_login(
         metadata = await oidc_client.discover(oidc_config.issuer_url)
     except Exception as exc:
         logger.warning("OIDC provider discovery failed: %s", exc)
-        raise HTTPException(
-            status_code=502, detail="Failed to discover OIDC provider"
-        ) from exc
+        raise ServiceUnavailableError(message="Failed to discover OIDC provider") from exc
 
     state = _generate_state()
     nonce = _generate_nonce()
@@ -373,7 +371,7 @@ async def oidc_callback(
         )
         id_token = token_response.get("id_token")
         if not id_token:
-            raise HTTPException(status_code=502, detail="No id_token in token response")
+            raise ServiceUnavailableError(message="No id_token in token response")
 
         claims = await oidc_client.verify_id_token(
             id_token=id_token,
@@ -391,9 +389,7 @@ async def oidc_callback(
             details={"reason": "token_exchange_failed", "error_code": "OIDC_TOKEN_EXCHANGE_ERROR", "error": "OIDC token verification failed"},
         )
         logger.warning("OIDC token verification failed: %s", exc)
-        raise HTTPException(
-            status_code=502, detail="OIDC token verification failed"
-        ) from exc
+        raise ServiceUnavailableError(message="OIDC token verification failed") from exc
 
     # Validate nonce — always required; a missing nonce is treated as a mismatch.
     # Constant-time comparison prevents timing-based oracle attacks.

@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
 """
 FastAPI router for Model Registry API.
 
@@ -89,10 +89,7 @@ async def create_model_version(
         )
     )
     if existing.scalar_one_or_none():
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Model version already exists: {payload.provider.value}/{payload.name}@{payload.version}",
-        )
+        raise ConflictError(message=f"Model version already exists: {payload.provider.value}/{payload.name}@{payload.version}")
 
     # If setting as default, clear other defaults for this provider
     if payload.is_default:

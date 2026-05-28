@@ -25,6 +25,7 @@ from enum import StrEnum
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request, status
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, BadRequestError, ConflictError, ServiceUnavailableError
 
 from app.core.auth_directory import AuthDirectory, get_auth_directory
 from app.core.clerk_config import get_auth_settings
@@ -63,36 +64,24 @@ def _verify_svix_signature(
     svix_timestamp = headers.get("svix-timestamp")
     svix_signature = headers.get("svix-signature")
     if not (svix_id and svix_timestamp and svix_signature):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "auth.webhook_signature_missing", "message": "Unauthorized."},
-        )
+        raise AuthenticationError(message="Unauthorized.")
 
     # Timestamp tolerance: reject signatures older than ±5 minutes to
     # prevent replay attacks with captured valid signatures.
     try:
         ts = int(svix_timestamp)
     except ValueError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "auth.webhook_timestamp_invalid", "message": "Unauthorized."},
-        )
+        raise AuthenticationError(message="Unauthorized.")
     now = int(time.time())
     if abs(now - ts) > 300:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "auth.webhook_timestamp_expired", "message": "Unauthorized."},
-        )
+        raise AuthenticationError(message="Unauthorized.")
 
     if secret.startswith("whsec_"):
         try:
             key = b64decode(secret[len("whsec_") :])
         except Exception as exc:
             logger.exception("CLERK_WEBHOOK_SECRET base64 decode failed")
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail={"code": "auth.webhook_misconfigured", "message": "Misconfigured."},
-            ) from exc
+            raise ServiceUnavailableError(message="Misconfigured.") from exc
     else:
         key = secret.encode()
 
@@ -111,10 +100,7 @@ def _verify_svix_signature(
             valid = True
             break
     if not valid:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={"code": "auth.webhook_signature_invalid", "message": "Unauthorized."},
-        )
+        raise AuthenticationError(message="Unauthorized.")
 
 
 def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]) -> None:
@@ -163,10 +149,7 @@ def _apply_event(directory: AuthDirectory, event_type: str, data: dict[str, Any]
         clerk_user_id = data.get("user_id") or user.get("user_id") or user.get("id")
         clerk_org_id = data.get("organization_id") or org.get("id")
         if not (clerk_user_id and clerk_org_id):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail={"code": "auth.webhook_invalid_membership", "message": "Missing user_id or organization_id."},
-            )
+            raise BadRequestError(message="Missing user_id or organization_id.")
         directory.upsert_membership(
             clerk_org_id=clerk_org_id,
             clerk_user_id=clerk_user_id,
@@ -192,13 +175,7 @@ async def clerk_webhook(request: Request) -> None:
     settings = get_auth_settings()
     if settings.clerk is None or not settings.clerk.webhook_secret:
         # Webhook endpoint is silent until configured.
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail={
-                "code": "auth.webhook_disabled",
-                "message": "Webhook handler not configured.",
-            },
-        )
+        raise ServiceUnavailableError(message="Webhook handler not configured.")
 
     body = await request.body()
     headers = {k.lower(): v for k, v in request.headers.items()}
@@ -212,19 +189,13 @@ async def clerk_webhook(request: Request) -> None:
         payload = json.loads(body.decode("utf-8") or "{}")
     except json.JSONDecodeError as exc:
         logger.warning("clerk webhook body not valid JSON: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "auth.webhook_invalid_body", "message": "Bad request."},
-        ) from exc
+        raise BadRequestError(message="Bad request.") from exc
 
     event_id = headers.get("svix-id") or payload.get("id") or ""
     event_type = payload.get("type")
     data = payload.get("data") or {}
     if not event_type or not isinstance(data, dict):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail={"code": "auth.webhook_invalid_body", "message": "Bad request."},
-        )
+        raise BadRequestError(message="Bad request.")
 
     directory = get_auth_directory()
     if event_id and directory.has_processed_event(event_id):
@@ -237,10 +208,7 @@ async def clerk_webhook(request: Request) -> None:
         # Apply ordering: a membership may arrive before its user/org event.
         # Surface a 409 so Clerk retries with backoff.
         logger.warning("clerk webhook ordering: %s", exc)
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail={"code": "auth.webhook_ordering", "message": "Retry later."},
-        ) from exc
+        raise ConflictError(message="Retry later.") from exc
     except HTTPException:
         raise
     except Exception as exc:
@@ -251,10 +219,7 @@ async def clerk_webhook(request: Request) -> None:
             event_id,
             event_type,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail={"code": "auth.webhook_failed", "message": "Internal error."},
-        ) from exc
+        raise ServiceUnavailableError(message="Internal error.") from exc
 
     if event_id:
         directory.mark_event_processed(event_id, event_type)

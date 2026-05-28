@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ValidationError
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError, ValidationError
 """Audit logs API routes backed by persisted audit events.
 
 This endpoint exposes tenant-scoped audit records from the ``audit_events``
@@ -102,9 +102,8 @@ async def list_audit_logs(
     instead of returning incomplete or mock data.
     """
     if source == "provenance":
-        raise HTTPException(
-            status_code=status.HTTP_501_NOT_IMPLEMENTED,
-            detail="Provenance audit log retrieval is not implemented in Layer 4; query the provenance service directly.",
+        raise ServiceUnavailableError(
+            message="Provenance audit log retrieval is not implemented in Layer 4; query the provenance service directly."
         )
 
     start = _parse_iso_datetime(from_date, "from_date")
@@ -152,10 +151,7 @@ async def list_audit_logs(
     # so a future edit cannot accidentally introduce an interpolated value.
     for clause in clauses:
         if clause not in _allowed_clauses:
-            raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Internal error composing audit query",
-            )
+            raise ServiceUnavailableError(message="Internal error composing audit query")
 
     where_sql = " AND ".join(clauses)
     total_result = await db.execute(

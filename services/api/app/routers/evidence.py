@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.account_scope import require_account_scope
@@ -46,7 +47,7 @@ async def match_evidence(
 async def get_evidence(evidence_id: str, tenant_id: str = Depends(tenant_required)):
     ev = db.evidence.get(evidence_id, tenant_id=tenant_id)
     if not ev:
-        raise HTTPException(status_code=404, detail="Evidence not found")
+        raise NotFoundError(message="Evidence not found")
     return ev
 
 
@@ -60,6 +61,6 @@ async def scan_evidence_pii(
     require_account_scope(auth=auth, account_id=account_id, route="/v1/accounts/{account_id}/evidence/{evidence_id}/pii-scan")
     ev = db.evidence.get(evidence_id, tenant_id=tenant_id)
     if not ev or ev.account_id != account_id:
-        raise HTTPException(status_code=404, detail="Evidence not found")
+        raise NotFoundError(message="Evidence not found")
     text = ev.excerpt or ev.title or ""
     return pii_summary(text)

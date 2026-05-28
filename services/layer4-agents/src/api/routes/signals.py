@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ValidationError
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError, ValidationError
 """Signal API routes for operational pain signal management.
 
 Provides REST API endpoints for:
@@ -278,10 +278,7 @@ async def setup_prospect(
             metadata={"error": "Signal detection failed", "error_code": "SIGNAL_DETECTION_ERROR", "trace_id": ctx.trace_id},
         )
 
-        raise HTTPException(
-            status_code=500,
-            detail="Signal detection failed",
-        )
+        raise ServiceUnavailableError(message="Signal detection failed")
 
 
 @router.get("/accounts/{account_id}/signals", response_model=SignalListResponse)
@@ -324,10 +321,7 @@ async def get_account_signals(
             f"Failed to retrieve account signals: {e}",
             extra={"tenant_id": ctx.tenant_id, "account_id": account_id},
         )
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve signals",
-        )
+        raise ServiceUnavailableError(message="Failed to retrieve signals")
 
 
 @router.get("/signals/{signal_id}")
@@ -346,10 +340,7 @@ async def get_signal_by_id(
     """
     # This would typically call Layer 3 to fetch the signal
     # For now, return a placeholder that Layer 3 will implement
-    raise HTTPException(
-        status_code=501,
-        detail="Signal retrieval by ID - implement in Layer 3 integration",
-    )
+    raise ServiceUnavailableError(message="Signal retrieval by ID - implement in Layer 3 integration")
 
 
 @router.patch("/signals/{signal_id}/review", response_model=SignalReviewResponse)

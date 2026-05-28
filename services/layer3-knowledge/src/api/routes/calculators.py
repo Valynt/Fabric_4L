@@ -221,7 +221,7 @@ async def get_value_case(
             raise
         except Exception as e:
             logger.error("Database error retrieving value case %s: %s", case_id, e)
-            raise HTTPException(status_code=500, detail="Database error")
+            raise ServiceUnavailableError(message="Database error")
 
 
 @router.put("/value-cases/{case_id}", response_model=ValueCaseResponse)

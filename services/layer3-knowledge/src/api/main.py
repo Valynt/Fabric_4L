@@ -22,18 +22,18 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from fastapi.middleware.cors import CORSMiddleware
 from value_fabric.layer3.config import get_settings
 from value_fabric.layer3.logging_config import get_logger, setup_logging
 from value_fabric.shared.fastapi_framework import (
     RouterMount,
     add_governance_middleware,
-    add_request_id_middleware,
     add_security_validation_middleware,
+    create_fabric_app,
     include_router_mounts,
     install_metrics_middleware,
     resolve_cors_policy,
 )
+from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.security import validate_production_safety
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
@@ -87,6 +87,8 @@ from ..api.versioning import VersionMiddleware, get_version_compatibility
 logger = get_logger(__name__)
 
 _tracer_provider: Any | None = None
+_probe_app: list[FastAPI] = []
+_security_config_l3: Any = None
 
 
 # ---------------------------------------------------------------------------
@@ -283,45 +285,93 @@ async def lifespan(app: FastAPI):
 
 
 # ---------------------------------------------------------------------------
+# Service-specific middleware hook
+# ---------------------------------------------------------------------------
+
+try:
+    _settings = get_settings()
+except Exception:
+    logger.warning("Falling back to default rate-limit settings during import")
+    _settings = None
+
+
+async def _neo4j_probe() -> ProbeResult:
+    """Readiness probe for Neo4j connectivity."""
+    if not _probe_app:
+        return ProbeResult(name="neo4j", healthy=False, detail="app not initialized")
+    app = _probe_app[0]
+    app_state = getattr(app.state, "app_state", None)
+    if app_state is None:
+        return ProbeResult(name="neo4j", healthy=False, detail="app state not initialized")
+    if getattr(app_state, "neo4j_driver", None) is None:
+        return ProbeResult(name="neo4j", healthy=False, detail="neo4j driver not connected")
+    return ProbeResult(name="neo4j", healthy=True)
+
+
+def _post_core_middleware_hook(app: FastAPI) -> None:
+    """Install service-specific middleware after framework core middleware."""
+    global _security_config_l3
+    _security_config_l3 = add_security_validation_middleware(
+        app,
+        skip_validation_paths={"/health", "/metrics", "/ready", "/live"},
+        strict_mode=True,
+    )
+    add_governance_middleware(app)
+    # Safe defaults: rate limiting is ON when settings cannot be loaded so that
+    # a misconfigured production deployment fails closed rather than unprotected.
+    add_rate_limiting(
+        app,
+        requests_per_minute=_settings.rate_limit_requests_per_minute if _settings else 100,
+        burst_size=_settings.rate_limit_burst_size if _settings else 200,
+        enabled=_settings.rate_limit_enabled if _settings else True,
+    )
+
+
+# ---------------------------------------------------------------------------
 # Application factory
 # ---------------------------------------------------------------------------
 
+reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
 
-def _create_app() -> FastAPI:
-    return FastAPI(
-        title="Value Fabric - Knowledge Graph & Semantic Layer",
-        description="""
+app = create_fabric_app(
+    service_name="layer3-knowledge",
+    title="Value Fabric - Knowledge Graph & Semantic Layer",
+    description="""
 ## Layer 3: Knowledge Graph & Semantic Layer API
 
 Provides intelligent semantic search, graph-based retrieval, and analytics
 capabilities for enterprise AI workflows.
 """,
-        version="1.0.0",
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
-        contact={"name": "Value Fabric Team", "email": "value-fabric@example.com"},
-        license_info={"name": "Proprietary", "url": "https://valuefabric.com/license"},
-        lifespan=lifespan,
-        openapi_tags=[
-            {"name": "Health", "description": "Service health monitoring"},
-            {"name": "Schema", "description": "Database schema management"},
-            {"name": "Search", "description": "Entity search and discovery"},
-            {"name": "GraphRAG", "description": "Graph-based question answering"},
-            {"name": "Analytics", "description": "Graph analytics"},
-            {"name": "Ingestion", "description": "Data ingestion and synchronisation"},
-            {"name": "Value Trees", "description": "Value tree traversal"},
-            {"name": "Formulas", "description": "Formula evaluation"},
-            {"name": "Graph", "description": "Graph visualisation"},
-            {"name": "Models", "description": "Value model management"},
-            {"name": "Agents", "description": "Agentic workflow endpoints"},
-            {"name": "Documents", "description": "Document export"},
-        ],
-    )
+    version="1.0.0",
+    lifespan=lifespan,
+    cors_policy=resolve_cors_policy(),
+    register_default_exception_handlers=False,
+    include_request_id_middleware=True,
+    post_core_middleware_hook=_post_core_middleware_hook,
+    health_probes=[CallableProbe(name="neo4j", fn=_neo4j_probe)],
+    readiness_path="/ready",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
+    contact={"name": "Value Fabric Team", "email": "value-fabric@example.com"},
+    license_info={"name": "Proprietary", "url": "https://valuefabric.com/license"},
+    openapi_tags=[
+        {"name": "Health", "description": "Service health monitoring"},
+        {"name": "Schema", "description": "Database schema management"},
+        {"name": "Search", "description": "Entity search and discovery"},
+        {"name": "GraphRAG", "description": "Graph-based question answering"},
+        {"name": "Analytics", "description": "Graph analytics"},
+        {"name": "Ingestion", "description": "Data ingestion and synchronisation"},
+        {"name": "Value Trees", "description": "Value tree traversal"},
+        {"name": "Formulas", "description": "Formula evaluation"},
+        {"name": "Graph", "description": "Graph visualisation"},
+        {"name": "Models", "description": "Value model management"},
+        {"name": "Agents", "description": "Agentic workflow endpoints"},
+        {"name": "Documents", "description": "Document export"},
+    ],
+)
 
-
-reject_insecure_bypass_in_production(service_name="layer3-knowledge", settings=get_settings())
-app = _create_app()
+_probe_app.append(app)
 
 # Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
 # No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
@@ -333,39 +383,6 @@ register_fabric_auth_from_env(app, service_name="layer3-knowledge")
 if OTEL_AVAILABLE and os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
     FastAPIInstrumentor.instrument_app(app)
     logger.info("L3: FastAPI instrumented with OpenTelemetry")
-
-
-# ---------------------------------------------------------------------------
-# Middleware
-# ---------------------------------------------------------------------------
-
-_cors_policy = resolve_cors_policy()
-app.add_middleware(CORSMiddleware, **_cors_policy.as_kwargs())
-
-add_request_id_middleware(app)
-
-_security_config_l3 = add_security_validation_middleware(
-    app,
-    skip_validation_paths={"/health", "/metrics"},
-    strict_mode=True,
-)
-
-add_governance_middleware(app)
-
-try:
-    _settings = get_settings()
-except Exception:
-    logger.warning("Falling back to default rate-limit settings during import")
-    _settings = None
-
-# Safe defaults: rate limiting is ON when settings cannot be loaded so that
-# a misconfigured production deployment fails closed rather than unprotected.
-add_rate_limiting(
-    app,
-    requests_per_minute=_settings.rate_limit_requests_per_minute if _settings else 100,
-    burst_size=_settings.rate_limit_burst_size if _settings else 200,
-    enabled=_settings.rate_limit_enabled if _settings else True,
-)
 
 app.middleware("http")(VersionMiddleware(get_version_compatibility()))
 

@@ -382,9 +382,15 @@ class TestGetLatestPersistedCheckpointHash:
         assert len(result) == 64
         # Verify the SQL was called with tenant_id as third parameter
         call_args = mock_conn.fetchrow.call_args
-        sql = call_args[0][0]
+        args = getattr(call_args, "args", call_args[0])
+        kwargs = getattr(call_args, "kwargs", call_args[1])
+        sql = args[0]
         assert "tenant_id" in sql
-        assert call_args[1][2] == "tenant-a"  # $3 is tenant_id
+        # tenant_id is the 3rd positional arg (index 2) after SQL, workflow_id, checkpoint_id... wait
+        # Looking at the query: $1=workflow_id, $2=checkpoint_id, $3=tenant_id
+        # So tenant_id is at args index 3 or kwargs
+        tenant_arg = args[3] if len(args) > 3 else kwargs.get("tenant_id")
+        assert tenant_arg == "tenant-a"
 
     @pytest.mark.unit
     @pytest.mark.asyncio

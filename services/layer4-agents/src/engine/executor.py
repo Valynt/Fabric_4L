@@ -23,7 +23,7 @@ from uuid import UUID
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import NodeInterrupt
 
-from ..models.agent_state import AgentState, WorkflowStatus
+from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
 
 
 class WorkflowExecutionError(Exception):
@@ -222,7 +222,7 @@ class OrchestrationController:
                 "status": str(state.status.value if hasattr(state.status, "value") else state.status),
                 "input_data": state.input_data,
                 "output_data": state.output_data,
-                "metadata": {k: v for k, v in (state.metadata or {}).items() if k not in ("run_envelope",)},
+                "metadata": {k: v for k, v in (state.metadata or {}).items() if k not in ("run_envelope", "checkpoint_hash")},
             },
             sort_keys=True,
             separators=(",", ":"),
@@ -381,7 +381,7 @@ class OrchestrationController:
                 tenant_id,
             )
             if row and isinstance(row.get("state_data"), dict):
-                return self._compute_state_hash(AgentState.model_validate(row["state_data"]))  # type: ignore[attr-defined]
+                return self._compute_state_hash(BaseAgentState.model_validate(row["state_data"]))
 
         latest_state = await self.state_manager.load_state(workflow_id)
         if latest_state is None:

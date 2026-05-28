@@ -1,6 +1,7 @@
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from value_fabric.shared.error_handling.exceptions import NotFoundError
 
 from app.core.database import db
 from app.core.tenant_enforcement import enforce_authenticated_tenant
@@ -46,5 +47,5 @@ async def update_hypothesis(
 ):
     hyp = db.hypotheses.update(hypothesis_id, tenant_id=tenant_id, **fields)
     if not hyp:
-        raise HTTPException(status_code=404, detail="Hypothesis not found")
+        raise NotFoundError(message="Hypothesis not found")
     return hyp

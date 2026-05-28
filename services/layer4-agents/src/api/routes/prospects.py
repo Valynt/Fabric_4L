@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError
+from value_fabric.shared.error_handling.exceptions import AuthenticationError, ServiceUnavailableError
 """Prospect API routes — Composite context and analysis workflow initiation.
 
 Provides endpoints for:
@@ -579,7 +579,4 @@ async def start_prospect_analysis(
             tenant_id=tenant_id if tenant_id else None,
             user_id=ctx.user_id if ctx else None,
         )
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to start prospect analysis",
-        )
+        raise ServiceUnavailableError(message="Failed to start prospect analysis")

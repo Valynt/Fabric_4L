@@ -221,6 +221,6 @@ async def agent_workflow(
         raise
     except Exception as e:
         logger.error("Agent workflow failed: %s", e)
-        raise HTTPException(
-            status_code=500, detail="Agent workflow failed. Please try again later."
+        raise ServiceUnavailableError(
+            message="Agent workflow failed. Please try again later."
         )
