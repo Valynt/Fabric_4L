@@ -11,6 +11,7 @@ import asyncio
 import hashlib
 import logging
 from datetime import UTC, datetime, timedelta
+from enum import Enum
 from typing import Any
 
 from sqlalchemy import select
@@ -40,6 +41,21 @@ from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, 
 
 # Constants for webhook processing
 MAX_WEBHOOK_RETRY_ATTEMPTS = 5
+
+
+class WebhookErrorCode(str, Enum):
+    INVALID_SIGNATURE = "WEBHOOK_INVALID_SIGNATURE"
+    INVALID_PAYLOAD = "WEBHOOK_INVALID_PAYLOAD"
+    MALFORMED_PAYLOAD = "WEBHOOK_MALFORMED_PAYLOAD"
+    PROVIDER_ERROR = "WEBHOOK_PROVIDER_ERROR"
+    INTERNAL_ERROR = "WEBHOOK_INTERNAL_ERROR"
+
+
+class WebhookValidationError(ValueError):
+    def __init__(self, message: str, *, code: WebhookErrorCode, error_class: str) -> None:
+        super().__init__(message)
+        self.code = code
+        self.error_class = error_class
 
 
 class BillingService_create_checkout_sessionResult(TypedDictModel):
@@ -96,6 +112,19 @@ class BillingService:
     def _emit_webhook_metric(self, metric: str, **extra: Any) -> None:
         """Emit structured webhook operational metric."""
         logger.info(f"billing.webhook.metric.{metric}", extra={"metric": metric, **extra})
+
+    @staticmethod
+    def _classify_webhook_exception(exc: Exception) -> tuple[WebhookErrorCode, str, str]:
+        exc_name = type(exc).__name__
+        if exc_name == "SignatureVerificationError":
+            return (WebhookErrorCode.INVALID_SIGNATURE, "Invalid signature", exc_name)
+        if isinstance(exc, ValueError):
+            return (WebhookErrorCode.INVALID_PAYLOAD, "Invalid payload", exc_name)
+        if isinstance(exc, (TypeError, KeyError)):
+            return (WebhookErrorCode.MALFORMED_PAYLOAD, "Malformed webhook payload", exc_name)
+        if isinstance(exc, StripeError):
+            return (WebhookErrorCode.PROVIDER_ERROR, "Webhook provider error", exc_name)
+        return (WebhookErrorCode.INTERNAL_ERROR, "Invalid payload", exc_name)
 
     async def get_or_create_customer(
         self,
@@ -411,13 +440,19 @@ class BillingService:
         try:
             stripe = _get_stripe()
             event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
-        except ValueError as e:
-            raise ValueError(f"Invalid payload: {e}") from e
-        except (TypeError, KeyError) as e:
-            # Branching on error message is fragile; TODO: use structured exception codes from Stripe SDK if available.
-            if "signature" in str(e).lower():
-                raise ValueError(f"Invalid signature: {e}") from e
-            raise ValueError(f"Malformed webhook payload: {e}") from e
+        except Exception as e:
+            code, base_message, error_class = self._classify_webhook_exception(e)
+            sanitized_error = sanitize_log_error(e)
+            logger.warning(
+                "billing.webhook.validation_failed",
+                extra={"error_code": code.value, "error_class": error_class, "error": sanitized_error},
+            )
+            self._emit_webhook_metric("validation_failed", error_code=code.value, error_class=error_class)
+            raise WebhookValidationError(
+                f"{base_message}: {sanitized_error}",
+                code=code,
+                error_class=error_class,
+            ) from e
 
         event_id = event["id"]
         event_type = event["type"]
