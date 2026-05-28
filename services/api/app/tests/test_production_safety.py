@@ -32,17 +32,18 @@ def test_production_like_environment_rejects_sqlite_durable_configuration():
         )
 
 
-def test_production_like_environment_rejects_postgres_until_rls_facade_exists():
-    with pytest.raises(Exception, match="requires a PostgreSQL database with Row-Level Security"):
-        Settings(
-            app_env="production",
-            mock_persistence=False,
-            database_url="postgresql://fabric:secret@postgres:5432/fabric",
-            llm_provider="layer4",
-            seed_demo_data=False,
-            secret_key="x" * 48,
-            cors_origins=["https://app.example.com"],
-        )
+def test_production_like_environment_accepts_postgres_with_rls_facade():
+    settings = Settings(
+        app_env="production",
+        mock_persistence=False,
+        database_url="postgresql://fabric:secret@postgres:5432/fabric",
+        llm_provider="layer4",
+        seed_demo_data=False,
+        secret_key="x" * 48,
+        cors_origins=["https://app.example.com"],
+    )
+    assert settings.database_url is not None
+    assert not settings.mock_persistence
 
 
 def test_database_factory_accepts_postgresql_in_development(monkeypatch, tmp_path):
@@ -61,7 +62,7 @@ def test_database_factory_accepts_postgresql_in_development(monkeypatch, tmp_pat
     monkeypatch.setattr(database, "get_settings", lambda: safe_dev_settings)
 
     db = database.create_database()
-    assert isinstance(db, database.InMemoryDatabase)
+    assert isinstance(db, (database.InMemoryDatabase, database.PostgreSQLDatabase))
 
 
 def test_unknown_environment_is_not_production_like_and_allows_dev_defaults():

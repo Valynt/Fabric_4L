@@ -16,6 +16,7 @@ Until then this directory is the **canonical DDL artifact** for:
 - `tenant_entitlements`     (Phase-1 schema only; enforced in Phase 3)
 - `auth_audit_events`       (append-only; populated in Phase 4)
 - `clerk_webhook_events`    (webhook idempotency dedupe)
+- `fabric_api_records`      (P0-01 JSONB bridge facade for API gateway domain objects)
 
 Every tenant-scoped table enables RLS with the canonical
 `tenant_id = current_setting('app.tenant_id', true)` predicate. The

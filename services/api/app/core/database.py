@@ -369,6 +369,335 @@ class AppendOnlySQLiteTable(SQLiteTable[T]):
         raise PermissionError(f"{self.name} is immutable and cannot be deleted")
 
 
+# ---------------------------------------------------------------------------
+# PostgreSQL JSONB Bridge Facade (P0-01)
+# ---------------------------------------------------------------------------
+
+_psycopg_pool: Any | None = None
+
+
+def _normalize_psycopg_conninfo(url: str) -> str:
+    """Convert SQLAlchemy-style PostgreSQL URL to psycopg conninfo string.
+
+    Strips async driver suffixes (``+asyncpg``, ``+psycopg``) so psycopg v3
+    can parse the URL directly.
+    """
+    for suffix in ("+asyncpg", "+psycopg"):
+        url = url.replace(f"postgresql{suffix}://", "postgresql://", 1)
+    return url
+
+
+def _get_psycopg_pool() -> Any:
+    """Return a shared sync ``psycopg_pool.ConnectionPool`` for the API gateway."""
+    global _psycopg_pool
+    if _psycopg_pool is not None:
+        return _psycopg_pool
+
+    settings = get_settings()
+    db_url = settings.database_url
+    if not db_url:
+        raise ProductionPersistenceNotConfigured("database_url is required for PostgreSQL persistence.")
+
+    conninfo = _normalize_psycopg_conninfo(db_url)
+
+    try:
+        from psycopg_pool import ConnectionPool
+    except ImportError as exc:
+        raise RuntimeError(
+            "psycopg[pool] is required for PostgreSQL persistence. "
+            "Install: pip install 'psycopg[pool]>=3.0'"
+        ) from exc
+
+    _psycopg_pool = ConnectionPool(
+        conninfo,
+        min_size=2,
+        max_size=10,
+    )
+    return _psycopg_pool
+
+
+def _close_psycopg_pool() -> None:
+    """Close the shared psycopg pool. Called during application shutdown."""
+    global _psycopg_pool
+    if _psycopg_pool is not None:
+        _psycopg_pool.close()
+        _psycopg_pool = None
+
+
+class PostgreSQLTable(Generic[T]):
+    """Durable JSONB table backed by PostgreSQL with RLS support.
+
+    Each record is stored as a JSONB payload with a composite primary key of
+    ``(table_name, tenant_id, id)``.  Tenant isolation is enforced both by
+    explicit query predicates (fail-closed in code) and by Row-Level Security
+    policies that reference the ``app.tenant_id`` GUC set on every operation.
+    """
+
+    def __init__(
+        self,
+        name: str,
+        pool: Any,
+        model_cls: type[T] | None = None,
+        tenant_field: str = "tenant_id",
+    ):
+        self.name = name
+        self._pool = pool
+        self._model_cls = model_cls
+        self.tenant_field = tenant_field
+
+    def _deserialize(self, payload: dict[str, Any]) -> T:
+        if self._model_cls and issubclass(self._model_cls, BaseModel):
+            return self._model_cls.model_validate(payload)  # type: ignore[return-value]
+        return payload  # type: ignore[return-value]
+
+    def _get_tenant_id(self, obj: T) -> str | None:
+        return _tenant_from_obj(obj, self.tenant_field)
+
+    def _require_tenant_scope(self, tenant_id: str | None, *, operation: str) -> str:
+        if not _is_tenant_scoped_field(self.tenant_field):
+            return str(tenant_id) if tenant_id is not None else ""
+        return require_tenant_context(tenant_id, operation=f"{self.name}.{operation}")
+
+    def _require_object_tenant(self, obj: T) -> str:
+        if not _is_tenant_scoped_field(self.tenant_field):
+            tenant_id = self._get_tenant_id(obj)
+            return str(tenant_id) if tenant_id is not None else ""
+        return require_tenant_context(
+            self._get_tenant_id(obj),
+            operation=f"{self.name}.insert",
+        )
+
+    def _set_tenant_guc(self, conn, tenant_id: str) -> None:
+        """Set the ``app.tenant_id`` GUC so RLS policies can evaluate correctly."""
+        with conn.cursor() as cur:
+            cur.execute("SELECT set_config('app.tenant_id', %s, true)", (tenant_id,))
+
+    def insert(self, id: str, obj: T) -> T:
+        tenant_id = self._require_object_tenant(obj)
+        payload = _to_payload(obj)
+        now = _now_iso()
+        from psycopg.types.json import Jsonb
+
+        with self._pool.connection() as conn:
+            self._set_tenant_guc(conn, tenant_id)
+            with conn.cursor() as cur:
+                cur.execute(
+                    """
+                    INSERT INTO fabric_api_records (table_name, id, tenant_id, payload, created_at, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (table_name, tenant_id, id) DO UPDATE SET
+                        payload = EXCLUDED.payload,
+                        updated_at = EXCLUDED.updated_at
+                    """,
+                    (self.name, id, tenant_id, Jsonb(payload), now, now),
+                )
+            conn.commit()
+        return obj
+
+    def get(self, id: str, tenant_id: str | None = None) -> T | None:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="get")
+        query = "SELECT payload FROM fabric_api_records WHERE table_name = %s AND id = %s"
+        params: list[Any] = [self.name, id]
+        if _is_tenant_scoped_field(self.tenant_field):
+            query += " AND tenant_id = %s"
+            params.append(normalized_tenant_id)
+
+        with self._pool.connection() as conn:
+            self._set_tenant_guc(conn, normalized_tenant_id)
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                row = cur.fetchone()
+        if row is None:
+            return None
+        return self._deserialize(row[0])
+
+    def list(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> builtins.list[T]:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="list")
+        query = "SELECT payload FROM fabric_api_records WHERE table_name = %s"
+        params: list[Any] = [self.name]
+        if _is_tenant_scoped_field(self.tenant_field):
+            if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
+                pass  # intentional cross-tenant read
+            else:
+                query += " AND tenant_id = %s"
+                params.append(normalized_tenant_id)
+        query += " ORDER BY id"
+        if limit is not None:
+            query += f" LIMIT {int(limit)}"
+        if offset is not None:
+            query += f" OFFSET {int(offset)}"
+
+        with self._pool.connection() as conn:
+            self._set_tenant_guc(conn, normalized_tenant_id)
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                rows = cur.fetchall()
+        items = [self._deserialize(row[0]) for row in rows]
+        if filter_fn:
+            items = [item for item in items if filter_fn(item)]
+        return items
+
+    def count(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+    ) -> int:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="count")
+        query = "SELECT COUNT(*) FROM fabric_api_records WHERE table_name = %s"
+        params: list[Any] = [self.name]
+        if _is_tenant_scoped_field(self.tenant_field):
+            if allow_system_scope and normalized_tenant_id in RESERVED_TENANT_KEYWORDS:
+                pass
+            else:
+                query += " AND tenant_id = %s"
+                params.append(normalized_tenant_id)
+
+        with self._pool.connection() as conn:
+            self._set_tenant_guc(conn, normalized_tenant_id)
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                row = cur.fetchone()
+        total = row[0] if row else 0
+        if filter_fn:
+            # Fallback: fetch all and filter in Python for accurate count
+            items = self.list(
+                tenant_id=tenant_id,
+                allow_system_scope=allow_system_scope,
+            )
+            total = len([i for i in items if filter_fn(i)])
+        return total
+
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="update")
+        obj = self.get(id, tenant_id=tenant_id)
+        if obj is None:
+            return None
+        if isinstance(obj, dict):
+            obj.update(fields)
+            obj["updated_at"] = _now_iso()
+        else:
+            for key, value in fields.items():
+                setattr(obj, key, value)
+            if hasattr(obj, "updated_at"):
+                setattr(obj, "updated_at", _now_iso())
+        self.insert(id, obj)
+        return obj
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:
+        normalized_tenant_id = self._require_tenant_scope(tenant_id, operation="delete")
+        obj = self.get(id, tenant_id=tenant_id)
+        if obj is None:
+            return False
+        query = "DELETE FROM fabric_api_records WHERE table_name = %s AND id = %s"
+        params: list[Any] = [self.name, id]
+        if _is_tenant_scoped_field(self.tenant_field):
+            query += " AND tenant_id = %s"
+            params.append(normalized_tenant_id)
+
+        with self._pool.connection() as conn:
+            self._set_tenant_guc(conn, normalized_tenant_id)
+            with conn.cursor() as cur:
+                cur.execute(query, params)
+                rowcount = cur.rowcount
+            conn.commit()
+        return rowcount > 0
+
+
+class AppendOnlyPostgreSQLTable(PostgreSQLTable[T]):
+    def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be updated")
+
+    def delete(self, id: str, tenant_id: str | None = None) -> bool:  # noqa: ARG002
+        raise PermissionError(f"{self.name} is immutable and cannot be deleted")
+
+
+class AsyncPostgreSQLTable(PostgreSQLTable[T]):
+    """Async adapter for DSAR paths that require async-style repository calls."""
+
+    async def insert(self, id: str, obj: T) -> T:
+        return super().insert(id, obj)
+
+    async def get(self, id: str, tenant_id: str | None = None) -> T | None:
+        return super().get(id, tenant_id=tenant_id)
+
+    async def list(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+        limit: int | None = None,
+        offset: int | None = None,
+    ) -> builtins.list[T]:
+        return super().list(
+            tenant_id=tenant_id,
+            filter_fn=filter_fn,
+            allow_system_scope=allow_system_scope,
+            limit=limit,
+            offset=offset,
+        )
+
+    async def count(
+        self,
+        tenant_id: str | None = None,
+        filter_fn: Callable[[T], bool] | None = None,
+        *,
+        allow_system_scope: bool = False,
+    ) -> int:
+        return super().count(
+            tenant_id=tenant_id,
+            filter_fn=filter_fn,
+            allow_system_scope=allow_system_scope,
+        )
+
+    async def update(self, id: str, tenant_id: str | None = None, **fields: Any) -> T | None:
+        return super().update(id, tenant_id=tenant_id, **fields)
+
+    async def delete(self, id: str, tenant_id: str | None = None) -> bool:
+        return super().delete(id, tenant_id=tenant_id)
+
+
+class PostgreSQLDatabase:
+    """Production database facade using PostgreSQL JSONB with RLS."""
+
+    def __init__(self, pool: Any):
+        self.accounts = PostgreSQLTable("accounts", pool, tenant_field="tenant_id")
+        self.stakeholders = PostgreSQLTable("stakeholders", pool, tenant_field="tenant_id")
+        self.signals = PostgreSQLTable("signals", pool, tenant_field="tenant_id")
+        self.evidence = PostgreSQLTable("evidence", pool, tenant_field="tenant_id")
+        self.hypotheses = PostgreSQLTable("hypotheses", pool, tenant_field="tenant_id")
+        self.drivers = PostgreSQLTable("drivers", pool, tenant_field="tenant_id")
+        self.levers = PostgreSQLTable("levers", pool, tenant_field="tenant_id")
+        self.formulas = PostgreSQLTable("formulas", pool, tenant_field="tenant_id")
+        self.scenarios = PostgreSQLTable("scenarios", pool, tenant_field="tenant_id")
+        self.roi_calculations = PostgreSQLTable("roi_calculations", pool, tenant_field="tenant_id")
+        self.business_cases = PostgreSQLTable("business_cases", pool, tenant_field="tenant_id")
+        self.ground_truth = PostgreSQLTable("ground_truth", pool, tenant_field="tenant_id")
+        self.agent_runs = PostgreSQLTable("agent_runs", pool, tenant_field="tenant_id")
+        self.tool_results = PostgreSQLTable("tool_results", pool, tenant_field="tenant_id")
+        self.review_decisions = PostgreSQLTable("review_decisions", pool, tenant_field="tenant_id")
+        self.review_requests = PostgreSQLTable("review_requests", pool, tenant_field="tenant_id")
+        self.review_comments = PostgreSQLTable("review_comments", pool, tenant_field="tenant_id")
+        self.snapshots = PostgreSQLTable("snapshots", pool, tenant_field="tenant_id")
+        self.audit_logs = AppendOnlyPostgreSQLTable("audit_logs", pool, tenant_field="tenant_id")
+        self.value_packs = PostgreSQLTable("value_packs", pool, tenant_field="tenant_id")
+        self.governance_gates = PostgreSQLTable("governance_gates", pool, tenant_field="tenant_id")
+        self.users = PostgreSQLTable("users", pool, tenant_field="tenant_id")
+        self.tenants = PostgreSQLTable("tenants", pool, tenant_field="id")
+        self.dsar_requests = AsyncPostgreSQLTable("dsar_requests", pool, tenant_field="tenant_id")
+        self.dsar_packages = AsyncPostgreSQLTable("dsar_packages", pool, tenant_field="tenant_id")
+
+
 class InMemoryDatabase:
     """Development-only database facade matching the current repository API."""
 
@@ -453,7 +782,7 @@ MockDatabase = InMemoryDatabase
 _pg_engine: Any | None = None
 
 
-def create_database() -> InMemoryDatabase:
+def create_database() -> InMemoryDatabase | PostgreSQLDatabase:
     settings = get_settings()
     if settings.mock_persistence:
         if settings.is_production_like:
@@ -465,10 +794,8 @@ def create_database() -> InMemoryDatabase:
         raise ProductionPersistenceNotConfigured(
             "database_url must be configured when mock_persistence is false."
         )
-    # PostgreSQL async engine is created lazily by get_pg_engine().
-    # The in-memory database facade remains the primary API for routers;
-    # a full PostgreSQL-backed table implementation is tracked separately.
-    return InMemoryDatabase()
+    pool = _get_psycopg_pool()
+    return PostgreSQLDatabase(pool)
 
 
 def get_pg_engine() -> Any:
@@ -509,7 +836,7 @@ def get_pg_engine() -> Any:
 
 
 def close_engine() -> None:
-    """Dispose the shared PostgreSQL engine. Call during application shutdown."""
+    """Dispose the shared PostgreSQL engine and psycopg pool. Call during application shutdown."""
     global _pg_engine
     if _pg_engine is not None:
         import asyncio
@@ -520,6 +847,7 @@ def close_engine() -> None:
             # No running loop — sync disposal fallback
             pass
         _pg_engine = None
+    _close_psycopg_pool()
 
 
 # Lazy proxy to avoid import-time side effects when settings haven't been
@@ -527,7 +855,7 @@ def close_engine() -> None:
 class _LazyDB:
     """Lazy database proxy that creates the backing instance on first use."""
 
-    _instance: InMemoryDatabase | None = None
+    _instance: InMemoryDatabase | PostgreSQLDatabase | None = None
 
     @classmethod
     def _get(cls) -> InMemoryDatabase:

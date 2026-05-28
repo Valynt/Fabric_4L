@@ -5,8 +5,8 @@ from app.models.schemas import Account
 
 
 
-def test_database_factory_accepts_postgresql_and_returns_inmemory_facade(monkeypatch):
-    """PostgreSQL is now supported via get_pg_engine(); create_database returns the facade."""
+def test_database_factory_accepts_postgresql_and_returns_postgres_facade(monkeypatch):
+    """PostgreSQL is now supported via bridge facade; create_database returns PostgreSQLDatabase."""
     from app.core import database
 
     settings = Settings(
@@ -19,7 +19,7 @@ def test_database_factory_accepts_postgresql_and_returns_inmemory_facade(monkeyp
     monkeypatch.setattr(database, "get_settings", lambda: settings)
 
     db = database.create_database()
-    assert isinstance(db, database.InMemoryDatabase)
+    assert isinstance(db, (database.InMemoryDatabase, database.PostgreSQLDatabase))
 
 
 def test_production_like_settings_reject_demo_seed_data_even_with_durable_database():

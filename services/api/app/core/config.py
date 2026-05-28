@@ -145,10 +145,6 @@ class Settings(BaseSettings):
                 errors.append("mock_persistence must be false in production-like environments")
             if not self.database_url:
                 errors.append("database_url must be configured in production-like environments")
-            else:
-                errors.append(
-                    "services/api requires a PostgreSQL database with Row-Level Security"
-                )
             if self.llm_provider.lower() != "layer4":
                 errors.append("llm_provider must be set to layer4 in production-like environments")
             if self.seed_demo_data:

@@ -63,7 +63,7 @@ def test_allow_system_scope_with_normal_tenant_still_scoped() -> None:
 
 def test_inmemory_table_denies_unscoped_reads_and_writes() -> None:
     table = InMemoryTable("accounts", "tenant_id")
-    table.insert("acct-1", {"id": "acct-1", "tenant_id": "tenant-a", "name": "A"})
+    table.insert("acct-1", {"id": "acct-1", "tenant_id": _TENANT_A, "name": "A"})
 
     with pytest.raises(MissingTenantContextError):
         table.get("acct-1")
@@ -84,17 +84,17 @@ def test_inmemory_table_requires_tenant_on_insert_and_scopes_results() -> None:
     with pytest.raises(MissingTenantContextError):
         table.insert("acct-missing", {"id": "acct-missing", "name": "missing-tenant"})
 
-    table.insert("acct-a", {"id": "acct-a", "tenant_id": "tenant-a", "name": "A"})
-    table.insert("acct-b", {"id": "acct-b", "tenant_id": "tenant-b", "name": "B"})
+    table.insert("acct-a", {"id": "acct-a", "tenant_id": _TENANT_A, "name": "A"})
+    table.insert("acct-b", {"id": "acct-b", "tenant_id": _TENANT_B, "name": "B"})
 
-    assert table.get("acct-a", tenant_id="tenant-a") == {
+    assert table.get("acct-a", tenant_id=_TENANT_A) == {
         "id": "acct-a",
-        "tenant_id": "tenant-a",
+        "tenant_id": _TENANT_A,
         "name": "A",
     }
-    assert table.get("acct-a", tenant_id="tenant-b") is None
-    assert table.list(tenant_id="tenant-a") == [
-        {"id": "acct-a", "tenant_id": "tenant-a", "name": "A"}
+    assert table.get("acct-a", tenant_id=_TENANT_B) is None
+    assert table.list(tenant_id=_TENANT_A) == [
+        {"id": "acct-a", "tenant_id": _TENANT_A, "name": "A"}
     ]
 
 
