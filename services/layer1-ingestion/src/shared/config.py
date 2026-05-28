@@ -37,7 +37,8 @@ def is_production_like_environment(environment: str | None = None) -> bool:
 
     This changes the previous fail-safe policy to an explicit allowlist.
     Staging and unknown/custom environments are NOT treated as production-like.
-    Callers that need staging-specific gating should check explicitly.
+    Callers that need staging-specific gating should use is_strict_environment()
+    from value_fabric.shared.security.config instead.
     """
     env = (environment or detect_environment()).strip().lower()
     return env == "production"

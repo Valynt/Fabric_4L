@@ -62,17 +62,18 @@ async def engine():
 
 @pytest.fixture(scope="function")
 async def db(engine) -> AsyncGenerator[AsyncSession, None]:
-    """Create a database session with transaction rollback for isolation."""
+    """Create a database session with transaction rollback for isolation.
+    
+    Note: SQLite does not support PostgreSQL's set_config() for tenant context.
+    Tenant isolation in SQLite tests is handled at the application layer,
+    not the database layer. For production-like tenant isolation tests,
+    use PostgreSQL with RLS policies.
+    """
     async_session = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )
     
     async with async_session() as session:
-        # Set tenant context for the session
-        await session.execute(
-            "SELECT set_config('app.tenant_id', 'test-tenant', true)"
-        )
-        
         yield session
         
         # Rollback to isolate test changes

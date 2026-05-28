@@ -110,6 +110,8 @@ def _is_production_like() -> bool:
 
     This changes the previous fail-safe policy to an explicit allowlist.
     Staging and unknown/custom environments are NOT treated as production-like.
+    For safety-critical checks that must run in both production and staging,
+    use is_strict_environment() from value_fabric.shared.security.config instead.
     """
     return _current_environment() == "production"
 
