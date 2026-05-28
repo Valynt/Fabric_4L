@@ -33,6 +33,47 @@ RDF Generator (rdflib, Turtle format)
 Output (RDF/OWL + Provenance)
 ```
 
+## Async Task Processing (Celery)
+
+Layer 2 supports Celery-based async task processing for scalable queue-based extraction. This enables:
+
+- **Queue-based processing**: Tasks are queued in Redis and processed by worker processes
+- **Horizontal scaling**: Multiple workers can process extraction tasks in parallel
+- **Retry logic**: Failed tasks are automatically retried with exponential backoff
+- **Graceful degradation**: Falls back to HTTP if Celery is unavailable
+
+### Celery Tasks
+
+| Task | Description | Max Retries |
+|------|-------------|-------------|
+| `run_extraction_task` | Full extraction pipeline (chunk → extract → deduplicate → validate → RDF) | 3 |
+| `extract_entities_task` | Entity extraction from content | 3 |
+| `extract_relationships_task` | Relationship extraction between entities | 3 |
+
+### Configuration
+
+Environment variables for Celery:
+
+```bash
+REDIS_URL=redis://localhost:6379/0
+CELERY_BROKER_URL=redis://localhost:6379/0
+CELERY_RESULT_BACKEND=redis://localhost:6379/0
+```
+
+### Running Workers
+
+Start Celery worker:
+
+```bash
+celery -A layer2_extraction.shared.tasks worker --loglevel=info --concurrency=2
+```
+
+With Docker Compose (dev):
+
+```bash
+docker compose -f docker-compose.dev.yml up layer2-worker
+```
+
 ## Core Ontology
 
 ### Entity Types

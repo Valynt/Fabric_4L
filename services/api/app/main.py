@@ -29,6 +29,8 @@ from .shared_bootstrap import (
     EnforcementControlConfig,
     EnforcementMode,
     EnforcementRolloutConfig,
+    FrameworkIdempotencyConfig,
+    FrameworkRateLimitConfig,
     create_fabric_app,
     register_health_endpoint,
     validate_production_safety,
@@ -75,8 +77,17 @@ app = create_fabric_app(
     cors_policy=settings.cors_policy,
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
-        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
-        idempotency=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
+        idempotency=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
+    ),
+    rate_limit=FrameworkRateLimitConfig(
+        mode=EnforcementMode.ENFORCE,
+        rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
+    ),
+    idempotency=FrameworkIdempotencyConfig(
+        mode=EnforcementMode.ENFORCE,
+        service_factory=lambda: __import__("value_fabric.shared.idempotency.core", fromlist=["IdempotencyService"]).IdempotencyService.create_from_env(),
+        methods=frozenset({"POST", "PUT", "PATCH", "DELETE"}),
     ),
 )
 

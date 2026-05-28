@@ -781,38 +781,75 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
             if schema:
                 extraction_payload["extraction_schema"] = schema
 
-            # OPTIMIZATION: Async L2 call with short timeout + Celery retry.
-            # Previously: sync httpx.post with 120s timeout blocked the worker.
-            # Now: 30s async timeout; transient failures trigger Celery retry
-            # which returns the task to the queue, freeing the worker.
-            async def _call_l2():
-                async with httpx.AsyncClient(timeout=30.0) as client:
-                    response = await client.post(
-                        f"{l2_url}/v1/extract",
-                        json=extraction_payload,
-                        headers={
-                            "Content-Type": "application/json",
-                            "X-Tenant-ID": str(job.tenant_id),
-                        },
-                    )
-                    response.raise_for_status()
-                    return response.json()
+            # OPTIMIZATION: Use Celery for L2 dispatch when enabled (async queue-based processing)
+            # Falls back to HTTP if Celery disabled or unavailable
+            if settings.use_celery_for_l2:
+                try:
+                    # Import Celery for cross-service dispatch
+                    from celery import Celery
 
-            try:
-                extraction_result = asyncio.run(_call_l2())
-                tokens_consumed = extraction_result.get("tokens_consumed", 0)
-            except httpx.HTTPStatusError as e:
-                if e.response.status_code in (429, 503, 504):
-                    logger.warning(
-                        "L2 transient error, returning to queue via Celery retry",
-                        job_id=str(job_id),
-                        status=e.response.status_code,
+                    # Create a Celery client pointing to L2's broker
+                    l2_celery = Celery(
+                        "layer2_extraction",
+                        broker=settings.layer2_celery_broker_url,
+                        backend=settings.layer2_celery_broker_url,
                     )
-                    raise self.retry(exc=e, countdown=15)
-                raise ValueError(f"L2 extraction failed: HTTP {e.response.status_code}: {e.response.text}")
-            except Exception as e:
-                logger.warning("L2 extraction failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
-                raise self.retry(exc=e, countdown=30)
+
+                    # Dispatch task to L2 Celery worker
+                    logger.info("Dispatching extraction task to L2 Celery", job_id=str(job_id))
+                    result = l2_celery.send_task(
+                        "layer2_extraction.shared.tasks.run_extraction_task",
+                        args=[str(job_id), job.source_url or "", raw_content.meta_title or "", extraction_payload],
+                        kwargs={"mark_pipeline_complete": False},
+                    )
+
+                    # Wait for result with timeout
+                    extraction_result = result.get(timeout=300)
+                    tokens_consumed = extraction_result.get("tokens_consumed", 0)
+
+                    logger.info("L2 Celery extraction completed", job_id=str(job_id), task_id=result.id)
+
+                except Exception as e:
+                    logger.warning(
+                        "L2 Celery dispatch failed, falling back to HTTP",
+                        job_id=str(job_id),
+                        error=str(e),
+                    )
+                    # Fall through to HTTP fallback
+                    settings.use_celery_for_l2 = False  # Disable for this run
+            else:
+                logger.info("Using HTTP fallback for L2 extraction", job_id=str(job_id))
+
+            # HTTP fallback (original implementation)
+            if not settings.use_celery_for_l2:
+                async def _call_l2():
+                    async with httpx.AsyncClient(timeout=30.0) as client:
+                        response = await client.post(
+                            f"{l2_url}/v1/extract",
+                            json=extraction_payload,
+                            headers={
+                                "Content-Type": "application/json",
+                                "X-Tenant-ID": str(job.tenant_id),
+                            },
+                        )
+                        response.raise_for_status()
+                        return response.json()
+
+                try:
+                    extraction_result = asyncio.run(_call_l2())
+                    tokens_consumed = extraction_result.get("tokens_consumed", 0)
+                except httpx.HTTPStatusError as e:
+                    if e.response.status_code in (429, 503, 504):
+                        logger.warning(
+                            "L2 transient error, returning to queue via Celery retry",
+                            job_id=str(job_id),
+                            status=e.response.status_code,
+                        )
+                        raise self.retry(exc=e, countdown=15)
+                    raise ValueError(f"L2 extraction failed: HTTP {e.response.status_code}: {e.response.text}")
+                except Exception as e:
+                    logger.warning("L2 extraction failed, retrying via Celery", job_id=str(job_id), error_code="L2_EXTRACTION_ERROR")
+                    raise self.retry(exc=e, countdown=30)
 
             job.configuration["extraction_result"] = extraction_result
 

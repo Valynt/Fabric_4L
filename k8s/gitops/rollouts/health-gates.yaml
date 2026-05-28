@@ -100,7 +100,7 @@ spec:
                       - name: DB_USER
                         valueFrom:
                           secretKeyRef:
-                            name: postgres-credentials
+                            name: postgres-secret
                             key: username
                     restartPolicy: Never
                 backoffLimit: 1

@@ -201,14 +201,21 @@ def get_database_url() -> str:
 
     Falls back to checkpoint database URL for compatibility,
     but allows separate configuration for operational data.
+    
+    In production-like environments, fails fast if neither URL is configured.
     """
-    return os.getenv(
-        "LAYER4_DATABASE_URL",
-        os.getenv(
-            "CHECKPOINT_DATABASE_URL",
-            "postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents",
-        ),
-    )
+    database_url = os.getenv("LAYER4_DATABASE_URL") or os.getenv("CHECKPOINT_DATABASE_URL")
+    
+    if not database_url:
+        if _is_production_like_runtime():
+            raise RuntimeError(
+                "LAYER4_DATABASE_URL or CHECKPOINT_DATABASE_URL must be set in production-like environments. "
+                "Configure these environment variables via Kubernetes secrets."
+            )
+        # Allow local development with SQLite or other local databases
+        return "sqlite+aiosqlite:///:memory:"
+    
+    return database_url
 
 
 def _is_production_like_runtime() -> bool:

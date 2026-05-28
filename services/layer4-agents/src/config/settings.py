@@ -103,8 +103,8 @@ class Settings(BaseSettings):
     # Database
     # ==========================================================================
     database_url: str = Field(
-        default="postgresql://postgres:postgres@localhost:5432/layer4_agents",
-        description="PostgreSQL connection URL"
+        default="",
+        description="PostgreSQL connection URL (required in production)"
     )
     database_pool_size: int = Field(default=10, description="Connection pool size")
     database_max_overflow: int = Field(default=20, description="Max pool overflow")
@@ -470,6 +470,12 @@ class Settings(BaseSettings):
         environment = info.data.get("environment", "development")
 
         if environment == "production":
+            if not v or v.strip() == "":
+                raise ValueError(
+                    "FATAL: DATABASE_URL is required in production. "
+                    "Set LAYER4_DATABASE_URL or CHECKPOINT_DATABASE_URL environment variable."
+                )
+
             # Check for default/insecure credentials
             insecure_patterns = [
                 ":postgres@",

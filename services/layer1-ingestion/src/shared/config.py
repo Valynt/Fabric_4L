@@ -306,7 +306,9 @@ class Settings(BaseSettings):
     api_port: int = Field(default=8000, description="API server port")
 
     # Layer 2 integration
-    layer2_api_url: str = Field(default="http://layer2-extraction:8000", description="Layer 2 extraction API URL")
+    layer2_api_url: str = Field(default="http://layer2:8000", description="Layer 2 extraction API URL")
+    layer2_celery_broker_url: str = Field(default="redis://redis:6379/0", description="Layer 2 Celery broker URL for task dispatch")
+    use_celery_for_l2: bool = Field(default=True, description="Use Celery for L2 dispatch instead of HTTP")
 
     # LLM Providers (for AI_LLM extraction method)
     openai_api_key: str | None = Field(default=None, description="OpenAI API key")

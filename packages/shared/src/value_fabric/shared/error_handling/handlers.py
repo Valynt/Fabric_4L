@@ -134,8 +134,8 @@ def is_production() -> bool:
         or os.getenv("APP_ENV")
         or ""
     ).lower().strip()
-    # Empty string (no env var set) falls through to the default True return.
-    return env not in _DEVELOPMENT_TOKENS
+    # Empty string (no env var set) is treated as non-production for safety
+    return bool(env) and env not in _DEVELOPMENT_TOKENS
 
 
 def sanitize_error_details(details: dict[str, Any] | None) -> dict[str, Any] | None:

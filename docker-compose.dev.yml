@@ -198,6 +198,78 @@ services:
       start_period: 30s
 
   # ---------------------------------------------------------------------------
+  # Backend — Layer 2 Extraction
+  # ---------------------------------------------------------------------------
+  layer2:
+    build:
+      context: ./services/layer2-extraction
+      dockerfile: ./Dockerfile
+    container_name: vf-dev-layer2
+    ports:
+      - "8002:8000"
+    environment:
+      - ENVIRONMENT=development
+      # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
+      - DEV_AUTH_BYPASS=true
+      - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/extraction
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - LOG_LEVEL=debug
+      - PYTHONPATH=/app:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dev-network
+    volumes:
+      - ./services/layer2-extraction/src:/app/src:ro
+    command: >
+      uvicorn src.layer2_extraction.api.main:app
+      --host 0.0.0.0
+      --port 8000
+      --reload
+      --reload-dir /app/src
+      --log-level debug
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+
+  # Layer 2 Celery Worker
+  layer2-worker:
+    build:
+      context: ./services/layer2-extraction
+      dockerfile: ./Dockerfile
+    container_name: vf-dev-layer2-worker
+    environment:
+      - ENVIRONMENT=development
+      - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/extraction
+      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - LOG_LEVEL=debug
+      - PYTHONPATH=/app:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - dev-network
+    volumes:
+      - ./services/layer2-extraction/src:/app/src:ro
+    command: >
+      celery -A layer2_extraction.shared.tasks worker
+      --loglevel=info
+      --concurrency=2
+
+  # ---------------------------------------------------------------------------
   # Backend — Layer 2.5 Signal Refinery
   # ---------------------------------------------------------------------------
   layer2-5:
@@ -220,6 +292,8 @@ services:
       - PYTHONPATH=/app:/app/src
     depends_on:
       postgres:
+        condition: service_healthy
+      layer2:
         condition: service_healthy
     networks:
       - dev-network

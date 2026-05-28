@@ -106,10 +106,15 @@ spec:
                   name: pinecone-secret
                   key: api-key
                   optional: true
+            - name: LAYER4_DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: layer4-database-secret
+                  key: database-url
             - name: CHECKPOINT_DATABASE_URL
               valueFrom:
                 secretKeyRef:
-                  name: layer4-agent-secrets
+                  name: layer4-database-secret
                   key: checkpoint-database-url
             - name: LOG_LEVEL
               value: "info"

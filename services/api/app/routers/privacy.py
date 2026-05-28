@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query
 from fastapi.responses import Response
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
 
@@ -17,7 +17,56 @@ router = APIRouter(prefix="/privacy", tags=["Privacy"])
 
 
 @router.post('/dsar', status_code=202, response_model=DSARCreateResponse)
-async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenant_required), auth: TokenPayload = Depends(require_authenticated)):
+async def create_dsar(
+    payload: DSARRequestCreate,
+    tenant_id: str = Depends(tenant_required),
+    auth: TokenPayload = Depends(require_authenticated),
+    idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+):
+    """Create a DSAR (Data Subject Access Request) for privacy compliance.
+    
+    This endpoint supports idempotency via the Idempotency-Key header.
+    Retrying the same request with the same key will return the cached response
+    without creating duplicate DSAR records or export jobs.
+    """
+    # Check for idempotency replay if key is provided
+    idem_request = None
+    service = None
+    if idempotency_key:
+        try:
+            from value_fabric.shared.idempotency import (
+                IdempotencyRequest,
+                build_request_fingerprint,
+            )
+            from value_fabric.shared.boundaries.tenant_boundary import get_tenant_context
+            
+            ctx = get_tenant_context()
+            # Get service from request state (set by middleware)
+            from fastapi import Request
+            from app.main import app as fabric_app
+            service = getattr(fabric_app.state, "idempotency_service", None)
+            
+            if service:
+                import json
+                fingerprint = build_request_fingerprint(
+                    "POST",
+                    "/privacy/dsar",
+                    json.loads(payload.model_dump_json())
+                )
+                idem_request = IdempotencyRequest(
+                    tenant_id=str(ctx.tenant_id) if ctx and ctx.tenant_id else tenant_id,
+                    endpoint_key="POST /privacy/dsar",
+                    idempotency_key=idempotency_key,
+                    request_fingerprint=fingerprint,
+                )
+                
+                replay = service.check_replay(idem_request)
+                if replay is not None:
+                    logger.info("DSAR request replayed from idempotency cache", idempotency_key=idempotency_key)
+                    return replay.body
+        except Exception as e:
+            logger.warning("Idempotency check failed, proceeding with request", error=str(e))
+    
     record = await dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
     package = await dsar_service.launch_export_pipeline(record)
     refreshed = await db.dsar_requests.get(record.id, tenant_id=tenant_id)
@@ -26,7 +75,26 @@ async def create_dsar(payload: DSARRequestCreate, tenant_id: str = Depends(tenan
     except ValueError as exc:
         logger.warning("DSAR reconciliation failed: %s", exc)
         raise ValidationError(message="Invalid DSAR request") from exc
-    return {"request": complete, "download_url": dsar_service.issue_download_url(package)}
+    
+    response = {"request": complete, "download_url": dsar_service.issue_download_url(package)}
+    
+    # Store response for idempotency if key was provided
+    if idempotency_key and idem_request and service:
+        try:
+            from value_fabric.shared.idempotency import IdempotencyRecord
+            
+            service.store_response(
+                idem_request,
+                IdempotencyRecord(
+                    status_code=202,
+                    body=response,
+                    headers={},
+                )
+            )
+        except Exception as e:
+            logger.warning("Failed to store idempotency response", error=str(e))
+    
+    return response
 
 
 @router.get('/dsar/{request_id}', response_model=DSARRequestRecord)

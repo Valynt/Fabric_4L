@@ -9,6 +9,7 @@
 | `firecrawl-secret` | `value-fabric/providers#firecrawl-api-key` | Integrations Team |
 | `neo4j-secret` | `value-fabric/database#neo4j-auth` | Data Platform |
 | `postgres-secret` | `value-fabric/database#postgres-password` | Data Platform |
+| `layer4-database-secret` | `value-fabric/database#layer4-database-url` | Data Platform |
 | `jwt-secret` | `value-fabric/auth#jwt-secret` | Identity/Security |
 | `api-key-hmac-secret` | `value-fabric/auth#api-key-hmac-secret` | Identity/Security |
 | `keycloak-secrets` | `value-fabric/auth#keycloak-bootstrap` | Identity/Security |

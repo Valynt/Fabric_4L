@@ -190,6 +190,40 @@ class TenantRateLimiter:
         self.custom_limits = custom_limits or {}
         self.route_tier_policies = route_tier_policies or DEFAULT_ROUTE_TIER_POLICIES
     
+    @staticmethod
+    def create_from_env() -> "TenantRateLimiter":
+        """Factory to create TenantRateLimiter from environment configuration.
+        
+        Reads REDIS_URL from environment and creates a Redis client.
+        Falls back to in-memory limiter in development if Redis not configured.
+        
+        Returns:
+            TenantRateLimiter instance
+            
+        Raises:
+            ValueError: If Redis is misconfigured in production
+        """
+        import os
+        
+        redis_url = os.getenv("REDIS_URL")
+        environment = os.getenv("ENVIRONMENT", "").lower()
+        
+        if not redis_url:
+            if environment in {"production", "staging"}:
+                raise ValueError(
+                    "REDIS_URL is required in production-like environments for rate limiting"
+                )
+            logger.warning(
+                "Redis not configured for rate limiting; using degraded in-memory behavior"
+            )
+            # Return a limiter with a mock client for development
+            return TenantRateLimiter(redis_client=None)
+        
+        import redis.asyncio as redis_async
+        
+        redis_client = redis_async.from_url(redis_url, decode_responses=True)
+        return TenantRateLimiter(redis_client=redis_client)
+    
     async def check_rate_limit(
         self,
         tenant_id: UUID,

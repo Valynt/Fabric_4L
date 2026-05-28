@@ -64,3 +64,17 @@ class IdempotencyService:
                 expires_at=datetime.now(UTC) + timedelta(seconds=self._ttl_seconds),
             )
         )
+
+    @staticmethod
+    def create_from_env() -> "IdempotencyService":
+        """Factory to create IdempotencyService from environment configuration.
+        
+        Uses in-memory store by default. For production, configure Redis-backed store.
+        
+        Returns:
+            IdempotencyService instance
+        """
+        from .store import InMemoryIdempotencyStore
+        
+        store = InMemoryIdempotencyStore()
+        return IdempotencyService(store=store)

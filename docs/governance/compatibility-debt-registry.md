@@ -126,6 +126,32 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 
 ---
 
+## Post-Migration Debt Items (2026-05-27)
+
+### Layer 3 namespace package shim causes `db.query_execution` relative import failure
+
+| Field | Value |
+|---|---|
+| **ID** | DEBT-L3-IMPORT-001 |
+| **Title** | Layer 3 namespace package shim causes `db.query_execution` relative import failure |
+| **Evidence** | Importing `value_fabric.layer3.api.main` fails because `services/layer3-knowledge/src/db/query_execution.py` raises `ImportError: attempted relative import beyond top-level package` when resolving `from ..graph.query_guards import ...`. |
+| **Impact** | Blocks full Layer 3 app import smoke test; blocks Layer 3 test suite import via `conftest.py`; prevents full validation of the `create_fabric_app` migration despite `py_compile` passing. |
+| **Status** | Pre-existing, unrelated to `create_fabric_app` migration. |
+| **Priority** | P1 — blocks CI confidence for Layer 3. |
+| **Decision** | Do not mark Layer 3 as fully validated until this issue is fixed or bypassed with an agreed test shim. Track separately from the factory migration. |
+
+### Layer 3 `add_rate_limiting` instantiates `RateLimitMiddleware` without `app.add_middleware` registration
+
+| Field | Value |
+|---|---|
+| **ID** | DEBT-L3-RATELIMIT-001 |
+| **Title** | Layer 3 `add_rate_limiting` instantiates `RateLimitMiddleware` without `app.add_middleware` registration |
+| **Evidence** | Existing `add_rate_limiting` behavior creates `RateLimitMiddleware(app)` but does not register it with `app.add_middleware` or `app.middleware("http")`. The return value is discarded in `main.py`. |
+| **Impact** | Possible no-op or nonstandard middleware registration pattern; runtime rate limiting may not be actively intercepting requests. |
+| **Status** | Pre-existing behavior preserved intentionally during `create_fabric_app` migration. |
+| **Priority** | P1/P2 depending on whether runtime tests prove rate limiting works. |
+| **Decision** | Do not fix this inside the `create_fabric_app` migration unless specifically scoped. Track it separately. If runtime validation shows rate limiting is nonfunctional, escalate to P1 and schedule a fix. |
+
 ## Monthly Prune Procedure
 
 1. Run `pytest tests/ci/test_compatibility_debt_registry.py`.

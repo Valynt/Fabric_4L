@@ -5,6 +5,26 @@
 
 A production-grade web data ingestion service that continuously acquires unstructured enterprise data from public sources and converts it to clean, structured Markdown ready for semantic processing by Layer 2.
 
+## L2 Integration (Celery Dispatch)
+
+Layer 1 dispatches extraction tasks to Layer 2 using Celery for async queue-based processing. This provides:
+
+- **Scalability**: Tasks are queued and processed by L2 workers
+- **Retry logic**: Failed extractions are automatically retried
+- **Graceful degradation**: Falls back to HTTP if Celery is unavailable
+
+### Configuration
+
+Environment variables for L2 Celery dispatch:
+
+```bash
+LAYER2_API_URL=http://layer2:8000
+LAYER2_CELERY_BROKER_URL=redis://redis:6379/0
+USE_CELERY_FOR_L2=true
+```
+
+Set `USE_CELERY_FOR_L2=false` to disable Celery and use HTTP fallback only.
+
 ## Quick Start
 
 ### Prerequisites

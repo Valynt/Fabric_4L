@@ -28,3 +28,5 @@ validate_production_safety = cast(Callable[..., None], _security_config.validate
 EnforcementControlConfig = _framework_app.EnforcementControlConfig
 EnforcementMode = _framework_app.EnforcementMode
 EnforcementRolloutConfig = _framework_app.EnforcementRolloutConfig
+FrameworkRateLimitConfig = _framework_app.FrameworkRateLimitConfig
+FrameworkIdempotencyConfig = _framework_app.FrameworkIdempotencyConfig

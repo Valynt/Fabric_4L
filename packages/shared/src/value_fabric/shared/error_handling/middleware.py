@@ -56,7 +56,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process request and add correlation ID."""
         # Get and validate request ID from header, or generate new one
-        trace_context = resolve_trace_context(request.headers)
+        trace_context = resolve_trace_context(request.headers, generator=self.generator)
         request_id = sanitize_trace_id(trace_context.trace_id, generator=self.generator)
 
         # Store in request state for access in route handlers

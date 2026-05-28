@@ -29,7 +29,13 @@ from sqlalchemy.orm import Session
 
 try:
     from value_fabric.shared.error_handling import register_exception_handlers
-    from value_fabric.shared.fastapi_framework import create_fabric_app
+    from value_fabric.shared.fastapi_framework import (
+        EnforcementControlConfig,
+        EnforcementMode,
+        EnforcementRolloutConfig,
+        FrameworkRateLimitConfig,
+        create_fabric_app,
+    )
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -258,6 +264,14 @@ app = create_fabric_app(
     cors_policy=settings.cors_policy,
     register_default_exception_handlers=False,
     include_request_id_middleware=True,
+    enforcement_rollout=EnforcementRolloutConfig(
+        tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+    ),
+    rate_limit=FrameworkRateLimitConfig(
+        mode=EnforcementMode.AUDIT,
+        rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
+    ),
 )
 
 # Effective middleware/request order (outermost -> innermost):
