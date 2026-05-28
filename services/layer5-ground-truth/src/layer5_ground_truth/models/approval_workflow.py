@@ -487,6 +487,23 @@ class ApprovalWorkflow(Base):
         nullable=True,
         comment="List of roles that can escalate (e.g., ['senior_reviewer'])",
     )
+    level_definitions = Column(
+        JSON,
+        nullable=True,
+        comment="Ordered approval levels config (e.g., [{'level':1,'quorum':1},{'level':2,'quorum':2}])",
+    )
+    default_level_quorum = Column(
+        Integer,
+        nullable=False,
+        default=1,
+        comment="Default quorum required per approval level when level_definitions are omitted",
+    )
+    escalation_mode = Column(
+        String(32),
+        nullable=False,
+        default="manual",
+        comment="Escalation semantics (manual | automatic)",
+    )
 
     # -------------------------------------------------------------------------
     # Lifecycle
