@@ -124,8 +124,7 @@ services:
     ports:
       - "8004:8000"
     environment:
-      DEV_AUTH_BYPASS: "true"
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+          JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
       SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/layer4_agents
       CHECKPOINT_DATABASE_URL: postgresql+asyncpg://postgres:postgres@host.docker.internal:5432/ground_truth
