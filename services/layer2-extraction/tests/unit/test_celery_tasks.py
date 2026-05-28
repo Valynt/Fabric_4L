@@ -1,9 +1,21 @@
 """Unit tests for Layer 2 Celery tasks."""
 
-import pytest
+import sys
 from unittest.mock import Mock, patch, MagicMock
 
-from layer2_extraction.shared.tasks import celery_app, run_extraction_task, extract_entities_task, extract_relationships_task
+import pytest
+
+# Check if celery is available before importing
+try:
+    import celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+
+pytestmark = pytest.mark.skipif(not CELERY_AVAILABLE, reason="celery not installed")
+
+if CELERY_AVAILABLE:
+    from layer2_extraction.shared.tasks import celery_app, run_extraction_task, extract_entities_task, extract_relationships_task
 
 
 class TestCeleryAppConfiguration:

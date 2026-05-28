@@ -25,15 +25,15 @@ class TestTenantIsolation:
     def mock_request_with_tenant(self):
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = MagicMock()
-        request.state.context.tenant_id = "tenant-a"
+        request.state.governance_context = MagicMock()
+        request.state.governance_context.tenant_id = "tenant-a"
         return request
 
     @pytest.fixture
     def mock_request_no_tenant(self):
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = None
+        request.state.governance_context = None
         return request
 
     @pytest.fixture
@@ -173,7 +173,7 @@ class TestTenantIsolation:
 
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = None
+        request.state.governance_context = None
 
         with pytest.raises(HTTPException) as exc_info:
             await get_full_graph(limit=1000, app_state=mock_state, tenant_id="")

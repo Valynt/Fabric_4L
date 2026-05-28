@@ -21,12 +21,12 @@ class TestExtractTenantId:
     """Test suite for _extract_tenant_id() helper function."""
 
     def test_extracts_tenant_id_from_request_context(self):
-        """Should extract tenant_id from request.state.context when available."""
+        """Should extract tenant_id from request.state.governance_context when available."""
         mock_context = MagicMock()
         mock_context.tenant_id = uuid.uuid4()
 
         mock_request = MagicMock()
-        mock_request.state.context = mock_context
+        mock_request.state.governance_context = mock_context
 
         result = _extract_tenant_id(mock_request)
 
@@ -36,8 +36,8 @@ class TestExtractTenantId:
     def test_returns_none_when_no_tenant_context(self):
         """Should return None when request context has no tenant_id."""
         mock_request = MagicMock()
-        mock_request.state.context = MagicMock()
-        mock_request.state.context.tenant_id = None
+        mock_request.state.governance_context = MagicMock()
+        mock_request.state.governance_context.tenant_id = None
 
         result = _extract_tenant_id(mock_request)
 
@@ -47,7 +47,7 @@ class TestExtractTenantId:
         """Should return None when request.state has no context."""
         mock_request = MagicMock()
         mock_request.state = MagicMock()
-        mock_request.state.context = None
+        mock_request.state.governance_context = None
 
         result = _extract_tenant_id(mock_request)
 
@@ -65,7 +65,7 @@ class TestExtractTenantId:
         mock_context.tenant_id = tenant_uuid
 
         mock_request = MagicMock()
-        mock_request.state.context = mock_context
+        mock_request.state.governance_context = mock_context
 
         result = _extract_tenant_id(mock_request)
 
@@ -78,7 +78,7 @@ class TestExtractTenantId:
         mock_context.tenant_id = "tenant-123-abc"
 
         mock_request = MagicMock()
-        mock_request.state.context = mock_context
+        mock_request.state.governance_context = mock_context
 
         result = _extract_tenant_id(mock_request)
 
@@ -97,7 +97,7 @@ class TestExtractTenantId:
             )
 
             mock_request = MagicMock()
-            mock_request.state.context = ctx
+            mock_request.state.governance_context = ctx
 
             result = _extract_tenant_id(mock_request)
 
@@ -116,7 +116,7 @@ class TestExtractTenantIdDeterminism:
         mock_context.tenant_id = tenant_uuid
 
         mock_request = MagicMock()
-        mock_request.state.context = mock_context
+        mock_request.state.governance_context = mock_context
 
         results = [_extract_tenant_id(mock_request) for _ in range(5)]
 

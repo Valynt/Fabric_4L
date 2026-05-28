@@ -89,11 +89,18 @@ def run_extraction_task(self, job_id: str, source_url: str, content: str, config
     """
     logger.info("Starting extraction task", job_id=job_id, source_url=source_url)
 
+    # Validate tenant_id in config
+    tenant_id = config.get("tenant_id")
+    if not tenant_id:
+        raise ValueError("tenant_id is required in config for extraction task")
+
     try:
         # Import here to avoid circular dependencies
         from layer2_extraction.api.main import run_extraction
 
-        # Run the async extraction function
+        # Run the async extraction function using asyncio.run
+        # Note: This works in Celery because the task runs in a fresh process
+        # where no event loop exists yet
         result = asyncio.run(run_extraction(
             job_id=job_id,
             source_url=source_url,

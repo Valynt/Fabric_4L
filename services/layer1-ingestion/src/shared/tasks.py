@@ -783,7 +783,8 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
 
             # OPTIMIZATION: Use Celery for L2 dispatch when enabled (async queue-based processing)
             # Falls back to HTTP if Celery disabled or unavailable
-            if settings.use_celery_for_l2:
+            use_celery_dispatch = settings.use_celery_for_l2  # Local flag to avoid race condition
+            if use_celery_dispatch:
                 try:
                     # Import Celery for cross-service dispatch
                     from celery import Celery
@@ -798,7 +799,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     # Dispatch task to L2 Celery worker
                     logger.info("Dispatching extraction task to L2 Celery", job_id=str(job_id))
                     result = l2_celery.send_task(
-                        "layer2_extraction.shared.tasks.run_extraction_task",
+                        "run_extraction_task",
                         args=[str(job_id), job.source_url or "", raw_content.meta_title or "", extraction_payload],
                         kwargs={"mark_pipeline_complete": False},
                     )
@@ -816,12 +817,12 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                         error=str(e),
                     )
                     # Fall through to HTTP fallback
-                    settings.use_celery_for_l2 = False  # Disable for this run
+                    use_celery_dispatch = False  # Disable for this run
             else:
                 logger.info("Using HTTP fallback for L2 extraction", job_id=str(job_id))
 
             # HTTP fallback (original implementation)
-            if not settings.use_celery_for_l2:
+            if not use_celery_dispatch:
                 async def _call_l2():
                     async with httpx.AsyncClient(timeout=30.0) as client:
                         response = await client.post(

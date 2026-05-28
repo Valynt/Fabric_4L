@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult
 
-from ..database import get_db, health_probe, lifespan
+from ..database import get_db_from_context, health_probe, lifespan
 from .. import repository
 
 
@@ -59,7 +59,7 @@ app = create_fabric_app(
 
 @app.post("/v1/billing/plans")
 async def upsert_plan(
-    plan: Plan, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)
+    plan: Plan, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)
 ) -> dict:
     require_role(principal, "billing:write")
     result = await repository.upsert_plan(
@@ -70,7 +70,7 @@ async def upsert_plan(
 
 @app.get("/v1/billing/entitlements/{plan_id}/decision")
 async def entitlement_decision(
-    plan_id: str, feature: str, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)
+    plan_id: str, feature: str, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)
 ) -> dict:
     require_role(principal, "billing:read")
     allowed = feature in await repository.get_plan_entitlements(db, principal.tenant_id, plan_id)
@@ -85,7 +85,7 @@ async def entitlement_decision(
 
 @app.post("/v1/billing/usage-events")
 async def ingest_usage(
-    event: UsageEventIn, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)
+    event: UsageEventIn, principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)
 ) -> dict:
     require_role(principal, "billing:write")
     event_dict = event.model_dump()
@@ -103,21 +103,21 @@ async def ingest_usage(
 
 
 @app.get("/v1/billing/usage-aggregates")
-async def usage_aggregates(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)) -> dict:
+async def usage_aggregates(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)) -> dict:
     require_role(principal, "billing:read")
     metrics = await repository.get_usage_aggregates(db, principal.tenant_id)
     return {"tenant_id": principal.tenant_id, "metrics": metrics}
 
 
 @app.get("/v1/billing/invoices")
-async def list_invoices(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)) -> dict:
+async def list_invoices(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)) -> dict:
     require_role(principal, "billing:read")
     invoices = await repository.list_invoices(db, principal.tenant_id)
     return {"tenant_id": principal.tenant_id, "invoices": invoices}
 
 
 @app.get("/v1/billing/payment-state")
-async def payment_state(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db)) -> dict:
+async def payment_state(principal: Principal = Depends(get_principal), db: AsyncSession = Depends(get_db_from_context)) -> dict:
     require_role(principal, "billing:read")
     state = await repository.get_payment_state(db, principal.tenant_id)
     return state

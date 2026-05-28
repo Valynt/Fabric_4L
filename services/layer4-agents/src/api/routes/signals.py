@@ -47,7 +47,7 @@ async def _tenant_owns_prospect(*, prospect_id: str, tenant_id: str) -> bool:
     except ValueError:
         pass
 
-    async with db_session(tenant_id=tenant_id) as session:
+    async with db_session_for_context(tenant_id=tenant_id) as session:
         query = select(Account.id).where(or_(*filters)).limit(1)
         result = await session.execute(query)
         return result.scalar_one_or_none() is not None

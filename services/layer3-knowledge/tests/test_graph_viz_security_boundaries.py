@@ -52,20 +52,20 @@ class TestGraphVizTenantIsolation:
     """Missing or spoofed tenant context must fail closed."""
 
     def test_require_request_tenant_id_extracts_from_state_context(self):
-        """Valid request.state.context.tenant_id is returned."""
+        """Valid request.state.governance_context.tenant_id is returned."""
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = MagicMock()
-        request.state.context.tenant_id = VALID_TENANT_ID
+        request.state.governance_context = MagicMock()
+        request.state.governance_context.tenant_id = VALID_TENANT_ID
 
         tenant_id = require_request_tenant_id(request)
         assert tenant_id == VALID_TENANT_ID
 
     def test_require_request_tenant_id_fails_closed_when_context_absent(self):
-        """Missing request.state.context raises HTTPException 400."""
+        """Missing request.state.governance_context raises HTTPException 400."""
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = None
+        request.state.governance_context = None
 
         with pytest.raises(HTTPException) as exc_info:
             require_request_tenant_id(request)
@@ -76,8 +76,8 @@ class TestGraphVizTenantIsolation:
         """Empty tenant_id in context raises HTTPException 400."""
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = MagicMock()
-        request.state.context.tenant_id = ""
+        request.state.governance_context = MagicMock()
+        request.state.governance_context.tenant_id = ""
 
         with pytest.raises(HTTPException) as exc_info:
             require_request_tenant_id(request)
@@ -88,8 +88,8 @@ class TestGraphVizTenantIsolation:
         """Tenant ID with SQL injection patterns is rejected."""
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = MagicMock()
-        request.state.context.tenant_id = "tenant'; DROP TABLE--"
+        request.state.governance_context = MagicMock()
+        request.state.governance_context.tenant_id = "tenant'; DROP TABLE--"
 
         # The dependency extracts the value; validation happens at higher layers
         # This test verifies the extraction itself doesn't crash on malicious input
@@ -101,8 +101,8 @@ class TestGraphVizTenantIsolation:
         """Tenant ID with null byte is rejected."""
         request = MagicMock()
         request.state = MagicMock()
-        request.state.context = MagicMock()
-        request.state.context.tenant_id = "tenant\x00injection"
+        request.state.governance_context = MagicMock()
+        request.state.governance_context.tenant_id = "tenant\x00injection"
 
         tenant_id = require_request_tenant_id(request)
         # Extracts as-is; validation should happen at input boundary

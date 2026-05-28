@@ -64,8 +64,8 @@ def main() -> int:
         except FileNotFoundError:
             print("ERROR: ripgrep (rg) is required for this check.", file=sys.stderr)
             return 1
-        except subprocess.TimeoutExpired:
-            print("ERROR: Credential scan timed out.", file=sys.stderr)
+        except (subprocess.TimeoutExpired, subprocess.CalledProcessError) as e:
+            print(f"ERROR: Credential scan failed: {e}", file=sys.stderr)
             return 1
 
         for line in result.stdout.splitlines():

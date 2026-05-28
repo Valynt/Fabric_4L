@@ -33,7 +33,7 @@ async def close_db() -> None:
 
 
 @asynccontextmanager
-async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
+async def db_session_for_context(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
     async with session_maker() as session:
         await session.execute(text("SELECT set_config('app.tenant_id', :tenant_id, true)"), {"tenant_id": tenant_id})
         try:
@@ -44,10 +44,10 @@ async def db_session(tenant_id: str) -> AsyncGenerator[AsyncSession, None]:
             raise
 
 
-async def get_db(
+async def get_db_from_context(
     x_tenant_id: str = Header(...),
 ) -> AsyncGenerator[AsyncSession, None]:
-    async with db_session(x_tenant_id) as session:
+    async with db_session_for_context(x_tenant_id) as session:
         yield session
 
 

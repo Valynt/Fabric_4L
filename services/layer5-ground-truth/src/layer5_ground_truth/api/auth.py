@@ -213,15 +213,14 @@ def get_current_user(
     Resolve caller identity exclusively from canonical authenticated context.
 
     The only accepted source of tenant/user identity is
-    ``request.state.governance_context`` (or legacy ``request.state.context``
-    shim populated by shared middleware).
+    ``request.state.governance_context`` populated by shared middleware.
 
     Any request lacking canonical context fails closed. Header/query tenant hints
     are explicitly rejected and never used for identity resolution.
     """
     _ = settings
 
-    ctx = getattr(request.state, "governance_context", None) or getattr(request.state, "context", None)
+    ctx = getattr(request.state, "governance_context", None)
     if ctx is not None and getattr(ctx, "tenant_id", None):
         return _token_claims_from_context(ctx)
 

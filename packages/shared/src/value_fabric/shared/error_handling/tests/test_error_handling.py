@@ -514,7 +514,7 @@ class TestSanitizedPublicErrors:
         def crash():
             raise RuntimeError('token=abc123 leaked')
 
-        client = TestClient(app)
+        client = TestClient(app, raise_server_exceptions=False)
         response = client.get('/crash')
         body = response.json()
         assert response.status_code == 500

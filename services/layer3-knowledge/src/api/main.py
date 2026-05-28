@@ -72,46 +72,12 @@ from ..api.routes import (
     value_trees,
     variables,
 )
-from ..api.telemetry import (
-    OTEL_AVAILABLE,
-    SERVICE_NAME,
-    BatchSpanProcessor,
-    FastAPIInstrumentor,
-    OTLPSpanExporter,
-    Resource,
-    TracerProvider,
-    trace,
-)
 from ..api.versioning import VersionMiddleware, get_version_compatibility
 
 logger = get_logger(__name__)
 
-_tracer_provider: Any | None = None
 _probe_app: list[FastAPI] = []
 _security_config_l3: Any = None
-
-
-# ---------------------------------------------------------------------------
-# Telemetry
-# ---------------------------------------------------------------------------
-
-
-def init_telemetry() -> Any | None:
-    """Initialise OpenTelemetry tracing if an OTLP endpoint is configured."""
-    if not OTEL_AVAILABLE:
-        logger.debug("OpenTelemetry not available (module not installed)")
-        return None
-
-    otel_endpoint = os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT")
-    if not otel_endpoint:
-        return None
-
-    resource = Resource.create({SERVICE_NAME: "layer3-knowledge"})
-    provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint=f"{otel_endpoint}/v1/traces")
-    provider.add_span_processor(BatchSpanProcessor(exporter))
-    trace.set_tracer_provider(provider)
-    return provider
 
 
 # ---------------------------------------------------------------------------
@@ -158,13 +124,7 @@ def _exception_trace(exc: Exception) -> tuple:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan — startup and shutdown."""
-    global _tracer_provider
-
     validate_production_safety()
-
-    _tracer_provider = init_telemetry()
-    if _tracer_provider:
-        logger.info("L3: OpenTelemetry tracing initialised")
 
     settings = get_settings()
     setup_logging(settings)
@@ -348,6 +308,8 @@ capabilities for enterprise AI workflows.
     register_default_exception_handlers=False,
     include_request_id_middleware=True,
     post_core_middleware_hook=_post_core_middleware_hook,
+    telemetry_service_name="layer3-knowledge",
+    instrument_telemetry=True,
     health_probes=[CallableProbe(name="neo4j", fn=_neo4j_probe)],
     readiness_path="/ready",
     docs_url="/docs",
@@ -378,11 +340,6 @@ _probe_app.append(app)
 from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
 
 register_fabric_auth_from_env(app, service_name="layer3-knowledge")
-
-# OpenTelemetry instrumentation (after app creation)
-if OTEL_AVAILABLE and os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT"):
-    FastAPIInstrumentor.instrument_app(app)
-    logger.info("L3: FastAPI instrumented with OpenTelemetry")
 
 app.middleware("http")(VersionMiddleware(get_version_compatibility()))
 
@@ -542,7 +499,6 @@ __all__ = [
     "app",
     "close_app_state",
     "init_app_state",
-    "init_telemetry",
     "lifespan",
     "global_exception_handler",
     "value_fabric_exception_handler",

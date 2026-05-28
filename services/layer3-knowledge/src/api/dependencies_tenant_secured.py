@@ -376,8 +376,8 @@ def require_tenant_header_for_internal():
 
 
 def require_request_tenant_id(request: Request) -> str:
-    """Extract tenant from request.state.context and fail closed when absent."""
-    ctx = getattr(request.state, "context", None)
+    """Extract tenant from request.state.governance_context and fail closed when absent."""
+    ctx = getattr(request.state, "governance_context", None)
     tenant_id = getattr(ctx, "tenant_id", None) if ctx else None
     if not tenant_id:
         raise ValidationError(message = "tenant_id is required")

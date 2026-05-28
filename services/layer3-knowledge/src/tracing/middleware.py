@@ -1,20 +1,8 @@
 """FastAPI tracing middleware and integration.
 
-INTEROPERABILITY GAP:
-This module uses a custom tracer implementation (tracing/tracer.py) rather than
-the OpenTelemetry SDK directly. The custom tracer propagates W3C trace context
-headers and records spans, but its internal span format does not interoperate
-with standard OTel collectors (Jaeger, Tempo, OTLP receivers) without an
-adaptation layer.
-
-Layer 1 and Layer 4 use the OpenTelemetry SDK (opentelemetry-sdk) directly.
-To achieve end-to-end distributed tracing across all layers, this middleware
-should be migrated to use the OTel SDK's FastAPI instrumentation:
-  opentelemetry-instrumentation-fastapi
-
-Until that migration is complete, Layer 3 traces are isolated from the
-platform-wide trace context and cannot be correlated with L1/L4 spans in
-a standard OTel backend.
+This module uses the OpenTelemetry SDK directly for distributed tracing.
+It integrates with the platform-wide OTel infrastructure (Jaeger, Tempo,
+OTLP receivers) and correlates with L1/L4 spans in a standard OTel backend.
 """
 
 from collections.abc import Callable
@@ -24,7 +12,8 @@ from fastapi import Request, Response
 from opentelemetry import propagate, trace
 from opentelemetry.context import attach, detach
 from opentelemetry.trace import SpanContext as OTelSpanContext
-from opentelemetry.trace import TraceFlags
+from opentelemetry.trace import SpanKind as OTelSpanKind
+from opentelemetry.trace import Status, StatusCode, TraceFlags
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 from value_fabric.shared.observability.trace_context import canonical_trace_headers
@@ -32,33 +21,13 @@ from value_fabric.shared.observability.tracing_contract import build_trace_attri
 
 from logging_config import get_logger
 
-from ..tracing.tracer import (
-    Span,
-    SpanContext,
-    SpanKind,
-    SpanStatus,
-    TraceContext,
-    Tracer,
-    get_current_span,
-    get_tracer,
-)
-
 logger = get_logger(__name__)
+
+_otel_tracer = trace.get_tracer(__name__)
 
 
 class TracingMiddleware(BaseHTTPMiddleware):
     """Middleware to add distributed tracing to FastAPI requests."""
-
-    def __init__(self, app, tracer: Tracer | None = None):
-        """Initialize tracing middleware.
-
-        Args:
-            app: ASGI application
-            tracer: Tracer instance
-        """
-        super().__init__(app)
-        self.tracer = tracer or get_tracer()
-        self._otel_tracer = trace.get_tracer(__name__)
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request with tracing."""
@@ -92,7 +61,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
         if correlation_id:
             attributes["http.correlation_id"] = correlation_id
 
-        span = self._otel_tracer.start_span(
+        span = _otel_tracer.start_span(
             name=span_name(request.method, request.url.path),
             context=parent_ctx,
             attributes=attributes,
@@ -121,10 +90,10 @@ class TracingMiddleware(BaseHTTPMiddleware):
 
             # Set span status based on response
             if response.status_code >= 400:
-                span.set_status(trace.Status(trace.StatusCode.ERROR, f"HTTP {response.status_code}"))
+                span.set_status(Status(StatusCode.ERROR, f"HTTP {response.status_code}"))
                 span.set_attribute("error_code", f"http_{response.status_code}")
             else:
-                span.set_status(trace.Status(trace.StatusCode.OK))
+                span.set_status(Status(StatusCode.OK))
 
             # Add trace headers to response
             self._add_trace_headers(response, span.get_span_context())
@@ -141,6 +110,7 @@ class TracingMiddleware(BaseHTTPMiddleware):
                     "error_code": type(exc).__name__,
                 }
             )
+            span.set_status(Status(StatusCode.ERROR, str(exc)))
 
             # Re-raise the exception
             raise
@@ -174,13 +144,13 @@ class StreamingResponseTracer:
 
     @staticmethod
     def trace_streaming_response(
-        response: StreamingResponse, span: Span, total_size: int | None = None
+        response: StreamingResponse, span: trace.Span, total_size: int | None = None
     ) -> StreamingResponse:
         """Wrap streaming response to add tracing.
 
         Args:
             response: Streaming response
-            span: Current span
+            span: Current OTel span
             total_size: Expected total size
 
         Returns:
@@ -195,7 +165,8 @@ class StreamingResponseTracer:
                     bytes_sent += len(chunk)
                     yield chunk
             except Exception as exc:
-                span.set_error(exc)
+                span.record_exception(exc)
+                span.set_status(Status(StatusCode.ERROR, str(exc)))
                 raise
             finally:
                 span.set_attributes(
@@ -220,7 +191,7 @@ class StreamingResponseTracer:
 
 
 def add_span_attributes(attributes: dict[str, Any]) -> Callable:
-    """Decorator to add attributes to current span.
+    """Decorator to add attributes to current OTel span.
 
     Args:
         attributes: Attributes to add
@@ -231,7 +202,7 @@ def add_span_attributes(attributes: dict[str, Any]) -> Callable:
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            span = get_current_span()
+            span = trace.get_current_span()
             if span:
                 span.set_attributes(attributes)
             return func(*args, **kwargs)
@@ -242,7 +213,7 @@ def add_span_attributes(attributes: dict[str, Any]) -> Callable:
 
 
 def add_span_event(name: str, attributes: dict[str, Any] | None = None) -> Callable:
-    """Decorator to add event to current span.
+    """Decorator to add event to current OTel span.
 
     Args:
         name: Event name
@@ -254,7 +225,7 @@ def add_span_event(name: str, attributes: dict[str, Any] | None = None) -> Calla
 
     def decorator(func):
         def wrapper(*args, **kwargs):
-            span = get_current_span()
+            span = trace.get_current_span()
             if span:
                 span.add_event(name, attributes)
             return func(*args, **kwargs)
@@ -265,35 +236,28 @@ def add_span_event(name: str, attributes: dict[str, Any] | None = None) -> Calla
 
 
 class DatabaseTracer:
-    """Helper for tracing database operations."""
+    """Helper for tracing database operations using OpenTelemetry."""
 
     @staticmethod
     def trace_query(
-        tracer: Tracer,
         query: str,
         database: str,
         operation: str = "query",
-        parent_span: Span | None = None,
-    ) -> SpanContext:
+    ) -> trace.Span:
         """Trace a database query.
 
         Args:
-            tracer: Tracer instance
             query: Database query
             database: Database name
             operation: Operation type
-            parent_span: Parent span
 
         Returns:
-            Span context
+            OTel span (caller must end it)
         """
-        # Sanitize query for logging (remove sensitive data)
         sanitized_query = query[:200] + "..." if len(query) > 200 else query
-
-        return SpanContext(
-            tracer=tracer,
+        return _otel_tracer.start_span(
             name=f"{database}.{operation}",
-            kind=SpanKind.CLIENT,
+            kind=OTelSpanKind.CLIENT,
             attributes={
                 "db.system": database,
                 "db.operation": operation,
@@ -303,7 +267,7 @@ class DatabaseTracer:
         )
 
     @staticmethod
-    def trace_query_result(span: Span, result_count: int, duration_ms: float) -> None:
+    def trace_query_result(span: trace.Span, result_count: int, duration_ms: float) -> None:
         """Record query result in span.
 
         Args:
@@ -320,49 +284,46 @@ class DatabaseTracer:
         )
 
     @staticmethod
-    def trace_query_error(span: Span, error: Exception) -> None:
+    def trace_query_error(span: trace.Span, error: Exception) -> None:
         """Record query error in span.
 
         Args:
             span: Query span
             error: Exception that occurred
         """
-        span.set_error(error)
+        span.record_exception(error)
+        span.set_status(Status(StatusCode.ERROR, str(error)))
         span.set_attributes(
             {
                 "db.success": False,
                 "db.error_type": type(error).__name__,
             }
         )
+        span.end()
 
 
 class CacheTracer:
-    """Helper for tracing cache operations."""
+    """Helper for tracing cache operations using OpenTelemetry."""
 
     @staticmethod
     def trace_cache_operation(
-        tracer: Tracer,
         operation: str,
         cache_type: str,
         key: str,
-        parent_span: Span | None = None,
-    ) -> SpanContext:
+    ) -> trace.Span:
         """Trace a cache operation.
 
         Args:
-            tracer: Tracer instance
             operation: Operation type (get, set, delete)
             cache_type: Cache type (redis, memory)
             key: Cache key
-            parent_span: Parent span
 
         Returns:
-            Span context
+            OTel span (caller must end it)
         """
-        return SpanContext(
-            tracer=tracer,
+        return _otel_tracer.start_span(
             name=f"cache.{operation}",
-            kind=SpanKind.CLIENT,
+            kind=OTelSpanKind.CLIENT,
             attributes={
                 "cache.system": cache_type,
                 "cache.operation": operation,
@@ -371,7 +332,7 @@ class CacheTracer:
         )
 
     @staticmethod
-    def trace_cache_hit(span: Span, hit: bool) -> None:
+    def trace_cache_hit(span: trace.Span, hit: bool) -> None:
         """Record cache hit/miss in span.
 
         Args:
@@ -386,7 +347,7 @@ class CacheTracer:
         )
 
     @staticmethod
-    def trace_cache_size(span: Span, size_bytes: int) -> None:
+    def trace_cache_size(span: trace.Span, size_bytes: int) -> None:
         """Record cache size in span.
 
         Args:
@@ -401,32 +362,27 @@ class CacheTracer:
 
 
 class ExternalServiceTracer:
-    """Helper for tracing external service calls."""
+    """Helper for tracing external service calls using OpenTelemetry."""
 
     @staticmethod
     def trace_http_request(
-        tracer: Tracer,
         method: str,
         url: str,
         service_name: str,
-        parent_span: Span | None = None,
-    ) -> SpanContext:
+    ) -> trace.Span:
         """Trace an HTTP request to external service.
 
         Args:
-            tracer: Tracer instance
             method: HTTP method
             url: Request URL
             service_name: Target service name
-            parent_span: Parent span
 
         Returns:
-            Span context
+            OTel span (caller must end it)
         """
-        return SpanContext(
-            tracer=tracer,
+        return _otel_tracer.start_span(
             name=f"{service_name}.{method.lower()}",
-            kind=SpanKind.CLIENT,
+            kind=OTelSpanKind.CLIENT,
             attributes={
                 "http.method": method,
                 "http.url": url,
@@ -438,7 +394,7 @@ class ExternalServiceTracer:
         )
 
     @staticmethod
-    def trace_http_response(span: Span, status_code: int, response_size: int) -> None:
+    def trace_http_response(span: trace.Span, status_code: int, response_size: int) -> None:
         """Record HTTP response in span.
 
         Args:
@@ -454,76 +410,66 @@ class ExternalServiceTracer:
         )
 
         if status_code >= 400:
-            span.set_status(SpanStatus.ERROR, f"HTTP {status_code}")
+            span.set_status(Status(StatusCode.ERROR, f"HTTP {status_code}"))
         else:
-            span.set_status(SpanStatus.OK)
+            span.set_status(Status(StatusCode.OK))
+        span.end()
 
 
 class BusinessLogicTracer:
-    """Helper for tracing business logic operations."""
+    """Helper for tracing business logic operations using OpenTelemetry."""
 
     @staticmethod
     def trace_search_operation(
-        tracer: Tracer,
         query: str,
         search_type: str,
         result_count: int,
         duration_ms: float,
-        parent_span: Span | None = None,
-    ) -> SpanContext:
+    ) -> trace.Span:
         """Trace a search operation.
 
         Args:
-            tracer: Tracer instance
             query: Search query
             search_type: Type of search
             result_count: Number of results
             duration_ms: Operation duration
-            parent_span: Parent span
 
         Returns:
-            Span context
+            OTel span (already ended)
         """
-        span = tracer.start_span(
+        with _otel_tracer.start_as_current_span(
             name=f"search.{search_type}",
-            kind=SpanKind.INTERNAL,
+            kind=OTelSpanKind.INTERNAL,
             attributes={
                 "search.query": query[:100] + "..." if len(query) > 100 else query,
                 "search.type": search_type,
                 "search.result_count": result_count,
                 "search.duration_ms": duration_ms,
             },
-            parent_context=parent_span.trace_context if parent_span else None,
-        )
-
-        span.end()
-        return span
+        ) as span:
+            return span
 
     @staticmethod
     def trace_ingestion_operation(
-        tracer: Tracer,
         source_id: str,
         entities_processed: int,
         relationships_processed: int,
         duration_ms: float,
-        parent_span: Span | None = None,
-    ) -> SpanContext:
+    ) -> trace.Span:
         """Trace an ingestion operation.
 
         Args:
-            tracer: Tracer instance
             source_id: Source document ID
             entities_processed: Number of entities processed
             relationships_processed: Number of relationships processed
             duration_ms: Operation duration
-            parent_span: Parent span
 
         Returns:
-            Span context
+            OTel span (already ended)
         """
-        span = tracer.start_span(
+        with _otel_tracer.start_as_current_span(
             name="ingestion.process",
-            kind=SpanKind.INTERNAL,
+            kind=OTelSpanKind.INTERNAL,
             attributes={
                 "ingestion.source_id": source_id,
                 "ingestion.entities_processed": entities_processed,
@@ -531,11 +477,8 @@ class BusinessLogicTracer:
                 "ingestion.duration_ms": duration_ms,
                 "ingestion.total_items": entities_processed + relationships_processed,
             },
-            parent_context=parent_span.trace_context if parent_span else None,
-        )
-
-        span.end()
-        return span
+        ) as span:
+            return span
 
 
 # FastAPI dependencies
@@ -543,10 +486,10 @@ def get_current_span_dependency():
     """FastAPI dependency to get current span.
 
     Returns:
-        Current span or None
+        Current OTel span or None
     """
 
-    def dependency(request: Request) -> Span | None:
+    def dependency(request: Request) -> trace.Span | None:
         return getattr(request.state, "span", None)
 
     return dependency
@@ -556,10 +499,10 @@ def get_trace_context_dependency():
     """FastAPI dependency to get current trace context.
 
     Returns:
-        Current trace context or None
+        Current OTel span context or None
     """
 
-    def dependency(request: Request) -> Optional["TraceContext"]:
+    def dependency(request: Request) -> OTelSpanContext | None:
         return getattr(request.state, "trace_context", None)
 
     return dependency
@@ -569,15 +512,14 @@ def get_trace_id_dependency():
     """FastAPI dependency to get current trace ID.
 
     Returns:
-        Current trace ID or None
+        Current trace ID hex string or None
     """
 
     def dependency(request: Request) -> str | None:
         span = getattr(request.state, "span", None)
-        return span.trace_context.trace_id if span else None
+        if span is None:
+            return None
+        sc = span.get_span_context()
+        return format(sc.trace_id, "032x") if sc.is_valid else None
 
     return dependency
-
-
-# Initialize tracing on import
-tracer = get_tracer()

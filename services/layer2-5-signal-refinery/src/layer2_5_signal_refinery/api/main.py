@@ -32,9 +32,9 @@ logger = logging.getLogger(__name__)
 
 async def _probe_database() -> ProbeResult:
     from sqlalchemy import text
-    from ..database import db_session
+    from ..database import db_session_for_context
     try:
-        async with db_session() as session:
+        async with db_session_for_context() as session:
             await session.execute(text("SELECT 1"))
         return ProbeResult(name="database", healthy=True, detail="postgresql:ok")
     except Exception as exc:

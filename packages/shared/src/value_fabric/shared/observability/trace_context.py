@@ -35,7 +35,7 @@ def resolve_trace_context(headers, *, generator: Callable | None = None) -> Cano
     for header in ALL_TRACE_HEADERS:
         incoming = headers.get(header)
         if incoming:
-            return CanonicalTraceContext(trace_id=sanitize_trace_id(incoming, generator=generator), source_header=header)
+            return CanonicalTraceContext(trace_id=sanitize_trace_id(incoming), source_header=header)
     return CanonicalTraceContext(trace_id=_new_trace_id(generator), source_header=None)
 
 
@@ -45,5 +45,9 @@ def canonical_trace_headers(trace_id: str) -> dict[str, str]:
 
 def _new_trace_id(generator: Callable | None) -> str:
     if generator is not None:
-        return f"req_{generator()[:16]}"
+        generated = str(generator())
+        # If generator already includes req_ prefix, use as-is
+        if generated.startswith("req_"):
+            return generated
+        return f"req_{generated[:16]}"
     return f"req_{uuid.uuid4().hex[:16]}"

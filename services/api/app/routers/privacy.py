@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from fastapi.responses import Response
 from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
 
@@ -22,9 +22,10 @@ async def create_dsar(
     tenant_id: str = Depends(tenant_required),
     auth: TokenPayload = Depends(require_authenticated),
     idempotency_key: str | None = Header(None, alias="Idempotency-Key"),
+    request: Request,
 ):
     """Create a DSAR (Data Subject Access Request) for privacy compliance.
-    
+
     This endpoint supports idempotency via the Idempotency-Key header.
     Retrying the same request with the same key will return the cached response
     without creating duplicate DSAR records or export jobs.
@@ -32,20 +33,18 @@ async def create_dsar(
     # Check for idempotency replay if key is provided
     idem_request = None
     service = None
-    if idempotency_key:
+    if idempotency_key and request:
         try:
             from value_fabric.shared.idempotency import (
                 IdempotencyRequest,
                 build_request_fingerprint,
             )
             from value_fabric.shared.boundaries.tenant_boundary import get_tenant_context
-            
+
             ctx = get_tenant_context()
             # Get service from request state (set by middleware)
-            from fastapi import Request
-            from app.main import app as fabric_app
-            service = getattr(fabric_app.state, "idempotency_service", None)
-            
+            service = getattr(request.app.state, "idempotency_service", None)
+
             if service:
                 import json
                 fingerprint = build_request_fingerprint(
@@ -59,7 +58,7 @@ async def create_dsar(
                     idempotency_key=idempotency_key,
                     request_fingerprint=fingerprint,
                 )
-                
+
                 replay = service.check_replay(idem_request)
                 if replay is not None:
                     logger.info("DSAR request replayed from idempotency cache", idempotency_key=idempotency_key)

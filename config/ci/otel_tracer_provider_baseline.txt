@@ -7,7 +7,5 @@
 # Format: <repo-relative-posix-path>:<line>
 services/layer1-ingestion/src/crawler/telemetry.py:102
 services/layer1-ingestion/src/crawler/telemetry.py:74
-services/layer3-knowledge/src/api/main.py:107
-services/layer3-knowledge/src/api/main.py:110
 services/layer4-agents/src/api/app_factory.py:32
 services/layer4-agents/src/api/app_factory.py:35

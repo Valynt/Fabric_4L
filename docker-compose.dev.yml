@@ -213,9 +213,9 @@ services:
       - DEV_AUTH_BYPASS=true
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/extraction
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
-      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
+      - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-}@redis:6379/0
       - LOG_LEVEL=debug
       - PYTHONPATH=/app:/app/src
     depends_on:
