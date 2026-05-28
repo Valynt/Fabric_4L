@@ -6,10 +6,15 @@ deprecated use, compliance failures, and audit/queue errors.
 """
 
 import logging
+from abc import ABC, abstractmethod
 from datetime import UTC, datetime
 from enum import Enum
 from typing import Any
 from uuid import UUID
+
+from prometheus_client import Counter
+
+from .governance_metrics import GOVERNANCE_REGISTRY
 
 logger = logging.getLogger(__name__)
 
@@ -70,12 +75,21 @@ class GovernanceAlert:
         }
 
 
-class AlertHandler:
+ALERT_HANDLER_FAILURES_TOTAL = Counter(
+    "layer5_alert_handler_failures_total",
+    "Total number of governance alert handler failures",
+    ["handler", "alert_type", "severity"],
+    registry=GOVERNANCE_REGISTRY,
+)
+
+
+class AlertHandler(ABC):
     """Base class for alert handlers."""
 
+    @abstractmethod
     async def handle_alert(self, alert: GovernanceAlert) -> bool:
         """Handle an alert. Returns True if handled successfully."""
-        raise NotImplementedError
+        ...
 
 
 class LoggingAlertHandler(AlertHandler):
@@ -108,6 +122,11 @@ class GovernanceAlertManager:
 
     def add_handler(self, handler: AlertHandler):
         """Add an alert handler."""
+        if not isinstance(handler, AlertHandler):
+            raise TypeError(
+                "handler must be an AlertHandler implementation; "
+                f"got {type(handler).__name__}"
+            )
         self.handlers.append(handler)
 
     async def emit_alert(self, alert: GovernanceAlert):
@@ -115,8 +134,25 @@ class GovernanceAlertManager:
         for handler in self.handlers:
             try:
                 await handler.handle_alert(alert)
-            except Exception as e:
-                logger.error("Alert handler failed: %s", e)
+            except Exception as exc:
+                handler_name = type(handler).__name__
+                ALERT_HANDLER_FAILURES_TOTAL.labels(
+                    handler=handler_name,
+                    alert_type=alert.alert_type.value,
+                    severity=alert.severity.value,
+                ).inc()
+                logger.error(
+                    "Alert handler failed",
+                    extra={
+                        "handler": handler_name,
+                        "alert_type": alert.alert_type.value,
+                        "alert_severity": alert.severity.value,
+                        "tenant_id": str(alert.tenant_id),
+                        "entity_type": alert.entity_type,
+                        "entity_id": str(alert.entity_id),
+                        "error": str(exc),
+                    },
+                )
 
     async def alert_pending_approval(
         self,
