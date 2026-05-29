@@ -243,10 +243,10 @@ Historical root-level quality reports are archived under [`/archive/quality-repo
 
 | Metric | Target | Current | Notes |
 |--------|--------|---------|-------|
-| P0 Docs Updated | 100% | 95% | ✅ Root cleanup completed 2026-05-28 |
+| P0 Docs Updated | 100% | 100% | ✅ Root cleanup completed 2026-05-28 |
 | Docs with Diagrams | 80% | 30% | 🔄 In progress |
 | Broken Links | 0 | 0 | ✅ All links verified |
-| Root-level Files | <10 | 8 | ✅ Target achieved |
+| Root-level Files | <10 | 6 | ✅ Target achieved (removed canonical-paths-policy.md, spec-round2-followup.md) |
 | Archive Hygiene | Current | ✅ | 🗄️ Archive policy working |
 
 ---

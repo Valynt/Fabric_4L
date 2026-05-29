@@ -766,6 +766,31 @@ class ValidateTargetResponse(BaseModel):
     browser_test: dict[str, Any] | None = None
 
 
+def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
+    """Block SSRF-prone callback URLs (private IPs, localhost, non-HTTPS)."""
+    if value is None:
+        return None
+    from urllib.parse import urlparse
+    import ipaddress
+
+    parsed = urlparse(value)
+    if parsed.scheme != "https":
+        raise ValueError("callback_url must use HTTPS scheme")
+    hostname = parsed.hostname
+    if not hostname:
+        raise ValueError("callback_url must have a valid hostname")
+    hostname_lower = hostname.lower()
+    if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
+        raise ValueError("callback_url must not point to localhost")
+    try:
+        addr = ipaddress.ip_address(hostname)
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+            raise ValueError("callback_url must not point to private or reserved IP addresses")
+    except ValueError:
+        pass
+    return value
+
+
 class ExecuteTargetRequest(BaseModel):
     """Request to execute a target."""
 
@@ -774,6 +799,11 @@ class ExecuteTargetRequest(BaseModel):
     callback_url: str | None = None
     webhook_events: list[str] | None = None
     idempotency_key: str | None = Field(default=None, max_length=255)
+
+    @field_validator("callback_url")
+    @classmethod
+    def _check_callback_url(cls, v: str | None) -> str | None:
+        return _validate_callback_url_no_ssrf(v)
 
 
 class ExecuteTargetResponse(BaseModel):

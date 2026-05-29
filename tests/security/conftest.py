@@ -9,7 +9,7 @@ import pytest
 import jwt
 from unittest.mock import MagicMock, AsyncMock
 
-# Layer 3 source root is needed by tests that import value_fabric.layer3.*
+# Layer 3 source root is needed by tests that import layer3_knowledge.*
 # (e.g. test_neo4j_cross_tenant_write_isolation.py).  The value_fabric.layer3
 # shim appends services/layer3-knowledge/src to its __path__, but bare
 # intra-package imports inside that tree (e.g. ``from api.dependencies import
@@ -313,7 +313,7 @@ def client():
     from fastapi.testclient import TestClient
     
     try:
-        from value_fabric.layer1.api.app_monolith import app
+        from layer1_ingestion.api.app_monolith import app
         return _HybridTestClient(TestClient(app))
     except ImportError:
         pytest.skip("FastAPI app not available for testing")
@@ -376,7 +376,7 @@ def websocket_client(monkeypatch):
     
     try:
         # Try to import L4 app - may not be available without dependencies
-        from value_fabric.layer4.api.main import app
+        from services.layer4_agents.src.api.main import app
     except ImportError:
         pytest.skip("Layer 4 FastAPI app not available for WebSocket testing")
     
@@ -404,17 +404,17 @@ def websocket_client(monkeypatch):
     
     # Patch get_executor in the websocket routes module
     try:
-        import value_fabric.layer4.api.routes.workflows as _wf_mod
+        import services.layer4_agents.src.api.routes.workflows as _wf_mod
         monkeypatch.setattr(_wf_mod, "get_executor", _mock_get_executor)
     except Exception:
         pass
     
     # Also patch at the websocket routes import location
     try:
-        import value_fabric.layer4.api.websocket.routes as _ws_mod
+        import services.layer4_agents.src.api.websocket.routes as _ws_mod
         # The websocket routes import get_executor locally, so we need to patch
         # the workflows module it imports from
-        import value_fabric.layer4.api.routes.workflows as _wf_mod2
+        import services.layer4_agents.src.api.routes.workflows as _wf_mod2
         monkeypatch.setattr(_wf_mod2, "get_executor", _mock_get_executor)
     except Exception:
         pass

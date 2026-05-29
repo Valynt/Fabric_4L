@@ -102,7 +102,7 @@ class TestWorkflowWebSocketOwnership:
         We verify the connection was accepted and not closed with an error code.
         """
         from fastapi import WebSocketDisconnect
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -146,7 +146,7 @@ class TestWorkflowWebSocketOwnership:
         This is the primary regression test for SEC-L4-WS-001.
         A valid JWT from Tenant A must not grant access to Tenant B's stream.
         """
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -174,7 +174,7 @@ class TestWorkflowWebSocketOwnership:
     @pytest.mark.asyncio
     async def test_nonexistent_workflow_denied(self):
         """NEGATIVE: Workflow not found must be denied (prevents enumeration)."""
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -220,7 +220,7 @@ class TestWorkflowWebSocketOwnership:
                 "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
                 new=_capture,
             ):
-                from value_fabric.layer4.api.websocket.routes import workflow_websocket
+                from services.layer4_agents.src.api.websocket.routes import workflow_websocket
                 await workflow_websocket(
                     websocket=ws,
                     workflow_id=WORKFLOW_B,
@@ -243,7 +243,7 @@ class TestWorkflowWebSocketOwnershipUnit:
 
     @pytest.mark.asyncio
     async def test_returns_true_when_tenant_matches(self):
-        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
+        from services.layer4_agents.src.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -261,7 +261,7 @@ class TestWorkflowWebSocketOwnershipUnit:
 
     @pytest.mark.asyncio
     async def test_returns_false_when_tenant_mismatches(self):
-        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
+        from services.layer4_agents.src.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -279,7 +279,7 @@ class TestWorkflowWebSocketOwnershipUnit:
 
     @pytest.mark.asyncio
     async def test_returns_false_when_workflow_not_found(self):
-        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
+        from services.layer4_agents.src.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = None
@@ -294,7 +294,7 @@ class TestWorkflowWebSocketOwnershipUnit:
 
     @pytest.mark.asyncio
     async def test_returns_false_when_workflow_has_no_tenant(self):
-        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
+        from services.layer4_agents.src.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.return_value = {
@@ -313,7 +313,7 @@ class TestWorkflowWebSocketOwnershipUnit:
     @pytest.mark.asyncio
     async def test_returns_false_on_executor_exception(self):
         """Fail-closed: any unexpected error must deny the connection."""
-        from value_fabric.layer4.api.websocket.routes import _resolve_workflow_authorization
+        from services.layer4_agents.src.api.websocket.routes import _resolve_workflow_authorization
 
         mock_executor = AsyncMock()
         mock_executor.get_workflow_status.side_effect = RuntimeError("db unavailable")
@@ -337,7 +337,7 @@ class TestWorkflowWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_query_param_token_rejected(self):
         """REGRESSION P1-13: Token in query param must be rejected."""
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(query_token=token_a)
@@ -356,7 +356,7 @@ class TestWorkflowWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_missing_token_rejected(self):
         """NEGATIVE: No token at all must be rejected."""
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         ws = _make_websocket()  # no token anywhere
 
@@ -372,7 +372,7 @@ class TestWorkflowWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_expired_token_rejected(self):
         """NEGATIVE: Expired JWT must be rejected before ownership check."""
-        from value_fabric.layer4.api.websocket.routes import workflow_websocket
+        from services.layer4_agents.src.api.websocket.routes import workflow_websocket
 
         expired = _make_token(TENANT_A_ID, USER_A_ID, expires_in=-3600)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {expired}")
@@ -402,7 +402,7 @@ class TestSignalsWebSocketOwnership:
     async def test_tenant_a_can_stream_own_prospect(self):
         """POSITIVE: Tenant A can stream signals for their own prospect."""
         from fastapi import WebSocketDisconnect
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -427,7 +427,7 @@ class TestSignalsWebSocketOwnership:
 
         This is the primary regression test for SEC-L4-WS-002.
         """
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -454,7 +454,7 @@ class TestSignalsWebSocketOwnership:
     @pytest.mark.asyncio
     async def test_nonexistent_prospect_denied(self):
         """NEGATIVE: Prospect not found must be denied (prevents enumeration)."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -477,7 +477,7 @@ class TestSignalsWebSocketOwnership:
     @pytest.mark.asyncio
     async def test_layer3_exception_fails_closed(self):
         """NEGATIVE: Layer 3 unavailability must deny the connection (fail-closed)."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -500,7 +500,7 @@ class TestSignalsWebSocketOwnership:
     @pytest.mark.asyncio
     async def test_ownership_check_uses_jwt_tenant_not_path(self):
         """INVARIANT: Ownership lookup uses tenant from JWT, not from the URL path."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
@@ -535,7 +535,7 @@ class TestSignalsWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_query_param_token_rejected(self):
         """REGRESSION: Token in query param must be rejected on signals endpoint."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
         ws = _make_websocket(query_token=token_a)
@@ -550,7 +550,7 @@ class TestSignalsWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_missing_token_rejected(self):
         """NEGATIVE: No token must be rejected."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         ws = _make_websocket()
 
@@ -562,7 +562,7 @@ class TestSignalsWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_invalid_jwt_rejected(self):
         """NEGATIVE: Malformed JWT must be rejected before ownership check."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         ws = _make_websocket(protocol_header="base64url.bearer.authorization, not.a.valid.jwt")
 
@@ -578,7 +578,7 @@ class TestSignalsWebSocketAuthTransport:
     @pytest.mark.asyncio
     async def test_token_without_tenant_claim_rejected(self):
         """NEGATIVE: JWT with no tenant_id claim must be rejected."""
-        from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+        from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
 
         ws = _make_websocket(protocol_header="base64url.bearer.authorization, some.jwt.value")
 
@@ -613,7 +613,7 @@ class TestCrossTenantMatrix:
         token_a = _make_token(TENANT_A_ID, USER_A_ID)
 
         if endpoint == "workflow":
-            from value_fabric.layer4.api.websocket.routes import workflow_websocket
+            from services.layer4_agents.src.api.websocket.routes import workflow_websocket
             ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
             with patch(
@@ -626,7 +626,7 @@ class TestCrossTenantMatrix:
                     last_event_id=None,
                                     )
         else:
-            from value_fabric.layer4.api.routes.signals import signal_stream_websocket
+            from services.layer4_agents.src.api.routes.signals import signal_stream_websocket
             ws = _make_websocket(protocol_header=f"base64url.bearer.authorization, {token_a}")
 
             with patch(

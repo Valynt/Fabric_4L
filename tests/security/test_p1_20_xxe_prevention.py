@@ -8,7 +8,7 @@ import pytest
 from unittest.mock import MagicMock, patch, mock_open
 
 from bs4 import BeautifulSoup
-from value_fabric.layer1.post_processor.content_extractor import ContentExtractor
+from layer1_ingestion.post_processor.content_extractor import ContentExtractor
 
 
 class TestXXEPrevention:
@@ -18,7 +18,7 @@ class TestXXEPrevention:
         """ContentExtractor must use html.parser, not lxml."""
         # Read the source file to verify the fix
         import inspect
-        import value_fabric.layer1.post_processor.content_extractor as module
+        import layer1_ingestion.post_processor.content_extractor as module
 
         source = inspect.getsource(module)
 

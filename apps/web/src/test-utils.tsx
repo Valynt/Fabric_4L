@@ -141,12 +141,12 @@ export function TestAuthComponent() {
       <div data-testid="authenticated">{auth.isAuthenticated ? 'yes' : 'no'}</div>
       <div data-testid="user-email">{auth.user?.email ?? 'none'}</div>
       <div data-testid="access-token">{auth.accessToken ?? 'null'}</div>
-      <button data-testid="login-btn" onClick={() => auth.initiateLogin('test-tenant')}>Login</button>
+      <button data-testid="login-btn" onClick={() => auth.initiateLogin()}>Login</button>
       <button data-testid="logout-btn" onClick={() => safeAsync(auth.logout(), "test.logout")}>Logout</button>
       <button data-testid="refresh-btn" onClick={() => safeAsync(auth.refreshToken(), "test.refresh")}>Refresh</button>
       <button
         data-testid="callback-btn"
-        onClick={() => safeAsync(auth.handleCallback('test-code', 'oidc-state-123'), 'test.callback')}
+        onClick={() => safeAsync(auth.handleCallback(), 'test.callback')}
       >
         Callback
       </button>

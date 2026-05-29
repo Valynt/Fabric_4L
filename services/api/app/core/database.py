@@ -826,9 +826,8 @@ def get_pg_engine() -> Any:
 
     _pg_engine = get_async_engine(
         database_url=db_url,
-        pool_size=int(os.getenv("DB_POOL_SIZE", "10")),
-        max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "20")),
-        pool_timeout=float(os.getenv("DB_POOL_TIMEOUT", "30")),
+        pool_size=int(os.getenv("DB_POOL_SIZE", "20")),
+        max_overflow=int(os.getenv("DB_MAX_OVERFLOW", "10")),
         pool_pre_ping=True,
         echo=os.getenv("DB_ECHO", "false").lower() == "true",
     )

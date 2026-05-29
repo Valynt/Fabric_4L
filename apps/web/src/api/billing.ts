@@ -1,4 +1,4 @@
-import { apiRequest } from './client'
+import { apiGet } from './typedClient'
 
 export type EntitlementDecision = {
   tenant_id: string
@@ -9,5 +9,6 @@ export type EntitlementDecision = {
 }
 
 export async function getEntitlementDecision(planId: string, feature: string): Promise<EntitlementDecision> {
-  return apiRequest<EntitlementDecision>(`/v1/billing/entitlements/${planId}/decision?feature=${encodeURIComponent(feature)}`)
+  const response = await apiGet<EntitlementDecision>('l1', `/billing/entitlements/${planId}/decision?feature=${encodeURIComponent(feature)}`)
+  return response.data
 }

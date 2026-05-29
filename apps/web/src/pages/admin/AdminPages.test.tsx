@@ -314,8 +314,8 @@ describe('PermissionsAdmin', () => {
     await waitFor(() => {
       const apiKeysTab = screen.getByRole('button', { name: /^API Keys/i });
       const usersTab = screen.getByRole('button', { name: /^Users/i });
-      expect(apiKeysTab).toHaveClass('text-blue-700');
-      expect(usersTab).not.toHaveClass('text-blue-700');
+      expect(apiKeysTab).toHaveClass('text-primary');
+      expect(usersTab).not.toHaveClass('text-primary');
     });
   }, 10_000);
 
@@ -325,8 +325,8 @@ describe('PermissionsAdmin', () => {
     await waitFor(() => {
       const usersTab = screen.getByRole('button', { name: /^Users/i });
       const apiKeysTab = screen.getByRole('button', { name: /^API Keys/i });
-      expect(usersTab).toHaveClass('text-blue-700');
-      expect(apiKeysTab).not.toHaveClass('text-blue-700');
+      expect(usersTab).toHaveClass('text-primary');
+      expect(apiKeysTab).not.toHaveClass('text-primary');
     });
   }, 10_000);
 });

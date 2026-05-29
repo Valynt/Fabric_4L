@@ -11,7 +11,7 @@ from tests.contract.helpers.observability_endpoints import (
 
 @pytest.mark.unit
 def test_layer1_observability_endpoints_contract() -> None:
-    from value_fabric.layer1.api.app_monolith import app
+    from layer1_ingestion.api.app_monolith import app
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)
@@ -33,7 +33,7 @@ def test_layer2_observability_endpoints_contract() -> None:
 
 @pytest.mark.unit
 def test_layer3_observability_endpoints_contract() -> None:
-    from value_fabric.layer3.api.main import app
+    from layer3_knowledge.api.main import app
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)
@@ -44,7 +44,7 @@ def test_layer3_observability_endpoints_contract() -> None:
 
 @pytest.mark.unit
 def test_layer4_observability_endpoints_contract() -> None:
-    from value_fabric.layer4.api.app_factory import create_app
+    from services.layer4_agents.src.api.app_factory import create_app
 
     app = create_app()
     assert_paths_present(app, ("/health", "/ready", "/metrics"))

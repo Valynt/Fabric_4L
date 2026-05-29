@@ -1,4 +1,4 @@
-from value_fabric.layer3.services.compat_metrics import (
+from layer3_knowledge.services.compat_metrics import (
     get_compat_metrics_snapshot,
     record_deprecated_legacy_field_usage,
     record_deprecated_route_hit,

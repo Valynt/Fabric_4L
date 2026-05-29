@@ -3,8 +3,8 @@ from __future__ import annotations
 import pytest
 from pathlib import Path
 
-from value_fabric.layer3.agents.roi_calculation import ROICalculationAgent
-from value_fabric.layer3.analytics.similarity import SimilarityAnalyzer
+from layer3_knowledge.agents.roi_calculation import ROICalculationAgent
+from layer3_knowledge.analytics.similarity import SimilarityAnalyzer
 
 # Canonical source root for Layer 3 (via the value_fabric.layer3 shim).
 _L3_SRC = Path(__file__).resolve().parents[2] / "services" / "layer3-knowledge" / "src"

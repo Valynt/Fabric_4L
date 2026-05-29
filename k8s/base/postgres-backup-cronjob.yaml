@@ -44,11 +44,10 @@ spec:
                   
                   echo "Backup completed: $$TIMESTAMP"
               env:
+                # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
+                # Only password is sourced from the secret.
                 - name: POSTGRES_USER
-                  valueFrom:
-                    secretKeyRef:
-                      name: postgres-secret
-                      key: username
+                  value: "postgres"
                 - name: POSTGRES_PASSWORD
                   valueFrom:
                     secretKeyRef:

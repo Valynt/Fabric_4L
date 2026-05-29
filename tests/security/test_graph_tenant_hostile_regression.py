@@ -2,11 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from value_fabric.layer3.services.competitive_intel_service import (
+from layer3_knowledge.services.competitive_intel_service import (
     CompetitiveIntelService,
     _get_tenant_id as get_competitive_tenant,
 )
-from value_fabric.layer3.services.product_service import (
+from layer3_knowledge.services.product_service import (
     ProductService,
     _get_tenant_id as get_product_tenant,
 )

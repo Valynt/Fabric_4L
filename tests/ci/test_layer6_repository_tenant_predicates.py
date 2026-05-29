@@ -5,7 +5,7 @@ import re
 
 import pytest
 
-from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]

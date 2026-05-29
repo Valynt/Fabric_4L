@@ -17,7 +17,7 @@ class TestPromptInjectionDelimiters:
 
     def test_whitespace_workflow_has_delimiters(self):
         """Whitespace workflow must wrap needs_text in delimiters."""
-        from value_fabric.layer4.workflows import whitespace
+        from services.layer4_agents.src.workflows import whitespace
 
         source = inspect.getsource(whitespace)
 
@@ -29,7 +29,7 @@ class TestPromptInjectionDelimiters:
 
     def test_generation_tools_has_delimiters(self):
         """Generation tools must wrap context in delimiters."""
-        from value_fabric.layer4.tools import generation_tools
+        from services.layer4_agents.src.tools import generation_tools
 
         source = inspect.getsource(generation_tools)
 
@@ -54,7 +54,7 @@ class TestPromptInjectionDelimiters:
 
     def test_tone_parameter_is_sanitized(self):
         """Tone parameter should be validated against allowlist."""
-        from value_fabric.layer4.tools import generation_tools
+        from services.layer4_agents.src.tools import generation_tools
 
         source = inspect.getsource(generation_tools.GenerateSectionTool.execute)
 

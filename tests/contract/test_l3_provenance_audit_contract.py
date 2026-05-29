@@ -4,8 +4,8 @@ from types import SimpleNamespace
 import pytest
 
 try:
-    from value_fabric.layer3.api.models import AuditLogResponse, ProvenanceTrailResponse
-    from value_fabric.layer3.api.routes import provenance_audit
+    from layer3_knowledge.api.models import AuditLogResponse, ProvenanceTrailResponse
+    from layer3_knowledge.api.routes import provenance_audit
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",
