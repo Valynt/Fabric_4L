@@ -328,16 +328,14 @@ jobs:
         run: python scripts/ci/check_duplicate_source_trees.py --strict
         # NO continue-on-error: This is a BLOCKING contract gate
 
-      - name: Runtime canonical import drift (warn-only)
+      - name: Enforce runtime canonical import drift
         run: |
           set -o pipefail
           mkdir -p artifacts
-          python scripts/ci/check_runtime_canonical_imports.py | tee artifacts/canonical-import-drift.txt
+          python scripts/ci/check_runtime_canonical_imports.py --strict | tee artifacts/canonical-import-drift.txt
           echo "## Runtime canonical import drift" >> $GITHUB_STEP_SUMMARY
           cat artifacts/canonical-import-drift.txt >> $GITHUB_STEP_SUMMARY
-        # Warn-only: reports non-canonical value_fabric.layer* imports in service code
-        # but does not block the pipeline. Promote to --strict once violations reach
-        # zero (target: 2026-06-30 per value_fabric/DEPRECATED.md).
+        # Strict mode is a blocking contract gate for non-canonical value_fabric.layer* imports in service code.
 
       - name: Contract scan - Tenant context violations
         run: |

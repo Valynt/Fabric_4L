@@ -7,7 +7,8 @@ Owner: layer3-knowledge
 Removal/migration target: 2026-09-30
 Reason: Compatibility shim exposing _resolve_ingest_tenant_id under the
 legacy app_monolith namespace. Tests and callers should migrate to
-value_fabric.layer3.api.services.tenant_resolution.resolve_ingest_tenant_id.
+services/layer3-knowledge/src/api/services/tenant_resolution.py
+(``api.services.tenant_resolution.resolve_ingest_tenant_id``).
 """
 
 
