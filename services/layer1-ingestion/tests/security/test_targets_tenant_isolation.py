@@ -75,7 +75,7 @@ class TestStatusEndpointTenantIsolation:
         assert str(b_target.id) not in body or "not found" in body.lower()
 
     def test_unauthenticated_status_request_returns_401(self, db, org_id, make_target):
-        from value_fabric.layer1.api.app_monolith import app
+        from layer1_ingestion.api.app_monolith import app
         t = make_target(org_id, status="ACTIVE")
         with TestClient(app, raise_server_exceptions=False) as raw:
             resp = raw.patch(
@@ -154,7 +154,7 @@ class TestBatchEndpointTenantIsolation:
     def test_batch_cannot_execute_cross_tenant_target(
         self, client, db, other_org_id, make_target
     ):
-        from value_fabric.layer1.shared.models import ScrapingJob
+        from layer1_ingestion.shared.models import ScrapingJob
         b_target = make_target(other_org_id, status="ACTIVE")
         client.post(
             BATCH_BASE,
@@ -168,7 +168,7 @@ class TestBatchEndpointTenantIsolation:
         assert job_count == 0
 
     def test_unauthenticated_batch_request_returns_401(self, db, org_id, make_target):
-        from value_fabric.layer1.api.app_monolith import app
+        from layer1_ingestion.api.app_monolith import app
         t = make_target(org_id, status="ACTIVE")
         with TestClient(app, raise_server_exceptions=False) as raw:
             resp = raw.post(

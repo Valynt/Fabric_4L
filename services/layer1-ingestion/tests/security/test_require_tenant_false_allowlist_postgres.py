@@ -41,7 +41,7 @@ class TestRequireTenantFalseAllowlist:
 
     def test_require_tenant_false_not_in_main_pipeline_stages(self):
         """Main pipeline stages should not use require_tenant=False."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         import inspect
         
         stage_tasks = [
@@ -84,7 +84,7 @@ class TestRequireTenantFalseAllowlist:
 
     def test_process_scraping_job_uses_require_tenant_true(self):
         """process_scraping_job should use require_tenant=True for main DB session."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         import inspect
         
         source = inspect.getsource(process_scraping_job)
@@ -140,7 +140,7 @@ class TestRequireTenantFalseAllowlist:
 
     def test_cleanup_old_content_tenant_parameter(self):
         """cleanup_old_content should accept tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
         
         sig = inspect.signature(cleanup_old_content)
@@ -149,7 +149,7 @@ class TestRequireTenantFalseAllowlist:
 
     def test_cleanup_old_content_uses_tenant_context(self):
         """cleanup_old_content should use tenant context when tenant_id is provided."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
         
         source = inspect.getsource(cleanup_old_content)
@@ -237,7 +237,7 @@ class TestSecurityHardeningCompleteness:
 
     def test_all_tasks_accept_tenant_id(self):
         """All Celery tasks should accept tenant_id parameter."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         import inspect
         
         # Get all task functions
@@ -300,7 +300,7 @@ class TestSecurityHardeningCompleteness:
 
     def test_decision_store_writes_require_tenant_true(self):
         """Decision store persistence must enforce require_tenant=True."""
-        from value_fabric.layer1.crawler.decision_store import CrawlDecisionRepository
+        from layer1_ingestion.crawler.decision_store import CrawlDecisionRepository
         import inspect
 
         source = inspect.getsource(CrawlDecisionRepository._save_sync)

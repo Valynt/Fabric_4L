@@ -179,7 +179,7 @@ class TestBatchExecute:
 
     def test_execute_duplicate_ids_do_not_double_execute(self, client, db, org_id, make_target):
         """Duplicate IDs are deduplicated before processing — exactly one job is created."""
-        from value_fabric.layer1.shared.models import ScrapingJob
+        from layer1_ingestion.shared.models import ScrapingJob
         t = make_target(org_id, status="ACTIVE")
         resp = _batch(client, "execute", [t.id, t.id])
         data = resp.json()
@@ -252,7 +252,7 @@ class TestResponseShape:
 
 def _make_active_job(db, tenant_id, target_id, user_id, status="QUEUED"):
     """Insert a ScrapingJob in an in-progress state for the given target."""
-    from value_fabric.layer1.shared.models import create_scraping_job
+    from layer1_ingestion.shared.models import create_scraping_job
     job = create_scraping_job(
         tenant_id=tenant_id,
         target_id=target_id,

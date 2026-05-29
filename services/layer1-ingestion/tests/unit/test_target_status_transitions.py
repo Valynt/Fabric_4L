@@ -4,7 +4,7 @@ import pytest
 from uuid import uuid4, UUID
 from sqlalchemy.orm import Session
 
-from value_fabric.layer1.shared.models import TargetStatus, ScrapingTarget
+from layer1_ingestion.shared.models import TargetStatus, ScrapingTarget
 
 
 @pytest.fixture
@@ -23,7 +23,7 @@ def user_id():
 
 
 def _make_target(db: Session, tenant_id: UUID, status: str = "ACTIVE") -> ScrapingTarget:
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     t = create_scraping_target(
         tenant_id=tenant_id,
         name="Test Target",

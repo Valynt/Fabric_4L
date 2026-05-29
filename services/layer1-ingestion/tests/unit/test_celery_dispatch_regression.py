@@ -8,13 +8,13 @@ import pytest
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
-from value_fabric.layer1.shared.config import Settings
+from layer1_ingestion.shared.config import Settings
 
 
 class TestCeleryTaskDispatchRegression:
     """Regression tests for Celery task naming bug fix."""
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_short_task_name_causes_not_registered(self, mock_settings):
         """Regression test: short task name should fail with NotRegistered.
         
@@ -42,7 +42,7 @@ class TestCeleryTaskDispatchRegression:
         # Assert: NotRegistered was raised
         assert "run_extraction_task" in str(exc_info.value)
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_full_task_name_succeeds(self, mock_settings):
         """Verify full task name is registered and succeeds.
         
@@ -71,7 +71,7 @@ class TestCeleryTaskDispatchRegression:
         call_args = mock_celery_instance.send_task.call_args
         assert call_args[0][0] == "layer2_extraction.shared.tasks.run_extraction_task"
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_name_includes_module_path(self, mock_settings):
         """Verify task name includes full module path for disambiguation.
         
@@ -105,7 +105,7 @@ class TestCeleryTaskDispatchRegression:
         assert "tasks" in task_name
         assert "run_extraction_task" in task_name
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_arguments_include_tenant_id(self, mock_settings):
         """Verify task arguments include tenant_id in extraction payload.
         
@@ -144,7 +144,7 @@ class TestCeleryTaskDispatchRegression:
         assert payload_arg["tenant_id"] == tenant_id
         assert payload_arg["job_id"] == job_id
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_http_fallback_on_celery_failure(self, mock_settings):
         """Test HTTP fallback triggers when Celery dispatch fails.
         
@@ -171,7 +171,7 @@ class TestCeleryTaskDispatchRegression:
         assert "Celery connection failed" in str(exc_info.value)
         mock_celery_instance.send_task.assert_called_once()
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_result_timeout_configured(self, mock_settings):
         """Verify task result retrieval has timeout configured.
         
@@ -203,7 +203,7 @@ class TestCeleryTaskDispatchRegression:
         call_kwargs = mock_result.get.call_args[1]
         assert call_kwargs["timeout"] == 300
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_client_uses_correct_broker(self, mock_settings):
         """Verify Celery client is created with L2's broker URL.
         

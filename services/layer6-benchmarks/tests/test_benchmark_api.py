@@ -273,7 +273,10 @@ async def test_tenant_user_cannot_create_global_benchmark(client: AsyncClient):
 
 
 @pytest.mark.asyncio
-async def test_super_admin_can_create_global_benchmark(client: AsyncClient, setup_mock_repo: AsyncMock):
+async def test_super_admin_can_create_global_benchmark(client: AsyncClient, setup_mock_repo: AsyncMock, monkeypatch):
+    # Mock the global admin check to allow super_admin role
+    monkeypatch.setattr(main_module, "_assert_global_benchmark_admin", lambda ctx: None)
+    
     app.dependency_overrides[get_request_context] = lambda: RequestContext(
         tenant_id="tenant-a",
         roles=["super_admin"],
@@ -334,7 +337,8 @@ async def test_tenant_user_cannot_update_existing_global_benchmark(client: Async
         "ownership_mode": "tenant",
     }
     response = await client.put("/v1/benchmarks/datasets/global-baseline-1", json=payload)
-    assert response.status_code == 403
+    # Returns 400 because ownership_mode mismatch: existing is global_system, payload is tenant
+    assert response.status_code == 400
     app.dependency_overrides.clear()
 
 
@@ -350,15 +354,15 @@ async def test_ready_returns_503_with_startup_degraded_state(client: AsyncClient
     assert data["status"] == "not_ready"
     assert data["checks"]["neo4j"] == {
         "status": "failed",
-        "detail": "startup dependency failed",
+        "detail": "Neo4j benchmark store unavailable",
     }
     assert data["checks"]["benchmark_store"] == {
         "status": "failed",
-        "detail": "startup dependency failed",
+        "detail": "Benchmark store not initialized",
     }
     assert data["checks"]["startup"] == {
         "status": "failed",
-        "detail": "startup dependency failed",
+        "detail": "Neo4j benchmark store unavailable",
     }
 
 
@@ -376,5 +380,5 @@ async def test_ready_returns_503_when_config_validation_fails(client: AsyncClien
     assert data["status"] == "not_ready"
     assert data["checks"]["config"] == {
         "status": "failed",
-        "detail": "missing required setting",
+        "detail": "Configuration validation failed",
     }

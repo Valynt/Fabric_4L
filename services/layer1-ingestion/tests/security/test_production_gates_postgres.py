@@ -23,7 +23,7 @@ import uuid
 from datetime import datetime, timezone, timedelta
 from unittest.mock import patch, MagicMock
 
-from value_fabric.layer1.shared.exceptions import (
+from layer1_ingestion.shared.exceptions import (
     SecurityError,
     TenantContextError,
     InvalidTenantContextError,
@@ -33,7 +33,7 @@ from value_fabric.layer1.shared.exceptions import (
     RobotsFetchError,
     RobotsParseError,
 )
-from value_fabric.layer1.shared.maintenance import (
+from layer1_ingestion.shared.maintenance import (
     SystemMaintenanceIdentity,
     MaintenanceOperation,
     MaintenanceAuditRecord,
@@ -46,8 +46,8 @@ from value_fabric.layer1.shared.maintenance import (
     TENANT_TOKEN_PREFIX,
     MAX_TOKEN_AGE_SECONDS,
 )
-from value_fabric.layer1.shared.database import get_db_session, validate_tenant_id
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.database import get_db_session, validate_tenant_id
+from layer1_ingestion.shared.models import (
     RobotsTxtCache,
     ScrapingJob,
     ScrapingTarget,
@@ -640,7 +640,7 @@ class TestProductionGateCICompliance:
 
     def test_security_exceptions_imported_correctly(self):
         """All security exceptions must be importable and correctly typed."""
-        from value_fabric.layer1.shared.exceptions import (
+        from layer1_ingestion.shared.exceptions import (
             SecurityError,
             TenantContextError,
             InvalidTenantContextError,
@@ -656,7 +656,7 @@ class TestProductionGateCICompliance:
 
     def test_robots_checker_exceptions_imported(self):
         """RobotsChecker exceptions must be importable."""
-        from value_fabric.layer1.shared.exceptions import (
+        from layer1_ingestion.shared.exceptions import (
             RobotsCheckerError,
             RobotsCacheError,
             RobotsFetchError,

@@ -14,11 +14,11 @@ from __future__ import annotations
 import pytest
 from uuid import uuid4, UUID
 
-from value_fabric.layer1.crawler.decision_store import (
+from layer1_ingestion.crawler.decision_store import (
     CrawlDecisionRecord,
     CrawlDecisionRepository,
 )
-from value_fabric.layer1.shared.models import CrawlDecision
+from layer1_ingestion.shared.models import CrawlDecision
 
 
 pytestmark = pytest.mark.requires_postgres
@@ -57,7 +57,7 @@ class TestCrawlDecisionTenantIsolation:
         )
 
         # Save with tenant A context
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         async def save_with_tenant():
@@ -130,7 +130,7 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         async def save_both():
@@ -198,7 +198,7 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         # This should fail if _get_session() is called without tenant context
@@ -241,7 +241,7 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         # Try to save with tenant A context but record has tenant_id=B
@@ -286,7 +286,7 @@ class TestCrawlDecisionTenantIsolation:
             text_length=1000,
         )
 
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         import asyncio
 
         # Save with tenant B context

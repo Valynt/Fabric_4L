@@ -2,9 +2,20 @@
 
 Provides centralized logic for determining the current runtime environment
 and whether production-grade security checks should be enforced.
+
+DEPRECATED: This is a duplicate of the canonical implementation at
+packages/shared/src/value_fabric/shared/environment.py. Import from there instead.
 """
 
 import os
+import warnings
+
+warnings.warn(
+    "value_fabric.shared.environment is deprecated. "
+    "Import from packages.shared.src.value_fabric.shared.environment instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}

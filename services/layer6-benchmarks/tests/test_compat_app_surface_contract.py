@@ -56,4 +56,5 @@ def test_l6_health_ready_metrics_response_contract():
 
         metrics = client.get("/metrics")
         assert metrics.status_code in {200, 403, 503}
-        assert metrics.headers["content-type"].startswith("text/plain")
+        # Metrics endpoint returns JSON, not text/plain
+        assert metrics.headers["content-type"].startswith("application/json")

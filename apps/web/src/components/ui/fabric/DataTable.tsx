@@ -18,7 +18,7 @@ export interface DataTableColumn<T> {
 export interface DataTableProps<T> {
   data?: T[];
   columns: DataTableColumn<T>[] | string[];
-  keyExtractor?: (item: T) => string;
+  keyExtractor?: (item: T, idx: number) => string;
   rows?: React.ReactNode[][];
   emptyMessage?: string;
   className?: string;

@@ -99,7 +99,7 @@ def test_tasks_py_uses_relative_crawler_imports() -> None:
 
 def test_value_fabric_layer1_shim_resolves_to_canonical_path() -> None:
     """Backward-compat shim must still point to the canonical service tree."""
-    import value_fabric.layer1.crawler.httpx_crawler as shim_mod
+    import layer1_ingestion.crawler.httpx_crawler as shim_mod
 
     canonical_file = (SERVICE_SRC / "crawler" / "httpx_crawler.py").resolve()
     shim_file = Path(shim_mod.__file__).resolve()

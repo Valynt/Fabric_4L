@@ -125,5 +125,9 @@ class EncryptedString(TypeDecorator):
             return fernet.decrypt(value.encode("ascii")).decode("utf-8")
         except InvalidToken:
             # Graceful fallback for legacy unencrypted data.
-            logger.debug("InvalidToken on EncryptedString decrypt; returning raw value")
+            # Log at WARNING level so configuration errors are visible in production.
+            logger.warning(
+                "InvalidToken on EncryptedString decrypt; returning raw value. "
+                "This may indicate a CREDENTIALS_MASTER_KEY mismatch or legacy unencrypted data."
+            )
             return value

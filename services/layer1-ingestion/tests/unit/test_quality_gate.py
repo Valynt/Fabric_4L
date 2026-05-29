@@ -11,8 +11,8 @@ Covers:
 
 import pytest
 
-from value_fabric.layer1.crawler.httpx_crawler import FastPathResult
-from value_fabric.layer1.crawler.quality_gate import (
+from layer1_ingestion.crawler.httpx_crawler import FastPathResult
+from layer1_ingestion.crawler.quality_gate import (
     AdaptiveQualityGate,
     QualityGate,
     QualityThresholds,

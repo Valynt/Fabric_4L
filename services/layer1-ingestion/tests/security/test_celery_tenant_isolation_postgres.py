@@ -16,8 +16,8 @@ import pytest
 from uuid import uuid4
 from unittest.mock import MagicMock, patch
 
-from value_fabric.layer1.shared.database import get_db_session, TenantContextError
-from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, JobStatus
+from layer1_ingestion.shared.database import get_db_session, TenantContextError
+from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, JobStatus
 
 
 pytestmark = pytest.mark.requires_postgres
@@ -28,7 +28,7 @@ class TestCeleryTaskTenantContext:
 
     def test_process_scraping_job_signature_accepts_tenant_id(self):
         """process_scraping_job task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         import inspect
         
         sig = inspect.signature(process_scraping_job)
@@ -38,7 +38,7 @@ class TestCeleryTaskTenantContext:
 
     def test_compliance_check_stage_accepts_tenant_id(self):
         """compliance_check_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
         import inspect
         
         sig = inspect.signature(compliance_check_stage)
@@ -47,7 +47,7 @@ class TestCeleryTaskTenantContext:
 
     def test_browser_crawl_stage_accepts_tenant_id(self):
         """browser_crawl_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import browser_crawl_stage
+        from layer1_ingestion.shared.tasks import browser_crawl_stage
         import inspect
         
         sig = inspect.signature(browser_crawl_stage)
@@ -56,7 +56,7 @@ class TestCeleryTaskTenantContext:
 
     def test_ai_extraction_stage_accepts_tenant_id(self):
         """ai_extraction_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import ai_extraction_stage
+        from layer1_ingestion.shared.tasks import ai_extraction_stage
         import inspect
         
         sig = inspect.signature(ai_extraction_stage)
@@ -65,7 +65,7 @@ class TestCeleryTaskTenantContext:
 
     def test_post_processing_stage_accepts_tenant_id(self):
         """post_processing_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import post_processing_stage
+        from layer1_ingestion.shared.tasks import post_processing_stage
         import inspect
         
         sig = inspect.signature(post_processing_stage)
@@ -74,7 +74,7 @@ class TestCeleryTaskTenantContext:
 
     def test_validation_stage_accepts_tenant_id(self):
         """validation_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import validation_stage
+        from layer1_ingestion.shared.tasks import validation_stage
         import inspect
         
         sig = inspect.signature(validation_stage)
@@ -83,7 +83,7 @@ class TestCeleryTaskTenantContext:
 
     def test_storage_stage_accepts_tenant_id(self):
         """storage_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import storage_stage
+        from layer1_ingestion.shared.tasks import storage_stage
         import inspect
         
         sig = inspect.signature(storage_stage)
@@ -92,7 +92,7 @@ class TestCeleryTaskTenantContext:
 
     def test_notification_stage_accepts_tenant_id(self):
         """notification_stage task signature includes tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import notification_stage
+        from layer1_ingestion.shared.tasks import notification_stage
         import inspect
         
         sig = inspect.signature(notification_stage)
@@ -141,7 +141,7 @@ class TestPipelineChainTenantPropagation:
 
     def test_pipeline_chain_includes_tenant_id(self):
         """Pipeline chain construction includes tenant_id in all stages."""
-        from value_fabric.layer1.shared.tasks import (
+        from layer1_ingestion.shared.tasks import (
             compliance_check_stage,
             browser_crawl_stage,
             ai_extraction_stage,
@@ -239,7 +239,7 @@ class TestCleanupTaskTenantIsolation:
 
     def test_cleanup_old_content_accepts_tenant_id(self):
         """cleanup_old_content task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
         
         sig = inspect.signature(cleanup_old_content)
@@ -278,7 +278,7 @@ class TestDispatchOutboxEventTenantIsolation:
 
     def test_dispatch_outbox_event_accepts_tenant_id(self):
         """dispatch_outbox_event task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
         import inspect
         
         sig = inspect.signature(dispatch_outbox_event)
@@ -301,7 +301,7 @@ class TestFailJobTenantContext:
 
     def test_fail_job_accepts_tenant_id(self):
         """_fail_job helper accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         import inspect
         
         sig = inspect.signature(_fail_job)
@@ -326,7 +326,7 @@ class TestCrawlUrlWithRoutingTenantContext:
 
     def test_crawl_url_with_routing_accepts_tenant_id(self):
         """crawl_url_with_routing task accepts tenant_id parameter."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
         import inspect
         
         sig = inspect.signature(crawl_url_with_routing)
@@ -351,7 +351,7 @@ class TestDecisionStoreTenantContext:
         """Decision store write path must reject missing tenant_id."""
         from datetime import UTC, datetime
 
-        from value_fabric.layer1.crawler.decision_store import (
+        from layer1_ingestion.crawler.decision_store import (
             CrawlDecisionRecord,
             CrawlDecisionRepository,
         )

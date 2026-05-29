@@ -27,22 +27,22 @@ from starlette.types import ASGIApp
 
 # Lazy import helpers
 def _get_app():
-    from value_fabric.layer1.api.app_monolith import app
+    from layer1_ingestion.api.app_monolith import app
     return app
 
 
 def _get_base():
-    from value_fabric.layer1.shared.models import Base
+    from layer1_ingestion.shared.models import Base
     return Base
 
 
 def _get_db_override():
-    from value_fabric.layer1.shared.database import get_db_from_context_sync
+    from layer1_ingestion.shared.database import get_db_from_context_sync
     return get_db_from_context_sync
 
 
 def _make_target_factory():
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     return create_scraping_target
 
 
@@ -182,7 +182,7 @@ def make_target(postgres_db):
 @pytest.fixture(scope="function")
 def make_job(postgres_db):
     """Factory for creating ScrapingJob rows."""
-    from value_fabric.layer1.shared.models import ScrapingJob, JobStatus
+    from layer1_ingestion.shared.models import ScrapingJob, JobStatus
     from uuid import uuid4
 
     def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value):

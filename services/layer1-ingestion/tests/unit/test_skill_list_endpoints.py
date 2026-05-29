@@ -18,8 +18,8 @@ from uuid import UUID, uuid4
 import pytest
 from fastapi.testclient import TestClient
 
-from value_fabric.layer1.api.main import router
-from value_fabric.layer1.api.main import (
+from layer1_ingestion.api.main import router
+from layer1_ingestion.api.main import (
     get_tenant_id,
     get_db_from_context_sync,
     SourceCorpus,

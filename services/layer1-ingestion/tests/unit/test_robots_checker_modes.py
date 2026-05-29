@@ -4,8 +4,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from value_fabric.layer1.compliance.robots_checker import RobotsChecker
-from value_fabric.layer1.shared.exceptions import RobotsFetchError
+from layer1_ingestion.compliance.robots_checker import RobotsChecker
+from layer1_ingestion.shared.exceptions import RobotsFetchError
 
 
 @pytest.mark.asyncio
@@ -38,7 +38,7 @@ async def test_parse_failure_permissive_mode_allows_with_reason_code() -> None:
 
     with patch.object(checker, "_get_robots_txt", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = {"content": "bad content"}
-        with patch("value_fabric.layer1.compliance.robots_checker.Protego.parse", side_effect=Exception("boom")):
+        with patch("layer1_ingestion.compliance.robots_checker.Protego.parse", side_effect=Exception("boom")):
             allowed, reason, rules = await checker.check_url("https://example.com/path", job_id="job-2")
 
     assert allowed is True
@@ -53,7 +53,7 @@ async def test_parse_failure_strict_mode_blocks_with_reason_code() -> None:
 
     with patch.object(checker, "_get_robots_txt", new_callable=AsyncMock) as mock_get:
         mock_get.return_value = {"content": "bad content"}
-        with patch("value_fabric.layer1.compliance.robots_checker.Protego.parse", side_effect=Exception("boom")):
+        with patch("layer1_ingestion.compliance.robots_checker.Protego.parse", side_effect=Exception("boom")):
             allowed, reason, rules = await checker.check_url("https://example.com/path", job_id="job-3")
 
     assert allowed is False

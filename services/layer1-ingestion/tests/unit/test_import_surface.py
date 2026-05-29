@@ -7,8 +7,8 @@ import importlib
 
 def test_layer1_entrypoint_modules_import() -> None:
     for module_name in (
-        "value_fabric.layer1.api.main",
-        "value_fabric.layer1.api.app_monolith",
+        "layer1_ingestion.api.main",
+        "layer1_ingestion.api.app_monolith",
     ):
         module = importlib.import_module(module_name)
         assert module is not None
@@ -17,9 +17,9 @@ def test_layer1_entrypoint_modules_import() -> None:
 
 
 def test_crawler_modules_resolve_via_canonical_and_compatibility_paths() -> None:
-    canonical_httpx = importlib.import_module("value_fabric.layer1.crawler.httpx_crawler")
-    canonical_router = importlib.import_module("value_fabric.layer1.crawler.smart_router")
-    canonical_store = importlib.import_module("value_fabric.layer1.crawler.decision_store")
+    canonical_httpx = importlib.import_module("layer1_ingestion.crawler.httpx_crawler")
+    canonical_router = importlib.import_module("layer1_ingestion.crawler.smart_router")
+    canonical_store = importlib.import_module("layer1_ingestion.crawler.decision_store")
     compatibility_pkg = importlib.import_module("src.crawler")
 
     assert canonical_httpx.HttpxCrawler is not None
@@ -31,7 +31,7 @@ def test_crawler_modules_resolve_via_canonical_and_compatibility_paths() -> None
 
 
 def test_canonical_crawler_package_exports_not_empty() -> None:
-    crawler_pkg = importlib.import_module("value_fabric.layer1.crawler")
+    crawler_pkg = importlib.import_module("layer1_ingestion.crawler")
 
     assert crawler_pkg.__all__
     for name in ("HttpxCrawler", "SmartRouter", "CrawlDecisionRepository"):

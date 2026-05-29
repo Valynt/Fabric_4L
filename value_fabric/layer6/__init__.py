@@ -3,10 +3,14 @@
 Canonical Layer 6 code lives in ``services/layer6-benchmarks/src/layer6_benchmarks/``.
 This shim appends the canonical package path to ``__path__`` so that
 ``import value_fabric.layer6.api.main`` resolves to the canonical tree.
+
+**DEPRECATED:** Use canonical imports ``layer6_benchmarks.*`` instead.
+This facade will be removed in a future release.
 """
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 _repo_root: Path = Path(__file__).resolve().parent.parent.parent
@@ -21,6 +25,13 @@ else:
         f"Canonical Layer 6 package not found at {_canonical_pkg}. "
         "Expected services/layer6-benchmarks/src/layer6_benchmarks/ to exist."
     )
+
+# Emit deprecation warning on import
+warnings.warn(
+    "value_fabric.layer6 is deprecated. Use canonical imports: layer6_benchmarks.*",
+    DeprecationWarning,
+    stacklevel=2,
+)
 
 
 import logging

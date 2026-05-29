@@ -108,6 +108,12 @@ def _get_jwt_secret() -> str:
             ".env.example to .env/.env.dev and provide a strong secret)."
         )
 
+    if len(secret) < 32:
+        raise RuntimeError(
+            f"JWT_SECRET must be at least 32 characters for security (got {len(secret)}). "
+            "Set a stronger secret in your environment."
+        )
+
     return secret
 
 
@@ -546,29 +552,41 @@ def encode_service_jwt(
     return jwt.encode(payload, secret, algorithm=_S2S_ALGORITHM)
 
 
-def decode_service_jwt(token: str) -> Optional[ServiceJwtClaims]:
+def decode_service_jwt(token: str, expected_audience: Optional[str] = None) -> Optional[ServiceJwtClaims]:
     """Verify a service-to-service JWT signed with SERVICE_AUTH_SECRET.
 
     Returns None for invalid, expired, or malformed tokens.
+
+    Args:
+        token: The JWT token to verify.
+        expected_audience: Optional audience to validate. If provided, the token's
+            aud claim must match exactly. If not provided, audience validation
+            is skipped (caller must validate).
+
+    Raises:
+        jwt.ExpiredSignatureError: If the token has expired.
     """
     secret = _get_service_auth_secret()
     if not secret:
         return None
     try:
-        payload = jwt.decode(
-            token,
-            secret,
-            algorithms=[_S2S_ALGORITHM],
-            issuer=_S2S_ISSUER,
-            options={
-                "require": ["exp", "iss", "aud", "sub", "tenant_id"],
-                "verify_exp": True,
-                "verify_aud": False,  # caller validates audience
-                "verify_iss": True,
-                "verify_iat": True,
-                "verify_nbf": True,
-            },
-        )
+        options = {
+            "require": ["exp", "iss", "aud", "sub", "tenant_id"],
+            "verify_exp": True,
+            "verify_aud": expected_audience is not None,
+            "verify_iss": True,
+            "verify_iat": True,
+            "verify_nbf": True,
+        }
+        decode_kwargs = {
+            "algorithms": [_S2S_ALGORITHM],
+            "issuer": _S2S_ISSUER,
+            "options": options,
+        }
+        if expected_audience is not None:
+            decode_kwargs["audience"] = expected_audience
+
+        payload = jwt.decode(token, secret, **decode_kwargs)
         return ServiceJwtClaims.model_validate(payload)
     except jwt.ExpiredSignatureError:
         raise

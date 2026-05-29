@@ -77,8 +77,8 @@ class TestBenchmarkValidation:
             "industry": "manufacturing",
         }
         response = await client.post("/v1/benchmarks/compare", json=payload)
-        # API returns 400 (not 422) for invalid Decimal format
-        assert response.status_code == 400
+        # API returns 422 (validation error) for invalid Decimal format
+        assert response.status_code == 422
         data = response.json()
         assert "Invalid" in data.get("detail", "") or "company_value" in data.get("detail", "") or "Invalid company_value" in data.get("message", "")
 

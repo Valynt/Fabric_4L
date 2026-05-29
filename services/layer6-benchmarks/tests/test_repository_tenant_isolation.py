@@ -145,7 +145,8 @@ async def test_repository_list_datasets_query_always_contains_tenant_predicate(
 
     mock_tx.run.assert_called_once()
     (query,), call_kwargs = mock_tx.run.call_args
-    assert "WHERE d.tenant_id = $tenant_id" in query
+    # Query allows tenant-scoped OR global_system datasets
+    assert "(d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system')" in query
     if industry:
         assert "AND d.industry = $industry" in query
     else:
@@ -189,7 +190,8 @@ async def test_repository_get_dataset_cypher_requires_tenant_id(repo: BenchmarkR
     mock_tx.run.assert_called_once()
     call_args, call_kwargs = mock_tx.run.call_args
     query = call_args[0]
-    assert "tenant_id: $tenant_id" in query
+    # Query allows tenant-scoped OR global_system datasets
+    assert "WHERE d.tenant_id = $tenant_id OR d.ownership_mode = 'global_system'" in query
     assert call_kwargs["dataset_id"] == "secret-dataset"
     assert call_kwargs["tenant_id"] == "hostile-tenant"
 

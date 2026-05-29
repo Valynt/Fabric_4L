@@ -2,7 +2,7 @@
 
 from uuid import UUID, uuid4
 
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.models import (
     CrawlQueueItem,
     JobStatus,
     RawContent,

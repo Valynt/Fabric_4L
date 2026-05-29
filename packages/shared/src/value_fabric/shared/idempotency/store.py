@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
+import time
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -51,15 +53,50 @@ class RedisIdempotencyStore:
 
     Falls back to in-memory operation if Redis is unavailable, but logs
     a warning so operators know the store is not shared across workers.
+
+    Includes a recovery mechanism that periodically attempts to reconnect
+    to Redis after failures.
     """
 
-    def __init__(self, redis_client: Any) -> None:
+    def __init__(self, redis_client: Any, recovery_interval_seconds: int = 60) -> None:
         self._redis = redis_client
         self._fallback = InMemoryIdempotencyStore()
         self._fallback_active = False
+        self._recovery_interval_seconds = recovery_interval_seconds
+        self._last_recovery_attempt = 0.0
 
     def _make_key(self, tenant_id: str, endpoint_key: str, idempotency_key: str) -> str:
         return f"idempotency:{tenant_id}:{endpoint_key}:{idempotency_key}"
+
+    def _attempt_recovery(self) -> bool:
+        """Attempt to recover Redis connectivity by performing a simple PING.
+
+        Returns True if recovery succeeded, False otherwise.
+        """
+        now = time.time()
+        if now - self._last_recovery_attempt < self._recovery_interval_seconds:
+            return False
+
+        self._last_recovery_attempt = now
+        try:
+            # Handle both sync and async Redis clients
+            if hasattr(self._redis, "ping"):
+                ping_result = self._redis.ping()
+                # If the client is async, the result is a coroutine
+                if asyncio.iscoroutine(ping_result):
+                    # This method is called from sync context, so we can't await
+                    # Fall back to sync check or skip recovery for async clients
+                    logger.debug("Redis client is async; recovery check skipped in sync context")
+                    return False
+            else:
+                # Fallback for clients without ping method
+                return False
+            logger.info("Redis idempotency store recovered from fallback mode")
+            self._fallback_active = False
+            return True
+        except Exception as exc:
+            logger.debug("Redis idempotency recovery attempt failed: %s", exc)
+            return False
 
     def _record_to_json(self, record: StoredIdempotencyRecord) -> str:
         return json.dumps({
@@ -88,7 +125,12 @@ class RedisIdempotencyStore:
 
     def get(self, tenant_id: str, endpoint_key: str, idempotency_key: str) -> StoredIdempotencyRecord | None:
         if self._fallback_active:
-            return self._fallback.get(tenant_id, endpoint_key, idempotency_key)
+            # Attempt recovery before using fallback
+            if self._attempt_recovery():
+                # Recovery succeeded, try Redis again
+                pass
+            else:
+                return self._fallback.get(tenant_id, endpoint_key, idempotency_key)
 
         try:
             raw = self._redis.get(self._make_key(tenant_id, endpoint_key, idempotency_key))
@@ -102,8 +144,13 @@ class RedisIdempotencyStore:
 
     def set(self, record: StoredIdempotencyRecord) -> None:
         if self._fallback_active:
-            self._fallback.set(record)
-            return
+            # Attempt recovery before using fallback
+            if self._attempt_recovery():
+                # Recovery succeeded, try Redis again
+                pass
+            else:
+                self._fallback.set(record)
+                return
 
         try:
             ttl_seconds = max(1, int((record.expires_at - datetime.now(UTC)).total_seconds()))

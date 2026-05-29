@@ -118,7 +118,7 @@ def _install_layer4_import_stubs() -> None:
         (
             "layer5 truth object",
             "layer5_ground_truth.models.truth_object",
-            "value_fabric.layer5.models.truth_object",
+            "layer5_ground_truth.models.truth_object",
             None,
             ["TruthObject", "TruthStatus", "ValidationEvent"],
             {},

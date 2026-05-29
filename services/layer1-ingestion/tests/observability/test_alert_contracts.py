@@ -15,7 +15,7 @@ import pytest
 from unittest.mock import MagicMock, patch
 from prometheus_client import CollectorRegistry
 
-from value_fabric.layer1.metrics.prometheus_metrics import (
+from layer1_ingestion.metrics.prometheus_metrics import (
     PrometheusMetrics,
     MetricsConfig,
     get_metrics,

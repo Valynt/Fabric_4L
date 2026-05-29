@@ -13,11 +13,11 @@ import pytest
 from unittest.mock import patch, MagicMock
 from uuid import uuid4
 
-from value_fabric.layer1.shared.exceptions import (
+from layer1_ingestion.shared.exceptions import (
     SystemMaintenanceAuthorizationError,
     InvalidTenantContextError,
 )
-from value_fabric.layer1.shared.maintenance import (
+from layer1_ingestion.shared.maintenance import (
     SystemMaintenanceIdentity,
     MaintenanceOperation,
     authorize_maintenance_operation,
@@ -258,13 +258,13 @@ class TestIntegrationWithCleanupOldContent:
 
     def test_cleanup_with_valid_tenant_id(self, postgres_db):
         """Test cleanup with valid tenant_id uses RLS."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         
         tenant_id = str(uuid4())
         
         # Mock the maintenance authorization to avoid token requirements in tests
-        with patch('value_fabric.layer1.shared.tasks.authorize_maintenance_operation') as mock_auth:
-            with patch('value_fabric.layer1.shared.tasks.maintenance_audit_log') as mock_audit:
+        with patch('layer1_ingestion.shared.tasks.authorize_maintenance_operation') as mock_auth:
+            with patch('layer1_ingestion.shared.tasks.maintenance_audit_log') as mock_audit:
                 mock_audit.return_value.__enter__ = MagicMock()
                 mock_audit.return_value.__exit__ = MagicMock()
                 
@@ -279,10 +279,10 @@ class TestIntegrationWithCleanupOldContent:
 
     def test_cleanup_without_tenant_id_requires_authorization(self, postgres_db):
         """Test that cleanup without tenant_id requires system authorization."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         
         # Mock the maintenance authorization to fail
-        with patch('value_fabric.layer1.shared.tasks.authorize_maintenance_operation') as mock_auth:
+        with patch('layer1_ingestion.shared.tasks.authorize_maintenance_operation') as mock_auth:
             mock_auth.side_effect = SystemMaintenanceAuthorizationError("Test failure")
             
             with pytest.raises(SystemMaintenanceAuthorizationError):
@@ -290,7 +290,7 @@ class TestIntegrationWithCleanupOldContent:
 
     def test_cleanup_with_invalid_tenant_id_fails(self, postgres_db):
         """Test that cleanup with invalid tenant_id fails."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         
         with pytest.raises(InvalidTenantContextError) as exc_info:
             cleanup_old_content(days=1, tenant_id="invalid-uuid")
@@ -302,7 +302,7 @@ class TestIntegrationWithCleanupOldContent:
 
     def test_system_tenant_enumeration_uses_registry_only(self, postgres_db):
         """Regression: system enumeration must not read tenant-owned tables without tenant context."""
-        from value_fabric.layer1.shared.tasks import _enumerate_authorized_tenants_for_cleanup
+        from layer1_ingestion.shared.tasks import _enumerate_authorized_tenants_for_cleanup
 
         class _FakeQuery:
             def __init__(self, target):
@@ -334,11 +334,11 @@ class TestIntegrationWithCleanupOldContent:
 
         query_targets = []
 
-        with patch('value_fabric.layer1.shared.tasks.authorize_maintenance_operation'):
-            with patch('value_fabric.layer1.shared.tasks.maintenance_audit_log') as mock_audit:
+        with patch('layer1_ingestion.shared.tasks.authorize_maintenance_operation'):
+            with patch('layer1_ingestion.shared.tasks.maintenance_audit_log') as mock_audit:
                 mock_audit.return_value.__enter__ = MagicMock()
                 mock_audit.return_value.__exit__ = MagicMock(return_value=False)
-                with patch('value_fabric.layer1.shared.tasks.get_db_session', return_value=_FakeCtx(query_targets)):
+                with patch('layer1_ingestion.shared.tasks.get_db_session', return_value=_FakeCtx(query_targets)):
                     tenant_ids = _enumerate_authorized_tenants_for_cleanup()
 
         assert len(tenant_ids) == 1

@@ -15,7 +15,7 @@ from uuid import uuid4, UUID
 from unittest.mock import patch, MagicMock
 from celery.exceptions import MaxRetriesExceededError
 
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.models import (
     ScrapingJob,
     JobStatus,
     JobStageDetail,
@@ -33,7 +33,7 @@ class TestComplianceCheckMaxRetries:
         self, db, org_id, make_target
     ):
         """When compliance_check_stage exhausts max_retries, job should reach FAILED status."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         # Create job
         target = make_target(org_id, status="ACTIVE")
@@ -49,7 +49,7 @@ class TestComplianceCheckMaxRetries:
 
         # Mock compliance check to always fail
         with patch(
-            "value_fabric.layer1.shared.tasks.validate_url_safety",
+            "layer1_ingestion.shared.tasks.validate_url_safety",
             side_effect=Exception("Compliance check failed"),
         ):
             # Simulate max retries exhausted
@@ -58,7 +58,7 @@ class TestComplianceCheckMaxRetries:
             try:
                 # This would normally be called by Celery after max retries
                 # We simulate the final failure
-                from value_fabric.layer1.shared.tasks import _fail_job
+                from layer1_ingestion.shared.tasks import _fail_job
                 _fail_job(
                     job.id,
                     str(org_id),
@@ -87,7 +87,7 @@ class TestComplianceCheckMaxRetries:
         db.commit()
 
         # Simulate stage failure
-        from value_fabric.layer1.shared.tasks import _update_stage
+        from layer1_ingestion.shared.tasks import _update_stage
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
             _update_stage(
                 session,
@@ -131,7 +131,7 @@ class TestBrowserCrawlMaxRetries:
         db.commit()
 
         # Simulate max retries exhausted
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         _fail_job(
             job.id,
             str(org_id),
@@ -158,8 +158,8 @@ class TestBrowserCrawlMaxRetries:
         db.commit()
 
         # Mark all browser crawl stages as FAILED
-        from value_fabric.layer1.shared.tasks import _update_stage
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.tasks import _update_stage
+        from layer1_ingestion.shared.database import get_db_session
 
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
             for stage in (
@@ -216,7 +216,7 @@ class TestAIExtractionMaxRetries:
         db.commit()
 
         # Simulate max retries exhausted
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         _fail_job(
             job.id,
             str(org_id),
@@ -247,8 +247,8 @@ class TestStageStatusConsistency:
         db.commit()
 
         # Simulate compliance check failure affecting subsequent stages
-        from value_fabric.layer1.shared.tasks import _update_stage
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.tasks import _update_stage
+        from layer1_ingestion.shared.database import get_db_session
 
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
             # Mark compliance check as FAILED
@@ -299,7 +299,7 @@ class TestNoOrphanedRunningStates:
         db.commit()
 
         # Simulate retry exhaustion for all jobs
-        from value_fabric.layer1.shared.tasks import _fail_job
+        from layer1_ingestion.shared.tasks import _fail_job
         for job in jobs:
             _fail_job(
                 job.id,
@@ -339,7 +339,7 @@ class TestRetryMechanismBehavior:
 
     def test_max_retries_configured_correctly(self):
         """Verify that max_retries is configured correctly for each stage."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         import inspect
 
         # Check max_retries for each stage
@@ -370,5 +370,5 @@ class TestRetryMechanismBehavior:
 # Helper function for tests
 def get_db_session(tenant_id: UUID, require_tenant: bool = True):
     """Helper to get database session."""
-    from value_fabric.layer1.shared.database import get_db_session as real_get_db_session
+    from layer1_ingestion.shared.database import get_db_session as real_get_db_session
     return real_get_db_session(tenant_id=tenant_id, require_tenant=require_tenant)

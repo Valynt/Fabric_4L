@@ -12,7 +12,7 @@ import pytest
 import respx
 from httpx import Response
 
-from value_fabric.layer1.crawler.httpx_crawler import (
+from layer1_ingestion.crawler.httpx_crawler import (
     FastPathResult,
     HttpxCrawler,
     HttpxCrawlerConfig,

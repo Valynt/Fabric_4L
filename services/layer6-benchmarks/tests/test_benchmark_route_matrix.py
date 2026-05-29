@@ -150,8 +150,10 @@ async def test_compare_and_validate_preserve_dataset_lineage_and_stats_edges(cli
 
 def test_openapi_contract_includes_benchmark_routes_and_shapes():
     import json
+    from pathlib import Path
 
-    with open("contracts/openapi/layer6-benchmarks.json", "r", encoding="utf-8") as f:
+    contract_path = Path(__file__).parent.parent.parent.parent / "contracts" / "openapi" / "layer6-benchmarks.json"
+    with open(contract_path, "r", encoding="utf-8") as f:
         spec = json.load(f)
 
     paths = spec["paths"]

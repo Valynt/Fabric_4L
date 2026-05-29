@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from value_fabric.layer1.api.main import _UnavailableTask, _build_task_unavailable_detail
+from layer1_ingestion.api.main import _UnavailableTask, _build_task_unavailable_detail
 from value_fabric.shared.error_handling.handlers import http_exception_handler
 
 

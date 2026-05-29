@@ -8,7 +8,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from value_fabric.layer1.crawler.telemetry import (
+from layer1_ingestion.crawler.telemetry import (
     CrawlMetrics,
     get_tracer,
     init_telemetry,
@@ -47,7 +47,7 @@ class TestInitTelemetry:
         mock_trace.get_tracer.return_value = mock_tracer
         
         # Reset global _tracer to force re-initialization
-        import value_fabric.layer1.crawler.telemetry as telemetry
+        import layer1_ingestion.crawler.telemetry as telemetry
         telemetry._tracer = None
         
         result = get_tracer()

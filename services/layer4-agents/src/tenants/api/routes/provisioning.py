@@ -10,6 +10,7 @@ tracking to prevent duplicate processing.
 
 import hashlib
 import hmac
+import json
 import logging
 import os
 import time
@@ -33,11 +34,42 @@ from ...service import get_tenant
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/tenants/{tenant_id}/provisioning", tags=["Provisioning"])
 
-# In-memory idempotency cache (production: use Redis or DB table)
-# Maps webhook_id -> {"status": str, "tenant_id": str, "processed_at": float}
-_processed_webhooks: dict[str, dict] = {}
+# Redis-backed idempotency cache for production
 _WEBHOOK_CACHE_TTL_SECONDS = 86400  # 24 hours
 _WEBHOOK_SIGNATURE_TOLERANCE_SECONDS = 300  # 5 minutes
+_WEBHOOK_IDEMPOTENCY_PREFIX = "provisioning:webhook:"
+
+
+def _get_redis_client():
+    """Get Redis client for idempotency cache.
+    
+    Returns None in development if REDIS_URL is not set, allowing graceful degradation.
+    Raises RuntimeError in production if REDIS_URL is required but missing.
+    """
+    redis_url = os.getenv("REDIS_URL")
+    if not redis_url:
+        env = os.getenv("ENVIRONMENT", os.getenv("APP_ENV", "development")).lower()
+        if env in ("production", "staging"):
+            raise RuntimeError("REDIS_URL is required for provisioning idempotency in production")
+        return None
+    
+    try:
+        import redis.asyncio as aioredis
+        return aioredis.from_url(redis_url, decode_responses=True)
+    except ImportError as exc:
+        raise RuntimeError("redis.asyncio is required for provisioning idempotency") from exc
+
+
+# Module-level Redis client (initialized lazily)
+_redis_client = None
+
+
+def _ensure_redis():
+    """Ensure Redis client is initialized."""
+    global _redis_client
+    if _redis_client is None:
+        _redis_client = _get_redis_client()
+    return _redis_client
 
 
 class ProvisioningStatusResponse(BaseModel):
@@ -113,16 +145,38 @@ def _verify_hmac_signature(
     return hmac.compare_digest(signature, expected)
 
 
-def _cleanup_expired_webhooks() -> None:
-    """Remove expired entries from the idempotency cache."""
-    now = time.time()
-    expired = [
-        wid
-        for wid, data in _processed_webhooks.items()
-        if now - data.get("processed_at", 0) > _WEBHOOK_CACHE_TTL_SECONDS
-    ]
-    for wid in expired:
-        del _processed_webhooks[wid]
+async def _get_cached_webhook(webhook_id: str) -> dict | None:
+    """Get cached webhook result from Redis for idempotency."""
+    redis = _ensure_redis()
+    if redis is None:
+        return None
+    
+    key = f"{_WEBHOOK_IDEMPOTENCY_PREFIX}{webhook_id}"
+    try:
+        raw = await redis.get(key)
+        if raw:
+            return json.loads(raw)
+    except Exception as e:
+        logger.warning("Failed to get cached webhook from Redis: %s", e)
+    return None
+
+
+async def _cache_webhook_result(webhook_id: str, tenant_id: str, status: str) -> None:
+    """Cache webhook result in Redis for idempotency."""
+    redis = _ensure_redis()
+    if redis is None:
+        return
+    
+    key = f"{_WEBHOOK_IDEMPOTENCY_PREFIX}{webhook_id}"
+    data = {
+        "status": status,
+        "tenant_id": str(tenant_id),
+        "processed_at": time.time(),
+    }
+    try:
+        await redis.setex(key, _WEBHOOK_CACHE_TTL_SECONDS, json.dumps(data))
+    except Exception as e:
+        logger.warning("Failed to cache webhook result in Redis: %s", e)
 
 
 @router.get("/status", response_model=ProvisioningStatusResponse)
@@ -288,9 +342,8 @@ async def webhook_provisioning(
         raise AuthenticationError(message = "Webhook timestamp expired or too far in the future")
 
     # --- Step 3: Idempotency check ---
-    _cleanup_expired_webhooks()
-    if x_webhook_id in _processed_webhooks:
-        cached = _processed_webhooks[x_webhook_id]
+    cached = await _get_cached_webhook(x_webhook_id)
+    if cached:
         logger.info("Duplicate webhook_id=%s, returning cached result", x_webhook_id)
         return WebhookProvisioningResponse(
             message="Already processed (idempotent)",
@@ -308,11 +361,7 @@ async def webhook_provisioning(
     state = await provision_tenant(db, payload.tenant_id)
 
     # Cache result for idempotency
-    _processed_webhooks[x_webhook_id] = {
-        "status": state.status.value,
-        "tenant_id": str(payload.tenant_id),
-        "processed_at": time.time(),
-    }
+    await _cache_webhook_result(x_webhook_id, str(payload.tenant_id), state.status.value)
 
     # Emit audit event
     await emit_audit_event(

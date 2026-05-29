@@ -16,7 +16,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.models import (
     AccountIntelligencePacket,
     EventOutbox,
     OutboxStatus,
@@ -92,7 +92,7 @@ class TestStorageStageSourceCorpus:
 
     def _run_storage_with_skill_output(self, job, skill_output: dict, existing_corpus=None):
         """Run storage_stage with a pre-built skill_output in job.configuration."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job.configuration["skill_output"] = skill_output
         job.configuration["output_contract"] = "SourceCorpus"
@@ -118,7 +118,7 @@ class TestStorageStageSourceCorpus:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             result = tasks_module.storage_stage({"job_id": str(job.id)})
 
         return result, added_objects, mock_session
@@ -198,7 +198,7 @@ class TestStorageStageAccountIntelligencePacket:
     """storage_stage persists AccountIntelligencePacket from skill output."""
 
     def _run_storage_with_packet_output(self, job, skill_output: dict, existing_packet=None):
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job.configuration["skill_output"] = skill_output
         job.configuration["output_contract"] = "AccountIntelligencePacket"
@@ -224,7 +224,7 @@ class TestStorageStageAccountIntelligencePacket:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             result = tasks_module.storage_stage({"job_id": str(job.id)})
 
         return result, added_objects, mock_session
@@ -306,7 +306,7 @@ class TestFullSkillPipelineEventFlow:
         2. Enqueues dispatch_outbox_event for each row
         3. dispatch_outbox_event marks each row as dispatched
         """
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         tenant_id = uuid4()
         job = _make_job(tenant_id=tenant_id)
@@ -342,7 +342,7 @@ class TestFullSkillPipelineEventFlow:
         def capture_dispatch(args, countdown=None):
             dispatched_ids.append(args[0])
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=notif_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async", side_effect=capture_dispatch):
                 tasks_module.notification_stage({"job_id": str(job.id)})
 
@@ -368,7 +368,7 @@ class TestFullSkillPipelineEventFlow:
             dispatch_session.__exit__ = MagicMock(return_value=False)
             dispatch_session.query.return_value.filter.return_value.first.return_value = row
 
-            with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=dispatch_session):
+            with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=dispatch_session):
                 tasks_module.dispatch_outbox_event(str(row.id))
 
             assert row.status == OutboxStatus.DISPATCHED.value
@@ -376,7 +376,7 @@ class TestFullSkillPipelineEventFlow:
 
     def test_prospect_research_full_event_flow(self):
         """notification_stage for a prospect research job creates correct outbox rows."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         tenant_id = uuid4()
         job = _make_job(
@@ -413,7 +413,7 @@ class TestFullSkillPipelineEventFlow:
         notif_session.query.side_effect = notif_query
         notif_session.add.side_effect = lambda obj: outbox_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=notif_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 tasks_module.notification_stage({"job_id": str(job.id)})
 
@@ -437,7 +437,7 @@ class TestCrossTenantHostile:
 
     def _make_app(self, tenant_id: UUID, db_mock: MagicMock):
         from fastapi import FastAPI
-        from value_fabric.layer1.api.main import router, get_tenant_id, get_db_from_context_sync
+        from layer1_ingestion.api.main import router, get_tenant_id, get_db_from_context_sync
         from fastapi.testclient import TestClient
 
         app = FastAPI()
@@ -523,7 +523,7 @@ class TestCrossTenantHostile:
     def test_missing_auth_returns_401(self):
         """Without dependency override (no auth), endpoints return 401."""
         from fastapi import FastAPI
-        from value_fabric.layer1.api.main import router
+        from layer1_ingestion.api.main import router
         from fastapi.testclient import TestClient
 
         app = FastAPI()
