@@ -1,0 +1,167 @@
+# Allowlist for value_fabric.layer* facade imports
+# Format: {file_path: {reason: "...", owner: "...", removal_target: "YYYY-MM-DD" or "indefinite"}}
+
+# L1 - CI infrastructure only
+scripts/ci/check_layer1_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "indefinite"
+scripts/migrate_l1_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+value_fabric/layer1/__init__.py:
+  reason: "Facade shim docstring"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+
+# L4 - Compatibility shims and test patch targets
+value_fabric/layer4/billing/services/__init__.py:
+  reason: "Billing service compatibility shim"
+  owner: "Layer 4 Maintainers"
+  removal_target: "indefinite"
+value_fabric/layer4/billing/schemas.py:
+  reason: "Billing service compatibility shim"
+  owner: "Layer 4 Maintainers"
+  removal_target: "indefinite"
+value_fabric/layer4/billing/models.py:
+  reason: "Billing service compatibility shim"
+  owner: "Layer 4 Maintainers"
+  removal_target: "indefinite"
+value_fabric/layer4/__init__.py:
+  reason: "Facade shim docstring"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+tests/contract/test_state_inspector_auth_contract.py:
+  reason: "Contract test with facade import comment"
+  owner: "Contract Team"
+  removal_target: "indefinite"
+tests/contract/test_layer_runtime_parity.py:
+  reason: "Contract test with facade import reference"
+  owner: "Contract Team"
+  removal_target: "indefinite"
+tests/tools/test_tool_tenant_boundaries.py:
+  reason: "Tool test with patch targets on facade"
+  owner: "Security Team"
+  removal_target: "indefinite"
+tests/security/test_audit_event_emission.py:
+  reason: "Security test with facade import"
+  owner: "Security Team"
+  removal_target: "indefinite"
+tests/security/test_knowledge_tools_tenant_isolation.py:
+  reason: "Security test with patch target on facade"
+  owner: "Security Team"
+  removal_target: "indefinite"
+tests/security/test_p1_13_websocket_auth.py:
+  reason: "Security test with patch target on facade"
+  owner: "Security Team"
+  removal_target: "indefinite"
+tests/security/test_tenant_validation_metrics.py:
+  reason: "Security test with facade import"
+  owner: "Security Team"
+  removal_target: "indefinite"
+tests/integration/test_websocket_multitenant_hostile.py:
+  reason: "Integration test with patch targets on facade"
+  owner: "Integration Team"
+  removal_target: "indefinite"
+tests/contract/test_import_topology.py:
+  reason: "Contract test verifying facade path resolution"
+  owner: "Contract Team"
+  removal_target: "indefinite"
+archive/legacy-shims/layer4_agents/main.py:
+  reason: "Legacy shim archive"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/validation/generate_live_llm_provider_evidence.py:
+  reason: "Validation script with facade import"
+  owner: "Validation Team"
+  removal_target: "indefinite"
+scripts/verify_layer4_imports.py:
+  reason: "Verification script testing facade"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/verify_layer4_shim.py:
+  reason: "Verification script testing facade"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+scripts/migrate_l4_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+services/layer4-agents/tests/**:
+  reason: "L4 service tests with facade imports"
+  owner: "Layer 4 Maintainers"
+  removal_target: "indefinite"
+
+# L5 - CI infrastructure
+tests/arch/test_canonical_module_sentinels.py:
+  reason: "Architecture sentinel test docstring"
+  owner: "Architecture Team"
+  removal_target: "indefinite"
+
+# L6 - CI infrastructure
+scripts/ci/check_layer6_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "indefinite"
+scripts/migrate_l6_test_imports_canonical.py:
+  reason: "Migration script documenting old-to-new mapping"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+value_fabric/layer6/__init__.py:
+  reason: "Facade shim docstring"
+  owner: "Platform Team"
+  removal_target: "indefinite"
+value_fabric/layer6/test_structured_logging_smoke.py:
+  reason: "L6 test with facade import"
+  owner: "Layer 6 Maintainers"
+  removal_target: "indefinite"
+
+# CI tests with facade references
+tests/ci/**:
+  reason: "CI sentinel tests with facade references"
+  owner: "CI Team"
+  removal_target: "indefinite"
+
+# L3 - Intentionally retained per L3-FACADE-WRAPPER-MIGRATION.md
+# All L3 facade imports are allowlisted until 2026-09-30
+value_fabric/layer3/__init__.py:
+  reason: "Facade shim docstring"
+  owner: "Platform Team"
+  removal_target: "2026-09-30"
+services/layer3-knowledge/**:
+  reason: "L3 service wrappers documented with removal target 2026-09-30"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/layer3-knowledge/**:
+  reason: "L3 tests documented with removal target 2026-09-30"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/security/**:
+  reason: "Security tests with L3 patch targets"
+  owner: "Security Team"
+  removal_target: "2026-09-30"
+tests/cache/**:
+  reason: "Cache tests with L3 patch targets"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
+tests/contract/**:
+  reason: "Contract tests with L3 references"
+  owner: "Contract Team"
+  removal_target: "2026-09-30"
+packages/shared/src/value_fabric/shared/rate_limiting/admin_api.py:
+  reason: "Shared package with L3 driver dependency"
+  owner: "Shared Package Maintainers"
+  removal_target: "2026-09-30"
+scripts/ci/check_layer3_imports.py:
+  reason: "CI gate error message string"
+  owner: "CI Team"
+  removal_target: "2026-09-30"
+scripts/ci/check_layer3_settings_shim_drift.py:
+  reason: "CI shim validation script"
+  owner: "CI Team"
+  removal_target: "2026-09-30"
+services/layer3-knowledge/scripts/check_backup_shim_drift.py:
+  reason: "L3 backup shim validation"
+  owner: "Layer 3 Maintainers"
+  removal_target: "2026-09-30"
