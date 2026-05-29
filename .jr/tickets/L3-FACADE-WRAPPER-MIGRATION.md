@@ -86,6 +86,27 @@ From source code analysis:
 - Lightweight CI jobs avoid installing driver dependencies
 - Requires shim for import-time type references
 
+
+### 2026-05-29 Source Comment/Docstring Re-scan
+
+Search target: `services/layer3-knowledge/src`
+Search string: `value_fabric.layer3`
+
+**Classified hits:**
+
+- `services/layer3-knowledge/src/services/cypher_scope_guard.py` — stale canonical-path wording; updated to point at the service-local `utils.cypher_security` implementation while preserving the wrapper note.
+- `services/layer3-knowledge/src/api/app_monolith.py` — stale canonical-path wording inside intentional compatibility-wrapper documentation; updated to point at service-local `api.services.tenant_resolution.resolve_ingest_tenant_id` while preserving the 2026-09-30 wrapper target.
+- `services/layer3-knowledge/src/api/routes/entity_compat.py` — stale canonical-path wording inside intentional compatibility-wrapper documentation; updated to point at service-local `api.routes.entities` while preserving the 2026-09-30 wrapper target.
+- `services/layer3-knowledge/src/api/auth_context.py` — intentional compatibility-wrapper/test-path documentation; preserve until the `value_fabric.layer3` wrapper target because it documents the legacy test import path being bridged by `_get_tenant_context`.
+- `services/layer3-knowledge/src/api/routes/models.py` — intentional compatibility-wrapper documentation; preserve until the `value_fabric.layer3` wrapper target because the module exists to bridge the legacy `value_fabric.layer3.api.routes.models` import path.
+- `services/layer3-knowledge/src/api/main.py` — intentional compatibility-wrapper documentation; preserve until the `value_fabric.layer3` wrapper target because `__all__` is consumed by the namespace shim and tests.
+
+No unrelated historical-context hits were found inside `services/layer3-knowledge/src` for this search string.
+
+**Sprint-plan inventory correction:**
+
+- Do not track `services/layer3-knowledge/src/api/routes/billing_webhook_security.py` in the L3 migration file list: the file is absent from the current Layer 3 service tree and no relocation was found during this scan. Re-add it only if the file is restored or a concrete relocated L3 path is identified.
+
 ### Current Import Patterns
 
 **Runtime Wrappers (Intentional):**
