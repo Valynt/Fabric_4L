@@ -1,9 +1,14 @@
 # IMPORT-ARCH-FACADE-RESOLUTION — Replace value_fabric facade path bootstrapping
 
-**Status:** Investigation in progress  
-**Created:** 2026-05-28  
-**Priority:** HIGH  
+**Status:** Done - complete
+**Created:** 2026-05-28
+**Priority:** HIGH
 **Blocks:** All value_fabric.layer* import migration, facade removal
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+
 
 ## Problem Statement
 
@@ -76,7 +81,7 @@ import layer6_benchmarks.database
 
 **Error:** `ModuleNotFoundError: No module named 'layer6_benchmarks.database'`
 
-**Root cause:** 
+**Root cause:**
 - Facade appends `services/layer6-benchmarks/src` to `__path__`
 - But canonical package is actually at `services/layer6-benchmarks/src/layer6_benchmarks/`
 - Without facade, Python can't find the nested package structure

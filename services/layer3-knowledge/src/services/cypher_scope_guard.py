@@ -2,13 +2,13 @@ from __future__ import annotations
 
 """Backward-compatibility shim for cypher_scope_guard (GOV-L3-006).
 
-The canonical implementation has moved to:
-    value_fabric.layer3.utils.cypher_security
+The canonical implementation lives in:
+    services/layer3-knowledge/src/utils/cypher_security.py
 
 This module re-exports the public API so existing callers do not need
 immediate updates. Migrate callers to import directly from
-``value_fabric.layer3.utils.cypher_security`` and remove this shim once
-all consumers are updated.
+``utils.cypher_security`` (within the Layer 3 service runtime) and remove
+this shim once all consumers are updated.
 """
 
 

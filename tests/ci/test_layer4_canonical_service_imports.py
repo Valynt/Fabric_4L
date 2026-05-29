@@ -1,25 +1,16 @@
 """ADR-027 Layer 4 import topology regression test.
 
-Discovered constraint: Layer 4 source code uses relative imports
-(e.g. ``from ..models.tool_schemas import ...``) that depend on the
-``value_fabric.layer4`` namespace package hierarchy. Direct imports
-from ``services/layer4-agents/src/`` fail with
-``ImportError: attempted relative import beyond top-level package``.
-
-Therefore, during the migration window, consumers must continue using
-``value_fabric.layer4.*`` imports. True service-first direct imports
-require restructuring the service package (e.g. adding a
-``layer4_agents`` package root under ``src/``).
-
-This test documents the current state and verifies the shim works.
+Layer 4 runtime code is canonically imported through the restructured
+``layer4_agents`` package under ``services/layer4-agents/src``. The legacy
+``value_fabric.layer4`` shim must remain neutralized and must not extend its
+namespace path into the service source tree.
 """
 
 from __future__ import annotations
 
+import importlib
 import sys
 from pathlib import Path
-
-import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER4_SRC = REPO_ROOT / "services" / "layer4-agents" / "src"
@@ -34,10 +25,12 @@ def test_shim_path_does_not_include_service_src() -> None:
 
 def test_canonical_source_files_exist() -> None:
     """Canonical Layer 4 implementation files must exist in the service tree."""
-    assert (LAYER4_SRC / "tools" / "registry.py").exists()
-    assert (LAYER4_SRC / "tools" / "knowledge.py").exists()
-    assert (LAYER4_SRC / "api" / "routes" / "workflows.py").exists()
-    assert (LAYER4_SRC / "metrics" / "llm_cost_calculator.py").exists()
+    canonical_pkg = LAYER4_SRC / "layer4_agents"
+
+    assert (canonical_pkg / "tools" / "registry.py").exists()
+    assert (canonical_pkg / "tools" / "knowledge.py").exists()
+    assert (canonical_pkg / "api" / "routes" / "workflows.py").exists()
+    assert (canonical_pkg / "metrics" / "llm_cost_calculator.py").exists()
 
 
 def test_shim_file_is_neutralized() -> None:
@@ -76,26 +69,16 @@ def test_no_production_runtime_imports_from_shim() -> None:
     )
 
 
-def test_direct_service_import_requires_package_restructuring() -> None:
-    """Document known blocker: relative imports fail when src/ is on sys.path directly.
-
-    When ``services/layer4-agents/src`` is added to ``sys.path`` and
-    ``from tools.registry import ...`` is attempted, relative imports
-    inside ``tools/calculation_tools.py`` like
-    ``from ..models.tool_schemas import ...`` fail because ``tools``
-    becomes a top-level package with no parent.
-
-    Resolution: restructure ``src/*`` into ``src/layer4_agents/*``
-    so the service is a proper Python package.
-    """
+def test_canonical_service_import_uses_restructured_package() -> None:
+    """Canonical restructured Layer 4 module imports succeed from service src."""
     l4_src_str = str(LAYER4_SRC)
     if l4_src_str not in sys.path:
         sys.path.insert(0, l4_src_str)
 
-    # This will fail until the package is restructured
-    try:
-        from tools.registry import ToolRegistry  # noqa: F401
-    except ImportError as exc:
-        assert "relative import beyond top-level" in str(exc) or "attempted relative import" in str(exc)
-    else:
-        pytest.fail("Expected ImportError for direct service import before restructuring")
+    module = importlib.import_module("layer4_agents.startup.dependency_verifier")
+
+    assert hasattr(module, "DependencyRule")
+
+    import value_fabric.layer4
+
+    assert not any(str(LAYER4_SRC) in str(p) for p in value_fabric.layer4.__path__)

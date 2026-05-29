@@ -1,4 +1,10 @@
 # Dockerfile Lockfile Patching Fix Plan
+**Status:** Done - complete
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+
 
 ## Current State
 
@@ -74,7 +80,7 @@ Install from the complete workspace root, then use `pnpm --filter` to build only
 
 ### Dockerfiles
 1. `apps/web/Dockerfile` - Production build
-2. `apps/web/Dockerfile.dev` - Development build  
+2. `apps/web/Dockerfile.dev` - Development build
 3. `apps/web/Dockerfile.playwright` - Playwright test runner
 
 ### No Changes Required
