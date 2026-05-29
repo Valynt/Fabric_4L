@@ -8,10 +8,14 @@ This shim appends the service source tree to ``__path__`` so legacy
 
 New code should import directly from ``services/layer5-ground-truth/src/`` or
 use the service package names. Do not add new implementation logic here.
+
+**DEPRECATED:** Use canonical imports ``layer5_ground_truth.*`` instead.
+This facade will be removed after 2026-09-30 per ADR-027.
 """
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 _repo_root: Path = Path(__file__).resolve().parent.parent.parent
@@ -26,3 +30,11 @@ else:
         f"Layer 5 service source tree not found at {_service_src}. "
         "Expected services/layer5-ground-truth/src/layer5_ground_truth/ to exist."
     )
+
+# Emit deprecation warning on import
+warnings.warn(
+    "value_fabric.layer5 is deprecated. Use canonical imports: layer5_ground_truth.*. "
+    "This facade will be removed after 2026-09-30 per ADR-027",
+    DeprecationWarning,
+    stacklevel=2,
+)
