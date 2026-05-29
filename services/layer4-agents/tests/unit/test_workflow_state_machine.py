@@ -12,7 +12,7 @@ import pytest
 from datetime import datetime, timezone
 from unittest.mock import Mock, AsyncMock, patch
 
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.models.agent_state import (
     BaseAgentState,
     WorkflowStatus,
     WorkflowType,
@@ -23,9 +23,9 @@ from value_fabric.layer4.models.agent_state import (
     WhitespaceInputData,
     BusinessCaseInputData,
 )
-from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowError, NodeExecutionError
-from value_fabric.layer4.models.workflow_config import WorkflowConfig, NodeConfig, NodeType, EdgeConfig
-from value_fabric.layer4.tools.registry import ToolRegistry
+from layer4_agents.workflows.base import BaseWorkflow, WorkflowError, NodeExecutionError
+from layer4_agents.models.workflow_config import WorkflowConfig, NodeConfig, NodeType, EdgeConfig
+from layer4_agents.tools.registry import ToolRegistry
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 

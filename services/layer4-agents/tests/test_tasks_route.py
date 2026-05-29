@@ -13,7 +13,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer4.api.routes import tasks
+from layer4_agents.api.routes import tasks
 
 
 TENANT_A = UUID("12345678-1234-1234-1234-123456789abc")

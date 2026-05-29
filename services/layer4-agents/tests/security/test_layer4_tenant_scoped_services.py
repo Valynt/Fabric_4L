@@ -4,14 +4,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from value_fabric.layer4.interfaces.formula_governance import FormulaStatus
-from value_fabric.layer4.interfaces.value_pack_service import (
+from layer4_agents.interfaces.formula_governance import FormulaStatus
+from layer4_agents.interfaces.value_pack_service import (
     PackExecutionRequest,
     PackStatus,
     ValuePack,
 )
-from value_fabric.layer4.services.formula_governance_service import Neo4jFormulaGovernanceService
-from value_fabric.layer4.services.value_pack_service import Neo4jValuePackService
+from layer4_agents.services.formula_governance_service import Neo4jFormulaGovernanceService
+from layer4_agents.services.value_pack_service import Neo4jValuePackService
 
 
 @pytest.mark.asyncio

@@ -8,9 +8,9 @@ Tests validation logic, edge cases, and error handling.
 
 
 import pytest
-from value_fabric.layer4.models.account import CRMProvider
-from value_fabric.layer4.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
-from value_fabric.layer4.services.integration_service import (
+from layer4_agents.models.account import CRMProvider
+from layer4_agents.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
+from layer4_agents.services.integration_service import (
     IntegrationService,
     IntegrationValidationError,
 )

@@ -7,8 +7,8 @@ from typing import Any
 
 import pytest
 
-import value_fabric.layer4.services.conversation as conversation_module
-from value_fabric.layer4.services.conversation import ConversationService
+import layer4_agents.services.conversation as conversation_module
+from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
 
 try:

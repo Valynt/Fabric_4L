@@ -11,9 +11,9 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.routes import billing as billing_route
-from value_fabric.layer4.api.routes import crm_webhooks as crm_route
-from value_fabric.layer4.tenants.api.routes import provisioning as prov_route
+from layer4_agents.api.routes import billing as billing_route
+from layer4_agents.api.routes import crm_webhooks as crm_route
+from layer4_agents.tenants.api.routes import provisioning as prov_route
 
 
 def _provisioning_client(monkeypatch: pytest.MonkeyPatch) -> TestClient:

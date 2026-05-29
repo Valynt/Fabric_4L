@@ -16,12 +16,12 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi.websockets import WebSocketDisconnect
 
-from value_fabric.layer4.api.websocket.auth import (
+from layer4_agents.api.websocket.auth import (
     WebSocketAuthError,
     decode_ws_token,
     extract_token_from_protocol_header,
 )
-from value_fabric.layer4.api.websocket.routes import workflow_websocket
+from layer4_agents.api.websocket.routes import workflow_websocket
 
 
 # ---------------------------------------------------------------------------
@@ -64,19 +64,19 @@ def test_decode_ws_token_missing_raises():
 
 
 def test_decode_ws_token_jwt_unavailable_raises(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", False)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", False)
     with pytest.raises(WebSocketAuthError) as exc:
         decode_ws_token("some.token")
     assert exc.value.code == "AUTH_JWT_UNAVAILABLE"
 
 
 def test_decode_ws_token_maps_decode_exceptions_to_stable_code(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
 
     def _boom(_token):
         raise ValueError("sensitive parser message")
 
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth.decode_jwt", _boom)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth.decode_jwt", _boom)
 
     with pytest.raises(WebSocketAuthError) as exc:
         decode_ws_token("token-value")
@@ -85,9 +85,9 @@ def test_decode_ws_token_maps_decode_exceptions_to_stable_code(monkeypatch):
 
 
 def test_decode_ws_token_missing_tenant_claim_raises(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"sub": "user-1"},
     )
     with pytest.raises(WebSocketAuthError) as exc:
@@ -96,9 +96,9 @@ def test_decode_ws_token_missing_tenant_claim_raises(monkeypatch):
 
 
 def test_decode_ws_token_missing_user_claim_raises(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"tenant_id": "tenant-abc"},
     )
     with pytest.raises(WebSocketAuthError) as exc:
@@ -107,9 +107,9 @@ def test_decode_ws_token_missing_user_claim_raises(monkeypatch):
 
 
 def test_decode_ws_token_success(monkeypatch):
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"tenant_id": "tenant-abc", "sub": "user-xyz"},
     )
     tenant_id, user_id = decode_ws_token("valid.token")
@@ -209,7 +209,7 @@ async def test_route_does_not_leak_token_in_logs(caplog, monkeypatch):
 
     with caplog.at_level(logging.WARNING):
         with patch(
-            "value_fabric.layer4.api.websocket.routes.decode_ws_token",
+            "layer4_agents.api.websocket.routes.decode_ws_token",
             side_effect=WebSocketAuthError("AUTH_TOKEN_DECODE_FAILED"),
         ):
             await workflow_websocket(websocket=ws, workflow_id="wf-leak")
@@ -235,9 +235,9 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
     """Valid canonical header → ws_manager.connect called with tenant_id and user_id."""
     # Mock UUID to generate deterministic trace_id when header is provided
     monkeypatch.setattr("uuid.uuid4", lambda: type("UUID", (), {"hex": "1234567890abcdef1234567890abcdef"})())
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"tenant_id": "tenant-abc", "sub": "user-xyz"},
     )
 
@@ -250,10 +250,10 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
     ws.receive_json = AsyncMock(side_effect=WebSocketDisconnect())
 
     with patch(
-        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        "layer4_agents.api.websocket.routes.get_ws_manager",
         return_value=mock_manager,
     ), patch(
-        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        "layer4_agents.api.websocket.routes._resolve_workflow_authorization",
         return_value=(True, "AUTHZ_OK"),
     ):
         await workflow_websocket(
@@ -276,9 +276,9 @@ async def test_route_accepts_canonical_header_and_connects_with_correct_claims(
 @pytest.mark.asyncio
 async def test_route_rejects_when_workflow_not_owned_by_tenant(monkeypatch):
     """Ownership check failure → 1008, connection not established."""
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"tenant_id": "tenant-a", "sub": "user-1"},
     )
 
@@ -287,10 +287,10 @@ async def test_route_rejects_when_workflow_not_owned_by_tenant(monkeypatch):
     mock_manager.connect = AsyncMock()
 
     with patch(
-        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        "layer4_agents.api.websocket.routes.get_ws_manager",
         return_value=mock_manager,
     ), patch(
-        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        "layer4_agents.api.websocket.routes._resolve_workflow_authorization",
         return_value=(False, "AUTHZ_WORKFLOW_TENANT_MISMATCH"),
     ):
         await workflow_websocket(websocket=ws, workflow_id="wf-other-tenant")
@@ -304,9 +304,9 @@ async def test_route_rejects_when_workflow_not_owned_by_tenant(monkeypatch):
 @pytest.mark.asyncio
 async def test_route_rejects_when_workflow_missing(monkeypatch):
     """Missing workflow must fail closed with structured authz reason."""
-    monkeypatch.setattr("value_fabric.layer4.api.websocket.auth._JWT_AVAILABLE", True)
+    monkeypatch.setattr("layer4_agents.api.websocket.auth._JWT_AVAILABLE", True)
     monkeypatch.setattr(
-        "value_fabric.layer4.api.websocket.auth.decode_jwt",
+        "layer4_agents.api.websocket.auth.decode_jwt",
         lambda _t: {"tenant_id": "tenant-a", "sub": "user-1"},
     )
 
@@ -315,10 +315,10 @@ async def test_route_rejects_when_workflow_missing(monkeypatch):
     mock_manager.connect = AsyncMock()
 
     with patch(
-        "value_fabric.layer4.api.websocket.routes.get_ws_manager",
+        "layer4_agents.api.websocket.routes.get_ws_manager",
         return_value=mock_manager,
     ), patch(
-        "value_fabric.layer4.api.websocket.routes._resolve_workflow_authorization",
+        "layer4_agents.api.websocket.routes._resolve_workflow_authorization",
         return_value=(False, "AUTHZ_WORKFLOW_NOT_FOUND"),
     ):
         await workflow_websocket(websocket=ws, workflow_id="wf-missing")

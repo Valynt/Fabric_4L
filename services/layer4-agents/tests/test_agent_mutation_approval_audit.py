@@ -11,9 +11,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-import value_fabric.layer4.services.conversation as conversation_module
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.services.conversation import ConversationService
+import layer4_agents.services.conversation as conversation_module
+from layer4_agents.api.routes import analysis
+from layer4_agents.services.conversation import ConversationService
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 

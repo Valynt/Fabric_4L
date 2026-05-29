@@ -8,8 +8,8 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from value_fabric.layer4.services.export_provenance import build_export_provenance_manifest
-from value_fabric.layer4.workflows.business_case import (
+from layer4_agents.services.export_provenance import build_export_provenance_manifest
+from layer4_agents.workflows.business_case import (
     BusinessCaseGeneratorWorkflow,
     MissingTenantContextError,
 )
@@ -95,7 +95,7 @@ async def test_promotes_claims_and_persists_traceability(monkeypatch):
     }
 
     state.metadata["authenticated_tenant_id"] = "test-tenant"
-    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
+    monkeypatch.setattr("layer4_agents.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 
     result = await workflow._execute_assemble_document(state)
@@ -141,7 +141,7 @@ async def test_skips_claims_below_threshold(monkeypatch):
         "run_roi": {"roi_results": {}},
     }
 
-    monkeypatch.setattr("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
+    monkeypatch.setattr("layer4_agents.workflows.business_case.Layer5GroundTruthClient", _FakeLayer5Client)
     state.metadata["authenticated_tenant_id"] = "test-tenant"
     workflow._sync_ground_truths_to_kg = AsyncMock(return_value={"synced": 0, "failed": 0})  # type: ignore[method-assign]
 

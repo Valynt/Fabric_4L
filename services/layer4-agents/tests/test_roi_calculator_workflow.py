@@ -17,9 +17,9 @@ from unittest.mock import AsyncMock, Mock
 
 import pytest
 
-from value_fabric.layer4.models.agent_state import ROIAgentState, WorkflowStatus
-from value_fabric.layer4.tools.registry import ToolResult
-from value_fabric.layer4.workflows.roi_calculator import (
+from layer4_agents.models.agent_state import ROIAgentState, WorkflowStatus
+from layer4_agents.tools.registry import ToolResult
+from layer4_agents.workflows.roi_calculator import (
     CONFIDENCE_HIGH,
     CONFIDENCE_LOW,
     CONFIDENCE_MEDIUM,

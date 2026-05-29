@@ -2,14 +2,14 @@ from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer4.engine.output_contract import validate_final_output
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.engine.output_contract import validate_final_output
+from layer4_agents.models.agent_state import (
     BusinessCaseAgentState,
     ROIAgentState,
     WhitespaceAgentState,
     WorkflowStatus,
 )
-from value_fabric.layer4.models.reasoning_trace import ReasoningTrace, ToolCallTrace
+from layer4_agents.models.reasoning_trace import ReasoningTrace, ToolCallTrace
 
 
 def _valid_trace(run_id: str, trace_id: str) -> ReasoningTrace:

@@ -26,10 +26,10 @@ for path in (str(SHARED_SRC), str(LAYER4_PROJECT)):
     if path not in sys.path:
         sys.path.insert(0, path)
 
-from value_fabric.layer4.api.routes.billing import _get_client_ip, _is_stripe_webhook_ip  # noqa: E402
-from value_fabric.layer4.api.routes.health_badges import dismiss_badge, get_detailed_health, require_authenticated  # noqa: E402
-from value_fabric.layer4.config.settings import Settings  # noqa: E402
-from value_fabric.layer4.metrics.prometheus_metrics import _derive_tenant_tier, _normalize_path  # noqa: E402
+from layer4_agents.api.routes.billing import _get_client_ip, _is_stripe_webhook_ip  # noqa: E402
+from layer4_agents.api.routes.health_badges import dismiss_badge, get_detailed_health, require_authenticated  # noqa: E402
+from layer4_agents.config.settings import Settings  # noqa: E402
+from layer4_agents.metrics.prometheus_metrics import _derive_tenant_tier, _normalize_path  # noqa: E402
 
 CORE_ROUTES_SOURCE = LAYER4_SRC / "api" / "core_routes.py"
 HEALTH_BADGES_SOURCE = LAYER4_SRC / "api" / "routes" / "health_badges.py"

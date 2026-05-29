@@ -10,7 +10,7 @@ from src.workflows.replay import (
     ReplayAuthorizationContext,
     ReplayEventEnvelopeV1,
 )
-from value_fabric.layer4.policies.replay_conflict import ReplayConflictError
+from layer4_agents.policies.replay_conflict import ReplayConflictError
 
 
 class _AuditSink:

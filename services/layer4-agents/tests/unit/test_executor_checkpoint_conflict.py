@@ -12,17 +12,17 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.engine.executor import (
+from layer4_agents.engine.executor import (
     CheckpointConflictError,
     OrchestrationController,
     WorkflowExecutionError,
 )
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.models.agent_state import (
     BaseAgentState,
     WorkflowStatus,
     WorkflowType,
 )
-from value_fabric.layer4.tools.registry import ToolRegistry
+from layer4_agents.tools.registry import ToolRegistry
 
 TEST_WORKFLOW_TYPE = "roi_calculator"
 
@@ -292,7 +292,7 @@ class TestResumeWorkflowStatusGuards:
             mock_workflow = MagicMock()
             mock_workflow.run = AsyncMock(return_value=state)
             with patch(
-                "value_fabric.layer4.engine.executor.create_workflow",
+                "layer4_agents.engine.executor.create_workflow",
                 return_value=mock_workflow,
             ):
                 result = await controller.resume_workflow("wf-int", user_id="alice")

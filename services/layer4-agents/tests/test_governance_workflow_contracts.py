@@ -8,7 +8,7 @@ from fastapi.testclient import TestClient
 # Contract tests rely on GovernanceMiddleware + test JWT or mocked auth context.
 os.environ.setdefault("ENVIRONMENT", "development")
 
-from value_fabric.layer4.api.main import app
+from layer4_agents.api.main import app
 
 
 client = TestClient(app)

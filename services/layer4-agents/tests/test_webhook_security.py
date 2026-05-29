@@ -19,14 +19,14 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import (
+from layer4_agents.models.billing import (
     BillingCustomer,
     BillingSubscription,
     BillingWebhookEvent,
     SubscriptionStatus,
 )
 
-from value_fabric.layer4.services.billing_service import BillingService
+from layer4_agents.services.billing_service import BillingService
 
 
 # =============================================================================

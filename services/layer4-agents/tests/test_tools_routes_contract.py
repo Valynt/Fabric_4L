@@ -4,8 +4,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from value_fabric.layer4.api.routes import tools
-from value_fabric.layer4.models.tool_schemas import ToolCategory
+from layer4_agents.api.routes import tools
+from layer4_agents.models.tool_schemas import ToolCategory
 
 
 class _StubTool:

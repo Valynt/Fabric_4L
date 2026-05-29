@@ -12,8 +12,8 @@ from uuid import uuid4
 import pytest
 from prometheus_client import CollectorRegistry
 
-from value_fabric.layer4.metrics.llm_cost_calculator import LLMCostCalculator
-from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+from layer4_agents.metrics.llm_cost_calculator import LLMCostCalculator
+from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
 
 
 def _expected_tenant_tier(tenant_id: str) -> str:

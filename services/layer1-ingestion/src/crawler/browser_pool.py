@@ -111,7 +111,7 @@ class BrowserPool:
 
             return BrowserInstance(browser=browser, context=context)
         except Exception as e:
-            logger.error("Failed to create browser instance", error=str(e))
+            logger.error("Failed to create browser instance", error=repr(e))
             raise RuntimeError(f"Browser instance creation failed: {e}") from e
 
     async def acquire(self) -> BrowserInstance:
@@ -212,7 +212,7 @@ class BrowserPool:
             self._pool.remove(instance)
             logger.debug("Browser instance recycled", usage_count=instance.usage_count)
         except Exception as e:
-            logger.error("Error recycling browser instance", error=str(e))
+            logger.error("Error recycling browser instance", error=repr(e))
             # Remove from pool even if close failed
             if instance in self._pool:
                 self._pool.remove(instance)
@@ -237,7 +237,7 @@ class BrowserPool:
         try:
             await page.close()
         except Exception as e:
-            logger.warning("Error closing page", error=str(e))
+            logger.warning("Error closing page", error=repr(e))
         finally:
             await self.release(instance)
 
@@ -249,7 +249,7 @@ class BrowserPool:
                     await instance.context.close()
                     await instance.browser.close()
                 except Exception as e:
-                    logger.error("Error closing browser instance during cleanup", error=str(e))
+                    logger.error("Error closing browser instance during cleanup", error=repr(e))
 
             self._pool.clear()
 

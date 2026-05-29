@@ -193,7 +193,7 @@ class ROICalculationAgent(BaseAgent):
                 status="failed",
                 output={},
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                errors=[str(e)],
+                errors=[repr(e)],
             )
 
     async def _execute_formula(

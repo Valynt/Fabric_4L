@@ -200,14 +200,14 @@ def tool(
                 logger.warning(
                     "Tool %s failed: %s (recoverable=%s)",
                     tool_name,
-                    str(e),
+                    repr(e),
                     is_recoverable,
                     exc_info=True,
                 )
 
                 return ToolResult.error(
                     code=_exception_to_code(e),
-                    message=str(e),
+                    message=repr(e),
                     recoverable=is_recoverable,
                     details={
                         "exception_type": type(e).__name__,
@@ -247,14 +247,14 @@ def tool(
                 logger.warning(
                     "Tool %s failed: %s (recoverable=%s)",
                     tool_name,
-                    str(e),
+                    repr(e),
                     is_recoverable,
                     exc_info=True,
                 )
 
                 return ToolResult.error(
                     code=_exception_to_code(e),
-                    message=str(e),
+                    message=repr(e),
                     recoverable=is_recoverable,
                     details={
                         "exception_type": type(e).__name__,

@@ -159,13 +159,13 @@ class SyncManager:
 
         except RDFLoadError as e:
             stats["status"] = "failed"
-            stats["error"] = str(e)
+            stats["error"] = repr(e)
             await self._update_sync_metadata(
                 source_id,
                 extraction_job_id,
                 content_hash,
                 "failed",
-                str(e),
+                repr(e),
                 tenant_id=validated_tenant_id,
             )
             raise

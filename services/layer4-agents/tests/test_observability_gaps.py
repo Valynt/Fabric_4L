@@ -7,10 +7,10 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from value_fabric.layer4.harness.human_gates import HumanGateManager
-from value_fabric.layer4.harness.models import ActionClass, GateType, HarnessWorkflowType
-from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
-from value_fabric.layer4.models.agent_state import WorkflowStatus
+from layer4_agents.harness.human_gates import HumanGateManager
+from layer4_agents.harness.models import ActionClass, GateType, HarnessWorkflowType
+from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+from layer4_agents.models.agent_state import WorkflowStatus
 
 
 class TestObservabilityGaps:
@@ -22,7 +22,7 @@ class TestObservabilityGaps:
                 observed_action_classes.append(action_class)
 
         monkeypatch.setattr(
-            "value_fabric.layer4.metrics.prometheus_metrics.get_metrics",
+            "layer4_agents.metrics.prometheus_metrics.get_metrics",
             lambda: _FakeMetrics(),
         )
 
@@ -111,7 +111,7 @@ class TestObservabilityGaps:
         assert updated.decided_at is not None
 
     def test_metrics_use_tenant_tier_not_raw_tenant_id(self) -> None:
-        from value_fabric.layer4.metrics.prometheus_metrics import _derive_tenant_tier
+        from layer4_agents.metrics.prometheus_metrics import _derive_tenant_tier
 
         tier1 = _derive_tenant_tier("tenant-a")
         tier2 = _derive_tenant_tier("tenant-b")
@@ -122,8 +122,8 @@ class TestObservabilityGaps:
         assert _derive_tenant_tier("") == "unknown"
 
     def test_checkpoint_corruption_metric_emission(self) -> None:
-        from value_fabric.layer4.engine.execution_checkpointing import record_checkpoint_corruption
-        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+        from layer4_agents.engine.execution_checkpointing import record_checkpoint_corruption
+        from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
 
         metrics = PrometheusMetrics(MetricsConfig(registry=None))
         # Simulate emission
@@ -131,7 +131,7 @@ class TestObservabilityGaps:
         assert "checkpoint_corruption_detected_total" in metrics._metrics
 
     def test_tool_auth_failure_metric_emission(self) -> None:
-        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+        from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
 
         metrics = PrometheusMetrics(MetricsConfig(registry=None))
         metrics.increment_tool_auth_failure("get_prospect_data", "tenant-123")

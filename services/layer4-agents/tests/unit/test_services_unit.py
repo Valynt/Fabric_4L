@@ -21,7 +21,7 @@ class TestIncrementVersion:
     """Tests for the version increment helper."""
 
     def _svc(self):
-        from value_fabric.layer4.services.value_pack_service import Neo4jValuePackService
+        from layer4_agents.services.value_pack_service import Neo4jValuePackService
 
         driver = MagicMock()
         return Neo4jValuePackService(driver=driver)
@@ -81,7 +81,7 @@ class TestBusinessCaseService:
         return db
 
     def _make_record(self, case_id: str):
-        from value_fabric.layer4.models.business_case_record import BusinessCaseRecord
+        from layer4_agents.models.business_case_record import BusinessCaseRecord
 
         record = BusinessCaseRecord(
             case_id=case_id,
@@ -96,7 +96,7 @@ class TestBusinessCaseService:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_creates_new_record_when_not_existing(self):
-        from value_fabric.layer4.services.business_case_service import BusinessCaseService
+        from layer4_agents.services.business_case_service import BusinessCaseService
 
         db = self._make_mock_db(existing_record=None)
         svc = BusinessCaseService(db=db)
@@ -118,7 +118,7 @@ class TestBusinessCaseService:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_updates_existing_record(self):
-        from value_fabric.layer4.services.business_case_service import BusinessCaseService
+        from layer4_agents.services.business_case_service import BusinessCaseService
 
         existing = self._make_record("case-existing-001")
         db = self._make_mock_db(existing_record=existing)
@@ -144,7 +144,7 @@ class TestBusinessCaseService:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_upsert_returns_refreshed_record(self):
-        from value_fabric.layer4.services.business_case_service import BusinessCaseService
+        from layer4_agents.services.business_case_service import BusinessCaseService
 
         existing = self._make_record("case-refresh-001")
         db = self._make_mock_db(existing_record=existing)
@@ -167,7 +167,7 @@ class TestBusinessCaseService:
     @pytest.mark.asyncio
     async def test_upsert_with_none_opportunity_id(self):
         """Null opportunity_id is allowed (opportunity is optional)."""
-        from value_fabric.layer4.services.business_case_service import BusinessCaseService
+        from layer4_agents.services.business_case_service import BusinessCaseService
 
         db = self._make_mock_db(existing_record=None)
         svc = BusinessCaseService(db=db)
@@ -196,7 +196,7 @@ class TestEncryptionServiceEdgeCases:
     @pytest.fixture(autouse=True)
     def reset_encryption(self, monkeypatch):
         from collections import OrderedDict
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         # Allow ephemeral key generation so tests that call encrypt/decrypt
         # work without a real CREDENTIALS_MASTER_KEY in the test environment.
@@ -212,7 +212,7 @@ class TestEncryptionServiceEdgeCases:
     @pytest.mark.asyncio
     async def test_rotate_key_produces_different_ciphertext(self):
         """Rotated ciphertext differs from original but decrypts to same plaintext."""
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         plaintext = "sensitive-credential-data"
         original = await EncryptionService.encrypt(plaintext, key_id="v1")
@@ -226,7 +226,7 @@ class TestEncryptionServiceEdgeCases:
     @pytest.mark.asyncio
     async def test_rotate_key_fails_with_wrong_old_key(self):
         """Rotating with wrong old key raises ValueError."""
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         plaintext = "secret"
         original = await EncryptionService.encrypt(plaintext, key_id="v1")
@@ -239,7 +239,7 @@ class TestEncryptionServiceEdgeCases:
     async def test_invalid_master_key_length_raises(self):
         """A master key of invalid length raises ValueError."""
         import os
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         with patch.dict(os.environ, {"CREDENTIALS_MASTER_KEY": "tooshort"}):
             EncryptionService._MASTER_KEY = None
@@ -250,7 +250,7 @@ class TestEncryptionServiceEdgeCases:
     @pytest.mark.asyncio
     async def test_non_ascii_key_id_raises(self):
         """Non-ASCII key_id raises ValueError."""
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         with pytest.raises(ValueError, match="ASCII-only"):
             await EncryptionService._get_fernet("key-\u00e9")
@@ -260,7 +260,7 @@ class TestEncryptionServiceEdgeCases:
     async def test_production_without_master_key_raises(self):
         """In production without a master key, ephemeral key generation must fail."""
         import os
-        from value_fabric.layer4.services.encryption_service import EncryptionService
+        from layer4_agents.services.encryption_service import EncryptionService
 
         with patch.dict(os.environ, {"ENVIRONMENT": "production", "ALLOW_EPHEMERAL_ENCRYPTION": ""}):
             EncryptionService._MASTER_KEY = None

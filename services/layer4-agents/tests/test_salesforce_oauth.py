@@ -16,10 +16,10 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from value_fabric.layer4.models.account import CRMProvider
-from value_fabric.layer4.models.integration import Integration, IntegrationStatus
-from value_fabric.layer4.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
-from value_fabric.layer4.services.integration_service import (
+from layer4_agents.models.account import CRMProvider
+from layer4_agents.models.integration import Integration, IntegrationStatus
+from layer4_agents.services.encryption_service import DEFAULT_KEY_ID, EncryptionService
+from layer4_agents.services.integration_service import (
     IntegrationService,
     IntegrationValidationError,
 )
@@ -231,13 +231,13 @@ class TestSchedulerTenantIsolation:
     @pytest.mark.asyncio
     async def test_scheduler_uses_request_context_for_sync(self, mock_db):
         """Verify _execute_sync_for_tenant builds proper RequestContext and uses db_session_for_context."""
-        from value_fabric.layer4.services.crm_sync_scheduler import CRMSyncScheduler
+        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
         from value_fabric.shared.identity.context import RequestContext
 
         scheduler = CRMSyncScheduler()
 
         with patch(
-            "value_fabric.layer4.services.crm_sync_scheduler.db_session_for_context"
+            "layer4_agents.services.crm_sync_scheduler.db_session_for_context"
         ) as mock_db_session:
             mock_ctx_db = AsyncMock()
             mock_ctx_db.__aenter__ = AsyncMock(return_value=mock_ctx_db)
@@ -245,7 +245,7 @@ class TestSchedulerTenantIsolation:
             mock_db_session.return_value = mock_ctx_db
 
             with patch(
-                "value_fabric.layer4.services.crm_sync_scheduler.IntegrationService.get_integration",
+                "layer4_agents.services.crm_sync_scheduler.IntegrationService.get_integration",
                 AsyncMock(return_value=None),
             ):
                 result = await scheduler._execute_sync_for_tenant(
@@ -263,7 +263,7 @@ class TestSchedulerTenantIsolation:
 
     def test_scheduler_source_no_unsafe_assignment(self):
         """Verify CRMSyncScheduler does not contain unsafe app.tenant_id = '' assignment outside SQL strings."""
-        from value_fabric.layer4.services.crm_sync_scheduler import CRMSyncScheduler
+        from layer4_agents.services.crm_sync_scheduler import CRMSyncScheduler
         import inspect
 
         module_source = inspect.getsource(CRMSyncScheduler)
@@ -282,7 +282,7 @@ class TestNoEnvFallback:
 
     def test_no_env_fallback_in_source(self):
         """Verify ALLOW_ENV_CRM_FALLBACK is removed from sync service."""
-        from value_fabric.layer4.services.crm_sync_service import CRMSyncService
+        from layer4_agents.services.crm_sync_service import CRMSyncService
         import inspect
 
         module_source = inspect.getsource(CRMSyncService)

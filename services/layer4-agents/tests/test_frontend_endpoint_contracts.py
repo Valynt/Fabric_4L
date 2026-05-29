@@ -12,7 +12,7 @@ import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (
 
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.main import app
+from layer4_agents.api.main import app
 
 
 client = TestClient(app)

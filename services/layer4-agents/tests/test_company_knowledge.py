@@ -32,15 +32,15 @@ from sqlalchemy.orm import sessionmaker
 from testcontainers.postgres import PostgresContainer
 
 from fastapi import FastAPI
-from value_fabric.layer4.api.routes import company_knowledge as company_knowledge_route
-from value_fabric.layer4.database import get_db_from_context, _mark_session_tenant_context
-from value_fabric.layer4.models.company_knowledge import (
+from layer4_agents.api.routes import company_knowledge as company_knowledge_route
+from layer4_agents.database import get_db_from_context, _mark_session_tenant_context
+from layer4_agents.models.company_knowledge import (
     CompanyKnowledgeProfile,
     ICPProfile,
     KnowledgeSource,
     ValueExtractionRecord,
 )
-from value_fabric.layer4.models.company_knowledge import (
+from layer4_agents.models.company_knowledge import (
     CompanyKnowledgeProfile,
     CrawlStatus,
     ICPProfile,
@@ -50,7 +50,7 @@ from value_fabric.layer4.models.company_knowledge import (
     SourceType,
     ValueExtractionRecord,
 )
-from value_fabric.layer4.services.company_knowledge_service import CompanyKnowledgeService
+from layer4_agents.services.company_knowledge_service import CompanyKnowledgeService
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
@@ -353,7 +353,7 @@ async def test_approve_profile(client: AsyncClient, sample_profile):
 async def test_add_knowledge_source(client: AsyncClient, sample_profile):
     """POST /v1/company-knowledge/sources creates a source."""
     with patch(
-        "value_fabric.layer4.api.routes.company_knowledge.CompanyKnowledgeService.trigger_layer1_crawl",
+        "layer4_agents.api.routes.company_knowledge.CompanyKnowledgeService.trigger_layer1_crawl",
         new_callable=AsyncMock,
     ) as mock_crawl:
         response = await client.post(

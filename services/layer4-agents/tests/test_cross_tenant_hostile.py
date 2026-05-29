@@ -7,10 +7,10 @@ from pathlib import Path
 
 import pytest
 
-from value_fabric.layer4.engine.executor import OrchestrationController
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
-from value_fabric.layer4.tools.registry import ToolRegistry
+from layer4_agents.engine.executor import OrchestrationController
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus, WorkflowType
+from layer4_agents.tools.registry import ToolRegistry
 
 
 def _load_service_code() -> str:

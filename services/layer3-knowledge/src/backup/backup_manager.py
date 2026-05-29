@@ -672,7 +672,7 @@ class BackupManager:
                 status=metadata.status.value,
                 backup_type=metadata.backup_type,
                 created_at=metadata.created_at,
-                error=str(e),
+                error=repr(e),
             )
 
     async def _generate_backup_data(
@@ -1035,7 +1035,7 @@ class BackupManager:
                 backup_id=request.backup_id,
                 status="failed",
                 restored_at=datetime.utcnow(),
-                error=str(e),
+                error=repr(e),
             )
 
     def _get_backup_metadata(self, backup_id: str) -> BackupMetadata | None:

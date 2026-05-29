@@ -92,7 +92,7 @@ def postgres_container():
 @pytest.fixture(scope="session")
 def fake_crm_provider():
     """Provide a fake CRM provider for Salesforce/HubSpot tests."""
-    from value_fabric.layer4.models.account import CRMProvider
+    from layer4_agents.models.account import CRMProvider
     
     mock_crm = MagicMock()
     mock_crm.SALESFORCE = CRMProvider.SALESFORCE
@@ -343,7 +343,7 @@ def mock_tool_registry():
             mock_tool_registry.execute.return_value = {"result": "mocked"}
             workflow = BusinessCaseGeneratorWorkflow(tool_registry=mock_tool_registry)
     """
-    from value_fabric.layer4.tools.registry import ToolRegistry
+    from layer4_agents.tools.registry import ToolRegistry
     registry = Mock(spec=ToolRegistry)
     registry.execute = AsyncMock()
     return registry
@@ -387,7 +387,7 @@ def business_case_workflow(mock_tool_registry, mock_openai_client):
     This fixture provides a workflow instance ready for testing with
     all external calls (LLM, tools) pre-mocked.
     """
-    from value_fabric.layer4.workflows.business_case import BusinessCaseGeneratorWorkflow
+    from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
     return BusinessCaseGeneratorWorkflow(
         tool_registry=mock_tool_registry,
         openai_client=mock_openai_client,
@@ -397,7 +397,7 @@ def business_case_workflow(mock_tool_registry, mock_openai_client):
 @pytest.fixture
 def roi_calculator_workflow(mock_tool_registry):
     """Create a ROICalculatorWorkflow with mocked dependencies."""
-    from value_fabric.layer4.workflows.roi_calculator import ROICalculatorWorkflow
+    from layer4_agents.workflows.roi_calculator import ROICalculatorWorkflow
     return ROICalculatorWorkflow(
         tool_registry=mock_tool_registry,
     )
@@ -412,9 +412,9 @@ from typing import Any
 import pytest_asyncio
 from langgraph.checkpoint.memory import InMemorySaver
 
-from value_fabric.layer4.engine.executor import OrchestrationController
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.engine.executor import OrchestrationController
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
 
 TEST_WORKFLOW_TYPE = "roi_calculator"
 
@@ -554,8 +554,8 @@ def completed_workflow_state() -> BaseAgentState:
 # ── SimpleTestWorkflow Fixture ─────────────────────────────────────────────
 # Extracted from test_checkpoint_resume.py to reduce duplication
 
-from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig, NodeType
-from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowConfig
+from layer4_agents.models.workflow_config import EdgeConfig, NodeConfig, NodeType
+from layer4_agents.workflows.base import BaseWorkflow, WorkflowConfig
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 

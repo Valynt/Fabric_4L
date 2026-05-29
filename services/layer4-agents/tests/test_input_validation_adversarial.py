@@ -28,8 +28,8 @@ from uuid import uuid4
 
 from fastapi import FastAPI
 
-from value_fabric.layer4.api.routes.company_knowledge import router as company_knowledge_router
-from value_fabric.layer4.database import get_db_from_context
+from layer4_agents.api.routes.company_knowledge import router as company_knowledge_router
+from layer4_agents.database import get_db_from_context
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.permissions import Role

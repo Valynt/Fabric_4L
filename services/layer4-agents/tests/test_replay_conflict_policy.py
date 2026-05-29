@@ -7,8 +7,8 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from value_fabric.layer4.models.agent_state import WorkflowStatus
-from value_fabric.layer4.policies.replay_conflict import (
+from layer4_agents.models.agent_state import WorkflowStatus
+from layer4_agents.policies.replay_conflict import (
     CollisionAction,
     ReplayDecision,
     ReplayConflictError,

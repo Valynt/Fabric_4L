@@ -8,7 +8,7 @@ Uses src.* imports with pytest pythonpath configuration.
 
 import pytest
 
-from value_fabric.layer4.interfaces import (
+from layer4_agents.interfaces import (
     ActivationRequest,
     BenchmarkDataset,
     ComparisonRequest,

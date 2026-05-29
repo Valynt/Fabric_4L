@@ -18,9 +18,9 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventStatus
-from value_fabric.layer4.api.routes.billing import UsageBatchRequest, UsageEventRequest, ingest_usage_batch, ingest_usage_event
-from value_fabric.layer4.services.usage_service import UsageService, UsageValidationError
+from layer4_agents.models.billing import BillingUsageEvent, UsageEventStatus
+from layer4_agents.api.routes.billing import UsageBatchRequest, UsageEventRequest, ingest_usage_batch, ingest_usage_event
+from layer4_agents.services.usage_service import UsageService, UsageValidationError
 
 
 # =============================================================================
@@ -278,7 +278,7 @@ async def test_tenant_isolation_in_queries(mock_db):
 def client():
     """FastAPI test client."""
     from fastapi.testclient import TestClient
-    from value_fabric.layer4.api.main import app
+    from layer4_agents.api.main import app
     return TestClient(app)
 
 
@@ -298,8 +298,8 @@ async def test_ingest_usage_event_blocks_hard_limit(mock_db):
         timestamp=datetime.now(UTC),
     )
 
-    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": False, "error": "Usage limit exceeded for requests", "limit": 100, "current_usage": 100, "overage": 10, "requested": 10.0})), \
-         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
+    with patch("layer4_agents.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": False, "error": "Usage limit exceeded for requests", "limit": 100, "current_usage": 100, "overage": 10, "requested": 10.0})), \
+         patch("layer4_agents.api.routes.billing.UsageService.ingest_event", new=AsyncMock()) as ingest_mock:
         with pytest.raises(Exception) as exc:
             await ingest_usage_event(request=request, db=mock_db, context=context)
         # The implementation catches the 402 and re-raises as 500
@@ -333,8 +333,8 @@ async def test_ingest_usage_batch_soft_limit_allows_accumulation(mock_db):
         ),
     ])
 
-    with patch("value_fabric.layer4.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": True})), \
-         patch("value_fabric.layer4.api.routes.billing.UsageService.ingest_batch", new=AsyncMock(return_value={"created": 2, "duplicates": 0, "errors": 0, "error_details": None})) as batch_mock:
+    with patch("layer4_agents.api.routes.billing.OverageService.validate_request", new=AsyncMock(return_value={"allowed": True})), \
+         patch("layer4_agents.api.routes.billing.UsageService.ingest_batch", new=AsyncMock(return_value={"created": 2, "duplicates": 0, "errors": 0, "error_details": None})) as batch_mock:
         response = await ingest_usage_batch(request=request, db=mock_db, context=context)
         assert response["created"] == 2
         batch_mock.assert_called_once()

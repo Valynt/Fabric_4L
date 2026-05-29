@@ -1774,8 +1774,10 @@ dependencies = [
     { name = "python-multipart" },
     { name = "rdflib" },
     { name = "redis" },
+    { name = "sentry-sdk" },
     { name = "sqlalchemy" },
     { name = "sse-starlette" },
+    { name = "stripe" },
     { name = "structlog" },
     { name = "tenacity" },
     { name = "uvicorn", extra = ["standard"] },
@@ -1855,7 +1857,7 @@ requires-dist = [
     { name = "opentelemetry-instrumentation-fastapi", specifier = ">=0.41b0" },
     { name = "opentelemetry-sdk", specifier = ">=1.20.0" },
     { name = "pandas", specifier = ">=2.2.0" },
-    { name = "prometheus-client", specifier = ">=0.21.0" },
+    { name = "prometheus-client", specifier = ">=0.19.0" },
     { name = "prov", specifier = ">=2.0.0" },
     { name = "psutil", specifier = ">=5.9" },
     { name = "psycopg", extras = ["binary"], marker = "extra == 'dev'", specifier = ">=3.1.0" },
@@ -1877,8 +1879,10 @@ requires-dist = [
     { name = "respx", marker = "extra == 'dev'", specifier = ">=0.21.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.7.0" },
     { name = "schemathesis", marker = "extra == 'dev'", specifier = ">=3.38.0" },
+    { name = "sentry-sdk", specifier = ">=2.0.0" },
     { name = "sqlalchemy", specifier = ">=2.0" },
     { name = "sse-starlette", specifier = ">=2.0.0" },
+    { name = "stripe", specifier = ">=11.0.0" },
     { name = "structlog", specifier = ">=24.4.0" },
     { name = "tenacity", specifier = ">=9.0.0" },
     { name = "testcontainers", marker = "extra == 'dev'", specifier = ">=4.8.0" },
@@ -4245,6 +4249,19 @@ wheels = [
 ]
 
 [[package]]
+name = "sentry-sdk"
+version = "2.61.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "certifi" },
+    { name = "urllib3" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/52/4d/3c66e6045bd2071256b6b6fdcb0cc02b86ce54b2acc2ceac79af8e0efbb5/sentry_sdk-2.61.0.tar.gz", hash = "sha256:1ca9b4bb777eb5be67004edab7eb894f21c6301f1d05ed64966719ad5d1764ce", size = 458510, upload-time = "2026-05-28T09:40:28.917Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/21/5a/9794736d5802689c1a48862e6afe6b7f3e86cc37c15d4a84bc0143877dc1/sentry_sdk-2.61.0-py3-none-any.whl", hash = "sha256:ec4d30273909cb1d198e03208b16ee70e2bc5d90a16fd9f1fb2fc6a72e1f03dc", size = 483111, upload-time = "2026-05-28T09:40:27.027Z" },
+]
+
+[[package]]
 name = "six"
 version = "1.17.0"
 source = { registry = "https://pypi.org/simple" }
@@ -4370,6 +4387,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/cd/64/6debec8fc6e9abde0c7042145dc27a562bd1cd79350a55b80bf612a10ccb/starlette_testclient-0.4.1.tar.gz", hash = "sha256:9e993ffe12fab45606116257813986612262fe15c1bb6dc9e39cc68693ac1fc5", size = 12480, upload-time = "2024-04-29T10:54:28.503Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/25/44/f5209b889a344b1331a103aec4e9f906c7f67f9295fd287fdaa818179d95/starlette_testclient-0.4.1-py3-none-any.whl", hash = "sha256:dcf0eb237dc47f062ef5925f98330af46f67e547cb587119c9ae78c17ae6c1d1", size = 8143, upload-time = "2024-04-29T10:54:25.728Z" },
+]
+
+[[package]]
+name = "stripe"
+version = "15.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "requests" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/d0/28/c3550f39d9e258c21bcba81a89ef3ca7af352ad2cb14fe16b80248841644/stripe-15.2.0.tar.gz", hash = "sha256:f795d8a8ff27433e9ab03099afc0f5c4e992a8a6f92b9f839dc0048bb12f76f6", size = 1520207, upload-time = "2026-05-27T20:34:44.256Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d8/2b/697003ba6349058b65a5cb6b0bd8a8b0e909ed35911f7beebfc24b0563ee/stripe-15.2.0-py3-none-any.whl", hash = "sha256:e74d45bb07bb912fdc4ce81ffbdf184bcb92ce6e210cb7939966e537021c1842", size = 2168459, upload-time = "2026-05-27T20:34:42.312Z" },
 ]
 
 [[package]]

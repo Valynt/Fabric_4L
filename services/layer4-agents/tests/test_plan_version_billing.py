@@ -6,8 +6,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import BillingPlanVersion, BillingSubscription, SubscriptionStatus
-from value_fabric.layer4.services.billing_service import BillingService
+from layer4_agents.models.billing import BillingPlanVersion, BillingSubscription, SubscriptionStatus
+from layer4_agents.services.billing_service import BillingService
 
 
 @pytest.fixture

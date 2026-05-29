@@ -1,7 +1,7 @@
 from fastapi import Request
 import pytest
 
-from value_fabric.layer4.services.billing_security import validate_webhook_request_security
+from layer4_agents.services.billing_security import validate_webhook_request_security
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 

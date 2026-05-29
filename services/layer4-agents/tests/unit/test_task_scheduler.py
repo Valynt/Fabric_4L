@@ -12,7 +12,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from value_fabric.layer4.engine.scheduler import (
+from layer4_agents.engine.scheduler import (
     ScheduledTask,
     TaskPriority,
     TaskScheduler,

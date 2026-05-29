@@ -64,7 +64,7 @@ async def create_dsar(
                     logger.info("DSAR request replayed from idempotency cache", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", idempotency_key=idempotency_key)
                     return replay.body
         except Exception as e:
-            logger.warning("Idempotency check failed, proceeding with request", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=str(e))
+            logger.warning("Idempotency check failed, proceeding with request", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=repr(e))
     
     record = await dsar_service.register_request(payload, tenant_id=tenant_id, requester_user_id=auth.sub)
     package = await dsar_service.launch_export_pipeline(record)
@@ -91,7 +91,7 @@ async def create_dsar(
                 )
             )
         except Exception as e:
-            logger.warning("Failed to store idempotency response", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=str(e))
+            logger.warning("Failed to store idempotency response", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=repr(e))
     
     return response
 

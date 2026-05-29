@@ -15,10 +15,10 @@ from langgraph.checkpoint.memory import InMemorySaver
 
 from langgraph.types import interrupt
 
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
-from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
-from value_fabric.layer4.tools.registry import ToolRegistry
-from value_fabric.layer4.workflows.base import BaseWorkflow
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.models.workflow_config import EdgeConfig, NodeConfig, NodeType, WorkflowConfig
+from layer4_agents.tools.registry import ToolRegistry
+from layer4_agents.workflows.base import BaseWorkflow
 
 
 TEST_WORKFLOW_TYPE = "roi_calculator"

@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.app_factory import create_app
+from layer4_agents.api.app_factory import create_app
 
 
 def _app_with_noop_lifespan(monkeypatch):
@@ -13,7 +13,7 @@ def _app_with_noop_lifespan(monkeypatch):
         yield
 
     monkeypatch.setattr(
-        "value_fabric.layer4.api.app_factory.build_lifespan",
+        "layer4_agents.api.app_factory.build_lifespan",
         lambda **_: _noop_lifespan,
     )
     return create_app()

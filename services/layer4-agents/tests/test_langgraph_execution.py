@@ -19,15 +19,15 @@ import pytest
 
 from value_fabric.shared.identity.context import RequestContext, RequestContextManager
 
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.models.agent_state import (
     BusinessCaseAgentState,
     ROIAgentState,
     WorkflowStatus,
 )
-from value_fabric.layer4.tools.registry import ToolRegistry
-from value_fabric.layer4.workflows.business_case import BusinessCaseGeneratorWorkflow
-from value_fabric.layer4.workflows.roi_calculator import ROICalculatorWorkflow
-from value_fabric.layer4.workflows.whitespace import WhitespaceAnalysisWorkflow
+from layer4_agents.tools.registry import ToolRegistry
+from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
+from layer4_agents.workflows.roi_calculator import ROICalculatorWorkflow
+from layer4_agents.workflows.whitespace import WhitespaceAnalysisWorkflow
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -105,8 +105,8 @@ class TestWhitespaceAnalysisWorkflow:
     """WhitespaceAnalysisWorkflow unit tests."""
 
     @pytest.mark.asyncio
-    @patch("value_fabric.layer4.workflows.whitespace.get_llm_provider")
-    @patch("value_fabric.layer4.workflows.whitespace.get_llm_budget_guardrails")
+    @patch("layer4_agents.workflows.whitespace.get_llm_provider")
+    @patch("layer4_agents.workflows.whitespace.get_llm_budget_guardrails")
     async def test_analyze_prospect_returns_complete_result(self, mock_guardrails, mock_get_provider) -> None:
         """_execute_analyze_prospect must return a result with all required fields."""
         decision_mock = Mock()
@@ -214,7 +214,7 @@ class TestWhitespaceAnalysisWorkflow:
     @pytest.mark.asyncio
     async def test_query_capabilities_handles_tool_result_contract(self) -> None:
         """_execute_query_capabilities must unwrap ToolResult.data, not crash on .get()."""
-        from value_fabric.layer4.tools.registry import ToolResult
+        from layer4_agents.tools.registry import ToolResult
         registry = _make_mock_tool_registry()
         workflow = WhitespaceAnalysisWorkflow(tool_registry=registry)
 
@@ -613,7 +613,7 @@ class TestBusinessCaseGeneratorWorkflow:
         assert "organization_id" in result
 
     @pytest.mark.asyncio
-    @patch("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient")
+    @patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient")
     async def test_sync_ground_truths_normalizes_success_result(self, mock_client_cls) -> None:
         """_sync_ground_truths_to_kg must return a dict matching the result model even when Layer 5 omits fields."""
         registry = _make_mock_tool_registry()
@@ -684,8 +684,8 @@ class TestGenerateSectionToolLLMMock:
     @pytest.mark.asyncio
     async def test_generate_section_tool_with_mocked_openai(self) -> None:
         """GenerateSectionTool must use AsyncOpenAI and be mockable."""
-        from value_fabric.layer4.models.tool_schemas import GenerateSectionInput
-        from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+        from layer4_agents.models.tool_schemas import GenerateSectionInput
+        from layer4_agents.tools.generation_tools import GenerateSectionTool
 
         tool = GenerateSectionTool()
 
@@ -704,8 +704,8 @@ class TestGenerateSectionToolLLMMock:
     @pytest.mark.asyncio
     async def test_generate_section_tool_uses_gpt4o(self) -> None:
         """GenerateSectionTool must call gpt-4o model."""
-        from value_fabric.layer4.models.tool_schemas import GenerateSectionInput
-        from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+        from layer4_agents.models.tool_schemas import GenerateSectionInput
+        from layer4_agents.tools.generation_tools import GenerateSectionTool
 
         tool = GenerateSectionTool()
         captured_calls = []
@@ -731,8 +731,8 @@ class TestGenerateSectionToolLLMMock:
     @pytest.mark.asyncio
     async def test_generate_section_tool_raises_on_llm_failure(self) -> None:
         """GenerateSectionTool must return structured error when LLM call fails."""
-        from value_fabric.layer4.models.tool_schemas import GenerateSectionInput
-        from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+        from layer4_agents.models.tool_schemas import GenerateSectionInput
+        from layer4_agents.tools.generation_tools import GenerateSectionTool
 
         tool = GenerateSectionTool()
 
@@ -750,7 +750,7 @@ class TestGenerateSectionToolLLMMock:
 
     def test_generate_section_tool_has_all_section_templates(self) -> None:
         """GenerateSectionTool must have templates for all 6 standard section types."""
-        from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+        from layer4_agents.tools.generation_tools import GenerateSectionTool
 
         tool = GenerateSectionTool()
         required_sections = {
@@ -774,8 +774,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_execute_workflow_creates_metadata(self) -> None:
         """execute_workflow must store workflow_metadata for the new workflow_id."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         mock_saver = Mock()
@@ -814,7 +814,7 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
         # Patch both create_workflow and _wait_for_workflow to avoid scheduler setup
         with (
-            patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow),
+            patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow),
             patch.object(controller, "_wait_for_workflow_with_timeout", AsyncMock(return_value=mock_roi_state)),
             patch.object(controller, "scheduler") as mock_scheduler,
         ):
@@ -836,15 +836,15 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
     @pytest.mark.asyncio
     async def test_execute_workflow_uses_service_default_timeout(self) -> None:
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
         mock_state = Mock(status=WorkflowStatus.COMPLETED)
         mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
 
         with (
-            patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow),
+            patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow),
             patch.object(controller, "_wait_for_workflow_with_timeout", AsyncMock(return_value=mock_state)),
             patch.object(controller, "scheduler") as mock_scheduler,
             patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(1800, "service_default"))),
@@ -858,15 +858,15 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
     @pytest.mark.asyncio
     async def test_execute_workflow_uses_tenant_timeout_override(self) -> None:
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry(), state_manager=StateManager())
         mock_state = Mock(status=WorkflowStatus.COMPLETED)
         mock_workflow = Mock(run=AsyncMock(return_value=mock_state), create_initial_state=Mock(return_value=mock_state))
 
         with (
-            patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow),
+            patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow),
             patch.object(controller, "_wait_for_workflow_with_timeout", AsyncMock(return_value=mock_state)),
             patch.object(controller, "scheduler") as mock_scheduler,
             patch.object(controller, "_resolve_workflow_timeout_seconds", AsyncMock(return_value=(2400, "tenant_settings"))),
@@ -880,8 +880,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
 
     @pytest.mark.asyncio
     async def test_resolve_timeout_out_of_range_uses_safe_fallback(self) -> None:
-        from value_fabric.layer4.config.settings import settings
-        from value_fabric.layer4.engine.executor import OrchestrationController
+        from layer4_agents.config.settings import settings
+        from layer4_agents.engine.executor import OrchestrationController
 
         controller = OrchestrationController(tool_registry=_make_mock_tool_registry())
         original_default = settings.workflow_timeout_seconds
@@ -896,8 +896,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_get_workflow_status_returns_none_for_unknown(self) -> None:
         """get_workflow_status must return None for unknown workflow IDs."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -913,8 +913,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_list_active_workflows_returns_list(self) -> None:
         """list_active_workflows must return a list (possibly empty)."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -930,8 +930,8 @@ class TestOrchestrationControllerWorkflowLifecycle:
     @pytest.mark.asyncio
     async def test_get_result_returns_route_compatible_shape_from_persisted_state(self) -> None:
         """get_result should read persisted state and return route-compatible keys."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -1143,8 +1143,8 @@ class TestOrchestrationControllerErrorPaths:
 
     async def test_cancel_nonexistent_workflow_returns_false(self) -> None:
         """cancel_workflow must return False for unknown workflow IDs."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -1159,8 +1159,8 @@ class TestOrchestrationControllerErrorPaths:
 
     async def test_execute_workflow_rejects_unknown_type(self) -> None:
         """execute_workflow must raise for unknown workflow types."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -1180,8 +1180,8 @@ class TestOrchestrationControllerErrorPaths:
 
     async def test_get_workflow_status_after_execute(self) -> None:
         """get_workflow_status must return valid data after workflow execution."""
-        from value_fabric.layer4.engine.executor import OrchestrationController
-        from value_fabric.layer4.engine.state_manager import StateManager
+        from layer4_agents.engine.executor import OrchestrationController
+        from layer4_agents.engine.state_manager import StateManager
 
         mock_registry = _make_mock_tool_registry()
         state_manager = StateManager()
@@ -1192,7 +1192,7 @@ class TestOrchestrationControllerErrorPaths:
         )
 
         # Persist a state so load_state returns something
-        from value_fabric.layer4.models.agent_state import ROIAgentState, WorkflowStatus, WorkflowType
+        from layer4_agents.models.agent_state import ROIAgentState, WorkflowStatus, WorkflowType
         await state_manager.save_state(
             "wf-manual-001",
             ROIAgentState(tenant_id="test-tenant", 
@@ -1227,11 +1227,11 @@ class TestSignalDetectionAgent:
     """Regression tests for SignalDetectionAgent result model completeness."""
 
     @pytest.mark.asyncio
-    @patch("value_fabric.layer4.integration.layer3_client.Layer3Client")
-    @patch("value_fabric.layer4.integration.layer2_client.Layer2ExtractionClient")
+    @patch("layer4_agents.integration.layer3_client.Layer3Client")
+    @patch("layer4_agents.integration.layer2_client.Layer2ExtractionClient")
     async def test_detect_signals_returns_complete_result(self, mock_l2, mock_l3) -> None:
         """_detect_signals success path must include all required fields (message, signals, processing_metadata)."""
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
         from value_fabric.shared.identity.context import RequestContext
 
         agent = SignalDetectionAgent(config={})

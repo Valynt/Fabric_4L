@@ -7,8 +7,8 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.api.routes.checkpoints import get_executor
+from layer4_agents.api.main import app
+from layer4_agents.api.routes.checkpoints import get_executor
 
 
 class _FailingConn:

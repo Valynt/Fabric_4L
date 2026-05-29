@@ -5,7 +5,7 @@ from __future__ import annotations
 
 import logging
 
-from value_fabric.layer4.observability import Layer4EventContext, Layer4LifecycleLogger
+from layer4_agents.observability import Layer4EventContext, Layer4LifecycleLogger
 
 
 def test_layer4_lifecycle_schema_fields_present(caplog: object) -> None:

@@ -4,9 +4,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.engine.execution_dispatch import build_workflow_task
-from value_fabric.layer4.engine.execution_validation import ensure_controller_accepts_execution
-from value_fabric.layer4.engine.executor import WorkflowExecutionError
+from layer4_agents.engine.execution_dispatch import build_workflow_task
+from layer4_agents.engine.execution_validation import ensure_controller_accepts_execution
+from layer4_agents.engine.executor import WorkflowExecutionError
 
 
 def test_validation_phase_raises_when_shutdown() -> None:

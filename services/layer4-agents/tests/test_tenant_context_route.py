@@ -9,7 +9,7 @@ from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from value_fabric.layer4.api.routes import tenant_context as tenant_context_route
+from layer4_agents.api.routes import tenant_context as tenant_context_route
 
 
 @pytest.fixture

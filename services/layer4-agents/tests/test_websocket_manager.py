@@ -14,7 +14,7 @@ import pytest
 import pytest_asyncio
 from fastapi import WebSocket
 
-from value_fabric.layer4.api.websocket.manager import (
+from layer4_agents.api.websocket.manager import (
     EventStore,
     WorkflowConnection,
     WorkflowWebSocketManager,
@@ -637,7 +637,7 @@ class TestSingleton:
     def test_get_ws_manager_creates_new_if_none(self):
         """Should create new instance if none exists."""
         # Arrange - reset singleton
-        import value_fabric.layer4.api.websocket.manager as manager_module
+        import layer4_agents.api.websocket.manager as manager_module
         manager_module._ws_manager = None
         
         # Act

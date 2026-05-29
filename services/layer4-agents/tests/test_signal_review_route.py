@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from value_fabric.shared.identity.context import RequestContext
 
-from value_fabric.layer4.api.routes import signals
+from layer4_agents.api.routes import signals
 
 
 @pytest.fixture
@@ -69,7 +69,7 @@ async def test_signal_review_approve_reject_roundtrip_and_persistence_reload(app
             }
             return persisted[signal_id]
 
-    monkeypatch.setattr("value_fabric.layer4.integration.layer3_client.Layer3Client", FakeLayer3Client)
+    monkeypatch.setattr("layer4_agents.integration.layer3_client.Layer3Client", FakeLayer3Client)
 
     async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
         approve = await client.patch("/v1/signals/sig-1/review", json={"account_id": "acct-1", "review_status": "approved"})

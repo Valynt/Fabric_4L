@@ -819,7 +819,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                     logger.warning(
                         "L2 Celery dispatch failed, falling back to HTTP",
                         job_id=str(job_id),
-                        error=str(e),
+                        error=repr(e),
                     )
                     # Fall through to HTTP fallback
                     use_celery_dispatch = False  # Disable for this run
@@ -2088,11 +2088,11 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
                         record.rows_affected = deleted_count
                         total_deleted += deleted_count
             except Exception as e:
-                failed_tenants.append((str(tenant_uuid), str(e)))
+                failed_tenants.append((str(tenant_uuid), repr(e)))
                 logger.error(
                     "Tenant cleanup failed",
                     tenant_id=str(tenant_uuid),
-                    error=str(e),
+                    error=repr(e),
                 )
 
         completed_at = datetime.now(UTC)

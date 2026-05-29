@@ -14,7 +14,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from value_fabric.layer4.resilience import (
+from layer4_agents.resilience import (
     CircuitBreaker,
     CircuitBreakerOpen,
     CircuitBreakerRegistry,

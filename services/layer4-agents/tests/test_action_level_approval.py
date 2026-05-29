@@ -7,8 +7,8 @@ from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.harness.models import ActionClass, GateStatus, GateType
-from value_fabric.layer4.policies.approval_actions import (
+from layer4_agents.harness.models import ActionClass, GateStatus, GateType
+from layer4_agents.policies.approval_actions import (
     ACTION_APPROVAL_POLICIES,
     ApprovalRequiredError,
     get_policy,
@@ -77,7 +77,7 @@ class TestActionLevelApproval:
         assert d["run_id"] == "run_123"
 
     def test_gate_creation_with_string_action_class(self) -> None:
-        from value_fabric.layer4.harness.human_gates import HumanGateManager
+        from layer4_agents.harness.human_gates import HumanGateManager
 
         manager = HumanGateManager()
         gate, _ = manager.create_gate(
@@ -89,7 +89,7 @@ class TestActionLevelApproval:
         assert gate.action_class == ActionClass.PUBLISH_BUSINESS_CASE
 
     def test_gate_creation_with_enum_action_class(self) -> None:
-        from value_fabric.layer4.harness.human_gates import HumanGateManager
+        from layer4_agents.harness.human_gates import HumanGateManager
 
         manager = HumanGateManager()
         gate, _ = manager.create_gate(
@@ -101,8 +101,8 @@ class TestActionLevelApproval:
         assert gate.action_class == ActionClass.GENERATE_CUSTOMER_FACING_DELIVERABLE
 
     def test_record_approval_wait_uses_real_action_class(self) -> None:
-        from value_fabric.layer4.harness.human_gates import HumanGateManager
-        from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
+        from layer4_agents.harness.human_gates import HumanGateManager
+        from layer4_agents.metrics.prometheus_metrics import MetricsConfig, PrometheusMetrics
 
         metrics = PrometheusMetrics(MetricsConfig(registry=None))
         manager = HumanGateManager()

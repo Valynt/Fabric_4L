@@ -80,7 +80,9 @@ class TestBenchmarkValidation:
         # API returns 422 (validation error) for invalid Decimal format
         assert response.status_code == 422
         data = response.json()
-        assert "Invalid" in data.get("detail", "") or "company_value" in data.get("detail", "") or "Invalid company_value" in data.get("message", "")
+        # Error message is in nested error structure
+        error_msg = data.get("error", {}).get("message", "")
+        assert "Invalid" in error_msg or "company_value" in error_msg
 
     @pytest.mark.asyncio
     async def test_compare_rejects_negative_company_value(self, client: AsyncClient):
