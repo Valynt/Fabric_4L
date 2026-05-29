@@ -21,9 +21,9 @@ with patch.dict(
 ):
     from fastapi import FastAPI
     from fastapi.testclient import TestClient
-    from value_fabric.layer4.api.routes import crm_webhooks as crm_webhooks_module
-    from value_fabric.layer4.models.account import CRMProvider
-    from value_fabric.layer4.models.integration import Integration, IntegrationStatus
+    from layer4_agents.api.routes import crm_webhooks as crm_webhooks_module
+    from layer4_agents.models.account import CRMProvider
+    from layer4_agents.models.integration import Integration, IntegrationStatus
 
 
 @pytest.fixture(autouse=True)

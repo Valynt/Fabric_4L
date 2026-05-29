@@ -15,7 +15,7 @@ os.environ["JWT_SECRET"] = "test-secret-123456789012345678901234567890"
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "src"))
 
-from value_fabric.layer4.services.oidc_cleanup import cleanup_expired_oidc_sessions, OIDCCleanupTask
+from layer4_agents.services.oidc_cleanup import cleanup_expired_oidc_sessions, OIDCCleanupTask
 
 
 class TestCleanupExpiredSessions:

@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from value_fabric.layer4.models.reasoning_trace import (
+from layer4_agents.models.reasoning_trace import (
     ReasoningTrace,
     ToolCallTrace,
     validate_reasoning_trace,
@@ -147,8 +147,8 @@ class TestReasoningTraceSchema:
         assert data["confidence"] == 0.85
 
     def test_build_reasoning_trace_from_state(self) -> None:
-        from value_fabric.layer4.models.reasoning_trace import build_reasoning_trace
-        from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowType
+        from layer4_agents.models.reasoning_trace import build_reasoning_trace
+        from layer4_agents.models.agent_state import BaseAgentState, WorkflowType
 
         state = BaseAgentState(
             workflow_type=WorkflowType.ROI_CALCULATOR,

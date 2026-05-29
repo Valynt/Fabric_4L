@@ -12,8 +12,8 @@ import time
 import pytest
 from pydantic import ValidationError
 
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import (
     ROIAgentState,
     WorkflowStatus,
     WorkflowType,

@@ -7,10 +7,10 @@ from types import SimpleNamespace
 
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.api.routes.workflows import get_executor
+from layer4_agents.api.main import app
+from layer4_agents.api.routes.workflows import get_executor
 from value_fabric.shared.identity.dependencies import require_authenticated
-from value_fabric.layer4.engine.executor import CheckpointConflictError
+from layer4_agents.engine.executor import CheckpointConflictError
 
 
 def test_resume_route_maps_checkpoint_conflict_to_stable_409_payload() -> None:

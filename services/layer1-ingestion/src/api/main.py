@@ -170,7 +170,7 @@ def _load_deprecation_register() -> dict:
             with open(register_path, encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.warning("Failed to load deprecation register", error_code="DEPRECATION_LOAD_ERROR", error=str(e))
+        logger.warning("Failed to load deprecation register", error_code="DEPRECATION_LOAD_ERROR", error=repr(e))
     return _load_deprecation_registerResult.model_validate({"deprecations": []}).model_dump()
 
 
@@ -331,7 +331,7 @@ except Exception as e:
     logger.warning(
         "redis_init_failed",
         error_code="REDIS_INIT_ERROR",
-        error=str(e),
+        error=repr(e),
         degraded_mode=True,
         message="Rate limiting disabled - Redis unavailable",
     )
@@ -3041,7 +3041,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=str(e))
+        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e))
         components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
 
     # Queue check (Redis)
@@ -3240,7 +3240,7 @@ async def legacy_health_check():
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=str(e))
+        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e))
         dependencies.append({"name": "database", "status": "unhealthy", "error": "Database connection failed"})
         overall_status = "degraded"
     finally:
@@ -3257,7 +3257,7 @@ async def legacy_health_check():
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR", error=str(e))
+        logger.error("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR", error=repr(e))
         dependencies.append({"name": "redis", "status": "degraded", "error": "Redis connection failed"})
         overall_status = "degraded"
 

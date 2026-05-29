@@ -5,8 +5,8 @@ from fastapi import HTTPException
 import pytest
 from types import SimpleNamespace
 
-from value_fabric.layer4.api.common import audit as audit_helpers
-from value_fabric.layer4.api.common.errors import normalize_exception, raise_normalized, raise_normalized_with_log
+from layer4_agents.api.common import audit as audit_helpers
+from layer4_agents.api.common.errors import normalize_exception, raise_normalized, raise_normalized_with_log
 
 
 def test_normalize_exception_passthrough_http_exception() -> None:

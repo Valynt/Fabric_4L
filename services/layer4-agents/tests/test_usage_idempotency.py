@@ -18,8 +18,8 @@ import pytest
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventStatus
-from value_fabric.layer4.services.usage_service import UsageService, UsageValidationError
+from layer4_agents.models.billing import BillingUsageEvent, UsageEventStatus
+from layer4_agents.services.usage_service import UsageService, UsageValidationError
 
 
 # =============================================================================

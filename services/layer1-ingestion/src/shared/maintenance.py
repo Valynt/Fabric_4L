@@ -331,7 +331,7 @@ def maintenance_audit_log(operation: str, tenant_id: str | None = None) -> Gener
         
     except Exception as e:
         record.success = False
-        record.error_message = sanitize_log_error(str(e))
+        record.error_message = sanitize_log_error(e)
         record.completed_at = datetime.now(UTC)
         
         logger.error(

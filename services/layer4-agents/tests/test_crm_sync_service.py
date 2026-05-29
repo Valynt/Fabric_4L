@@ -24,13 +24,13 @@ import psycopg  # noqa: F401 — mandatory dep; install via layer4-agents[dev] (
 from fastapi.testclient import TestClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.models.account import (
+from layer4_agents.api.main import app
+from layer4_agents.models.account import (
     Account,
     CRMProvider,
     SyncStatus,
 )
-from value_fabric.layer4.services.crm_sync_service import CRMSyncService
+from layer4_agents.services.crm_sync_service import CRMSyncService
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -77,7 +77,7 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
-    from value_fabric.layer4.database import get_db_from_context
+    from layer4_agents.database import get_db_from_context
     async def _override():
         yield mock_db
     app.dependency_overrides[get_db_from_context] = _override
@@ -144,7 +144,7 @@ class MockProspectDataTool:
         self._mock_interactions = interactions or []
     
     async def execute(self, input_data):
-        from value_fabric.layer4.models.tool_schemas import GetProspectDataOutput
+        from layer4_agents.models.tool_schemas import GetProspectDataOutput
         
         return GetProspectDataOutput(
             profile=self._mock_profile or {
@@ -395,7 +395,7 @@ class TestCRMSyncService:
     @pytest.mark.asyncio
     async def test_get_crm_config_from_integration_table(self, mock_db):
         """Test loading CRM config from tenant integration table (no env fallback)."""
-        from value_fabric.layer4.models.integration import Integration, IntegrationStatus
+        from layer4_agents.models.integration import Integration, IntegrationStatus
         sync_service = CRMSyncService(mock_db, batch_size=10)
         
         mock_integration = Integration(
@@ -636,7 +636,7 @@ class TestAccountServiceIntegration:
     @pytest.mark.asyncio
     async def test_trigger_sync_delegates_to_sync_service(self, mock_db):
         """Test that AccountService.trigger_sync delegates to CRMSyncService."""
-        from value_fabric.layer4.services.account_service import AccountService
+        from layer4_agents.services.account_service import AccountService
         
         account_service = AccountService(mock_db)
         
@@ -665,7 +665,7 @@ class TestAccountServiceIntegration:
     @pytest.mark.asyncio
     async def test_refresh_account_delegates_to_sync_service(self, mock_db):
         """Test that AccountService.refresh_account delegates to CRMSyncService."""
-        from value_fabric.layer4.services.account_service import AccountService
+        from layer4_agents.services.account_service import AccountService
         
         account_service = AccountService(mock_db)
         account_id = uuid4()

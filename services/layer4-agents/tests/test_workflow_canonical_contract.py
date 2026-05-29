@@ -8,7 +8,7 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from jsonschema import Draft202012Validator
 
-from value_fabric.layer4.api.routes import workflows
+from layer4_agents.api.routes import workflows
 
 
 class _Ctx:

@@ -16,10 +16,10 @@ os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:
 os.environ.setdefault("JWT_SECRET", "test-jwt-secret-for-validation-seed-1234567890")
 os.environ.setdefault("SERVICE_AUTH_SECRET", "test-service-auth-secret-for-validation-seed-1234567890")
 
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.tenants.models.api_key import APIKey
-from value_fabric.layer4.tenants.models.tenant import Tenant
-from value_fabric.layer4.tenants.models.user import User
+from layer4_agents.api.routes import analysis
+from layer4_agents.tenants.models.api_key import APIKey
+from layer4_agents.tenants.models.tenant import Tenant
+from layer4_agents.tenants.models.user import User
 from value_fabric.shared.identity.context import RequestContext
 
 

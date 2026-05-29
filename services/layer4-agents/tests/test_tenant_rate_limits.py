@@ -28,7 +28,7 @@ from value_fabric.shared.identity.middleware import (
 )
 from value_fabric.shared.identity.rate_limiter import RateLimitResult, RedisRateLimiter
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig, RateLimitScope
-from value_fabric.layer4.tenants.settings_schema import (
+from layer4_agents.tenants.settings_schema import (
     RateLimitSettings,
     TenantSettings,
     get_tenant_rate_limits,

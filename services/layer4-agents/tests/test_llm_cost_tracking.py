@@ -15,10 +15,10 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.metrics.llm_cost_metrics import record_cost
-from value_fabric.layer4.models.cost_record import CostRecord
-from value_fabric.layer4.models.tool_schemas import GenerateSectionInput
-from value_fabric.layer4.tools.generation_tools import GenerateSectionTool
+from layer4_agents.metrics.llm_cost_metrics import record_cost
+from layer4_agents.models.cost_record import CostRecord
+from layer4_agents.models.tool_schemas import GenerateSectionInput
+from layer4_agents.tools.generation_tools import GenerateSectionTool
 
 
 class TestLLMCostTracking:
@@ -121,7 +121,7 @@ class TestLLMCostTracking:
         mock_metrics.record_llm_cost = Mock()
 
         with patch.dict(os.environ, {"ENABLE_LLM_COST_METRICS": "true"}):
-            with patch("value_fabric.layer4.metrics.llm_cost_metrics.get_metrics", return_value=mock_metrics):
+            with patch("layer4_agents.metrics.llm_cost_metrics.get_metrics", return_value=mock_metrics):
                 record = CostRecord(
                     model="gpt-4o",
                     provider="openai",
@@ -148,7 +148,7 @@ class TestLLMCostTracking:
         """Budget limit must prevent excessive LLM costs and return structured error."""
         tool = GenerateSectionTool()
 
-        from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetExceededError
+        from layer4_agents.services.llm_budget_guardrails import LLMBudgetExceededError
 
         with patch(
             "src.tools.generation_tools.get_llm_budget_guardrails"

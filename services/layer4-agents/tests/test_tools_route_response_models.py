@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.layer4.contracts.tool_dto import ToolCategoryListResponse, ToolSchemaResponse
+from layer4_agents.contracts.tool_dto import ToolCategoryListResponse, ToolSchemaResponse
 
 
 def test_tool_schema_response_has_typed_fields() -> None:

@@ -473,7 +473,7 @@ async def start_prospect_analysis(
             except Exception as e:
                 # Workflow trigger failed, but prospect was saved
                 overall_status = WorkflowStartStatus.DEGRADED
-                message = f"Prospect saved but workflow trigger failed: {str(e)}"
+                message = f"Prospect saved but workflow trigger failed: {e!r}"
                 workflow_id = None
         else:
             # No executor available - degraded mode

@@ -344,7 +344,7 @@ async def get_tenant_usage(
         logger.error(f"Failed to get tenant usage: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to retrieve usage statistics: {str(e)}",
+            detail=f"Failed to retrieve usage statistics: {e!r}",
         )
 
 
@@ -409,7 +409,7 @@ async def set_custom_limits(
         logger.error(f"Failed to set custom limits: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to set custom limits: {str(e)}",
+            detail=f"Failed to set custom limits: {e!r}",
         )
 
 
@@ -458,7 +458,7 @@ async def reset_tenant_limits(
         logger.error(f"Failed to reset tenant limits: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to reset rate limits: {str(e)}",
+            detail=f"Failed to reset rate limits: {e!r}",
         )
 
 

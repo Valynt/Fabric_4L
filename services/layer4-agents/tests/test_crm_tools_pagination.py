@@ -16,8 +16,8 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import httpx
 import pytest
 
-from value_fabric.layer4.models.tool_schemas import GetProspectDataInput
-from value_fabric.layer4.tools.crm_tools import GetProspectDataTool
+from layer4_agents.models.tool_schemas import GetProspectDataInput
+from layer4_agents.tools.crm_tools import GetProspectDataTool
 
 
 class MockResponse:

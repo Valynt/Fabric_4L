@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 import pytest
 
-from value_fabric.layer4.api.routes import narratives
-from value_fabric.layer4.services.narrative_builder_service import (
+from layer4_agents.api.routes import narratives
+from layer4_agents.services.narrative_builder_service import (
     NarrativeBuilderService,
     NarrativeRequest,
 )

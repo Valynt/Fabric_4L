@@ -6,7 +6,7 @@ import pytest
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession as SQLAAsyncSession
 
-from value_fabric.layer4.database import (
+from layer4_agents.database import (
     TenantEnforcedAsyncSession,
     TenantContextError,
     _mark_session_tenant_context,
@@ -35,10 +35,10 @@ async def test_tenant_enforced_session_allows_statement_after_context_set() -> N
 
 
 def test_get_engine_rejects_rls_disabled_database_in_protected_environment(monkeypatch) -> None:
-    from value_fabric.layer4.database import _engine
+    from layer4_agents.database import _engine
     monkeypatch.setenv("ENVIRONMENT", "production")
     monkeypatch.setenv("LAYER4_DATABASE_URL", "sqlite+aiosqlite:///tmp/layer4.db")
-    monkeypatch.setattr("value_fabric.layer4.database._engine", None)
+    monkeypatch.setattr("layer4_agents.database._engine", None)
 
     with pytest.raises(RuntimeError, match="PostgreSQL"):
         get_engine()

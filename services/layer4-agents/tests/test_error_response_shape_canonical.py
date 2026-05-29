@@ -15,7 +15,7 @@ from unittest.mock import MagicMock
 
 from fastapi import HTTPException
 
-from value_fabric.layer4.api.common.errors import normalize_exception, raise_normalized
+from layer4_agents.api.common.errors import normalize_exception, raise_normalized
 from value_fabric.shared.error_handling import build_error_detail
 
 

@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer4.tools import admin
+from layer4_agents.tools import admin
 from value_fabric.shared.identity.context import RequestContext
 
 

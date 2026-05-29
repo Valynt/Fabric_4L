@@ -17,7 +17,7 @@ Date: 2026-05-23
 import pytest
 from uuid import uuid4
 
-from value_fabric.layer4.tools.registry import ToolResult
+from layer4_agents.tools.registry import ToolResult
 
 
 pytestmark = [

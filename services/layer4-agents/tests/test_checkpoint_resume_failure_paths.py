@@ -13,10 +13,10 @@ from unittest.mock import AsyncMock, Mock, patch
 import pytest
 from langgraph.checkpoint.memory import InMemorySaver
 
-from value_fabric.layer4.engine.executor import OrchestrationController, WorkflowExecutionError
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
-from value_fabric.layer4.tools.registry import ToolRegistry
+from layer4_agents.engine.executor import OrchestrationController, WorkflowExecutionError
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.tools.registry import ToolRegistry
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -196,7 +196,7 @@ class TestFailedAgentCalls:
         mock_workflow = Mock()
         mock_workflow.run = AsyncMock(side_effect=WorkflowExecutionError("Tool call failed"))
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             with pytest.raises(WorkflowExecutionError):
                 await controller.resume_workflow(workflow_id=workflow_id, user_id="user")
 
@@ -259,7 +259,7 @@ class TestCheckpointFailureModes:
         mock_workflow = Mock()
         mock_workflow.run = AsyncMock(return_value=state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             # Should not raise unhandled exception
             try:
                 await controller.resume_workflow(workflow_id=workflow_id, user_id="user")
@@ -293,7 +293,7 @@ class TestCheckpointFailureModes:
         mock_workflow = Mock()
         mock_workflow.run = AsyncMock(return_value=state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             # Should work without checkpoint saver
             result = await controller.resume_workflow(workflow_id=workflow_id, user_id="user")
             assert result is not None
@@ -410,7 +410,7 @@ class TestPartialResume:
         )
         mock_workflow.run = AsyncMock(return_value=completed_state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="user",

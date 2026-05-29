@@ -7,8 +7,8 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.routes import billing as billing_route
-from value_fabric.layer4.services import billing_security, billing_webhook_security
+from layer4_agents.api.routes import billing as billing_route
+from layer4_agents.services import billing_security, billing_webhook_security
 
 
 def test_ip_allowlist_logic_matches_canonical_module() -> None:

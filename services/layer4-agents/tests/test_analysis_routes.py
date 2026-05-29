@@ -13,9 +13,9 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.api.common.db import get_route_db
-from value_fabric.layer4.config.settings import settings
+from layer4_agents.api.routes import analysis
+from layer4_agents.api.common.db import get_route_db
+from layer4_agents.config.settings import settings
 
 
 async def _async_return(value: Any) -> Any:

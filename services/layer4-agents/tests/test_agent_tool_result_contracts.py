@@ -7,9 +7,9 @@ from uuid import UUID
 import pytest
 from pydantic import BaseModel
 
-import value_fabric.layer4.tools.registry as registry_module
-from value_fabric.layer4.models.tool_schemas import ToolCategory
-from value_fabric.layer4.tools.registry import BaseTool, ToolRegistry, ToolResult
+import layer4_agents.tools.registry as registry_module
+from layer4_agents.models.tool_schemas import ToolCategory
+from layer4_agents.tools.registry import BaseTool, ToolRegistry, ToolResult
 from value_fabric.shared.identity.context import RequestContext, clear_current_context, set_current_context
 
 

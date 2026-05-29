@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pytest
 
-from value_fabric.layer4.tools import knowledge
+from layer4_agents.tools import knowledge
 
 
 class FakeResult:
@@ -75,8 +75,8 @@ async def test_get_entity_reads_persisted_entity_with_tenant_scope():
     )
     ctx = FakeContext(tenant_id=tenant_id, permissions={"read"})
 
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(session)):
-        with patch("value_fabric.layer4.tools.knowledge.emit_audit_event") as audit_mock:
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(session)):
+        with patch("layer4_agents.tools.knowledge.emit_audit_event") as audit_mock:
             entity = await knowledge.get_entity("e-1", context=ctx)
 
     assert entity == {
@@ -95,10 +95,10 @@ async def test_update_entity_denied_without_write_permission():
     tenant_id = str(uuid4())
     ctx = FakeContext(tenant_id=tenant_id, permissions={"read"})
 
-    with patch("value_fabric.layer4.tools.knowledge._get_driver") as driver_mock:
+    with patch("layer4_agents.tools.knowledge._get_driver") as driver_mock:
         # Return None to simulate no driver available (permission denied path)
         driver_mock.return_value = None
-        with patch("value_fabric.layer4.tools.knowledge.emit_audit_event") as audit_mock:
+        with patch("layer4_agents.tools.knowledge.emit_audit_event") as audit_mock:
             result = await knowledge.update_entity("e-1", {"name": "Changed"}, context=ctx)
 
     assert result is None
@@ -115,7 +115,7 @@ async def test_update_entity_persists_and_returns_entity():
     )
     ctx = FakeContext(tenant_id=tenant_id, permissions={"write"})
 
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(session)):
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(session)):
         updated = await knowledge.update_entity(
             "e-1",
             {"name": "Changed", "tenant_id": "spoof", "id": "spoof"},
@@ -134,13 +134,13 @@ async def test_delete_entity_success_and_not_found_paths():
     ctx = FakeContext(tenant_id=tenant_id, permissions={"delete"})
 
     session_ok = FakeSession(FakeResult([{"deleted": 1}]))
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(session_ok)):
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(session_ok)):
         ok = await knowledge.delete_entity("e-1", context=ctx)
     assert ok is True
     assert session_ok.last_params["tenant_id"] == tenant_id
 
     session_missing = FakeSession(FakeResult([]))
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(session_missing)):
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(session_missing)):
         missing = await knowledge.delete_entity("missing", context=ctx)
     assert missing is False
 
@@ -156,7 +156,7 @@ async def test_search_and_list_are_tenant_isolated():
     ]
     search_session = FakeSession(FakeResult(search_records))
 
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(search_session)):
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(search_session)):
         results = await knowledge.search_entities("a", context=ctx)
 
     assert [r["id"] for r in results] == ["a-1", "a-2"]
@@ -164,7 +164,7 @@ async def test_search_and_list_are_tenant_isolated():
     assert "tenant_id: $tenant_id" in search_session.last_query
 
     list_session = FakeSession(FakeResult(search_records))
-    with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=FakeDriver(list_session)):
+    with patch("layer4_agents.tools.knowledge._get_driver", return_value=FakeDriver(list_session)):
         listed = await knowledge.list_entities(context=ctx)
 
     assert len(listed) == 2

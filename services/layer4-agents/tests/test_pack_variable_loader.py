@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from value_fabric.layer4.services.pack_variable_loader import (
+from layer4_agents.services.pack_variable_loader import (
     PackLoadResult,
     PackVariableLoader,
     _PACK_VERSION_PATTERN,
@@ -138,28 +138,28 @@ class TestTypeMapping:
 
     def test_currency_types_map_to_decimal(self):
         """Currency types should map to DECIMAL."""
-        from value_fabric.layer4.interfaces.variable_registry import VariableDataType
+        from layer4_agents.interfaces.variable_registry import VariableDataType
 
         assert _TYPE_MAP["currency"] == VariableDataType.DECIMAL
         assert _TYPE_MAP["usd"] == VariableDataType.DECIMAL
 
     def test_percentage_types_map_to_decimal(self):
         """Percentage types should map to DECIMAL."""
-        from value_fabric.layer4.interfaces.variable_registry import VariableDataType
+        from layer4_agents.interfaces.variable_registry import VariableDataType
 
         assert _TYPE_MAP["percentage"] == VariableDataType.DECIMAL
         assert _TYPE_MAP["percent"] == VariableDataType.DECIMAL
 
     def test_integer_types_map_to_integer(self):
         """Integer types should map to INTEGER."""
-        from value_fabric.layer4.interfaces.variable_registry import VariableDataType
+        from layer4_agents.interfaces.variable_registry import VariableDataType
 
         assert _TYPE_MAP["integer"] == VariableDataType.INTEGER
         assert _TYPE_MAP["count"] == VariableDataType.INTEGER
 
     def test_unknown_type_defaults_to_string(self):
         """Unknown types should default to STRING."""
-        from value_fabric.layer4.interfaces.variable_registry import VariableDataType
+        from layer4_agents.interfaces.variable_registry import VariableDataType
 
         assert _TYPE_MAP.get("unknown_type", VariableDataType.STRING) == VariableDataType.STRING
 

@@ -16,7 +16,7 @@ import pytest
 from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 
-from value_fabric.layer4.api.routes import audit
+from layer4_agents.api.routes import audit
 from value_fabric.shared.identity.context import RequestContext
 
 

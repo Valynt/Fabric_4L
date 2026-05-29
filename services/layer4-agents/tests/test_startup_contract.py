@@ -3,8 +3,8 @@ from __future__ import annotations
 from fastapi.testclient import TestClient
 import pytest
 
-from value_fabric.layer4.api.app_factory import create_app
-from value_fabric.layer4.api.startup import (
+from layer4_agents.api.app_factory import create_app
+from layer4_agents.api.startup import (
     StartupCheckResult,
     check_database_ready,
     check_redis_ready,
@@ -24,7 +24,7 @@ async def test_dependency_checks_contract(monkeypatch):
         async def ping(self):
             return await ok_ping()
 
-    monkeypatch.setattr("value_fabric.layer4.api.startup.init_db", ok_db)
+    monkeypatch.setattr("layer4_agents.api.startup.init_db", ok_db)
     db_result = await check_database_ready()
     assert isinstance(db_result, StartupCheckResult)
     assert db_result.ok is True
@@ -42,7 +42,7 @@ async def test_dependency_checks_fail_contract(monkeypatch):
     async def fail_db():
         raise RuntimeError("db down")
 
-    monkeypatch.setattr("value_fabric.layer4.api.startup.init_db", fail_db)
+    monkeypatch.setattr("layer4_agents.api.startup.init_db", fail_db)
     db_result = await check_database_ready()
     assert db_result.ok is False
     assert "db down" in (db_result.detail or "")
@@ -65,7 +65,7 @@ def test_request_id_middleware_contract_is_canonical_and_stable(monkeypatch):
         yield
 
     # Bypass all infrastructure startup checks (DB, Redis, checkpoint, etc.)
-    monkeypatch.setattr("value_fabric.layer4.api.app_factory.build_lifespan", lambda **_: _noop_lifespan)
+    monkeypatch.setattr("layer4_agents.api.app_factory.build_lifespan", lambda **_: _noop_lifespan)
 
     app = create_app()
 

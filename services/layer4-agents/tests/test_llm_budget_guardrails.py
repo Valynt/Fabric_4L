@@ -8,7 +8,7 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetExceededError, LLMBudgetGuardrails
+from layer4_agents.services.llm_budget_guardrails import LLMBudgetExceededError, LLMBudgetGuardrails
 
 
 def test_precheck_blocks_when_hard_cap_exceeded(mock_tenant_context):

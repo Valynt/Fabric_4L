@@ -15,8 +15,8 @@ from httpx import ASGITransport, AsyncClient
 
 from value_fabric.shared.audit.models import AuditAction
 from value_fabric.shared.identity.context import RequestContext
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.api.routes import analysis
+from layer4_agents.api.main import app
+from layer4_agents.api.routes import analysis
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 

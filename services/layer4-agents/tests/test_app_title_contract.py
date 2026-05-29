@@ -12,7 +12,7 @@ import pytest
 @pytest.mark.unit
 def test_fastapi_title_contains_orchestrator() -> None:
     """The Layer 4 FastAPI title must use 'Orchestrator' not 'Engine'."""
-    from value_fabric.layer4.api.app_factory import create_app
+    from layer4_agents.api.app_factory import create_app
 
     app = create_app()
     assert "Orchestrator" in app.title

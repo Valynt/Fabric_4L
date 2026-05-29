@@ -19,7 +19,7 @@ from uuid import uuid4
 
 from cryptography.hazmat.primitives.kdf.argon2 import Argon2id
 
-from value_fabric.layer4.services.tenant_provisioning import (
+from layer4_agents.services.tenant_provisioning import (
     TenantProvisioningService,
     TenantProvisionRequest,
     TenantProvisionResult,
@@ -219,7 +219,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
         
-        with patch("value_fabric.layer4.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("layer4_agents.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             await provisioning_service.provision_tenant(request)
             
             assert mock_emit.called
@@ -243,7 +243,7 @@ class TestTenantProvisioningService:
         mock_result.fetchone.return_value = None
         mock_db_session.execute.return_value = mock_result
 
-        with patch("value_fabric.layer4.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
+        with patch("layer4_agents.services.tenant_provisioning.emit_audit_event", new_callable=AsyncMock) as mock_emit:
             result = await provisioning_service.provision_tenant(request)
 
             details = mock_emit.call_args.kwargs["details"]

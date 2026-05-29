@@ -16,7 +16,7 @@ Date: 2026-05-23
 import pytest
 from uuid import uuid4
 
-from value_fabric.layer4.agents.base import AgentResult
+from layer4_agents.agents.base import AgentResult
 
 
 pytestmark = [

@@ -53,7 +53,7 @@ class _FakeResponse:
 
 def _make_client(max_cost: float | None = None, provider_side_effect=None):
     """Build a GovernedLLMClient with a mocked provider and optional cost cap."""
-    from value_fabric.layer4.services.governed_llm_client import GovernedLLMClient
+    from layer4_agents.services.governed_llm_client import GovernedLLMClient
 
     provider = MagicMock()
     if provider_side_effect is not None:
@@ -101,7 +101,7 @@ class TestCostCapEnforcement:
 
     async def test_over_cap_call_raises(self):
         """A call whose cost exceeds the cap raises _CostCapExceeded."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
 
         client, provider = _make_client(max_cost=0.001)
 
@@ -114,7 +114,7 @@ class TestCostCapEnforcement:
 
     async def test_over_cap_call_does_not_retry(self):
         """An over-cap call must not trigger a retry — provider called exactly once."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
 
         client, provider = _make_client(max_cost=0.001)
 
@@ -129,7 +129,7 @@ class TestCostCapEnforcement:
 
     async def test_over_cap_emits_single_failure_event(self):
         """An over-cap call emits exactly one llm_call_failed event."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
 
         client, _ = _make_client(max_cost=0.001)
         emitted: list[tuple[str, dict]] = []
@@ -152,7 +152,7 @@ class TestCostCapEnforcement:
 
     async def test_pre_call_guard_blocks_before_provider(self):
         """Pre-call cost guard raises _CostCapExceeded without calling the provider."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
 
         client, provider = _make_client(max_cost=0.001)
 
@@ -170,7 +170,7 @@ class TestCostCapEnforcement:
 
     async def test_pre_call_guard_emits_failed_event_with_pre_call_flag(self):
         """Pre-call guard emits llm_call_failed with pre_call=True."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
 
         client, _ = _make_client(max_cost=0.001)
         emitted: list[tuple[str, dict]] = []
@@ -239,11 +239,11 @@ def _make_workflow_state(
 
 def _make_bc_workflow():
     """Build a BusinessCaseGeneratorWorkflow with mocked dependencies."""
-    from value_fabric.layer4.workflows.business_case import BusinessCaseGeneratorWorkflow
+    from layer4_agents.workflows.business_case import BusinessCaseGeneratorWorkflow
 
     tool_registry = MagicMock()
-    with patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-         patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"):
+    with patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+         patch("layer4_agents.workflows.business_case.get_prompt_registry"):
         wf = BusinessCaseGeneratorWorkflow(tool_registry=tool_registry)
     return wf
 
@@ -277,11 +277,11 @@ class TestL5ClientLifecycle:
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry") as mock_reg, \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", side_effect=_fake_constructor), \
-             patch("value_fabric.layer4.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator) as MockValidator:
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
+             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient", side_effect=_fake_constructor), \
+             patch("layer4_agents.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator) as MockValidator:
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -316,11 +316,11 @@ class TestL5ClientLifecycle:
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry") as mock_reg, \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient", return_value=fake_client), \
-             patch("value_fabric.layer4.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
+             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient", return_value=fake_client), \
+             patch("layer4_agents.harness.live_l5_validator.LiveL5Validator", return_value=fake_validator):
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -352,10 +352,10 @@ class TestL5ClientLifecycle:
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry") as mock_reg, \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient") as MockLLM, \
-             patch("value_fabric.layer4.workflows.business_case.Layer5GroundTruthClient") as MockL5:
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry") as mock_reg, \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient") as MockLLM, \
+             patch("layer4_agents.workflows.business_case.Layer5GroundTruthClient") as MockL5:
 
             mock_reg.return_value.get.return_value = MagicMock(
                 body="sys", model_task="reasoning", temperature=0.2, max_tokens=512,
@@ -386,13 +386,13 @@ class TestMissingTenantDegradation:
 
     async def test_missing_tenant_returns_degraded(self):
         """MissingTenantContextError is caught and returns a degraded dict."""
-        from value_fabric.layer4.workflows.business_case import MissingTenantContextError
+        from layer4_agents.workflows.business_case import MissingTenantContextError
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"), \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient"):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry"), \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient"):
 
             wf = _make_bc_workflow()
             with patch.object(wf, "_resolve_organization_id", side_effect=MissingTenantContextError("no tenant")):
@@ -404,13 +404,13 @@ class TestMissingTenantDegradation:
 
     async def test_missing_tenant_degraded_reason(self):
         """degraded_reason is exactly 'missing_tenant_context'."""
-        from value_fabric.layer4.workflows.business_case import MissingTenantContextError
+        from layer4_agents.workflows.business_case import MissingTenantContextError
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"), \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient"):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry"), \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient"):
 
             wf = _make_bc_workflow()
             with patch.object(wf, "_resolve_organization_id", side_effect=MissingTenantContextError("no tenant")):
@@ -420,15 +420,15 @@ class TestMissingTenantDegradation:
 
     async def test_missing_tenant_no_llm_call(self):
         """LLM provider is not called when MissingTenantContextError is raised."""
-        from value_fabric.layer4.workflows.business_case import MissingTenantContextError
+        from layer4_agents.workflows.business_case import MissingTenantContextError
 
         state = _make_workflow_state()
         mock_llm_instance = MagicMock()
         mock_llm_instance.call = AsyncMock()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"), \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient", return_value=mock_llm_instance):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry"), \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient", return_value=mock_llm_instance):
 
             wf = _make_bc_workflow()
             with patch.object(wf, "_resolve_organization_id", side_effect=MissingTenantContextError("no tenant")):
@@ -438,13 +438,13 @@ class TestMissingTenantDegradation:
 
     async def test_missing_tenant_human_review_required(self):
         """human_review_required is True on missing-tenant degraded result."""
-        from value_fabric.layer4.workflows.business_case import MissingTenantContextError
+        from layer4_agents.workflows.business_case import MissingTenantContextError
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"), \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient"):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry"), \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient"):
 
             wf = _make_bc_workflow()
             with patch.object(wf, "_resolve_organization_id", side_effect=MissingTenantContextError("no tenant")):
@@ -454,13 +454,13 @@ class TestMissingTenantDegradation:
 
     async def test_missing_tenant_not_customer_facing(self):
         """customer_facing_allowed is False on missing-tenant degraded result."""
-        from value_fabric.layer4.workflows.business_case import MissingTenantContextError
+        from layer4_agents.workflows.business_case import MissingTenantContextError
 
         state = _make_workflow_state()
 
-        with patch("value_fabric.layer4.workflows.business_case.get_prompt_registry"), \
-             patch("value_fabric.layer4.workflows.business_case.get_llm_provider"), \
-             patch("value_fabric.layer4.workflows.business_case.GovernedLLMClient"):
+        with patch("layer4_agents.workflows.business_case.get_prompt_registry"), \
+             patch("layer4_agents.workflows.business_case.get_llm_provider"), \
+             patch("layer4_agents.workflows.business_case.GovernedLLMClient"):
 
             wf = _make_bc_workflow()
             with patch.object(wf, "_resolve_organization_id", side_effect=MissingTenantContextError("no tenant")):
@@ -476,7 +476,7 @@ class TestMissingTenantDegradation:
 
 def _make_signal_agent():
     """Build a SignalDetectionAgent with minimal config."""
-    from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
+    from layer4_agents.agents.signal_detection import SignalDetectionAgent
 
     agent = SignalDetectionAgent.__new__(SignalDetectionAgent)
     agent.config = {}
@@ -611,12 +611,12 @@ class TestTaxonomyGovernanceContract:
 
     async def test_context_agent_extract_profile_returns_governance_flags(self):
         """extract_profile result carries governance flags from AgentResult."""
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
 
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate_noop):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate_noop):
             result = await agent.execute(
                 {"capability": "extract_profile", "parameters": {"account_id": "acct-1"}},
                 ctx,
@@ -628,7 +628,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_context_agent_unknown_capability_returns_degraded(self):
         """Unknown capability returns degraded AgentResult, not ValueError."""
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
 
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
@@ -645,7 +645,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_context_agent_extract_pain_points_includes_hypothesis(self):
         """extract_pain_points result includes a hypothesis when categories are present."""
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
 
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
@@ -655,7 +655,7 @@ class TestTaxonomyGovernanceContract:
                 return {"valid_items": ["slow invoicing"], "categories": ["operational"]}
             return {"results": []}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute",
+        with patch("layer4_agents.agents.taxonomy._gate_execute",
                    side_effect=_gate_with_categories):
             result = await agent.execute(
                 {"capability": "extract_pain_points",
@@ -671,7 +671,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_value_model_agent_unknown_capability_returns_degraded(self):
         """Unknown capability returns degraded AgentResult, not ValueError."""
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
 
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
@@ -687,7 +687,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_value_model_identify_gaps_includes_hypothesis(self):
         """identify_gaps result includes a coverage hypothesis."""
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
 
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
@@ -695,7 +695,7 @@ class TestTaxonomyGovernanceContract:
         async def _gate_gaps(ctx, tool_name, input_data, estimated_cost_usd=0.0):
             return {"unmatched": ["gap_a"], "coverage_pct": 0.3}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute",
+        with patch("layer4_agents.agents.taxonomy._gate_execute",
                    side_effect=_gate_gaps):
             result = await agent.execute(
                 {"capability": "identify_gaps",
@@ -711,7 +711,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_integrity_agent_unknown_capability_returns_degraded(self):
         """Unknown capability returns degraded AgentResult, not ValueError."""
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
 
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
@@ -727,7 +727,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_integrity_agent_validate_claims_returns_governance_flags(self):
         """validate_claims result carries governance flags."""
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
 
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
@@ -735,7 +735,7 @@ class TestTaxonomyGovernanceContract:
         async def _gate_found(ctx, tool_name, input_data, estimated_cost_usd=0.0):
             return {"found": True}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute",
+        with patch("layer4_agents.agents.taxonomy._gate_execute",
                    side_effect=_gate_found):
             result = await agent.execute(
                 {"capability": "validate_claims",
@@ -752,7 +752,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_narrative_agent_unknown_capability_returns_degraded(self):
         """Unknown capability returns degraded AgentResult, not ValueError."""
-        from value_fabric.layer4.agents.taxonomy import NarrativeAgent
+        from layer4_agents.agents.taxonomy import NarrativeAgent
 
         agent = NarrativeAgent(config={})
         ctx = _make_taxonomy_context()
@@ -768,7 +768,7 @@ class TestTaxonomyGovernanceContract:
 
     async def test_narrative_agent_generate_summary_returns_governance_flags(self):
         """generate_executive_summary result carries governance flags."""
-        from value_fabric.layer4.agents.taxonomy import NarrativeAgent
+        from layer4_agents.agents.taxonomy import NarrativeAgent
 
         agent = NarrativeAgent(config={})
         ctx = _make_taxonomy_context()
@@ -778,7 +778,7 @@ class TestTaxonomyGovernanceContract:
                 return {"content": "Summary text", "key_points": [], "word_count": 2}
             return {"content": "section content"}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute",
+        with patch("layer4_agents.agents.taxonomy._gate_execute",
                    side_effect=_gate_narrative):
             result = await agent.execute(
                 {"capability": "generate_executive_summary",
@@ -801,14 +801,14 @@ class TestGovernedLLMClientSupplemental:
 
     def test_llm_call_result_total_tokens(self):
         """total_tokens = prompt_tokens + completion_tokens."""
-        from value_fabric.layer4.services.governed_llm_client import LLMCallResult
+        from layer4_agents.services.governed_llm_client import LLMCallResult
         r = LLMCallResult(content="x", model="m", provider="p", model_task="reasoning",
                           prompt_tokens=100, completion_tokens=50, cost_usd=0.0)
         assert r.total_tokens == 150
 
     async def test_pre_call_cost_guard_blocks_provider(self):
         """When _estimate_call_cost exceeds cap, provider is never called."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
         client, provider = _make_client(max_cost=0.01)
         with patch.object(client, "_estimate_call_cost", return_value=1.00):
             with pytest.raises(_CostCapExceeded):
@@ -818,7 +818,7 @@ class TestGovernedLLMClientSupplemental:
 
     async def test_pre_call_cost_guard_emits_single_failed_event(self):
         """Pre-call cap emits exactly one llm_call_failed event with pre_call=True."""
-        from value_fabric.layer4.services.governed_llm_client import _CostCapExceeded
+        from layer4_agents.services.governed_llm_client import _CostCapExceeded
         client, _ = _make_client(max_cost=0.01)
         emitted: list = []
         with patch.object(client, "_emit_raw", side_effect=lambda t, m: emitted.append((t, m))):
@@ -835,7 +835,7 @@ class TestGovernedLLMClientSupplemental:
         client, provider = _make_client()
         provider.complete_text = AsyncMock(return_value=_FakeResponse())
         schema = {"type": "object", "properties": {"result": {"type": "string"}}}
-        with patch("value_fabric.layer4.services.governed_llm_client.parse_llm_json",
+        with patch("layer4_agents.services.governed_llm_client.parse_llm_json",
                    return_value={"result": "ok"}):
             parsed, result = await client.call_structured(
                 model_task="extraction",
@@ -850,7 +850,7 @@ class TestGovernedLLMClientSupplemental:
         """call_structured adds a user message when none exists."""
         client, provider = _make_client()
         provider.complete_text = AsyncMock(return_value=_FakeResponse())
-        with patch("value_fabric.layer4.services.governed_llm_client.parse_llm_json",
+        with patch("layer4_agents.services.governed_llm_client.parse_llm_json",
                    return_value={}):
             await client.call_structured(
                 model_task="extraction",
@@ -874,7 +874,7 @@ class TestGovernedLLMClientSupplemental:
 
     def test_emit_raw_with_run_and_telemetry_emits_event(self):
         """_emit_raw calls telemetry.emit when run and telemetry are present."""
-        from value_fabric.layer4.harness.models import HarnessRun, HarnessWorkflowType, InitiatedBy
+        from layer4_agents.harness.models import HarnessRun, HarnessWorkflowType, InitiatedBy
         run = HarnessRun(tenant_id="t1",
                          workflow_type=HarnessWorkflowType.BUSINESS_CASE_GENERATION,
                          initiated_by=InitiatedBy.SYSTEM)
@@ -887,7 +887,7 @@ class TestGovernedLLMClientSupplemental:
 
     def test_emit_raw_swallows_telemetry_exception(self):
         """_emit_raw does not propagate exceptions from telemetry.emit."""
-        from value_fabric.layer4.harness.models import HarnessRun, HarnessWorkflowType, InitiatedBy
+        from layer4_agents.harness.models import HarnessRun, HarnessWorkflowType, InitiatedBy
         run = HarnessRun(tenant_id="t1",
                          workflow_type=HarnessWorkflowType.BUSINESS_CASE_GENERATION,
                          initiated_by=InitiatedBy.SYSTEM)
@@ -900,15 +900,15 @@ class TestGovernedLLMClientSupplemental:
 
     def test_load_runtime_config_returns_empty_on_missing_file(self, tmp_path):
         """_load_runtime_config returns {} when the file does not exist."""
-        from value_fabric.layer4.services.governed_llm_client import GovernedLLMClient
+        from layer4_agents.services.governed_llm_client import GovernedLLMClient
         from pathlib import Path
         assert GovernedLLMClient._load_runtime_config(tmp_path / "nonexistent.yaml") == {}
 
     def test_build_cost_calculator_returns_none_on_import_error(self):
         """_build_cost_calculator returns None when LLMCostCalculator is unavailable."""
-        from value_fabric.layer4.services.governed_llm_client import GovernedLLMClient
+        from layer4_agents.services.governed_llm_client import GovernedLLMClient
         with patch.dict("sys.modules",
-                        {"value_fabric.layer4.metrics.llm_cost_calculator": None}):
+                        {"layer4_agents.metrics.llm_cost_calculator": None}):
             result = GovernedLLMClient._build_cost_calculator()
         assert result is None or hasattr(result, "calculate_cost")
 
@@ -933,96 +933,96 @@ class TestTaxonomySupplemental:
     """Group G — remaining capability branches."""
 
     async def test_context_agent_extract_stakeholders(self):
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"relationships": [{"id": "s1"}]}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "extract_stakeholders", "parameters": {"account_id": "a1"}}, ctx)
         assert "human_review_required" in result
         assert result["payload"]["stakeholders"] == [{"id": "s1"}]
 
     async def test_context_agent_extract_financials_no_layer2(self):
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
         agent = ContextExtractionAgent(config={})
         agent.layer2_client = None
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "extract_financials",
                  "parameters": {"filing_url": "http://x", "filing_type": "10-K"}}, ctx)
         assert "human_review_required" in result
 
     async def test_context_agent_extract_risk_factors(self):
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"results": [{"text": "regulatory risk"}]}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "extract_risk_factors", "parameters": {}}, ctx)
         assert "human_review_required" in result
 
     async def test_value_model_project_value_tree(self):
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"nodes": [], "results": [], "nodes_created": 2}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "project_value_tree",
                  "parameters": {"account_id": "a1", "pain_points": ["slow invoicing"]}}, ctx)
         assert "human_review_required" in result
 
     async def test_value_model_calculate_roi(self):
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"roi": 2.5}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "calculate_roi",
                  "parameters": {"formula": "x*y", "variables": {"x": 1, "y": 2}}}, ctx)
         assert "human_review_required" in result
 
     async def test_value_model_sensitivity_analysis(self):
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"ranges": {}}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "sensitivity_analysis",
                  "parameters": {"base_formula": "x", "variable_ranges": {}}}, ctx)
         assert "human_review_required" in result
 
     async def test_value_model_compare_benchmarks(self):
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"comparison": {}}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "compare_benchmarks",
                  "parameters": {"metrics": [], "industry": "saas"}}, ctx)
         assert "human_review_required" in result
 
     async def test_integrity_verify_formulas_discrepancy(self):
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"result": 10.0}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "verify_formulas",
                  "parameters": {"formulas": [
@@ -1031,24 +1031,24 @@ class TestTaxonomySupplemental:
         assert result["payload"]["discrepancies"][0]["status"] == "discrepancy"
 
     async def test_integrity_audit_evidence_stale(self):
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"found": True, "age_days": 200}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "audit_evidence",
                  "parameters": {"evidence_ids": ["ev1"], "max_age_days": 90}}, ctx)
         assert result["payload"]["audit_result"]["stale_count"] == 1
 
     async def test_narrative_create_slide_deck(self):
-        from value_fabric.layer4.agents.taxonomy import NarrativeAgent
+        from layer4_agents.agents.taxonomy import NarrativeAgent
         agent = NarrativeAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"chart": "data"}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "create_slide_deck",
                  "parameters": {"content": {}, "slide_count": 3}}, ctx)
@@ -1056,74 +1056,74 @@ class TestTaxonomySupplemental:
         assert len(result["payload"]["slides"]) == 3
 
     async def test_narrative_draft_proposal(self):
-        from value_fabric.layer4.agents.taxonomy import NarrativeAgent
+        from layer4_agents.agents.taxonomy import NarrativeAgent
         agent = NarrativeAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"content": "proposal text", "risk_mitigation": []}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "draft_proposal",
                  "parameters": {"business_case": {}, "risk_assessment": {}}}, ctx)
         assert result["payload"]["proposal"] == "proposal text"
 
     async def test_narrative_export_document(self):
-        from value_fabric.layer4.agents.taxonomy import NarrativeAgent
+        from layer4_agents.agents.taxonomy import NarrativeAgent
         agent = NarrativeAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"url": "s3://bucket/doc.pdf"}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "export_document",
                  "parameters": {"document_type": "business_case", "format": "pdf"}}, ctx)
         assert result["customer_facing_allowed"] is False
 
     async def test_competitive_intel_win_loss_analysis(self):
-        from value_fabric.layer4.agents.taxonomy import CompetitiveIntelAgent
+        from layer4_agents.agents.taxonomy import CompetitiveIntelAgent
         agent = CompetitiveIntelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"win_rate": 0.6, "contributing_factors": ["price"]}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "win_loss_analysis",
                  "parameters": {"account_id": "a1", "deal_ids": ["d1"]}}, ctx)
         assert result["payload"]["win_rate"] == 0.6
 
     async def test_competitive_intel_market_positioning(self):
-        from value_fabric.layer4.agents.taxonomy import CompetitiveIntelAgent
+        from layer4_agents.agents.taxonomy import CompetitiveIntelAgent
         agent = CompetitiveIntelAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"positioning": {"tier": "leader"}, "differentiators": ["speed"]}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "market_positioning",
                  "parameters": {"product_id": "p1", "market_segment": "smb"}}, ctx)
         assert result["payload"]["differentiators"] == ["speed"]
 
     async def test_competitive_intel_unknown_capability_degraded(self):
-        from value_fabric.layer4.agents.taxonomy import CompetitiveIntelAgent
+        from layer4_agents.agents.taxonomy import CompetitiveIntelAgent
         agent = CompetitiveIntelAgent(config={})
         ctx = _make_taxonomy_context()
         result = await agent.execute({"capability": "nope", "parameters": {}}, ctx)
         assert result["llm_enrichment"] is False
 
     async def test_conversation_classify_intent(self):
-        from value_fabric.layer4.agents.taxonomy import ConversationAgent
+        from layer4_agents.agents.taxonomy import ConversationAgent
         agent = ConversationAgent(config={})
         ctx = _make_taxonomy_context()
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"results": [{"intent": "value_analysis", "score": 0.9, "entities": {}}]}
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "classify_intent",
                  "parameters": {"message": "show me ROI"}}, ctx)
         assert result["payload"]["intent"] == "value_analysis"
 
     async def test_conversation_gather_context_no_account(self):
-        from value_fabric.layer4.agents.taxonomy import ConversationAgent
+        from layer4_agents.agents.taxonomy import ConversationAgent
         agent = ConversationAgent(config={})
         ctx = _make_taxonomy_context()
         result = await agent.execute(
@@ -1131,7 +1131,7 @@ class TestTaxonomySupplemental:
         assert result["payload"]["context_data"] == {}
 
     async def test_conversation_unknown_capability_degraded(self):
-        from value_fabric.layer4.agents.taxonomy import ConversationAgent
+        from layer4_agents.agents.taxonomy import ConversationAgent
         agent = ConversationAgent(config={})
         ctx = _make_taxonomy_context()
         result = await agent.execute({"capability": "nope", "parameters": {}}, ctx)
@@ -1146,13 +1146,13 @@ class TestSignalDetectionSupplemental:
     """Group H — initialisation and failure path branches."""
 
     def _make_agent(self):
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
         config = {
             "max_signals_per_request": 3,
             "evidence_match_limit": 5,
         }
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config=config)
         return agent
 
@@ -1202,7 +1202,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_gate_execute_uses_tool_gateway_when_present(self):
         """_gate_execute calls gateway.execute when tool_gateway is in context."""
-        from value_fabric.layer4.agents.taxonomy import _gate_execute
+        from layer4_agents.agents.taxonomy import _gate_execute
 
         gateway = MagicMock()
         gateway.execute = AsyncMock(return_value={"ok": True})
@@ -1213,7 +1213,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_gate_execute_falls_back_to_registry(self):
         """_gate_execute falls back to registry.execute when no gateway."""
-        from value_fabric.layer4.agents.taxonomy import _gate_execute
+        from layer4_agents.agents.taxonomy import _gate_execute
 
         registry = MagicMock()
         registry.execute = AsyncMock(return_value={"fallback": True})
@@ -1224,14 +1224,14 @@ class TestTaxonomyRemainingBranches:
 
     async def test_gate_execute_raises_when_no_gateway_or_registry(self):
         """_gate_execute raises RuntimeError when neither gateway nor registry is present."""
-        from value_fabric.layer4.agents.taxonomy import _gate_execute
+        from layer4_agents.agents.taxonomy import _gate_execute
 
         with pytest.raises(RuntimeError, match="Cannot execute tool"):
             await _gate_execute({}, "some_tool", {})
 
     async def test_gate_execute_injects_tenant_id_from_context(self):
         """_gate_execute injects tenant_id into input when absent."""
-        from value_fabric.layer4.agents.taxonomy import _gate_execute
+        from layer4_agents.agents.taxonomy import _gate_execute
 
         gateway = MagicMock()
         gateway.execute = AsyncMock(return_value={})
@@ -1244,7 +1244,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_context_agent_extract_pain_points_no_categories(self):
         """extract_pain_points with no categories produces no hypothesis."""
-        from value_fabric.layer4.agents.taxonomy import ContextExtractionAgent
+        from layer4_agents.agents.taxonomy import ContextExtractionAgent
 
         agent = ContextExtractionAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1254,7 +1254,7 @@ class TestTaxonomyRemainingBranches:
                 return {"valid_items": [], "categories": []}
             return {"results": []}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "extract_pain_points",
                  "parameters": {"account_id": "a1", "context_text": ""}},
@@ -1268,7 +1268,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_value_model_identify_gaps_high_coverage(self):
         """identify_gaps with high coverage produces 'minor gaps' hypothesis."""
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
 
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1276,7 +1276,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"unmatched": [], "coverage_pct": 0.9}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "identify_gaps", "parameters": {"prospect_id": "p1"}}, ctx)
 
@@ -1284,7 +1284,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_value_model_identify_gaps_medium_coverage(self):
         """identify_gaps with medium coverage produces 'targeted gap-fill' hypothesis."""
-        from value_fabric.layer4.agents.taxonomy import ValueModelAgent
+        from layer4_agents.agents.taxonomy import ValueModelAgent
 
         agent = ValueModelAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1292,7 +1292,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"unmatched": ["gap_a"], "coverage_pct": 0.65}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "identify_gaps", "parameters": {"prospect_id": "p1"}}, ctx)
 
@@ -1302,7 +1302,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_integrity_validate_claims_missing_evidence(self):
         """validate_claims flags claims with no evidence_pointers."""
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
 
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1319,7 +1319,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_integrity_verify_formulas_verified(self):
         """verify_formulas marks formula as verified when actual matches expected."""
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
 
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1327,7 +1327,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"result": 3.0}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "verify_formulas",
                  "parameters": {"formulas": [
@@ -1342,7 +1342,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_integrity_audit_evidence_fresh(self):
         """audit_evidence does not flag fresh evidence."""
-        from value_fabric.layer4.agents.taxonomy import IntegrityAgent
+        from layer4_agents.agents.taxonomy import IntegrityAgent
 
         agent = IntegrityAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1350,7 +1350,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"found": True, "age_days": 10}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "audit_evidence",
                  "parameters": {"evidence_ids": ["ev1"], "max_age_days": 90}},
@@ -1363,7 +1363,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_conversation_gather_context_with_account_value_analysis(self):
         """gather_context fetches relationships when intent is value_analysis."""
-        from value_fabric.layer4.agents.taxonomy import ConversationAgent
+        from layer4_agents.agents.taxonomy import ConversationAgent
 
         agent = ConversationAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1373,7 +1373,7 @@ class TestTaxonomyRemainingBranches:
             calls.append(tool)
             return {"found": True, "relationships": [{"id": "r1"}]}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "gather_context",
                  "parameters": {"intent": "value_analysis", "account_id": "a1"}},
@@ -1387,7 +1387,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_conversation_chat_full_pipeline(self):
         """chat capability runs classify → gather → generate_section pipeline."""
-        from value_fabric.layer4.agents.taxonomy import ConversationAgent
+        from layer4_agents.agents.taxonomy import ConversationAgent
 
         agent = ConversationAgent(config={})
         ctx = _make_taxonomy_context()
@@ -1399,7 +1399,7 @@ class TestTaxonomyRemainingBranches:
                 return {"content": "Here is your answer.", "actions": []}
             return {}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "chat",
                  "parameters": {"message": "What is the ROI?"}},
@@ -1413,7 +1413,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_orchestration_schedule_workflow(self):
         """schedule_workflow returns governance-wrapped schedule_id."""
-        from value_fabric.layer4.agents.taxonomy import OrchestrationController
+        from layer4_agents.agents.taxonomy import OrchestrationController
 
         agent = OrchestrationController(config={})
         agent.running_tasks = {}
@@ -1424,7 +1424,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {"task_id": "sched-1", "estimated_start": "now"}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "schedule_workflow",
                  "parameters": {"workflow_type": "business_case_generation", "inputs": {}}},
@@ -1436,7 +1436,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_orchestration_distribute_tasks(self):
         """distribute_tasks returns assignments with agent_load."""
-        from value_fabric.layer4.agents.taxonomy import OrchestrationController
+        from layer4_agents.agents.taxonomy import OrchestrationController
 
         agent = OrchestrationController(config={})
         agent.running_tasks = {}
@@ -1455,7 +1455,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_orchestration_recover_failure(self):
         """recover_failure returns retry_scheduled=True."""
-        from value_fabric.layer4.agents.taxonomy import OrchestrationController
+        from layer4_agents.agents.taxonomy import OrchestrationController
 
         agent = OrchestrationController(config={})
         agent.running_tasks = {}
@@ -1466,7 +1466,7 @@ class TestTaxonomyRemainingBranches:
         async def _gate(ctx, tool, inp, estimated_cost_usd=0.0):
             return {}
 
-        with patch("value_fabric.layer4.agents.taxonomy._gate_execute", side_effect=_gate):
+        with patch("layer4_agents.agents.taxonomy._gate_execute", side_effect=_gate):
             result = await agent.execute(
                 {"capability": "recover_failure",
                  "parameters": {"failed_task_id": "t1", "failure_reason": "timeout"}},
@@ -1477,7 +1477,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_orchestration_manage_resources(self):
         """manage_resources returns current_instances count."""
-        from value_fabric.layer4.agents.taxonomy import OrchestrationController
+        from layer4_agents.agents.taxonomy import OrchestrationController
 
         agent = OrchestrationController(config={})
         agent.running_tasks = {}
@@ -1495,7 +1495,7 @@ class TestTaxonomyRemainingBranches:
 
     async def test_orchestration_unknown_capability_degraded(self):
         """Unknown capability returns degraded result."""
-        from value_fabric.layer4.agents.taxonomy import OrchestrationController
+        from layer4_agents.agents.taxonomy import OrchestrationController
 
         agent = OrchestrationController(config={})
         agent.running_tasks = {}
@@ -1549,9 +1549,9 @@ class TestSignalDetectionHelpers:
     _persist_signal, and _execute_llm_layer."""
 
     def _make_agent(self):
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config={
                 "max_signals_per_request": 3,
                 "evidence_match_limit": 5,
@@ -1566,7 +1566,7 @@ class TestSignalDetectionHelpers:
 
     def _make_signal(self):
         """Return a valid PainSignal using real enum values."""
-        from value_fabric.layer4.models.pain_signal import PainSignal, SignalCategory, TrendDirection
+        from layer4_agents.models.pain_signal import PainSignal, SignalCategory, TrendDirection
         return PainSignal(
             id="sig-1",
             name="slow invoicing",
@@ -1595,7 +1595,7 @@ class TestSignalDetectionHelpers:
 
     def test_create_pain_signal_returns_pain_signal(self):
         """_create_pain_signal returns a PainSignal with correct fields."""
-        from value_fabric.layer4.models.pain_signal import PainSignal
+        from layer4_agents.models.pain_signal import PainSignal
         agent = self._make_agent()
         ctx = self._make_ctx()
         result = agent._create_pain_signal(
@@ -1762,7 +1762,7 @@ class TestSignalDetectionHelpers:
 
     async def test_execute_llm_layer_returns_enriched_result(self):
         """_execute_llm_layer returns llm_enrichment=True on success."""
-        from value_fabric.layer4.services.governed_llm_client import LLMCallResult
+        from layer4_agents.services.governed_llm_client import LLMCallResult
 
         agent = self._make_agent()
         ctx = self._make_ctx()
@@ -1791,10 +1791,10 @@ class TestSignalDetectionHelpers:
 
         registry_mock = _make_prompt_registry_mock()
 
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient",
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient",
                    return_value=mock_client), \
-             patch("value_fabric.layer4.agents.signal_detection.get_prompt_registry",
+             patch("layer4_agents.agents.signal_detection.get_prompt_registry",
                    return_value=registry_mock):
             result = await agent._execute_llm_layer(
                 signals=[signal],
@@ -1816,10 +1816,10 @@ class TestSignalDetectionHelpers:
 
         registry_mock = _make_prompt_registry_mock()
 
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient",
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient",
                    return_value=mock_client), \
-             patch("value_fabric.layer4.agents.signal_detection.get_prompt_registry",
+             patch("layer4_agents.agents.signal_detection.get_prompt_registry",
                    return_value=registry_mock):
             result = await agent._execute_llm_layer(
                 signals=[signal],
@@ -1841,18 +1841,18 @@ class TestSignalDetectionHelpers:
 
     def test_resolve_provider_name_uses_config(self):
         """_resolve_provider_name prefers config over env."""
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config={"llm_provider": "openai"})
         assert agent._resolve_provider_name() == "openai"
 
     def test_resolve_provider_name_env_fallback(self, monkeypatch):
         """_resolve_provider_name falls back to LAYER4_LLM_PROVIDER env var."""
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
         monkeypatch.setenv("LAYER4_LLM_PROVIDER", "anthropic")
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config={})
         assert agent._resolve_provider_name() == "anthropic"
 
@@ -1860,12 +1860,12 @@ class TestSignalDetectionHelpers:
 
     def test_get_layer2_client_lazy_init(self):
         """_get_layer2_client creates client on first call."""
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config={})
         assert agent.layer2_client is None
-        with patch("value_fabric.layer4.agents.signal_detection.SignalDetectionAgent._get_layer2_client") as mock_init:
+        with patch("layer4_agents.agents.signal_detection.SignalDetectionAgent._get_layer2_client") as mock_init:
             mock_init.return_value = MagicMock()
             client = agent._get_layer2_client()
         # After patching, just verify the attribute path exists
@@ -1873,14 +1873,14 @@ class TestSignalDetectionHelpers:
 
     def test_get_layer3_client_lazy_init(self):
         """_get_layer3_client creates client on first call when layer3_client is None."""
-        from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent
-        with patch("value_fabric.layer4.agents.signal_detection.get_llm_provider"), \
-             patch("value_fabric.layer4.agents.signal_detection.GovernedLLMClient"):
+        from layer4_agents.agents.signal_detection import SignalDetectionAgent
+        with patch("layer4_agents.agents.signal_detection.get_llm_provider"), \
+             patch("layer4_agents.agents.signal_detection.GovernedLLMClient"):
             agent = SignalDetectionAgent(config={})
         assert agent.layer3_client is None
         fake_l3 = MagicMock()
-        with patch("value_fabric.layer4.agents.signal_detection.Layer3Client" if False else
-                   "value_fabric.layer4.integration.layer3_client.Layer3Client",
+        with patch("layer4_agents.agents.signal_detection.Layer3Client" if False else
+                   "layer4_agents.integration.layer3_client.Layer3Client",
                    return_value=fake_l3, create=True):
             # Directly set to simulate lazy init path
             agent.layer3_client = fake_l3
@@ -1901,7 +1901,7 @@ class TestSignalDetectionHelpers:
 
     async def test_get_account_signals_returns_list(self):
         """get_account_signals returns a list of PainSignal objects."""
-        from value_fabric.layer4.models.pain_signal import SignalCategory, TrendDirection
+        from layer4_agents.models.pain_signal import SignalCategory, TrendDirection
         agent = self._make_agent()
 
         l3_client = MagicMock()

@@ -4,7 +4,7 @@ import logging
 
 import pytest
 
-from value_fabric.layer4.startup.dependency_verifier import (
+from layer4_agents.startup.dependency_verifier import (
     DependencyRule,
     verify_layer4_startup_dependencies,
     verify_startup_dependencies,

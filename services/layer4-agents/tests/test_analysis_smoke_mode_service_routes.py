@@ -17,10 +17,10 @@ for module_name in list(sys.modules):
     if module_name == "src" or module_name.startswith("src."):
         sys.modules.pop(module_name, None)
 
-from value_fabric.layer4.api.routes import analysis
-from value_fabric.layer4.config.settings import settings
+from layer4_agents.api.routes import analysis
+from layer4_agents.config.settings import settings
 from value_fabric.shared.audit import AuditAction
-from value_fabric.layer4.database import get_db_from_context
+from layer4_agents.database import get_db_from_context
 
 
 @pytest.fixture

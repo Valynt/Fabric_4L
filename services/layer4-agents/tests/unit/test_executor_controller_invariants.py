@@ -13,17 +13,17 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from value_fabric.layer4.engine.executor import (
+from layer4_agents.engine.executor import (
     CheckpointConflictError,
     OrchestrationController,
     WorkflowExecutionError,
 )
-from value_fabric.layer4.models.agent_state import (
+from layer4_agents.models.agent_state import (
     ROIAgentState,
     WorkflowStatus,
     WorkflowType,
 )
-from value_fabric.layer4.tools.registry import ToolRegistry
+from layer4_agents.tools.registry import ToolRegistry
 
 
 # ---------------------------------------------------------------------------

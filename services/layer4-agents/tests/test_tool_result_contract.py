@@ -10,9 +10,9 @@ Location: services/layer4-agents/tests/ to use correct conftest.py paths.
 import pytest
 from pydantic import BaseModel
 
-from value_fabric.layer4.tools import BaseTool, ToolRegistry, ToolResult
-from value_fabric.layer4.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
-from value_fabric.layer4.tools.competitive_tools import LLMDifferenceItem, LLMDifferencesResponse
+from layer4_agents.tools import BaseTool, ToolRegistry, ToolResult
+from layer4_agents.tools.calculation_tools import CalculateROITool, EvaluateFormulaTool
+from layer4_agents.tools.competitive_tools import LLMDifferenceItem, LLMDifferencesResponse
 
 
 def validate_tool_result(result):
@@ -355,7 +355,7 @@ class TestLLMNoRawJsonLoads:
         test_llm_response_model_validates_correct_json above.
         """
         import inspect
-        from value_fabric.layer4.tools.competitive_tools import AnalyzeCompetitionTool
+        from layer4_agents.tools.competitive_tools import AnalyzeCompetitionTool
 
         # Get source of _extract_differences_via_llm
         source = inspect.getsource(AnalyzeCompetitionTool._extract_differences_via_llm)

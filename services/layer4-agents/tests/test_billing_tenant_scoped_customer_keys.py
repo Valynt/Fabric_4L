@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-from value_fabric.layer4.models.billing import (
+from layer4_agents.models.billing import (
     BillingCustomer,
     BillingPlanVersion,
     BillingSubscription,
@@ -32,7 +32,7 @@ def billing_db(postgres_container):
     session = SessionLocal()
     
     # Bypass tenant context enforcement for billing tests
-    from value_fabric.layer4.database import _mark_session_tenant_bypass
+    from layer4_agents.database import _mark_session_tenant_bypass
     _mark_session_tenant_bypass(session, reason="billing_test")
     
     yield session

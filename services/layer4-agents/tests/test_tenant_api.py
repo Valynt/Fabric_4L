@@ -22,8 +22,8 @@ from uuid import uuid4
 from fastapi import status
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.tenants import router
-from value_fabric.layer4.services.tenant_provisioning import TenantProvisionResult
+from layer4_agents.api.tenants import router
+from layer4_agents.services.tenant_provisioning import TenantProvisionResult
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -246,7 +246,7 @@ class TestTenantAPIModels:
     
     def test_provision_tenant_request_validation(self):
         """Verify ProvisionTenantRequest validation."""
-        from value_fabric.layer4.api.tenants import ProvisionTenantRequest
+        from layer4_agents.api.tenants import ProvisionTenantRequest
         
         # Valid request
         request = ProvisionTenantRequest(
@@ -258,7 +258,7 @@ class TestTenantAPIModels:
     
     def test_provision_tenant_response_structure(self):
         """Verify ProvisionTenantResponse structure."""
-        from value_fabric.layer4.api.tenants import ProvisionTenantResponse
+        from layer4_agents.api.tenants import ProvisionTenantResponse
         
         response = ProvisionTenantResponse(
             tenant_id=uuid4(),
@@ -275,7 +275,7 @@ class TestTenantAPIModels:
     
     def test_tenant_summary_structure(self):
         """Verify TenantSummary structure."""
-        from value_fabric.layer4.api.tenants import TenantSummary
+        from layer4_agents.api.tenants import TenantSummary
         
         summary = TenantSummary(
             tenant_id=uuid4(),
@@ -372,7 +372,7 @@ class _TenantEntityCountDb:
 @pytest.mark.asyncio
 async def test_count_tenant_entities_queries_real_tenant_scoped_tables():
     """H-01: tenant entity_count must be computed, not hard-coded to zero."""
-    from value_fabric.layer4.api.tenants import _count_tenant_entities
+    from layer4_agents.api.tenants import _count_tenant_entities
 
     tenant_id = uuid4()
     db = _TenantEntityCountDb()

@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from value_fabric.layer4.services.overage_service import OverageService, UsageCheckResult
+from layer4_agents.services.overage_service import OverageService, UsageCheckResult
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -81,7 +81,7 @@ class TestGetPeriodDates:
         # Simulate December by patching datetime.now
         fixed_now = datetime(2025, 12, 15, 10, 30, 0, tzinfo=UTC)
         with patch(
-            "value_fabric.layer4.services.overage_service.datetime"
+            "layer4_agents.services.overage_service.datetime"
         ) as mock_dt:
             mock_dt.now.return_value = fixed_now
             # Replicate the replace calls to make datetime.now().replace work
@@ -156,7 +156,7 @@ class TestCheckMetricUsageNoPlan:
     @pytest.mark.asyncio
     async def test_plan_without_metric_limit_returns_unlimited(self):
         """Plan exists but has no limit for the requested metric."""
-        from value_fabric.layer4.config.plans import Plan
+        from layer4_agents.config.plans import Plan
 
         plan = Plan(id="pro", name="Pro", description="Pro plan", usage_limits={})
         svc = OverageService(db=MagicMock(), tenant_id="t1")
@@ -274,7 +274,7 @@ class TestCheckAllLimits:
     @pytest.mark.unit
     @pytest.mark.asyncio
     async def test_all_limits_ok_when_no_exceedance(self):
-        from value_fabric.layer4.config.plans import Plan, UsageLimit
+        from layer4_agents.config.plans import Plan, UsageLimit
 
         plan = Plan(
             id="free",

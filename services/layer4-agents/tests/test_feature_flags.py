@@ -26,9 +26,9 @@ from value_fabric.shared.identity.permissions import Role
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
 
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.database import Base, get_db_from_context
-from value_fabric.layer4.feature_flags.service import FeatureFlagService
+from layer4_agents.api.main import app
+from layer4_agents.database import Base, get_db_from_context
+from layer4_agents.feature_flags.service import FeatureFlagService
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -59,7 +59,7 @@ async def test_db(postgres_container) -> AsyncGenerator[AsyncSession, None]:
     async with async_session() as session:
         # Bypass tenant context enforcement for feature flags tests
         # Feature flags with tenant_id=None are system-wide and don't require tenant context
-        from value_fabric.layer4.database import _mark_session_tenant_bypass
+        from layer4_agents.database import _mark_session_tenant_bypass
         _mark_session_tenant_bypass(session, reason="feature_flags_test")
         yield session
 

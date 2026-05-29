@@ -21,8 +21,8 @@ from fastapi import FastAPI, status
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.api.routes import prospects
-from value_fabric.layer4.models.account import Account
+from layer4_agents.api.routes import prospects
+from layer4_agents.models.account import Account
 
 
 @pytest.fixture

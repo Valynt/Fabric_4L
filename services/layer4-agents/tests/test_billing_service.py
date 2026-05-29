@@ -24,8 +24,8 @@ from fastapi.testclient import TestClient
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from value_fabric.layer4.api.main import app
-from value_fabric.layer4.models.billing import (
+from layer4_agents.api.main import app
+from layer4_agents.models.billing import (
     BillingCustomer,
     BillingInvoice,
     BillingInvoiceItem,
@@ -35,8 +35,8 @@ from value_fabric.layer4.models.billing import (
     SubscriptionStatus,
 )
 
-from value_fabric.layer4.services.billing_service import BillingService, WebhookErrorCode, WebhookValidationError
-from value_fabric.layer4.services.stripe_client import StripeError
+from layer4_agents.services.billing_service import BillingService, WebhookErrorCode, WebhookValidationError
+from layer4_agents.services.stripe_client import StripeError
 
 
 # =============================================================================
@@ -58,7 +58,7 @@ def mock_db():
 @pytest.fixture(autouse=True)
 def override_app_db_dependency(mock_db):
     """Override FastAPI get_db dependency to use the mock session."""
-    from value_fabric.layer4.database import get_db_from_context
+    from layer4_agents.database import get_db_from_context
     from value_fabric.shared.identity.dependencies import require_authenticated
     from value_fabric.shared.identity.context import RequestContext
 
@@ -648,7 +648,7 @@ def test_check_feature_endpoint(client, mock_db, sample_subscription):
 
 def test_plan_configuration():
     """Test that plan configuration is correctly defined."""
-    from value_fabric.layer4.config.plans import PLANS, FEATURES, get_plan, check_entitlement
+    from layer4_agents.config.plans import PLANS, FEATURES, get_plan, check_entitlement
 
     # Test plan existence
     assert get_plan("free") is not None
@@ -669,7 +669,7 @@ def test_plan_configuration():
 
 def test_plan_features_list():
     """Test getting list of features for a plan."""
-    from value_fabric.layer4.config.plans import get_plan_features
+    from layer4_agents.config.plans import get_plan_features
 
     free_features = get_plan_features("free")
     assert len(free_features) == 3  # basic_extraction, knowledge_graph, formula_builder
@@ -683,7 +683,7 @@ def test_plan_features_list():
 
 def test_invalid_plan_returns_no_features():
     """Test that invalid plan returns empty feature list."""
-    from value_fabric.layer4.config.plans import get_plan_features, check_entitlement, get_plan
+    from layer4_agents.config.plans import get_plan_features, check_entitlement, get_plan
 
     assert get_plan_features("invalid") == []
     assert check_entitlement("invalid", "basic_extraction") is False
@@ -692,7 +692,7 @@ def test_invalid_plan_returns_no_features():
 
 def test_subscription_is_active_property():
     """Test subscription is_active property with various statuses."""
-    from value_fabric.layer4.models.billing import BillingSubscription, SubscriptionStatus
+    from layer4_agents.models.billing import BillingSubscription, SubscriptionStatus
 
     # Active statuses
     for status in [SubscriptionStatus.ACTIVE, SubscriptionStatus.TRIALING]:
@@ -707,7 +707,7 @@ def test_subscription_is_active_property():
 
 def test_subscription_is_canceled_property():
     """Test subscription is_canceled property."""
-    from value_fabric.layer4.models.billing import BillingSubscription, SubscriptionStatus
+    from layer4_agents.models.billing import BillingSubscription, SubscriptionStatus
 
     # Explicitly canceled
     sub = BillingSubscription(id="1", status=SubscriptionStatus.CANCELED, plan_id="pro")
@@ -748,7 +748,7 @@ async def test_cancel_subscription_at_period_end(mock_db, sample_subscription):
     mock_stripe_sub.current_period_end = 1893456000  # ~2030-01-01
     mock_stripe.Subscription.modify.return_value = mock_stripe_sub
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.cancel_subscription(
             customer_id="user_123",
@@ -778,7 +778,7 @@ async def test_cancel_subscription_immediately_downgrades_to_free(mock_db, sampl
     mock_stripe_sub.current_period_end = None
     mock_stripe.Subscription.modify.return_value = mock_stripe_sub
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.cancel_subscription(
             customer_id="user_123",
@@ -813,8 +813,8 @@ async def test_update_subscription_plan(mock_db, sample_subscription):
 
     mock_stripe = MagicMock()
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
-         patch('value_fabric.layer4.services.billing_service.get_price_id', return_value="price_enterprise"):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('layer4_agents.services.billing_service.get_price_id', return_value="price_enterprise"):
         service = BillingService(mock_db)
         result = await service.update_subscription_plan(
             customer_id="user_123",
@@ -864,7 +864,7 @@ async def test_reactivate_subscription(mock_db):
 
     mock_stripe = MagicMock()
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.reactivate_subscription(customer_id="user_123")
 
@@ -924,7 +924,7 @@ async def test_webhook_subscription_created(mock_db):
     mock_stripe = MagicMock()
     mock_stripe.Webhook.construct_event.return_value = event
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.handle_webhook(
             payload=b'{}',
@@ -967,8 +967,8 @@ async def test_webhook_subscription_updated_plan_change(mock_db, sample_subscrip
     mock_stripe = MagicMock()
     mock_stripe.Webhook.construct_event.return_value = event
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
-         patch('value_fabric.layer4.config.plans.PLANS', {
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('layer4_agents.config.plans.PLANS', {
              "enterprise": MagicMock(stripe_price_id="price_enterprise"),
              "pro": MagicMock(stripe_price_id="price_pro"),
          }):
@@ -1007,7 +1007,7 @@ async def test_webhook_subscription_deleted_downgrades_to_free(mock_db, sample_s
     mock_stripe = MagicMock()
     mock_stripe.Webhook.construct_event.return_value = event
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.handle_webhook(
             payload=b'{}',
@@ -1040,7 +1040,7 @@ async def test_webhook_replay_idempotency_explicit(mock_db):
     mock_stripe = MagicMock()
     mock_stripe.Webhook.construct_event.return_value = event
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         result = await service.handle_webhook(
             payload=b'{}',
@@ -1067,7 +1067,7 @@ async def test_stripe_error_does_not_leak_to_client(mock_db, sample_subscription
     mock_stripe = MagicMock()
     mock_stripe.Subscription.modify.side_effect = StripeError("raw stripe error: card declined")
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         service = BillingService(mock_db)
         with pytest.raises(ValueError) as exc_info:
             await service.cancel_subscription(customer_id="user_123")
@@ -1091,7 +1091,7 @@ def test_cancel_subscription_endpoint(client, mock_db, sample_subscription):
     mock_stripe_sub.current_period_end = 1893456000
     mock_stripe.Subscription.modify.return_value = mock_stripe_sub
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         response = client.post(
             "/v1/billing/subscription/cancel?customer_id=user_123",
             json={"cancel_immediately": False},
@@ -1111,8 +1111,8 @@ def test_update_plan_endpoint(client, mock_db, sample_subscription):
 
     mock_stripe = MagicMock()
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe), \
-         patch('value_fabric.layer4.services.billing_service.get_price_id', return_value="price_enterprise"):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe), \
+         patch('layer4_agents.services.billing_service.get_price_id', return_value="price_enterprise"):
         response = client.post(
             "/v1/billing/subscription/update-plan?customer_id=user_123",
             json={"plan_id": "enterprise"},
@@ -1141,7 +1141,7 @@ def test_reactivate_subscription_endpoint(client, mock_db):
 
     mock_stripe = MagicMock()
 
-    with patch('value_fabric.layer4.services.billing_service._get_stripe', return_value=mock_stripe):
+    with patch('layer4_agents.services.billing_service._get_stripe', return_value=mock_stripe):
         response = client.post(
             "/v1/billing/subscription/reactivate?customer_id=user_123",
         )

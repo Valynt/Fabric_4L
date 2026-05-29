@@ -11,12 +11,12 @@ from fastapi import FastAPI
 from httpx import ASGITransport, AsyncClient
 from pydantic import BaseModel
 
-from value_fabric.layer4.api.routes import agent_stream
-from value_fabric.layer4.services.conversation import (
+from layer4_agents.api.routes import agent_stream
+from layer4_agents.services.conversation import (
     ConversationService,
     ConversationTenantValidationError,
 )
-from value_fabric.layer4.tools.registry import TenantAwareTool, ToolResult
+from layer4_agents.tools.registry import TenantAwareTool, ToolResult
 from value_fabric.shared.identity.context import RequestContext, RequestContextManager
 from value_fabric.shared.identity.dependencies import require_authenticated
 from sqlalchemy.ext.asyncio import AsyncSession

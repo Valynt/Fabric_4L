@@ -13,16 +13,16 @@ from unittest.mock import AsyncMock, MagicMock, Mock, patch
 
 import pytest
 
-from value_fabric.layer4.config.checkpoint import CheckpointConfig, CheckpointConnectionError, get_checkpoint_saver
-from value_fabric.layer4.engine.executor import (
+from layer4_agents.config.checkpoint import CheckpointConfig, CheckpointConnectionError, get_checkpoint_saver
+from layer4_agents.engine.executor import (
     CheckpointConflictError,
     OrchestrationController,
     WorkflowExecutionError,
 )
-from value_fabric.layer4.engine.state_manager import StateManager
-from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowStatus
-from value_fabric.layer4.tools.registry import ToolRegistry
-from value_fabric.layer4.workflows.base import BaseWorkflow
+from layer4_agents.engine.state_manager import StateManager
+from layer4_agents.models.agent_state import BaseAgentState, WorkflowStatus
+from layer4_agents.tools.registry import ToolRegistry
+from layer4_agents.workflows.base import BaseWorkflow
 
 # Reuse fixtures from conftest.py: mock_checkpoint_saver, mock_tool_registry,
 # state_manager, orchestrator_with_checkpoint, controller_with_running_state,
@@ -84,7 +84,7 @@ class TestResumeWorkflow:
         )
         mock_workflow.run = AsyncMock(return_value=mock_result)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -138,7 +138,7 @@ class TestResumeWorkflow:
 
         resume_data = {"approved": True, "notes": "Proceed with caution"}
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -162,7 +162,7 @@ class TestResumeWorkflow:
         mock_workflow = Mock(spec=BaseWorkflow)
         mock_workflow.run = AsyncMock(return_value=existing_state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -280,7 +280,7 @@ class TestResumeWorkflow:
         mock_workflow = Mock(spec=BaseWorkflow)
         mock_workflow.run = AsyncMock(return_value=existing_state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_from_checkpoint(
                 workflow_id=workflow_id,
                 checkpoint_id="chk-test-001",
@@ -367,7 +367,7 @@ class TestCheckpointConfiguration:
         """
         # Must set env var to trigger DB connection attempt
         with patch.dict(os.environ, {"ENVIRONMENT": "development", "CHECKPOINT_DATABASE_URL": "postgresql://invalid:5432/test"}):
-            with patch("value_fabric.layer4.config.checkpoint.CheckpointConfig.create_saver") as mock_create:
+            with patch("layer4_agents.config.checkpoint.CheckpointConfig.create_saver") as mock_create:
                 mock_create.side_effect = CheckpointConnectionError("Database unavailable")
                 
                 result = await get_checkpoint_saver()
@@ -425,7 +425,7 @@ class TestCheckpointIntegration:
         )
         mock_workflow.run = AsyncMock(return_value=completed_state)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow):
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
             result = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="test-user",
@@ -450,7 +450,7 @@ class TestCheckpointIntegration:
         mock_workflow = Mock(spec=BaseWorkflow)
         mock_workflow.run = AsyncMock(side_effect=mock_run)
 
-        with patch("value_fabric.layer4.engine.executor.create_workflow", return_value=mock_workflow) as mock_create:
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow) as mock_create:
             result1 = await controller.resume_workflow(
                 workflow_id=workflow_id,
                 user_id="user-1",
@@ -473,7 +473,7 @@ class TestOrchestrationControllerEdgeCases:
     ):
         """Orphaned workflows from a previous pod are marked INTERRUPTED."""
         from datetime import UTC
-        from value_fabric.layer4.models.agent_state import WorkflowStatus
+        from layer4_agents.models.agent_state import WorkflowStatus
 
         controller = OrchestrationController(
             tool_registry=mock_tool_registry,
@@ -521,7 +521,7 @@ class TestOrchestrationControllerEdgeCases:
     @pytest.mark.asyncio
     async def test_pause_already_interrupted_workflow_raises(self, state_manager):
         """Pause on an already-interrupted workflow must raise ValueError."""
-        from value_fabric.layer4.models.agent_state import WorkflowStatus
+        from layer4_agents.models.agent_state import WorkflowStatus
 
         wf_id = "already-interrupted-wf"
         interrupted_state = BaseAgentState(tenant_id="test-tenant", 
