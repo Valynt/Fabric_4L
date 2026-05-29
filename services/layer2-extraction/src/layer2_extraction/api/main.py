@@ -52,10 +52,7 @@ except Exception:
 
 logger = structlog.get_logger(__name__)
 
-try:
-    from value_fabric.shared.identity.middleware import GovernanceMiddleware
-except ImportError:
-    GovernanceMiddleware = None  # type: ignore
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 try:
     load_infisical_secrets()
@@ -163,12 +160,6 @@ app = create_fabric_app(
 
 # Register health endpoint
 register_health_endpoint(app, service_name="layer2-extraction")
-
-# P0-002: Unconditionally install GovernanceMiddleware for fail-closed auth.
-# The previous register_fabric_auth_from_env was conditional and left routes
-# unprotected when FABRIC_AUTH_PUBLIC_KEYS was unset.
-if GovernanceMiddleware is None:
-    raise RuntimeError("GovernanceMiddleware is required for Layer 2 authentication.")
 
 app.add_middleware(
     GovernanceMiddleware,

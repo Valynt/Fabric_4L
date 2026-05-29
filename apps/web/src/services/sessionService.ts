@@ -6,6 +6,8 @@
  * This module now only provides navigation helpers for auth redirects.
  */
 
+import { logWarn } from "@/lib/telemetry";
+
 export class SessionService {
   redirectTo(url: string): void {
     if (typeof window !== 'undefined') {
@@ -24,7 +26,7 @@ export class SessionService {
   }
 
   handleUnauthorized(context: { traceId?: string | null; route?: string } = {}): void {
-    console.warn('Unauthorized response received', context);
+    logWarn('Unauthorized response received', context);
     this.redirectToLogin();
   }
 }

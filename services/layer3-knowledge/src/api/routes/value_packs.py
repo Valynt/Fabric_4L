@@ -1,4 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -357,8 +357,10 @@ async def _update_relationships(
             raise ValidationError(message = str(f"{target_label} IDs not found: {sorted(missing)}"))
 
     # Phase 1 hardening: Use AuditedGraphMutation for all relationship writes
+    if not tenant_id:
+        raise AuthorizationError(message="Tenant context is required for relationship mutations")
     mutation = AuditedGraphMutation(
-        tenant_id=tenant_id or "default",
+        tenant_id=tenant_id,
         session=tx,
         request_id=request_id,
         account_id=account_id,

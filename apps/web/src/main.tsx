@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, StrictMode, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import * as Sentry from "@sentry/react";
 import {
@@ -96,16 +96,18 @@ const AppRoot = (
 );
 
 createRoot(document.getElementById("root")!).render(
-  <Suspense fallback={null}>
-    <ClerkProvider
-      publishableKey={clerkPublishableKey}
-      signInUrl={clerkUrls.signInUrl}
-      signUpUrl={clerkUrls.signUpUrl}
-      signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
-      signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
-      afterSignOutUrl="/"
-    >
-      {AppRoot}
-    </ClerkProvider>
-  </Suspense>
+  <StrictMode>
+    <Suspense fallback={null}>
+      <ClerkProvider
+        publishableKey={clerkPublishableKey}
+        signInUrl={clerkUrls.signInUrl}
+        signUpUrl={clerkUrls.signUpUrl}
+        signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
+        signUpFallbackRedirectUrl={clerkUrls.afterSignUpUrl}
+        afterSignOutUrl="/"
+      >
+        {AppRoot}
+      </ClerkProvider>
+    </Suspense>
+  </StrictMode>
 );

@@ -24,6 +24,7 @@ import { useEffect, useRef } from "react";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
+import { useAccountContextStore } from "@/stores/accountContextStore";
 
 const FABRIC_AUTH_TEMPLATE_NAME =
   (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
@@ -31,6 +32,7 @@ const FABRIC_AUTH_TEMPLATE_NAME =
 export function ClerkAuthBridge(): null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const { organization } = useOrganization();
+  const syncTenant = useAccountContextStore(s => s.syncTenant);
 
   // Stable ref that always points at the latest Clerk getToken closure.
   // The registered token getter reads through this ref, so identity churn
@@ -71,12 +73,15 @@ export function ClerkAuthBridge(): null {
 
   // 2) Track active org. Clear on unmount so HMR / layout swaps do not
   //    leak a stale org id into the module-scope bridge state.
+  //    Also call syncTenant so the accountContextStore purges any persisted
+  //    account selection that belongs to a different tenant (P1-010).
   useEffect(() => {
     setActiveClerkOrgId(organization?.id ?? null);
+    syncTenant();
     return () => {
       setActiveClerkOrgId(null);
     };
-  }, [organization?.id]);
+  }, [organization?.id, syncTenant]);
 
   return null;
 }

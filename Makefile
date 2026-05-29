@@ -3,7 +3,7 @@
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
         test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
-        setup \
+        setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
@@ -325,6 +325,22 @@ setup-layer2-5: ## Install Layer 2.5 dev dependencies into the pytest pipx venv
 	echo "→ Installing Layer 2.5 dev dependencies into $$PYTEST_PY"; \
 	cd services/layer2-5-signal-refinery && $$PYTEST_PY -m pip install -e ".[dev]" -q && cd ../.. || (cd ../..; exit 1); \
 	echo "✅  Layer 2.5 dependencies installed"
+
+bootstrap: ## One-command first-time setup: Infisical → corepack → pnpm → Python deps → migrate
+	@echo "=== Step 1: Infisical login ==="
+	@infisical login || (echo "ERROR: Infisical CLI not installed. See https://infisical.com/docs/cli/overview" && exit 1)
+	@echo "=== Step 2: Enable corepack and activate pnpm ==="
+	corepack enable
+	corepack prepare pnpm@10.18.1 --activate
+	@echo "=== Step 3: Install frontend dependencies ==="
+	pnpm install --frozen-lockfile
+	@echo "=== Step 4: Install Python service dependencies ==="
+	$(MAKE) setup
+	@echo "=== Step 5: Run database migrations ==="
+	$(MAKE) migrate
+	@echo ""
+	@echo "✅  Bootstrap complete!"
+	@echo "    Next: pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d"
 
 setup: ## Install all service dev dependencies into the pytest pipx venv
 	@PYTEST_BIN=$$(which pytest 2>/dev/null); \

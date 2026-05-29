@@ -22,9 +22,39 @@ _KEY_BYTE_LENGTH = 32  # 256 bits of entropy → 43 base64url chars
 
 
 def _get_hmac_secret() -> bytes:
-    """Return the server-side HMAC secret from the environment."""
+    """Return the server-side HMAC secret from the environment.
+
+    Fails closed in production-like environments when the secret is unset.
+    An empty HMAC secret means all API key hashes are computed without a
+    pepper, reducing security to the entropy of the key alone and allowing
+    offline brute-force against any stolen DB rows.
+    """
     secret = os.getenv("API_KEY_HMAC_SECRET", "")
     if not secret:
+        # Detect production-like runtime markers (K8s, ECS, Cloud Run, Heroku)
+        _PROD_MARKERS = (
+            "KUBERNETES_SERVICE_HOST",
+            "K_SERVICE",
+            "ECS_CONTAINER_METADATA_URI",
+            "ECS_CONTAINER_METADATA_URI_V4",
+            "AWS_EXECUTION_ENV",
+            "DYNO",
+        )
+        _PROD_ENVS = frozenset({"production", "prod", "staging", "stage", "preprod"})
+        _env_name = (
+            os.getenv("ENVIRONMENT")
+            or os.getenv("APP_ENV")
+            or os.getenv("ENV")
+            or ""
+        ).strip().lower()
+        _is_prod = _env_name in _PROD_ENVS or any(
+            os.getenv(marker) for marker in _PROD_MARKERS
+        )
+        if _is_prod:
+            raise RuntimeError(
+                "API_KEY_HMAC_SECRET is required in production — "
+                "set a minimum 32-character random secret via Infisical."
+            )
         import logging
         logging.getLogger(__name__).warning(
             "API_KEY_HMAC_SECRET is not set — using empty string. "
