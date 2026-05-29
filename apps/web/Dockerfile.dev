@@ -5,15 +5,43 @@ RUN corepack enable
 
 # Copy everything needed at workspace root for pnpm to resolve relative paths correctly
 COPY apps/web/package.json ./package.json
+COPY pnpm-lock.yaml ./pnpm-lock.yaml
 COPY apps/web/scripts ./scripts
 
-# Remove local file dependency and unused patches from package.json
-RUN sed -i '/eslint-plugin-fabric-contracts/d' package.json && \
-    sed -i '/patchedDependencies/,/}/d' package.json && \
-    sed -i '/wouter@3.7.1/d' package.json
+# Remove local file dependency and unused patches from package.json; also patch lockfile
+RUN node -e "\
+  const fs = require('fs'); \
+  const p = require('./package.json'); \
+  delete (p.devDependencies || {})['eslint-plugin-fabric-contracts']; \
+  delete (p.scripts || {})['preinstall']; \
+  fs.writeFileSync('package.json', JSON.stringify(p, null, 2)); \
+  \
+  let lock = fs.readFileSync('pnpm-lock.yaml', 'utf8'); \
+  const lines = lock.split('\n'); \
+  const out = []; \
+  let skipUntil = -1; \
+  for (let i = 0; i < lines.length; i++) { \
+    const line = lines[i]; \
+    if (line.trim() === 'eslint-plugin-fabric-contracts:') { \
+      out.pop(); \
+      skipUntil = i + 1; \
+      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
+      i = skipUntil - 1; \
+      continue; \
+    } \
+    if (line.trim() === 'packages/eslint-plugin-fabric-contracts:') { \
+      skipUntil = i + 1; \
+      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
+      i = skipUntil - 1; \
+      continue; \
+    } \
+    out.push(line); \
+  } \
+  fs.writeFileSync('pnpm-lock.yaml', out.join('\n')); \
+"
 
-# Install dependencies (generate fresh lockfile without local plugin)
-RUN pnpm install
+# Install dependencies with frozen lockfile for reproducible builds
+RUN pnpm install --frozen-lockfile
 
 # Copy frontend source to app directory
 WORKDIR /app

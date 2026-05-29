@@ -9,9 +9,9 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from httpx import ASGITransport, AsyncClient
-from value_fabric.layer6.api.deps import get_request_context
-from value_fabric.layer6.api.main import app
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.api.deps import get_request_context
+from layer6_benchmarks.api.main import app
+from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
@@ -72,8 +72,8 @@ def clear_dependency_overrides():
 @pytest.fixture
 def mock_repo_hostile(monkeypatch):
     """Create a pristine mock repo for asserting call arguments."""
-    monkeypatch.setattr("value_fabric.layer6.api.main.authorize_action", lambda *args, **kwargs: None)
-    with patch("value_fabric.layer6.api.main._benchmark_repo") as repo:
+    monkeypatch.setattr("layer6_benchmarks.api.main.authorize_action", lambda *args, **kwargs: None)
+    with patch("layer6_benchmarks.api.main._benchmark_repo") as repo:
         repo.list_datasets = AsyncMock(return_value=[])
         repo.get_dataset = AsyncMock(return_value=None)
         yield repo
@@ -215,7 +215,7 @@ async def test_list_industries_propagates_tenant(isolated_client: AsyncClient, m
 @pytest.mark.asyncio
 async def test_hostile_cross_tenant_access_blocked(isolated_client: AsyncClient, monkeypatch):
     """Verify a hostile tenant cannot access another tenant's benchmark data via the API."""
-    import value_fabric.layer6.api.main as main_module
+    import layer6_benchmarks.api.main as main_module
     monkeypatch.setattr(main_module, "authorize_action", lambda *args, **kwargs: None)
     
     # Create a mock repo that simulates returning data ONLY for a specific tenant

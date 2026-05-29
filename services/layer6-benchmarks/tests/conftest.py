@@ -16,9 +16,7 @@ _TEST_ENV_DEFAULTS = {
     "NEO4J_PASSWORD": "test_password",
     "NEO4J_DATABASE": "neo4j",
     "NEO4J_MAX_POOL_SIZE": "10",
-    "ALLOW_INSECURE_DEV_AUTH_BYPASS": "true",
-    "DEV_AUTH_BYPASS": "true",
-    "ALLOW_DEV_AUTH_BYPASS": "I_UNDERSTAND_RISK",
+    # P0-008: Dev auth bypass flags removed — no longer needed
     # Match root conftest.py secret defaults so L6 service venv can boot the FastAPI
     # app without a live Infisical / vault. Mirrors the canonical test-secret values
     # required by value_fabric.shared.secrets.infisical._validate_required_secrets.
@@ -41,7 +39,7 @@ _TEST_ENV_DEFAULTS = {
 for _key, _value in _TEST_ENV_DEFAULTS.items():
     os.environ.setdefault(_key, _value)
 
-import value_fabric.layer6.database as database
+import layer6_benchmarks.database as database
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 
@@ -82,6 +80,6 @@ def mock_neo4j_health(monkeypatch):
     
     monkeypatch.setattr(database, "health_check", mock_health)
     # Also patch the actual neo4j_health_check imported in main
-    import value_fabric.layer6.api.main as main_module
+    import layer6_benchmarks.api.main as main_module
     monkeypatch.setattr(main_module, "neo4j_health_check", mock_health)
 

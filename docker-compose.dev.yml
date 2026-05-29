@@ -2,12 +2,13 @@
 # Value Fabric — Local Development Stack
 # =============================================================================
 # ⚠️  CRITICAL SECURITY WARNING ⚠️
-# This file contains DEV_AUTH_BYPASS=true for local development only.
 # NEVER copy this file or its environment variables to production.
 # Production deployments must use docker-compose.prod.yml with proper authentication.
 # See SECURITY.md for production security requirements.
 #
-# Spins up the full platform with auth bypass for local exploration.
+# Spins up the full platform for local exploration.
+# Dev auth bypass has been permanently removed (P0-008).
+# Local development uses Keycloak OIDC or test JWT tokens.
 #
 # Usage (with Infisical — recommended):
 #   pnpm env:dev                    # generates .env.generated
@@ -23,8 +24,7 @@
 #   - postgres:  Relational store (localhost:5432)
 #   - redis:     Cache + pub/sub (localhost:6379)
 #
-# Auth is bypassed via DEV_AUTH_BYPASS=true — every request gets a
-# pre-populated tenant/user context without needing a JWT.
+# Authentication is handled via Keycloak OIDC or test JWT tokens.
 # =============================================================================
 
 x-build-args: &build-args
@@ -209,7 +209,7 @@ services:
       - "8002:8000"
     environment:
       - ENVIRONMENT=development
-      # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
+      # JWT secret for local dev (Keycloak OIDC or test tokens)
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/extraction
       - REDIS_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
@@ -280,7 +280,7 @@ services:
       - "8007:8007"
     environment:
       - ENVIRONMENT=development
-      # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
+      # JWT secret for local dev (Keycloak OIDC or test tokens)
       - JWT_SECRET=dev-local-secret-do-not-use-in-production-minimum-32-chars
       - DATABASE_URL=postgresql+asyncpg://postgres:postgres@postgres:5432/signal_refinery
       - LAYER2_BASE_URL=http://layer2:8000
@@ -318,8 +318,7 @@ services:
       - "8004:8000"
     environment:
       - ENVIRONMENT=development
-      # ⚠️  DEV AUTH BYPASS - LOCAL DEVELOPMENT ONLY - NEVER USE IN PRODUCTION ⚠️
-      # Auth bypass for local dev — injects a dev tenant context on every request
+      # Local dev uses Keycloak OIDC or test JWT tokens for authentication
       - ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT=true
       - CORS_ORIGINS=http://localhost:3001,http://localhost:8004
       # JWT secret (required by jwt.py at import time, but bypassed at runtime)

@@ -1,15 +1,15 @@
 """Enforce tenant-scoped billing customer keys and FK constraints.
 
-Revision ID: 036_tenant_scoped_billing_customer_keys
-Revises: 035_add_billing_plan_versions, 035_add_billing_customer_sync_state
+Revision ID: 037_tenant_scoped_billing_customer_keys
+Revises: 036_add_billing_customer_sync_state
 Create Date: 2026-05-22
 """
 
 from alembic import op
 import sqlalchemy as sa
 
-revision = "036_tenant_scoped_billing_customer_keys"
-down_revision = ("035_add_billing_plan_versions", "035_add_billing_customer_sync_state")
+revision = "037_tenant_scoped_billing_customer_keys"
+down_revision = "036_add_billing_customer_sync_state"
 branch_labels = None
 depends_on = None
 

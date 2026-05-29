@@ -28,6 +28,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from value_fabric.shared.crypto import EncryptedString
 
 from ..database import Base
 
@@ -76,8 +77,8 @@ class BillingCustomer(Base):
     stripe_sync_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", index=True)
     stripe_sync_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     stripe_sync_attempted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    email: Mapped[str] = mapped_column(String(255), nullable=False)
-    name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    email: Mapped[str] = mapped_column(EncryptedString(), nullable=False, comment="Customer email (encrypted at rest)")
+    name: Mapped[str | None] = mapped_column(EncryptedString(), nullable=True, comment="Customer name (encrypted at rest)")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(UTC))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC)

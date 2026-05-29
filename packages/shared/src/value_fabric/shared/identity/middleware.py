@@ -650,6 +650,33 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         status_code=status.HTTP_403_FORBIDDEN,
                         detail={"error_code": ERR_AUTH_CONTEXT_INVALID, "message": "Tenant context mismatch."},
                     ) from exc
+
+            # P1-001: Try service-to-service JWT before rejecting
+            try:
+                from .jwt import decode_service_jwt as _decode_service_jwt
+                s2s_claims = await asyncio.to_thread(_decode_service_jwt, token_str)
+            except Exception:
+                s2s_claims = None
+            if s2s_claims is not None:
+                try:
+                    tenant_id = UUID(str(s2s_claims.tenant_id))
+                except ValueError:
+                    logger.warning("s2s_jwt_invalid_tenant_id", extra={"tenant_id": s2s_claims.tenant_id, **_request_log_context(request)})
+                    raise HTTPException(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        detail="Invalid S2S token.",
+                        headers={"WWW-Authenticate": "Bearer"},
+                    )
+                return _build_context_from_role(
+                    tenant_id,
+                    user_id=s2s_claims.sub,
+                    roles=[Role.SYSTEM.value],
+                    source=AUTH_SOURCE_SERVICE_ACCOUNT,
+                    raw={"aud": s2s_claims.aud, "sub": s2s_claims.sub},
+                    service_account_id=s2s_claims.sub,
+                    service_account_scopes=["tenant:seed", "system:internal", "s2s:invoke"],
+                )
+
             # claims is None but no exception → token was invalid, reject
             logger.warning("JWT decode returned None")
             raise HTTPException(

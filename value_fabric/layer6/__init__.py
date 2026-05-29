@@ -1,7 +1,7 @@
-"""Redirect shim: value_fabric.layer6.* -> services/layer6-benchmarks/src/*.
+"""Redirect shim: value_fabric.layer6.* -> services/layer6-benchmarks/src/layer6_benchmarks/*.
 
-Canonical Layer 6 code lives exclusively in ``services/layer6-benchmarks/src/``.
-This shim appends that directory to ``__path__`` so that
+Canonical Layer 6 code lives in ``services/layer6-benchmarks/src/layer6_benchmarks/``.
+This shim appends the canonical package path to ``__path__`` so that
 ``import value_fabric.layer6.api.main`` resolves to the canonical tree.
 """
 
@@ -10,16 +10,16 @@ from __future__ import annotations
 from pathlib import Path
 
 _repo_root: Path = Path(__file__).resolve().parent.parent.parent
-_canonical: str = str(_repo_root / "services" / "layer6-benchmarks" / "src")
+_canonical_pkg: str = str(_repo_root / "services" / "layer6-benchmarks" / "src" / "layer6_benchmarks")
 
-# Only register the canonical path if it exists; fail fast otherwise.
-if (_repo_root / "services" / "layer6-benchmarks" / "src").exists():
-    if _canonical not in __path__:
-        __path__.append(_canonical)
+# Register the canonical package path for import resolution
+if (_repo_root / "services" / "layer6-benchmarks" / "src" / "layer6_benchmarks").exists():
+    if _canonical_pkg not in __path__:
+        __path__.append(_canonical_pkg)
 else:
     raise FileNotFoundError(
-        f"Canonical Layer 6 source tree not found at {_canonical}. "
-        "Expected services/layer6-benchmarks/src/ to exist."
+        f"Canonical Layer 6 package not found at {_canonical_pkg}. "
+        "Expected services/layer6-benchmarks/src/layer6_benchmarks/ to exist."
     )
 
 

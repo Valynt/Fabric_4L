@@ -1,7 +1,7 @@
+from __future__ import annotations
+
 from value_fabric.shared.error_handling.exceptions import AuthenticationError, ConflictError, NotFoundError
 """Signal lifecycle API routes."""
-
-from __future__ import annotations
 
 import logging
 

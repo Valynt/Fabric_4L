@@ -26,12 +26,17 @@ IMPORT_PATTERNS = [
 # File type classification
 FILE_TYPE_MAP = {
     "tests/": "test",
-    "services/": "service",
+    "services/": "service",  # Will be overridden by more specific patterns below
     "scripts/": "ci_script",
     "docs/": "documentation",
     "k8s/": "kubernetes",
     "packages/": "package",
 }
+
+# More specific patterns (applied after base classification)
+SPECIFIC_PATTERNS = [
+    ("services/", "tests/", "test"),  # services/*/tests/ = test, not service
+]
 
 
 def classify_file(file_path: Path) -> str:
@@ -39,6 +44,12 @@ def classify_file(file_path: Path) -> str:
     relative_path = file_path.relative_to(REPO_ROOT)
     path_str = str(relative_path).replace("\\", "/")  # Normalize path separators
     
+    # Check specific patterns first (more specific overrides)
+    for base, specific, file_type in SPECIFIC_PATTERNS:
+        if path_str.startswith(base) and specific in path_str:
+            return file_type
+    
+    # Then check base patterns
     for prefix, file_type in FILE_TYPE_MAP.items():
         if path_str.startswith(prefix):
             return file_type
@@ -117,6 +128,24 @@ def generate_report(results: Dict) -> str:
     report.append("# Value Fabric Facade Import Inventory")
     report.append("")
     report.append(f"Generated: {__import__('datetime').datetime.now().isoformat()}")
+    report.append("")
+    report.append("## Facade Status")
+    report.append("")
+    report.append("**Status:** ACTIVE PATH-RESOLUTION FACADE")
+    report.append("")
+    report.append("The `value_fabric/` directory is **not merely a legacy compatibility shim**. It provides critical Python path resolution by appending service source paths to package `__path__`. Direct canonical imports (e.g., `layer6_benchmarks.database`) fail without this path bootstrapping.")
+    report.append("")
+    report.append("**Removal Blocked:** Canonical package import resolution must be solved before facade removal. See `.jr/tickets/IMPORT-ARCH-FACADE-RESOLUTION.md` for details.")
+    report.append("")
+    report.append("## Phase 0 Finding: L6 Canonical Import Failure")
+    report.append("")
+    report.append("**Attempted:** Migrate L6 test imports from `value_fabric.layer6.*` to `layer6_benchmarks.*`")
+    report.append("")
+    report.append("**Result:** FAILED with `ModuleNotFoundError: No module named 'layer6_benchmarks.database'`")
+    report.append("")
+    report.append("**Root Cause:** The facade appends `services/layer6-benchmarks/src` to `__path__`, but the canonical package structure requires additional path configuration that the facade currently provides.")
+    report.append("")
+    report.append("**Resolution:** Reverted all changes. L6 tests pass with facade imports, fail with canonical imports.")
     report.append("")
     
     # Summary

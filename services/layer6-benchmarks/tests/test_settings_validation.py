@@ -4,7 +4,7 @@ from unittest.mock import patch
 import pytest
 from pydantic import ValidationError
 
-from value_fabric.layer6.settings import (
+from layer6_benchmarks.settings import (
     Layer6Settings,
     get_layer6_settings,
     validate_layer6_startup_settings,

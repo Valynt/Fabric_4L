@@ -56,7 +56,7 @@ os.environ["MIN_CONFIDENCE_FOR_VALIDATED"] = "0.5"
 os.environ["MIN_SOURCES_FOR_VALIDATED"] = "2"
 os.environ["JWT_FALLBACK_TO_QUERY_PARAM"] = "true"
 os.environ["SERVICE_AUTH_SECRET"] = "test-service-auth-secret-that-is-32-chars-long-ok"
-os.environ["ALLOW_INSECURE_DEV_AUTH_BYPASS"] = "true"
+# P0-008: Dev auth bypass flags removed — no longer needed
 os.environ["JWT_SECRET"] = "test-jwt-secret-that-is-at-least-32-chars"
 
 from layer5_ground_truth import database as db_module  # noqa: E402

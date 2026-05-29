@@ -283,10 +283,10 @@ app = create_fabric_app(
     readiness_path="/ready",
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
-        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
     ),
     rate_limit=FrameworkRateLimitConfig(
-        mode=EnforcementMode.AUDIT,
+        mode=EnforcementMode.ENFORCE,
         rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
     ),
 )

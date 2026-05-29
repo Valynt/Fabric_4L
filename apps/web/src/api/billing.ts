@@ -9,6 +9,6 @@ export type EntitlementDecision = {
 }
 
 export async function getEntitlementDecision(planId: string, feature: string): Promise<EntitlementDecision> {
-  const response = await apiGet<EntitlementDecision>('l1', `/billing/entitlements/${planId}/decision?feature=${encodeURIComponent(feature)}`)
+  const response = await apiGet<EntitlementDecision>('l7', `/billing/entitlements/${planId}/decision?feature=${encodeURIComponent(feature)}`)
   return response.data
 }

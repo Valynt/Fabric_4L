@@ -24,11 +24,21 @@ from value_fabric.shared.idempotency import (
     IdempotencyRequest,
     IdempotencyService,
     InMemoryIdempotencyStore,
+    RedisIdempotencyStore,
     build_request_fingerprint,
 )
 
+from app.core.redis_client import get_redis_client
+
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
-_idempotency_service = IdempotencyService(store=InMemoryIdempotencyStore())
+
+_redis = get_redis_client()
+if _redis is not None:
+    _idempotency_store: InMemoryIdempotencyStore | RedisIdempotencyStore = RedisIdempotencyStore(_redis)
+else:
+    _idempotency_store = InMemoryIdempotencyStore()
+
+_idempotency_service = IdempotencyService(store=_idempotency_store)
 
 
 def _idempotency_header_value(request: Request) -> str | None:

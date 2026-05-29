@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
 """Extraction results API routes.
 
@@ -11,8 +13,6 @@ in prompt-injection delimiters before inclusion in a prompt, e.g.:
 This prevents prompt-injection attacks where user content attempts to override
 system instructions.  All extraction callers must enforce this contract.
 """
-
-from __future__ import annotations
 
 from typing import Any
 from unittest.mock import Mock

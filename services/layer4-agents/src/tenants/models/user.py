@@ -12,7 +12,8 @@ from datetime import UTC, datetime
 
 from sqlalchemy import DateTime, ForeignKey, Index, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, validates
+from value_fabric.shared.crypto import EncryptedString, blind_index
 
 from ...database import Base
 
@@ -36,9 +37,16 @@ class User(Base):
     )
 
     email: Mapped[str] = mapped_column(
-        String(320),
+        EncryptedString(),
         nullable=False,
-        comment="Email address (unique per tenant)",
+        comment="Email address (encrypted at rest, unique per tenant)",
+    )
+
+    email_hash: Mapped[str | None] = mapped_column(
+        String(64),
+        nullable=True,
+        index=True,
+        comment="Blind index (HMAC-SHA256) for exact-match email lookups",
     )
 
     # bcrypt hash — never store raw passwords
@@ -93,13 +101,19 @@ class User(Base):
     )
 
     __table_args__ = (
-        # Email uniqueness is scoped to tenant (different tenants can share an email)
-        UniqueConstraint("tenant_id", "email", name="uix_user_tenant_email"),
+        # Email uniqueness is scoped to tenant via blind index
+        UniqueConstraint("tenant_id", "email_hash", name="uix_user_tenant_email"),
         Index("ix_users_tenant_id", "tenant_id"),
-        Index("ix_users_email", "email"),
+        Index("ix_users_email_hash", "email_hash"),
         Index("ix_users_status", "status"),
         Index("ix_users_tenant_status", "tenant_id", "status"),
     )
+
+    @validates("email")
+    def _sync_email_hash(self, _key: str, email: str | None) -> str | None:
+        """Keep the blind index in sync with the plaintext email."""
+        self.email_hash = blind_index(email)
+        return email
 
     def __repr__(self) -> str:
         return f"<User(id={self.id}, email={self.email!r}, role={self.role!r})>"

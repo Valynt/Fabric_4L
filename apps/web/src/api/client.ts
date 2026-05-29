@@ -37,7 +37,7 @@ const log = createFeatureLogger('api-client');
 // ============================================================================
 
 /** Valid layer keys - single source of truth */
-const VALID_LAYER_KEYS = ['l1', 'l2', 'l2_5', 'l3', 'l4', 'l5', 'l6'] as const;
+const VALID_LAYER_KEYS = ['l1', 'l2', 'l2_5', 'l3', 'l4', 'l5', 'l6', 'l7'] as const;
 
 /** Zod schema for layer key validation */
 const LayerKeySchema = z.enum(VALID_LAYER_KEYS);
@@ -115,6 +115,7 @@ const LAYER_PREFIXES = {
   l4: getEnvVar('VITE_LAYER4_ROUTE_PREFIX', getEnvVar('VITE_L4_PREFIX', '/agents')),
   l5: getEnvVar('VITE_LAYER5_ROUTE_PREFIX', getEnvVar('VITE_L5_PREFIX', '/truths')),
   l6: getEnvVar('VITE_LAYER6_ROUTE_PREFIX', getEnvVar('VITE_L6_PREFIX', '/benchmarks')),
+  l7: getEnvVar('VITE_LAYER7_ROUTE_PREFIX', getEnvVar('VITE_L7_PREFIX', '/billing')),
 } as const;
 
 /**

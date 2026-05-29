@@ -5,12 +5,12 @@ from decimal import Decimal
 
 import pytest
 
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
 )
-from value_fabric.layer6.repositories.benchmark_repository import (
+from layer6_benchmarks.repositories.benchmark_repository import (
     _metric_to_dict,
     _node_to_dataset,
 )

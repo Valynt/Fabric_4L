@@ -85,7 +85,7 @@ export function DataTable<T>({
   // Typed API: columns as DataTableColumn<T>[], data as T[]
   const safeData = data ?? [];
   const typedColumns = columns as DataTableColumn<T>[];
-  const safeKeyExtractor = keyExtractor ?? (() => "");
+  const safeKeyExtractor = keyExtractor ?? ((item: T, idx: number) => String(idx));
 
   const handleKeyDown = (item: T, e: React.KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -117,9 +117,9 @@ export function DataTable<T>({
               </TableCell>
             </TableRow>
           ) : (
-            safeData.map((item) => (
+            safeData.map((item, idx) => (
               <TableRow
-                key={safeKeyExtractor(item)}
+                key={safeKeyExtractor(item, idx)}
                 onClick={() => onRowClick?.(item)}
                 onKeyDown={(e) => handleKeyDown(item, e)}
                 tabIndex={onRowClick ? 0 : -1}
@@ -127,7 +127,7 @@ export function DataTable<T>({
                 className={cn(
                   "h-12 border-t border-border hover:bg-muted/30 transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2",
                   onRowClick && "cursor-pointer",
-                  selectedKey === safeKeyExtractor(item) && "bg-primary/5"
+                  selectedKey === safeKeyExtractor(item, idx) && "bg-primary/5"
                 )}
               >
                 {typedColumns.map((col) => (

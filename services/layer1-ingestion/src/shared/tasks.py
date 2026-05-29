@@ -17,6 +17,11 @@ import structlog
 from celery import Celery, chain
 from jsonschema import Draft7Validator
 
+try:
+    from value_fabric.shared.identity.jwt import encode_service_jwt
+except ImportError:
+    encode_service_jwt = None  # type: ignore
+
 from ..compliance.pii_scanner import PIIScanner
 from ..compliance.robots_checker import RobotsChecker
 from ..compliance.url_safety import (
@@ -823,15 +828,27 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
 
             # HTTP fallback (original implementation)
             if not use_celery_dispatch:
+                # P1-001: Sign S2S JWT for L2 authentication
+                s2s_token = None
+                if encode_service_jwt is not None:
+                    s2s_token = encode_service_jwt(
+                        tenant_id=job.tenant_id,
+                        sub="layer1-ingestion",
+                        aud="layer2-extraction",
+                    )
+
                 async def _call_l2():
+                    request_headers = {
+                        "Content-Type": "application/json",
+                        "X-Tenant-ID": str(job.tenant_id),
+                    }
+                    if s2s_token:
+                        request_headers["Authorization"] = f"Bearer {s2s_token}"
                     async with httpx.AsyncClient(timeout=30.0) as client:
                         response = await client.post(
                             f"{l2_url}/v1/extract",
                             json=extraction_payload,
-                            headers={
-                                "Content-Type": "application/json",
-                                "X-Tenant-ID": str(job.tenant_id),
-                            },
+                            headers=request_headers,
                         )
                         response.raise_for_status()
                         return response.json()

@@ -3,7 +3,7 @@ from __future__ import annotations
 from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
-from src.api.main import app
+from layer6_benchmarks.api.main import app
 
 
 def test_l6_middleware_registration_and_effective_wrapping_order():

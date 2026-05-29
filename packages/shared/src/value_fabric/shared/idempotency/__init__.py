@@ -5,7 +5,7 @@ from .core import (
     IdempotencyService,
     build_request_fingerprint,
 )
-from .store import InMemoryIdempotencyStore, IdempotencyStore
+from .store import InMemoryIdempotencyStore, IdempotencyStore, RedisIdempotencyStore, StoredIdempotencyRecord
 
 __all__ = [
     "IdempotencyConflictError",
@@ -14,5 +14,7 @@ __all__ = [
     "IdempotencyService",
     "IdempotencyStore",
     "InMemoryIdempotencyStore",
+    "RedisIdempotencyStore",
+    "StoredIdempotencyRecord",
     "build_request_fingerprint",
 ]

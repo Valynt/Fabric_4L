@@ -6,10 +6,10 @@ from pathlib import Path
 from unittest.mock import AsyncMock
 
 import pytest
-import value_fabric.layer6.api.main as main_module
+import layer6_benchmarks.api.main as main_module
 from httpx import ASGITransport, AsyncClient
-from value_fabric.layer6.api.main import app
-from value_fabric.layer6.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
+from layer6_benchmarks.api.main import app
+from layer6_benchmarks.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 
 

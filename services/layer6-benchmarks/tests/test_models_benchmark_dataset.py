@@ -5,7 +5,7 @@ from decimal import Decimal
 
 import pytest
 
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.models.benchmark_dataset import (
     FINANCIAL_SERVICES_BENCHMARK_SEED,
     HEALTHCARE_BENCHMARK_SEED,
     MANUFACTURING_BENCHMARK_SEED,

@@ -55,7 +55,7 @@ Where wrapper files still exist under `services/layer6-benchmarks/src/` to prese
 - `scripts/check_mirrored_files.py`
 - `scripts/ci/check_layer6_wrapper_drift.py`
 
-Use canonical imports (`layer6_benchmarks.*` or `value_fabric.layer6.*` — both resolve to the canonical tree) for all new Layer 6 runtime code.
+Use canonical imports (`layer6_benchmarks.*`) for all new Layer 6 runtime code.
 
 Contributor placement rule:
 
