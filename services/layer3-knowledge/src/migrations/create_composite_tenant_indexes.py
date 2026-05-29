@@ -151,7 +151,7 @@ class CompositeTenantIndexMigration:
                     return CompositeTenantIndexMigration_createIndexResult(
                         index_name=index_name,
                         status="failed",
-                        error=error_msg
+                        error=type(e).__name__,
                     )
 
     async def run_migration(self) -> CompositeTenantIndexMigration_runMigrationResult:

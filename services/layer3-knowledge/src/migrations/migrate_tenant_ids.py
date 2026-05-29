@@ -374,7 +374,7 @@ class TenantIdMigration:
                             results.append({
                                 "constraint": constraint.name,
                                 "status": "failed",
-                                "error": str(e)
+                                "error": type(e).__name__,
                             })
         
         return TenantIdMigration_create_constraintsResult.model_validate({

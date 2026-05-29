@@ -69,7 +69,7 @@ from layer2_extraction.alignment import SemanticAligner
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
-from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
+from layer2_extraction.extraction.llm_extractor import EntityExtractor, LLMExtractionError, RelationshipExtractor
 from layer2_extraction.extraction.prompt_loader import (
     ENTITY_PROMPT_TEMPLATE_VERSION,
     RELATIONSHIP_PROMPT_TEMPLATE_VERSION,
@@ -1131,7 +1131,7 @@ async def run_extraction(
     except Exception as e:
         logger.error("Extraction failed", exc_info=e, extra={"job_id": job_id, "tenant_id": telemetry_context.get("tenant_id")})
         error_msg = "Extraction failed due to internal error"
-        if "schema validation error" in str(e).lower():
+        if isinstance(e, LLMExtractionError):
             await _quarantine_validation_failure(
                 tenant_id=telemetry_context["tenant_id"],
                 job_id=job_id,
