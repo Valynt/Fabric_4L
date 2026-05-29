@@ -151,7 +151,7 @@ async def _get_tenant_tier_from_db(
     """
     if driver_factory is None:
         try:
-            from value_fabric.layer3.db.driver import get_driver as _get_driver
+            from db.driver import get_driver as _get_driver  # noqa: PLC0415
             driver_factory = _get_driver  # type: ignore[assignment]
         except ImportError:
             pass
