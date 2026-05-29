@@ -180,7 +180,7 @@ def main(argv: list[str] | None = None) -> int:
         for v in violations:
             print(f"  - {v}")
         print(
-            "\nSome files import value_fabric.layer2 outside the allowlist, "
+            "\nSome files import layer2_extraction outside the allowlist, "
             "or reference dead namespaces, or dead directories were reintroduced. "
             "Migrate to direct service-path imports or add to ALLOWLIST."
         )

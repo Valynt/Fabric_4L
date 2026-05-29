@@ -3,11 +3,14 @@ import { render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import ProspectSetup from './ProspectSetup';
+import { DEFAULT_COMPANIES, DEFAULT_ACTIVITIES } from '@/lib/demoData';
 
 describe('ProspectSetup example prompt submission', () => {
-  it('submits the Medtronic example from the beginning step with full payload', async () => {
+  it('submits the first demo example from the beginning step with full payload', async () => {
     const user = userEvent.setup();
-    const onCreateSetup = vi.fn().mockResolvedValue({ accountId: 'acct-medtronic-001' });
+    const demoCompany = DEFAULT_COMPANIES[0];
+    const demoActivity = DEFAULT_ACTIVITIES[0];
+    const onCreateSetup = vi.fn().mockResolvedValue({ accountId: 'acct-demo-001' });
 
     render(
       <MemoryRouter>
@@ -19,18 +22,18 @@ describe('ProspectSetup example prompt submission', () => {
     const launchButton = screen.getByRole('button', { name: 'Launch Intelligence' });
     expect(launchButton).toBeDisabled();
 
-    // 2. Restore the Medtronic example activity (simulates clicking the recent-activity menu)
+    // 2. Restore the demo example activity (simulates clicking the recent-activity menu)
     const recentActivityTrigger = screen.getByRole('button', { name: /recent value cases/i });
     await user.click(recentActivityTrigger);
 
-    const medtronicActivity = await screen.findByText('Medtronic launch readiness setup');
-    await user.click(medtronicActivity);
+    const demoActivityEl = await screen.findByText(demoActivity.title);
+    await user.click(demoActivityEl);
 
-    // 3. Verify the prompt textarea is populated with the Medtronic example
+    // 3. Verify the prompt textarea is populated with the demo example
     const promptTextarea = screen.getByLabelText(/new value case prompt/i) as HTMLTextAreaElement;
-    expect(promptTextarea.value).toContain('Company: Medtronic');
-    expect(promptTextarea.value).toContain('medtronic.com');
-    expect(promptTextarea.value).toContain('Medical Devices');
+    expect(promptTextarea.value).toContain(`Company: ${demoCompany.name}`);
+    expect(promptTextarea.value).toContain(demoCompany.domain);
+    expect(promptTextarea.value).toContain(demoCompany.industry);
 
     // 4. Launch Intelligence should now be enabled
     expect(launchButton).toBeEnabled();
@@ -43,9 +46,9 @@ describe('ProspectSetup example prompt submission', () => {
     const payload = onCreateSetup.mock.calls[0][0];
 
     // Core identifiers
-    expect(payload.companyName).toBe('Medtronic');
-    expect(payload.companyDomain).toBe('medtronic.com');
-    expect(payload.industry).toBe('Medical Devices');
+    expect(payload.companyName).toBe(demoCompany.name);
+    expect(payload.companyDomain).toBe(demoCompany.domain);
+    expect(payload.industry).toBe(demoCompany.industry);
 
     // Parsed business context
     expect(payload.buyingContext).toBe(
@@ -97,12 +100,13 @@ describe('ProspectSetup example prompt submission', () => {
     expect(payload.complianceSensitive).toBeTypeOf('boolean');
 
     // Freeform prompt is preserved
-    expect(payload.freeformPrompt).toContain('Company: Medtronic');
+    expect(payload.freeformPrompt).toContain(`Company: ${demoCompany.name}`);
   });
 
-  it('submits the Goldman Sachs minimal example successfully', async () => {
+  it('submits the second demo minimal example successfully', async () => {
     const user = userEvent.setup();
-    const onCreateSetup = vi.fn().mockResolvedValue({ accountId: 'acct-gs-001' });
+    const demoActivity = DEFAULT_ACTIVITIES[1];
+    const onCreateSetup = vi.fn().mockResolvedValue({ accountId: 'acct-demo-002' });
 
     render(
       <MemoryRouter>
@@ -113,8 +117,8 @@ describe('ProspectSetup example prompt submission', () => {
     const recentActivityTrigger = screen.getByRole('button', { name: /recent value cases/i });
     await user.click(recentActivityTrigger);
 
-    const gsActivity = await screen.findByText('Financial services coaching setup');
-    await user.click(gsActivity);
+    const demoActivityEl = await screen.findByText(demoActivity.title);
+    await user.click(demoActivityEl);
 
     const launchButton = screen.getByRole('button', { name: 'Launch Intelligence' });
     expect(launchButton).toBeEnabled();
@@ -124,11 +128,10 @@ describe('ProspectSetup example prompt submission', () => {
     expect(onCreateSetup).toHaveBeenCalledTimes(1);
     const payload = onCreateSetup.mock.calls[0][0];
 
-    expect(payload.companyName).toBe('Goldman Sachs');
     expect(payload.desiredOutputs).toEqual([
       'executive_summary',
       'value_hypotheses',
     ]);
-    expect(payload.freeformPrompt).toContain('Goldman Sachs');
+    expect(payload.freeformPrompt).toContain(demoActivity.prompt.slice(0, 20));
   });
 });

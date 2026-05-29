@@ -4,8 +4,8 @@ import pytest
 from uuid import uuid4, UUID
 from sqlalchemy.orm import Session
 
-from value_fabric.layer1.shared.models import JobStatus, TargetStatus, ScrapingTarget, ScrapingJob
-from value_fabric.layer1.api.app_monolith import (
+from layer1_ingestion.shared.models import JobStatus, TargetStatus, ScrapingTarget, ScrapingJob
+from layer1_ingestion.api.app_monolith import (
     BatchOperationType,
     BatchOperationRequest,
     BatchOperationResponse,
@@ -27,7 +27,7 @@ def sample_user_id():
 @pytest.fixture
 def active_target(db: Session, sample_org_id: UUID):
     """Create an active scraping target for testing."""
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     
     target = create_scraping_target(
         tenant_id=sample_org_id,
@@ -45,7 +45,7 @@ def active_target(db: Session, sample_org_id: UUID):
 @pytest.fixture
 def failed_job(db: Session, sample_org_id: UUID, active_target: ScrapingTarget):
     """Create a failed scraping job for testing."""
-    from value_fabric.layer1.shared.models import create_scraping_job
+    from layer1_ingestion.shared.models import create_scraping_job
     
     job = create_scraping_job(
         tenant_id=sample_org_id,
@@ -65,7 +65,7 @@ def test_batch_execute_success(
     client, db: Session, sample_org_id: UUID, sample_user_id: UUID, active_target: ScrapingTarget
 ):
     """Test successful batch execute operation."""
-    from value_fabric.layer1.shared.models import ScrapingJob
+    from layer1_ingestion.shared.models import ScrapingJob
     
     request = BatchOperationRequest(
         operation=BatchOperationType.EXECUTE,
@@ -101,7 +101,7 @@ def test_batch_cancel_success(
     client, db: Session, sample_org_id: UUID, sample_user_id: UUID, active_target: ScrapingTarget
 ):
     """Test successful batch cancel operation."""
-    from value_fabric.layer1.shared.models import ScrapingJob
+    from layer1_ingestion.shared.models import ScrapingJob
     
     # Create a running job
     job = create_scraping_job(
@@ -174,7 +174,7 @@ def test_batch_mixed_success_failure(
     client, db: Session, sample_org_id: UUID, sample_user_id: UUID, active_target: ScrapingTarget
 ):
     """Test batch operation with mixed success and failure."""
-    from value_fabric.layer1.shared.models import ScrapingJob
+    from layer1_ingestion.shared.models import ScrapingJob
     
     # Create a failed job
     failed_job = create_scraping_job(

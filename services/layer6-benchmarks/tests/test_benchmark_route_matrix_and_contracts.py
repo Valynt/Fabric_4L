@@ -242,7 +242,7 @@ async def test_authorization_negative_path_returns_403(client: AsyncClient, monk
 
 
 def test_openapi_contract_shape_regression_for_benchmark_responses():
-    contract_path = Path("contracts/openapi/layer6-benchmarks.json")
+    contract_path = Path(__file__).parent.parent.parent.parent / "contracts" / "openapi" / "layer6-benchmarks.json"
     contract = json.loads(contract_path.read_text())
 
     compare_schema = contract["components"]["schemas"]["ComparisonResponse"]

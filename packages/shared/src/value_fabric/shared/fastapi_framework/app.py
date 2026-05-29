@@ -403,6 +403,7 @@ def create_fabric_app(
     health_probes: list[HealthCheckProbe] | None = None,
     readiness_path: str = "/ready",
     enforce_tenant_context: bool = False,
+    audit_worker_db_factory: Callable | None = None,
     **fastapi_kwargs: Any,
 ) -> FastAPI:
     """Create a FastAPI application with Value Fabric defaults.
@@ -438,9 +439,62 @@ def create_fabric_app(
     app.state.idempotency_config = idempotency
     app.state.health_probes = list(health_probes) if health_probes else []
 
+    # P1-005: Wrap lifespan to start/stop AuditWorker when a DB factory is provided.
+    if lifespan is not None and audit_worker_db_factory is not None:
+        from contextlib import asynccontextmanager
+
+        from value_fabric.shared.audit.worker import AuditWorker
+
+        original_lifespan = lifespan
+
+        @asynccontextmanager
+        async def _wrapped_lifespan(app: FastAPI):
+            worker = AuditWorker(audit_worker_db_factory)
+            worker.start()
+            async with original_lifespan(app):
+                yield
+            worker.stop()
+            if worker._task is not None:
+                try:
+                    await asyncio.wait_for(worker._task, timeout=10.0)
+                except asyncio.TimeoutError:
+                    worker._task.cancel()
+
+        lifespan = _wrapped_lifespan
+
     if structured_logging is not None:
         applied = configure_structlog(structured_logging)
         app.state.structlog_configured = applied
+
+    # P1-004: Sentry error tracking — initialized when sentry-sdk is installed
+    # and SENTRY_DSN is configured.
+    try:
+        import os
+
+        import sentry_sdk
+        from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
+
+        sentry_dsn = os.getenv("SENTRY_DSN", "").strip()
+        if sentry_dsn:
+            sentry_sdk.init(
+                dsn=sentry_dsn,
+                release=version,
+                environment=os.getenv("ENVIRONMENT", "development"),
+                sample_rate=0.1,
+                traces_sample_rate=0.01,
+                profiles_sample_rate=0.0,
+                default_integrations=False,
+                integrations=[
+                    StarletteIntegration(),
+                    FastApiIntegration(),
+                ],
+                attach_stacktrace=True,
+                tags={"service": service_name},
+            )
+            app.state.sentry_enabled = True
+    except Exception:
+        app.state.sentry_enabled = False
 
     if telemetry_service_name is not None:
         app.state.telemetry_provider = init_telemetry(telemetry_service_name)

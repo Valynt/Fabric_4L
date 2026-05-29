@@ -8,7 +8,8 @@ def test_layer6_adapter_maps_shared_exception_to_current_contract_shape() -> Non
 
     body = map_exception_to_contract_detail(exc, request_id="req-l6")
 
-    assert body["error"]["code"] == "SERVICE_UNAVAILABLE"
-    assert body["error"]["message"] == "Service temporarily unavailable"
-    assert body["error"]["request_id"] == "req-l6"
-    assert body["error"]["details"]["service"] == "neo4j"
+    # Adapter returns flat structure with error_code, not nested error
+    assert body["error_code"] == "ErrorCode.SERVICE_UNAVAILABLE"
+    assert body["message"] == "Service temporarily unavailable"
+    assert body["request_id"] == "req-l6"
+    assert body["details"]["service"] == "neo4j"

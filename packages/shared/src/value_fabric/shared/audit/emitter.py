@@ -16,11 +16,13 @@ enhancement.
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
+from datetime import UTC, datetime
 from typing import Any, Callable, Dict, Optional, Set
-from uuid import UUID
+from uuid import UUID, uuid4
 
 try:
     from prometheus_client import Counter
@@ -37,6 +39,7 @@ except ImportError:
 import httpx
 
 from .models import AuditAction, AuditEvent, AuditOutcome
+from .redis_queue import RedisAuditQueue
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -254,17 +257,33 @@ class AuditEmitter:
     """
 
     @staticmethod
-    async def write_to_db(event: AuditEvent, db_factory: Callable) -> None:
+    async def write_to_db(
+        event: AuditEvent,
+        db_factory: Callable,
+        queue: RedisAuditQueue | None = None,
+    ) -> None:
         """Persist an audit event to the ``audit_events`` table.
 
-        Called as a BackgroundTask — failures are logged but do not affect
-        the main request.
+        P1-005: When a Redis queue is available, events are pushed to the
+        durable queue instead of being written directly.  A background worker
+        drains the queue to PostgreSQL with exponential-backoff retry.
+        This survives DB blips and prevents audit loss.
 
         Args:
             event:      The :class:`AuditEvent` to persist.
             db_factory: An async context manager factory (e.g. ``get_db``
                         from ``layer4-agents/src/database.py``).
+            queue:      Optional :class:`RedisAuditQueue`.  If ``None``,
+                        one is created from ``REDIS_URL`` env var.
         """
+        _queue = queue or RedisAuditQueue.from_env()
+        if _queue._available:
+            pushed = await _queue.push(event)
+            if pushed:
+                return
+            # Redis push failed → fall through to direct write
+
+        # Fallback: direct DB write (original behaviour)
         try:
             async with db_factory() as session:
                 from sqlalchemy import text
@@ -311,84 +330,3 @@ class AuditEmitter:
             )
             if _METRICS_AVAILABLE and _AUDIT_WRITE_FAILURES is not None:
                 _AUDIT_WRITE_FAILURES.labels(failure_type="db_write").inc()
-
-# Merged from root shared/audit/emitter.py
-class AuditEmitterError(Exception):
-    """Raised when audit emission fails in fail-closed mode."""
-    pass
-
-def get_emitter() -> AuditEmitter:
-    """Get the global audit emitter."""
-    return _global_emitter
-
-def _create_audit_event(
-    action: AuditAction,
-    outcome: AuditOutcome,
-    resource_type: str,
-    resource_id: str | None = None,
-    actor_id: UUID | None = None,
-    tenant_id: UUID | None = None,
-    request_id: str | None = None,
-    details: dict[str, Any] | None = None,
-    chain_id: str | None = None,
-) -> AuditEvent:
-    """Create an AuditEvent instance with standard fields populated."""
-    return AuditEvent(
-        id=uuid4(),
-        timestamp=datetime.now(UTC).isoformat(),
-        action=action,
-        outcome=outcome,
-        actor_id=actor_id,
-        resource_type=resource_type,
-        resource_id=resource_id,
-        tenant_id=tenant_id,
-        request_id=request_id,
-        details=details,
-        chain_id=chain_id,
-    )
-
-def emit_audit_event_sync(
-    action: AuditAction,
-    outcome: AuditOutcome,
-    resource_type: str,
-    resource_id: str | None = None,
-    actor_id: UUID | None = None,
-    tenant_id: UUID | None = None,
-    request_id: str | None = None,
-    details: dict[str, Any] | None = None,
-) -> None:
-    """Emit an audit event (synchronous version).
-
-    Use this in synchronous contexts where async/await is not available.
-    Schedules the async emit via asyncio.create_task if an event loop is running,
-    otherwise logs a warning and returns without emitting.
-
-    Args:
-        action: The action performed
-        outcome: Outcome of the action
-        resource_type: Type of resource affected
-        resource_id: ID of resource (optional)
-        actor_id: Actor ID (optional)
-        tenant_id: Tenant ID (optional)
-        request_id: Request correlation ID (optional)
-        details: Additional details (optional)
-
-    Example:
-        # In synchronous code:
-        emit_audit_event_sync(...)
-    """
-    event = _create_audit_event(
-        action, outcome, resource_type, resource_id,
-        actor_id, tenant_id, request_id, details
-    )
-
-    try:
-        loop = asyncio.get_running_loop()
-        # Schedule in background - don't block and don't wait for result
-        loop.create_task(_global_emitter.emit(event))
-    except RuntimeError:
-        # No event loop running - log warning but don't crash
-        logger.warning(
-            "Cannot emit audit event: no event loop running. "
-            "Use emit_audit_event() in async contexts."
-        )

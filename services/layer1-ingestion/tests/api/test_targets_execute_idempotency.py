@@ -46,7 +46,7 @@ class TestIdempotencyKeyBehavior:
         assert job_id_1 == job_id_2
 
         # Should not create duplicate jobs
-        from value_fabric.layer1.shared.models import ScrapingJob
+        from layer1_ingestion.shared.models import ScrapingJob
         job_count = (
             db.query(ScrapingJob)
             .filter(ScrapingJob.target_id == target.id)
@@ -82,7 +82,7 @@ class TestIdempotencyKeyBehavior:
         assert job_id_1 != job_id_2
 
         # Should create two jobs
-        from value_fabric.layer1.shared.models import ScrapingJob
+        from layer1_ingestion.shared.models import ScrapingJob
         job_count = (
             db.query(ScrapingJob)
             .filter(ScrapingJob.target_id == target.id)
@@ -105,7 +105,7 @@ class TestIdempotencyKeyBehavior:
         job_id = resp.json().get("job_id")
 
         # Should create job
-        from value_fabric.layer1.shared.models import ScrapingJob
+        from layer1_ingestion.shared.models import ScrapingJob
         job = db.query(ScrapingJob).get(UUID(job_id))
         assert job is not None
         assert job.target_id == target.id
@@ -174,7 +174,7 @@ class TestReplayAfterJobCompletion:
         job_id = resp1.json().get("job_id")
 
         # Mark job as completed
-        from value_fabric.layer1.shared.models import ScrapingJob, JobStatus
+        from layer1_ingestion.shared.models import ScrapingJob, JobStatus
         job = db.query(ScrapingJob).get(UUID(job_id))
         job.status = JobStatus.COMPLETED.value
         db.commit()
@@ -207,7 +207,7 @@ class TestReplayAfterJobCompletion:
         job_id = resp1.json().get("job_id")
 
         # Mark job as failed
-        from value_fabric.layer1.shared.models import ScrapingJob, JobStatus
+        from layer1_ingestion.shared.models import ScrapingJob, JobStatus
         job = db.query(ScrapingJob).get(UUID(job_id))
         job.status = JobStatus.FAILED.value
         db.commit()

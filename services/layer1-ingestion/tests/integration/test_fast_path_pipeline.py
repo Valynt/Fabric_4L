@@ -10,11 +10,11 @@ import pytest
 import respx
 from httpx import Response
 
-from value_fabric.layer1.crawler.execution_logger import ExecutionLogger, ExecutionPath
-from value_fabric.layer1.crawler.httpx_crawler import HttpxCrawler
-from value_fabric.layer1.crawler.quality_gate import QualityGate
-from value_fabric.layer1.crawler.smart_router import RouteType, SmartRouter
-from value_fabric.layer1.shared.models import CrawlPath
+from layer1_ingestion.crawler.execution_logger import ExecutionLogger, ExecutionPath
+from layer1_ingestion.crawler.httpx_crawler import HttpxCrawler
+from layer1_ingestion.crawler.quality_gate import QualityGate
+from layer1_ingestion.crawler.smart_router import RouteType, SmartRouter
+from layer1_ingestion.shared.models import CrawlPath
 
 
 class TestTargetLevelModes:
@@ -501,7 +501,7 @@ class TestPerformanceCharacteristics:
     def test_execution_logger_handles_invalid_utf8(self) -> None:
         """P1 Regression: ExecutionLogger handles binary/invalid UTF-8 content."""
         from unittest.mock import MagicMock
-        from value_fabric.layer1.crawler.execution_logger import ExecutionLogger
+        from layer1_ingestion.crawler.execution_logger import ExecutionLogger
 
         logger = ExecutionLogger()
 
@@ -533,7 +533,7 @@ class TestPerformanceCharacteristics:
     def test_content_ratio_uses_original_html_length(self) -> None:
         """P1 Regression: Content ratio uses original HTML length, not truncated."""
         from unittest.mock import MagicMock
-        from value_fabric.layer1.crawler.quality_gate import QualityGate, QualityThresholds
+        from layer1_ingestion.crawler.quality_gate import QualityGate, QualityThresholds
 
         # Use a high threshold that would fail if using truncated length
         thresholds = QualityThresholds(min_content_ratio=0.5)

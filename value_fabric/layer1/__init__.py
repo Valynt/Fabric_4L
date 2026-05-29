@@ -1,28 +1,34 @@
-"""Compatibility shim for Layer 1 imports.
+"""Redirect shim: value_fabric.layer1.* -> services/layer1-ingestion/src/layer1_ingestion/*.
 
-This package is a backward-compatibility facade per ADR-027.
-The canonical implementation lives in ``services/layer1-ingestion/src/``.
+Canonical Layer 1 code lives in ``services/layer1-ingestion/src/layer1_ingestion/``.
+This shim appends the canonical package path to ``__path__`` so that
+``import value_fabric.layer1.api.main`` resolves to the canonical tree.
 
-This shim appends the service source tree to ``__path__`` so legacy
-``value_fabric.layer1.*`` imports continue to resolve during migration.
-
-New code should import directly from ``services/layer1-ingestion/src/`` or
-use the service package names. Do not add new implementation logic here.
+**DEPRECATED:** Use canonical imports ``layer1_ingestion.*`` instead.
+This facade will be removed in a future release.
 """
 
 from __future__ import annotations
 
+import warnings
 from pathlib import Path
 
 _repo_root: Path = Path(__file__).resolve().parent.parent.parent
-_service_src: str = str(_repo_root / "services" / "layer1-ingestion" / "src")
+_canonical_pkg: str = str(_repo_root / "services" / "layer1-ingestion" / "src" / "layer1_ingestion")
 
-# Only register the service source path if it exists; fail fast otherwise.
-if (_repo_root / "services" / "layer1-ingestion" / "src").exists():
-    if _service_src not in __path__:
-        __path__.append(_service_src)
+# Register the canonical package path for import resolution
+if (_repo_root / "services" / "layer1-ingestion" / "src" / "layer1_ingestion").exists():
+    if _canonical_pkg not in __path__:
+        __path__.append(_canonical_pkg)
 else:
     raise FileNotFoundError(
-        f"Layer 1 service source tree not found at {_service_src}. "
-        "Expected services/layer1-ingestion/src/ to exist."
+        f"Canonical Layer 1 package not found at {_canonical_pkg}. "
+        "Expected services/layer1-ingestion/src/layer1_ingestion/ to exist."
     )
+
+# Emit deprecation warning on import
+warnings.warn(
+    "value_fabric.layer1 is deprecated. Use canonical imports: layer1_ingestion.*",
+    DeprecationWarning,
+    stacklevel=2,
+)

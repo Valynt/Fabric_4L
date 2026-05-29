@@ -12,15 +12,15 @@ import pytest
 from unittest.mock import patch, MagicMock
 from uuid import uuid4, UUID
 
-from value_fabric.layer1.shared.exceptions import (
+from layer1_ingestion.shared.exceptions import (
     TenantContextError,
     InvalidTenantContextError,
     CrossTenantAccessError,
     SystemMaintenanceAuthorizationError,
 )
-from value_fabric.layer1.shared.database import get_db_session, validate_tenant_id
-from value_fabric.layer1.shared.models import ScrapingJob, ScrapingTarget, RawContent
-from value_fabric.layer1.shared.tasks import process_scraping_job, cleanup_old_content
+from layer1_ingestion.shared.database import get_db_session, validate_tenant_id
+from layer1_ingestion.shared.models import ScrapingJob, ScrapingTarget, RawContent
+from layer1_ingestion.shared.tasks import process_scraping_job, cleanup_old_content
 
 
 pytestmark = pytest.mark.requires_postgres
@@ -171,10 +171,10 @@ class TestCrossTenantAccessPrevention:
 
     def test_forged_tenant_id_in_task_dispatch(self):
         """Test that forged tenant_id in task dispatch is caught."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         
         # Mock the task chain to verify tenant_id validation
-        with patch('value_fabric.layer1.shared.tasks.process_scraping_job') as mock_task:
+        with patch('layer1_ingestion.shared.tasks.process_scraping_job') as mock_task:
             # Try to dispatch with forged tenant_id
             forged_tenant_id = "admin-override-tenant"
             job_id = str(uuid4())
@@ -221,7 +221,7 @@ class TestSystemMaintenanceBypassAttempts:
         valid_token = f"fabric4l-maintenance:{timestamp}:test-sig"
         
         with patch.dict('os.environ', {'FABRIC4L_MAINTENANCE_TOKEN': valid_token}):
-            from value_fabric.layer1.shared.maintenance import authorize_maintenance_operation
+            from layer1_ingestion.shared.maintenance import authorize_maintenance_operation
             
             # Try unauthorized operation
             with pytest.raises(SystemMaintenanceAuthorizationError):
@@ -276,21 +276,21 @@ class TestTaskSecurityValidation:
 
     def test_process_scraping_job_validates_tenant_id(self):
         """Test that process_scraping_job validates tenant_id."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         
         # Mock the database operations to isolate validation
-        with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
             # Try with invalid tenant_id
             with pytest.raises(Exception):  # Should fail validation
                 process_scraping_job(str(uuid4()), "invalid-tenant-id")
 
     def test_crawl_url_with_routing_validates_tenant(self):
         """Test that crawl_url_with_routing validates tenant context."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
         
         # Mock dependencies
-        with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
-            with patch('value_fabric.layer1.shared.tasks.validate_tenant_id') as mock_validate:
+        with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+            with patch('layer1_ingestion.shared.tasks.validate_tenant_id') as mock_validate:
                 mock_validate.side_effect = InvalidTenantContextError("Invalid tenant")
                 
                 with pytest.raises(InvalidTenantContextError):
@@ -302,7 +302,7 @@ class TestTaskSecurityValidation:
 
     def test_pipeline_stages_require_tenant_context(self):
         """Test that all pipeline stages require tenant context."""
-        from value_fabric.layer1.shared import tasks
+        from layer1_ingestion.shared import tasks
         
         pipeline_stages = [
             'compliance_check_stage',
@@ -318,8 +318,8 @@ class TestTaskSecurityValidation:
             stage_func = getattr(tasks, stage_name)
             
             # Mock the task execution
-            with patch('value_fabric.layer1.shared.tasks.get_db_session') as mock_session:
-                with patch('value_fabric.layer1.shared.tasks.validate_tenant_id') as mock_validate:
+            with patch('layer1_ingestion.shared.tasks.get_db_session') as mock_session:
+                with patch('layer1_ingestion.shared.tasks.validate_tenant_id') as mock_validate:
                     mock_validate.side_effect = InvalidTenantContextError("Invalid tenant")
                     
                     with pytest.raises(InvalidTenantContextError):
@@ -391,7 +391,7 @@ class TestAuditLoggingSecurity:
 
     def test_maintenance_operations_are_audited(self):
         """Test that maintenance operations generate audit logs."""
-        from value_fabric.layer1.shared.maintenance import maintenance_audit_log
+        from layer1_ingestion.shared.maintenance import maintenance_audit_log
         
         timestamp = int(__import__('time').time())
         token = f"fabric4l-maintenance:{timestamp}:test-sig"
@@ -409,7 +409,7 @@ class TestAuditLoggingSecurity:
 
     def test_failed_operations_are_audited(self):
         """Test that failed operations are properly audited."""
-        from value_fabric.layer1.shared.maintenance import maintenance_audit_log
+        from layer1_ingestion.shared.maintenance import maintenance_audit_log
         
         timestamp = int(__import__('time').time())
         token = f"fabric4l-maintenance:{timestamp}:test-sig"
@@ -471,7 +471,7 @@ class TestSecurityRegressionPrevention:
 
     def test_system_operations_are_properly_documented(self):
         """Test that system operations have proper documentation."""
-        from value_fabric.layer1.shared.maintenance import MaintenanceOperation
+        from layer1_ingestion.shared.maintenance import MaintenanceOperation
         
         # All operations should be documented
         for op in MaintenanceOperation:

@@ -12,7 +12,7 @@ Extends the basic tests in test_adapters.py with more thorough coverage:
 
 import pytest
 
-from value_fabric.layer1.adapters.xbrl_parser import (
+from layer1_ingestion.adapters.xbrl_parser import (
     FinancialFact,
     XBRLParser,
     ParsedXBRL,
@@ -67,7 +67,7 @@ class TestXBRLParserErrorHandling:
     def test_parse_date_raises_on_invalid_date(self):
         """_parse_date raises XBRLParseError for unparseable dates."""
         parser = XBRLParser()
-        from value_fabric.layer1.shared.exceptions import XBRLParseError
+        from layer1_ingestion.shared.exceptions import XBRLParseError
         with pytest.raises(XBRLParseError):
             parser._parse_date("not-a-date")
 
@@ -234,7 +234,7 @@ class TestFinancialStatementGetFact:
     """Tests for the FinancialStatement.get_fact helper."""
 
     def test_get_fact_found(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         fact = FinancialFact(concept="us-gaap:Revenues", value=1000)
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[fact])
@@ -243,7 +243,7 @@ class TestFinancialStatementGetFact:
         assert found is fact
 
     def test_get_fact_case_insensitive(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         fact = FinancialFact(concept="us-gaap:NetIncomeLoss", value=500)
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[fact])
@@ -252,7 +252,7 @@ class TestFinancialStatementGetFact:
         assert found is fact
 
     def test_get_fact_not_found_returns_none(self):
-        from value_fabric.layer1.adapters.xbrl_parser import FinancialStatement
+        from layer1_ingestion.adapters.xbrl_parser import FinancialStatement
 
         stmt = FinancialStatement(statement_type="IncomeStatement", facts=[])
         assert stmt.get_fact("MissingConcept") is None

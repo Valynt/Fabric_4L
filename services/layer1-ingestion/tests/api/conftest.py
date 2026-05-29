@@ -29,22 +29,22 @@ from starlette.types import ASGIApp
 # ---------------------------------------------------------------------------
 
 def _get_app():
-    from value_fabric.layer1.api.app_monolith import app
+    from layer1_ingestion.api.app_monolith import app
     return app
 
 
 def _get_base():
-    from value_fabric.layer1.shared.models import Base
+    from layer1_ingestion.shared.models import Base
     return Base
 
 
 def _get_db_override():
-    from value_fabric.layer1.shared.database import get_db_from_context_sync
+    from layer1_ingestion.shared.database import get_db_from_context_sync
     return get_db_from_context_sync
 
 
 def _make_target_factory():
-    from value_fabric.layer1.shared.models import create_scraping_target
+    from layer1_ingestion.shared.models import create_scraping_target
     return create_scraping_target
 
 

@@ -4,7 +4,7 @@ import pytest
 from unittest.mock import Mock, patch, MagicMock, AsyncMock
 from uuid import uuid4
 
-from value_fabric.layer1.shared.config import Settings
+from layer1_ingestion.shared.config import Settings
 
 
 class TestL2CeleryDispatchConfiguration:
@@ -29,7 +29,7 @@ class TestL2CeleryDispatchConfiguration:
 class TestL2CeleryDispatchIntegration:
     """Test L1 to L2 Celery dispatch logic."""
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_dispatch_enabled_configuration(self, mock_settings):
         """Test Celery dispatch is enabled by default with correct configuration."""
         # Setup
@@ -40,7 +40,7 @@ class TestL2CeleryDispatchIntegration:
         assert mock_settings.use_celery_for_l2 is True
         assert mock_settings.layer2_celery_broker_url == "redis://redis:6379/0"
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_dispatch_disabled_uses_http_fallback(self, mock_settings):
         """Test HTTP fallback is configured when Celery dispatch is disabled."""
         # Setup
@@ -51,7 +51,7 @@ class TestL2CeleryDispatchIntegration:
         assert mock_settings.use_celery_for_l2 is False
         assert mock_settings.layer2_api_url == "http://layer2:8000"
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_dispatch_broker_url_format(self, mock_settings):
         """Test Celery broker URL follows expected format."""
         # Setup
@@ -66,7 +66,7 @@ class TestL2CeleryDispatchIntegration:
 class TestL2CeleryDispatchRuntime:
     """Test L1 to L2 Celery dispatch runtime behavior."""
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_client_created_with_correct_broker(self, mock_settings):
         """Celery client should be created with L2's broker URL."""
         # Setup
@@ -99,7 +99,7 @@ class TestL2CeleryDispatchRuntime:
         assert call_kwargs["broker"] == "redis://redis:6379/0"
         assert call_kwargs["backend"] == "redis://redis:6379/0"
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_dispatched_with_fully_qualified_name(self, mock_settings):
         """Task should be dispatched with fully qualified task name."""
         # Setup
@@ -130,7 +130,7 @@ class TestL2CeleryDispatchRuntime:
         call_args = mock_celery_instance.send_task.call_args
         assert call_args[0][0] == "layer2_extraction.shared.tasks.run_extraction_task"
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_arguments_include_tenant_context(self, mock_settings):
         """Task arguments should include tenant_id in extraction payload."""
         # Setup
@@ -167,7 +167,7 @@ class TestL2CeleryDispatchRuntime:
         assert payload_arg["tenant_id"] == tenant_id
         assert payload_arg["job_id"] == job_id
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_celery_dispatch_failure_triggers_http_fallback(self, mock_settings):
         """Celery dispatch failure should trigger HTTP fallback."""
         # Setup
@@ -195,7 +195,7 @@ class TestL2CeleryDispatchRuntime:
         # Assert: send_task was attempted and failed
         mock_celery_instance.send_task.assert_called_once()
 
-    @patch("value_fabric.layer1.shared.config.settings")
+    @patch("layer1_ingestion.shared.config.settings")
     def test_task_result_timeout_is_configured(self, mock_settings):
         """Task result retrieval should have timeout configured."""
         # Setup

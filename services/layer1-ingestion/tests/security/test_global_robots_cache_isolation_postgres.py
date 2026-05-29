@@ -12,13 +12,13 @@ import pytest
 from uuid import uuid4
 from datetime import datetime, timezone, timedelta
 
-from value_fabric.layer1.shared.exceptions import (
+from layer1_ingestion.shared.exceptions import (
     RobotsCacheError,
     InvalidTenantContextError,
     RobotsFetchError,
 )
-from value_fabric.layer1.compliance.robots_checker import RobotsChecker
-from value_fabric.layer1.shared.models import RobotsTxtCache
+from layer1_ingestion.compliance.robots_checker import RobotsChecker
+from layer1_ingestion.shared.models import RobotsTxtCache
 
 
 pytestmark = pytest.mark.requires_postgres
@@ -79,7 +79,7 @@ class TestGlobalRobotsCacheIsolation:
         postgres_db.commit()
         
         # Access without tenant context should work
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         with get_db_session(tenant_id=None, require_tenant=False) as session:
             retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "public.com").first()
@@ -107,7 +107,7 @@ class TestGlobalRobotsCacheIsolation:
         # Access from different tenant contexts should all work
         tenant_ids = [str(uuid4()), str(uuid4()), str(uuid4())]
         
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         for tenant_id in tenant_ids:
             with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
@@ -120,7 +120,7 @@ class TestGlobalRobotsCacheIsolation:
         # Create cache entry from one tenant context
         tenant_id_1 = str(uuid4())
         
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         with get_db_session(tenant_id=tenant_id_1, require_tenant=True) as session:
             cache_entry = RobotsTxtCache(
@@ -147,7 +147,7 @@ class TestGlobalRobotsCacheIsolation:
 
     def test_cache_does_not_store_tenant_specific_urls(self, postgres_db):
         """Test that cache doesn't store tenant-specific URLs or content."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Attempt to cache tenant-specific data should be prevented
         tenant_id = str(uuid4())
@@ -191,7 +191,7 @@ class TestGlobalRobotsCacheIsolation:
 
     def test_legacy_tenant_id_column_is_system_owned_only(self, postgres_db):
         """Test that tenant_id column is only used for system ownership."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Create entries with different tenant_id values
         with get_db_session(tenant_id=None, require_tenant=False) as session:
@@ -309,10 +309,10 @@ class TestRobotsCheckerGlobalCacheAccess:
     def test_robots_checker_cache_error_handling(self, postgres_db):
         """Test that RobotsChecker properly handles cache errors."""
         # Mock a database error
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         from unittest.mock import patch
         
-        with patch('value_fabric.layer1.shared.database.get_db_session') as mock_session:
+        with patch('layer1_ingestion.shared.database.get_db_session') as mock_session:
             mock_session.side_effect = Exception("Database connection failed")
             
             checker = RobotsChecker(tenant_id=str(uuid4()))
@@ -330,7 +330,7 @@ class TestCacheSecurityProperties:
 
     def test_cache_cannot_store_tenant_owned_data(self, postgres_db):
         """Test that cache cannot be used to store tenant-owned data."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         tenant_id = str(uuid4())
         
@@ -361,7 +361,7 @@ class TestCacheSecurityProperties:
 
     def test_cache_rls_not_required(self, postgres_db):
         """Test that cache doesn't require RLS policies."""
-        from value_fabric.layer1.shared.database import get_db_session
+        from layer1_ingestion.shared.database import get_db_session
         
         # Create cache entry without any tenant context
         with get_db_session(tenant_id=None, require_tenant=False) as session:

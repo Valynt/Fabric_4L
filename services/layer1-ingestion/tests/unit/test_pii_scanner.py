@@ -52,13 +52,13 @@ else:
 
     _install_presidio_stubs()
 
-    from value_fabric.layer1.compliance.pii_scanner import (  # noqa: E402
+    from layer1_ingestion.compliance.pii_scanner import (  # noqa: E402
         PIIEntity,
         PIIScanResult,
         PIIScanner,
         get_scanner,
     )
-    from value_fabric.layer1.shared.models import PIIStatus  # noqa: E402
+    from layer1_ingestion.shared.models import PIIStatus  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -319,14 +319,14 @@ class TestGetSummaryStats:
 
 class TestGetScanner:
     def test_returns_pii_scanner_instance(self):
-        import value_fabric.layer1.compliance.pii_scanner as pii_mod
+        import layer1_ingestion.compliance.pii_scanner as pii_mod
         # Reset singleton
         pii_mod._scanner = None
         scanner = get_scanner()
         assert isinstance(scanner, PIIScanner)
 
     def test_returns_same_instance_on_repeated_calls(self):
-        import value_fabric.layer1.compliance.pii_scanner as pii_mod
+        import layer1_ingestion.compliance.pii_scanner as pii_mod
         pii_mod._scanner = None
         s1 = get_scanner()
         s2 = get_scanner()

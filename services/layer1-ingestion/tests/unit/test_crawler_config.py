@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from value_fabric.layer1.crawler.crawler_config import CrawlerConfig, load_config
+from layer1_ingestion.crawler.crawler_config import CrawlerConfig, load_config
 
 
 class TestCrawlerConfig:

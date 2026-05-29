@@ -12,8 +12,8 @@ from __future__ import annotations
 
 import pytest
 from unittest.mock import AsyncMock, patch
-from value_fabric.layer1.compliance.robots_checker import RobotsChecker
-from value_fabric.layer1.compliance.exceptions import RobotsFetchError, RobotsParseError
+from layer1_ingestion.compliance.robots_checker import RobotsChecker
+from layer1_ingestion.compliance.exceptions import RobotsFetchError, RobotsParseError
 
 
 class TestStrictRobotsModeNetworkFailure:

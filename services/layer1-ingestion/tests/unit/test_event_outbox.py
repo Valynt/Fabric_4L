@@ -18,7 +18,7 @@ from uuid import UUID, uuid4
 
 import pytest
 
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.models import (
     AccountIntelligencePacket,
     EventOutbox,
     OutboxStatus,
@@ -131,7 +131,7 @@ class TestDispatchOutboxEventSuccess:
     """dispatch_outbox_event marks event as dispatched on success."""
 
     def test_dispatches_pending_event(self):
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
 
         event_id = uuid4()
         row = _make_outbox_row(status=OutboxStatus.PENDING.value)
@@ -142,7 +142,7 @@ class TestDispatchOutboxEventSuccess:
         mock_session.__exit__ = MagicMock(return_value=False)
         mock_session.query.return_value.filter.return_value.first.return_value = row
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             dispatch_outbox_event(str(event_id))
 
         assert row.status == OutboxStatus.DISPATCHED.value
@@ -150,7 +150,7 @@ class TestDispatchOutboxEventSuccess:
         mock_session.commit.assert_called()
 
     def test_skips_already_dispatched_event(self):
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
 
         event_id = uuid4()
         row = _make_outbox_row(status=OutboxStatus.DISPATCHED.value)
@@ -161,7 +161,7 @@ class TestDispatchOutboxEventSuccess:
         mock_session.__exit__ = MagicMock(return_value=False)
         mock_session.query.return_value.filter.return_value.first.return_value = row
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             dispatch_outbox_event(str(event_id))
 
         # Status must not change
@@ -169,7 +169,7 @@ class TestDispatchOutboxEventSuccess:
         mock_session.commit.assert_not_called()
 
     def test_skips_dead_lettered_event(self):
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
 
         event_id = uuid4()
         row = _make_outbox_row(status=OutboxStatus.DEAD_LETTER.value)
@@ -180,21 +180,21 @@ class TestDispatchOutboxEventSuccess:
         mock_session.__exit__ = MagicMock(return_value=False)
         mock_session.query.return_value.filter.return_value.first.return_value = row
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             dispatch_outbox_event(str(event_id))
 
         assert row.status == OutboxStatus.DEAD_LETTER.value
         mock_session.commit.assert_not_called()
 
     def test_handles_missing_event_gracefully(self):
-        from value_fabric.layer1.shared.tasks import dispatch_outbox_event
+        from layer1_ingestion.shared.tasks import dispatch_outbox_event
 
         mock_session = MagicMock()
         mock_session.__enter__ = MagicMock(return_value=mock_session)
         mock_session.__exit__ = MagicMock(return_value=False)
         mock_session.query.return_value.filter.return_value.first.return_value = None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             # Should not raise
             dispatch_outbox_event(str(uuid4()))
 
@@ -208,7 +208,7 @@ class TestDispatchOutboxEventFailure:
     """dispatch_outbox_event increments attempts and records last_error on failure."""
 
     def test_increments_attempts_on_failure(self):
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         event_id = uuid4()
         row = _make_outbox_row(status=OutboxStatus.PENDING.value, attempts=0)
@@ -230,7 +230,7 @@ class TestDispatchOutboxEventFailure:
             call_count += 1
             return mock_session
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", side_effect=session_factory):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", side_effect=session_factory):
             with patch.object(
                 tasks_module.dispatch_outbox_event,
                 "retry",
@@ -243,8 +243,8 @@ class TestDispatchOutboxEventFailure:
         assert row.last_error is not None
 
     def test_dead_letters_after_max_attempts(self):
-        import value_fabric.layer1.shared.tasks as tasks_module
-        from value_fabric.layer1.shared.tasks import MAX_DISPATCH_ATTEMPTS
+        import layer1_ingestion.shared.tasks as tasks_module
+        from layer1_ingestion.shared.tasks import MAX_DISPATCH_ATTEMPTS
 
         event_id = uuid4()
         row = _make_outbox_row(
@@ -267,7 +267,7 @@ class TestDispatchOutboxEventFailure:
             call_count += 1
             return mock_session
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", side_effect=session_factory):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", side_effect=session_factory):
             with patch.object(
                 tasks_module.dispatch_outbox_event,
                 "retry",
@@ -283,7 +283,7 @@ class TestDispatchOutboxEventFailure:
         assert row.dead_lettered_at is not None
 
     def test_records_last_error_message(self):
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         event_id = uuid4()
         row = _make_outbox_row(status=OutboxStatus.PENDING.value, attempts=0)
@@ -303,7 +303,7 @@ class TestDispatchOutboxEventFailure:
             call_count += 1
             return mock_session
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", side_effect=session_factory):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", side_effect=session_factory):
             with patch.object(
                 tasks_module.dispatch_outbox_event,
                 "retry",
@@ -350,7 +350,7 @@ class TestNotificationStageOutbox:
 
     def test_creates_outbox_rows_for_each_downstream_event(self):
         """One EventOutbox row per downstream_event entry."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job = self._make_job()
         corpus_id = uuid4()
@@ -387,7 +387,7 @@ class TestNotificationStageOutbox:
 
         mock_session.add.side_effect = add_side_effect
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 tasks_module.notification_stage({"job_id": str(job.id)})
 
@@ -398,7 +398,7 @@ class TestNotificationStageOutbox:
 
     def test_outbox_payload_contains_required_fields(self):
         """Each outbox row payload includes tenant_id, job_id, output_id, output_contract."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         tenant_id = uuid4()
         job = self._make_job(tenant_id=tenant_id, downstream_events=["layer1.source_corpus.ready"])
@@ -429,7 +429,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 tasks_module.notification_stage({"job_id": str(job.id)})
 
@@ -442,7 +442,7 @@ class TestNotificationStageOutbox:
 
     def test_no_outbox_rows_when_no_skill(self):
         """Jobs without a skill_name do not create outbox rows."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job = self._make_job(skill_name=None, downstream_events=[])
         job.skill_name = None
@@ -469,7 +469,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             tasks_module.notification_stage({"job_id": str(job.id)})
 
         outbox_rows = [r for r in added_rows if isinstance(r, EventOutbox)]
@@ -477,7 +477,7 @@ class TestNotificationStageOutbox:
 
     def test_dispatch_apply_async_called_per_outbox_row(self):
         """dispatch_outbox_event.apply_async is called once per outbox row."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job = self._make_job(downstream_events=["layer1.source_corpus.ready", "layer2.ontology_extraction.requested"])
         corpus = MagicMock(spec=SourceCorpus)
@@ -503,7 +503,7 @@ class TestNotificationStageOutbox:
 
         mock_session.query.side_effect = query_side_effect
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async") as mock_apply:
                 tasks_module.notification_stage({"job_id": str(job.id)})
 
@@ -511,7 +511,7 @@ class TestNotificationStageOutbox:
 
     def test_account_intelligence_packet_outbox(self):
         """Prospect research jobs create outbox rows with AccountIntelligencePacket output_id."""
-        import value_fabric.layer1.shared.tasks as tasks_module
+        import layer1_ingestion.shared.tasks as tasks_module
 
         job = self._make_job(
             skill_name="prospect_research",
@@ -545,7 +545,7 @@ class TestNotificationStageOutbox:
         mock_session.query.side_effect = query_side_effect
         mock_session.add.side_effect = lambda obj: added_rows.append(obj) if isinstance(obj, EventOutbox) else None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
                 tasks_module.notification_stage({"job_id": str(job.id)})
 

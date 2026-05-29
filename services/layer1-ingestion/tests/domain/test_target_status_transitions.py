@@ -23,44 +23,44 @@ if _src not in sys.path:
 
 class TestTransitionTableStructure:
     def test_table_is_importable(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         assert isinstance(_ALLOWED_STATUS_TRANSITIONS, dict)
 
     def test_all_known_statuses_have_entries(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         known = {"ACTIVE", "PAUSED", "ERROR", "ARCHIVED"}
         assert known == set(_ALLOWED_STATUS_TRANSITIONS.keys())
 
     def test_archived_has_no_outgoing_transitions(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         assert _ALLOWED_STATUS_TRANSITIONS["ARCHIVED"] == set()
 
     def test_table_values_are_sets_of_strings(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         for from_status, allowed in _ALLOWED_STATUS_TRANSITIONS.items():
             assert isinstance(allowed, set), f"{from_status} value is not a set"
             for to_status in allowed:
                 assert isinstance(to_status, str), f"Transition target {to_status!r} is not a string"
 
     def test_table_does_not_allow_unknown_statuses(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         known = {"ACTIVE", "PAUSED", "ERROR", "ARCHIVED"}
         for from_status, allowed in _ALLOWED_STATUS_TRANSITIONS.items():
             unknown = allowed - known
             assert not unknown, f"Unknown target statuses in transitions from {from_status}: {unknown}"
 
     def test_active_allows_paused_and_archived(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         assert "PAUSED" in _ALLOWED_STATUS_TRANSITIONS["ACTIVE"]
         assert "ARCHIVED" in _ALLOWED_STATUS_TRANSITIONS["ACTIVE"]
 
     def test_paused_allows_active_and_archived(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         assert "ACTIVE" in _ALLOWED_STATUS_TRANSITIONS["PAUSED"]
         assert "ARCHIVED" in _ALLOWED_STATUS_TRANSITIONS["PAUSED"]
 
     def test_error_allows_active_paused_archived(self):
-        from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
+        from layer1_ingestion.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS
         assert "ACTIVE" in _ALLOWED_STATUS_TRANSITIONS["ERROR"]
         assert "PAUSED" in _ALLOWED_STATUS_TRANSITIONS["ERROR"]
         assert "ARCHIVED" in _ALLOWED_STATUS_TRANSITIONS["ERROR"]

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
+import * as Sentry from "@sentry/react";
 import {
   QueryCache,
   QueryClient,
@@ -12,6 +13,23 @@ import { I18nProvider } from "./i18n";
 import { STALE_TIME } from "./hooks/useApiShared";
 import { logError } from "./lib/telemetry";
 import { installAnalytics } from "./lib/analytics";
+
+// P1-004: Sentry error tracking — initialized when SENTRY_DSN is configured.
+const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
+if (sentryDsn) {
+  try {
+    Sentry.init({
+      dsn: sentryDsn,
+      environment: import.meta.env.MODE,
+      sampleRate: 0.1,
+      tracesSampleRate: 0.01,
+      profilesSampleRate: 0.0,
+      attachStacktrace: true,
+    });
+  } catch (error) {
+    console.error("Failed to initialize Sentry:", error);
+  }
+}
 import {
   getClerkPublishableKey,
   getClerkUrls,

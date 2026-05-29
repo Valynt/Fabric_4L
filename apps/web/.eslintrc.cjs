@@ -133,6 +133,14 @@ module.exports = {
     // Phase 2: Already enforced
     "fabric-contracts/no-imperative-navigation": "error",
     "fabric-contracts/no-url-concatenation": "error",
+    // P1-006: Block hardcoded real customer names outside of the canonical demoData module
+    "no-restricted-syntax": [
+      "error",
+      {
+        selector: "Literal[value=/Medtronic|Stryker|Baxter|Finastra|Goldman Sachs|Johnson & Johnson MedTech/]",
+        message: "Hardcoded customer names are not allowed outside of src/lib/demoData.ts. Use generic placeholders or import from demoData.ts.",
+      },
+    ],
     "no-restricted-imports": [
       "error",
       {
@@ -167,6 +175,13 @@ module.exports = {
       files: ["src/lib/telemetry.ts"],
       rules: {
         "no-console": "off",
+      },
+    },
+    {
+      // demoData.ts IS the canonical location for real customer demo data
+      files: ["src/lib/demoData.ts"],
+      rules: {
+        "no-restricted-syntax": "off",
       },
     },
     {

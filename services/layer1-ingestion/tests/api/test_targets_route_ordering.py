@@ -22,7 +22,7 @@ from fastapi.testclient import TestClient
 
 
 def _get_app():
-    from value_fabric.layer1.api.app_monolith import app
+    from layer1_ingestion.api.app_monolith import app
     return app
 
 

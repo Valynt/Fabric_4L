@@ -4,43 +4,17 @@ WORKDIR /app
 
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
-# Remove workspace-only devDependency not resolvable in standalone Docker build.
-# Also patch pnpm-lock.yaml so --frozen-lockfile succeeds.
-RUN node -e "\
-  const fs = require('fs'); \
-  const p = require('./package.json'); \
-  delete (p.devDependencies || {})['eslint-plugin-fabric-contracts']; \
-  delete (p.scripts || {})['preinstall']; \
-  fs.writeFileSync('package.json', JSON.stringify(p, null, 2)); \
-  \
-  let lock = fs.readFileSync('pnpm-lock.yaml', 'utf8'); \
-  const lines = lock.split('\n'); \
-  const out = []; \
-  let skipUntil = -1; \
-  for (let i = 0; i < lines.length; i++) { \
-    const line = lines[i]; \
-    if (line.trim() === 'eslint-plugin-fabric-contracts:') { \
-      out.pop(); \
-      skipUntil = i + 1; \
-      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
-      i = skipUntil - 1; \
-      continue; \
-    } \
-    if (line.trim() === 'packages/eslint-plugin-fabric-contracts:') { \
-      skipUntil = i + 1; \
-      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
-      i = skipUntil - 1; \
-      continue; \
-    } \
-    out.push(line); \
-  } \
-  fs.writeFileSync('pnpm-lock.yaml', out.join('\n')); \
-"
+# Copy workspace manifests for pnpm --filter support
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
+COPY packages/config/package.json ./packages/config/
+
+# Install from workspace root
 RUN pnpm install --frozen-lockfile
 
-COPY . .
-RUN pnpm build
+# Build only the web app using workspace filter
+RUN pnpm --filter ./apps/web build
 
 FROM node:22-alpine AS runtime
 WORKDIR /app
@@ -51,8 +25,13 @@ ENV PORT=3000
 # corepack enable requires root to create symlinks in /usr/local/bin
 RUN corepack enable
 
-COPY package.json pnpm-lock.yaml ./
-# Runtime only needs production dependencies; workspace devDependencies are skipped by --prod
+# Copy workspace manifests for pnpm --filter support
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/web/package.json ./apps/web/
+COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
+COPY packages/config/package.json ./packages/config/
+
+# Install from workspace root (production only)
 RUN pnpm install --frozen-lockfile --prod
 
 # Security: Run as non-root user (node is built-in to node:alpine images)

@@ -180,8 +180,8 @@ class TestValidation:
         The DB dependency is still overridden so the request reaches the auth
         check before attempting a real database connection.
         """
-        from value_fabric.layer1.api.app_monolith import app
-        from value_fabric.layer1.shared.database import get_db_from_context_sync
+        from layer1_ingestion.api.app_monolith import app
+        from layer1_ingestion.shared.database import get_db_from_context_sync
         from fastapi.testclient import TestClient
         t = make_target(org_id, status="ACTIVE")
         # Override DB so the request doesn't attempt a real PG connection.
@@ -243,7 +243,7 @@ class TestIdempotency:
 
 def _make_active_job(db, tenant_id, target_id, user_id, status="QUEUED"):
     """Insert a ScrapingJob in an in-progress state for the given target."""
-    from value_fabric.layer1.shared.models import create_scraping_job
+    from layer1_ingestion.shared.models import create_scraping_job
     job = create_scraping_job(
         tenant_id=tenant_id,
         target_id=target_id,

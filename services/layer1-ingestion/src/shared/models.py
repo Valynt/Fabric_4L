@@ -23,7 +23,8 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import declarative_base, event, relationship
+from sqlalchemy import event
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 

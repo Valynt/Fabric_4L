@@ -14,11 +14,11 @@ import pytest
 from uuid import uuid4, UUID
 from datetime import datetime, timedelta, UTC
 
-from value_fabric.layer1.shared.models import (
+from layer1_ingestion.shared.models import (
     RawContent,
     TenantRegistry,
 )
-from value_fabric.layer1.shared.tasks import cleanup_old_content
+from layer1_ingestion.shared.tasks import cleanup_old_content
 
 
 pytestmark = pytest.mark.requires_postgres
@@ -91,7 +91,7 @@ class TestTenantSpecificCleanupMode:
         """Tenant-specific cleanup should use require_tenant=True."""
         # This test verifies that the implementation uses require_tenant=True
         # when tenant_id is provided
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -177,7 +177,7 @@ class TestSystemScopedCleanupMode:
         """System-scoped cleanup should use RLS per tenant iteration."""
         # This test verifies that the implementation iterates tenants
         # and uses require_tenant=True for each iteration
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -199,7 +199,7 @@ class TestNoCrossTenantReadsBeforeContext:
         # System-scoped mode should:
         # 1. Read TenantRegistry (system table, no RLS needed)
         # 2. For each tenant: set tenant context, then read tenant-owned data
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -239,7 +239,7 @@ class TestRLSEnforcementPerTenant:
 
     def test_each_tenant_iteration_uses_require_tenant_true(self, db, org_id):
         """Each tenant iteration should use require_tenant=True."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -263,7 +263,7 @@ class TestAuditLogVerification:
     def test_maintenance_audit_log_records_tenant_iterations(self, db, org_id):
         """maintenance_audit_log should record all tenant iterations."""
         # This test verifies that the implementation uses maintenance_audit_log
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -276,7 +276,7 @@ class TestAuditLogVerification:
         """Audit log should include operation name and tenant_id."""
         # This test verifies the audit log includes required fields
         # Expected: operation="cleanup_old_content", tenant_id=str(tenant_uuid)
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)
@@ -304,7 +304,7 @@ class TestMaintenanceAuthorization:
         """System maintenance should use system identity."""
         # This test verifies that system maintenance uses a system identity
         # Expected: system_identity="fabric4l-system-maintenance"
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         import inspect
 
         source = inspect.getsource(cleanup_old_content)

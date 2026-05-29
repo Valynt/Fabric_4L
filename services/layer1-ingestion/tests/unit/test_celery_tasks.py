@@ -43,28 +43,28 @@ class TestCeleryAppConfiguration:
 
     def test_celery_app_name(self) -> None:
         """Celery app must be named 'layer1_ingestion'."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         assert celery_app.main == "layer1_ingestion"
 
     def test_celery_task_serializer(self) -> None:
         """Celery must use JSON serializer for task payloads."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         assert celery_app.conf.task_serializer == "json"
 
     def test_celery_result_serializer(self) -> None:
         """Celery must use JSON serializer for results."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         assert celery_app.conf.result_serializer == "json"
 
     def test_celery_timezone_utc(self) -> None:
         """Celery must use UTC timezone."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         assert celery_app.conf.timezone == "UTC"
         assert celery_app.conf.enable_utc is True
 
     def test_celery_task_time_limit(self) -> None:
         """Celery task time limit must be set (prevents runaway tasks)."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         assert celery_app.conf.task_time_limit is not None
         assert celery_app.conf.task_time_limit > 0
 
@@ -75,7 +75,7 @@ class TestExecutePipelineStage:
 
     def test_execute_pipeline_stage_compliance_check(self) -> None:
         """execute_pipeline_stage must dispatch compliance_check_stage for COMPLIANCE_CHECK."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage, execute_pipeline_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage, execute_pipeline_stage
 
         job_id = str(uuid4())
         call_count = [0]
@@ -93,7 +93,7 @@ class TestExecutePipelineStage:
 
     def test_execute_pipeline_stage_passes_tenant_id(self) -> None:
         """execute_pipeline_stage must propagate tenant_id to stage task dispatch."""
-        from value_fabric.layer1.shared.tasks import browser_crawl_stage, execute_pipeline_stage
+        from layer1_ingestion.shared.tasks import browser_crawl_stage, execute_pipeline_stage
 
         job_id = str(uuid4())
         tenant_id = str(uuid4())
@@ -112,14 +112,14 @@ class TestExecutePipelineStage:
 
     def test_execute_pipeline_stage_missing_tenant_id_raises(self) -> None:
         """execute_pipeline_stage must fail closed without tenant_id."""
-        from value_fabric.layer1.shared.tasks import execute_pipeline_stage
+        from layer1_ingestion.shared.tasks import execute_pipeline_stage
 
         with pytest.raises(TypeError):
             execute_pipeline_stage(str(uuid4()), "COMPLIANCE_CHECK")
 
     def test_execute_pipeline_stage_unknown_raises(self) -> None:
         """execute_pipeline_stage must raise ValueError for unknown stage names."""
-        from value_fabric.layer1.shared.tasks import execute_pipeline_stage
+        from layer1_ingestion.shared.tasks import execute_pipeline_stage
 
         with pytest.raises(ValueError, match="not a valid PipelineStage"):
             execute_pipeline_stage(str(uuid4()), "NONEXISTENT_STAGE", str(uuid4()))
@@ -131,7 +131,7 @@ class TestProcessScrapingJob:
 
     def test_process_scraping_job_chains_all_stages(self) -> None:
         """process_scraping_job must chain all registered pipeline stages."""
-        from value_fabric.layer1.shared.tasks import (
+        from layer1_ingestion.shared.tasks import (
             ai_extraction_stage,
             browser_crawl_stage,
             compliance_check_stage,
@@ -157,7 +157,7 @@ class TestProcessScrapingJob:
 
     def test_process_scraping_job_missing_job_raises(self) -> None:
         """process_scraping_job must raise ValueError when job is not found in DB."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
 
         job_id = str(uuid4())
         mock_session = MagicMock()
@@ -165,13 +165,13 @@ class TestProcessScrapingJob:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = None  # Job not found
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(ValueError, match="not found"):
                 process_scraping_job.run(job_id, str(uuid4()))
 
     def test_process_scraping_job_returns_task_id_on_success(self) -> None:
         """process_scraping_job must return dict with success=True and task_id."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
 
         job_id = str(uuid4())
         tenant_id = str(uuid4())
@@ -189,8 +189,8 @@ class TestProcessScrapingJob:
         mock_chain_result.id = "celery-task-abc-123"
 
         with (
-            patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session),
-            patch("value_fabric.layer1.shared.tasks.chain") as mock_chain_cls,
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.chain") as mock_chain_cls,
         ):
             mock_chain_instance = Mock()
             mock_chain_instance.apply_async.return_value = mock_chain_result
@@ -211,7 +211,7 @@ class TestCleanupOldContent:
 
     def test_cleanup_returns_deleted_count_and_cutoff(self) -> None:
         """cleanup_old_content must return deleted_count and cutoff_date."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
 
         mock_content_1 = Mock()
         mock_content_1.processing_status = "PROCESSED"
@@ -226,7 +226,7 @@ class TestCleanupOldContent:
             mock_content_2,
         ]
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
         assert "deleted_count" in result
@@ -238,7 +238,7 @@ class TestCleanupOldContent:
 
     def test_cleanup_marks_content_as_deleted(self) -> None:
         """cleanup_old_content must set processing_status to DELETED."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
 
         mock_content = Mock()
         mock_content.processing_status = "PROCESSED"
@@ -248,7 +248,7 @@ class TestCleanupOldContent:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.filter.return_value.all.return_value = [mock_content]
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
         assert mock_content.processing_status == "DELETED"
@@ -257,7 +257,7 @@ class TestCleanupOldContent:
         """cleanup_old_content default retention period must be 30 days."""
         import inspect
 
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
         sig = inspect.signature(cleanup_old_content)
         days_param = sig.parameters.get("days")
         assert days_param is not None, "cleanup_old_content must have a 'days' parameter"
@@ -270,7 +270,7 @@ class TestComplianceCheckStage:
 
     def test_compliance_check_stage_updates_job_status(self) -> None:
         """compliance_check_stage must set job.status to VALIDATING."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         job_id = uuid4()
         mock_job = Mock()
@@ -287,9 +287,9 @@ class TestComplianceCheckStage:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = mock_job
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
-            with patch("value_fabric.layer1.shared.tasks._update_stage"):
-                with patch("value_fabric.layer1.shared.tasks.validate_url_safety"):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+            with patch("layer1_ingestion.shared.tasks._update_stage"):
+                with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # Use .run() to bypass Celery's task dispatch machinery
                     # Pass string job_id to match Celery JSON serialization
                     result = compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
@@ -301,7 +301,7 @@ class TestComplianceCheckStage:
 
     def test_compliance_check_stage_missing_job_retries(self) -> None:
         """compliance_check_stage must raise when job is not found."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         job_id = uuid4()
         mock_session = MagicMock()
@@ -309,7 +309,7 @@ class TestComplianceCheckStage:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = None  # Job not found
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(ValueError, match="not found"):
                 # Use .run() to bypass Celery's task dispatch machinery
                 # Pass string job_id to match Celery JSON serialization
@@ -322,14 +322,14 @@ class TestCrawlUrlWithRouting:
 
     def test_crawl_url_with_routing_requires_tenant_id(self) -> None:
         """crawl_url_with_routing must reject calls without tenant_id."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
 
         with pytest.raises(TypeError):
             crawl_url_with_routing.run(job_id=str(uuid4()), url="https://example.com")
 
     def test_crawl_url_with_routing_sets_tenant_context(self) -> None:
         """crawl_url_with_routing must open DB session with require_tenant=True."""
-        from value_fabric.layer1.shared.tasks import crawl_url_with_routing
+        from layer1_ingestion.shared.tasks import crawl_url_with_routing
 
         job_id = str(uuid4())
         tenant_id = str(uuid4())
@@ -341,7 +341,7 @@ class TestCrawlUrlWithRouting:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = mock_job
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             try:
                 crawl_url_with_routing.run(job_id=job_id, url="https://example.com", tenant_id=tenant_id)
             except Exception:
@@ -358,7 +358,7 @@ class TestCeleryRetryBehavior:
 
     def test_celery_max_retries_configured(self) -> None:
         """process_scraping_job must have max_retries configured."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
         # Celery tasks can configure retries via bind=True + self.retry()
         assert hasattr(process_scraping_job, "max_retries") or hasattr(process_scraping_job, "retry"), (
             "process_scraping_job must support retries"
@@ -366,20 +366,20 @@ class TestCeleryRetryBehavior:
 
     def test_compliance_check_stage_handles_db_error(self) -> None:
         """compliance_check_stage must not swallow database connection errors."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.side_effect = Exception("Database connection refused")
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(Exception, match="Database connection refused"):
                 compliance_check_stage.run(str(uuid4()), str(uuid4()))
 
     def test_process_scraping_job_handles_chain_failure(self) -> None:
         """process_scraping_job must raise when chain.apply_async fails."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
 
         job_id = str(uuid4())
         tenant_id = str(uuid4())
@@ -394,8 +394,8 @@ class TestCeleryRetryBehavior:
         mock_session.query.return_value.get.return_value = mock_job
 
         with (
-            patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session),
-            patch("value_fabric.layer1.shared.tasks.chain") as mock_chain_cls,
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            patch("layer1_ingestion.shared.tasks.chain") as mock_chain_cls,
         ):
             mock_chain_instance = Mock()
             mock_chain_instance.apply_async.side_effect = RuntimeError("Broker unavailable")
@@ -406,7 +406,7 @@ class TestCeleryRetryBehavior:
 
     def test_compliance_check_stage_handles_invalid_job_configuration(self) -> None:
         """compliance_check_stage must handle jobs with missing configuration."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         job_id = uuid4()
         mock_job = Mock()
@@ -420,7 +420,7 @@ class TestCeleryRetryBehavior:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.get.return_value = mock_job
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with patch("src.shared.tasks._update_stage"):
                 # Should raise or handle gracefully (not crash silently)
                 # AttributeError because code does config.get() when config is None
@@ -430,14 +430,14 @@ class TestCeleryRetryBehavior:
 
     def test_cleanup_old_content_handles_empty_result(self) -> None:
         """cleanup_old_content must return deleted_count=0 when no old content found."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
 
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.return_value.filter.return_value.all.return_value = []  # No results
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
         assert result["deleted_count"] == 0
@@ -445,14 +445,14 @@ class TestCeleryRetryBehavior:
 
     def test_cleanup_old_content_handles_db_error(self) -> None:
         """cleanup_old_content must propagate database errors."""
-        from value_fabric.layer1.shared.tasks import cleanup_old_content
+        from layer1_ingestion.shared.tasks import cleanup_old_content
 
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.side_effect = Exception("Connection timeout")
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(Exception, match="Connection timeout"):
                 cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
@@ -462,7 +462,7 @@ class TestPipelineStageErrorPaths:
 
     def test_all_pipeline_stages_are_registered_as_celery_tasks(self) -> None:
         """All registered pipeline stages must be Celery tasks."""
-        from value_fabric.layer1.shared.tasks import (
+        from layer1_ingestion.shared.tasks import (
             ai_extraction_stage,
             browser_crawl_stage,
             compliance_check_stage,
@@ -487,7 +487,7 @@ class TestPipelineStageErrorPaths:
 
     def test_execute_pipeline_stage_dispatches_all_known_stages(self) -> None:
         """execute_pipeline_stage must recognize all registered stage names."""
-        from value_fabric.layer1.shared.tasks import execute_pipeline_stage
+        from layer1_ingestion.shared.tasks import execute_pipeline_stage
 
         # Stage constants that execute_pipeline_stage must recognize,
         # mapped to the actual Celery task name that gets dispatched.
@@ -506,7 +506,7 @@ class TestPipelineStageErrorPaths:
         for stage_const, task_name in stage_task_map.items():
             job_id = str(uuid4())
             tenant_id = str(uuid4())
-            with patch(f"value_fabric.layer1.shared.tasks.{task_name}") as mock_task:
+            with patch(f"layer1_ingestion.shared.tasks.{task_name}") as mock_task:
                 mock_task.delay = Mock(return_value=None)
                 try:
                     result = execute_pipeline_stage(job_id, stage_const, tenant_id)
@@ -517,13 +517,13 @@ class TestPipelineStageErrorPaths:
 
     def test_celery_worker_prefetch_is_one(self) -> None:
         """Worker prefetch multiplier must be 1 for sequential processing."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         prefetch = celery_app.conf.worker_prefetch_multiplier
         assert prefetch == 1, f"Expected prefetch=1, got {prefetch}"
 
     def test_celery_result_expires_configured(self) -> None:
         """Task results must expire (not persist forever)."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
         expires = celery_app.conf.result_expires
         assert expires is not None, "result_expires must be configured"
         assert expires > 0, "result_expires must be positive"
@@ -535,7 +535,7 @@ class TestCeleryRetrySemantics:
 
     def test_max_retry_exhaustion_behavior(self) -> None:
         """Task must fail permanently after max_retries exhausted."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
 
         # Verify max_retries is configured
         assert hasattr(process_scraping_job, "max_retries") or hasattr(
@@ -544,7 +544,7 @@ class TestCeleryRetrySemantics:
 
     def test_exponential_backoff_timing(self) -> None:
         """Retries must use exponential backoff."""
-        from value_fabric.layer1.shared.tasks import process_scraping_job
+        from layer1_ingestion.shared.tasks import process_scraping_job
 
         # Check if task has retry_backoff configured
         if hasattr(process_scraping_job, "retry_backoff"):
@@ -555,7 +555,7 @@ class TestCeleryRetrySemantics:
 
     def test_idempotency_of_retried_tasks(self) -> None:
         """Retried tasks must be idempotent - same result on retry."""
-        from value_fabric.layer1.shared.tasks import compliance_check_stage
+        from layer1_ingestion.shared.tasks import compliance_check_stage
 
         job_id = str(uuid4())
         mock_job = Mock()
@@ -575,9 +575,9 @@ class TestCeleryRetrySemantics:
             call_count[0] += 1
             return None
 
-        with patch("value_fabric.layer1.shared.tasks.get_db_session", return_value=mock_session):
-            with patch("value_fabric.layer1.shared.tasks._update_stage", side_effect=mock_update):
-                with patch("value_fabric.layer1.shared.tasks.validate_url_safety"):
+        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+            with patch("layer1_ingestion.shared.tasks._update_stage", side_effect=mock_update):
+                with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # First attempt - pass string job_id to match Celery JSON serialization
                     try:
                         compliance_check_stage.run(job_id, str(mock_job.tenant_id))
@@ -595,7 +595,7 @@ class TestCeleryRetrySemantics:
 
     def test_dead_letter_queue_routing(self) -> None:
         """Failed tasks after max retries should route to DLQ if configured."""
-        from value_fabric.layer1.shared.tasks import celery_app
+        from layer1_ingestion.shared.tasks import celery_app
 
         # Check if task_routes includes dead letter queue
         routes = celery_app.conf.get("task_routes", {})

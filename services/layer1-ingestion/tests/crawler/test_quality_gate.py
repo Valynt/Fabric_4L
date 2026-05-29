@@ -9,8 +9,8 @@ from __future__ import annotations
 import pytest
 import trafilatura  # noqa: F401 — mandatory dep; install via layer1-ingestion[dev]
 
-from value_fabric.layer1.crawler.httpx_crawler import FastPathResult
-from value_fabric.layer1.crawler.quality_gate import AdaptiveQualityGate, QualityGate, QualityThresholds
+from layer1_ingestion.crawler.httpx_crawler import FastPathResult
+from layer1_ingestion.crawler.quality_gate import AdaptiveQualityGate, QualityGate, QualityThresholds
 
 
 class TestQualityGateBasic:

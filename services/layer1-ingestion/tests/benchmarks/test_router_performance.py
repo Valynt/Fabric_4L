@@ -15,10 +15,10 @@ import time
 import asyncio
 from uuid import uuid4
 
-from value_fabric.layer1.crawler.smart_router import SmartRouter, RouteType
-from value_fabric.layer1.crawler.httpx_crawler import HttpxCrawler, FastPathResult
-from value_fabric.layer1.crawler.quality_gate import QualityGate
-from value_fabric.layer1.crawler.decision_store import InMemoryCrawlDecisionRepository
+from layer1_ingestion.crawler.smart_router import SmartRouter, RouteType
+from layer1_ingestion.crawler.httpx_crawler import HttpxCrawler, FastPathResult
+from layer1_ingestion.crawler.quality_gate import QualityGate
+from layer1_ingestion.crawler.decision_store import InMemoryCrawlDecisionRepository
 
 
 class TestStaticSiteSpeedup:
