@@ -1,30 +1,3 @@
-"""Canonical billing schemas — re-exported from layer4-agents during pilot.
+# Shim neutralized — billing schemas live in services/layer4-agents/src/layer4_agents/api/schemas/billing.py
+# Use canonical imports: from layer4_agents.api.schemas.billing import ...
 
-See COMPAT-L4-002 for migration timeline.
-"""
-
-from __future__ import annotations
-
-from value_fabric.layer4.api.schemas.billing import (
-    AddInvoiceItemRequest,
-    CheckoutRequest,
-    CreateInvoiceRequest,
-    CustomerSyncRequest,
-    PortalRequest,
-    RecordChargeRequest,
-    SubscriptionResponse,
-    UsageBatchRequest,
-    UsageEventRequest,
-)
-
-__all__ = [
-    "AddInvoiceItemRequest",
-    "CheckoutRequest",
-    "CreateInvoiceRequest",
-    "CustomerSyncRequest",
-    "PortalRequest",
-    "RecordChargeRequest",
-    "SubscriptionResponse",
-    "UsageBatchRequest",
-    "UsageEventRequest",
-]

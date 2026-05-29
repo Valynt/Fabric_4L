@@ -74,14 +74,12 @@ class TestImportTopology:
     def test_layer4_resolves_to_canonical_service_tree(self):
         """layer4_agents must resolve via services/layer4-agents/src/."""
         import layer4_agents
+        from pathlib import Path
 
         canonical = (REPO_ROOT / "services" / "layer4-agents" / "src").resolve()
-        assert any(
-            Path(str(p)).resolve() == canonical
-            for p in value_fabric.layer4.__path__
-        ), (
-            f"Canonical path {canonical} not found in value_fabric.layer4.__path__: "
-            f"{value_fabric.layer4.__path__}"
+        layer4_src = Path(layer4_agents.__file__).parent.parent.resolve()
+        assert layer4_src == canonical, (
+            f"layer4_agents resolved to {layer4_src}, expected {canonical}"
         )
 
     def test_pytest_collection_no_import_errors(self):

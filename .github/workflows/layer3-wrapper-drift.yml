@@ -7,7 +7,6 @@ on:
   pull_request:
     paths:
       - 'services/layer3-knowledge/src/**/*.py'
-      - 'value_fabric/layer3/**/*.py'
       - 'scripts/ci/check_layer3_wrapper_drift.py'
       - 'scripts/ci/check_layer3_settings_shim_drift.py'
       - '.github/workflows/layer3-wrapper-drift.yml'
