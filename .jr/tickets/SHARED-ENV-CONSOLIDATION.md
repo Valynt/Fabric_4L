@@ -2,10 +2,15 @@
 id: SHARED-ENV-CONSOLIDATION
 type: task
 title: "Consolidate value_fabric.shared.environment into canonical shared package"
-status: open
+status: complete
 parent: (none)
 assignee: (unassigned)
 ---
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+- `value_fabric/shared/environment.py` has been removed; the canonical shared implementation remains under `packages/shared/src/value_fabric/shared/`.
 
 ## Description
 

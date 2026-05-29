@@ -1,8 +1,13 @@
 # L4 Package Restructure Plan
 
-**Status:** BLOCKED - Package structure mismatch prevents canonical imports
+**Status:** Done - complete
 
 **Created:** 2026-05-29
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+
 
 ## Problem
 
