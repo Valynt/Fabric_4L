@@ -1,6 +1,6 @@
 # L3 Facade Wrapper Migration Strategy
 
-**Status:** INVESTIGATION - Documented wrappers with removal target 2026-09-30
+**Status:** PHASE 1 STEP 1 COMPLETE - Documented wrappers with removal target 2026-09-30
 
 **Created:** 2026-05-29
 
@@ -23,7 +23,7 @@ Based on inventory and grep analysis:
 - `value_fabric/layer3/api/` - Compatibility shims
 - `value_fabric/layer3/services/` - Service wrappers
 - `value_fabric/layer3/repositories/` - Repository wrappers
-- `packages/shared/src/value_fabric/shared/rate_limiting/admin_api.py` - Runtime dependency
+- `packages/shared/src/value_fabric/shared/rate_limiting/admin_api.py` - ✅ No L3 facade migration required; `_get_tenant_tier_from_db` already uses the service-local soft import `from db.driver import get_driver as _get_driver` inside the lookup function.
 
 **Test Files (150+):**
 - `tests/security/` - Security tests using patch targets
@@ -123,7 +123,7 @@ with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(retur
 
 ### Phase 1: Classification and Documentation
 
-**Action:** Create detailed inventory of all 223 L3 facade imports
+**Action:** ✅ Complete detailed inventory of all 223 L3 facade imports
 
 **Categories:**
 1. **Runtime service wrappers** (intentional, documented, removal target 2026-09-30)
@@ -132,6 +132,14 @@ with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(retur
 4. **CI script strings** (update to canonical names)
 5. **Documentation/comments** (update to canonical names)
 6. **Compatibility shims** (may need restructuring)
+
+### Phase 1 Step 1 Completion Note
+
+**Completed:** 2026-05-29
+
+- Confirmed `packages/shared/src/value_fabric/shared/rate_limiting/admin_api.py` no longer uses the deprecated `from value_fabric.layer3.db.driver import get_driver` facade import.
+- The tenant tier lookup keeps the shared-layer boundary as a soft runtime dependency by importing `from db.driver import get_driver as _get_driver` inside `_get_tenant_tier_from_db`.
+- Removed the rate-limiting admin utility from the planned L3 facade replacement work; no additional migration is needed for that file.
 
 ### Phase 2: Canonical Import Verification
 
@@ -211,9 +219,10 @@ warnings.warn(
 ### Per-Phase Validation
 
 **Phase 1 (Classification):**
-- Inventory complete
-- All imports categorized
-- Blockers documented
+- ✅ Inventory complete
+- ✅ All imports categorized
+- ✅ Blockers documented
+- ✅ Rate-limiting admin utility verified complete; stale plan to replace `from value_fabric.layer3.db.driver import get_driver` is closed because the file now uses `from db.driver import get_driver as _get_driver` inside `_get_tenant_tier_from_db`.
 
 **Phase 2 (Canonical Import Verification):**
 - `import layer3_knowledge` works from repo root
@@ -286,9 +295,9 @@ git diff --check
 
 ## Next Steps
 
-1. **Phase 1:** Complete detailed inventory of all 223 L3 facade imports
+1. ✅ **Phase 1 Step 1:** Detailed inventory completed; rate-limiting admin utility verified as already migrated away from the deprecated L3 facade import.
 2. **Phase 2:** Verify canonical imports work (may require package restructuring)
-3. **Phase 3:** Migrate documented service wrappers
+3. **Phase 3:** Migrate remaining documented service wrappers
 4. **Phase 4:** Migrate test imports in batches
 5. **Phase 5:** Restructure compatibility shims
 6. **Phase 6:** Add deprecation warnings to facade
@@ -298,7 +307,8 @@ git diff --check
 **Target:** Complete before 2026-09-30 (documented removal target)
 
 **Recommended:**
-- Phase 1-2: Immediate (investigation)
+- Phase 1 Step 1: ✅ Complete on 2026-05-29
+- Phase 2: Immediate (canonical import verification)
 - Phase 3: After canonical imports verified
 - Phase 4: After service wrappers migrated
 - Phase 5-6: After test imports migrated
