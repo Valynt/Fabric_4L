@@ -6,7 +6,7 @@ import { useNavigate, useLocation, type NavigateOptions, type To } from "react-r
 import { getStatePath, type RouteState, type NavigationParams } from "@/navigation/navigationService";
 import { serializeQueryString } from "@/navigation/queryParams";
 import { useWorkflowContext } from "@/hooks/useWorkflowContext";
-import { serializeWorkflowContextToQuery } from "@/workflow/context";
+import { serializeWorkflowContextToQuery } from "@/stores/navigationContext";
 
 interface NavigationOptions extends Omit<NavigateOptions, "state"> {
   replace?: boolean;

@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from value_fabric.layer3.cache.redis_cache import CacheManager, RequestDeduplicator
+from cache.redis_cache import CacheManager, RequestDeduplicator
 
 
 class FakeAsyncCache:

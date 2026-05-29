@@ -2,7 +2,7 @@
 
 import os
 
-from value_fabric.layer3.config import Settings, get_settings
+from config import Settings, get_settings
 
 
 def test_public_config_import_surface() -> None:

@@ -159,7 +159,7 @@ journeyTest.describe('Journey 10: Layer-by-Layer UI Validation', () => {
   journeyTest('test_ingestion_ui_handles_duplicate_and_unsupported_documents', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/workflow',
+      '/accounts/new',
       [/attach source material/i, /use uploaded files/i, /source material/i, /discovery/i],
       'source-ingestion upload workflow',
     );

@@ -37,7 +37,7 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
     psutil = _PsutilFallback()
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from value_fabric.layer3.config import get_settings
+from config import get_settings
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
@@ -78,7 +78,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 )
             )
         else:
-            from value_fabric.layer3.schema.initializer import SchemaInitializer
+            from schema.initializer import SchemaInitializer
 
             neo4j_checker = (
                 schema_initializer if schema_initializer is not None else SchemaInitializer()

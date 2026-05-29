@@ -9,8 +9,8 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from conftest import TestUtils
-from value_fabric.layer3.api.dependencies import get_schema_initializer
-from value_fabric.layer3.api.routes import system as system_routes
+from api.dependencies import get_schema_initializer
+from api.routes import system as system_routes
 
 
 @pytest.fixture

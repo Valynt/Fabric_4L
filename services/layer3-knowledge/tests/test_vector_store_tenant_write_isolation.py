@@ -4,7 +4,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore
+from retrieval.vector_store import Neo4jVectorStore
 
 
 class _FakeResult:

@@ -60,7 +60,7 @@ journeyTest.describe('Prospect create-account routing', () => {
       });
     });
 
-    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/accounts/new', { waitUntil: 'domcontentloaded' });
 
     await authedPage.getByPlaceholder(/company name/i).first().fill('Create Flow Account');
     await authedPage.getByPlaceholder(/website/i).first().fill('create-flow.example');

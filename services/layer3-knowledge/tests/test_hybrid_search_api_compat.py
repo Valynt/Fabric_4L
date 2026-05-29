@@ -2,8 +2,8 @@
 
 import pytest
 
-from value_fabric.layer3.config import Settings
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
+from config import Settings
+from retrieval.hybrid_search import HybridSearch
 
 
 @pytest.mark.asyncio

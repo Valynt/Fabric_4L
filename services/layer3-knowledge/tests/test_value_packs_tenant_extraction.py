@@ -13,7 +13,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer3.api.routes.value_packs import _tenant_id_from_api_key
+from api.routes.value_packs import _tenant_id_from_api_key
 
 
 # ---------------------------------------------------------------------------

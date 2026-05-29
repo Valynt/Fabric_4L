@@ -41,6 +41,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
+from .cypher_scope_guard import validate_tenant_scoped_cypher
 
 try:
     from value_fabric.shared.identity.context import require_context
@@ -423,6 +424,7 @@ class CaseStudyService:
                 "// strict-scoped-query-execution: where_str includes e.tenant_id = $tenant_id\n"
                 f"MATCH (e:Evidence) WHERE {where_str} RETURN count(e) AS total"
             )
+            validate_tenant_scoped_cypher(count_query, tenant_id)
             count_result = await run_validated_query(session, count_query, **params)
             count_record = await count_result.single()
             total = count_record["total"] if count_record else 0
@@ -437,6 +439,7 @@ class CaseStudyService:
                 ORDER BY e.published_date DESC
                 SKIP $offset LIMIT $limit
                 """
+            validate_tenant_scoped_cypher(search_query, tenant_id)
             result = await run_validated_query(session, search_query, **params)
 
             records = [record async for record in result]

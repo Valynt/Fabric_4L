@@ -16,7 +16,7 @@ from typing import Any, Literal, TypedDict
 from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from neo4j import AsyncDriver
 from pydantic import BaseModel, Field
-from value_fabric.layer3.models.valuepack import (
+from models.valuepack import (
     DEFAULT_VALUEPACKS,
     ComposableTemplateLibraryResponse,
     OntologyMapResponse,

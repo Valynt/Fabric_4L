@@ -6,6 +6,7 @@ Reason: Prometheus metrics collection for Value Fabric Layer 3 API.
 """
 
 import asyncio
+import re
 import time
 from datetime import datetime
 from functools import wraps
@@ -670,6 +671,25 @@ class PrometheusMetrics:
 class MetricsMiddleware:
     """Middleware to collect HTTP request metrics."""
 
+    # Patterns to replace with placeholders for cardinality control.
+    _UUID_RE = re.compile(
+        r"[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}", re.IGNORECASE
+    )
+    _NUMERIC_SEGMENT_RE = re.compile(r"(?<=/)\d+(?=/|$)")
+
+    @classmethod
+    def _normalize_path(cls, path: str) -> str:
+        """Strip UUIDs and numeric IDs from a URL path to control label cardinality.
+
+        Examples:
+            /entities/abc123def456-1234-5678-abcd-ef0123456789/details
+              → /entities/{id}/details
+            /accounts/42/signals → /accounts/{id}/signals
+        """
+        normalized = cls._UUID_RE.sub("{id}", path)
+        normalized = cls._NUMERIC_SEGMENT_RE.sub("{id}", normalized)
+        return normalized
+
     def __init__(self, metrics: PrometheusMetrics):
         """Initialize metrics middleware.
 
@@ -704,12 +724,13 @@ class MetricsMiddleware:
             except (ValueError, TypeError):
                 response_size = 0
 
-        # Extract endpoint path (remove query parameters)
+        # Extract endpoint path (remove query parameters) and normalize for cardinality control.
         endpoint = request.url.path
         if endpoint.endswith("/"):
             endpoint = endpoint[:-1]
         if not endpoint:
             endpoint = "/"
+        endpoint = self._normalize_path(endpoint)
 
         # Record metrics
         self.metrics.increment_requests_total(

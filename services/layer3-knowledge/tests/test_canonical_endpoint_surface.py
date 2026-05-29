@@ -8,9 +8,9 @@ Validates that the double-prefix bugs are fixed and legacy aliases remain govern
 
 import pytest
 
-from value_fabric.layer3.api.routes.entities import router as entities_router
-from value_fabric.layer3.api.routes.calculators import router as calculators_router
-from value_fabric.layer3.api.routes.graph_viz import router as graph_viz_router
+from api.routes.entities import router as entities_router
+from api.routes.calculators import router as calculators_router
+from api.routes.graph_viz import router as graph_viz_router
 
 
 @pytest.mark.unit

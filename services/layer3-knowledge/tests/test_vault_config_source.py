@@ -13,7 +13,7 @@ Verifies:
 
 import pytest
 
-from value_fabric.layer3.config.manager import (
+from config.manager import (
     ConfigSource,
     ConfigurationManager,
     VaultSourceNotSupportedError,

@@ -22,8 +22,8 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from value_fabric.layer3.config import get_settings
-from value_fabric.layer3.logging_config import get_logger, setup_logging
+from config import get_settings
+from logging_config import get_logger, setup_logging
 from value_fabric.shared.fastapi_framework import (
     RouterMount,
     add_governance_middleware,

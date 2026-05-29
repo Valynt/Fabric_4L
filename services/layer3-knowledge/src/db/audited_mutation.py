@@ -18,8 +18,8 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from value_fabric.layer3.db.query_execution import run_tenant_query
-from value_fabric.layer3.utils.cypher_security import (
+from db.query_execution import run_tenant_query
+from utils.cypher_security import (
     ALLOWED_REL_TYPES,
     validate_cypher_identifier,
 )

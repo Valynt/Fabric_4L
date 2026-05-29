@@ -11,7 +11,7 @@ execution.
 
 import pytest
 
-from value_fabric.layer3.agents.roi_calculation import ROICalculationAgent
+from agents.roi_calculation import ROICalculationAgent
 
 
 @pytest.fixture

@@ -81,7 +81,7 @@ journeyTest.describe('Journey 6: Account and Prospect Lifecycle Validation', () 
   journeyTest('Step 1 [GP-ACCOUNT-001]: user can begin prospect setup with source material and account context', async ({ authedPage }) => {
     await expectRouteSupportsWorkflow(
       authedPage,
-      '/workflow',
+      '/accounts/new',
       [/start a new value case/i, /search company/i, /attach source material/i, /run account enrichment/i],
       'prospect setup intake, source attachment, and enrichment controls',
     );
@@ -144,7 +144,7 @@ journeyTest.describe('Journey 6: Account and Prospect Lifecycle Validation', () 
       },
     ]);
 
-    await authedPage.goto('/workflow', { waitUntil: 'domcontentloaded' });
+    await authedPage.goto('/accounts/new', { waitUntil: 'domcontentloaded' });
 
     const companyInput = authedPage.getByPlaceholder(/company name/i).first();
     const domainInput = authedPage.getByPlaceholder(/website/i).first();

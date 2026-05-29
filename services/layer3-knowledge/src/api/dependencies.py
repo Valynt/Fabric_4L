@@ -1,10 +1,4 @@
-from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
-"""Allowed service-local exception for Layer 3 service wrapper.
-
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: FastAPI dependencies for Layer 3 API.
-"""
+"""FastAPI dependencies for Layer 3 API."""
 
 import logging
 
@@ -16,23 +10,25 @@ from neo4j.exceptions import (
     ServiceUnavailable,
     TransientError,
 )
-from value_fabric.layer3.agents import (
+from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
+
+from agents import (
     NarrativeSynthesisAgent,
     ProvenanceTrackingAgent,
     ROICalculationAgent,
     ValueTreeProjectionAgent,
     WhitespaceAnalysisAgent,
 )
-from value_fabric.layer3.analytics import (
+from analytics import (
     CentralityAnalyzer,
     CommunityDetector,
     SimilarityAnalyzer,
 )
-from value_fabric.layer3.config import Settings, get_settings
-from value_fabric.layer3.db.driver import get_driver, reset_driver
-from value_fabric.layer3.ingestion import Neo4jLoader, SyncManager
-from value_fabric.layer3.retrieval import GraphRAGEngine, HybridSearch, VectorStore
-from value_fabric.layer3.schema import SchemaInitializer
+from config import Settings, get_settings
+from db.driver import get_driver, reset_driver
+from ingestion import Neo4jLoader, SyncManager
+from retrieval import GraphRAGEngine, HybridSearch, VectorStore
+from schema import SchemaInitializer
 
 logger = logging.getLogger(__name__)
 

@@ -4,18 +4,14 @@ Service code should import shared/runtime symbols via this module to avoid
 accidental deep imports from non-public ``value_fabric`` paths.
 """
 
-from value_fabric.public_api import shared
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.error_handling.exceptions import ValueFabricException
-
-# Re-export stable shared API entrypoints used by service runtime modules.
-TypedDictModel = shared.TypedDictModel
-RequestContext = shared.RequestContext
-get_request_context = shared.get_request_context
-GovernanceMiddleware = shared.GovernanceMiddleware
-register_exception_handlers = shared.register_exception_handlers
-RedisRateLimiter = shared.RedisRateLimiter
-reject_insecure_bypass_in_production = shared.reject_insecure_bypass_in_production
-register_fabric_auth_from_env = shared.register_fabric_auth_from_env
+from value_fabric.shared.identity.context import RequestContext, get_request_context
+from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
+from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
+from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 
 def map_exception_to_contract_detail(

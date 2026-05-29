@@ -1,4 +1,4 @@
-from value_fabric.layer3.api.main import app
+from api.main import app
 
 
 def test_layer3_entrypoint_exposes_expected_routes() -> None:

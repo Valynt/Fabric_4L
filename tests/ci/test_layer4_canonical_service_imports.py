@@ -25,11 +25,11 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 LAYER4_SRC = REPO_ROOT / "services" / "layer4-agents" / "src"
 
 
-def test_shim_path_appends_service_src() -> None:
-    """value_fabric.layer4.__path__ must include the service source tree."""
+def test_shim_path_does_not_include_service_src() -> None:
+    """value_fabric.layer4 shim is neutralized: __path__ must not include the service source tree."""
     import value_fabric.layer4
 
-    assert any("layer4-agents" in str(p) for p in value_fabric.layer4.__path__)
+    assert not any("layer4-agents" in str(p) for p in value_fabric.layer4.__path__)
 
 
 def test_canonical_source_files_exist() -> None:
@@ -40,14 +40,15 @@ def test_canonical_source_files_exist() -> None:
     assert (LAYER4_SRC / "metrics" / "llm_cost_calculator.py").exists()
 
 
-def test_shim_file_is_thin_path_appender() -> None:
-    """value_fabric/layer4/__init__.py must only append path and not contain logic."""
+def test_shim_file_is_neutralized() -> None:
+    """value_fabric/layer4/__init__.py must be neutralized: no path manipulation."""
     shim = REPO_ROOT / "value_fabric" / "layer4" / "__init__.py"
     text = shim.read_text(encoding="utf-8")
 
-    assert "__path__.append" in text or "__path__.insert" in text
+    assert "__path__.append" not in text
+    assert "__path__.insert" not in text
     # Must not contain function definitions, class definitions, or business logic
-    assert "def " not in text or "_append" in text  # allow private helpers
+    assert "def " not in text
     assert "class " not in text
 
 

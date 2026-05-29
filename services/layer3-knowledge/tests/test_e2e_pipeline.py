@@ -37,20 +37,20 @@ try:
 except ImportError:
     HAS_TESTCONTAINERS = False
 
-from value_fabric.layer3.api.dependencies import (
+from api.dependencies import (
     get_graph_rag,
     get_hybrid_search,
     get_schema_initializer,
     get_sync_manager,
 )
-from value_fabric.layer3.api.main import app
-from value_fabric.layer3.config import Settings
-from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
-from value_fabric.layer3.ingestion.sync_manager import SyncManager
-from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import VectorStore
-from value_fabric.layer3.schema.initializer import SchemaInitializer
+from api.main import app
+from config import Settings
+from ingestion.neo4j_loader import Neo4jLoader
+from ingestion.sync_manager import SyncManager
+from retrieval.graph_rag import GraphRAGEngine
+from retrieval.hybrid_search import HybridSearch
+from retrieval.vector_store import VectorStore
+from schema.initializer import SchemaInitializer
 
 # Skip entire module if testcontainers not installed
 pytestmark = [
@@ -253,11 +253,11 @@ class TestSchemaInitialization:
         # Verify constraints match edition expectations
         if neo4j_edition == "community":
             # Community should have fewer constraints (no TENANT_CONSTRAINTS)
-            from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS)
         else:
             # Enterprise should have all constraints
-            from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
+            from schema.constraints import CONSTRAINTS, TENANT_CONSTRAINTS
             assert results["constraints"]["expected"] == len(CONSTRAINTS) + len(TENANT_CONSTRAINTS)
 
         # Schema should be valid

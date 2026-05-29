@@ -1,7 +1,7 @@
 import pytest
 from fastapi.testclient import TestClient
 
-from value_fabric.layer3.api.main import app
+from api.main import app
 
 
 @pytest.mark.unit
@@ -22,7 +22,7 @@ def test_standard_observability_probes_and_correlation_header() -> None:
 @pytest.mark.unit
 def test_graph_specific_metrics_present_in_prometheus_output() -> None:
     """Assert that the four graph-specific SLO metrics are registered and emitted."""
-    from value_fabric.layer3.metrics.prometheus_metrics import PrometheusMetrics, MetricsConfig
+    from metrics.prometheus_metrics import PrometheusMetrics, MetricsConfig
 
     metrics = PrometheusMetrics(MetricsConfig())
 

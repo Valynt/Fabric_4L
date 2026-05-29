@@ -50,8 +50,8 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-from value_fabric.layer3.api.dependencies import AppState
-from value_fabric.layer3.config import Settings, get_settings
+from api.dependencies import AppState
+from config import Settings, get_settings
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -175,13 +175,13 @@ def test_client(
     mock_app_state: AppState,
 ) -> Iterator[TestClient]:
     """Create test client with mocked dependencies."""
-    from value_fabric.layer3.api.main import app
+    from api.main import app
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from value_fabric.layer3.api.dependencies import (
+    from api.dependencies import (
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,
@@ -211,13 +211,13 @@ def test_client(
 @pytest_asyncio.fixture
 async def async_client(test_settings: TestSettings, mock_app_state: AppState) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client with mocked dependencies."""
-    from value_fabric.layer3.api.main import app
+    from api.main import app
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from value_fabric.layer3.api.dependencies import (
+    from api.dependencies import (
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,

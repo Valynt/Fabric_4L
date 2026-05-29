@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer3.api.routes.benchmarks import list_benchmark_policies
+from api.routes.benchmarks import list_benchmark_policies
 
 
 class _Result:
@@ -64,7 +64,7 @@ async def test_list_benchmark_policies_returns_same_tenant_records(monkeypatch):
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.benchmarks.create_neo4j_tenant_session",
+        "api.routes.benchmarks.create_neo4j_tenant_session",
         _session_factory,
     )
 
@@ -98,7 +98,7 @@ async def test_list_benchmark_policies_returns_empty_for_cross_tenant_records(mo
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.benchmarks.create_neo4j_tenant_session",
+        "api.routes.benchmarks.create_neo4j_tenant_session",
         _session_factory,
     )
 
@@ -118,7 +118,7 @@ async def test_list_benchmark_policies_passes_required_tenant_parameter_to_neo4j
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.benchmarks.create_neo4j_tenant_session",
+        "api.routes.benchmarks.create_neo4j_tenant_session",
         _session_factory,
     )
 
@@ -180,7 +180,7 @@ async def test_rejects_api_key_without_valid_tenant_metadata(api_key, monkeypatc
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.benchmarks.create_neo4j_tenant_session",
+        "api.routes.benchmarks.create_neo4j_tenant_session",
         _session_factory,
     )
 

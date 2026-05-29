@@ -1,5 +1,5 @@
-from value_fabric.layer3.api.exception_mapping import map_exception_to_http_error
-from value_fabric.layer3.api.exceptions import (
+from api.exception_mapping import map_exception_to_http_error
+from api.exceptions import (
     ContractViolationError,
     DatabaseError,
     SearchError,

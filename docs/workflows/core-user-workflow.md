@@ -320,7 +320,7 @@ Response: {
 ### Frontend Components
 
 ```text
-ProspectSetup (workflow/pages/ProspectSetup.tsx)
+ProspectSetup (pages/ProspectSetup.tsx, route: /accounts/new)
   ├── ProspectPromptBuilder (components/workspace/ProspectPromptBuilder.tsx)
   │   ├── Company selection dropdown
   │   ├── Structured prompt textarea

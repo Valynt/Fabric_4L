@@ -18,14 +18,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from value_fabric.layer3.api.dependencies_tenant_secured import require_request_tenant_id
-from value_fabric.layer3.api.routes.graph_viz import (
+from api.dependencies_tenant_secured import require_request_tenant_id
+from api.routes.graph_viz import (
     _VALID_REL_TYPE,
     get_entity_subgraph,
     get_full_graph,
     get_query_subgraph,
 )
-from value_fabric.layer3.db.query_execution import MAX_QUERY_DEPTH
+from db.query_execution import MAX_QUERY_DEPTH
 from fastapi import HTTPException
 
 # Test constants

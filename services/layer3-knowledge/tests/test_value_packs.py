@@ -13,7 +13,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer3.api.routes.value_packs import (
+from api.routes.value_packs import (
     PackExecuteRequest,
     PackForkRequest,
     PackUpdateRequest,
@@ -307,7 +307,7 @@ class TestExecutePackErrorHandling:
         pack_id = str(uuid.uuid4())
 
         with patch(
-            "value_fabric.layer3.api.routes.value_packs._get_pack_formulas",
+            "api.routes.value_packs._get_pack_formulas",
             return_value=[],
         ):
             # Create a minimal mock driver

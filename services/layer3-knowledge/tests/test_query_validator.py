@@ -8,7 +8,7 @@ Validates that the query validator correctly identifies:
 
 import pytest
 
-from value_fabric.layer3.security.query_validator import (
+from security.query_validator import (
     QueryValidator,
     ValidationFinding,
     ValidationSeverity,

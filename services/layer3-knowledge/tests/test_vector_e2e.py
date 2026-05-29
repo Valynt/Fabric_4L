@@ -34,17 +34,17 @@ try:
 except ImportError:
     HAS_TESTCONTAINERS = False
 
-from value_fabric.layer3.api.dependencies import (
+from api.dependencies import (
     get_schema_initializer,
     get_sync_manager,
 )
-from value_fabric.layer3.api.main import app
-from value_fabric.layer3.config import Settings
-from value_fabric.layer3.ingestion.neo4j_loader import Neo4jLoader
-from value_fabric.layer3.ingestion.sync_manager import SyncManager
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import VectorStore
-from value_fabric.layer3.schema.initializer import SchemaInitializer
+from api.main import app
+from config import Settings
+from ingestion.neo4j_loader import Neo4jLoader
+from ingestion.sync_manager import SyncManager
+from retrieval.hybrid_search import HybridSearch
+from retrieval.vector_store import VectorStore
+from schema.initializer import SchemaInitializer
 
 # Skip entire module if testcontainers not installed
 pytestmark = [

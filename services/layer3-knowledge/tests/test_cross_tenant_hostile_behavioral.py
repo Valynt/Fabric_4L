@@ -38,7 +38,7 @@ class TestTenantSessionBehavioral:
         """Tenant session should reject queries without explicit tenant predicates."""
         # Import only the tenant session wrapper to avoid full app import chain
         try:
-            from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession
+            from api.dependencies_tenant import Neo4jTenantSession
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
 
@@ -54,7 +54,7 @@ class TestTenantSessionBehavioral:
     async def test_tenant_session_executes_scoped_query(self, fake_session):
         """Tenant session should execute queries with explicit tenant predicates."""
         try:
-            from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession
+            from api.dependencies_tenant import Neo4jTenantSession
             from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
@@ -82,7 +82,7 @@ class TestTenantSessionBehavioral:
     async def test_tenant_session_denies_broad_match(self, fake_session):
         """Tenant session should deny broad MATCH traversals without tenant constraint."""
         try:
-            from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession
+            from api.dependencies_tenant import Neo4jTenantSession
         except ImportError:
             pytest.skip("L3 import infrastructure has pre-existing issues - covered by test_tenant_isolation.py")
 

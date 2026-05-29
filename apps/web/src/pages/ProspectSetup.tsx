@@ -7,55 +7,20 @@ import type {
   ProspectPromptBuilderProps,
   ProspectSetupPromptPayload,
 } from "@/components/workspace/ProspectPromptBuilder"
-import { WorkflowLayout } from "@/workflow/components/WorkflowLayout"
-import { useWorkflowStore } from "@/workflow/store/workflowStore"
-import { STEPS } from "@/workflow/constants"
-
-export type ProspectSetupMode = "workflow" | "value-pilot"
-
-type ProspectSetupPageProps = ProspectPromptBuilderProps & {
-  mode: ProspectSetupMode
-}
-
-type ModeConfig = {
-  workspacePath: (accountId: string, tenantSlug: string) => string
-  fallbackPath: string
-}
-
-const MODE_CONFIG: Record<ProspectSetupMode, ModeConfig> = {
-  workflow: {
-    workspacePath: (accountId, tenantSlug) => `/t/${tenantSlug}/accounts/${accountId}/intelligence/signals`,
-    fallbackPath: "/workflow/intelligence",
-  },
-  "value-pilot": {
-    workspacePath: (accountId, tenantSlug) => `/t/${tenantSlug}/accounts/${accountId}/studio/action-plan`,
-    fallbackPath: "/workflow/intelligence",
-  },
-}
 
 function useTenantSlug(): string | null {
   const ctx = useContext(AuthContext)
   return ctx?.currentTenantSlug ?? null
 }
 
-export default function ProspectSetupPage({ mode, ...props }: ProspectSetupPageProps) {
+/**
+ * Canonical account/prospect creation page.
+ * Route: /accounts/new
+ * After creation, navigates to /t/:tenantSlug/accounts/:accountId/intelligence/signals
+ */
+export default function ProspectSetupPage({ ...props }: ProspectPromptBuilderProps) {
   const { navigateTo } = useNavigation()
   const tenantSlug = useTenantSlug() ?? "default"
-  const { setProspect, setCurrentStep } = useWorkflowStore()
-  const modeConfig = MODE_CONFIG[mode]
-
-  const handleBeforeSubmit = React.useCallback(
-    (state: { draft: { companyName: string; stakeholders: { economicBuyer: string; champion: string } } }) => {
-      const tempId = `temp_${Date.now()}`
-      setProspect({
-        companyId: tempId,
-        companyName: state.draft.companyName || "",
-        contactName: state.draft.stakeholders.economicBuyer || state.draft.stakeholders.champion || "",
-        contactTitle: "",
-      })
-    },
-    [setProspect]
-  )
 
   const handleCreateSetup = React.useCallback(
     async (payload: ProspectSetupPromptPayload) => {
@@ -76,20 +41,21 @@ export default function ProspectSetupPage({ mode, ...props }: ProspectSetupPageP
   )
 
   const handleFallbackNavigation = React.useCallback(() => {
-    setCurrentStep(STEPS.INTELLIGENCE)
-    navigateTo(modeConfig.fallbackPath)
-  }, [modeConfig.fallbackPath, navigateTo, setCurrentStep])
+    navigateTo("/home")
+  }, [navigateTo])
 
   return (
-    <WorkflowLayout>
+    <main className="flex min-h-screen flex-col items-center justify-center p-8">
       <ProspectPromptBuilder
         {...props}
         onCreateSetup={handleCreateSetup}
         onNavigateToWorkspace={handleNavigateToWorkspace}
-        onBeforeSubmit={handleBeforeSubmit}
         onFallbackNavigation={handleFallbackNavigation}
-        getWorkspacePath={(accountId) => modeConfig.workspacePath(accountId, tenantSlug)}
+        getWorkspacePath={(accountId) =>
+          `/t/${tenantSlug}/accounts/${accountId}/intelligence/signals`
+        }
       />
-    </WorkflowLayout>
+    </main>
   )
 }
+

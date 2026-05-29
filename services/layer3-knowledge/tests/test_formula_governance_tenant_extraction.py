@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from value_fabric.layer3.api.routes.formula_governance import list_pending_approvals
+from api.routes.formula_governance import list_pending_approvals
 
 
 class _Result:
@@ -47,7 +47,7 @@ async def test_list_pending_approvals_accepts_valid_tenant_metadata(monkeypatch)
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.formula_governance.create_neo4j_tenant_session",
+        "api.routes.formula_governance.create_neo4j_tenant_session",
         _session_factory,
     )
 
@@ -108,7 +108,7 @@ async def test_rejects_api_key_without_valid_tenant_metadata(api_key, monkeypatc
         return session
 
     monkeypatch.setattr(
-        "value_fabric.layer3.api.routes.formula_governance.create_neo4j_tenant_session",
+        "api.routes.formula_governance.create_neo4j_tenant_session",
         _session_factory,
     )
 

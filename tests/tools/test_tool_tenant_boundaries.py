@@ -24,7 +24,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Permission
 
 try:
-    from services.layer4_agents.src.tools.registry import ToolRegistry, ToolCategory
+    from src.tools.registry import ToolRegistry, ToolCategory
     _REGISTRY_AVAILABLE = True
 except (ImportError, Exception):
     ToolRegistry = None  # type: ignore[assignment,misc]
@@ -107,7 +107,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to read tenant B's entities.
         """
-        from services.layer4_agents.src.tools.knowledge import get_entity
+        from src.tools.knowledge import get_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -127,8 +127,8 @@ class TestToolInvocationIsolation:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 result = await get_entity(
                     entity_id=entity_id,
                     context=ctx_a,
@@ -142,7 +142,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to update tenant B's entity.
         """
-        from services.layer4_agents.src.tools.knowledge import update_entity
+        from src.tools.knowledge import update_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -162,8 +162,8 @@ class TestToolInvocationIsolation:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 result = await update_entity(
                     entity_id=entity_id,
                     updates={"name": "Malicious Update"},
@@ -178,7 +178,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to delete tenant B's entity.
         """
-        from services.layer4_agents.src.tools.knowledge import delete_entity
+        from src.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -198,8 +198,8 @@ class TestToolInvocationIsolation:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 result = await delete_entity(
                     entity_id=entity_id,
                     context=ctx_a,
@@ -222,7 +222,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides SQL in entity_id parameter.
         """
-        from services.layer4_agents.src.tools.knowledge import get_entity
+        from src.tools.knowledge import get_entity
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -241,8 +241,8 @@ class TestToolParameterValidation:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 result = await get_entity(
                     entity_id=malicious_entity_id,
                     context=ctx,
@@ -256,7 +256,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides path traversal in file parameter.
         """
-        from services.layer4_agents.src.tools.files import read_file
+        from src.tools.files import read_file
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -277,7 +277,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides huge parameter to DoS.
         """
-        from services.layer4_agents.src.tools.knowledge import search_entities
+        from src.tools.knowledge import search_entities
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -296,8 +296,8 @@ class TestToolParameterValidation:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 result = await search_entities(
                     query=huge_query,
                     context=ctx,
@@ -311,7 +311,7 @@ class TestToolParameterValidation:
 
         Rationale: Invalid tenant_id could cause downstream errors.
         """
-        from services.layer4_agents.src.tools.knowledge import get_entity  # noqa: F401
+        from src.tools.knowledge import get_entity  # noqa: F401
 
         with pytest.raises((ValueError, TypeError)):
             RequestContext(
@@ -335,7 +335,7 @@ class TestToolResultFiltering:
 
         Rationale: Search across all tenants would leak data.
         """
-        from services.layer4_agents.src.tools.knowledge import search_entities
+        from src.tools.knowledge import search_entities
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -357,8 +357,8 @@ class TestToolResultFiltering:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 results = await search_entities(
                     query="Entity",
                     context=ctx_a,
@@ -373,7 +373,7 @@ class TestToolResultFiltering:
 
         Rationale: Listing all items would leak data.
         """
-        from services.layer4_agents.src.tools.knowledge import list_entities
+        from src.tools.knowledge import list_entities
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -395,8 +395,8 @@ class TestToolResultFiltering:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event"):
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event"):
                 results = await list_entities(context=ctx_a)
 
                 assert len(results) == 2
@@ -408,7 +408,7 @@ class TestToolResultFiltering:
 
         Rationale: Aggregating across tenants would leak statistics.
         """
-        from services.layer4_agents.src.tools.analytics import count_entities
+        from src.tools.analytics import count_entities
 
         tenant_a = uuid4()
 
@@ -426,8 +426,8 @@ class TestToolResultFiltering:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.analytics._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.analytics.emit_audit_event"):
+        with patch("src.tools.analytics._get_driver", return_value=mock_driver):
+            with patch("src.tools.analytics.emit_audit_event"):
                 count = await count_entities(context=ctx_a)
 
                 assert count == 30
@@ -447,7 +447,7 @@ class TestToolAuditLogging:
 
         Rationale: Audit trail must show which tenant invoked which tool.
         """
-        from services.layer4_agents.src.tools.knowledge import get_entity
+        from src.tools.knowledge import get_entity
 
         tenant_id = uuid4()
         entity_id = "entity-123"
@@ -466,8 +466,8 @@ class TestToolAuditLogging:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event") as mock_audit:
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event") as mock_audit:
                 await get_entity(
                     entity_id=entity_id,
                     context=ctx,
@@ -486,7 +486,7 @@ class TestToolAuditLogging:
 
         Rationale: Failed attempts may indicate attack.
         """
-        from services.layer4_agents.src.tools.knowledge import delete_entity
+        from src.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -505,8 +505,8 @@ class TestToolAuditLogging:
         mock_driver.session.return_value.__aenter__.return_value = mock_session
         mock_driver.session.return_value.__aexit__.return_value = None
 
-        with patch("value_fabric.layer4.tools.knowledge._get_driver", return_value=mock_driver):
-            with patch("value_fabric.layer4.tools.knowledge.emit_audit_event") as mock_audit:
+        with patch("src.tools.knowledge._get_driver", return_value=mock_driver):
+            with patch("src.tools.knowledge.emit_audit_event") as mock_audit:
                 try:
                     await delete_entity(
                         entity_id="entity-123",
@@ -535,7 +535,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Read-only users should not be able to modify data.
         """
-        from services.layer4_agents.src.tools.knowledge import update_entity
+        from src.tools.knowledge import update_entity
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -558,7 +558,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Write permission should not grant delete access.
         """
-        from services.layer4_agents.src.tools.knowledge import delete_entity
+        from src.tools.knowledge import delete_entity
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -580,7 +580,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Regular users should not access admin tools.
         """
-        from services.layer4_agents.src.tools.admin import suspend_tenant
+        from src.tools.admin import suspend_tenant
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -611,7 +611,7 @@ class TestToolChaining:
 
         Rationale: Tool A calling tool B must pass tenant context.
         """
-        from services.layer4_agents.src.tools.workflows import analyze_entity
+        from src.tools.workflows import analyze_entity
 
         tenant_id = uuid4()
         entity_id = "entity-123"
@@ -622,8 +622,8 @@ class TestToolChaining:
             permissions=frozenset([Permission.READ_SEARCH.value]),
         )
 
-        with patch("value_fabric.layer4.tools.knowledge.get_entity") as mock_get:
-            with patch("value_fabric.layer4.tools.analytics.compute_metrics") as mock_compute:
+        with patch("src.tools.knowledge.get_entity") as mock_get:
+            with patch("src.tools.analytics.compute_metrics") as mock_compute:
                 mock_get.return_value = {"id": entity_id, "tenant_id": str(tenant_id)}
                 mock_compute.return_value = {"score": 0.95}
 
@@ -644,7 +644,7 @@ class TestToolChaining:
 
         Attack scenario: Read-only tool chains to write tool.
         """
-        from services.layer4_agents.src.tools.workflows import read_and_update
+        from src.tools.workflows import read_and_update
 
         context = RequestContext(
             tenant_id=uuid4(),

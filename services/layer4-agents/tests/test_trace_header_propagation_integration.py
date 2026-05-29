@@ -10,7 +10,7 @@ from src.integration.layer2_client import Layer2ExtractionClient
 # requires layer3's internal bare imports to resolve without colliding with
 # layer4's own `config` package.  Skip gracefully when not available.
 try:
-    from value_fabric.layer3.tracing.middleware import TracingMiddleware
+    from tracing.middleware import TracingMiddleware
 
     _LAYER3_TRACING_AVAILABLE = True
 except (ImportError, Exception):
@@ -26,7 +26,7 @@ from value_fabric.shared.observability.trace_context import (
 @pytest.mark.asyncio
 @pytest.mark.skipif(
     not _LAYER3_TRACING_AVAILABLE,
-    reason="value_fabric.layer3.tracing not importable in layer4 test env (cross-service namespace collision)",
+    reason="layer3 tracing.middleware not importable in layer4 test env (cross-service namespace collision)",
 )
 @pytest.mark.parametrize("legacy_header", TRACE_HEADER_ALIASES)
 async def test_layer3_handler_reads_legacy_trace_headers_and_emits_canonical_only(legacy_header: str) -> None:

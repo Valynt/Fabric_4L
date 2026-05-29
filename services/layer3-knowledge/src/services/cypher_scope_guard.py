@@ -12,7 +12,7 @@ all consumers are updated.
 """
 
 
-from value_fabric.layer3.utils.cypher_security import (  # noqa: F401
+from utils.cypher_security import (  # noqa: F401
     ALLOWED_REL_TYPES,
     ALLOWED_TARGET_LABELS,
     TENANT_OWNED_LABELS,

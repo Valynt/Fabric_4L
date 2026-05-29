@@ -105,7 +105,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_create_product_returns_id(self):
         """ProductService.create_product stores node and returns its id."""
-        from value_fabric.layer3.services.product_service import ProductCreate, ProductService
+        from services.product_service import ProductCreate, ProductService
 
         driver, session, result = _make_mock_driver(
             [{"product": {"id": "p1", "name": "TestProduct", "category": "SaaS"}}]
@@ -126,7 +126,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_get_product_not_found(self):
         """ProductService.get_product returns None for missing product."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([])
 
@@ -138,7 +138,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_get_product_found(self):
         """ProductService.get_product returns product dict when found."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         product_data = {
             "product": {
@@ -160,7 +160,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_list_products_pagination(self):
         """ProductService.list_products returns paginated results."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session = _make_multi_query_driver([
             # Count query result
@@ -181,7 +181,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_delete_product(self):
         """ProductService.delete_product returns True when node is deleted."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([{"deleted": 1}])
 
@@ -193,7 +193,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_delete_product_not_found(self):
         """ProductService.delete_product returns False when node not found."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([{"deleted": 0}])
 
@@ -205,7 +205,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_add_feature(self):
         """ProductService.add_feature creates feature node and relationship."""
-        from value_fabric.layer3.services.product_service import FeatureCreate, ProductService
+        from services.product_service import FeatureCreate, ProductService
 
         driver, session, result = _make_mock_driver(
             [{"feature": {"id": "feat-1", "name": "Auto-Discovery", "feature_type": "core"}}]
@@ -221,7 +221,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_match_signals_to_products(self):
         """ProductService.match_signals_to_products returns matched products."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([
             {
@@ -244,7 +244,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_get_portfolio_summary(self):
         """ProductService.get_portfolio_summary returns aggregate stats."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([{
             "total_products": 10,
@@ -266,7 +266,7 @@ class TestProductService:
     @pytest.mark.asyncio
     async def test_get_capability_coverage(self):
         """ProductService.get_capability_coverage returns coverage list."""
-        from value_fabric.layer3.services.product_service import ProductService
+        from services.product_service import ProductService
 
         driver, session, result = _make_mock_driver([
             {
@@ -302,7 +302,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_create_case_study(self):
         """CaseStudyService.create stores Evidence node and returns result."""
-        from value_fabric.layer3.services.case_study_service import CaseStudy, CaseStudyService
+        from services.case_study_service import CaseStudy, CaseStudyService
 
         cs_id = str(uuid.uuid4())
         driver, session, result = _make_mock_driver(
@@ -330,7 +330,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_get_case_study_found(self):
         """CaseStudyService.get returns case study dict when found."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{
             "case_study": {
@@ -354,7 +354,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_get_case_study_not_found(self):
         """CaseStudyService.get returns None when case study doesn't exist."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{
             "case_study": None,
@@ -370,7 +370,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_update_case_study(self):
         """CaseStudyService.update modifies properties and returns result."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{
             "id": "cs-1",
@@ -386,7 +386,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_update_case_study_not_found(self):
         """CaseStudyService.update returns None for missing case study."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([])
 
@@ -398,7 +398,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_update_protects_system_fields(self):
         """CaseStudyService.update strips protected fields (id, tenant_id, etc)."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{
             "id": "cs-1",
@@ -425,7 +425,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_delete_case_study(self):
         """CaseStudyService.delete returns True when node is removed."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{"deleted": 1}])
 
@@ -437,7 +437,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_delete_case_study_not_found(self):
         """CaseStudyService.delete returns False for missing case study."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([{"deleted": 0}])
 
@@ -449,7 +449,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_search_with_industry_filter(self):
         """CaseStudyService.search filters by industry."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session = _make_multi_query_driver([
             # Count query
@@ -476,7 +476,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_get_by_industry(self):
         """CaseStudyService.get_by_industry returns industry→count mapping."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([
             {"industry": "healthcare", "count": 5},
@@ -492,7 +492,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_get_by_product(self):
         """CaseStudyService.get_by_product returns product→count mapping."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         driver, session, result = _make_mock_driver([
             {"product": "ValueEngine", "count": 8},
@@ -506,7 +506,7 @@ class TestCaseStudyService:
     @pytest.mark.asyncio
     async def test_bulk_import_success(self):
         """CaseStudyService.bulk_import creates multiple case studies."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyService
+        from services.case_study_service import CaseStudyService
 
         # Each create call returns a single record
         driver, session, result = _make_mock_driver(
@@ -543,7 +543,7 @@ class TestCaseStudyModel:
 
     def test_case_study_defaults(self):
         """CaseStudy sets sensible defaults for optional fields."""
-        from value_fabric.layer3.services.case_study_service import CaseStudy
+        from services.case_study_service import CaseStudy
 
         cs = CaseStudy(
             tenant_id="t1",
@@ -560,7 +560,7 @@ class TestCaseStudyModel:
 
     def test_case_study_to_node_properties(self):
         """CaseStudy.to_node_properties returns complete dict for Neo4j."""
-        from value_fabric.layer3.services.case_study_service import CaseStudy
+        from services.case_study_service import CaseStudy
 
         cs = CaseStudy(
             tenant_id="t1",
@@ -582,7 +582,7 @@ class TestCaseStudyModel:
 
     def test_case_study_outcome_to_dict(self):
         """CaseStudyOutcome.to_dict serializes all fields."""
-        from value_fabric.layer3.services.case_study_service import CaseStudyOutcome
+        from services.case_study_service import CaseStudyOutcome
 
         outcome = CaseStudyOutcome(
             metric="revenue_increase",
@@ -599,7 +599,7 @@ class TestCaseStudyModel:
 
     def test_case_study_with_outcome_objects(self):
         """CaseStudy.to_node_properties handles CaseStudyOutcome objects."""
-        from value_fabric.layer3.services.case_study_service import CaseStudy, CaseStudyOutcome
+        from services.case_study_service import CaseStudy, CaseStudyOutcome
 
         outcome = CaseStudyOutcome(metric="cost", improvement_pct=25.0)
         cs = CaseStudy(
@@ -625,7 +625,7 @@ class TestProductModels:
 
     def test_product_create_defaults(self):
         """ProductCreate sets optional fields to empty lists (not None)."""
-        from value_fabric.layer3.services.product_service import ProductCreate
+        from services.product_service import ProductCreate
 
         pc = ProductCreate(name="TestProd", description="A test product")
 
@@ -636,7 +636,7 @@ class TestProductModels:
 
     def test_product_create_with_all_fields(self):
         """ProductCreate accepts all fields."""
-        from value_fabric.layer3.services.product_service import ProductCreate
+        from services.product_service import ProductCreate
 
         pc = ProductCreate(
             name="ValueEngine",
@@ -655,7 +655,7 @@ class TestProductModels:
 
     def test_feature_create(self):
         """FeatureCreate captures name and description."""
-        from value_fabric.layer3.services.product_service import FeatureCreate
+        from services.product_service import FeatureCreate
 
         fc = FeatureCreate(name="AutoDiscover", description="Auto discovery feature")
 
