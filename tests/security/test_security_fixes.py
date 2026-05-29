@@ -139,7 +139,7 @@ def test_x_tenant_id_requires_service_secret():
 
 def test_safe_eval_blocks_unsafe_expressions():
     """P0-2: AST evaluator should reject dangerous constructs."""
-    from value_fabric.layer3.services.signal_quantification import SignalQuantificationService
+    from layer3_knowledge.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
@@ -165,7 +165,7 @@ def test_safe_eval_blocks_unsafe_expressions():
 
 def test_safe_eval_allows_safe_expressions():
     """P0-2: AST evaluator should allow safe arithmetic."""
-    from value_fabric.layer3.services.signal_quantification import SignalQuantificationService
+    from layer3_knowledge.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
@@ -184,7 +184,7 @@ def test_safe_eval_allows_safe_expressions():
 
 def test_sfdc_id_validation():
     """P0-1: Invalid Salesforce IDs should be rejected."""
-    from value_fabric.layer4.tools.crm_tools import GetProspectDataTool
+    from services.layer4_agents.src.tools.crm_tools import GetProspectDataTool
 
     tool = GetProspectDataTool()
 
@@ -232,7 +232,7 @@ def test_websocket_requires_token():
 @pytest.mark.xfail(strict=False, reason='Pickle serializer check requires live Redis connection')
 def test_pickle_serializer_disabled():
     """P1-10: Pickle serializer should raise ValueError."""
-    from value_fabric.layer3.cache.redis_cache import RedisCache
+    from layer3_knowledge.cache.redis_cache import RedisCache
 
     cache = RedisCache(redis_url="redis://localhost:6379/0")
     cache.config.serializer = "pickle"
@@ -251,7 +251,7 @@ def test_pickle_serializer_disabled():
 
 def test_cypher_write_operations_blocked():
     """P1-11: Write Cypher operations should be rejected."""
-    from value_fabric.layer4.tools.knowledge_tools import QueryGraphTool
+    from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
 
     tool = QueryGraphTool()
 
@@ -289,7 +289,7 @@ def test_cypher_write_operations_blocked():
 
 def test_xbrl_parser_uses_defusedxml():
     """P1-20: XBRL parser should use defusedxml to prevent XXE."""
-    from value_fabric.layer1.adapters.xbrl_parser import XBRLParser
+    from layer1_ingestion.adapters.xbrl_parser import XBRLParser
     import inspect
 
     source = inspect.getsource(XBRLParser.parse)
@@ -297,7 +297,7 @@ def test_xbrl_parser_uses_defusedxml():
     # Should use defusedxml.fromstring, not ET.fromstring
     assert "fromstring" in source
     # Check that defusedxml is imported
-    from value_fabric.layer1.adapters import xbrl_parser as parser_module
+    from layer1_ingestion.adapters import xbrl_parser as parser_module
     assert hasattr(parser_module, 'fromstring')
 
 

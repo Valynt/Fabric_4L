@@ -24,7 +24,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.permissions import Permission
 
 try:
-    from value_fabric.layer4.tools.registry import ToolRegistry, ToolCategory
+    from services.layer4_agents.src.tools.registry import ToolRegistry, ToolCategory
     _REGISTRY_AVAILABLE = True
 except (ImportError, Exception):
     ToolRegistry = None  # type: ignore[assignment,misc]
@@ -107,7 +107,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to read tenant B's entities.
         """
-        from value_fabric.layer4.tools.knowledge import get_entity
+        from services.layer4_agents.src.tools.knowledge import get_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -142,7 +142,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to update tenant B's entity.
         """
-        from value_fabric.layer4.tools.knowledge import update_entity
+        from services.layer4_agents.src.tools.knowledge import update_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -178,7 +178,7 @@ class TestToolInvocationIsolation:
 
         Attack scenario: Tenant A tries to delete tenant B's entity.
         """
-        from value_fabric.layer4.tools.knowledge import delete_entity
+        from services.layer4_agents.src.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -222,7 +222,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides SQL in entity_id parameter.
         """
-        from value_fabric.layer4.tools.knowledge import get_entity
+        from services.layer4_agents.src.tools.knowledge import get_entity
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -256,7 +256,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides path traversal in file parameter.
         """
-        from value_fabric.layer4.tools.files import read_file
+        from services.layer4_agents.src.tools.files import read_file
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -277,7 +277,7 @@ class TestToolParameterValidation:
 
         Attack scenario: Tenant provides huge parameter to DoS.
         """
-        from value_fabric.layer4.tools.knowledge import search_entities
+        from services.layer4_agents.src.tools.knowledge import search_entities
 
         ctx = RequestContext(
             tenant_id=uuid4(),
@@ -311,7 +311,7 @@ class TestToolParameterValidation:
 
         Rationale: Invalid tenant_id could cause downstream errors.
         """
-        from value_fabric.layer4.tools.knowledge import get_entity  # noqa: F401
+        from services.layer4_agents.src.tools.knowledge import get_entity  # noqa: F401
 
         with pytest.raises((ValueError, TypeError)):
             RequestContext(
@@ -335,7 +335,7 @@ class TestToolResultFiltering:
 
         Rationale: Search across all tenants would leak data.
         """
-        from value_fabric.layer4.tools.knowledge import search_entities
+        from services.layer4_agents.src.tools.knowledge import search_entities
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -373,7 +373,7 @@ class TestToolResultFiltering:
 
         Rationale: Listing all items would leak data.
         """
-        from value_fabric.layer4.tools.knowledge import list_entities
+        from services.layer4_agents.src.tools.knowledge import list_entities
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -408,7 +408,7 @@ class TestToolResultFiltering:
 
         Rationale: Aggregating across tenants would leak statistics.
         """
-        from value_fabric.layer4.tools.analytics import count_entities
+        from services.layer4_agents.src.tools.analytics import count_entities
 
         tenant_a = uuid4()
 
@@ -447,7 +447,7 @@ class TestToolAuditLogging:
 
         Rationale: Audit trail must show which tenant invoked which tool.
         """
-        from value_fabric.layer4.tools.knowledge import get_entity
+        from services.layer4_agents.src.tools.knowledge import get_entity
 
         tenant_id = uuid4()
         entity_id = "entity-123"
@@ -486,7 +486,7 @@ class TestToolAuditLogging:
 
         Rationale: Failed attempts may indicate attack.
         """
-        from value_fabric.layer4.tools.knowledge import delete_entity
+        from services.layer4_agents.src.tools.knowledge import delete_entity
 
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -535,7 +535,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Read-only users should not be able to modify data.
         """
-        from value_fabric.layer4.tools.knowledge import update_entity
+        from services.layer4_agents.src.tools.knowledge import update_entity
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -558,7 +558,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Write permission should not grant delete access.
         """
-        from value_fabric.layer4.tools.knowledge import delete_entity
+        from services.layer4_agents.src.tools.knowledge import delete_entity
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -580,7 +580,7 @@ class TestToolPermissionEnforcement:
 
         Rationale: Regular users should not access admin tools.
         """
-        from value_fabric.layer4.tools.admin import suspend_tenant
+        from services.layer4_agents.src.tools.admin import suspend_tenant
 
         context = RequestContext(
             tenant_id=uuid4(),
@@ -611,7 +611,7 @@ class TestToolChaining:
 
         Rationale: Tool A calling tool B must pass tenant context.
         """
-        from value_fabric.layer4.tools.workflows import analyze_entity
+        from services.layer4_agents.src.tools.workflows import analyze_entity
 
         tenant_id = uuid4()
         entity_id = "entity-123"
@@ -644,7 +644,7 @@ class TestToolChaining:
 
         Attack scenario: Read-only tool chains to write tool.
         """
-        from value_fabric.layer4.tools.workflows import read_and_update
+        from services.layer4_agents.src.tools.workflows import read_and_update
 
         context = RequestContext(
             tenant_id=uuid4(),

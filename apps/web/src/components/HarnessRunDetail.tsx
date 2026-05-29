@@ -311,7 +311,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                 </p>
               )}
             </div>
-            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose}>
+            <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0" onClick={onClose} aria-label="Close">
               <X className="h-4 w-4" />
             </Button>
           </div>

@@ -108,7 +108,7 @@ open http://localhost:5173
 
 ## Repository map
 
-Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
+Per **[ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree is `services/`. The `value_fabric/layer*/`
 packages are **namespace shims only** that re-export from the matching service
 package. See **[Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md)**
@@ -158,33 +158,40 @@ import-topology tests under [`tests/arch/`](tests/arch/) and
 | Document | Description |
 |----------|-------------|
 | [System Architecture](docs/core-concepts/architecture.md) | 6-layer pipeline architecture |
+| [Canonical Platform Contract](docs/contract.md) | Enforced direction for 6 cross-layer concerns |
+| [Architecture Decision Records](docs/explanations/adr/) | Historical design decisions and rationale |
 | [Security Model](docs/core-concepts/security-model.md) | Authentication, RBAC, and tenant isolation |
 | [Ontology System](docs/core-concepts/ontology-system.md) | Entity taxonomy and extraction pipeline |
-| [Canonical Platform Contract](docs/contract.md) | Enforced direction for 6 cross-layer concerns |
 
 ## Developer Guide
 
 | Document | Description |
 |----------|-------------|
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Setup and contribution guide |
+| [AGENTS.md](AGENTS.md) | AI agent reference |
 | [Layer Runtime Path Governance](docs/reference/layer-runtime-path-governance.md) | Where new code must live per layer |
 | [Testing Strategy](docs/reference/testing-strategy.md) | Test pyramid and coverage requirements |
-| [API Reference](docs/reference/api-overview.md) | Multi-layer API structure and patterns |
-| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, and generated-client rules |
+| [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
 
-## For AI Agents
+## API Reference
 
 | Document | Description |
 |----------|-------------|
-| [AGENTS.md](AGENTS.md) | Practical commands and directory map for AI agents |
-| [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
+| [API Reference Overview](docs/reference/api-overview.md) | Multi-layer API structure and patterns |
+| [Layer 1 Ingestion API](docs/reference/layer1-ingestion-api.md) | Ingestion service endpoints |
+| [Layer 2 Extraction API](docs/reference/layer2-extraction-api.md) | Extraction service endpoints |
+| [Layer 3 Knowledge API](docs/reference/layer3-knowledge-api.md) | Knowledge graph endpoints |
+| [Layer 4 Agents API](docs/reference/layer4-agents-api.md) | Agent workflow endpoints |
+| [Layer 5 Ground Truth API](docs/reference/layer5-ground-truth-api.md) | Ground truth validation endpoints |
+| [Frontend Query Patterns](docs/reference/frontend-query-patterns.md) | TanStack Query, Zustand, and generated-client rules |
 
 ## Operations
 
 | Document | Description |
 |----------|-------------|
-| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
-| [Operator Runbooks](docs/how-to-guides/operators.md) | Single jumping-off point for operator-facing runbooks |
 | [Release Runbook](docs/operations/RELEASE_RUNBOOK.md) | Release procedures |
+| [Operator Runbooks](docs/how-to-guides/operators.md) | Single jumping-off point for operator-facing runbooks |
+| [Troubleshooting Guide](docs/troubleshooting/index.md) | Decision trees and common issues |
 | [Keycloak Integration](docs/operations/keycloak-integration.md) | Keycloak setup and configuration |
 
 ## Governance
@@ -195,15 +202,24 @@ import-topology tests under [`tests/arch/`](tests/arch/) and
 | [Launch Drift Prevention SOP](docs/governance/launch-drift-prevention-sop.md) | Required approvals on contract/tenant/shim changes |
 | [Contract Governance](contracts/GOVERNANCE.md) | How API contracts evolve |
 
+## Security
+
+| Document | Description |
+|----------|-------------|
+| [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
+| [Security Documentation](docs/security/) | Multi-tenancy, secrets management, threat model |
+
 ## Documentation
 
 📚 **[Complete Documentation →](docs/README.md)**
 
 Our documentation follows the [Diátaxis Framework](https://diataxis.fr/) with tutorials, how-to guides, reference, and explanations.
 
-## Contributing
+## Archived Documentation
 
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for developer contribution guide.
+🗄️ **[Archived Documentation →](docs/archive/INDEX.md)**
+
+Historical reports, superseded specifications, and outdated analysis documents retained for traceability.
 
 ## SDK Installation
 

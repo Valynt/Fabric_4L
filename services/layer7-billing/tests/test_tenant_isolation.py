@@ -11,6 +11,8 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy import select, Result, text
 
+from conftest import auth_headers, billing_context
+
 
 @pytest.mark.asyncio
 async def test_upsert_plan_includes_tenant_id_in_query():
@@ -356,38 +358,107 @@ class TestAdversarialHeaderInjection:
 
     After P0-02 hardening, tenant_id is extracted from RequestContext
     set by GovernanceMiddleware, not from raw headers. These tests
-    verify that the dependency chain enforces tenant context.
+    verify that the dependency chain enforces tenant context and that
+    transport-layer tenant hints cannot override the authenticated context.
     """
 
     @pytest.mark.asyncio
-    async def test_x_tenant_id_header_spoofing_prevented(self):
-        """Spoofing X-Tenant-ID header should be prevented by GovernanceMiddleware."""
-        # After P0-02 hardening, get_db_from_context requires RequestContext
-        # from GovernanceMiddleware, not raw headers. Header spoofing is
-        # prevented at the middleware layer.
-        # This test is now covered by GovernanceMiddleware tests.
-        pytest.skip("Covered by GovernanceMiddleware P0-02 hardening")
+    async def test_x_tenant_id_header_spoofing_rejected(self):
+        """Spoofed X-Tenant-ID header must be rejected when it conflicts with authenticated context."""
+        from httpx import AsyncClient, ASGITransport
+        from layer7_billing.api.main import app
+
+        trusted_tenant = "tenant-trusted-abc"
+        spoofed_tenant = "tenant-spoofed-xyz"
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(
+                "/v1/billing/usage-aggregates",
+                headers={
+                    **auth_headers(tenant_id=trusted_tenant),
+                    "X-Tenant-ID": spoofed_tenant,
+                },
+            )
+
+        # Middleware must reject conflicting tenant_id with 403
+        assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_empty_tenant_id_header_rejected(self):
-        """Empty tenant ID should be rejected by GovernanceMiddleware."""
-        # After P0-02 hardening, empty tenant_id is rejected at middleware layer.
-        pytest.skip("Covered by GovernanceMiddleware P0-02 hardening")
+    async def test_missing_tenant_context_fails_closed(self):
+        """Missing tenant context must fail closed (401) before reaching repository."""
+        from httpx import AsyncClient, ASGITransport
+        from layer7_billing.api.main import app
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get("/v1/billing/invoices")
+
+        assert response.status_code == 401
 
     @pytest.mark.asyncio
-    async def test_null_tenant_id_header_rejected(self):
-        """Null tenant ID should be rejected by GovernanceMiddleware."""
-        # After P0-02 hardening, null tenant_id is rejected at middleware layer.
-        pytest.skip("Covered by GovernanceMiddleware P0-02 hardening")
+    async def test_empty_tenant_id_in_context_rejected(self):
+        """Empty tenant_id in JWT must fail closed."""
+        import jwt as pyjwt
+        from httpx import AsyncClient, ASGITransport
+        from layer7_billing.api.main import app
+
+        # Create a token with empty tenant_id
+        import time
+        payload = {
+            "tenant_id": "",
+            "sub": "test-user",
+            "roles": ["billing:read"],
+            "iss": "value-fabric-internal",
+            "aud": "value-fabric-services",
+            "iat": int(time.time()),
+            "nbf": int(time.time()),
+            "exp": int(time.time()) + 3600,
+        }
+        token = pyjwt.encode(payload, "test-jwt-secret-must-be-32-characters-long", algorithm="HS256")
+
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(
+                "/v1/billing/invoices",
+                headers={"Authorization": f"Bearer {token}"},
+            )
+
+        # Empty tenant_id should be rejected (401 from middleware or 403)
+        assert response.status_code in (401, 403)
 
     @pytest.mark.asyncio
-    async def test_header_injection_via_special_characters(self):
-        """Special characters in tenant ID should be validated by GovernanceMiddleware."""
-        # After P0-02 hardening, tenant_id validation is at middleware layer.
-        pytest.skip("Covered by GovernanceMiddleware P0-02 hardening")
+    async def test_header_injection_via_special_characters_rejected(self):
+        """Invalid special characters in X-Tenant-ID must be rejected."""
+        from httpx import AsyncClient, ASGITransport
+        from layer7_billing.api.main import app
+
+        trusted_tenant = "tenant-trusted"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.post(
+                "/v1/billing/plans",
+                json={"plan_id": "p1", "name": "P1", "entitlements": []},
+                headers={
+                    **auth_headers(tenant_id=trusted_tenant),
+                    "X-Tenant-ID": "../../../etc/passwd",
+                },
+            )
+
+        # Invalid header value must be rejected
+        assert response.status_code == 403
 
     @pytest.mark.asyncio
-    async def test_header_injection_via_unicode(self):
-        """Unicode characters in tenant ID should be validated by GovernanceMiddleware."""
-        # After P0-02 hardening, tenant_id validation is at middleware layer.
-        pytest.skip("Covered by GovernanceMiddleware P0-02 hardening")
+    async def test_header_injection_via_unicode_rejected(self):
+        """Unicode characters in X-Tenant-ID that cannot be encoded must fail gracefully."""
+        from httpx import AsyncClient, ASGITransport
+        from layer7_billing.api.main import app
+
+        trusted_tenant = "tenant-trusted"
+        async with AsyncClient(transport=ASGITransport(app=app), base_url="http://test") as client:
+            response = await client.get(
+                "/v1/billing/payment-state",
+                headers={
+                    **auth_headers(tenant_id=trusted_tenant),
+                    "X-Tenant-ID": "tenant-b\x00injected",
+                },
+            )
+
+        # Null bytes in headers are invalid and must be rejected
+        assert response.status_code in (400, 403)

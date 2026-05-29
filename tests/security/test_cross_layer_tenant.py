@@ -87,7 +87,7 @@ class TestLayerSpecificEnforcement:
     def test_layer_1_uses_sync_context(self):
         """Layer 1 (ingestion) uses sync SQLAlchemy with context."""
         try:
-            from value_fabric.layer1.shared.database import (
+            from layer1_ingestion.shared.database import (
                 get_db_from_context_sync,
                 get_db_with_optional_tenant_sync,
             )
@@ -99,7 +99,7 @@ class TestLayerSpecificEnforcement:
 
     def test_layer_4_uses_async_context(self):
         """Layer 4 (agents) uses async SQLAlchemy with context."""
-        from value_fabric.layer4.database import (
+        from services.layer4_agents.src.database import (
             get_db_from_context,
             get_db_with_optional_tenant,
         )
@@ -266,7 +266,7 @@ class TestLayer3Neo4jSpecifics:
     def test_neo4j_tenant_session_wrapper(self):
         """Layer 3 provides Neo4jTenantSession for graph-aware scoping."""
         try:
-            from value_fabric.layer3.api.dependencies_tenant import (
+            from layer3_knowledge.api.dependencies_tenant import (
                 Neo4jTenantSession,
                 get_neo4j_with_tenant,
             )
@@ -288,7 +288,7 @@ class TestMigrationCompleteness:
     def test_layer_4_has_full_implementation(self):
         """Layer 4 is the reference implementation."""
         # These should all be importable and functional
-        from value_fabric.layer4.database import (
+        from services.layer4_agents.src.database import (
             get_db_from_context,
             get_db_with_optional_tenant,
             get_tiered_db_session,

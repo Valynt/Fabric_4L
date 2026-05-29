@@ -106,7 +106,7 @@ def test_layer4_database_import_path_is_stable_facade():
 
 def test_layer4_database_module_is_stable_compatibility_alias():
     """Guard: legacy imports must resolve through the stable compatibility module."""
-    import value_fabric.layer4.database as database_module
+    import services.layer4_agents.src.database as database_module
 
     assert database_module.__name__ == "value_fabric.layer4.database"
     assert callable(database_module.validate_tenant_id)

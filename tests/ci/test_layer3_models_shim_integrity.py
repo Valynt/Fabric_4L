@@ -30,7 +30,7 @@ def test_layer3_compat_models_remains_shim_only() -> None:
     """
     canonical_source = CANONICAL_MODELS.read_text(encoding="utf-8")
 
-    assert "from value_fabric.layer3.api.models import *" not in canonical_source, (
+    assert "from layer3_knowledge.api.models import *" not in canonical_source, (
         "Circular self-import detected: services/layer3-knowledge/src/api/models.py "
         "IS value_fabric.layer3.api.models via the path-redirect shim."
     )

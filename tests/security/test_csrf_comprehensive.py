@@ -9,9 +9,9 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from value_fabric.layer4.api.security.csrf import validate_double_submit
-from value_fabric.layer4.tenants.api.routes import oidc
-from value_fabric.layer4.tenants.api.routes import tenants as tenant_routes
+from services.layer4_agents.src.api.security.csrf import validate_double_submit
+from services.layer4_agents.src.tenants.api.routes import oidc
+from services.layer4_agents.src.tenants.api.routes import tenants as tenant_routes
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 FRONTEND_COMPAT_SOURCE = REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "frontend_compat.py"

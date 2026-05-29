@@ -643,33 +643,24 @@ class TestF16PrivilegedAuditHardFailure:
 
 
 # ---------------------------------------------------------------------------
-# F-23: DevAuthBypassMiddleware class removed
+# F-23: Dev auth bypass permanently removed
 # ---------------------------------------------------------------------------
 
-class TestF23DevBypassClassRemoved:
-    """DevAuthBypassMiddleware must not exist in the codebase (static checks)."""
+class TestF23DevBypassRemoved:
+    """Dev auth bypass module and middleware must not exist."""
 
-    def test_class_not_importable(self) -> None:
-        with pytest.raises((ImportError, AttributeError)):
-            from value_fabric.shared.identity.dev_bypass import DevAuthBypassMiddleware  # noqa: F401
+    def test_dev_bypass_module_not_importable(self) -> None:
+        with pytest.raises(ImportError):
+            import value_fabric.shared.identity.dev_bypass  # noqa: F401
 
-    def test_no_class_definition_in_source(self) -> None:
+    def test_maybe_install_dev_bypass_not_importable(self) -> None:
+        with pytest.raises(ImportError):
+            from value_fabric.shared.identity.dev_bypass import maybe_install_dev_bypass  # noqa: F401
+
+    def test_dev_bypass_source_file_deleted(self) -> None:
         from pathlib import Path
-        source = (Path(__file__).parents[2] /
-                  "packages/shared/src/value_fabric/shared/identity/dev_bypass.py").read_text()
-        assert "class DevAuthBypassMiddleware" not in source
-
-
-@_skip_no_service_deps
-class TestF23DevBypassNoop:
-    """maybe_install_dev_bypass must be a no-op (runtime check)."""
-
-    def test_maybe_install_dev_bypass_is_noop(self) -> None:
-        from value_fabric.shared.identity.dev_bypass import maybe_install_dev_bypass
-        mock_app = MagicMock()
-        result = maybe_install_dev_bypass(mock_app)
-        assert result is False
-        mock_app.add_middleware.assert_not_called()
+        source = Path(__file__).parents[2] / "packages/shared/src/value_fabric/shared/identity/dev_bypass.py"
+        assert not source.exists(), "dev_bypass.py must be deleted after F-23 removal"
 
 
 # ---------------------------------------------------------------------------

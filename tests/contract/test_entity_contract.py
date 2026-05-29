@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime, UTC
 from pydantic import ValidationError
 
-from value_fabric.layer3.api.models import (
+from layer3_knowledge.api.models import (
     EntitySummary,
     EntityDetail,
     EntityFilterRequest,
@@ -377,7 +377,7 @@ class TestFieldConsistency:
 
     def test_status_values_consistent(self):
         """Test that status enum is consistent everywhere."""
-        from value_fabric.layer3.api.models import EntityStatus
+        from layer3_knowledge.api.models import EntityStatus
         
         expected_values = {"validated", "pending", "draft", "deprecated"}
         actual_values = set(EntityStatus.__args__)
@@ -387,7 +387,7 @@ class TestFieldConsistency:
 
     def test_confidence_label_values_consistent(self):
         """Test confidence_label enum consistency."""
-        from value_fabric.layer3.api.models import ConfidenceLabel
+        from layer3_knowledge.api.models import ConfidenceLabel
         
         expected_values = {"high", "medium", "low"}
         actual_values = set(ConfidenceLabel.__args__)

@@ -83,6 +83,10 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 
 ## Frontend & UX
 
+### palette-ux-agent
+**Description:** UX-focused agent for small interface improvements and accessibility enhancements
+**When to Use:** Adding micro-UX improvements, fixing accessibility issues, improving keyboard navigation, adding ARIA labels
+
 ### react-component-design
 **Description:** Three-phase React component design workflow with chain-of-thought rigor
 **When to Use:** Designing React components with agent skills

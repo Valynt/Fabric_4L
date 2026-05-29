@@ -11,8 +11,8 @@ from uuid import uuid4
 
 import pytest
 
-from value_fabric.layer4.services.export_provenance import build_export_provenance_manifest
-from value_fabric.layer4.tools.document_export import DocumentExportTool
+from services.layer4_agents.src.services.export_provenance import build_export_provenance_manifest
+from services.layer4_agents.src.tools.document_export import DocumentExportTool
 from value_fabric.shared.identity.context import RequestContext
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
@@ -51,7 +51,7 @@ class TestDataExportJourney:
 
     async def test_document_export_tool_generates_output(self):
         """DocumentExportTool must generate a valid export output."""
-        from value_fabric.layer4.models.tool_schemas import ExportDocumentInput
+        from services.layer4_agents.src.models.tool_schemas import ExportDocumentInput
 
         tool = DocumentExportTool()
         input_data = ExportDocumentInput(

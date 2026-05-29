@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer3.utils.cypher_security import (
+from layer3_knowledge.utils.cypher_security import (
     ALLOWED_REL_TYPES,
     ALLOWED_TARGET_LABELS,
     TENANT_OWNED_LABELS,
@@ -200,20 +200,20 @@ class TestCypherScopeGuardShim:
     """cypher_scope_guard must re-export the same symbols from the new utility."""
 
     def test_shim_exports_validate_tenant_scoped_cypher(self):
-        from value_fabric.layer3.services.cypher_scope_guard import (
+        from layer3_knowledge.services.cypher_scope_guard import (
             validate_tenant_scoped_cypher as shim_fn,
         )
         assert shim_fn is validate_tenant_scoped_cypher
 
     def test_shim_exports_tenant_owned_labels(self):
-        from value_fabric.layer3.services.cypher_scope_guard import (
+        from layer3_knowledge.services.cypher_scope_guard import (
             TENANT_OWNED_LABELS as shim_labels,
         )
         assert shim_labels is TENANT_OWNED_LABELS
 
     def test_shim_validate_works_end_to_end(self):
         """Shim callers get the same behaviour as direct utility callers."""
-        from value_fabric.layer3.services.cypher_scope_guard import (
+        from layer3_knowledge.services.cypher_scope_guard import (
             validate_tenant_scoped_cypher as shim_fn,
         )
         # Should pass

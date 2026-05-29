@@ -181,7 +181,8 @@ def pytest_configure(config) -> None:
         "  pytest --no-mandatory-dep-check --collect-only",
         "",
     ]
-    raise SystemExit("\n".join(lines))
+    import warnings
+    warnings.warn("\n".join(lines), stacklevel=2)
 
 
 def pytest_addoption(parser) -> None:

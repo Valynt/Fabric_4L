@@ -515,7 +515,7 @@ class TestCrossLayerContextValidation:
         Rationale: Ingestion endpoints must enforce tenant isolation.
         """
         try:
-            from value_fabric.layer1.api.main import app
+            from layer1_ingestion.api.main import app
         except Exception as exc:
             pytest.skip(f"Layer 1 app unavailable in test environment: {exc}")
         
@@ -533,7 +533,7 @@ class TestCrossLayerContextValidation:
         Rationale: Extraction endpoints must enforce tenant isolation.
         """
         try:
-            from value_fabric.layer2.api.main import app
+            from layer2_extraction.api.main import app
         except Exception as exc:
             pytest.skip(f"Layer 2 app unavailable in test environment: {exc}")
         
@@ -550,7 +550,7 @@ class TestCrossLayerContextValidation:
         
         Rationale: Knowledge graph endpoints must enforce tenant isolation.
         """
-        from value_fabric.layer3.api.main import app
+        from layer3_knowledge.api.main import app
         
         client = TestClient(app)
         
@@ -565,7 +565,7 @@ class TestCrossLayerContextValidation:
         
         Rationale: Agent endpoints must enforce tenant isolation.
         """
-        from value_fabric.layer4.main import app
+        from services.layer4_agents.src.api.main import app
         
         client = TestClient(app)
         

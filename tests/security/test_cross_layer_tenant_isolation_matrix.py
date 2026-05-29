@@ -210,7 +210,7 @@ class _FakeExecutor:
 
 
 def test_l1_ctx_source_of_truth() -> None:
-    from value_fabric.layer1.api.app_monolith import get_tenant_id
+    from layer1_ingestion.api.app_monolith import get_tenant_id
 
     request = _request_with_context(TENANT_A)
     request.headers["X-Organization-ID"] = str(TENANT_B)
@@ -222,7 +222,7 @@ def test_l1_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l1_read_cross_tenant_denied() -> None:
-    from value_fabric.layer1.api.routes import compatibility as l1_compat
+    from layer1_ingestion.api.routes import compatibility as l1_compat
 
     l1_compat._INGESTION_SOURCE_COMPAT_STORE.clear()
     l1_compat._INGESTION_SOURCE_COMPAT_STORE["source-b"] = {"id": "source-b", "tenant_id": str(TENANT_B)}
@@ -237,7 +237,7 @@ async def test_l1_read_cross_tenant_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_l1_write_cross_tenant_denied() -> None:
-    from value_fabric.layer1.api.routes import compatibility as l1_compat
+    from layer1_ingestion.api.routes import compatibility as l1_compat
 
     l1_compat._INGESTION_SOURCE_COMPAT_STORE.clear()
     request = Mock(spec=Request)
@@ -257,7 +257,7 @@ def test_l1_query_filters_present() -> None:
 
 
 def test_l1_fail_closed_without_context() -> None:
-    from value_fabric.layer1.api.app_monolith import get_tenant_id
+    from layer1_ingestion.api.app_monolith import get_tenant_id
 
     request = _request_with_context(None)
     with pytest.raises(HTTPException) as exc_info:
@@ -330,7 +330,7 @@ async def test_l2_fail_closed_without_context() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_ctx_source_of_truth() -> None:
-    from value_fabric.layer3.api.routes import products as l3_products
+    from layer3_knowledge.api.routes import products as l3_products
 
     service = AsyncMock()
     service.create_product.return_value = {"id": "prod-1"}
@@ -344,7 +344,7 @@ async def test_l3_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.layer3.services import product_service as l3_service
+    from layer3_knowledge.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
@@ -359,7 +359,7 @@ async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.layer3.services import product_service as l3_service
+    from layer3_knowledge.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
@@ -373,7 +373,7 @@ async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_l3_query_filters_present() -> None:
-    from value_fabric.layer3.services import product_service as l3_service
+    from layer3_knowledge.services import product_service as l3_service
 
     content = inspect.getsource(l3_service.ProductService.list_products)
     condition = 'where_clauses = ["p.tenant_id = $tenant_id"]' in content
@@ -382,7 +382,7 @@ def test_l3_query_filters_present() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_fail_closed_without_context(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.layer3.services import product_service as l3_service
+    from layer3_knowledge.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
@@ -396,7 +396,7 @@ async def test_l3_fail_closed_without_context(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_l4_ctx_source_of_truth() -> None:
-    from value_fabric.layer4.api.routes import workflows as l4_workflows
+    from services.layer4_agents.src.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-ctx", "status": "running", "current_node": "review", "tenant_id": str(TENANT_A)},
@@ -412,7 +412,7 @@ async def test_l4_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_read_cross_tenant_denied() -> None:
-    from value_fabric.layer4.api.routes import workflows as l4_workflows
+    from services.layer4_agents.src.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-read", "workflow_type": "roi_calculator", "status": "running", "current_node": "collect", "tenant_id": str(TENANT_B)},
@@ -427,7 +427,7 @@ async def test_l4_read_cross_tenant_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_write_cross_tenant_denied() -> None:
-    from value_fabric.layer4.api.routes import workflows as l4_workflows
+    from services.layer4_agents.src.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-write", "status": "running", "current_node": "collect", "tenant_id": str(TENANT_B)},
@@ -442,7 +442,7 @@ async def test_l4_write_cross_tenant_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_query_filters_present() -> None:
-    from value_fabric.layer4.api.routes import workflows as l4_workflows
+    from services.layer4_agents.src.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(list_payload=[])
     ctx = RequestContext(tenant_id=TENANT_A, user_id=str(USER_A))
@@ -455,7 +455,7 @@ async def test_l4_query_filters_present() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_fail_closed_without_context() -> None:
-    from value_fabric.layer4.api.routes import workflows as l4_workflows
+    from services.layer4_agents.src.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor()
     request = l4_workflows.WorkflowCreateRequest(workflow_type="roi_calculator", inputs=l4_workflows.WorkflowInputs())
@@ -534,7 +534,7 @@ def test_l5_fail_closed_without_context() -> None:
 # Note: This test requires live infra env vars (NEO4J_URI, LAYER3_API_KEY, etc.) to import
 # It is excluded from the mandatory security regression suite and should be run in infra-integrated tests
 async def test_l6_ctx_source_of_truth(monkeypatch: pytest.MonkeyPatch) -> None:
-    from value_fabric.layer6.api import main as l6_main
+    from layer6_benchmarks.api import main as l6_main
 
     fake_repo = AsyncMock()
     fake_repo.list_datasets.return_value = []
@@ -550,7 +550,7 @@ async def test_l6_ctx_source_of_truth(monkeypatch: pytest.MonkeyPatch) -> None:
 
 @pytest.mark.asyncio
 async def test_l6_read_cross_tenant_denied() -> None:
-    from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+    from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 
     records = AsyncMock()
     records.single = AsyncMock(return_value=None)
@@ -566,7 +566,7 @@ async def test_l6_read_cross_tenant_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_l6_write_cross_tenant_denied() -> None:
-    from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+    from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 
     tx = AsyncMock()
     await BenchmarkRepository._tx_delete_dataset(tx, "dataset-b", str(TENANT_A))
@@ -579,7 +579,7 @@ async def test_l6_write_cross_tenant_denied() -> None:
 
 @pytest.mark.asyncio
 async def test_l6_query_filters_present() -> None:
-    from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+    from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 
     tx = AsyncMock()
     async def _aiter():
@@ -593,7 +593,7 @@ async def test_l6_query_filters_present() -> None:
 
 
 def test_l6_fail_closed_without_context() -> None:
-    from value_fabric.layer6.api.deps import get_request_context
+    from layer6_benchmarks.api.deps import get_request_context
 
     request = _request_with_context(None)
     with pytest.raises(HTTPException) as exc_info:

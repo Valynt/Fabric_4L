@@ -1,92 +1,63 @@
-"""Authentication mode inspection and startup validation utilities."""
+"""Authentication mode inspection — dev auth bypass permanently removed.
+
+All dev auth bypass functionality (F-23) has been removed from the platform.
+This module is retained as a compatibility stub so that existing import
+statements in main.py files do not break immediately, but all bypass
+functions are no-ops that warn if legacy flags are still present.
+"""
 
 from __future__ import annotations
 
 import logging
 import os
 
-from value_fabric.shared.security.config import is_production_like_environment
-
 logger = logging.getLogger(__name__)
 
-_BYPASS_ACK_VALUE = "I_UNDERSTAND_RISK"
+_BYPASS_FLAGS = (
+    "DEV_AUTH_BYPASS",
+    "ALLOW_INSECURE_DEV_AUTH_BYPASS",
+    "ALLOW_DEV_AUTH_BYPASS",
+    "AUTH_BYPASS_ENABLED",
+)
 
 
-def _normalized_env() -> str:
-    return (os.getenv("ENVIRONMENT", "production") or "production").strip().lower()
+def _warn_if_legacy_flags() -> None:
+    for flag in _BYPASS_FLAGS:
+        val = os.getenv(flag, "").strip()
+        if val and val.lower() not in ("", "false", "0", "no", "off"):
+            logger.warning(
+                "Legacy auth bypass flag %s is set (%r) but dev auth bypass has been "
+                "permanently removed from the platform. Remove this flag from your environment.",
+                flag,
+                val,
+            )
 
 
 def is_dev_bypass_enabled() -> bool:
-    return os.getenv("DEV_AUTH_BYPASS", "").strip().lower() == "true"
+    """Always returns False — dev auth bypass has been permanently removed."""
+    _warn_if_legacy_flags()
+    return False
 
 
 def is_dev_bypass_acknowledged() -> bool:
-    # ALLOW_DEV_AUTH_BYPASS is the canonical acknowledgement variable.
-    # ALLOW_INSECURE_DEV_AUTH_BYPASS is a legacy alias that some compose files
-    # set; treat it as equivalent so the runtime and the CI gate are consistent.
-    canonical = os.getenv("ALLOW_DEV_AUTH_BYPASS", "").strip() == _BYPASS_ACK_VALUE
-    legacy = os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    return canonical or legacy
+    """Always returns False — dev auth bypass has been permanently removed."""
+    _warn_if_legacy_flags()
+    return False
 
 
 def validate_dev_bypass_configuration() -> None:
-    """Fail closed when dev-bypass toggles are unsafe."""
-    if not is_dev_bypass_enabled():
-        return
-
-    environment = _normalized_env()
-    if environment != "development":
-        raise RuntimeError(
-            "FATAL: DEV_AUTH_BYPASS=true is only permitted when ENVIRONMENT=development."
-        )
-    if not is_dev_bypass_acknowledged():
-        raise RuntimeError(
-            "FATAL: DEV_AUTH_BYPASS=true requires "
-            "ALLOW_DEV_AUTH_BYPASS=I_UNDERSTAND_RISK."
-        )
+    """No-op — dev auth bypass has been permanently removed."""
+    _warn_if_legacy_flags()
 
 
 def assert_safe_jwt_and_bypass_configuration() -> None:
-    """Refuse startup when production-like environments enable bypass toggles."""
-    environment = _normalized_env()
-    insecure_bypass_set = (
-        os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    )
-    if is_production_like_environment(environment) and (
-        is_dev_bypass_enabled() or is_dev_bypass_acknowledged() or insecure_bypass_set
-    ):
-        raise RuntimeError(
-            "FATAL: Production-like environment cannot run with dev auth bypass toggles. "
-            "Unset DEV_AUTH_BYPASS, ALLOW_DEV_AUTH_BYPASS, and ALLOW_INSECURE_DEV_AUTH_BYPASS."
-        )
+    """No-op — dev auth bypass has been permanently removed."""
+    _warn_if_legacy_flags()
 
 
 def log_auth_mode_report() -> None:
-    """Log active/disabled auth sources for startup observability."""
-    environment = _normalized_env()
-    bypass_enabled = is_dev_bypass_enabled()
-    bypass_ack = is_dev_bypass_acknowledged()
-    insecure_bypass_set = (
-        os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").strip().lower() in ("true", "1", "yes")
-    )
-
-    active_sources = ["jwt_middleware"]
-    if bypass_enabled:
-        active_sources.append("dev_auth_bypass")
-    if insecure_bypass_set:
-        active_sources.append("insecure_dev_bypass_ack")
-
-    disabled_sources: list[str] = []
-    if not bypass_enabled:
-        disabled_sources.append("dev_auth_bypass")
-    if not bypass_ack:
-        disabled_sources.append("dev_bypass_ack")
-    disabled_sources.append("api_key_auth")
-
+    """Log active auth sources. Dev bypass is always reported as removed."""
+    _warn_if_legacy_flags()
     logger.info(
-        "Auth mode report: environment=%s active_sources=%s disabled_sources=%s",
-        environment,
-        ",".join(active_sources),
-        ",".join(disabled_sources),
+        "Auth mode report: dev_auth_bypass=removed active_sources=jwt_middleware,governance_middleware"
     )
-

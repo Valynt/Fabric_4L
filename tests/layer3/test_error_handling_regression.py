@@ -4,8 +4,8 @@ import pytest
 from fastapi import HTTPException
 from types import SimpleNamespace
 
-from value_fabric.layer3.api.models import GraphRAGQuery, SearchRequest, SearchType
-from value_fabric.layer3.api.routes import query_search, system
+from layer3_knowledge.api.models import GraphRAGQuery, SearchRequest, SearchType
+from layer3_knowledge.api.routes import query_search, system
 
 
 class _TimeoutGraphRag:

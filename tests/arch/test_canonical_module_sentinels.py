@@ -234,7 +234,7 @@ def test_layer6_resolves_to_canonical_service_tree() -> None:
 
 
 def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
-    """Regression: no production code should import value_fabric.layer6.*.
+    """Regression: no production code should import layer6_benchmarks.*.
 
     Layer 6 is fully migrated to service-first. Consumers should use
     direct service-path imports where possible. The value_fabric/layer6/

@@ -41,6 +41,21 @@ from value_fabric.shared.secrets import load_infisical_secrets
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api.deps import RequestContext
+from layer2_extraction.logging_config import configure_structured_logging
+
+# Configure structured logging BEFORE any operations that might log
+try:
+    configure_structured_logging()
+except Exception:
+    import logging as _logging
+    _logging.basicConfig(level=_logging.INFO)
+
+logger = structlog.get_logger(__name__)
+
+try:
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+except ImportError:
+    GovernanceMiddleware = None  # type: ignore
 
 try:
     load_infisical_secrets()
@@ -52,7 +67,6 @@ except Exception as exc:
 
 from layer2_extraction.alignment import SemanticAligner
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
-from layer2_extraction.logging_config import configure_structured_logging
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
 from layer2_extraction.extraction.llm_extractor import EntityExtractor, RelationshipExtractor
@@ -91,9 +105,6 @@ from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fab
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
 
-# Configure structured logging
-configure_structured_logging()
-logger = structlog.get_logger(__name__)
 
 def _current_environment() -> str:
     """Return the normalized runtime environment for production fail-closed policy checks."""
@@ -153,12 +164,26 @@ app = create_fabric_app(
 # Register health endpoint
 register_health_endpoint(app, service_name="layer2-extraction")
 
-# Phase 1 Clerk integration: register the Fabric4L internal AuthContext
-# envelope verifier. No-op when FABRIC_AUTH_PUBLIC_KEYS is unset, so this
-# call is safe to land before any layer is flipped to enforce mode.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+# P0-002: Unconditionally install GovernanceMiddleware for fail-closed auth.
+# The previous register_fabric_auth_from_env was conditional and left routes
+# unprotected when FABRIC_AUTH_PUBLIC_KEYS was unset.
+if GovernanceMiddleware is None:
+    raise RuntimeError("GovernanceMiddleware is required for Layer 2 authentication.")
 
-register_fabric_auth_from_env(app, service_name="layer2-extraction")
+app.add_middleware(
+    GovernanceMiddleware,
+    api_key_resolver=None,
+    rate_limiter=None,
+)
+logger.info("GovernanceMiddleware installed", component="layer2-extraction")
+
+# Production startup guard: fail fast if auth keys are missing.
+if _is_production_like():
+    import os
+    if not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
+        raise RuntimeError(
+            "FABRIC_AUTH_PUBLIC_KEYS is required in production for Layer 2 authentication."
+        )
 
 # Register canonical error envelope handlers from shared package
 try:

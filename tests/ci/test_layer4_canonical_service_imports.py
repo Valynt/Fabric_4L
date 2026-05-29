@@ -52,7 +52,7 @@ def test_shim_file_is_thin_path_appender() -> None:
 
 
 def test_no_production_runtime_imports_from_shim() -> None:
-    """Production code in services/layer4-agents/src must not import value_fabric.layer4.*"""
+    """Production code in services/layer4-agents/src must not import services.layer4_agents.src.*"""
     import re
 
     prod_files = list(LAYER4_SRC.rglob("*.py"))

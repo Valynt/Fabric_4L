@@ -18,7 +18,7 @@ class TestNeo4jTenantQueryEnforcement:
         """P0: Entity detail query must include tenant_id when context available."""
         # Import here to handle optional dependencies
         try:
-            from value_fabric.layer3.api.main import (
+            from layer3_knowledge.api.main import (
                 get_entity_detail,
                 NEO4J_TENANT_AVAILABLE,
             )
@@ -64,7 +64,7 @@ class TestNeo4jTenantQueryEnforcement:
     async def test_batch_operations_pass_tenant_id_to_helpers(self, mock_neo4j_driver):
         """P0: Batch operations must pass tenant_id to helper functions."""
         try:
-            from value_fabric.layer3.api.main import (
+            from layer3_knowledge.api.main import (
                 batch_entity_operations,
                 NEO4J_TENANT_AVAILABLE,
                 BatchEntityRequest,
@@ -155,7 +155,7 @@ class TestNeo4jTenantQueryEnforcement:
     async def test_fallback_query_used_when_no_tenant_context(self, mock_neo4j_driver):
         """Query without tenant_id should be used when no context available."""
         try:
-            from value_fabric.layer3.api.main import (
+            from layer3_knowledge.api.main import (
                 get_entity_detail,
                 NEO4J_TENANT_AVAILABLE,
             )
@@ -197,7 +197,7 @@ class TestTenantIdParameterValidation:
     def test_tenant_id_converted_to_string_in_params(self):
         """tenant_id should be string in query parameters."""
         try:
-            from value_fabric.layer3.api.main import _extract_tenant_id
+            from layer3_knowledge.api.main import _extract_tenant_id
         except ImportError:
             pytest.skip("Layer 3 not available")
         

@@ -16,15 +16,30 @@ logger = logging.getLogger(__name__)
 TENANT_STORAGE_ROOT = Path(os.getenv("TENANT_STORAGE_PATH", "/var/lib/services/tenant-files"))
 
 
-def _get_tenant_id() -> str:
-    """Safely retrieve tenant ID from request context.
+class TenantRequiredError(RuntimeError):
+    """Raised when a file operation is attempted without tenant context."""
 
-    Returns "default" if context is not available (e.g., in tests or background tasks).
+
+def _get_tenant_id(context: RequestContext | None = None) -> str:
+    """Retrieve tenant ID from explicit context or request context.
+
+    Fails closed — raises TenantRequiredError if no tenant context is available.
+    Never falls back to a shared "default" tenant directory.
     """
+    if context is not None and context.tenant_id:
+        return str(context.tenant_id)
+
     try:
-        return str(require_context().tenant_id)
+        ctx = require_context()
+        if ctx.tenant_id:
+            return str(ctx.tenant_id)
     except RuntimeError:
-        return "default"
+        pass
+
+    raise TenantRequiredError(
+        "Tenant context is required for file operations. "
+        "Pass an explicit RequestContext or ensure the call runs inside an authenticated request."
+    )
 
 
 def _validate_path(file_path: str, tenant_id: str) -> Path | None:
@@ -87,7 +102,7 @@ async def read_file(
     Returns:
         File contents or None if invalid path/not found
     """
-    tenant_id = _get_tenant_id()
+    tenant_id = _get_tenant_id(context)
 
     validated_path = _validate_path(file_path, tenant_id)
     if validated_path is None:
@@ -102,9 +117,86 @@ async def read_file(
 
     try:
         return validated_path.read_text(encoding="utf-8")
-    except (OSError, UnicodeDecodeError) as e:
+    except (OSError, UnicodeDecodeError):
         logger.error(
             "Failed to read file",
             extra={"file_path": str(validated_path), "tenant_id": tenant_id, "error_code": "FILE_READ_ERROR"}
         )
         return None
+
+
+async def write_file(
+    file_path: str,
+    content: str,
+    context: RequestContext | None = None
+) -> bool:
+    """Write file with tenant scoping and path validation.
+
+    Args:
+        file_path: Relative path within tenant's storage area
+        content: Text content to write
+        context: Request context (optional, for tenant identification)
+
+    Returns:
+        True on success, False on failure
+    """
+    tenant_id = _get_tenant_id(context)
+
+    validated_path = _validate_path(file_path, tenant_id)
+    if validated_path is None:
+        return False
+
+    try:
+        validated_path.parent.mkdir(parents=True, exist_ok=True)
+        validated_path.write_text(content, encoding="utf-8")
+        logger.info(
+            "File written",
+            extra={"file_path": str(validated_path), "tenant_id": tenant_id}
+        )
+        return True
+    except (OSError, ValueError):
+        logger.error(
+            "Failed to write file",
+            extra={"file_path": str(validated_path), "tenant_id": tenant_id, "error_code": "FILE_WRITE_ERROR"}
+        )
+        return False
+
+
+async def delete_file(
+    file_path: str,
+    context: RequestContext | None = None
+) -> bool:
+    """Delete file with tenant scoping and path validation.
+
+    Args:
+        file_path: Relative path within tenant's storage area
+        context: Request context (optional, for tenant identification)
+
+    Returns:
+        True on success, False on failure or if path is invalid
+    """
+    tenant_id = _get_tenant_id(context)
+
+    validated_path = _validate_path(file_path, tenant_id)
+    if validated_path is None:
+        return False
+
+    try:
+        if not validated_path.exists():
+            logger.info(
+                "File not found for deletion",
+                extra={"file_path": str(validated_path), "tenant_id": tenant_id}
+            )
+            return False
+        validated_path.unlink()
+        logger.info(
+            "File deleted",
+            extra={"file_path": str(validated_path), "tenant_id": tenant_id}
+        )
+        return True
+    except OSError:
+        logger.error(
+            "Failed to delete file",
+            extra={"file_path": str(validated_path), "tenant_id": tenant_id, "error_code": "FILE_DELETE_ERROR"}
+        )
+        return False

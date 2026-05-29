@@ -16,7 +16,7 @@ export function useAccountAccess(accountId: string | undefined, tenantSlug: stri
     queryKey: ["authz", "account-access", tenantSlug ?? null, accountId ?? null],
     queryFn: async () => {
       const response = await apiGet<AccountAccessResponse>(
-        "layer4",
+        "l4",
         `/v1/authz/accounts/${encodeURIComponent(accountId ?? "")}/access?tenant_slug=${encodeURIComponent(tenantSlug ?? "")}`
       );
       return response.data;

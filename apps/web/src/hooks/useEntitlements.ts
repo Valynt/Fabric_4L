@@ -24,7 +24,7 @@ export function useEntitlements(requiredEntitlements: string[]) {
     queryKey: ["authz", "entitlements", uniqueRequired],
     queryFn: async () => {
       const response = await apiGet<EntitlementsCheckResponse>(
-        "layer4",
+        "l4",
         `/v1/authz/entitlements/check?entitlements=${encodeURIComponent(uniqueRequired.join(","))}`
       );
       return response.data;

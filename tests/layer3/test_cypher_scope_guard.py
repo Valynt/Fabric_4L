@@ -6,13 +6,13 @@ from pathlib import Path
 import pytest
 
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
-from value_fabric.layer3.db.query_execution import (
+from layer3_knowledge.db.query_execution import (
     TenantExecutionContext,
     TenantQueryExecutor,
     TenantQueryValidationError,
     run_scoped_query,
 )
-from value_fabric.layer3.services.cypher_scope_guard import validate_tenant_scoped_cypher
+from layer3_knowledge.services.cypher_scope_guard import validate_tenant_scoped_cypher
 
 
 _QUERY_BLOCK = re.compile(r'(?s)(?:query|count_query|list_query)\s*=\s*f?"""(.*?)"""')
@@ -67,7 +67,7 @@ def test_query_templates_are_tenant_scoped(relative_path: str) -> None:
     queries = [query for query in _QUERY_BLOCK.findall(content) if "MATCH" in query.upper()]
 
     if not queries and "Compatibility wrapper for value_fabric.layer3.services." in content:
-        assert "from value_fabric.layer3.services." in content
+        assert "from layer3_knowledge.services." in content
         return
 
     assert queries, f"No query templates found in {relative_path}"
