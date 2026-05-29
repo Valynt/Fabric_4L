@@ -28,9 +28,9 @@ if str(LAYER4_SRC) not in sys.path:
     sys.path.insert(0, str(LAYER4_SRC))
 
 try:
-    from value_fabric.layer4.metrics.llm_cost_calculator import LLMCostCalculator
+    from metrics.llm_cost_calculator import LLMCostCalculator
 except Exception:  # pragma: no cover - fallback for service-local import layouts
-    from metrics.llm_cost_calculator import LLMCostCalculator  # type: ignore
+    LLMCostCalculator = None  # type: ignore
 
 TRUTHY = {"1", "true", "yes", "on"}
 MOCK_FLAGS = ("VITE_USE_MOCKS", "VITE_ENABLE_MOCK_FALLBACK", "MSW", "MOCKS_ENABLED")

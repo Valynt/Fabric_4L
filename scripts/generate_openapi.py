@@ -32,7 +32,7 @@ LAYERS = {
         "default_output": "contracts/openapi/layer2-extraction.json",
     },
     "layer4-agents": {
-        "module": "value_fabric.layer4.api.main:app",
+        "module": "api.main:app",
         "default_output": "contracts/openapi/layer4-agents.json",
     },
 }

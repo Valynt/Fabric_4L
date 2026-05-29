@@ -186,6 +186,72 @@ except ImportError:
 
 app.include_router(signal_lifecycle_router)
 
+# ── P1-017: Inbound S2S JWT guard for internal extraction routes ──────────────
+# L1 Celery dispatch signs outbound requests with encode_service_jwt (sub=
+# "layer1-ingestion", aud="layer2-extraction").  GovernanceMiddleware validates
+# user-facing JWTs but does NOT enforce the service-specific sub/aud claims.
+# This middleware enforces that when SERVICE_AUTH_SECRET is configured, these
+# three internal routes may ONLY be called with a valid L1 S2S token.
+
+_S2S_INTERNAL_PATHS: frozenset[str] = frozenset({
+    "/v1/extract",
+    "/v1/extract-and-ingest",
+    "/v1/extract/batch",
+})
+_S2S_EXPECTED_SUB = "layer1-ingestion"
+_S2S_EXPECTED_AUD = "layer2-extraction"
+
+
+@app.middleware("http")
+async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg]
+    """Enforce inbound S2S JWT on internal extraction routes.
+
+    Only active when SERVICE_AUTH_SECRET is configured.  In dev environments
+    without the secret, the check is skipped so local testing remains possible.
+    """
+    if request.method == "POST" and request.url.path in _S2S_INTERNAL_PATHS:
+        _secret = os.getenv("SERVICE_AUTH_SECRET", "").strip()
+        if _secret:
+            auth_header = request.headers.get("Authorization", "")
+            if not auth_header.startswith("Bearer "):
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "S2S Bearer token required for internal extraction routes",
+                        "code": "s2s_token_required",
+                    },
+                )
+            _token = auth_header[7:]
+            try:
+                from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_s2s
+                _claims = _decode_s2s(_token, expected_audience=_S2S_EXPECTED_AUD)
+            except Exception:
+                _claims = None
+
+            if _claims is None:
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "Invalid or expired S2S token for internal extraction route",
+                        "code": "s2s_token_invalid",
+                    },
+                )
+            if _claims.sub != _S2S_EXPECTED_SUB:
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": f"Unexpected service caller: {_claims.sub!r}",
+                        "code": "s2s_caller_forbidden",
+                    },
+                )
+
+    return await call_next(request)
+
+# ── End P1-017 ────────────────────────────────────────────────────────────────
+
 # Extraction configuration constants
 DEFAULT_CHUNK_SIZE = 2000
 DEFAULT_CHUNK_OVERLAP = 200

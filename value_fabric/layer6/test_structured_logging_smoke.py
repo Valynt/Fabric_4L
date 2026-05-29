@@ -2,7 +2,7 @@ import json
 
 import structlog
 
-from value_fabric.layer6 import configure_structured_logging
+from layer6_benchmarks.logging_config import configure_structured_logging
 
 
 def test_layer6_structured_logging_json(capsys):

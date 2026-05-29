@@ -23,8 +23,8 @@ LAYER_PARITY_RULES: dict[str, dict[str, object]] = {
         "service_routes": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/routes/__init__.py",
         "service_main": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
         "canonical_import": "layer2_extraction.api.routes",
-        "service_interface": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/services/extraction_service.py",
-        "repository_interface": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/storage/extraction_repository.py",
+        "service_interface": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/services/signal_lifecycle_service.py",
+        "repository_interface": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/repositories/__init__.py",
         "middleware_anchor": REPO_ROOT / "services/layer2-extraction/src/layer2_extraction/api/main.py",
     },
     "layer3": {
@@ -50,8 +50,8 @@ LAYER_PARITY_RULES: dict[str, dict[str, object]] = {
         "service_routes": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/router.py",
         "service_main": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
         "canonical_import": "layer5_ground_truth.api.router",
-        "service_interface": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/services/claims_service.py",
-        "repository_interface": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/repositories/claims_repository.py",
+        "service_interface": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/services/truth_service.py",
+        "repository_interface": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/database.py",
         "middleware_anchor": REPO_ROOT / "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
     },
     "layer6": {

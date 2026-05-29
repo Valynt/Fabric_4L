@@ -10,71 +10,15 @@ scripts/migrate_l1_test_imports_canonical.py:
   reason: "Migration script documenting old-to-new mapping"
   owner: "Platform Team"
   removal_target: "indefinite"
-value_fabric/layer1/__init__.py:
-  reason: "Facade shim docstring"
-  owner: "Platform Team"
-  removal_target: "indefinite"
 
 # L4 - Compatibility shims and test patch targets
-value_fabric/layer4/billing/services/__init__.py:
-  reason: "Billing service compatibility shim"
-  owner: "Layer 4 Maintainers"
-  removal_target: "indefinite"
-value_fabric/layer4/billing/schemas.py:
-  reason: "Billing service compatibility shim"
-  owner: "Layer 4 Maintainers"
-  removal_target: "indefinite"
-value_fabric/layer4/billing/models.py:
-  reason: "Billing service compatibility shim"
-  owner: "Layer 4 Maintainers"
-  removal_target: "indefinite"
-value_fabric/layer4/__init__.py:
-  reason: "Facade shim docstring"
-  owner: "Platform Team"
-  removal_target: "indefinite"
 tests/contract/test_state_inspector_auth_contract.py:
-  reason: "Contract test with facade import comment"
-  owner: "Contract Team"
-  removal_target: "indefinite"
-tests/contract/test_layer_runtime_parity.py:
-  reason: "Contract test with facade import reference"
-  owner: "Contract Team"
-  removal_target: "indefinite"
-tests/tools/test_tool_tenant_boundaries.py:
-  reason: "Tool test with patch targets on facade"
-  owner: "Security Team"
-  removal_target: "indefinite"
-tests/security/test_audit_event_emission.py:
-  reason: "Security test with facade import"
-  owner: "Security Team"
-  removal_target: "indefinite"
-tests/security/test_knowledge_tools_tenant_isolation.py:
-  reason: "Security test with patch target on facade"
-  owner: "Security Team"
-  removal_target: "indefinite"
-tests/security/test_p1_13_websocket_auth.py:
-  reason: "Security test with patch target on facade"
-  owner: "Security Team"
-  removal_target: "indefinite"
-tests/security/test_tenant_validation_metrics.py:
-  reason: "Security test with facade import"
-  owner: "Security Team"
-  removal_target: "indefinite"
-tests/integration/test_websocket_multitenant_hostile.py:
-  reason: "Integration test with patch targets on facade"
-  owner: "Integration Team"
-  removal_target: "indefinite"
-tests/contract/test_import_topology.py:
-  reason: "Contract test verifying facade path resolution"
+  reason: "Contract test with facade reference in docstring only"
   owner: "Contract Team"
   removal_target: "indefinite"
 archive/legacy-shims/layer4_agents/main.py:
   reason: "Legacy shim archive"
   owner: "Platform Team"
-  removal_target: "indefinite"
-scripts/validation/generate_live_llm_provider_evidence.py:
-  reason: "Validation script with facade import"
-  owner: "Validation Team"
   removal_target: "indefinite"
 scripts/verify_layer4_imports.py:
   reason: "Verification script testing facade"
@@ -109,12 +53,8 @@ scripts/migrate_l6_test_imports_canonical.py:
   owner: "Platform Team"
   removal_target: "indefinite"
 value_fabric/layer6/__init__.py:
-  reason: "Facade shim docstring"
+  reason: "Neutralized shim placeholder"
   owner: "Platform Team"
-  removal_target: "indefinite"
-value_fabric/layer6/test_structured_logging_smoke.py:
-  reason: "L6 test with facade import"
-  owner: "Layer 6 Maintainers"
   removal_target: "indefinite"
 
 # CI tests with facade references

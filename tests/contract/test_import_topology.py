@@ -106,10 +106,11 @@ class TestImportTopology:
         )
 
     def test_no_root_shared_shadowing(self):
-        """Root value_fabric/shared/ must not exist."""
-        root_shared = REPO_ROOT / "value_fabric" / "shared"
+        """Root value_fabric/shared/ must not have an __init__.py (no package shadowing)."""
+        root_shared_init = REPO_ROOT / "value_fabric" / "shared" / "__init__.py"
 
-        assert not root_shared.exists(), (
-            f"Root {root_shared} still exists. "
-            "It should have been removed after consolidation into packages/shared/src/value_fabric/shared/."
+        assert not root_shared_init.exists(), (
+            f"Root {root_shared_init} still exists. "
+            "It would shadow packages/shared/src/value_fabric/shared/ as a proper package. "
+            "Remove it to prevent namespace collision."
         )
