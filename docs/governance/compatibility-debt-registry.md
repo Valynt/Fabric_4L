@@ -191,11 +191,11 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 4. **Remove shim code**: delete deprecated wrapper/alias paths and compatibility tests that only validated shim behavior.
 5. **Update registry + CI evidence**: mark the entry removed (strikethrough row), include removal date, and run `pnpm --dir apps/web run check:compatibility-shims-registered`.
 
-## Value Fabric Import Boundary Migration (2026-05-26)
+## Value Fabric Import Boundary Migration (2026-05-26; public facade removed 2026-05-29)
 
-- Public API entrypoint added: `value_fabric.public_api.shared`.
-- Service-local adapter modules added under each layer service at `src/.../adapters/value_fabric_api.py`.
-- CI guardrail added: `scripts/ci/check_value_fabric_public_imports.py` with baseline file `config/ci/value_fabric_deep_import_baseline.txt`.
+- Public API entrypoint `value_fabric.public_api.shared` was removed after runtime consumers migrated to canonical `value_fabric.shared.*` imports.
+- Service-local adapter modules remain under each layer service at `src/.../adapters/value_fabric_api.py`.
+- CI guardrail `scripts/ci/check_value_fabric_public_imports.py` now blocks runtime imports of `value_fabric.public_api` and reports remaining non-adapter shared deep imports for migration tracking.
 
 ### Remaining direct deep-import counts (non-test runtime files)
 
@@ -206,4 +206,4 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 - `services/layer5-ground-truth`: 27
 - `services/layer6-benchmarks`: 16
 
-Migration policy: no *new* non-public `value_fabric.shared.*` deep imports are allowed; existing usages are baseline-locked until each service is migrated to adapter imports.
+Migration policy: runtime imports of `value_fabric.public_api` are blocked; existing non-adapter `value_fabric.shared.*` deep imports remain migration inventory until each service is migrated to adapter imports.
