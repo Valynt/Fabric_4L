@@ -6,9 +6,9 @@ Tests error handling, input validation, and boundary conditions.
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import value_fabric.layer6.api.main as main_module
+import layer6_benchmarks.api.main as main_module
 from httpx import ASGITransport, AsyncClient
-from value_fabric.layer6.api.main import app
+from layer6_benchmarks.api.main import app
 
 
 @pytest.fixture(autouse=True)

@@ -3,7 +3,7 @@
 import pytest
 from prometheus_client import CollectorRegistry
 
-from value_fabric.layer6.metrics.prometheus_metrics import (
+from layer6_benchmarks.metrics.prometheus_metrics import (
     MetricsConfig,
     MetricsMiddleware,
     PrometheusMetrics,

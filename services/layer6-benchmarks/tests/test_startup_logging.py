@@ -1,8 +1,8 @@
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-import value_fabric.layer6.api.main as main_module
-from value_fabric.layer6.api.startup_logging import config_fingerprint, emit_startup_metadata
+import layer6_benchmarks.api.main as main_module
+from layer6_benchmarks.api.startup_logging import config_fingerprint, emit_startup_metadata
 
 
 def test_config_fingerprint_is_stable() -> None:

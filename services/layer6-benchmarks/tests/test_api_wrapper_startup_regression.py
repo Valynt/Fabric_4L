@@ -1,4 +1,4 @@
-from src.api.main import app
+from layer6_benchmarks.api.main import app
 
 
 def test_wrapper_main_exposes_fastapi_app() -> None:

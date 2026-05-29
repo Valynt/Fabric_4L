@@ -4,12 +4,12 @@ from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
-from value_fabric.layer6.models.benchmark_dataset import (
+from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,
     StatisticalProfile,
 )
-from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRepository
+from layer6_benchmarks.repositories.benchmark_repository import BenchmarkRepository
 from value_fabric.shared.database import MissingTenantContextError
 
 HOSTILE_TENANT_ID = "00000000-0000-0000-0000-000000000222"

@@ -34,8 +34,7 @@ _TEST_ENV_DEFAULTS = {
     "APP_ENV": "test",
     "TESTING": "true",
     "ALLOW_LEGACY_TEST_TENANT_IDS": "true",
-    "ALLOW_INSECURE_DEV_AUTH_BYPASS": "true",
-    "DEV_AUTH_BYPASS": "true",
+    # P0-008: Dev auth bypass flags removed — no longer needed
     "WORKERS": "1",
     "WEB_CONCURRENCY": "1",
     "OTEL_SDK_DISABLED": "true",

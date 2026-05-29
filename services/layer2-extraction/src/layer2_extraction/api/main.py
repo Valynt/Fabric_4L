@@ -716,13 +716,13 @@ async def _quarantine_validation_failure(*, tenant_id: str, job_id: str, source_
 def _require_authenticated_tenant_id(tenant_id: Any, *, operation: str) -> str:
     """Require authenticated tenant context and fail closed when missing."""
     if tenant_id is None:
-        raise AuthorizationError(message = "Request failed", details = {
+        raise AuthorizationError(message="Request failed", details={
                 "code": "tenant_context_required",
                 "message": f"Authenticated tenant context is required for {operation}.",
             })
     normalized = str(tenant_id).strip()
     if not normalized:
-        raise AuthorizationError(message = "Request failed", details = {
+        raise AuthorizationError(message="Request failed", details={
                 "code": "tenant_context_required",
                 "message": f"Authenticated tenant context is required for {operation}.",
             })

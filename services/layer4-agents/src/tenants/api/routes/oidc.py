@@ -27,6 +27,7 @@ from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, R
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
+from value_fabric.shared.crypto import blind_index
 from value_fabric.shared.identity.jwt import encode_jwt
 from value_fabric.shared.identity.oidc import OIDCClient, map_role_from_claims
 from value_fabric.shared.identity.oidc_config import OIDCProviderConfig
@@ -157,7 +158,9 @@ async def _get_tenant_by_slug(db: AsyncSession, slug: str) -> Tenant | None:
 
 
 async def _get_user_by_email(db: AsyncSession, tenant_id: UUID, email: str) -> User | None:
-    result = await db.execute(select(User).where(User.tenant_id == tenant_id, User.email == email))
+    result = await db.execute(
+        select(User).where(User.tenant_id == tenant_id, User.email_hash == blind_index(email))
+    )
     return result.scalar_one_or_none()
 
 

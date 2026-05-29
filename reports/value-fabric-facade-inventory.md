@@ -1,11 +1,29 @@
 # Value Fabric Facade Import Inventory
 
-Generated: 2026-05-28T22:56:23.631436
+Generated: 2026-05-29T03:13:51.777090
+
+## Facade Status
+
+**Status:** ACTIVE PATH-RESOLUTION FACADE
+
+The `value_fabric/` directory is **not merely a legacy compatibility shim**. It provides critical Python path resolution by appending service source paths to package `__path__`. Direct canonical imports (e.g., `layer6_benchmarks.database`) fail without this path bootstrapping.
+
+**Removal Blocked:** Canonical package import resolution must be solved before facade removal. See `.jr/tickets/IMPORT-ARCH-FACADE-RESOLUTION.md` for details.
+
+## Phase 0 Finding: L6 Canonical Import Failure
+
+**Attempted:** Migrate L6 test imports from `value_fabric.layer6.*` to `layer6_benchmarks.*`
+
+**Result:** FAILED with `ModuleNotFoundError: No module named 'layer6_benchmarks.database'`
+
+**Root Cause:** The facade appends `services/layer6-benchmarks/src` to `__path__`, but the canonical package structure requires additional path configuration that the facade currently provides.
+
+**Resolution:** Reverted all changes. L6 tests pass with facade imports, fail with canonical imports.
 
 ## Summary
 
-- **Total files with facade imports**: 304
-- **Total facade import statements**: 1072
+- **Total files with facade imports**: 287
+- **Total facade import statements**: 1034
 
 ## Imports by Layer
 
@@ -14,19 +32,19 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 289 |
 | 2 | 1 |
 | 3 | 223 |
-| 4 | 516 |
+| 4 | 515 |
 | 5 | 1 |
-| 6 | 42 |
+| 6 | 5 |
 
 ## Imports by File Type
 
 | File Type | Count |
 |-----------|-------|
-| ci_script | 8 |
+| ci_script | 9 |
 | other | 8 |
 | package | 1 |
-| service | 282 |
-| test | 5 |
+| service | 17 |
+| test | 252 |
 
 ## Files with Facade Imports
 
@@ -86,6 +104,14 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 6 | 157 | `"\nSome files import value_fabric.layer6 outside the allowlist, "` |
 
+### `scripts\migrate_l6_test_imports_canonical.py` (ci_script)
+
+**Total imports**: 1
+
+| Layer | Line | Import Statement |
+|-------|------|-----------------|
+| 6 | 2 | `"""Migrate L6 test imports from value_fabric.layer6.* to layer6_benchmarks.*"""` |
+
 ### `scripts\validation\generate_live_llm_provider_evidence.py` (ci_script)
 
 **Total imports**: 1
@@ -113,7 +139,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 12 | `from value_fabric.layer4.database_facade import validate_tenant_id` |
 | 4 | 18 | `from value_fabric.layer4.database import get_db_from_context` |
 
-### `services\layer1-ingestion\tests\api\conftest.py` (service)
+### `services\layer1-ingestion\tests\api\conftest.py` (test)
 
 **Total imports**: 4
 
@@ -124,7 +150,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 42 | `from value_fabric.layer1.shared.database import get_db_from_context_sync` |
 | 1 | 47 | `from value_fabric.layer1.shared.models import create_scraping_target` |
 
-### `services\layer1-ingestion\tests\api\test_targets_batch.py` (service)
+### `services\layer1-ingestion\tests\api\test_targets_batch.py` (test)
 
 **Total imports**: 2
 
@@ -133,7 +159,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 182 | `from value_fabric.layer1.shared.models import ScrapingJob` |
 | 1 | 255 | `from value_fabric.layer1.shared.models import create_scraping_job` |
 
-### `services\layer1-ingestion\tests\api\test_targets_execute_idempotency.py` (service)
+### `services\layer1-ingestion\tests\api\test_targets_execute_idempotency.py` (test)
 
 **Total imports**: 5
 
@@ -145,7 +171,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 177 | `from value_fabric.layer1.shared.models import ScrapingJob, JobStatus` |
 | 1 | 210 | `from value_fabric.layer1.shared.models import ScrapingJob, JobStatus` |
 
-### `services\layer1-ingestion\tests\api\test_targets_route_ordering.py` (service)
+### `services\layer1-ingestion\tests\api\test_targets_route_ordering.py` (test)
 
 **Total imports**: 1
 
@@ -153,7 +179,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 25 | `from value_fabric.layer1.api.app_monolith import app` |
 
-### `services\layer1-ingestion\tests\api\test_targets_status.py` (service)
+### `services\layer1-ingestion\tests\api\test_targets_status.py` (test)
 
 **Total imports**: 3
 
@@ -163,7 +189,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 184 | `from value_fabric.layer1.shared.database import get_db_from_context_sync` |
 | 1 | 246 | `from value_fabric.layer1.shared.models import create_scraping_job` |
 
-### `services\layer1-ingestion\tests\benchmarks\test_router_performance.py` (service)
+### `services\layer1-ingestion\tests\benchmarks\test_router_performance.py` (test)
 
 **Total imports**: 4
 
@@ -174,7 +200,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 20 | `from value_fabric.layer1.crawler.quality_gate import QualityGate` |
 | 1 | 21 | `from value_fabric.layer1.crawler.decision_store import InMemoryCrawlDecisionR...` |
 
-### `services\layer1-ingestion\tests\compliance\test_strict_robots_mode.py` (service)
+### `services\layer1-ingestion\tests\compliance\test_strict_robots_mode.py` (test)
 
 **Total imports**: 2
 
@@ -183,7 +209,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 15 | `from value_fabric.layer1.compliance.robots_checker import RobotsChecker` |
 | 1 | 16 | `from value_fabric.layer1.compliance.exceptions import RobotsFetchError, Robot...` |
 
-### `services\layer1-ingestion\tests\contract\test_l1_targets_openapi.py` (service)
+### `services\layer1-ingestion\tests\contract\test_l1_targets_openapi.py` (test)
 
 **Total imports**: 1
 
@@ -191,7 +217,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 22 | `from value_fabric.layer1.api.app_monolith import app` |
 
-### `services\layer1-ingestion\tests\crawler\test_httpx_crawler.py` (service)
+### `services\layer1-ingestion\tests\crawler\test_httpx_crawler.py` (test)
 
 **Total imports**: 1
 
@@ -199,7 +225,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 15 | `from value_fabric.layer1.crawler.httpx_crawler import (` |
 
-### `services\layer1-ingestion\tests\crawler\test_httpx_crawler_retry.py` (service)
+### `services\layer1-ingestion\tests\crawler\test_httpx_crawler_retry.py` (test)
 
 **Total imports**: 1
 
@@ -207,7 +233,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 23 | `from value_fabric.layer1.crawler.httpx_crawler import (` |
 
-### `services\layer1-ingestion\tests\crawler\test_quality_gate.py` (service)
+### `services\layer1-ingestion\tests\crawler\test_quality_gate.py` (test)
 
 **Total imports**: 2
 
@@ -216,7 +242,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 12 | `from value_fabric.layer1.crawler.httpx_crawler import FastPathResult` |
 | 1 | 13 | `from value_fabric.layer1.crawler.quality_gate import AdaptiveQualityGate, Qua...` |
 
-### `services\layer1-ingestion\tests\crawler\test_smart_router.py` (service)
+### `services\layer1-ingestion\tests\crawler\test_smart_router.py` (test)
 
 **Total imports**: 1
 
@@ -224,7 +250,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 10 | `from value_fabric.layer1.crawler.smart_router import (` |
 
-### `services\layer1-ingestion\tests\domain\test_target_status_transitions.py` (service)
+### `services\layer1-ingestion\tests\domain\test_target_status_transitions.py` (test)
 
 **Total imports**: 8
 
@@ -239,7 +265,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 58 | `from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS` |
 | 1 | 63 | `from value_fabric.layer1.api.app_monolith import _ALLOWED_STATUS_TRANSITIONS` |
 
-### `services\layer1-ingestion\tests\integration\test_fast_path_pipeline.py` (service)
+### `services\layer1-ingestion\tests\integration\test_fast_path_pipeline.py` (test)
 
 **Total imports**: 7
 
@@ -253,7 +279,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 504 | `from value_fabric.layer1.crawler.execution_logger import ExecutionLogger` |
 | 1 | 536 | `from value_fabric.layer1.crawler.quality_gate import QualityGate, QualityThre...` |
 
-### `services\layer1-ingestion\tests\integration\test_router_edge_cases.py` (service)
+### `services\layer1-ingestion\tests\integration\test_router_edge_cases.py` (test)
 
 **Total imports**: 10
 
@@ -270,7 +296,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 186 | `from value_fabric.layer1.crawler.httpx_crawler import FastPathResult` |
 | 1 | 187 | `from value_fabric.layer1.crawler.quality_gate import QualityGate` |
 
-### `services\layer1-ingestion\tests\integration\test_skill_pipeline.py` (service)
+### `services\layer1-ingestion\tests\integration\test_skill_pipeline.py` (test)
 
 **Total imports**: 7
 
@@ -284,7 +310,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 440 | `from value_fabric.layer1.api.main import router, get_tenant_id, get_db_from_c...` |
 | 1 | 526 | `from value_fabric.layer1.api.main import router` |
 
-### `services\layer1-ingestion\tests\observability\test_alert_contracts.py` (service)
+### `services\layer1-ingestion\tests\observability\test_alert_contracts.py` (test)
 
 **Total imports**: 1
 
@@ -292,7 +318,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 18 | `from value_fabric.layer1.metrics.prometheus_metrics import (` |
 
-### `services\layer1-ingestion\tests\pipeline\test_terminal_state_reconciliation.py` (service)
+### `services\layer1-ingestion\tests\pipeline\test_terminal_state_reconciliation.py` (test)
 
 **Total imports**: 13
 
@@ -312,7 +338,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 342 | `from value_fabric.layer1.shared import tasks` |
 | 1 | 373 | `from value_fabric.layer1.shared.database import get_db_session as real_get_db...` |
 
-### `services\layer1-ingestion\tests\security\conftest.py` (service)
+### `services\layer1-ingestion\tests\security\conftest.py` (test)
 
 **Total imports**: 5
 
@@ -324,7 +350,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 38 | `from value_fabric.layer1.shared.models import create_scraping_target` |
 | 1 | 128 | `from value_fabric.layer1.shared.models import ScrapingJob, JobStatus` |
 
-### `services\layer1-ingestion\tests\security\conftest_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\conftest_postgres.py` (test)
 
 **Total imports**: 5
 
@@ -336,7 +362,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 45 | `from value_fabric.layer1.shared.models import create_scraping_target` |
 | 1 | 185 | `from value_fabric.layer1.shared.models import ScrapingJob, JobStatus` |
 
-### `services\layer1-ingestion\tests\security\test_celery_tenant_isolation_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_celery_tenant_isolation_postgres.py` (test)
 
 **Total imports**: 16
 
@@ -359,7 +385,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 329 | `from value_fabric.layer1.shared.tasks import crawl_url_with_routing` |
 | 1 | 354 | `from value_fabric.layer1.crawler.decision_store import (` |
 
-### `services\layer1-ingestion\tests\security\test_crawl_decisions_tenant_isolation_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_crawl_decisions_tenant_isolation_postgres.py` (test)
 
 **Total imports**: 7
 
@@ -373,7 +399,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 244 | `from value_fabric.layer1.shared.database import get_db_session` |
 | 1 | 289 | `from value_fabric.layer1.shared.database import get_db_session` |
 
-### `services\layer1-ingestion\tests\security\test_global_robots_cache_isolation_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_global_robots_cache_isolation_postgres.py` (test)
 
 **Total imports**: 11
 
@@ -391,7 +417,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 333 | `from value_fabric.layer1.shared.database import get_db_session` |
 | 1 | 364 | `from value_fabric.layer1.shared.database import get_db_session` |
 
-### `services\layer1-ingestion\tests\security\test_maintenance_tenant_enumeration.py` (service)
+### `services\layer1-ingestion\tests\security\test_maintenance_tenant_enumeration.py` (test)
 
 **Total imports**: 9
 
@@ -407,7 +433,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 279 | `from value_fabric.layer1.shared.tasks import cleanup_old_content` |
 | 1 | 307 | `from value_fabric.layer1.shared.tasks import cleanup_old_content` |
 
-### `services\layer1-ingestion\tests\security\test_production_gates_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_production_gates_postgres.py` (test)
 
 **Total imports**: 6
 
@@ -420,7 +446,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 643 | `from value_fabric.layer1.shared.exceptions import (` |
 | 1 | 659 | `from value_fabric.layer1.shared.exceptions import (` |
 
-### `services\layer1-ingestion\tests\security\test_require_tenant_false_allowlist_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_require_tenant_false_allowlist_postgres.py` (test)
 
 **Total imports**: 6
 
@@ -433,7 +459,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 240 | `from value_fabric.layer1.shared import tasks` |
 | 1 | 303 | `from value_fabric.layer1.crawler.decision_store import CrawlDecisionRepository` |
 
-### `services\layer1-ingestion\tests\security\test_rls_enforcement_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_rls_enforcement_postgres.py` (test)
 
 **Total imports**: 10
 
@@ -450,7 +476,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 222 | `from value_fabric.layer1.shared.tasks import dispatch_outbox_event` |
 | 1 | 235 | `from value_fabric.layer1.shared import tasks` |
 
-### `services\layer1-ingestion\tests\security\test_system_maintenance_authorization_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_system_maintenance_authorization_postgres.py` (test)
 
 **Total imports**: 6
 
@@ -463,7 +489,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 293 | `from value_fabric.layer1.shared.tasks import cleanup_old_content` |
 | 1 | 305 | `from value_fabric.layer1.shared.tasks import _enumerate_authorized_tenants_fo...` |
 
-### `services\layer1-ingestion\tests\security\test_targets_tenant_isolation.py` (service)
+### `services\layer1-ingestion\tests\security\test_targets_tenant_isolation.py` (test)
 
 **Total imports**: 3
 
@@ -473,7 +499,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 157 | `from value_fabric.layer1.shared.models import ScrapingJob` |
 | 1 | 171 | `from value_fabric.layer1.api.app_monolith import app` |
 
-### `services\layer1-ingestion\tests\security\test_tenant_isolation_bypass_attempts_postgres.py` (service)
+### `services\layer1-ingestion\tests\security\test_tenant_isolation_bypass_attempts_postgres.py` (test)
 
 **Total imports**: 12
 
@@ -492,7 +518,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 412 | `from value_fabric.layer1.shared.maintenance import maintenance_audit_log` |
 | 1 | 474 | `from value_fabric.layer1.shared.maintenance import MaintenanceOperation` |
 
-### `services\layer1-ingestion\tests\test_observability_contract_integration.py` (service)
+### `services\layer1-ingestion\tests\test_observability_contract_integration.py` (test)
 
 **Total imports**: 1
 
@@ -500,7 +526,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 3 | `from value_fabric.layer1.api.app_monolith import app` |
 
-### `services\layer1-ingestion\tests\unit\test_adapters.py` (service)
+### `services\layer1-ingestion\tests\unit\test_adapters.py` (test)
 
 **Total imports**: 9
 
@@ -516,7 +542,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 251 | `from value_fabric.layer1.adapters.base import AdapterType` |
 | 1 | 260 | `from value_fabric.layer1.adapters.base import AdapterType` |
 
-### `services\layer1-ingestion\tests\unit\test_batch_operations.py` (service)
+### `services\layer1-ingestion\tests\unit\test_batch_operations.py` (test)
 
 **Total imports**: 7
 
@@ -530,7 +556,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 104 | `from value_fabric.layer1.shared.models import ScrapingJob` |
 | 1 | 177 | `from value_fabric.layer1.shared.models import ScrapingJob` |
 
-### `services\layer1-ingestion\tests\unit\test_canonical_imports.py` (service)
+### `services\layer1-ingestion\tests\unit\test_canonical_imports.py` (test)
 
 **Total imports**: 1
 
@@ -538,7 +564,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 102 | `import value_fabric.layer1.crawler.httpx_crawler as shim_mod` |
 
-### `services\layer1-ingestion\tests\unit\test_celery_dispatch_regression.py` (service)
+### `services\layer1-ingestion\tests\unit\test_celery_dispatch_regression.py` (test)
 
 **Total imports**: 1
 
@@ -546,7 +572,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 11 | `from value_fabric.layer1.shared.config import Settings` |
 
-### `services\layer1-ingestion\tests\unit\test_celery_tasks.py` (service)
+### `services\layer1-ingestion\tests\unit\test_celery_tasks.py` (test)
 
 **Total imports**: 33
 
@@ -586,7 +612,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 558 | `from value_fabric.layer1.shared.tasks import compliance_check_stage` |
 | 1 | 598 | `from value_fabric.layer1.shared.tasks import celery_app` |
 
-### `services\layer1-ingestion\tests\unit\test_content_extractor.py` (service)
+### `services\layer1-ingestion\tests\unit\test_content_extractor.py` (test)
 
 **Total imports**: 1
 
@@ -594,7 +620,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 18 | `from value_fabric.layer1.post_processor.content_extractor import (` |
 
-### `services\layer1-ingestion\tests\unit\test_crawler_config.py` (service)
+### `services\layer1-ingestion\tests\unit\test_crawler_config.py` (test)
 
 **Total imports**: 1
 
@@ -602,7 +628,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 11 | `from value_fabric.layer1.crawler.crawler_config import CrawlerConfig, load_co...` |
 
-### `services\layer1-ingestion\tests\unit\test_crawler_telemetry.py` (service)
+### `services\layer1-ingestion\tests\unit\test_crawler_telemetry.py` (test)
 
 **Total imports**: 2
 
@@ -611,7 +637,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 11 | `from value_fabric.layer1.crawler.telemetry import (` |
 | 1 | 50 | `import value_fabric.layer1.crawler.telemetry as telemetry` |
 
-### `services\layer1-ingestion\tests\unit\test_event_outbox.py` (service)
+### `services\layer1-ingestion\tests\unit\test_event_outbox.py` (test)
 
 **Total imports**: 14
 
@@ -632,7 +658,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 480 | `import value_fabric.layer1.shared.tasks as tasks_module` |
 | 1 | 514 | `import value_fabric.layer1.shared.tasks as tasks_module` |
 
-### `services\layer1-ingestion\tests\unit\test_l2_celery_dispatch.py` (service)
+### `services\layer1-ingestion\tests\unit\test_l2_celery_dispatch.py` (test)
 
 **Total imports**: 1
 
@@ -640,7 +666,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 7 | `from value_fabric.layer1.shared.config import Settings` |
 
-### `services\layer1-ingestion\tests\unit\test_m02_exception_remediation.py` (service)
+### `services\layer1-ingestion\tests\unit\test_m02_exception_remediation.py` (test)
 
 **Total imports**: 6
 
@@ -653,7 +679,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 45 | `from value_fabric.layer1.shared.database import redis_client` |
 | 1 | 57 | `from value_fabric.layer1.post_processor.content_extractor import ContentExtra...` |
 
-### `services\layer1-ingestion\tests\unit\test_models.py` (service)
+### `services\layer1-ingestion\tests\unit\test_models.py` (test)
 
 **Total imports**: 1
 
@@ -661,7 +687,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 5 | `from value_fabric.layer1.shared.models import (` |
 
-### `services\layer1-ingestion\tests\unit\test_pdf_adapter.py` (service)
+### `services\layer1-ingestion\tests\unit\test_pdf_adapter.py` (test)
 
 **Total imports**: 2
 
@@ -670,7 +696,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 39 | `from value_fabric.layer1.adapters.base import AdapterType, FilingDocument` |
 | 1 | 45 | `from value_fabric.layer1.adapters.pdf_adapter import PDFAdapter, PDFAdapterCo...` |
 
-### `services\layer1-ingestion\tests\unit\test_pii_scanner.py` (service)
+### `services\layer1-ingestion\tests\unit\test_pii_scanner.py` (test)
 
 **Total imports**: 4
 
@@ -681,7 +707,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 322 | `import value_fabric.layer1.compliance.pii_scanner as pii_mod` |
 | 1 | 329 | `import value_fabric.layer1.compliance.pii_scanner as pii_mod` |
 
-### `services\layer1-ingestion\tests\unit\test_playwright_crawler.py` (service)
+### `services\layer1-ingestion\tests\unit\test_playwright_crawler.py` (test)
 
 **Total imports**: 2
 
@@ -690,7 +716,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 24 | `from value_fabric.layer1.crawler.crawler_config import CrawlerConfig` |
 | 1 | 31 | `from value_fabric.layer1.crawler.playwright_crawler import CrawlResult, Playw...` |
 
-### `services\layer1-ingestion\tests\unit\test_quality_gate.py` (service)
+### `services\layer1-ingestion\tests\unit\test_quality_gate.py` (test)
 
 **Total imports**: 2
 
@@ -699,7 +725,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 14 | `from value_fabric.layer1.crawler.httpx_crawler import FastPathResult` |
 | 1 | 15 | `from value_fabric.layer1.crawler.quality_gate import (` |
 
-### `services\layer1-ingestion\tests\unit\test_robots_checker_modes.py` (service)
+### `services\layer1-ingestion\tests\unit\test_robots_checker_modes.py` (test)
 
 **Total imports**: 2
 
@@ -708,7 +734,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 7 | `from value_fabric.layer1.compliance.robots_checker import RobotsChecker` |
 | 1 | 8 | `from value_fabric.layer1.shared.exceptions import RobotsFetchError` |
 
-### `services\layer1-ingestion\tests\unit\test_scheduler.py` (service)
+### `services\layer1-ingestion\tests\unit\test_scheduler.py` (test)
 
 **Total imports**: 1
 
@@ -716,7 +742,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 5 | `from value_fabric.layer1.scheduler.priority_queue import PriorityScheduler, R...` |
 
-### `services\layer1-ingestion\tests\unit\test_skill_list_endpoints.py` (service)
+### `services\layer1-ingestion\tests\unit\test_skill_list_endpoints.py` (test)
 
 **Total imports**: 2
 
@@ -725,7 +751,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 21 | `from value_fabric.layer1.api.main import router` |
 | 1 | 22 | `from value_fabric.layer1.api.main import (` |
 
-### `services\layer1-ingestion\tests\unit\test_smart_router.py` (service)
+### `services\layer1-ingestion\tests\unit\test_smart_router.py` (test)
 
 **Total imports**: 1
 
@@ -733,7 +759,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 20 | `from value_fabric.layer1.crawler.smart_router import (` |
 
-### `services\layer1-ingestion\tests\unit\test_target_status_transitions.py` (service)
+### `services\layer1-ingestion\tests\unit\test_target_status_transitions.py` (test)
 
 **Total imports**: 2
 
@@ -742,7 +768,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 7 | `from value_fabric.layer1.shared.models import TargetStatus, ScrapingTarget` |
 | 1 | 26 | `from value_fabric.layer1.shared.models import create_scraping_target` |
 
-### `services\layer1-ingestion\tests\unit\test_task_unavailable_error_sanitization.py` (service)
+### `services\layer1-ingestion\tests\unit\test_task_unavailable_error_sanitization.py` (test)
 
 **Total imports**: 1
 
@@ -750,7 +776,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 1 | 3 | `from value_fabric.layer1.api.main import _UnavailableTask, _build_task_unavai...` |
 
-### `services\layer1-ingestion\tests\unit\test_validation.py` (service)
+### `services\layer1-ingestion\tests\unit\test_validation.py` (test)
 
 **Total imports**: 13
 
@@ -770,7 +796,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 1 | 551 | `from value_fabric.layer1.shared.tasks import validation_stage` |
 | 1 | 565 | `from value_fabric.layer1.shared.tasks import validation_stage` |
 
-### `services\layer1-ingestion\tests\unit\test_xbrl_parser_extended.py` (service)
+### `services\layer1-ingestion\tests\unit\test_xbrl_parser_extended.py` (test)
 
 **Total imports**: 5
 
@@ -932,20 +958,20 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 21 | `from value_fabric.layer3.security.query_validator import ValidatedNeo4jSession` |
 | 3 | 22 | `from value_fabric.layer3.services.cypher_scope_guard import (` |
 
-### `services\layer3-knowledge\tests\conftest.py` (service)
+### `services\layer3-knowledge\tests\conftest.py` (test)
 
 **Total imports**: 6
 
 | Layer | Line | Import Statement |
 |-------|------|-----------------|
-| 3 | 54 | `from value_fabric.layer3.api.dependencies import AppState` |
-| 3 | 55 | `from value_fabric.layer3.config import Settings, get_settings` |
-| 3 | 179 | `from value_fabric.layer3.api.main import app` |
-| 3 | 185 | `from value_fabric.layer3.api.dependencies import (` |
-| 3 | 215 | `from value_fabric.layer3.api.main import app` |
-| 3 | 221 | `from value_fabric.layer3.api.dependencies import (` |
+| 3 | 53 | `from value_fabric.layer3.api.dependencies import AppState` |
+| 3 | 54 | `from value_fabric.layer3.config import Settings, get_settings` |
+| 3 | 178 | `from value_fabric.layer3.api.main import app` |
+| 3 | 184 | `from value_fabric.layer3.api.dependencies import (` |
+| 3 | 214 | `from value_fabric.layer3.api.main import app` |
+| 3 | 220 | `from value_fabric.layer3.api.dependencies import (` |
 
-### `services\layer3-knowledge\tests\test_account_authorization.py` (service)
+### `services\layer3-knowledge\tests\test_account_authorization.py` (test)
 
 **Total imports**: 2
 
@@ -954,7 +980,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 13 | `from value_fabric.layer3.schema.entity_scope import (` |
 | 3 | 22 | `from value_fabric.layer3.security.account_authorization import (` |
 
-### `services\layer3-knowledge\tests\test_api_wrapper_startup_regression.py` (service)
+### `services\layer3-knowledge\tests\test_api_wrapper_startup_regression.py` (test)
 
 **Total imports**: 1
 
@@ -962,7 +988,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 1 | `from value_fabric.layer3.api.main import app` |
 
-### `services\layer3-knowledge\tests\test_audited_graph_mutation.py` (service)
+### `services\layer3-knowledge\tests\test_audited_graph_mutation.py` (test)
 
 **Total imports**: 2
 
@@ -971,7 +997,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 9 | `from value_fabric.layer3.db.audited_mutation import AuditedGraphMutation` |
 | 3 | 10 | `from value_fabric.layer3.utils.cypher_security import ALLOWED_REL_TYPES` |
 
-### `services\layer3-knowledge\tests\test_backup_runtime_bindings.py` (service)
+### `services\layer3-knowledge\tests\test_backup_runtime_bindings.py` (test)
 
 **Total imports**: 4
 
@@ -982,7 +1008,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 3 | `from value_fabric.layer3.backup.backup_manager import LocalStorage as Service...` |
 | 3 | 4 | `from value_fabric.layer3.backup.backup_manager import BackupConfig, BackupMan...` |
 
-### `services\layer3-knowledge\tests\test_backup_tenant_scoping.py` (service)
+### `services\layer3-knowledge\tests\test_backup_tenant_scoping.py` (test)
 
 **Total imports**: 1
 
@@ -990,7 +1016,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 5 | `from value_fabric.layer3.backup.backup_manager import (` |
 
-### `services\layer3-knowledge\tests\test_benchmark_policies_route.py` (service)
+### `services\layer3-knowledge\tests\test_benchmark_policies_route.py` (test)
 
 **Total imports**: 1
 
@@ -998,7 +1024,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 6 | `from value_fabric.layer3.api.routes.benchmarks import list_benchmark_policies` |
 
-### `services\layer3-knowledge\tests\test_cache_characterization.py` (service)
+### `services\layer3-knowledge\tests\test_cache_characterization.py` (test)
 
 **Total imports**: 1
 
@@ -1006,7 +1032,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 15 | `from value_fabric.layer3.cache.redis_cache import CacheManager, RequestDedupl...` |
 
-### `services\layer3-knowledge\tests\test_cache_oss1_parity.py` (service)
+### `services\layer3-knowledge\tests\test_cache_oss1_parity.py` (test)
 
 **Total imports**: 1
 
@@ -1014,7 +1040,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 14 | `from value_fabric.layer3.cache import (` |
 
-### `services\layer3-knowledge\tests\test_cache_ports.py` (service)
+### `services\layer3-knowledge\tests\test_cache_ports.py` (test)
 
 **Total imports**: 1
 
@@ -1022,7 +1048,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 10 | `from value_fabric.layer3.cache.ports import CachePort, LegacyCacheAdapter, as...` |
 
-### `services\layer3-knowledge\tests\test_canonical_endpoint_surface.py` (service)
+### `services\layer3-knowledge\tests\test_canonical_endpoint_surface.py` (test)
 
 **Total imports**: 3
 
@@ -1032,7 +1058,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 12 | `from value_fabric.layer3.api.routes.calculators import router as calculators_...` |
 | 3 | 13 | `from value_fabric.layer3.api.routes.graph_viz import router as graph_viz_router` |
 
-### `services\layer3-knowledge\tests\test_config.py` (service)
+### `services\layer3-knowledge\tests\test_config.py` (test)
 
 **Total imports**: 1
 
@@ -1040,7 +1066,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 9 | `from value_fabric.layer3.config import Settings, get_settings` |
 
-### `services\layer3-knowledge\tests\test_config_import_surface.py` (service)
+### `services\layer3-knowledge\tests\test_config_import_surface.py` (test)
 
 **Total imports**: 1
 
@@ -1048,7 +1074,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 5 | `from value_fabric.layer3.config import Settings, get_settings` |
 
-### `services\layer3-knowledge\tests\test_cross_tenant_hostile_behavioral.py` (service)
+### `services\layer3-knowledge\tests\test_cross_tenant_hostile_behavioral.py` (test)
 
 **Total imports**: 3
 
@@ -1058,7 +1084,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 57 | `from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession` |
 | 3 | 85 | `from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession` |
 
-### `services\layer3-knowledge\tests\test_cypher_scope_remediation.py` (service)
+### `services\layer3-knowledge\tests\test_cypher_scope_remediation.py` (test)
 
 **Total imports**: 5
 
@@ -1070,7 +1096,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 58 | `from value_fabric.layer3.retrieval.graph_rag import _validate_entity_type` |
 | 3 | 65 | `from value_fabric.layer3.retrieval.graph_rag import _validate_hops` |
 
-### `services\layer3-knowledge\tests\test_dil_phase1.py` (service)
+### `services\layer3-knowledge\tests\test_dil_phase1.py` (test)
 
 **Total imports**: 29
 
@@ -1106,7 +1132,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 639 | `from value_fabric.layer3.services.product_service import ProductCreate` |
 | 3 | 658 | `from value_fabric.layer3.services.product_service import FeatureCreate` |
 
-### `services\layer3-knowledge\tests\test_dil_phase2.py` (service)
+### `services\layer3-knowledge\tests\test_dil_phase2.py` (test)
 
 **Total imports**: 2
 
@@ -1115,7 +1141,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 28 | `from value_fabric.layer3.services.competitive_intel_service import (` |
 | 3 | 34 | `from value_fabric.layer3.services.roi_calculator_service import (` |
 
-### `services\layer3-knowledge\tests\test_e2e_pipeline.py` (service)
+### `services\layer3-knowledge\tests\test_e2e_pipeline.py` (test)
 
 **Total imports**: 11
 
@@ -1133,7 +1159,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 256 | `from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTR...` |
 | 3 | 260 | `from value_fabric.layer3.schema.constraints import CONSTRAINTS, TENANT_CONSTR...` |
 
-### `services\layer3-knowledge\tests\test_entities_route_tenant_scoped_regression.py` (service)
+### `services\layer3-knowledge\tests\test_entities_route_tenant_scoped_regression.py` (test)
 
 **Total imports**: 2
 
@@ -1142,7 +1168,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 5 | `from value_fabric.layer3.api.routes.entities import list_entities, query_enti...` |
 | 3 | 6 | `from value_fabric.layer3.api.models import EntityFilterRequest` |
 
-### `services\layer3-knowledge\tests\test_entity_resolution.py` (service)
+### `services\layer3-knowledge\tests\test_entity_resolution.py` (test)
 
 **Total imports**: 2
 
@@ -1151,7 +1177,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 12 | `from value_fabric.layer3.schema.entity_resolution import (` |
 | 3 | 21 | `from value_fabric.layer3.services.entity_resolution import EntityResolutionSe...` |
 
-### `services\layer3-knowledge\tests\test_entrypoint_route_resolution_regression.py` (service)
+### `services\layer3-knowledge\tests\test_entrypoint_route_resolution_regression.py` (test)
 
 **Total imports**: 1
 
@@ -1159,7 +1185,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 1 | `from value_fabric.layer3.api.main import app` |
 
-### `services\layer3-knowledge\tests\test_evidence_embedding_failure.py` (service)
+### `services\layer3-knowledge\tests\test_evidence_embedding_failure.py` (test)
 
 **Total imports**: 1
 
@@ -1167,7 +1193,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 5 | `from value_fabric.layer3.services.embedding_errors import EmbeddingProviderUn...` |
 
-### `services\layer3-knowledge\tests\test_evidence_links_tenant_isolation.py` (service)
+### `services\layer3-knowledge\tests\test_evidence_links_tenant_isolation.py` (test)
 
 **Total imports**: 2
 
@@ -1176,7 +1202,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 8 | `from value_fabric.layer3.api.dependencies import get_neo4j_driver` |
 | 3 | 9 | `from value_fabric.layer3.api.main import app` |
 
-### `services\layer3-knowledge\tests\test_exception_handlers.py` (service)
+### `services\layer3-knowledge\tests\test_exception_handlers.py` (test)
 
 **Total imports**: 2
 
@@ -1185,7 +1211,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 8 | `from value_fabric.layer3.api.exceptions import ValueFabricException` |
 | 3 | 9 | `from value_fabric.layer3.api.main import (` |
 
-### `services\layer3-knowledge\tests\test_exception_mapping.py` (service)
+### `services\layer3-knowledge\tests\test_exception_mapping.py` (test)
 
 **Total imports**: 2
 
@@ -1194,7 +1220,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 1 | `from value_fabric.layer3.api.exception_mapping import map_exception_to_http_e...` |
 | 3 | 2 | `from value_fabric.layer3.api.exceptions import (` |
 
-### `services\layer3-knowledge\tests\test_exceptions.py` (service)
+### `services\layer3-knowledge\tests\test_exceptions.py` (test)
 
 **Total imports**: 1
 
@@ -1202,7 +1228,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 3 | `from value_fabric.layer3.api.exceptions import (` |
 
-### `services\layer3-knowledge\tests\test_formula_governance_tenant_extraction.py` (service)
+### `services\layer3-knowledge\tests\test_formula_governance_tenant_extraction.py` (test)
 
 **Total imports**: 1
 
@@ -1210,7 +1236,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 11 | `from value_fabric.layer3.api.routes.formula_governance import list_pending_ap...` |
 
-### `services\layer3-knowledge\tests\test_graph_alias_deprecation_policy.py` (service)
+### `services\layer3-knowledge\tests\test_graph_alias_deprecation_policy.py` (test)
 
 **Total imports**: 1
 
@@ -1218,7 +1244,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 1 | `from value_fabric.layer3.api.models import (` |
 
-### `services\layer3-knowledge\tests\test_graph_viz_security_boundaries.py` (service)
+### `services\layer3-knowledge\tests\test_graph_viz_security_boundaries.py` (test)
 
 **Total imports**: 3
 
@@ -1228,7 +1254,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 22 | `from value_fabric.layer3.api.routes.graph_viz import (` |
 | 3 | 28 | `from value_fabric.layer3.db.query_execution import MAX_QUERY_DEPTH` |
 
-### `services\layer3-knowledge\tests\test_hybrid_search_api_compat.py` (service)
+### `services\layer3-knowledge\tests\test_hybrid_search_api_compat.py` (test)
 
 **Total imports**: 2
 
@@ -1237,7 +1263,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 5 | `from value_fabric.layer3.config import Settings` |
 | 3 | 6 | `from value_fabric.layer3.retrieval.hybrid_search import HybridSearch` |
 
-### `services\layer3-knowledge\tests\test_i03_variables_production_fail_closed.py` (service)
+### `services\layer3-knowledge\tests\test_i03_variables_production_fail_closed.py` (test)
 
 **Total imports**: 6
 
@@ -1250,7 +1276,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 65 | `from value_fabric.layer3.api.routes.variables import _is_production_like` |
 | 3 | 73 | `from value_fabric.layer3.api.routes.variables import _is_production_like` |
 
-### `services\layer3-knowledge\tests\test_ingestion.py` (service)
+### `services\layer3-knowledge\tests\test_ingestion.py` (test)
 
 **Total imports**: 2
 
@@ -1259,7 +1285,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 8 | `from value_fabric.layer3.ingestion import Neo4jLoader, RDFLoadError` |
 | 3 | 9 | `from value_fabric.layer3.ingestion.neo4j_loader import (` |
 
-### `services\layer3-knowledge\tests\test_ingestion_route_docstring_policy.py` (service)
+### `services\layer3-knowledge\tests\test_ingestion_route_docstring_policy.py` (test)
 
 **Total imports**: 1
 
@@ -1267,7 +1293,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 3 | `from value_fabric.layer3.api.routes import ingestion` |
 
-### `services\layer3-knowledge\tests\test_knowledge_subgraph_routes.py` (service)
+### `services\layer3-knowledge\tests\test_knowledge_subgraph_routes.py` (test)
 
 **Total imports**: 1
 
@@ -1275,7 +1301,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 22 | `from value_fabric.layer3.api.routes.knowledge import (` |
 
-### `services\layer3-knowledge\tests\test_layer3_compat_deprecation_phases.py` (service)
+### `services\layer3-knowledge\tests\test_layer3_compat_deprecation_phases.py` (test)
 
 **Total imports**: 2
 
@@ -1284,7 +1310,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 3 | `from value_fabric.layer3.api.models import GraphEdge, GraphNode, get_deprecat...` |
 | 3 | 4 | `from value_fabric.layer3.api.main import app` |
 
-### `services\layer3-knowledge\tests\test_layer3_compat_metrics_thresholds.py` (service)
+### `services\layer3-knowledge\tests\test_layer3_compat_metrics_thresholds.py` (test)
 
 **Total imports**: 1
 
@@ -1292,7 +1318,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 1 | `from value_fabric.layer3.services.compat_metrics import deprecation_ready_for...` |
 
-### `services\layer3-knowledge\tests\test_monolith_route_delegation_guardrail.py` (service)
+### `services\layer3-knowledge\tests\test_monolith_route_delegation_guardrail.py` (test)
 
 **Total imports**: 2
 
@@ -1301,7 +1327,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 29 | `from value_fabric.layer3.api.routes import (  # noqa: F401` |
 | 3 | 40 | `from value_fabric.layer3.api.main import app  # noqa: F401` |
 
-### `services\layer3-knowledge\tests\test_neo4j_integration.py` (service)
+### `services\layer3-knowledge\tests\test_neo4j_integration.py` (test)
 
 **Total imports**: 18
 
@@ -1326,7 +1352,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 303 | `from value_fabric.layer3.schema import SchemaInitializer` |
 | 3 | 321 | `from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine` |
 
-### `services\layer3-knowledge\tests\test_neo4j_schema_integration.py` (service)
+### `services\layer3-knowledge\tests\test_neo4j_schema_integration.py` (test)
 
 **Total imports**: 4
 
@@ -1337,7 +1363,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 283 | `from value_fabric.layer3.schema.constraints import get_tenant_constraints` |
 | 3 | 291 | `from value_fabric.layer3.schema.constraints import TENANT_CONSTRAINTS, get_te...` |
 
-### `services\layer3-knowledge\tests\test_observability_contract_integration.py` (service)
+### `services\layer3-knowledge\tests\test_observability_contract_integration.py` (test)
 
 **Total imports**: 2
 
@@ -1346,7 +1372,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 4 | `from value_fabric.layer3.api.main import app` |
 | 3 | 25 | `from value_fabric.layer3.metrics.prometheus_metrics import PrometheusMetrics,...` |
 
-### `services\layer3-knowledge\tests\test_pack_loader.py` (service)
+### `services\layer3-knowledge\tests\test_pack_loader.py` (test)
 
 **Total imports**: 2
 
@@ -1355,7 +1381,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 18 | `from value_fabric.layer3.api.routes import pack_loader` |
 | 3 | 19 | `from value_fabric.layer3.api.routes.pack_loader import (` |
 
-### `services\layer3-knowledge\tests\test_packaged_system_routes.py` (service)
+### `services\layer3-knowledge\tests\test_packaged_system_routes.py` (test)
 
 **Total imports**: 2
 
@@ -1364,7 +1390,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 11 | `from value_fabric.layer3.api.routes import system as system_routes` |
 | 3 | 12 | `from value_fabric.layer3.api.models import ServiceMetrics` |
 
-### `services\layer3-knowledge\tests\test_query_search_error_context.py` (service)
+### `services\layer3-knowledge\tests\test_query_search_error_context.py` (test)
 
 **Total imports**: 3
 
@@ -1374,7 +1400,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 7 | `from value_fabric.layer3.api.models import GraphRAGQuery, SearchRequest` |
 | 3 | 8 | `from value_fabric.layer3.api.routes import query_search` |
 
-### `services\layer3-knowledge\tests\test_query_validator.py` (service)
+### `services\layer3-knowledge\tests\test_query_validator.py` (test)
 
 **Total imports**: 1
 
@@ -1382,7 +1408,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 11 | `from value_fabric.layer3.security.query_validator import (` |
 
-### `services\layer3-knowledge\tests\test_required_field_validator.py` (service)
+### `services\layer3-knowledge\tests\test_required_field_validator.py` (test)
 
 **Total imports**: 2
 
@@ -1391,7 +1417,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 9 | `from value_fabric.layer3.ingestion.validators import RequiredFieldValidator, ...` |
 | 3 | 99 | `from value_fabric.layer3.api.exceptions import IngestionError` |
 
-### `services\layer3-knowledge\tests\test_retrieval.py` (service)
+### `services\layer3-knowledge\tests\test_retrieval.py` (test)
 
 **Total imports**: 3
 
@@ -1401,7 +1427,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 29 | `from value_fabric.layer3.retrieval.hybrid_search import HybridSearchResult` |
 | 3 | 49 | `from value_fabric.layer3.retrieval.vector_store import VectorStoreError` |
 
-### `services\layer3-knowledge\tests\test_roi_formula_security.py` (service)
+### `services\layer3-knowledge\tests\test_roi_formula_security.py` (test)
 
 **Total imports**: 1
 
@@ -1409,7 +1435,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 14 | `from value_fabric.layer3.agents.roi_calculation import ROICalculationAgent` |
 
-### `services\layer3-knowledge\tests\test_scenario_engine.py` (service)
+### `services\layer3-knowledge\tests\test_scenario_engine.py` (test)
 
 **Total imports**: 2
 
@@ -1418,7 +1444,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 5 | `from value_fabric.layer3.agents.scenario_engine import (` |
 | 3 | 122 | `from value_fabric.layer3.agents.scenario_engine import SavedScenario` |
 
-### `services\layer3-knowledge\tests\test_strict_builder_enforcement.py` (service)
+### `services\layer3-knowledge\tests\test_strict_builder_enforcement.py` (test)
 
 **Total imports**: 7
 
@@ -1432,7 +1458,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 23 | `from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore` |
 | 3 | 37 | `from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession` |
 
-### `services\layer3-knowledge\tests\test_sync_manager_tenant_isolation.py` (service)
+### `services\layer3-knowledge\tests\test_sync_manager_tenant_isolation.py` (test)
 
 **Total imports**: 1
 
@@ -1440,7 +1466,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 6 | `from value_fabric.layer3.ingestion.sync_manager import SyncManager` |
 
-### `services\layer3-knowledge\tests\test_system_routes.py` (service)
+### `services\layer3-knowledge\tests\test_system_routes.py` (test)
 
 **Total imports**: 2
 
@@ -1449,7 +1475,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 12 | `from value_fabric.layer3.api.dependencies import get_schema_initializer` |
 | 3 | 13 | `from value_fabric.layer3.api.routes import system as system_routes` |
 
-### `services\layer3-knowledge\tests\test_tenant_context_extraction.py` (service)
+### `services\layer3-knowledge\tests\test_tenant_context_extraction.py` (test)
 
 **Total imports**: 1
 
@@ -1457,7 +1483,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 17 | `from value_fabric.layer3.api.dependencies import _extract_tenant_id` |
 
-### `services\layer3-knowledge\tests\test_tenant_id_migration_expansion_labels.py` (service)
+### `services\layer3-knowledge\tests\test_tenant_id_migration_expansion_labels.py` (test)
 
 **Total imports**: 1
 
@@ -1465,7 +1491,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 5 | `from value_fabric.layer3.migrations.migrate_tenant_ids import TenantIdMigration` |
 
-### `services\layer3-knowledge\tests\test_tenant_isolation.py` (service)
+### `services\layer3-knowledge\tests\test_tenant_isolation.py` (test)
 
 **Total imports**: 5
 
@@ -1477,7 +1503,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 17 | `from value_fabric.layer3.api.models import GraphRAGQuery, SearchRequest, Sear...` |
 | 3 | 18 | `from value_fabric.layer3.api.routes.entities import list_entities` |
 
-### `services\layer3-knowledge\tests\test_tenant_read_isolation.py` (service)
+### `services\layer3-knowledge\tests\test_tenant_read_isolation.py` (test)
 
 **Total imports**: 1
 
@@ -1485,7 +1511,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 10 | `from value_fabric.layer3.db.tenant_queries import (` |
 
-### `services\layer3-knowledge\tests\test_trace_context_propagation_integration.py` (service)
+### `services\layer3-knowledge\tests\test_trace_context_propagation_integration.py` (test)
 
 **Total imports**: 1
 
@@ -1493,7 +1519,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 8 | `from value_fabric.layer3.tracing.middleware import TracingMiddleware` |
 
-### `services\layer3-knowledge\tests\test_value_packs.py` (service)
+### `services\layer3-knowledge\tests\test_value_packs.py` (test)
 
 **Total imports**: 1
 
@@ -1501,7 +1527,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 16 | `from value_fabric.layer3.api.routes.value_packs import (` |
 
-### `services\layer3-knowledge\tests\test_value_packs_tenant_extraction.py` (service)
+### `services\layer3-knowledge\tests\test_value_packs_tenant_extraction.py` (test)
 
 **Total imports**: 1
 
@@ -1509,7 +1535,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 16 | `from value_fabric.layer3.api.routes.value_packs import _tenant_id_from_api_key` |
 
-### `services\layer3-knowledge\tests\test_valuepack_model_forwarder_guard.py` (service)
+### `services\layer3-knowledge\tests\test_valuepack_model_forwarder_guard.py` (test)
 
 **Total imports**: 1
 
@@ -1517,7 +1543,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 10 | `assert "from value_fabric.layer3.models.valuepack import *" in content` |
 
-### `services\layer3-knowledge\tests\test_vault_config_source.py` (service)
+### `services\layer3-knowledge\tests\test_vault_config_source.py` (test)
 
 **Total imports**: 1
 
@@ -1525,7 +1551,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 16 | `from value_fabric.layer3.config.manager import (` |
 
-### `services\layer3-knowledge\tests\test_vector_e2e.py` (service)
+### `services\layer3-knowledge\tests\test_vector_e2e.py` (test)
 
 **Total imports**: 8
 
@@ -1540,7 +1566,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 46 | `from value_fabric.layer3.retrieval.vector_store import VectorStore` |
 | 3 | 47 | `from value_fabric.layer3.schema.initializer import SchemaInitializer` |
 
-### `services\layer3-knowledge\tests\test_vector_store_tenant_write_isolation.py` (service)
+### `services\layer3-knowledge\tests\test_vector_store_tenant_write_isolation.py` (test)
 
 **Total imports**: 1
 
@@ -1548,7 +1574,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 7 | `from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore` |
 
-### `services\layer3-knowledge\tests\test_versioning_registration.py` (service)
+### `services\layer3-knowledge\tests\test_versioning_registration.py` (test)
 
 **Total imports**: 3
 
@@ -1558,15 +1584,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 3 | 8 | `from value_fabric.layer3.api import versioning as versioning_module` |
 | 3 | 9 | `from value_fabric.layer3.api.versioning import VersionCompatibility` |
 
-### `services\layer4-agents\src\contracts\__init__.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 4 | 16 | `from value_fabric.layer4.contracts import (` |
-
-### `services\layer4-agents\tests\conftest.py` (service)
+### `services\layer4-agents\tests\conftest.py` (test)
 
 **Total imports**: 9
 
@@ -1582,7 +1600,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 557 | `from value_fabric.layer4.models.workflow_config import EdgeConfig, NodeConfig...` |
 | 4 | 558 | `from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowConfig` |
 
-### `services\layer4-agents\tests\security\test_layer4_tenant_scoped_services.py` (service)
+### `services\layer4-agents\tests\security\test_layer4_tenant_scoped_services.py` (test)
 
 **Total imports**: 4
 
@@ -1593,7 +1611,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 13 | `from value_fabric.layer4.services.formula_governance_service import Neo4jForm...` |
 | 4 | 14 | `from value_fabric.layer4.services.value_pack_service import Neo4jValuePackSer...` |
 
-### `services\layer4-agents\tests\test_accounts_api.py` (service)
+### `services\layer4-agents\tests\test_accounts_api.py` (test)
 
 **Total imports**: 10
 
@@ -1610,7 +1628,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 635 | `from value_fabric.layer4.services.crm_sync_service import CRMSyncService` |
 | 4 | 696 | `from value_fabric.layer4.services.crm_sync_service import CRMSyncService` |
 
-### `services\layer4-agents\tests\test_action_level_approval.py` (service)
+### `services\layer4-agents\tests\test_action_level_approval.py` (test)
 
 **Total imports**: 6
 
@@ -1623,7 +1641,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 104 | `from value_fabric.layer4.harness.human_gates import HumanGateManager` |
 | 4 | 105 | `from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, Pro...` |
 
-### `services\layer4-agents\tests\test_admin_tool_h01.py` (service)
+### `services\layer4-agents\tests\test_admin_tool_h01.py` (test)
 
 **Total imports**: 1
 
@@ -1631,7 +1649,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 11 | `from value_fabric.layer4.tools import admin` |
 
-### `services\layer4-agents\tests\test_agent_grounding_and_refusal.py` (service)
+### `services\layer4-agents\tests\test_agent_grounding_and_refusal.py` (test)
 
 **Total imports**: 2
 
@@ -1640,7 +1658,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 10 | `import value_fabric.layer4.services.conversation as conversation_module` |
 | 4 | 11 | `from value_fabric.layer4.services.conversation import ConversationService` |
 
-### `services\layer4-agents\tests\test_agent_mutation_approval_audit.py` (service)
+### `services\layer4-agents\tests\test_agent_mutation_approval_audit.py` (test)
 
 **Total imports**: 3
 
@@ -1650,7 +1668,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.api.routes import analysis` |
 | 4 | 16 | `from value_fabric.layer4.services.conversation import ConversationService` |
 
-### `services\layer4-agents\tests\test_agent_output_traceability.py` (service)
+### `services\layer4-agents\tests\test_agent_output_traceability.py` (test)
 
 **Total imports**: 1
 
@@ -1658,7 +1676,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 20 | `from value_fabric.layer4.agents.base import AgentResult` |
 
-### `services\layer4-agents\tests\test_agent_tenant_isolation.py` (service)
+### `services\layer4-agents\tests\test_agent_tenant_isolation.py` (test)
 
 **Total imports**: 3
 
@@ -1668,7 +1686,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.services.conversation import (` |
 | 4 | 19 | `from value_fabric.layer4.tools.registry import TenantAwareTool, ToolResult` |
 
-### `services\layer4-agents\tests\test_agent_tool_result_contracts.py` (service)
+### `services\layer4-agents\tests\test_agent_tool_result_contracts.py` (test)
 
 **Total imports**: 3
 
@@ -1678,7 +1696,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 11 | `from value_fabric.layer4.models.tool_schemas import ToolCategory` |
 | 4 | 12 | `from value_fabric.layer4.tools.registry import BaseTool, ToolRegistry, ToolRe...` |
 
-### `services\layer4-agents\tests\test_agent_workflow_traceability.py` (service)
+### `services\layer4-agents\tests\test_agent_workflow_traceability.py` (test)
 
 **Total imports**: 1
 
@@ -1686,7 +1704,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 19 | `from value_fabric.layer4.agents.base import AgentResult` |
 
-### `services\layer4-agents\tests\test_analysis_routes.py` (service)
+### `services\layer4-agents\tests\test_analysis_routes.py` (test)
 
 **Total imports**: 3
 
@@ -1696,7 +1714,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 17 | `from value_fabric.layer4.api.common.db import get_route_db` |
 | 4 | 18 | `from value_fabric.layer4.config.settings import settings` |
 
-### `services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py` (service)
+### `services\layer4-agents\tests\test_analysis_smoke_mode_service_routes.py` (test)
 
 **Total imports**: 3
 
@@ -1706,7 +1724,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.config.settings import settings` |
 | 4 | 23 | `from value_fabric.layer4.database import get_db_from_context` |
 
-### `services\layer4-agents\tests\test_app_title_contract.py` (service)
+### `services\layer4-agents\tests\test_app_title_contract.py` (test)
 
 **Total imports**: 1
 
@@ -1714,7 +1732,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 15 | `from value_fabric.layer4.api.app_factory import create_app` |
 
-### `services\layer4-agents\tests\test_audit_route_h01.py` (service)
+### `services\layer4-agents\tests\test_audit_route_h01.py` (test)
 
 **Total imports**: 1
 
@@ -1722,7 +1740,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 19 | `from value_fabric.layer4.api.routes import audit` |
 
-### `services\layer4-agents\tests\test_authorization_adversarial.py` (service)
+### `services\layer4-agents\tests\test_authorization_adversarial.py` (test)
 
 **Total imports**: 2
 
@@ -1731,7 +1749,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 30 | `from value_fabric.layer4.api.routes.accounts import router as accounts_router` |
 | 4 | 31 | `from value_fabric.layer4.database import get_db_from_context` |
 
-### `services\layer4-agents\tests\test_billing_security_exceptions.py` (service)
+### `services\layer4-agents\tests\test_billing_security_exceptions.py` (test)
 
 **Total imports**: 1
 
@@ -1739,7 +1757,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 4 | `from value_fabric.layer4.services.billing_security import validate_webhook_re...` |
 
-### `services\layer4-agents\tests\test_billing_service.py` (service)
+### `services\layer4-agents\tests\test_billing_service.py` (test)
 
 **Total imports**: 10
 
@@ -1756,7 +1774,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 695 | `from value_fabric.layer4.models.billing import BillingSubscription, Subscript...` |
 | 4 | 710 | `from value_fabric.layer4.models.billing import BillingSubscription, Subscript...` |
 
-### `services\layer4-agents\tests\test_billing_tenant_scoped_customer_keys.py` (service)
+### `services\layer4-agents\tests\test_billing_tenant_scoped_customer_keys.py` (test)
 
 **Total imports**: 2
 
@@ -1765,7 +1783,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 7 | `from value_fabric.layer4.models.billing import (` |
 | 4 | 35 | `from value_fabric.layer4.database import _mark_session_tenant_bypass` |
 
-### `services\layer4-agents\tests\test_billing_webhook_security_consistency.py` (service)
+### `services\layer4-agents\tests\test_billing_webhook_security_consistency.py` (test)
 
 **Total imports**: 2
 
@@ -1774,7 +1792,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 10 | `from value_fabric.layer4.api.routes import billing as billing_route` |
 | 4 | 11 | `from value_fabric.layer4.services import billing_security, billing_webhook_se...` |
 
-### `services\layer4-agents\tests\test_business_case_claim_promotion.py` (service)
+### `services\layer4-agents\tests\test_business_case_claim_promotion.py` (test)
 
 **Total imports**: 2
 
@@ -1783,7 +1801,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 11 | `from value_fabric.layer4.services.export_provenance import build_export_prove...` |
 | 4 | 12 | `from value_fabric.layer4.workflows.business_case import (` |
 
-### `services\layer4-agents\tests\test_c1_proxy.py` (service)
+### `services\layer4-agents\tests\test_c1_proxy.py` (test)
 
 **Total imports**: 1
 
@@ -1791,7 +1809,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 15 | `from value_fabric.layer4.api.routes.c1 import C1Message, C1StreamRequest, router` |
 
-### `services\layer4-agents\tests\test_case_permissions_and_audit.py` (service)
+### `services\layer4-agents\tests\test_case_permissions_and_audit.py` (test)
 
 **Total imports**: 2
 
@@ -1800,7 +1818,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 18 | `from value_fabric.layer4.api.main import app` |
 | 4 | 19 | `from value_fabric.layer4.api.routes import analysis` |
 
-### `services\layer4-agents\tests\test_checkpoint_boundary.py` (service)
+### `services\layer4-agents\tests\test_checkpoint_boundary.py` (test)
 
 **Total imports**: 4
 
@@ -1811,7 +1829,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 85 | `from value_fabric.layer4.engine.executor import OrchestrationController` |
 | 4 | 86 | `from value_fabric.layer4.engine.state_manager import StateManager` |
 
-### `services\layer4-agents\tests\test_checkpoint_resume.py` (service)
+### `services\layer4-agents\tests\test_checkpoint_resume.py` (test)
 
 **Total imports**: 8
 
@@ -1826,7 +1844,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 476 | `from value_fabric.layer4.models.agent_state import WorkflowStatus` |
 | 4 | 524 | `from value_fabric.layer4.models.agent_state import WorkflowStatus` |
 
-### `services\layer4-agents\tests\test_checkpoint_resume_failure_paths.py` (service)
+### `services\layer4-agents\tests\test_checkpoint_resume_failure_paths.py` (test)
 
 **Total imports**: 4
 
@@ -1837,7 +1855,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 18 | `from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowSt...` |
 | 4 | 19 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 
-### `services\layer4-agents\tests\test_checkpoint_resume_restart.py` (service)
+### `services\layer4-agents\tests\test_checkpoint_resume_restart.py` (test)
 
 **Total imports**: 4
 
@@ -1848,7 +1866,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 20 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 | 4 | 21 | `from value_fabric.layer4.workflows.base import BaseWorkflow` |
 
-### `services\layer4-agents\tests\test_checkpoints_route_errors.py` (service)
+### `services\layer4-agents\tests\test_checkpoints_route_errors.py` (test)
 
 **Total imports**: 2
 
@@ -1857,7 +1875,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 10 | `from value_fabric.layer4.api.main import app` |
 | 4 | 11 | `from value_fabric.layer4.api.routes.checkpoints import get_executor` |
 
-### `services\layer4-agents\tests\test_code_quality.py` (service)
+### `services\layer4-agents\tests\test_code_quality.py` (test)
 
 **Total imports**: 1
 
@@ -1865,7 +1883,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 78 | `This allows 'from value_fabric.layer4.interfaces' to work when running from l...` |
 
-### `services\layer4-agents\tests\test_comments_route.py` (service)
+### `services\layer4-agents\tests\test_comments_route.py` (test)
 
 **Total imports**: 1
 
@@ -1873,7 +1891,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 16 | `from value_fabric.layer4.api.routes import comments` |
 
-### `services\layer4-agents\tests\test_company_knowledge.py` (service)
+### `services\layer4-agents\tests\test_company_knowledge.py` (test)
 
 **Total imports**: 5
 
@@ -1885,7 +1903,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 43 | `from value_fabric.layer4.models.company_knowledge import (` |
 | 4 | 53 | `from value_fabric.layer4.services.company_knowledge_service import CompanyKno...` |
 
-### `services\layer4-agents\tests\test_compat_app_surface_contract.py` (service)
+### `services\layer4-agents\tests\test_compat_app_surface_contract.py` (test)
 
 **Total imports**: 1
 
@@ -1893,7 +1911,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 7 | `from value_fabric.layer4.api.app_factory import create_app` |
 
-### `services\layer4-agents\tests\test_crm_sync_service.py` (service)
+### `services\layer4-agents\tests\test_crm_sync_service.py` (test)
 
 **Total imports**: 8
 
@@ -1908,7 +1926,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 639 | `from value_fabric.layer4.services.account_service import AccountService` |
 | 4 | 668 | `from value_fabric.layer4.services.account_service import AccountService` |
 
-### `services\layer4-agents\tests\test_crm_tools_pagination.py` (service)
+### `services\layer4-agents\tests\test_crm_tools_pagination.py` (test)
 
 **Total imports**: 2
 
@@ -1917,7 +1935,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 19 | `from value_fabric.layer4.models.tool_schemas import GetProspectDataInput` |
 | 4 | 20 | `from value_fabric.layer4.tools.crm_tools import GetProspectDataTool` |
 
-### `services\layer4-agents\tests\test_crm_webhook_tenant_isolation.py` (service)
+### `services\layer4-agents\tests\test_crm_webhook_tenant_isolation.py` (test)
 
 **Total imports**: 3
 
@@ -1927,7 +1945,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 25 | `from value_fabric.layer4.models.account import CRMProvider` |
 | 4 | 26 | `from value_fabric.layer4.models.integration import Integration, IntegrationSt...` |
 
-### `services\layer4-agents\tests\test_cross_tenant_hostile.py` (service)
+### `services\layer4-agents\tests\test_cross_tenant_hostile.py` (test)
 
 **Total imports**: 4
 
@@ -1938,7 +1956,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 12 | `from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowSt...` |
 | 4 | 13 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 
-### `services\layer4-agents\tests\test_database_session_tenant_enforcement.py` (service)
+### `services\layer4-agents\tests\test_database_session_tenant_enforcement.py` (test)
 
 **Total imports**: 2
 
@@ -1947,7 +1965,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 9 | `from value_fabric.layer4.database import (` |
 | 4 | 38 | `from value_fabric.layer4.database import _engine` |
 
-### `services\layer4-agents\tests\test_dil_phase3.py` (service)
+### `services\layer4-agents\tests\test_dil_phase3.py` (test)
 
 **Total imports**: 2
 
@@ -1956,7 +1974,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 37 | `from value_fabric.layer4.services.narrative_builder_service import (` |
 | 4 | 46 | `from value_fabric.layer4.services.intelligence_orchestrator import (` |
 
-### `services\layer4-agents\tests\test_encryption_service.py` (service)
+### `services\layer4-agents\tests\test_encryption_service.py` (test)
 
 **Total imports**: 1
 
@@ -1964,7 +1982,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 23 | `from value_fabric.layer4.services.encryption_service import (` |
 
-### `services\layer4-agents\tests\test_enrichment.py` (service)
+### `services\layer4-agents\tests\test_enrichment.py` (test)
 
 **Total imports**: 14
 
@@ -1985,7 +2003,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 339 | `from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentSo...` |
 | 4 | 348 | `from value_fabric.layer4.services.enrichment_orchestrator import EnrichmentSo...` |
 
-### `services\layer4-agents\tests\test_error_handling_paths.py` (service)
+### `services\layer4-agents\tests\test_error_handling_paths.py` (test)
 
 **Total imports**: 2
 
@@ -1994,7 +2012,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 7 | `from value_fabric.layer4.services.usage_service import UsageService` |
 | 4 | 8 | `from value_fabric.layer4.services.billing_service import BillingService` |
 
-### `services\layer4-agents\tests\test_error_response_shape_canonical.py` (service)
+### `services\layer4-agents\tests\test_error_response_shape_canonical.py` (test)
 
 **Total imports**: 1
 
@@ -2002,7 +2020,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 18 | `from value_fabric.layer4.api.common.errors import normalize_exception, raise_...` |
 
-### `services\layer4-agents\tests\test_executor_lifecycle_facade.py` (service)
+### `services\layer4-agents\tests\test_executor_lifecycle_facade.py` (test)
 
 **Total imports**: 3
 
@@ -2012,7 +2030,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 8 | `from value_fabric.layer4.engine.execution_validation import ensure_controller...` |
 | 4 | 9 | `from value_fabric.layer4.engine.executor import WorkflowExecutionError` |
 
-### `services\layer4-agents\tests\test_export_provenance.py` (service)
+### `services\layer4-agents\tests\test_export_provenance.py` (test)
 
 **Total imports**: 1
 
@@ -2020,7 +2038,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 8 | `from value_fabric.layer4.services.export_provenance import build_export_prove...` |
 
-### `services\layer4-agents\tests\test_feature_flags.py` (service)
+### `services\layer4-agents\tests\test_feature_flags.py` (test)
 
 **Total imports**: 4
 
@@ -2031,7 +2049,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 31 | `from value_fabric.layer4.feature_flags.service import FeatureFlagService` |
 | 4 | 62 | `from value_fabric.layer4.database import _mark_session_tenant_bypass` |
 
-### `services\layer4-agents\tests\test_frontend_endpoint_contracts.py` (service)
+### `services\layer4-agents\tests\test_frontend_endpoint_contracts.py` (test)
 
 **Total imports**: 1
 
@@ -2039,15 +2057,15 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 15 | `from value_fabric.layer4.api.main import app` |
 
-### `services\layer4-agents\tests\test_governance_workflow_contracts.py` (service)
+### `services\layer4-agents\tests\test_governance_workflow_contracts.py` (test)
 
 **Total imports**: 1
 
 | Layer | Line | Import Statement |
 |-------|------|-----------------|
-| 4 | 15 | `from value_fabric.layer4.api.main import app` |
+| 4 | 11 | `from value_fabric.layer4.api.main import app` |
 
-### `services\layer4-agents\tests\test_health_tracker.py` (service)
+### `services\layer4-agents\tests\test_health_tracker.py` (test)
 
 **Total imports**: 3
 
@@ -2057,7 +2075,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 242 | `from value_fabric.layer4.services.health_tracker import HealthBadge` |
 | 4 | 294 | `import value_fabric.layer4.services.health_tracker as ht_module` |
 
-### `services\layer4-agents\tests\test_input_validation_adversarial.py` (service)
+### `services\layer4-agents\tests\test_input_validation_adversarial.py` (test)
 
 **Total imports**: 2
 
@@ -2066,7 +2084,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 31 | `from value_fabric.layer4.api.routes.company_knowledge import router as compan...` |
 | 4 | 32 | `from value_fabric.layer4.database import get_db_from_context` |
 
-### `services\layer4-agents\tests\test_integration_service.py` (service)
+### `services\layer4-agents\tests\test_integration_service.py` (test)
 
 **Total imports**: 3
 
@@ -2076,7 +2094,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 12 | `from value_fabric.layer4.services.encryption_service import DEFAULT_KEY_ID, E...` |
 | 4 | 13 | `from value_fabric.layer4.services.integration_service import (` |
 
-### `services\layer4-agents\tests\test_interfaces_exports.py` (service)
+### `services\layer4-agents\tests\test_interfaces_exports.py` (test)
 
 **Total imports**: 1
 
@@ -2084,7 +2102,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 11 | `from value_fabric.layer4.interfaces import (` |
 
-### `services\layer4-agents\tests\test_isolation_tier_provisioning.py` (service)
+### `services\layer4-agents\tests\test_isolation_tier_provisioning.py` (test)
 
 **Total imports**: 5
 
@@ -2096,7 +2114,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 150 | `from value_fabric.layer4.database import get_tiered_db_session` |
 | 4 | 175 | `from value_fabric.layer4.database import db_session_for_context` |
 
-### `services\layer4-agents\tests\test_knowledge_tool_persistence.py` (service)
+### `services\layer4-agents\tests\test_knowledge_tool_persistence.py` (test)
 
 **Total imports**: 1
 
@@ -2104,7 +2122,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 9 | `from value_fabric.layer4.tools import knowledge` |
 
-### `services\layer4-agents\tests\test_langgraph_execution.py` (service)
+### `services\layer4-agents\tests\test_langgraph_execution.py` (test)
 
 **Total imports**: 35
 
@@ -2146,7 +2164,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 1195 | `from value_fabric.layer4.models.agent_state import ROIAgentState, WorkflowSta...` |
 | 4 | 1234 | `from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent` |
 
-### `services\layer4-agents\tests\test_llm_budget_guardrails.py` (service)
+### `services\layer4-agents\tests\test_llm_budget_guardrails.py` (test)
 
 **Total imports**: 1
 
@@ -2154,7 +2172,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 11 | `from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetExcee...` |
 
-### `services\layer4-agents\tests\test_llm_cost_metrics.py` (service)
+### `services\layer4-agents\tests\test_llm_cost_metrics.py` (test)
 
 **Total imports**: 2
 
@@ -2163,7 +2181,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.metrics.llm_cost_calculator import LLMCostCalculator` |
 | 4 | 16 | `from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, Pro...` |
 
-### `services\layer4-agents\tests\test_llm_cost_tracking.py` (service)
+### `services\layer4-agents\tests\test_llm_cost_tracking.py` (test)
 
 **Total imports**: 5
 
@@ -2175,7 +2193,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.tools.generation_tools import GenerateSectionTool` |
 | 4 | 151 | `from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetExcee...` |
 
-### `services\layer4-agents\tests\test_messaging.py` (service)
+### `services\layer4-agents\tests\test_messaging.py` (test)
 
 **Total imports**: 3
 
@@ -2185,7 +2203,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 12 | `from value_fabric.layer4.messaging.router import MessageRouter` |
 | 4 | 13 | `from value_fabric.layer4.messaging.types import (` |
 
-### `services\layer4-agents\tests\test_model_registry.py` (service)
+### `services\layer4-agents\tests\test_model_registry.py` (test)
 
 **Total imports**: 7
 
@@ -2199,7 +2217,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 250 | `from value_fabric.layer4.tenants.models.tenant import Tenant` |
 | 4 | 272 | `from value_fabric.layer4.tenants.models.tenant import Tenant` |
 
-### `services\layer4-agents\tests\test_narratives_tenant_hardening.py` (service)
+### `services\layer4-agents\tests\test_narratives_tenant_hardening.py` (test)
 
 **Total imports**: 2
 
@@ -2208,7 +2226,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 7 | `from value_fabric.layer4.api.routes import narratives` |
 | 4 | 8 | `from value_fabric.layer4.services.narrative_builder_service import (` |
 
-### `services\layer4-agents\tests\test_notification.py` (service)
+### `services\layer4-agents\tests\test_notification.py` (test)
 
 **Total imports**: 2
 
@@ -2217,7 +2235,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 14 | `from value_fabric.layer4.models.pause_point import PauseSeverity` |
 | 4 | 15 | `from value_fabric.layer4.services.notification import (` |
 
-### `services\layer4-agents\tests\test_notifications_route.py` (service)
+### `services\layer4-agents\tests\test_notifications_route.py` (test)
 
 **Total imports**: 1
 
@@ -2225,7 +2243,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 16 | `from value_fabric.layer4.api.routes import notifications` |
 
-### `services\layer4-agents\tests\test_observability_contract_integration.py` (service)
+### `services\layer4-agents\tests\test_observability_contract_integration.py` (test)
 
 **Total imports**: 1
 
@@ -2233,7 +2251,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 5 | `from value_fabric.layer4.api.app_factory import create_app` |
 
-### `services\layer4-agents\tests\test_observability_gaps.py` (service)
+### `services\layer4-agents\tests\test_observability_gaps.py` (test)
 
 **Total imports**: 8
 
@@ -2248,7 +2266,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 126 | `from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, Pro...` |
 | 4 | 134 | `from value_fabric.layer4.metrics.prometheus_metrics import MetricsConfig, Pro...` |
 
-### `services\layer4-agents\tests\test_oidc_cleanup.py` (service)
+### `services\layer4-agents\tests\test_oidc_cleanup.py` (test)
 
 **Total imports**: 1
 
@@ -2256,7 +2274,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 18 | `from value_fabric.layer4.services.oidc_cleanup import cleanup_expired_oidc_se...` |
 
-### `services\layer4-agents\tests\test_output_envelope_contract.py` (service)
+### `services\layer4-agents\tests\test_output_envelope_contract.py` (test)
 
 **Total imports**: 3
 
@@ -2266,7 +2284,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 6 | `from value_fabric.layer4.models.agent_state import (` |
 | 4 | 12 | `from value_fabric.layer4.models.reasoning_trace import ReasoningTrace, ToolCa...` |
 
-### `services\layer4-agents\tests\test_pack_variable_loader.py` (service)
+### `services\layer4-agents\tests\test_pack_variable_loader.py` (test)
 
 **Total imports**: 5
 
@@ -2278,7 +2296,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 155 | `from value_fabric.layer4.interfaces.variable_registry import VariableDataType` |
 | 4 | 162 | `from value_fabric.layer4.interfaces.variable_registry import VariableDataType` |
 
-### `services\layer4-agents\tests\test_plan_version_billing.py` (service)
+### `services\layer4-agents\tests\test_plan_version_billing.py` (test)
 
 **Total imports**: 2
 
@@ -2287,7 +2305,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 9 | `from value_fabric.layer4.models.billing import BillingPlanVersion, BillingSub...` |
 | 4 | 10 | `from value_fabric.layer4.services.billing_service import BillingService` |
 
-### `services\layer4-agents\tests\test_prospects_start_analysis.py` (service)
+### `services\layer4-agents\tests\test_prospects_start_analysis.py` (test)
 
 **Total imports**: 2
 
@@ -2296,7 +2314,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 24 | `from value_fabric.layer4.api.routes import prospects` |
 | 4 | 25 | `from value_fabric.layer4.models.account import Account` |
 
-### `services\layer4-agents\tests\test_reasoning_trace_schema.py` (service)
+### `services\layer4-agents\tests\test_reasoning_trace_schema.py` (test)
 
 **Total imports**: 3
 
@@ -2306,7 +2324,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 150 | `from value_fabric.layer4.models.reasoning_trace import build_reasoning_trace` |
 | 4 | 151 | `from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowType` |
 
-### `services\layer4-agents\tests\test_replay_conflict_policy.py` (service)
+### `services\layer4-agents\tests\test_replay_conflict_policy.py` (test)
 
 **Total imports**: 2
 
@@ -2315,7 +2333,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 10 | `from value_fabric.layer4.models.agent_state import WorkflowStatus` |
 | 4 | 11 | `from value_fabric.layer4.policies.replay_conflict import (` |
 
-### `services\layer4-agents\tests\test_resilience.py` (service)
+### `services\layer4-agents\tests\test_resilience.py` (test)
 
 **Total imports**: 1
 
@@ -2323,7 +2341,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 17 | `from value_fabric.layer4.resilience import (` |
 
-### `services\layer4-agents\tests\test_roi_calculator_workflow.py` (service)
+### `services\layer4-agents\tests\test_roi_calculator_workflow.py` (test)
 
 **Total imports**: 3
 
@@ -2333,7 +2351,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.tools.registry import ToolResult` |
 | 4 | 22 | `from value_fabric.layer4.workflows.roi_calculator import (` |
 
-### `services\layer4-agents\tests\test_run_envelope_contract.py` (service)
+### `services\layer4-agents\tests\test_run_envelope_contract.py` (test)
 
 **Total imports**: 3
 
@@ -2343,7 +2361,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 9 | `from value_fabric.layer4.workflows.roi_calculator import ROICalculatorWorkflow` |
 | 4 | 10 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 
-### `services\layer4-agents\tests\test_runtime_hardening.py` (service)
+### `services\layer4-agents\tests\test_runtime_hardening.py` (test)
 
 **Total imports**: 3
 
@@ -2353,7 +2371,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 11 | `from value_fabric.layer4.services.llm_budget_guardrails import LLMBudgetGuard...` |
 | 4 | 12 | `from value_fabric.layer4.workflows.whitespace import ExtractedNeedsResponse` |
 
-### `services\layer4-agents\tests\test_salesforce_oauth.py` (service)
+### `services\layer4-agents\tests\test_salesforce_oauth.py` (test)
 
 **Total imports**: 7
 
@@ -2367,7 +2385,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 266 | `from value_fabric.layer4.services.crm_sync_scheduler import CRMSyncScheduler` |
 | 4 | 285 | `from value_fabric.layer4.services.crm_sync_service import CRMSyncService` |
 
-### `services\layer4-agents\tests\test_salesforce_oauth_routes.py` (service)
+### `services\layer4-agents\tests\test_salesforce_oauth_routes.py` (test)
 
 **Total imports**: 1
 
@@ -2375,7 +2393,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 17 | `from value_fabric.layer4.api.routes import integrations as integrations_route` |
 
-### `services\layer4-agents\tests\test_security_fixes.py` (service)
+### `services\layer4-agents\tests\test_security_fixes.py` (test)
 
 **Total imports**: 4
 
@@ -2386,7 +2404,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 31 | `from value_fabric.layer4.config.settings import Settings  # noqa: E402` |
 | 4 | 32 | `from value_fabric.layer4.metrics.prometheus_metrics import _derive_tenant_tie...` |
 
-### `services\layer4-agents\tests\test_signal_review_route.py` (service)
+### `services\layer4-agents\tests\test_signal_review_route.py` (test)
 
 **Total imports**: 1
 
@@ -2394,7 +2412,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 10 | `from value_fabric.layer4.api.routes import signals` |
 
-### `services\layer4-agents\tests\test_startup_contract.py` (service)
+### `services\layer4-agents\tests\test_startup_contract.py` (test)
 
 **Total imports**: 2
 
@@ -2403,7 +2421,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 6 | `from value_fabric.layer4.api.app_factory import create_app` |
 | 4 | 7 | `from value_fabric.layer4.api.startup import (` |
 
-### `services\layer4-agents\tests\test_startup_dependencies.py` (service)
+### `services\layer4-agents\tests\test_startup_dependencies.py` (test)
 
 **Total imports**: 1
 
@@ -2411,7 +2429,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 5 | `from value_fabric.layer4.startup_dependencies import verify_startup_dependencies` |
 
-### `services\layer4-agents\tests\test_startup_dependency_verifier.py` (service)
+### `services\layer4-agents\tests\test_startup_dependency_verifier.py` (test)
 
 **Total imports**: 1
 
@@ -2419,7 +2437,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 7 | `from value_fabric.layer4.startup.dependency_verifier import (` |
 
-### `services\layer4-agents\tests\test_tasks_route.py` (service)
+### `services\layer4-agents\tests\test_tasks_route.py` (test)
 
 **Total imports**: 1
 
@@ -2427,7 +2445,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 16 | `from value_fabric.layer4.api.routes import tasks` |
 
-### `services\layer4-agents\tests\test_tenant_api.py` (service)
+### `services\layer4-agents\tests\test_tenant_api.py` (test)
 
 **Total imports**: 6
 
@@ -2440,7 +2458,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 278 | `from value_fabric.layer4.api.tenants import TenantSummary` |
 | 4 | 375 | `from value_fabric.layer4.api.tenants import _count_tenant_entities` |
 
-### `services\layer4-agents\tests\test_tenant_context_route.py` (service)
+### `services\layer4-agents\tests\test_tenant_context_route.py` (test)
 
 **Total imports**: 1
 
@@ -2448,7 +2466,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 12 | `from value_fabric.layer4.api.routes import tenant_context as tenant_context_r...` |
 
-### `services\layer4-agents\tests\test_tenant_lifecycle.py` (service)
+### `services\layer4-agents\tests\test_tenant_lifecycle.py` (test)
 
 **Total imports**: 8
 
@@ -2463,7 +2481,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 354 | `from value_fabric.layer4.tenants.models.tenant import Tenant` |
 | 4 | 369 | `from value_fabric.layer4.tenants.service import delete_tenant` |
 
-### `services\layer4-agents\tests\test_tenant_provisioning.py` (service)
+### `services\layer4-agents\tests\test_tenant_provisioning.py` (test)
 
 **Total imports**: 1
 
@@ -2471,7 +2489,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 22 | `from value_fabric.layer4.services.tenant_provisioning import (` |
 
-### `services\layer4-agents\tests\test_tenant_rate_limits.py` (service)
+### `services\layer4-agents\tests\test_tenant_rate_limits.py` (test)
 
 **Total imports**: 1
 
@@ -2479,7 +2497,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 31 | `from value_fabric.layer4.tenants.settings_schema import (` |
 
-### `services\layer4-agents\tests\test_tiers.py` (service)
+### `services\layer4-agents\tests\test_tiers.py` (test)
 
 **Total imports**: 1
 
@@ -2487,7 +2505,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 8 | `from value_fabric.layer4.tenants.tiers import (` |
 
-### `services\layer4-agents\tests\test_tool_execution_contract.py` (service)
+### `services\layer4-agents\tests\test_tool_execution_contract.py` (test)
 
 **Total imports**: 1
 
@@ -2495,7 +2513,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 18 | `from value_fabric.layer4.tools.registry import BaseTool, ToolResult` |
 
-### `services\layer4-agents\tests\test_tool_output_structure_validation.py` (service)
+### `services\layer4-agents\tests\test_tool_output_structure_validation.py` (test)
 
 **Total imports**: 1
 
@@ -2503,7 +2521,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 20 | `from value_fabric.layer4.tools.registry import ToolResult` |
 
-### `services\layer4-agents\tests\test_tool_result_contract.py` (service)
+### `services\layer4-agents\tests\test_tool_result_contract.py` (test)
 
 **Total imports**: 4
 
@@ -2514,7 +2532,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.tools.competitive_tools import LLMDifferenceItem, LL...` |
 | 4 | 358 | `from value_fabric.layer4.tools.competitive_tools import AnalyzeCompetitionTool` |
 
-### `services\layer4-agents\tests\test_tools_authorization.py` (service)
+### `services\layer4-agents\tests\test_tools_authorization.py` (test)
 
 **Total imports**: 3
 
@@ -2524,7 +2542,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 10 | `from value_fabric.layer4.services.agent_tools import AgentToolRegistry` |
 | 4 | 11 | `from value_fabric.layer4.tools.registry import BaseTool, ToolCategory, ToolRe...` |
 
-### `services\layer4-agents\tests\test_tools_route_response_models.py` (service)
+### `services\layer4-agents\tests\test_tools_route_response_models.py` (test)
 
 **Total imports**: 1
 
@@ -2532,7 +2550,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 3 | `from value_fabric.layer4.contracts.tool_dto import ToolCategoryListResponse, ...` |
 
-### `services\layer4-agents\tests\test_tools_routes_contract.py` (service)
+### `services\layer4-agents\tests\test_tools_routes_contract.py` (test)
 
 **Total imports**: 2
 
@@ -2541,7 +2559,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 7 | `from value_fabric.layer4.api.routes import tools` |
 | 4 | 8 | `from value_fabric.layer4.models.tool_schemas import ToolCategory` |
 
-### `services\layer4-agents\tests\test_trace_header_propagation_integration.py` (service)
+### `services\layer4-agents\tests\test_trace_header_propagation_integration.py` (test)
 
 **Total imports**: 1
 
@@ -2549,7 +2567,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 3 | 13 | `from value_fabric.layer3.tracing.middleware import TracingMiddleware` |
 
-### `services\layer4-agents\tests\test_usage_idempotency.py` (service)
+### `services\layer4-agents\tests\test_usage_idempotency.py` (test)
 
 **Total imports**: 2
 
@@ -2558,7 +2576,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.models.billing import BillingUsageEvent, UsageEventS...` |
 | 4 | 22 | `from value_fabric.layer4.services.usage_service import UsageService, UsageVal...` |
 
-### `services\layer4-agents\tests\test_usage_service.py` (service)
+### `services\layer4-agents\tests\test_usage_service.py` (test)
 
 **Total imports**: 4
 
@@ -2569,7 +2587,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 23 | `from value_fabric.layer4.services.usage_service import UsageService, UsageVal...` |
 | 4 | 281 | `from value_fabric.layer4.api.main import app` |
 
-### `services\layer4-agents\tests\test_validation_auth_seed.py` (service)
+### `services\layer4-agents\tests\test_validation_auth_seed.py` (test)
 
 **Total imports**: 4
 
@@ -2580,7 +2598,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.tenants.models.tenant import Tenant` |
 | 4 | 22 | `from value_fabric.layer4.tenants.models.user import User` |
 
-### `services\layer4-agents\tests\test_value_flow_facade.py` (service)
+### `services\layer4-agents\tests\test_value_flow_facade.py` (test)
 
 **Total imports**: 2
 
@@ -2589,7 +2607,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 19 | `from value_fabric.layer4.api.schemas.value_flow import ValueFlowStep` |
 | 4 | 20 | `from value_fabric.layer4.services.value_flow_facade import ValueFlowFacadeSer...` |
 
-### `services\layer4-agents\tests\test_value_hypothesis.py` (service)
+### `services\layer4-agents\tests\test_value_hypothesis.py` (test)
 
 **Total imports**: 1
 
@@ -2597,7 +2615,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 34 | `from value_fabric.layer4.services.value_hypothesis_engine import (` |
 
-### `services\layer4-agents\tests\test_variable_registry_helpers.py` (service)
+### `services\layer4-agents\tests\test_variable_registry_helpers.py` (test)
 
 **Total imports**: 2
 
@@ -2606,7 +2624,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 18 | `from value_fabric.layer4.interfaces.variable_registry import (` |
 | 4 | 22 | `from value_fabric.layer4.services.variable_registry_service import Neo4jVaria...` |
 
-### `services\layer4-agents\tests\test_webhook_security.py` (service)
+### `services\layer4-agents\tests\test_webhook_security.py` (test)
 
 **Total imports**: 2
 
@@ -2615,7 +2633,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 22 | `from value_fabric.layer4.models.billing import (` |
 | 4 | 29 | `from value_fabric.layer4.services.billing_service import BillingService` |
 
-### `services\layer4-agents\tests\test_webhook_security_matrix.py` (service)
+### `services\layer4-agents\tests\test_webhook_security_matrix.py` (test)
 
 **Total imports**: 3
 
@@ -2625,7 +2643,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.api.routes import crm_webhooks as crm_route` |
 | 4 | 16 | `from value_fabric.layer4.tenants.api.routes import provisioning as prov_route` |
 
-### `services\layer4-agents\tests\test_websocket_auth_routes.py` (service)
+### `services\layer4-agents\tests\test_websocket_auth_routes.py` (test)
 
 **Total imports**: 2
 
@@ -2634,7 +2652,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 19 | `from value_fabric.layer4.api.websocket.auth import (` |
 | 4 | 24 | `from value_fabric.layer4.api.websocket.routes import workflow_websocket` |
 
-### `services\layer4-agents\tests\test_websocket_manager.py` (service)
+### `services\layer4-agents\tests\test_websocket_manager.py` (test)
 
 **Total imports**: 2
 
@@ -2643,7 +2661,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 17 | `from value_fabric.layer4.api.websocket.manager import (` |
 | 4 | 640 | `import value_fabric.layer4.api.websocket.manager as manager_module` |
 
-### `services\layer4-agents\tests\test_websocket_multitenant_hostile.py` (service)
+### `services\layer4-agents\tests\test_websocket_multitenant_hostile.py` (test)
 
 **Total imports**: 23
 
@@ -2673,7 +2691,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 617 | `from value_fabric.layer4.api.websocket.routes import workflow_websocket` |
 | 4 | 630 | `from value_fabric.layer4.api.routes.signals import signal_stream_websocket` |
 
-### `services\layer4-agents\tests\test_workflow_canonical_contract.py` (service)
+### `services\layer4-agents\tests\test_workflow_canonical_contract.py` (test)
 
 **Total imports**: 1
 
@@ -2681,7 +2699,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 11 | `from value_fabric.layer4.api.routes import workflows` |
 
-### `services\layer4-agents\tests\test_workflow_replay_harness.py` (service)
+### `services\layer4-agents\tests\test_workflow_replay_harness.py` (test)
 
 **Total imports**: 1
 
@@ -2689,7 +2707,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 13 | `from value_fabric.layer4.policies.replay_conflict import ReplayConflictError` |
 
-### `services\layer4-agents\tests\test_workflow_resume_checkpoint_conflict_route.py` (service)
+### `services\layer4-agents\tests\test_workflow_resume_checkpoint_conflict_route.py` (test)
 
 **Total imports**: 3
 
@@ -2699,7 +2717,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 11 | `from value_fabric.layer4.api.routes.workflows import get_executor` |
 | 4 | 13 | `from value_fabric.layer4.engine.executor import CheckpointConflictError` |
 
-### `services\layer4-agents\tests\test_workflow_start_tenant_invariant.py` (service)
+### `services\layer4-agents\tests\test_workflow_start_tenant_invariant.py` (test)
 
 **Total imports**: 7
 
@@ -2713,7 +2731,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 20 | `from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowType` |
 | 4 | 29 | `from value_fabric.layer4.models.agent_state import BaseAgentState, WorkflowType` |
 
-### `services\layer4-agents\tests\test_workflows_real_execution.py` (service)
+### `services\layer4-agents\tests\test_workflows_real_execution.py` (test)
 
 **Total imports**: 1
 
@@ -2721,7 +2739,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 23 | `from value_fabric.layer4.workflows.base import DEFAULT_RECURSION_LIMIT` |
 
-### `services\layer4-agents\tests\unit\test_api_common_helpers.py` (service)
+### `services\layer4-agents\tests\unit\test_api_common_helpers.py` (test)
 
 **Total imports**: 2
 
@@ -2730,7 +2748,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 8 | `from value_fabric.layer4.api.common import audit as audit_helpers` |
 | 4 | 9 | `from value_fabric.layer4.api.common.errors import normalize_exception, raise_...` |
 
-### `services\layer4-agents\tests\unit\test_executor_checkpoint_conflict.py` (service)
+### `services\layer4-agents\tests\unit\test_executor_checkpoint_conflict.py` (test)
 
 **Total imports**: 3
 
@@ -2740,7 +2758,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 20 | `from value_fabric.layer4.models.agent_state import (` |
 | 4 | 25 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 
-### `services\layer4-agents\tests\unit\test_executor_controller_invariants.py` (service)
+### `services\layer4-agents\tests\unit\test_executor_controller_invariants.py` (test)
 
 **Total imports**: 3
 
@@ -2750,7 +2768,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 21 | `from value_fabric.layer4.models.agent_state import (` |
 | 4 | 26 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
 
-### `services\layer4-agents\tests\unit\test_layer4_correctness_patch.py` (service)
+### `services\layer4-agents\tests\unit\test_layer4_correctness_patch.py` (test)
 
 **Total imports**: 74
 
@@ -2831,7 +2849,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 1876 | `from value_fabric.layer4.agents.signal_detection import SignalDetectionAgent` |
 | 4 | 1904 | `from value_fabric.layer4.models.pain_signal import SignalCategory, TrendDirec...` |
 
-### `services\layer4-agents\tests\unit\test_layer4_observability_schema.py` (service)
+### `services\layer4-agents\tests\unit\test_layer4_observability_schema.py` (test)
 
 **Total imports**: 1
 
@@ -2839,7 +2857,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 3 | `from value_fabric.layer4.observability import Layer4EventContext` |
 
-### `services\layer4-agents\tests\unit\test_observability_schema_legacy.py` (service)
+### `services\layer4-agents\tests\unit\test_observability_schema_legacy.py` (test)
 
 **Total imports**: 1
 
@@ -2847,7 +2865,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 8 | `from value_fabric.layer4.observability import Layer4EventContext, Layer4Lifec...` |
 
-### `services\layer4-agents\tests\unit\test_oss0_ports.py` (service)
+### `services\layer4-agents\tests\unit\test_oss0_ports.py` (test)
 
 **Total imports**: 4
 
@@ -2858,7 +2876,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 17 | `from value_fabric.layer4.resilience import CircuitBreaker, TenantRateLimiter` |
 | 4 | 18 | `from value_fabric.layer4.resilience_ports import (` |
 
-### `services\layer4-agents\tests\unit\test_overage_service.py` (service)
+### `services\layer4-agents\tests\unit\test_overage_service.py` (test)
 
 **Total imports**: 3
 
@@ -2868,7 +2886,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 159 | `from value_fabric.layer4.config.plans import Plan` |
 | 4 | 277 | `from value_fabric.layer4.config.plans import Plan, UsageLimit` |
 
-### `services\layer4-agents\tests\unit\test_production_readiness_fixes.py` (service)
+### `services\layer4-agents\tests\unit\test_production_readiness_fixes.py` (test)
 
 **Total imports**: 13
 
@@ -2888,7 +2906,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 91 | `from value_fabric.layer4.models.agent_state import ROIAgentState` |
 | 4 | 185 | `from value_fabric.layer4.models.workflow_config import EdgeConfig, EdgeType` |
 
-### `services\layer4-agents\tests\unit\test_scheduler_execution.py` (service)
+### `services\layer4-agents\tests\unit\test_scheduler_execution.py` (test)
 
 **Total imports**: 1
 
@@ -2896,7 +2914,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 10 | `from value_fabric.layer4.engine.scheduler import ScheduledTask, TaskScheduler` |
 
-### `services\layer4-agents\tests\unit\test_services_unit.py` (service)
+### `services\layer4-agents\tests\unit\test_services_unit.py` (test)
 
 **Total imports**: 12
 
@@ -2915,7 +2933,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 253 | `from value_fabric.layer4.services.encryption_service import EncryptionService` |
 | 4 | 263 | `from value_fabric.layer4.services.encryption_service import EncryptionService` |
 
-### `services\layer4-agents\tests\unit\test_state_manager.py` (service)
+### `services\layer4-agents\tests\unit\test_state_manager.py` (test)
 
 **Total imports**: 2
 
@@ -2924,7 +2942,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 15 | `from value_fabric.layer4.engine.state_manager import StateManager` |
 | 4 | 16 | `from value_fabric.layer4.models.agent_state import (` |
 
-### `services\layer4-agents\tests\unit\test_task_scheduler.py` (service)
+### `services\layer4-agents\tests\unit\test_task_scheduler.py` (test)
 
 **Total imports**: 1
 
@@ -2932,7 +2950,7 @@ Generated: 2026-05-28T22:56:23.631436
 |-------|------|-----------------|
 | 4 | 15 | `from value_fabric.layer4.engine.scheduler import (` |
 
-### `services\layer4-agents\tests\unit\test_value_flow_facade.py` (service)
+### `services\layer4-agents\tests\unit\test_value_flow_facade.py` (test)
 
 **Total imports**: 2
 
@@ -2941,7 +2959,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 14 | `from value_fabric.layer4.api.schemas.value_flow import ValueFlowStep` |
 | 4 | 15 | `from value_fabric.layer4.services.value_flow_facade import ValueFlowFacadeSer...` |
 
-### `services\layer4-agents\tests\unit\test_variable_registry_service.py` (service)
+### `services\layer4-agents\tests\unit\test_variable_registry_service.py` (test)
 
 **Total imports**: 3
 
@@ -2951,7 +2969,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 19 | `from value_fabric.layer4.interfaces.variable_registry import (` |
 | 4 | 268 | `from value_fabric.layer4.interfaces.variable_registry import Variable` |
 
-### `services\layer4-agents\tests\unit\test_workflow_routes.py` (service)
+### `services\layer4-agents\tests\unit\test_workflow_routes.py` (test)
 
 **Total imports**: 2
 
@@ -2960,7 +2978,7 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 13 | `from value_fabric.layer4.api.routes.workflows import (` |
 | 4 | 81 | `from value_fabric.layer4.api.schemas.workflow_progress import WorkflowProgres...` |
 
-### `services\layer4-agents\tests\unit\test_workflow_state_machine.py` (service)
+### `services\layer4-agents\tests\unit\test_workflow_state_machine.py` (test)
 
 **Total imports**: 4
 
@@ -2970,163 +2988,6 @@ Generated: 2026-05-28T22:56:23.631436
 | 4 | 26 | `from value_fabric.layer4.workflows.base import BaseWorkflow, WorkflowError, N...` |
 | 4 | 27 | `from value_fabric.layer4.models.workflow_config import WorkflowConfig, NodeCo...` |
 | 4 | 28 | `from value_fabric.layer4.tools.registry import ToolRegistry` |
-
-### `services\layer6-benchmarks\tests\conftest.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 44 | `import value_fabric.layer6.database as database` |
-| 6 | 85 | `import value_fabric.layer6.api.main as main_module` |
-
-### `services\layer6-benchmarks\tests\test_api_schemas.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 6 | `from value_fabric.layer6.api.schemas import (` |
-
-### `services\layer6-benchmarks\tests\test_api_tenant_propagation.py` (service)
-
-**Total imports**: 4
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 12 | `from value_fabric.layer6.api.deps import get_request_context` |
-| 6 | 13 | `from value_fabric.layer6.api.main import app` |
-| 6 | 14 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-| 6 | 218 | `import value_fabric.layer6.api.main as main_module` |
-
-### `services\layer6-benchmarks\tests\test_benchmark_api.py` (service)
-
-**Total imports**: 3
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 7 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 9 | `from value_fabric.layer6.api.main import app` |
-| 6 | 11 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-
-### `services\layer6-benchmarks\tests\test_benchmark_edge_cases.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 9 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 11 | `from value_fabric.layer6.api.main import app` |
-
-### `services\layer6-benchmarks\tests\test_benchmark_route_matrix.py` (service)
-
-**Total imports**: 3
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 5 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 7 | `from value_fabric.layer6.api.main import app` |
-| 6 | 8 | `from value_fabric.layer6.models.benchmark_dataset import BenchmarkDataset, Be...` |
-
-### `services\layer6-benchmarks\tests\test_benchmark_route_matrix_and_contracts.py` (service)
-
-**Total imports**: 3
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 9 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 11 | `from value_fabric.layer6.api.main import app` |
-| 6 | 12 | `from value_fabric.layer6.models.benchmark_dataset import BenchmarkDataset, Be...` |
-
-### `services\layer6-benchmarks\tests\test_database_driver.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 8 | `import value_fabric.layer6.database as db_module` |
-| 6 | 9 | `from value_fabric.layer6.database import close_driver, create_driver, get_dri...` |
-
-### `services\layer6-benchmarks\tests\test_metrics_contract.py` (service)
-
-**Total imports**: 5
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 7 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 10 | `from value_fabric.layer6.api.main import app` |
-| 6 | 11 | `from value_fabric.layer6.metrics.prometheus_metrics import (` |
-| 6 | 16 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-| 6 | 21 | `from value_fabric.layer6.observability.metrics_contract import metric_names` |
-
-### `services\layer6-benchmarks\tests\test_metrics_prometheus.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 6 | `from value_fabric.layer6.metrics.prometheus_metrics import (` |
-
-### `services\layer6-benchmarks\tests\test_models_benchmark_dataset.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 8 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-
-### `services\layer6-benchmarks\tests\test_observability_metrics_contract.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 3 | `from value_fabric.layer6.observability.metrics_contract import (` |
-
-### `services\layer6-benchmarks\tests\test_repository_pures.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 8 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-| 6 | 13 | `from value_fabric.layer6.repositories.benchmark_repository import (` |
-
-### `services\layer6-benchmarks\tests\test_repository_tenant_isolation.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 7 | `from value_fabric.layer6.models.benchmark_dataset import (` |
-| 6 | 12 | `from value_fabric.layer6.repositories.benchmark_repository import BenchmarkRe...` |
-
-### `services\layer6-benchmarks\tests\test_scope_authorization.py` (service)
-
-**Total imports**: 3
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 9 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 10 | `from value_fabric.layer6.api.schemas import ComparisonRequestPayload` |
-| 6 | 11 | `from value_fabric.layer6.models.benchmark_dataset import BenchmarkDataset, Be...` |
-
-### `services\layer6-benchmarks\tests\test_settings_validation.py` (service)
-
-**Total imports**: 1
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 7 | `from value_fabric.layer6.settings import (` |
-
-### `services\layer6-benchmarks\tests\test_startup_logging.py` (service)
-
-**Total imports**: 2
-
-| Layer | Line | Import Statement |
-|-------|------|-----------------|
-| 6 | 4 | `import value_fabric.layer6.api.main as main_module` |
-| 6 | 5 | `from value_fabric.layer6.api.startup_logging import config_fingerprint, emit_...` |
 
 ### `tests\arch\test_canonical_module_sentinels.py` (test)
 
@@ -3232,22 +3093,22 @@ Generated: 2026-05-28T22:56:23.631436
 
 ## Runtime vs Test Classification
 
-- **Runtime/Service imports**: 282
-- **Test imports**: 5
-- **CI Script imports**: 8
+- **Runtime/Service imports**: 17
+- **Test imports**: 252
+- **CI Script imports**: 9
 
 ## Migration Priority
 
 Based on file type classification:
 
 1. **HIGH PRIORITY - Runtime/Service code**
-   - 282 files
+   - 17 files
    - Must migrate first to ensure services work without facades
 
 2. **MEDIUM PRIORITY - CI Scripts**
-   - 8 files
+   - 9 files
    - Migrate in batches by category
 
 3. **LOWER PRIORITY - Test code**
-   - 5 files
+   - 252 files
    - Migrate layer by layer after runtime is clean

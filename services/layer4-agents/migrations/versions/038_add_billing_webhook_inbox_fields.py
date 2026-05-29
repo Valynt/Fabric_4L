@@ -8,8 +8,8 @@ Create Date: 2026-05-26
 from alembic import op
 import sqlalchemy as sa
 
-revision = "037_add_billing_webhook_inbox_fields"
-down_revision = "036_tenant_scoped_billing_customer_keys"
+revision = "038_add_billing_webhook_inbox_fields"
+down_revision = "037_tenant_scoped_billing_customer_keys"
 branch_labels = None
 depends_on = None
 

@@ -496,3 +496,81 @@ def encode_jwt(
 
     headers = {"kid": keyset["active_kid"]}
     return jwt.encode(payload, keyset["signing_key"], algorithm=algorithm, headers=headers)
+
+
+# ---------------------------------------------------------------------------
+# Service-to-service JWT helpers (P1-001)
+# ---------------------------------------------------------------------------
+
+_S2S_ISSUER = "value-fabric-s2s"
+_S2S_ALGORITHM = "HS256"
+
+
+class ServiceJwtClaims(TypedDictModel):
+    sub: str
+    aud: str
+    tenant_id: str
+    iat: int
+    exp: int
+    iss: str
+
+
+def _get_service_auth_secret() -> Optional[str]:
+    return os.getenv("SERVICE_AUTH_SECRET", "").strip() or None
+
+
+def encode_service_jwt(
+    tenant_id: UUID | str,
+    sub: str,
+    aud: str,
+    *,
+    expires_in_seconds: int = 300,
+) -> Optional[str]:
+    """Sign a service-to-service JWT using SERVICE_AUTH_SECRET.
+
+    Returns None when SERVICE_AUTH_SECRET is not configured.
+    """
+    secret = _get_service_auth_secret()
+    if not secret:
+        return None
+    now = int(time.time())
+    payload: dict = {
+        "sub": sub,
+        "aud": aud,
+        "tenant_id": str(tenant_id),
+        "iat": now,
+        "nbf": now,
+        "exp": now + expires_in_seconds,
+        "iss": _S2S_ISSUER,
+    }
+    return jwt.encode(payload, secret, algorithm=_S2S_ALGORITHM)
+
+
+def decode_service_jwt(token: str) -> Optional[ServiceJwtClaims]:
+    """Verify a service-to-service JWT signed with SERVICE_AUTH_SECRET.
+
+    Returns None for invalid, expired, or malformed tokens.
+    """
+    secret = _get_service_auth_secret()
+    if not secret:
+        return None
+    try:
+        payload = jwt.decode(
+            token,
+            secret,
+            algorithms=[_S2S_ALGORITHM],
+            issuer=_S2S_ISSUER,
+            options={
+                "require": ["exp", "iss", "aud", "sub", "tenant_id"],
+                "verify_exp": True,
+                "verify_aud": False,  # caller validates audience
+                "verify_iss": True,
+                "verify_iat": True,
+                "verify_nbf": True,
+            },
+        )
+        return ServiceJwtClaims.model_validate(payload)
+    except jwt.ExpiredSignatureError:
+        raise
+    except Exception:
+        return None

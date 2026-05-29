@@ -44,7 +44,7 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src"]
+packages = ["src/layer6_benchmarks"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

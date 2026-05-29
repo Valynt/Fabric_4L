@@ -3,7 +3,7 @@
 import pytest
 from pydantic import ValidationError
 
-from value_fabric.layer6.api.schemas import (
+from layer6_benchmarks.api.schemas import (
     ComparisonRequestPayload,
     ComparisonResponse,
     DatasetUpsertPayload,

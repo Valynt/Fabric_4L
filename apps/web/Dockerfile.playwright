@@ -22,17 +22,45 @@ RUN corepack enable && corepack prepare pnpm@10.18.1 --activate
 # -----------------------------------------------------------------------------
 WORKDIR /baked
 
-# Copy manifest and capture its hash BEFORE we strip workspace deps
-COPY package.json ./
+# Copy manifest and lockfile BEFORE we strip workspace deps
+COPY package.json pnpm-lock.yaml ./
 COPY scripts ./scripts
 RUN md5sum package.json > /baked/package-json.md5
 
 # Strip monorepo workspace references that cannot resolve in isolation
-RUN sed -i '/eslint-plugin-fabric-contracts/d' package.json && \
-    sed -i '/patchedDependencies/,/}/d' package.json
+RUN node -e "\
+  const fs = require('fs'); \
+  const p = require('./package.json'); \
+  delete (p.devDependencies || {})['eslint-plugin-fabric-contracts']; \
+  delete (p.scripts || {})['preinstall']; \
+  fs.writeFileSync('package.json', JSON.stringify(p, null, 2)); \
+  \
+  let lock = fs.readFileSync('pnpm-lock.yaml', 'utf8'); \
+  const lines = lock.split('\n'); \
+  const out = []; \
+  let skipUntil = -1; \
+  for (let i = 0; i < lines.length; i++) { \
+    const line = lines[i]; \
+    if (line.trim() === 'eslint-plugin-fabric-contracts:') { \
+      out.pop(); \
+      skipUntil = i + 1; \
+      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
+      i = skipUntil - 1; \
+      continue; \
+    } \
+    if (line.trim() === 'packages/eslint-plugin-fabric-contracts:') { \
+      skipUntil = i + 1; \
+      while (skipUntil < lines.length && (lines[skipUntil].startsWith(' ') || lines[skipUntil] === '')) skipUntil++; \
+      i = skipUntil - 1; \
+      continue; \
+    } \
+    out.push(line); \
+  } \
+  fs.writeFileSync('pnpm-lock.yaml', out.join('\n')); \
+"
 
-# Install dependencies (lockfile is omitted because we modified the manifest)
-RUN pnpm install
+# Install dependencies with frozen lockfile for reproducible builds
+RUN pnpm install --frozen-lockfile
 
 # Persist node_modules for runtime seeding
 RUN cp -a /baked/node_modules /baked-node_modules

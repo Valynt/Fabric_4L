@@ -41,6 +41,10 @@ from value_fabric.shared.error_handling.handlers import (
 )
 from value_fabric.shared.error_handling.models import ErrorCode, ErrorResponse
 from value_fabric.shared.fastapi_framework import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
+    FrameworkRateLimitConfig,
     add_governance_middleware,
     add_security_validation_middleware,
     create_fabric_app,
@@ -252,6 +256,14 @@ app = create_fabric_app(
     cors_policy=settings.cors_policy,
     register_default_exception_handlers=False,
     include_request_id_middleware=True,
+    enforcement_rollout=EnforcementRolloutConfig(
+        tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
+        rate_limiting=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
+    ),
+    rate_limit=FrameworkRateLimitConfig(
+        mode=EnforcementMode.ENFORCE,
+        rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
+    ),
 )
 
 # Effective middleware/request order (outermost -> innermost):

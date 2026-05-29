@@ -30,6 +30,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
+from value_fabric.shared.crypto import EncryptedString
 
 from ..database import Base
 
@@ -160,7 +161,7 @@ class Account(Base):
     )
 
     headquarters: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="City, State or full address"
+        EncryptedString(), nullable=True, comment="City, State or full address (encrypted at rest)"
     )
 
     website: Mapped[str | None] = mapped_column(
@@ -180,7 +181,7 @@ class Account(Base):
     )
 
     owner_email: Mapped[str | None] = mapped_column(
-        String(255), nullable=True, comment="Owner email address"
+        EncryptedString(), nullable=True, comment="Owner email address (encrypted at rest)"
     )
 
     stage: Mapped[str | None] = mapped_column(
