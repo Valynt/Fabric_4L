@@ -60,6 +60,59 @@ profiles:
       - sign-manifest
       - summary
 
+
+  production-core:
+    description: "Near-term critical production gates for architecture, security, tenant isolation, database, migrations, API contracts, auth, secrets, deployment, and launch blockers"
+    gates:
+      - policy
+      - arch
+      - security
+      - tenant-isolation
+      - database-readiness
+      - migration-readiness
+      - api-contracts
+      - auth-readiness
+      - secrets-readiness
+      - deployment-readiness
+      - launch-blockers
+      - summary
+
+  tier0-production-safety:
+    description: "Tier 0 production safety gates for security, tenant isolation, database, backup/restore, secrets, auth, and launch blockers"
+    gates:
+      - policy
+      - security
+      - tenant-isolation
+      - database-readiness
+      - backup-restore-readiness
+      - secrets-readiness
+      - auth-readiness
+      - launch-blockers
+      - summary
+
+  tier1-beta-readiness:
+    description: "Tier 1 beta readiness gates for API contracts, frontend, observability, reliability, deployment, and rollback"
+    gates:
+      - policy
+      - api-contracts
+      - frontend-readiness
+      - obs
+      - reliability-readiness
+      - deployment-readiness
+      - rollback-readiness
+      - summary
+
+  tier2-enterprise-readiness:
+    description: "Tier 2 enterprise readiness gates for performance, agents, data governance, compliance, and incident response"
+    gates:
+      - policy
+      - performance-readiness
+      - agent
+      - data-governance-readiness
+      - compliance-readiness
+      - incident-response-readiness
+      - summary
+
 gate-definitions:
   policy:
     target: gates-validate-policy
@@ -79,6 +132,118 @@ gate-definitions:
     description: "Architecture conformance, tenant guards, testability"
     class: blocking
     artifact-dir: artifacts/arch
+    required: true
+
+  tenant-isolation:
+    target: security-test-isolation
+    description: "Tenant-isolation regression tests for cross-tenant access prevention"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  migration-readiness:
+    target: gate-migration-readiness
+    description: "Migration entrypoints, head uniqueness, rollback policy, and runtime safety"
+    class: blocking
+    artifact-dir: artifacts/release/migrations
+    required: true
+
+  database-readiness:
+    target: gate-database-readiness
+    description: "Database production readiness split checks, bootstrap conformance, and DB gate evidence"
+    class: blocking
+    artifact-dir: artifacts/release/db-readiness
+    required: true
+
+  backup-restore-readiness:
+    target: gate-backup-restore-readiness
+    description: "PostgreSQL backup/restore production-readiness drill"
+    class: blocking
+    artifact-dir: artifacts/release/backup-restore
+    required: true
+
+  api-contracts:
+    target: gate-api-contracts
+    description: "API and platform contract compliance, tool contracts, and cross-layer contract tests"
+    class: blocking
+    artifact-dir: artifacts/contracts
+    required: true
+
+  auth-readiness:
+    target: gate-auth-readiness
+    description: "Route auth dependencies, Keycloak seed hygiene, and production auth-bypass prevention"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  secrets-readiness:
+    target: gate-secrets-readiness
+    description: "Secret hygiene, secret-only manifest references, workflow secret fallback checks, and secret key mappings"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  deployment-readiness:
+    target: gate-deployment-readiness
+    description: "Deployable image coverage and deployment profile control validation"
+    class: blocking
+    artifact-dir: artifacts/release/deployment
+    required: true
+
+  launch-blockers:
+    target: gate-launch-blockers
+    description: "Launch governance, readiness consistency, legacy debt, and final launch blocker evidence"
+    class: blocking
+    artifact-dir: artifacts/release/launch
+    required: true
+
+  frontend-readiness:
+    target: gate-frontend-readiness
+    description: "Frontend beta-readiness verification suite"
+    class: blocking
+    artifact-dir: artifacts/frontend
+    required: true
+
+  reliability-readiness:
+    target: gate-reliability-readiness
+    description: "Reliability smoke and failure-mode coverage"
+    class: blocking
+    artifact-dir: artifacts/reliability
+    required: true
+
+  rollback-readiness:
+    target: gate-rollback-readiness
+    description: "Rollback policy and promotion artifact contract validation"
+    class: blocking
+    artifact-dir: artifacts/release/rollback
+    required: true
+
+  performance-readiness:
+    target: gate-performance-readiness
+    description: "Performance load suite and SLO evaluation"
+    class: blocking
+    artifact-dir: artifacts/performance
+    required: true
+
+  data-governance-readiness:
+    target: gate-data-governance-readiness
+    description: "Data governance, retention/deletion, and PII protection contracts"
+    class: blocking
+    artifact-dir: artifacts/governance
+    required: true
+
+  compliance-readiness:
+    target: gate-compliance-readiness
+    description: "Compliance evidence integrity and governance control tests"
+    class: blocking
+    artifact-dir: artifacts/compliance
+    required: true
+
+  incident-response-readiness:
+    target: gate-incident-response-readiness
+    description: "Incident response runbook ownership, audit resilience, and observability contracts"
+    class: blocking
+    artifact-dir: artifacts/incident-response
     required: true
 
   security:
@@ -171,6 +336,34 @@ gate-definitions:
     required: true
 
 deployment_profiles:
+  production-core:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier0-production-safety:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier1-beta-readiness:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier2-enterprise-readiness:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
   pr-fast:
     ingress_strategy: nginx-path
     required_controls:

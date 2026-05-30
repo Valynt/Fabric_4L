@@ -10,9 +10,13 @@
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gate-migration-readiness gate-database-readiness gate-backup-restore-readiness \
+	gate-api-contracts gate-auth-readiness gate-secrets-readiness gate-deployment-readiness \
+	gate-launch-blockers gate-frontend-readiness gate-reliability-readiness gate-rollback-readiness \
+	gate-performance-readiness gate-data-governance-readiness gate-compliance-readiness gate-incident-response-readiness \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
 	db-production-readiness-gate gate-all \
-	gate-production production-readiness-gate \
+	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -665,6 +669,21 @@ gate-production: release-gate collect-95-plus-evidence ## Run the full productio
 production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
 	@echo "✅  production-readiness-gate completed"
 
+# Tiered readiness targets intentionally delegate to release-gate profiles so
+# gate composition stays centralized in $(POLICY_FILE) instead of drifting across
+# ad hoc Makefile dependency lists.
+gate-production-core: ## Run near-term critical production readiness gates via the production-core policy profile
+	@$(MAKE) release-gate PROFILE=production-core
+
+tier0-production-safety-gate: ## Run Tier 0 safety gates: security, tenant isolation, DB, backup/restore, secrets, auth, launch blockers
+	@$(MAKE) release-gate PROFILE=tier0-production-safety
+
+tier1-beta-readiness-gate: ## Run Tier 1 beta gates: API contracts, frontend, observability, reliability, deployment, rollback
+	@$(MAKE) release-gate PROFILE=tier1-beta-readiness
+
+tier2-enterprise-readiness-gate: ## Run Tier 2 enterprise gates: performance, agents, data governance, compliance, incident response
+	@$(MAKE) release-gate PROFILE=tier2-enterprise-readiness
+
 db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
 	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
 	$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
@@ -688,9 +707,92 @@ lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-l
 gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gates-validate-policy passed"
+
+gate-migration-readiness: check-migration-entrypoints check-migration-heads check-migration-rollback-policy ## Gate: migration entrypoints, head uniqueness, rollback policy, and runtime safety
+	@echo "→ Gate: Migration Readiness"
+	@$(PYTHON) scripts/ci/check_migration_safety.py
+	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
+	@echo "✅  gate-migration-readiness passed"
+
+gate-database-readiness: ## Gate: database production readiness split checks and static invariants
+	@echo "→ Gate: Database Readiness"
+	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@bash scripts/ci/run_db_production_readiness_gate.sh
+	@echo "✅  gate-database-readiness passed"
+
+gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-readiness drill
+	@echo "→ Gate: Backup/Restore Readiness"
+	@bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  gate-backup-restore-readiness passed"
+
+gate-api-contracts: contract-tests platform-contract-lint check-tool-contracts ## Gate: API/platform contract compliance and tool contract structure
+	@echo "→ Gate: API Contracts"
+	@pnpm run check:contract-compliance
+	@echo "✅  gate-api-contracts passed"
+
+gate-auth-readiness: check-keycloak-realm-seed-security ## Gate: route auth dependencies and production auth-bypass prevention
+	@echo "→ Gate: Auth Readiness"
+	@$(PYTHON) scripts/ci/check_route_auth_dependencies.py
+	@$(PYTHON) scripts/ci/check_auth_bypass.py
+	@echo "✅  gate-auth-readiness passed"
+
+gate-secrets-readiness: check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene ## Gate: committed secret hygiene and secret mapping invariants
+	@echo "→ Gate: Secrets Readiness"
+	@$(PYTHON) scripts/ci/audit_infra_secrets.py --enforce
+	@$(PYTHON) scripts/ci/check_no_workflow_secret_fallbacks.py
+	@$(PYTHON) scripts/ci/check_neo4j_secret_key_mappings.py
+	@echo "✅  gate-secrets-readiness passed"
+
+gate-deployment-readiness: ## Gate: deployable image coverage and deployment profile controls
+	@echo "→ Gate: Deployment Readiness"
+	@$(PYTHON) scripts/ci/check_deployable_service_images.py
+	@for profile in production-core tier0-production-safety tier1-beta-readiness tier2-enterprise-readiness release-candidate; do \
+		$(PYTHON) scripts/ci/validate_deploy_profile_controls.py --policy-file $(POLICY_FILE) --profile $$profile; \
+	done
+	@echo "✅  gate-deployment-readiness passed"
+
+gate-launch-blockers: check-conflict-markers check-no-nul-bytes check-readiness-consistency check-legacy-debt ## Gate: launch governance, blocker registers, and release checklist evidence
+	@echo "→ Gate: Launch Blockers"
+	@$(PYTHON) scripts/ci/check_release_launch_governance.py
+	@$(PYTHON) scripts/ci/validate_final_testing_launch_gate.py
+	@$(PYTHON) scripts/ci/validate_core_ga_launch_evidence.py
+	@echo "✅  gate-launch-blockers passed"
+
+gate-frontend-readiness: ## Gate: frontend beta readiness verification suite
+	@echo "→ Gate: Frontend Readiness"
+	@pnpm run verify:frontend
+	@echo "✅  gate-frontend-readiness passed"
+
+gate-reliability-readiness: gate-chaos gate-smoke ## Gate: reliability failure-mode and smoke coverage
+	@echo "✅  gate-reliability-readiness passed"
+
+gate-rollback-readiness: check-migration-rollback-policy ## Gate: rollback policy and promotion artifact contract
+	@echo "→ Gate: Rollback Readiness"
+	@$(PYTHON) scripts/ci/validate_promotion_artifact_contract.py --build-workflow .github/workflows/build-deploy.yml --promotion-workflow .github/workflows/environment-promotion.yml
+	@echo "✅  gate-rollback-readiness passed"
+
+gate-performance-readiness: perf-test perf-eval ## Gate: performance load suite and SLO evaluation
+	@echo "✅  gate-performance-readiness passed"
+
+gate-data-governance-readiness: ## Gate: data governance, retention/deletion, and shared governance contracts
+	@echo "→ Gate: Data Governance Readiness"
+	@$(GATE_PYTEST) tests/contract/test_retention_deletion_contract.py tests/shared/governance/ tests/security/test_pii_encryption_at_rest.py
+	@echo "✅  gate-data-governance-readiness passed"
+
+gate-compliance-readiness: ## Gate: compliance evidence integrity and governance export controls
+	@echo "→ Gate: Compliance Readiness"
+	@$(PYTHON) scripts/ci/check_compliance_evidence_integrity.py
+	@$(GATE_PYTEST) tests/backend_integrated/test_approval_export_crm_governance.py tests/security/test_layer5_governance_security_controls.py
+	@echo "✅  gate-compliance-readiness passed"
+
+gate-incident-response-readiness: ## Gate: incident response runbook ownership and observability contracts
+	@echo "→ Gate: Incident Response Readiness"
+	@$(GATE_PYTEST) tests/ci/test_incident_runbook_contacts_policy.py tests/security/test_audit_resilience.py tests/contract/test_service_observability_contracts.py
+	@echo "✅  gate-incident-response-readiness passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
@@ -811,7 +913,7 @@ clean-root-debris: ## Remove root-level temp artifacts, caches, and generated fi
 # Platform Contract Lint
 platform-contract-lint:
 	@echo Running platform contract lint...
-	@python scripts/ci/platform_contract_lint.py
+	@$(PYTHON) scripts/ci/platform_contract_lint.py
 
 # ─── Value Fabric Harness ────────────────────────────────────────────────────
 
