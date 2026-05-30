@@ -5,7 +5,7 @@
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
-        preflight up down logs check-deprecations test-backup-drills \
+        preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
@@ -729,6 +729,11 @@ contract-lint: ## Run ESLint contract rules across all packages
 test-backup-drills: ## Run backup/DR drill tests (requires pytest-asyncio)
 	@echo "→ Running backup manager tests..."
 	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
+
+db-production-readiness-gate: ## Run PostgreSQL backup/restore production-readiness drill
+	@echo "→ Running PostgreSQL backup/restore production-readiness drill..."
+	bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  db-production-readiness-gate passed"
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 
