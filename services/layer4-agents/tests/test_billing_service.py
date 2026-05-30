@@ -1103,6 +1103,33 @@ def test_cancel_subscription_endpoint(client, mock_db, sample_subscription):
     assert data["cancel_at_period_end"] is True
 
 
+def test_cancel_subscription_endpoint_not_found_response_does_not_leak_identifiers(client):
+    """Cancellation not-found errors must not expose tenant or subscription IDs."""
+    leaked_tenant_id = "tenant_abc123"
+    leaked_subscription_id = "sub_secret_123"
+    raw_error = (
+        "No active subscription found for "
+        f"tenant_id={leaked_tenant_id} subscription_id={leaked_subscription_id}"
+    )
+
+    with patch(
+        "layer4_agents.api.routes.billing.BillingService.cancel_subscription",
+        side_effect=ValueError(raw_error),
+    ):
+        response = client.post(
+            "/v1/billing/subscription/cancel?customer_id=user_123",
+            json={"cancel_immediately": False},
+        )
+
+    assert response.status_code == 404
+    response_text = response.text
+    assert "Subscription not found" in response_text
+    assert leaked_tenant_id not in response_text
+    assert leaked_subscription_id not in response_text
+    assert "tenant_id" not in response_text
+    assert "subscription_id" not in response_text
+
+
 def test_update_plan_endpoint(client, mock_db, sample_subscription):
     """Test POST /billing/subscription/update-plan endpoint."""
     mock_result = MagicMock()
