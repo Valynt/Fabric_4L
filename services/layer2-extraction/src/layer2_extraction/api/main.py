@@ -190,31 +190,11 @@ app.add_middleware(
 )
 logger.info("GovernanceMiddleware installed", component="layer2-extraction")
 
-<<<<<<< ours
-<<<<<<< ours
-# Production startup guard: fail fast if auth keys are missing.
-if _is_production_like():
-    import os
-    if not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
-        raise RuntimeError(
-            "FABRIC_AUTH_PUBLIC_KEYS is required in production for Layer 2 authentication."
-        )
-    if not os.getenv("SERVICE_AUTH_SECRET", "").strip():
-        raise RuntimeError(
-            "SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)."
-        )
-=======
-=======
->>>>>>> theirs
 # Strict-environment startup guard: fail fast if auth keys are missing.
 if _is_strict_runtime() and not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
     raise RuntimeError(
         "FABRIC_AUTH_PUBLIC_KEYS is required in strict environments for Layer 2 authentication."
     )
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
 
 # Register canonical error envelope handlers from shared package
 try:
@@ -246,18 +226,18 @@ _S2S_EXPECTED_AUD = "layer2-extraction"
 async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg]
     """Enforce inbound S2S JWT on internal extraction routes.
 
-    In production-like environments, the check is mandatory and fails closed.
-    In dev environments without SERVICE_AUTH_SECRET, the check is skipped.
+    In strict environments, the check is mandatory and fails closed.
+    In explicit dev/test environments without SERVICE_AUTH_SECRET, the check is skipped.
     """
     if request.method == "POST" and request.url.path in _S2S_INTERNAL_PATHS:
         _secret = os.getenv("SERVICE_AUTH_SECRET", "").strip()
         if not _secret:
-            if _is_production_like():
+            if _is_strict_runtime():
                 from fastapi.responses import JSONResponse as _JSONResponse
                 return _JSONResponse(
                     status_code=503,
                     content={
-                        "detail": "S2S authentication not configured in production",
+                        "detail": "S2S authentication not configured in strict environment",
                         "code": "s2s_misconfiguration",
                     },
                 )

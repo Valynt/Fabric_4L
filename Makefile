@@ -71,17 +71,9 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@echo "→ Running structural preflight..."
 	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
-<<<<<<< ours
-<<<<<<< ours
-	@python scripts/ci/python_contract_lint.py --strict
+	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
 	@echo "→ Checking Layer 1 API main shim drift..."
 	@$(PYTHON) scripts/ci/check_layer1_api_main_shim_drift.py
-=======
-	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
->>>>>>> theirs
-=======
-	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
->>>>>>> theirs
 	@echo "→ Running strict shared-import enforcement..."
 	@$(PYTHON) scripts/ci/check_shared_imports.py --strict --scope executable
 	@echo "→ Running import topology tests..."
