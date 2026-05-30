@@ -295,13 +295,13 @@ L2.5 Signal Refinery (8007)
 - **Category:** Data / Operations
 - **Description:** PostgreSQL now has repository-level logical backup/restore support and a Docker-backed drill gate. Production still requires provider-native physical/PITR configuration evidence and a dated staging or production-like restore drill before this item can be closed.
 - **Why it matters:** PostgreSQL contains all tenant data, audit events, billing records, and agent state. Data loss would be catastrophic and irreversible.
-- **Implementation evidence:** `scripts/ops/postgres_backup.py` supports `pg_dump` logical backup, Fernet encryption, local/S3/GCS storage, retention, and `psql` restore; `scripts/ops/test_postgres_backup_restore.sh` seeds tenant data, backs it up, restores to an isolated PostgreSQL instance, and compares SHA-256 plus per-tenant checksums; `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md` documents logical restore and managed PostgreSQL PITR/physical-backup strategy; `make db-production-readiness-gate` wires the drill into the Makefile.
-- **Remaining launch evidence:** Run `make db-production-readiness-gate` in a Docker-enabled CI/staging environment and retain `artifacts/postgres-backup-restore/evidence.json`, `backup-artifact.sha256`, `source-checksums.txt`, and `restored-checksums.txt`; separately attach managed PostgreSQL continuous-backup/PITR configuration and quarterly restore-drill evidence.
+- **Implementation evidence:** `scripts/ops/postgres_backup.py` supports `pg_dump` logical backup, Fernet encryption, local/S3/GCS storage, retention, and `psql` restore; `scripts/ops/test_postgres_backup_restore.sh` seeds tenant data, backs it up, restores to an isolated PostgreSQL instance, and compares SHA-256 plus per-tenant checksums; `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md` documents logical restore and managed PostgreSQL PITR/physical-backup strategy; `make gate-database-live` wires the drill into the Makefile.
+- **Remaining launch evidence:** Run `make gate-database-live` in a Docker-enabled CI/staging environment and retain `artifacts/postgres-backup-restore/evidence.json`, `backup-artifact.sha256`, `source-checksums.txt`, and `restored-checksums.txt`; separately attach managed PostgreSQL continuous-backup/PITR configuration and quarterly restore-drill evidence.
 - **Acceptance criteria:**
   1. [x] Implement pg_dump logical backup manager with encryption and local/S3/GCS storage backends.
   2. [x] Create PostgreSQL-specific runbook with RTO/RPO targets, restore procedures, validation steps, and managed physical/PITR strategy.
   3. [x] Add scheduled backup job or external scheduler evidence (`k8s/base/postgres-backup-cronjob.yaml`).
-  4. [x] Add executable logical backup/restore drill gate (`make db-production-readiness-gate`).
+  4. [x] Add executable logical backup/restore drill gate (`make gate-database-live`).
   5. [ ] Execute and archive quarterly managed PostgreSQL PITR restore evidence.
 - **Estimated effort remaining:** M
 - **Dependencies:** Docker-enabled CI/staging runner; managed PostgreSQL provider configuration
@@ -790,7 +790,7 @@ make test-backend-integrated-release-smoke
 - `scripts/ops/postgres_backup.py`
 - `scripts/ops/test_postgres_backup_restore.sh`
 - `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
-- `Makefile` (`db-production-readiness-gate`)
+- `Makefile` (`gate-database-live`)
 **Acceptance criteria:**
 - [x] Automated logical backups with optional encryption.
 - [x] Multi-storage support (local/S3/GCS).
@@ -1157,7 +1157,7 @@ make test-backend-integrated-release-smoke
 - [ ] Redis persistence configured (AOF or RDB).
 - [ ] Restore runbooks tested quarterly.
 - [ ] RTO ≤ 30 min, RPO ≤ 15 min validated.
-- **Evidence:** PostgreSQL repository evidence now includes `scripts/ops/postgres_backup.py`, `scripts/ops/test_postgres_backup_restore.sh`, `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`, `k8s/base/postgres-backup-cronjob.yaml`, and `make db-production-readiness-gate`. Production closure still requires archived `artifacts/postgres-backup-restore/` drill output and managed PITR evidence.
+- **Evidence:** PostgreSQL repository evidence now includes `scripts/ops/postgres_backup.py`, `scripts/ops/test_postgres_backup_restore.sh`, `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`, `k8s/base/postgres-backup-cronjob.yaml`, and `make gate-database-live`. Production closure still requires archived `artifacts/postgres-backup-restore/` drill output and managed PITR evidence.
 
 ## Observability
 - [ ] Sentry integrated and receiving exceptions.

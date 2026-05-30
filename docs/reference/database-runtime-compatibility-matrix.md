@@ -60,9 +60,9 @@ Run the static local database readiness gate with:
 
 ```bash
 make gate-database
-# Compatibility alias:
-make db-production-readiness-gate
 ```
+
+Legacy compatibility aliases must delegate to `gate-database` rather than reimplementing database-readiness semantics.
 
 The static gate performs local, non-destructive checks:
 

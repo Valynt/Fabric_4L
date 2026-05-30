@@ -118,14 +118,14 @@ profiles:
 
 gate-definitions:
   policy:
-    target: gates-validate-policy
+    target: gate-policy
     description: "Validate policy schema, profile existence, and artifact directories"
     class: blocking
     artifact-dir: artifacts/release
     required: true
 
   lint:
-    target: lint-release
+    target: gate-lint
     description: "Lint all Python layers with ruff"
     class: blocking
     required: true
@@ -340,14 +340,14 @@ gate-definitions:
     required: true
 
   sign-manifest:
-    target: gates-sign-manifest
+    target: gate-sign-manifest
     description: "Sign artifact manifest with SHA-256"
     class: artifact
     artifact-dir: artifacts/release
     required: true
 
   summary:
-    target: gates-render-summary
+    target: gate-summary
     description: "Render release summary with gate results"
     class: artifact
     artifact-dir: artifacts/release

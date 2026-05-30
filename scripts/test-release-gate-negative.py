@@ -91,7 +91,7 @@ def test_sign_manifest_fails_without_artifacts():
         os.makedirs(empty_dir, exist_ok=True)
         # Override Makefile variable via command line
         rc, out, err = run_cmd(
-            f"make gates-sign-manifest ARTIFACT_DIR={empty_dir}"
+            f"make gate-sign-manifest ARTIFACT_DIR={empty_dir}"
         )
         combined = (out or "") + (err or "")
         assert rc != 0, f"Expected non-zero exit for empty artifacts, got {rc}\n{combined[:500]}"

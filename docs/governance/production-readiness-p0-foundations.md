@@ -14,6 +14,32 @@ The readiness assessment identified enterprise SSO/OIDC, central model managemen
 
 A P0 gate must not be marked production PASS merely because repository files exist. PASS requires a live or staging environment that exercises the relevant control with external dependencies configured, sensitive values externalized, and evidence captured without secrets.
 
+## Canonical Makefile Gate Names
+
+Production-readiness automation uses concise `gate-*` Makefile target names as the canonical interface. Verbose names remain only as backwards-compatible aliases and must not define independent gate behavior.
+
+| Canonical target | Purpose | Compatibility aliases |
+|---|---|---|
+| `gate-policy` | Validate `.fabric/prod-gates.policy.yaml` syntax and release artifact directories. | `gates-validate-policy` |
+| `gate-lint` | Run the release lint bundle across maintained Python layers. | `lint-release` |
+| `gate-arch` | Run architecture conformance, tenant guard, and testability checks. | `architecture-readiness-gate` |
+| `gate-security` | Run the blocking security readiness regression chain. | `security-readiness-gate` |
+| `gate-tenant-isolation` | Run the dedicated launch-readiness tenant isolation suite. | None |
+| `gate-security-broad` | Run advisory broad legacy security coverage. | None |
+| `gate-state` | Validate frontend/backend state and workflow type alignment. | None |
+| `gate-database` | Run static local database readiness checks and cross-store consistency replay. | `db-production-readiness-gate` |
+| `gate-database-live` | Run live/destructive database drills requiring isolated PostgreSQL and backup environments. | None |
+| `gate-chaos` | Run dependency chaos and failure-injection coverage. | None |
+| `gate-smoke` | Run cross-domain smoke and golden-path verification. | None |
+| `gate-agent` | Run agent provenance, behavior, and tool-boundary regression checks. | None |
+| `gate-obs` | Run advisory observability, metrics, health, and SLO validation. | None |
+| `gate-release-policy` | Run release policy, deprecation, and version-freeze checks. | None |
+| `gate-sign-manifest` | Validate and sign the release artifact manifest. | `gates-sign-manifest` |
+| `gate-summary` | Render the release summary from gate results. | `gates-render-summary` |
+| `gate-production` | Run the full policy-driven production-readiness suite and collect evidence. | `production-readiness-gate` |
+
+`.fabric/prod-gates.policy.yaml` must reference the canonical target in every `target:` field. When adding a new compatibility alias, implement it as a dependency-only alias to the canonical `gate-*` target so there is exactly one semantic implementation for each gate.
+
 
 ## Phase 0 Deliverable Criteria
 

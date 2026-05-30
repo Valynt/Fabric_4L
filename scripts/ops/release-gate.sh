@@ -374,7 +374,7 @@ EOF
 # after gate-result.json is written so evidence records the current run instead
 # of stale prior-run PASS/FAIL data.
 if [ -f "$ROOT/scripts/ops/render-release-summary.sh" ]; then
-    bash "$ROOT/scripts/ops/render-release-summary.sh" >> "$LOG_DIR/gates-render-summary.log" 2>&1 || {
+    bash "$ROOT/scripts/ops/render-release-summary.sh" >> "$LOG_DIR/gate-summary.log" 2>&1 || {
         echo "❌ Final summary render failed after gate-result.json was written" | tee -a "$LOG_DIR/release-gate.log"
         exit 1
     }
