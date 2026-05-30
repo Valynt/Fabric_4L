@@ -8,7 +8,7 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-tenant-isolation gate-security gate-state gate-arch gate-config gate-all \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -589,12 +589,59 @@ setup-hooks: ## Configure git to use .githooks/ (run once after clone)
 
 GATE_PYTEST := $(PYTEST) --tb=short -q -n 0
 GATE_TIMEOUT_SECONDS ?= 180
+TENANT_ISOLATION_GATE_TIMEOUT_SECONDS ?= 300
 GATE_JUNIT_DIR := $(ARTIFACT_DIR)/junit
+TENANT_ISOLATION_ARTIFACT_DIR := artifacts/security
+TENANT_ISOLATION_JUNIT_DIR := $(TENANT_ISOLATION_ARTIFACT_DIR)/junit
+
+TENANT_ISOLATION_GATE_TESTS := \
+	tests/security/test_cross_layer_tenant_isolation_matrix.py \
+	tests/security/test_tenant_boundary_fails_closed.py \
+	tests/security/test_cross_tenant_api.py \
+	tests/security/test_tenant_mismatch.py \
+	tests/context/test_tenant_context_contract.py \
+	tests/contract/test_shared_import_boundary.py \
+	tests/contract/test_retention_deletion_contract.py
 
 gate-mandatory-security-regression: ## Gate: mandatory security regression suite for launch readiness
 	@echo "→ Gate: Mandatory Security Regression"
 	bash scripts/ci/mandatory_security_regression_gate.sh
 	@echo "✅  gate-mandatory-security-regression passed"
+
+gate-tenant-isolation: ## Gate: dedicated tenant isolation launch-readiness signal
+	@echo "→ Gate: Tenant Isolation Readiness"
+	mkdir -p $(TENANT_ISOLATION_ARTIFACT_DIR) $(TENANT_ISOLATION_JUNIT_DIR)
+	summary="$(TENANT_ISOLATION_ARTIFACT_DIR)/tenant-isolation-summary.md"
+	junit="$(TENANT_ISOLATION_JUNIT_DIR)/gate-tenant-isolation.xml"
+	matrix_artifact="$(TENANT_ISOLATION_ARTIFACT_DIR)/cross_layer_tenant_isolation_matrix.json"
+	: > "$${summary}"
+	printf '%s\n\n' '# Tenant Isolation Launch Readiness Gate' >> "$${summary}"
+	printf '%s\n' '- Status: RUNNING' "- Generated at: $$(date -u +'%Y-%m-%dT%H:%M:%SZ')" "- Commit: $$(git rev-parse --short HEAD 2>/dev/null || echo unknown)" "- JUnit: $${junit}" "- Cross-layer matrix artifact: $${matrix_artifact}" >> "$${summary}"
+	printf '\n%s\n' '## Suites' >> "$${summary}"
+	for suite in $(TENANT_ISOLATION_GATE_TESTS); do \
+		path="$${suite%%::*}"; \
+		printf -- '- %s\n' "$${suite}" >> "$${summary}"; \
+		if [ ! -e "$${path}" ]; then \
+			echo "❌ Missing tenant isolation suite: $${path}" | tee -a "$${summary}"; \
+			exit 1; \
+		fi; \
+	done
+	printf '\n%s\n\n```bash\n%s\n```\n' '## Command' 'TESTING=true ENVIRONMENT=testing DEBUG=false CROSS_LAYER_TENANT_MATRIX_ARTIFACT='"$${matrix_artifact}"' timeout $(TENANT_ISOLATION_GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) $(TENANT_ISOLATION_GATE_TESTS) --junitxml='"$${junit}" >> "$${summary}"
+	set +e
+	TESTING=true ENVIRONMENT=testing DEBUG=false LAYER4_LAYER5_API_URL="$${LAYER4_LAYER5_API_URL:-http://localhost:8005}" PYTHONPATH="$(CURDIR)/packages/shared/src:$(CURDIR):$${PYTHONPATH:-}" CROSS_LAYER_TENANT_MATRIX_ARTIFACT="$(CURDIR)/$${matrix_artifact}" \
+		timeout $(TENANT_ISOLATION_GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) $(TENANT_ISOLATION_GATE_TESTS) --junitxml="$${junit}"
+	pytest_rc=$$?
+	set -e
+	if [ "$${pytest_rc}" -ne 0 ]; then \
+		sed -i "s/- Status: RUNNING/- Status: FAIL (pytest exit $${pytest_rc})/" "$${summary}"; \
+		printf '\n%s\n\n%s\n' '## Result' '❌ Tenant isolation pytest suites failed.' >> "$${summary}"; \
+		exit "$${pytest_rc}"; \
+	fi
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py "$${junit}"
+	$(PYTHON) scripts/ci/validate_cross_layer_tenant_matrix.py "$${matrix_artifact}"
+	sed -i 's/- Status: RUNNING/- Status: PASS/' "$${summary}"
+	printf '\n%s\n\n%s\n' '## Result' '✅ Tenant isolation readiness gate passed.' >> "$${summary}"
+	echo "✅  gate-tenant-isolation passed — summary: $(TENANT_ISOLATION_ARTIFACT_DIR)/tenant-isolation-summary.md"
 
 gate-security: gate-mandatory-security-regression ## Gate: release-critical tenant isolation, auth enforcement, and fail-closed security regression
 	@echo "→ Gate: Security & Tenant Isolation — release-critical suite"
