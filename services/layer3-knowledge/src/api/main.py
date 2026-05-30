@@ -317,6 +317,7 @@ capabilities for enterprise AI workflows.
     openapi_url="/openapi.json",
     contact={"name": "Value Fabric Team", "email": "value-fabric@example.com"},
     license_info={"name": "Proprietary", "url": "https://valuefabric.com/license"},
+    enforce_tenant_context=False,
     openapi_tags=[
         {"name": "Health", "description": "Service health monitoring"},
         {"name": "Schema", "description": "Database schema management"},

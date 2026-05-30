@@ -1,3 +1,8 @@
+# WARNING: This is a generated Docker Compose resolved configuration.
+# It requires environment variable injection for all secrets.
+# Do not use in production without setting the required environment variables.
+# For local development, use docker-compose.dev.yml instead.
+#
 name: fabric_4l
 services:
   alertmanager:
@@ -45,7 +50,7 @@ services:
       - src.shared.tasks
       - flower
       - --port=5555
-      - --basic_auth=admin:flowerdev
+      - --basic_auth=admin:${FLOWER_PASSWORD:?FLOWER_PASSWORD is required}
     container_name: value-fabric-flower
     depends_on:
       layer1-celery-worker:
@@ -55,14 +60,14 @@ services:
         condition: service_healthy
         required: true
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      FLOWER_PASSWORD: flowerdev
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      FLOWER_PASSWORD: ${FLOWER_PASSWORD:?FLOWER_PASSWORD is required}
       FLOWER_USER: admin
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
-      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://:redisdev@redis:6379/0
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      LAYER1_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       PYTHONPATH: /app
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     expose:
       - "5555"
     healthcheck:
@@ -89,7 +94,7 @@ services:
         condition: service_healthy
         required: true
     environment:
-      GF_SECURITY_ADMIN_PASSWORD: grafanadev
+      GF_SECURITY_ADMIN_PASSWORD: ${GF_SECURITY_ADMIN_PASSWORD:?GF_SECURITY_ADMIN_PASSWORD is required}
       GF_SECURITY_ADMIN_USER: admin
       GF_USERS_ALLOW_SIGN_UP: "false"
     expose:
@@ -180,12 +185,12 @@ services:
         condition: service_healthy
         required: true
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
-      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://:redisdev@redis:6379/0
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      LAYER1_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       PYTHONPATH: /app
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     healthcheck:
       test:
         - CMD
@@ -229,12 +234,12 @@ services:
         condition: service_healthy
         required: true
     environment:
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
-      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://:redisdev@redis:6379/0
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      LAYER1_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       PYTHONPATH: /app
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     healthcheck:
       test:
         - CMD-SHELL
@@ -269,7 +274,7 @@ services:
     environment:
       BROWSERBASE_API_KEY: ""
       CRAWL_RATE_LIMIT_PER_DOMAIN: "1"
-      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
+      DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
       FIRECRAWL_API_KEY: ""
       INFISICAL_CLIENT_ID: ""
       INFISICAL_CLIENT_SECRET: ""
@@ -278,11 +283,11 @@ services:
       INFISICAL_OVERWRITE: "false"
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
-      LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/ingestion
-      LAYER1_REDIS_URL: redis://:redisdev@redis:6379/0
+      LAYER1_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
+      LAYER1_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
       LOG_LEVEL: info
       OPENAI_API_KEY: ""
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     expose:
       - "8000"
     healthcheck:
@@ -331,16 +336,16 @@ services:
       INFISICAL_OVERWRITE: "false"
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
-      LAYER2_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/extraction
+      LAYER2_DATABASE_URL: postgresql://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/extraction
       LAYER3_API_URL: http://layer3-knowledge:8001
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       OPENAI_API_KEY: ""
       RDF_OUTPUT_DIR: /app/rdf-output
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     expose:
       - "8000"
     healthcheck:
@@ -392,11 +397,11 @@ services:
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
       LOG_LEVEL: info
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       PINECONE_API_KEY: ""
-      REDIS_URL: redis://:redisdev@redis:6379/0
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
     expose:
       - "8001"
     healthcheck:
@@ -444,9 +449,9 @@ services:
     environment:
       ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: "true"
       ANTHROPIC_API_KEY: ""
-      API_KEY_HMAC_SECRET: dev-api-key-hmac-secret-do-not-use-in-production
-      CHECKPOINT_DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer4_agents
+      API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      CHECKPOINT_DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer4_agents
       INFISICAL_CLIENT_ID: ""
       INFISICAL_CLIENT_SECRET: ""
       INFISICAL_ENVIRONMENT: Development
@@ -454,7 +459,7 @@ services:
       INFISICAL_OVERWRITE: "false"
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       LAYER1_API_URL: http://layer1-ingestion:8000
       LAYER2_API_URL: http://layer2-extraction:8000
       LAYER3_API_URL: http://layer3-knowledge:8001
@@ -462,13 +467,13 @@ services:
       LAYER6_BENCHMARKS_URL: http://layer6-benchmarks:8006
       LLM_MODEL: gpt-4o
       LOG_LEVEL: info
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       OPENAI_API_KEY: ""
       PINECONE_API_KEY: ""
-      REDIS_URL: redis://:redisdev@redis:6379/0
-      SERVICE_AUTH_SECRET: dev-service-auth-secret-do-not-use-in-production
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
     healthcheck:
       test:
         - CMD
@@ -513,8 +518,8 @@ services:
     environment:
       API_PORT: "8005"
       AUTO_ADVANCE_TO_SUPPORTED: "true"
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth
-      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
       INFISICAL_CLIENT_ID: ""
       INFISICAL_CLIENT_SECRET: ""
       INFISICAL_ENVIRONMENT: Development
@@ -523,7 +528,7 @@ services:
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
       JWT_ALGORITHM: HS256
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       LAYER3_API_KEY: ""
       LAYER3_BASE_URL: http://layer3-knowledge:8001
       LAYER3_SYNC_ENABLED: "true"
@@ -566,7 +571,7 @@ services:
         condition: service_healthy
         required: true
     environment:
-      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth
+      DATABASE_URL_SYNC: postgresql+psycopg2://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ground_truth
     networks:
       value-fabric-network: null
     restart: "no"
@@ -587,8 +592,8 @@ services:
         condition: service_healthy
         required: true
     environment:
-      API_KEY_HMAC_SECRET: dev-api-key-hmac-secret-do-not-use-in-production
-      DATABASE_URL: postgresql+asyncpg://postgres:postgres@postgres:5432/layer6_benchmarks
+      API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET:?API_KEY_HMAC_SECRET is required}
+      DATABASE_URL: postgresql+asyncpg://postgres:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/layer6_benchmarks
       INFISICAL_CLIENT_ID: ""
       INFISICAL_CLIENT_SECRET: ""
       INFISICAL_ENVIRONMENT: Development
@@ -596,14 +601,14 @@ services:
       INFISICAL_OVERWRITE: "false"
       INFISICAL_PROJECT_ID: ""
       INFISICAL_SECRET_PATH: /
-      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       LOG_LEVEL: info
-      NEO4J_PASSWORD: devpassword
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD:?NEO4J_PASSWORD is required}
       NEO4J_URI: bolt://neo4j:7687
       NEO4J_USER: neo4j
       PORT: "8006"
-      REDIS_URL: redis://:redisdev@redis:6379/0
-      SERVICE_AUTH_SECRET: dev-service-auth-secret-do-not-use-in-production
+      REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required}@redis:6379/0
+      SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET:?SERVICE_AUTH_SECRET is required}
     expose:
       - "8006"
     healthcheck:
@@ -627,7 +632,7 @@ services:
   neo4j:
     container_name: value-fabric-neo4j
     environment:
-      NEO4J_AUTH: neo4j/devpassword
+      NEO4J_AUTH: ${NEO4J_AUTH:?NEO4J_AUTH is required}
       NEO4J_PLUGINS: '["apoc"]'
       NEO4J_dbms_memory_heap_max__size: 2G
       NEO4J_dbms_memory_pagecache_size: 1G
@@ -660,7 +665,7 @@ services:
     environment:
       POSTGRES_DB: ingestion
       POSTGRES_MULTIPLE_DATABASES: ingestion,extraction,ground_truth,layer4_agents,layer6_benchmarks
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       POSTGRES_USER: postgres
     expose:
       - "5432"
@@ -725,7 +730,7 @@ services:
     command:
       - redis-server
       - --requirepass
-      - redisdev
+      - ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
     container_name: value-fabric-redis
     expose:
       - "6379"
@@ -734,7 +739,7 @@ services:
         - CMD
         - redis-cli
         - -a
-        - redisdev
+        - ${REDIS_PASSWORD:?REDIS_PASSWORD is required}
         - ping
       timeout: 3s
       interval: 10s

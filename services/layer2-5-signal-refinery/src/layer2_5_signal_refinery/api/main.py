@@ -146,6 +146,7 @@ def create_app() -> FastAPI:
         ],
         readiness_path="/ready",
         health_readiness_augmentation_hook=_health_augmentation_hook,
+        enforce_tenant_context=False,
         docs_url="/docs",
         redoc_url="/redoc",
     )

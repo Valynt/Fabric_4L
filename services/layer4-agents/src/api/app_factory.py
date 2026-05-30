@@ -83,6 +83,7 @@ def create_app() -> FastAPI:
             CallableProbe(name="redis", fn=_redis_probe),
         ],
         readiness_path="/ready",
+        enforce_tenant_context=False,
     )
 
     if settings.otel_exporter_endpoint:

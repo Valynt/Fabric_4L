@@ -4,6 +4,7 @@ from typing import Any
 
 import structlog
 
+from app.core.config import get_settings
 from app.core.database import db
 from app.core.security import hash_password
 from app.models.schemas import (
@@ -57,6 +58,9 @@ def seed_tenants():
 def seed_users(tenant_ids: list[str]):
     # Seed passwords are intentionally weak for demo/dev only.
     # These accounts must never exist in production (F-02, F-14).
+    settings = get_settings()
+    if settings.is_production_like:
+        raise RuntimeError("seed_users is disabled in production-like environments")
     users = [
         User(
             id="user-1",

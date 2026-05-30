@@ -47,7 +47,9 @@ def test_create_fabric_app_applies_shared_defaults() -> None:
 
     error_response = client.get("/boom")
     assert error_response.status_code == 400
-    assert error_response.json()["message"] == "bad request"
+    payload = error_response.json()
+    assert "error" in payload
+    assert payload["error"]["code"] == "VALIDATION_ERROR"
     assert "x-request-id" in error_response.headers
 
 
@@ -255,3 +257,49 @@ def test_create_fabric_app_exception_handler_registration_mode_skip() -> None:
 
     assert response.status_code == 400
     assert response.json() == {"detail": "bad request"}
+
+
+def test_security_middleware_adds_hsts_header() -> None:
+    from value_fabric.shared.security import SecurityConfig, add_security_middleware
+
+    app = create_fabric_app(
+        service_name="test-hsts",
+        title="Test HSTS",
+        version="1.0.0",
+        description="test app",
+        enforce_tenant_context=False,
+    )
+    add_security_middleware(app, config=SecurityConfig(enable_hsts=True))
+
+    @app.get("/ok")
+    async def ok() -> dict[str, str]:
+        return {"status": "ok"}
+
+    client = TestClient(app)
+    response = client.get("/ok")
+
+    assert response.status_code == 200
+    assert response.headers["Strict-Transport-Security"] == "max-age=31536000; includeSubDomains"
+
+
+def test_security_middleware_omits_hsts_when_disabled() -> None:
+    from value_fabric.shared.security import SecurityConfig, add_security_middleware
+
+    app = create_fabric_app(
+        service_name="test-no-hsts",
+        title="Test No HSTS",
+        version="1.0.0",
+        description="test app",
+        enforce_tenant_context=False,
+    )
+    add_security_middleware(app, config=SecurityConfig(enable_hsts=False))
+
+    @app.get("/ok")
+    async def ok() -> dict[str, str]:
+        return {"status": "ok"}
+
+    client = TestClient(app)
+    response = client.get("/ok")
+
+    assert response.status_code == 200
+    assert "Strict-Transport-Security" not in response.headers

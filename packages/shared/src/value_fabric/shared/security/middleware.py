@@ -85,6 +85,7 @@ class SecurityConfig:
         strict_mode: If True, blocks requests on security violations
         max_body_size_bytes: Maximum body size to buffer (default 1MB)
         validate_json_bodies: Whether to scan JSON request bodies
+        enable_hsts: If True, adds Strict-Transport-Security header
     """
     skip_validation_paths: FrozenSet[str] = field(default_factory=frozenset)
     strict_mode: bool = True
@@ -92,6 +93,7 @@ class SecurityConfig:
     validate_json_bodies: bool = True
     max_json_depth: int = 10
     sanitize_json_strings: bool = True
+    enable_hsts: bool = True
 
     @staticmethod
     def from_env(
@@ -126,6 +128,7 @@ class SecurityConfig:
             validate_json_bodies=_bool_from_env("SECURITY_VALIDATE_JSON_BODIES", True),
             max_json_depth=_int_from_env("SECURITY_MAX_JSON_DEPTH", 10, 1),
             sanitize_json_strings=_bool_from_env("SECURITY_SANITIZE_JSON_STRINGS", True),
+            enable_hsts=_bool_from_env("SECURITY_ENABLE_HSTS", True),
         )
 
 
@@ -250,11 +253,17 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         """Process request through security validation with body stream caching."""
         # Skip validation for configured paths
         if self._should_skip_validation(request.url.path):
-            return await call_next(request)
+            response = await call_next(request)
+            if self.config.enable_hsts:
+                response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            return response
 
         # Skip body validation for OPTIONS requests (CORS preflight)
         if request.method == "OPTIONS":
-            return await call_next(request)
+            response = await call_next(request)
+            if self.config.enable_hsts:
+                response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+            return response
 
         content_length = request.headers.get("content-length")
         if content_length and content_length.isdigit():
@@ -359,6 +368,9 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         )
         response.headers["Cross-Origin-Resource-Policy"] = "same-origin"
         response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
+
+        if self.config.enable_hsts:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
 
         return response
 

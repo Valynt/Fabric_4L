@@ -257,6 +257,7 @@ class TestFabricAppLifespanWrapping:
             description="Test",
             lifespan=dummy_lifespan,
             audit_worker_db_factory=fake_db_factory,
+            enforce_tenant_context=False,
         )
 
         # FastAPI lifespan protocol

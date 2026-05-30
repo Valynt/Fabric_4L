@@ -402,7 +402,7 @@ def create_fabric_app(
     structured_logging: StructuredLoggingConfig | None = None,
     health_probes: list[HealthCheckProbe] | None = None,
     readiness_path: str = "/ready",
-    enforce_tenant_context: bool = False,
+    enforce_tenant_context: bool = True,
     audit_worker_db_factory: Callable | None = None,
     **fastapi_kwargs: Any,
 ) -> FastAPI:

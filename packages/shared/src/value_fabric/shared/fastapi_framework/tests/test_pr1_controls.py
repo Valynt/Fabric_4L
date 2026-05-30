@@ -190,12 +190,26 @@ def test_create_fabric_app_defaults_install_no_new_middleware() -> None:
         title="t",
         version="1.0.0",
         description="t",
+        enforce_tenant_context=False,
     )
     # No idempotency/rate-limit middleware should be installed.
     middleware_names = [m.cls.__name__ for m in app.user_middleware]
     assert "_IdempotencyMiddleware" not in middleware_names
     assert "TenantRateLimitMiddleware" not in middleware_names
     assert "_TenantEnforcementMiddleware" not in middleware_names
+
+
+def test_create_fabric_app_defaults_install_tenant_enforcement() -> None:
+    """Tenant enforcement middleware is installed by default (fail-closed)."""
+
+    app = create_fabric_app(
+        service_name="tenant-default",
+        title="t",
+        version="1.0.0",
+        description="t",
+    )
+    middleware_names = [m.cls.__name__ for m in app.user_middleware]
+    assert "_TenantEnforcementMiddleware" in middleware_names
 
 
 def test_create_fabric_app_does_not_install_rate_limit_without_factory() -> None:

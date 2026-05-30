@@ -86,6 +86,7 @@ app = create_fabric_app(
     health_probes=[CallableProbe(name="database", fn=health_probe)],
     readiness_path="/ready",
     audit_worker_db_factory=get_db_from_context,
+    enforce_tenant_context=False,
 )
 
 # P0-02: Install GovernanceMiddleware — fail closed on missing/invalid auth.

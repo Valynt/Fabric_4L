@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}
@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     )
 
     # Auth / JWT
-    jwt_secret: str = Field(default="changeme-in-production", alias="JWT_SECRET")
+    jwt_secret: str = Field(..., alias="JWT_SECRET")
     jwt_algorithm: str = "HS256"
 
     # Layer 2 integration
@@ -39,6 +39,14 @@ class Settings(BaseSettings):
 
     # Observability
     otel_exporter_endpoint: str | None = Field(default=None, alias="OTEL_EXPORTER_OTLP_ENDPOINT")
+
+    @field_validator("jwt_secret", mode="after")
+    @classmethod
+    def _reject_weak_jwt_secret(cls, v: str) -> str:
+        weak = {"", "changeme", "changeme-in-production", "password", "secret", "valuefabric"}
+        if v.lower() in weak:
+            raise ValueError("JWT_SECRET cannot be empty or a known weak default")
+        return v
 
     @property
     def is_production(self) -> bool:

@@ -1,6 +1,5 @@
 import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
 import { useAuth as useClerkAuth } from "@clerk/react";
-import { useAuthContext } from "@/contexts/AuthContext";
 import { useTenantMembership } from "@/hooks/useTenantMembership";
 import { useAccountAccess } from "@/hooks/useAccountAccess";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -34,6 +33,31 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
     .filter(Boolean)
     .pop();
 
+  // ALL hooks must be called before any conditional return (Rules of Hooks).
+  // Use optional chaining so hooks are unconditionally invoked even when policy
+  // is undefined; the conditional guard logic below still short-circuits safely.
+  const { canAccessRoute } = useUserTierStore();
+
+  const tenantSlug = params.tenantSlug;
+  const { isMemberOfTenant, isLoading: tenantLoading } =
+    useTenantMembership(tenantSlug);
+
+  const accountId = params.accountId;
+  const { hasAccountAccess, isLoading: accountLoading } =
+    useAccountAccess(accountId, tenantSlug);
+
+  const { hasPermissions, isLoading: permLoading } = useUserPermissions(
+    policy?.requiredPermissions ?? []
+  );
+
+  const { flagsEnabled } = useFeatureFlags(
+    policy?.requiredFeatureFlags ?? []
+  );
+
+  const { entitlementsMet, isLoading: entitlementsLoading } = useEntitlements(
+    policy?.requiredEntitlements ?? []
+  );
+
   if (!policy) {
     return <ErrorBoundary>{children}</ErrorBoundary>;
   }
@@ -54,7 +78,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 2. Tier guard
-  const { canAccessRoute } = useUserTierStore();
   if (policy.requiredTier && !canAccessRoute(policy.requiredTier)) {
     log.warn("Tier access denied", {
       requiredTier: policy.requiredTier,
@@ -64,10 +87,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 3. Tenant membership guard
-  const tenantSlug = params.tenantSlug;
-  const { isMemberOfTenant, isLoading: tenantLoading } =
-    useTenantMembership(tenantSlug);
-
   if (policy.tenantScoped && tenantSlug) {
     if (tenantLoading) return <RouteGuardSkeleton />;
     if (!isMemberOfTenant) {
@@ -80,10 +99,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 4. Account access guard
-  const accountId = params.accountId;
-  const { hasAccountAccess, isLoading: accountLoading } =
-    useAccountAccess(accountId, tenantSlug);
-
   if (policy.accountScoped && accountId) {
     if (accountLoading) return <RouteGuardSkeleton />;
     if (!hasAccountAccess) {
@@ -95,9 +110,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 5. Role/permission guard
-  const { hasPermissions, isLoading: permLoading } = useUserPermissions(
-    policy.requiredPermissions ?? []
-  );
   if (policy.requiredPermissions && policy.requiredPermissions.length > 0) {
     if (permLoading) return <RouteGuardSkeleton />;
     if (!hasPermissions) {
@@ -110,9 +122,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 6. Feature flag guard
-  const { flagsEnabled } = useFeatureFlags(
-    policy.requiredFeatureFlags ?? []
-  );
   if (policy.requiredFeatureFlags && policy.requiredFeatureFlags.length > 0) {
     if (!flagsEnabled) {
       log.warn("Feature not enabled", {
@@ -124,9 +133,6 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   }
 
   // 7. Plan/entitlement guard
-  const { entitlementsMet, isLoading: entitlementsLoading } = useEntitlements(
-    policy.requiredEntitlements ?? []
-  );
   if (policy.requiredEntitlements && policy.requiredEntitlements.length > 0) {
     if (entitlementsLoading) return <RouteGuardSkeleton />;
     if (!entitlementsMet) {
