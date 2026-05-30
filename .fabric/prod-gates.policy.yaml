@@ -17,6 +17,10 @@ profiles:
       - policy
       - lint
       - arch
+      - api-contracts
+      - auth
+      - secrets
+      - tenant-isolation
       - security
       - security-broad
       - state
@@ -28,6 +32,16 @@ profiles:
       - policy
       - lint
       - arch
+      - database
+      - migrations
+      - api-contracts
+      - auth
+      - secrets
+      - backup-restore
+      - frontend
+      - data-governance
+      - compliance
+      - tenant-isolation
       - security
       - security-broad
       - chaos
@@ -44,6 +58,20 @@ profiles:
       - policy
       - lint
       - arch
+      - database
+      - migrations
+      - api-contracts
+      - auth
+      - secrets
+      - backup-restore
+      - frontend
+      - data-governance
+      - compliance
+      - deployment
+      - rollback
+      - incident-response
+      - launch-blockers
+      - tenant-isolation
       - security
       - security-broad
       - chaos
@@ -74,6 +102,110 @@ gate-definitions:
     description: "Architecture conformance, tenant guards, testability"
     class: blocking
     artifact-dir: artifacts/arch
+    required: true
+
+  database:
+    target: gate-database
+    description: "Database readiness, schema entrypoints, and storage configuration checks"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
+
+  migrations:
+    target: gate-migrations
+    description: "Alembic migration entrypoints and single-head drift prevention"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
+
+  api-contracts:
+    target: gate-api-contracts
+    description: "OpenAPI, platform-contract, and cross-layer API contract conformance"
+    class: blocking
+    artifact-dir: artifacts/contracts
+    required: true
+
+  auth:
+    target: gate-auth
+    description: "Authentication enforcement, production safety, and realm seed hardening"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  secrets:
+    target: gate-secrets
+    description: "Secret hygiene across manifests, committed paths, and environment references"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  backup-restore:
+    target: gate-backup-restore
+    description: "Backup and restore drill coverage for recoverability evidence"
+    class: blocking
+    artifact-dir: artifacts/backup-restore
+    required: true
+
+  frontend:
+    target: gate-frontend
+    description: "Frontend production verification, type safety, tests, and auth-bypass guardrails"
+    class: blocking
+    artifact-dir: artifacts/frontend
+    required: true
+
+  data-governance:
+    target: gate-data-governance
+    description: "Data retention, deletion, lineage, and governance control evidence"
+    class: blocking
+    artifact-dir: artifacts/data-governance
+    required: true
+    caveat: "Fail-closed until data-governance evidence is consolidated into a dedicated passing production gate."
+
+  compliance:
+    target: gate-compliance
+    description: "Compliance evidence, policy attestations, and audit-readiness controls"
+    class: blocking
+    artifact-dir: artifacts/compliance
+    required: true
+    caveat: "Fail-closed until compliance attestations are implemented as executable release evidence."
+
+  deployment:
+    target: gate-deployment
+    description: "Production deployment readiness, environment controls, and manifest validation"
+    class: blocking
+    artifact-dir: artifacts/deployment
+    required: true
+    caveat: "Fail-closed until deployment validation is fully automated for production release candidates."
+
+  rollback:
+    target: gate-rollback
+    description: "Rollback plan, tested rollback commands, and downgrade/restore evidence"
+    class: blocking
+    artifact-dir: artifacts/rollback
+    required: true
+    caveat: "Fail-closed until rollback drills produce executable evidence for release candidates."
+
+  incident-response:
+    target: gate-incident-response
+    description: "Incident response runbooks, paging paths, and release-time escalation readiness"
+    class: blocking
+    artifact-dir: artifacts/incident-response
+    required: true
+    caveat: "Fail-closed until incident-response runbooks and escalation checks are executable gates."
+
+  launch-blockers:
+    target: gate-launch-blockers
+    description: "Explicit unresolved launch blockers and production go/no-go evidence"
+    class: blocking
+    artifact-dir: artifacts/release
+    required: true
+    caveat: "Fail-closed until launch-blocker triage has a machine-checkable zero-open-blockers source of truth."
+
+  tenant-isolation:
+    target: gate-tenant-isolation
+    description: "Dedicated cross-tenant isolation regression and fail-closed tenant-scope checks"
+    class: blocking
+    artifact-dir: artifacts/security
     required: true
 
   security:

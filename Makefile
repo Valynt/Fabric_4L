@@ -8,7 +8,10 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config \
+	gate-database gate-migrations gate-api-contracts gate-auth gate-secrets gate-backup-restore \
+	gate-frontend gate-data-governance gate-compliance gate-deployment gate-rollback \
+	gate-incident-response gate-launch-blockers gate-tenant-isolation gate-all \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -620,6 +623,91 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
+gate-database: ## Gate: database readiness and storage configuration checks
+	@echo "→ Gate: Database Readiness"
+	$(PYTHON) scripts/ci/check_migration_entrypoints.py
+	$(GATE_PYTEST) tests/config/
+	@echo "✅  gate-database passed"
+
+gate-migrations: ## Gate: migration entrypoints and Alembic head drift prevention
+	@echo "→ Gate: Migrations"
+	$(PYTHON) scripts/ci/check_migration_entrypoints.py
+	@echo "✅  gate-migrations passed"
+
+gate-api-contracts: ## Gate: API contract compliance and cross-layer contract tests
+	@echo "→ Gate: API Contracts"
+	$(PYTEST) tests/contract/ --collect-only -q -m contract_static -n 0
+	$(PYTEST) tests/contract/ --collect-only -q -m service_required -n 0
+	$(PYTEST) tests/contract/ -v --tb=short -m contract_static -n 0
+	$(PYTEST) tests/contract/ -v --tb=short -m service_required -n 0
+	pnpm --dir packages/platform-contract run contract:test
+	$(PYTEST) tests/arch/ -v --tb=short
+	$(PYTHON) scripts/ci/contract_compliance_gate.py --mode full
+	pnpm run generate:api
+	git diff --exit-code apps/web/src/api/generated
+	@echo "✅  gate-api-contracts passed"
+
+gate-auth: ## Gate: authentication enforcement and realm seed hardening
+	@echo "→ Gate: Auth"
+	@mkdir -p $(GATE_JUNIT_DIR)
+	$(GATE_PYTEST) services/api/app/tests/test_auth_enforcement.py services/api/app/tests/test_production_safety.py --junitxml=$(GATE_JUNIT_DIR)/gate-auth.xml
+	$(PYTHON) scripts/ci/check_keycloak_realm_seed_security.py
+	@echo "✅  gate-auth passed"
+
+gate-secrets: ## Gate: secrets hygiene for manifests and tracked environment paths
+	@echo "→ Gate: Secrets"
+	$(PYTHON) scripts/ci/check_manifest_secret_hygiene.py
+	$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
+	@echo "✅  gate-secrets passed"
+
+gate-backup-restore: ## Gate: backup and restore drill coverage
+	@echo "→ Gate: Backup/Restore"
+	@mkdir -p $(GATE_JUNIT_DIR)
+	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
+	@echo "✅  gate-backup-restore passed"
+
+gate-frontend: ## Gate: frontend production verification
+	@echo "→ Gate: Frontend"
+	pnpm run verify:frontend
+	pnpm --dir apps/web run test:prod-auth-bypass
+	@echo "✅  gate-frontend passed"
+
+gate-data-governance: ## Gate: data-governance evidence (fail-closed until implemented)
+	@echo "→ Gate: Data Governance"
+	@echo "❌ PLACEHOLDER: Data-governance executable evidence is not fully implemented; failing closed."
+	@exit 1
+
+gate-compliance: ## Gate: compliance evidence (fail-closed until implemented)
+	@echo "→ Gate: Compliance"
+	@echo "❌ PLACEHOLDER: Compliance attestations are not fully implemented as executable release evidence; failing closed."
+	@exit 1
+
+gate-deployment: ## Gate: production deployment readiness (fail-closed until implemented)
+	@echo "→ Gate: Deployment"
+	@echo "❌ PLACEHOLDER: Production deployment validation is not fully automated; failing closed."
+	@exit 1
+
+gate-rollback: ## Gate: rollback readiness (fail-closed until implemented)
+	@echo "→ Gate: Rollback"
+	@echo "❌ PLACEHOLDER: Rollback drill evidence is not fully implemented; failing closed."
+	@exit 1
+
+gate-incident-response: ## Gate: incident-response readiness (fail-closed until implemented)
+	@echo "→ Gate: Incident Response"
+	@echo "❌ PLACEHOLDER: Incident-response runbooks and escalation checks are not executable gates yet; failing closed."
+	@exit 1
+
+gate-launch-blockers: ## Gate: launch-blocker triage (fail-closed until implemented)
+	@echo "→ Gate: Launch Blockers"
+	@echo "❌ PLACEHOLDER: Machine-checkable zero-open-blockers evidence is not implemented; failing closed."
+	@exit 1
+
+gate-tenant-isolation: gate-mandatory-security-regression ## Gate: dedicated tenant isolation regression checks
+	@echo "→ Gate: Tenant Isolation"
+	$(GATE_PYTEST) tests/security/test_tenant_isolation.py --junitxml=$(GATE_JUNIT_DIR)/gate-tenant-isolation.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-tenant-isolation.xml
+	@echo "✅  gate-tenant-isolation passed"
+
 gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
@@ -637,8 +725,8 @@ lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-l
 gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,database,contracts,backup-restore,frontend,data-governance,compliance,deployment,rollback,incident-response}
 	@echo "✅  gates-validate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
