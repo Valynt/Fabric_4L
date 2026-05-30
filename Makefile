@@ -8,7 +8,7 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all db-production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -622,6 +622,15 @@ gate-config: ## Gate: startup validation, security config hardening
 
 gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+
+db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
+	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
+	$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
