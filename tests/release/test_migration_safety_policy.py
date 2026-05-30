@@ -15,9 +15,10 @@ from pathlib import Path
 MIGRATION_ROOTS = [
     Path("services/layer1-ingestion/migrations/versions"),
     Path("services/layer2-extraction/migrations/versions"),
+    Path("services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/migrations/versions"),
     Path("services/layer4-agents/migrations/versions"),
     Path("services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"),
-    Path("services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"),
+    Path("services/api/migrations/versions"),
 ]
 
 DESTRUCTIVE_PATTERNS = (
@@ -64,6 +65,23 @@ def _is_destructive(source: str) -> bool:
 
 
 class TestMigrationSafetyPolicy:
+
+    def test_migration_roots_cover_all_alembic_managed_services_once(self) -> None:
+        """Release policy must inspect each Alembic-managed PostgreSQL root exactly once."""
+        expected = [
+            Path("services/layer1-ingestion/migrations/versions"),
+            Path("services/layer2-extraction/migrations/versions"),
+            Path("services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/migrations/versions"),
+            Path("services/layer4-agents/migrations/versions"),
+            Path("services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions"),
+            Path("services/api/migrations/versions"),
+        ]
+
+        assert MIGRATION_ROOTS == expected
+        assert len(MIGRATION_ROOTS) == len(set(MIGRATION_ROOTS))
+        missing = [root for root in MIGRATION_ROOTS if not root.exists()]
+        assert not missing, f"Migration roots are missing: {missing}"
+
     def test_destructive_migrations_have_operator_acknowledgment_and_runtime_guard(self) -> None:
         """Destructive migrations must fail closed in production-like environments."""
         failures: list[str] = []
