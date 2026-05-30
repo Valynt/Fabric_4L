@@ -1,5 +1,5 @@
 #!/bin/bash
-# Create least-privileged roles for the db-production-readiness-gate stack.
+# Create least-privileged roles for the gate-database-live stack.
 set -euo pipefail
 
 READINESS_ROLE="${DB_READINESS_APP_USER:-vf_migrator}"

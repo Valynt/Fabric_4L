@@ -17,7 +17,7 @@ def test_postgres_invariant_suite_uses_postgresql_url() -> None:
     parsed = urlparse(database_url)
 
     assert parsed.scheme.startswith("postgresql"), (
-        "db-production-readiness-gate requires TEST_DATABASE_URL or DATABASE_URL to point at PostgreSQL. "
+        "gate-database-live requires TEST_DATABASE_URL or DATABASE_URL to point at PostgreSQL. "
         f"Got scheme {parsed.scheme!r}. SQLite/local compatibility belongs in pure unit tests only."
     )
 

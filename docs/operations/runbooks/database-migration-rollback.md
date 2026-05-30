@@ -7,7 +7,7 @@ This runbook defines the rollback strategy for Alembic-managed PostgreSQL migrat
 Before production approval, the database production-readiness gate must run against PostgreSQL:
 
 ```bash
-make db-production-readiness-gate DB_MIGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
+make gate-database-live DB_MIGRATION_DATABASE_URL=postgresql://postgres:postgres@localhost:5432/postgres
 ```
 
 The gate runs static migration graph checks, unsupported-downgrade policy checks, an upgrade to `head`, a one-revision downgrade where supported, a second upgrade to `head`, and SQLAlchemy metadata drift comparison against the migrated PostgreSQL schema.

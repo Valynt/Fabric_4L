@@ -1,7 +1,7 @@
 # Production-like database readiness stack.
 #
 # This compose file intentionally boots only durable backing stores needed by
-# the db-production-readiness-gate target: PostgreSQL, Redis, Neo4j, Qdrant,
+# the gate-database-live target: PostgreSQL, Redis, Neo4j, Qdrant,
 # MinIO, and Alertmanager. Host ports are offset from the normal dev stack to
 # reduce collisions during release validation.
 

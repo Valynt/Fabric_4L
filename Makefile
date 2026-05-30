@@ -10,8 +10,9 @@
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gate-policy gate-lint gate-sign-manifest gate-summary \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
-	db-production-readiness-gate gate-all \
+	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
@@ -649,6 +650,9 @@ gate-security: gate-mandatory-security-regression ## Gate: broader security regr
 	@echo "→ Gate: Security — broader auth, fail-closed, and regression suite"
 	@echo "✅  gate-security passed"
 
+security-readiness-gate: gate-security ## Compatibility alias for the canonical security readiness gate
+	@echo "✅  security-readiness-gate alias passed (canonical: gate-security)"
+
 gate-security-broad: ## Advisory gate: exhaustive legacy security coverage for Broad GA backlog classification
 	@echo "→ Gate: Broad Security Coverage — advisory legacy suite (bounded to 300s)"
 	timeout 300s $(GATE_PYTEST) tests/security/
@@ -664,6 +668,9 @@ gate-arch: ## Gate: architecture conformance, tenant guards, testability
 	$(GATE_PYTEST) tests/arch/
 	@echo "✅  gate-arch passed"
 
+architecture-readiness-gate: gate-arch ## Compatibility alias for the canonical architecture readiness gate
+	@echo "✅  architecture-readiness-gate alias passed (canonical: gate-arch)"
+
 gate-config: ## Gate: startup validation, security config hardening
 	@echo "→ Gate: Startup Configuration"
 	$(GATE_PYTEST) tests/config/
@@ -672,14 +679,7 @@ gate-config: ## Gate: startup validation, security config hardening
 gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
 	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
 
-db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
-	@echo "→ Gate: DB Production Readiness — cross-store consistency"
-	@mkdir -p $(GATE_JUNIT_DIR)
-	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	@echo "✅  db-production-readiness-gate passed"
-
-gate-local-production-subset: gate-security db-production-readiness-gate ## Run a local-only production-readiness subset; not a ship/no-ship decision
+gate-local-production-subset: gate-security gate-database ## Run a local-only production-readiness subset; not a ship/no-ship decision
 	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make gate-production for the full release gate"
 
 # Backward-compatible alias retained for scripts/users that still call gate-all.
@@ -689,8 +689,8 @@ gate-all: gate-local-production-subset ## Compatibility alias for the local-only
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
 
-production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
-	@echo "✅  production-readiness-gate completed"
+production-readiness-gate: gate-production ## Compatibility alias for the canonical full production-readiness gate suite
+	@echo "✅  production-readiness-gate alias completed (canonical: gate-production)"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
@@ -700,15 +700,21 @@ collect-95-plus-evidence: ## Collect full 95+ production-readiness evidence pack
 
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 
-lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Lint all layers (release variant)
-	@echo "✅  Release lint complete"
+gate-lint: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Gate: lint all layers for release readiness
+	@echo "✅  gate-lint passed"
 
-gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
+lint-release: gate-lint ## Compatibility alias for the canonical release lint gate
+	@echo "✅  lint-release alias passed (canonical: gate-lint)"
+
+gate-policy: ## Gate: validate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
 	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
-	@echo "✅  gates-validate-policy passed"
+	@echo "✅  gate-policy passed"
+
+gates-validate-policy: gate-policy ## Compatibility alias for the canonical policy validation gate
+	@echo "✅  gates-validate-policy alias passed (canonical: gate-policy)"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
@@ -763,7 +769,7 @@ gate-release-policy: ## Gate: release policy compliance
 	python scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
-gates-sign-manifest: ## Sign artifact manifest with SHA-256
+gate-sign-manifest: ## Gate: sign artifact manifest with SHA-256
 	@echo "→ Gate: Sign Manifest"
 	@mkdir -p $(ARTIFACT_DIR)/logs
 	@if [ ! -d $(ARTIFACT_DIR) ]; then \
@@ -777,13 +783,19 @@ gates-sign-manifest: ## Sign artifact manifest with SHA-256
 		exit 1; \
 	fi
 	@find $(ARTIFACT_DIR) -type f -not -path "*/logs/*" -not -name "manifest.sha256" -exec sha256sum {} \; > $(ARTIFACT_DIR)/manifest.sha256
-	@echo "✅  gates-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
+	@echo "✅  gate-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
 
-gates-render-summary: ## Render release summary with gate results
+gates-sign-manifest: gate-sign-manifest ## Compatibility alias for the canonical artifact signing gate
+	@echo "✅  gates-sign-manifest alias passed (canonical: gate-sign-manifest)"
+
+gate-summary: ## Gate: render release summary with gate results
 	@echo "→ Gate: Render Summary"
 	@bash scripts/ops/render-release-summary.sh
 	@test -s $(ARTIFACT_DIR)/summary.md || (echo "❌ Summary file not generated" && exit 1)
-	@echo "✅  gates-render-summary passed"
+	@echo "✅  gate-summary passed"
+
+gates-render-summary: gate-summary ## Compatibility alias for the canonical release summary gate
+	@echo "✅  gates-render-summary alias passed (canonical: gate-summary)"
 
 release-gate: ## Run the policy-driven production readiness gate sequence
 	@echo "🚀 Starting Release Gate Sequence..."
