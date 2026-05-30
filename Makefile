@@ -8,7 +8,7 @@
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
 	db-production-readiness-gate gate-all \
@@ -640,8 +640,13 @@ gate-mandatory-security-regression: ## Gate: mandatory security regression suite
 	bash scripts/ci/mandatory_security_regression_gate.sh
 	@echo "✅  gate-mandatory-security-regression passed"
 
-gate-security: gate-mandatory-security-regression ## Gate: release-critical tenant isolation, auth enforcement, and fail-closed security regression
-	@echo "→ Gate: Security & Tenant Isolation — release-critical suite"
+gate-tenant-isolation: ## Gate: dedicated tenant isolation launch-readiness suite
+	@echo "→ Gate: Tenant Isolation — dedicated launch-readiness suite"
+	bash scripts/ci/tenant_isolation_readiness_gate.sh
+	@echo "✅  gate-tenant-isolation passed"
+
+gate-security: gate-mandatory-security-regression ## Gate: broader security regression coverage beyond the dedicated tenant isolation gate
+	@echo "→ Gate: Security — broader auth, fail-closed, and regression suite"
 	@echo "✅  gate-security passed"
 
 gate-security-broad: ## Advisory gate: exhaustive legacy security coverage for Broad GA backlog classification
@@ -667,8 +672,19 @@ gate-config: ## Gate: startup validation, security config hardening
 gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
 	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
 
-gate-all: gate-security gate-database ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
+	@echo "→ Gate: DB Production Readiness — cross-store consistency"
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
+
+gate-local-production-subset: gate-security db-production-readiness-gate ## Run a local-only production-readiness subset; not a ship/no-ship decision
+	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make gate-production for the full release gate"
+
+# Backward-compatible alias retained for scripts/users that still call gate-all.
+gate-all: gate-local-production-subset ## Compatibility alias for the local-only subset; not a production-readiness decision
+	@echo "⚠️  gate-all is local-only and does not authorize production release; run make gate-production or make production-readiness-gate for the full suite"
 
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
@@ -690,7 +706,7 @@ lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-l
 gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gates-validate-policy passed"
 
