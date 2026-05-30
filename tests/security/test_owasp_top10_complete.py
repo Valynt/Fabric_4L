@@ -138,7 +138,6 @@ class TestBrokenAccessControl:
 # ============================================================================
 
 @pytest.mark.security
-@pytest.mark.xfail(strict=False, reason='TLS enforcement and crypto policy checks require live infra')
 class TestCryptographicFailures:
     """Test A02:2021 - Cryptographic Failures"""
 
@@ -216,7 +215,6 @@ class TestCryptographicFailures:
 # ============================================================================
 
 @pytest.mark.security
-@pytest.mark.xfail(strict=False, reason='Injection validation middleware not wired in test client')
 class TestInjectionAttacks:
     """Test A03:2021 - Injection"""
 
@@ -328,7 +326,6 @@ class TestInjectionAttacks:
 # ============================================================================
 
 @pytest.mark.security
-@pytest.mark.xfail(strict=False, reason='Rate limiting disabled in test client via conftest patch')
 class TestInsecureDesign:
     """Test A04:2021 - Insecure Design"""
 
@@ -507,7 +504,6 @@ class TestVulnerableComponents:
 # ============================================================================
 
 @pytest.mark.security
-@pytest.mark.xfail(strict=False, reason='MFA and password policy features not yet implemented')
 class TestAuthenticationFailures:
     """Test A07:2021 - Identification and Authentication Failures"""
 

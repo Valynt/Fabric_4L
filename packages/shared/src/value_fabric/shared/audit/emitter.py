@@ -203,7 +203,9 @@ def emit_audit_event(
     )
 
     # Write to structured log (always).  Sensitive keys are scrubbed above.
-    logger.info(
+    # Wrapped in try/except so logger failures never break the caller.
+    try:
+        logger.info(
         json.dumps(
             {
                 "audit": True,
@@ -223,6 +225,9 @@ def emit_audit_event(
             }
         )
     )
+    except Exception:
+        # Logger failure - swallow to avoid breaking caller
+        pass
 
     return event
 
