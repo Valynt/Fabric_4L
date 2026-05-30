@@ -1,10 +1,6 @@
 """Unit tests for Layer 6 observability metrics contract."""
 
-<<<<<<< HEAD
 from layer6_benchmarks.observability.metrics_contract import (
-=======
-from value_fabric.layer6.observability.metrics_contract import (
->>>>>>> ab2ac2c2 (```)
     MetricSpec,
     load_metric_specs,
     metric_names,

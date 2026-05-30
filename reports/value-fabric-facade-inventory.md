@@ -1,10 +1,6 @@
 # Value Fabric Facade Import Inventory
 
-<<<<<<< HEAD
 Generated: 2026-05-29T13:14:59.798136
-=======
-Generated: 2026-05-29T03:42:48.876810
->>>>>>> f43ab27b (```)
 
 ## Facade Status
 
@@ -26,23 +22,14 @@ The `value_fabric/` directory is **not merely a legacy compatibility shim**. It 
 
 ## Summary
 
-<<<<<<< HEAD
 - **Total files with facade imports**: 108
 - **Total facade import statements**: 253
-=======
-- **Total files with facade imports**: 232
-- **Total facade import statements**: 750
->>>>>>> f43ab27b (```)
 
 ## Imports by Layer
 
 | Layer | Count |
 |-------|-------|
-<<<<<<< HEAD
 | 1 | 7 |
-=======
-| 1 | 6 |
->>>>>>> f43ab27b (```)
 | 3 | 223 |
 | 4 | 17 |
 | 5 | 1 |
@@ -56,11 +43,7 @@ The `value_fabric/` directory is **not merely a legacy compatibility shim**. It 
 | other | 9 |
 | package | 1 |
 | service | 17 |
-<<<<<<< HEAD
 | test | 71 |
-=======
-| test | 197 |
->>>>>>> f43ab27b (```)
 
 ## Files with Facade Imports
 
@@ -1079,13 +1062,8 @@ The `value_fabric/` directory is **not merely a legacy compatibility shim**. It 
 ## Runtime vs Test Classification
 
 - **Runtime/Service imports**: 17
-<<<<<<< HEAD
 - **Test imports**: 71
 - **CI Script imports**: 10
-=======
-- **Test imports**: 197
-- **CI Script imports**: 9
->>>>>>> f43ab27b (```)
 
 ## Migration Priority
 
@@ -1100,9 +1078,5 @@ Based on file type classification:
    - Migrate in batches by category
 
 3. **LOWER PRIORITY - Test code**
-<<<<<<< HEAD
    - 71 files
-=======
-   - 197 files
->>>>>>> f43ab27b (```)
    - Migrate layer by layer after runtime is clean

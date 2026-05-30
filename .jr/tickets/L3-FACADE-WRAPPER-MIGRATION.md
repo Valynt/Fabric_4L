@@ -708,4 +708,3 @@ Recommended sequence:
 - `spec.md` - Import topology documentation
 - L6-PACKAGE-RESTRUCTURE-PLAN.md
 - IMPORT-ARCH-FACADE-RESOLUTION.md
->>>>>>> f43ab27b (```)

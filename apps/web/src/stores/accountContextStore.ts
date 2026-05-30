@@ -16,6 +16,34 @@ interface AccountContextState {
   syncTenant: () => void;
 }
 
+export function loadAccountContextForTenant(tenantId: string): void {
+  try {
+    const raw = sessionStorage.getItem(`fabric-account-context-${tenantId}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      useAccountContextStore.setState({
+        selectedAccountId: parsed.selectedAccountId ?? null,
+      });
+    } else {
+      useAccountContextStore.setState({ selectedAccountId: null });
+    }
+  } catch {
+    useAccountContextStore.setState({ selectedAccountId: null });
+  }
+}
+
+export function saveAccountContextForTenant(tenantId: string): void {
+  try {
+    const state = useAccountContextStore.getState();
+    sessionStorage.setItem(
+      `fabric-account-context-${tenantId}`,
+      JSON.stringify({ selectedAccountId: state.selectedAccountId })
+    );
+  } catch {
+    // Ignore storage errors (e.g. private mode)
+  }
+}
+
 export const useAccountContextStore = create<AccountContextState>()(
   persist(
     (set, get) => ({
