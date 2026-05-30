@@ -318,7 +318,6 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       API_KEY_HMAC_SECRET: ${API_KEY_HMAC_SECRET}
       SERVICE_AUTH_SECRET: ${SERVICE_AUTH_SECRET}
-      ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT: 'true'
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer4_agents
       CHECKPOINT_DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/0

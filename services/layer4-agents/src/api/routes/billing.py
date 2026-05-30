@@ -500,7 +500,7 @@ async def cancel_subscription(
             "subscription_id": result["subscription_id"],
         }
     except ValueError as e:
-        error_text = str(e).lower()
+        error_text = repr(e).lower()
         logger.warning(
             "Subscription cancellation failed",
             extra={
