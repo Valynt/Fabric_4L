@@ -29,3 +29,26 @@ For Layer 5 backlog governance, **"issue register complete"** means all discover
 - rollback notes
 
 Phase 0 must remain open if any discovered Layer 5 issue is missing required fields. In particular, missing **owner** or **due date** blocks Phase 0 closure.
+
+## Canonical Production Gate Make Targets
+
+Production-readiness automation uses concise `gate-*` Makefile targets as the canonical names. The policy file at `.fabric/prod-gates.policy.yaml` must reference only these canonical names in `gate-definitions.*.target`; legacy and verbose names remain Makefile aliases for backwards compatibility and should not be used in new policy entries, CI workflow definitions, or documentation.
+
+| Gate definition | Canonical target | Purpose | Backwards-compatible aliases |
+|---|---|---|---|
+| `policy` | `gate-policy` | Validate production gate policy YAML, selected profile, and artifact directories. | `gates-validate-policy` |
+| `lint` | `gate-lint` | Run release-grade Python layer linting. | `lint-release` |
+| `arch` | `gate-arch` | Validate architecture conformance, tenant guards, and testability. | `architecture-readiness-gate` |
+| `security` | `gate-security` | Run release-critical tenant isolation, authentication, and fail-closed security regression checks. | `security-readiness-gate` |
+| `security-broad` | `gate-security-broad` | Run advisory broad legacy security coverage. | None |
+| `chaos` | `gate-chaos` | Run dependency chaos and failure-injection checks. | None |
+| `smoke` | `gate-smoke` | Run cross-domain smoke and golden-path checks. | None |
+| `state` | `gate-state` | Validate frontend/backend state alignment and workflow type consistency. | None |
+| `agent` | `gate-agent` | Run agent provenance and behavior regression checks. | None |
+| `obs` | `gate-obs` | Run observability, metrics, health, and SLO validation checks. | None |
+| `release-policy` | `gate-release-policy` | Validate release policy, deprecations, and version-freeze expectations. | None |
+| `sign-manifest` | `gate-sign-manifest` | Sign release artifacts with SHA-256 manifest evidence. | `gates-sign-manifest` |
+| `summary` | `gate-summary` | Render the release gate summary artifact. | `gates-render-summary` |
+| Full sequence | `gate-production` | Run the policy-driven production-readiness gate sequence for `PROFILE`. | `release-gate`, `gate-all`, `production-readiness-gate` |
+
+Do not create additional targets whose names imply the same gate semantics. If a historical name must keep working, implement it as a dependency-only alias of the canonical target so there is a single source of behavior.

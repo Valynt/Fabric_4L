@@ -8,7 +8,11 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-all \
+	gate-policy gate-lint gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gate-sign-manifest gate-summary gate-production \
+	gates-validate-policy lint-release gates-sign-manifest gates-render-summary release-gate \
+	architecture-readiness-gate security-readiness-gate production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -620,8 +624,13 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
-gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+gate-all: gate-production ## Alias: run the policy-driven production readiness gate sequence
+
+architecture-readiness-gate: gate-arch ## Alias: use canonical target gate-arch
+
+security-readiness-gate: gate-security ## Alias: use canonical target gate-security
+
+production-readiness-gate: gate-production ## Alias: use canonical target gate-production
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
@@ -631,15 +640,17 @@ collect-95-plus-evidence: ## Collect full 95+ production-readiness evidence pack
 
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 
-lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Lint all layers (release variant)
-	@echo "✅  Release lint complete"
+gate-lint: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Gate: lint all Python layers with ruff
+	@echo "✅  gate-lint passed"
 
-gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
+lint-release: gate-lint ## Alias: use canonical target gate-lint
+
+gate-policy: ## Gate: validate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
-	@echo "✅  gates-validate-policy passed"
+	@echo "✅  gate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
@@ -649,7 +660,7 @@ gate-chaos: ## Gate: dependency chaos and failure injection
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/chaos/ --junitxml=$(GATE_JUNIT_DIR)/gate-chaos.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
 	@echo "✅  gate-chaos passed"
 
 gate-smoke: ## Gate: cross-domain smoke tests
@@ -657,7 +668,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 	@test -s tests/e2e/test_value_engine_smoke_contract.py || (echo "❌ Smoke contract test is missing" && exit 1)
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/e2e/test_value_engine_smoke_contract.py --junitxml=$(GATE_JUNIT_DIR)/gate-smoke.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
 	@echo "✅  gate-smoke passed"
 
 gate-agent: ## Gate: agent provenance and behavior regression
@@ -668,7 +679,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/agents/ --junitxml=$(GATE_JUNIT_DIR)/gate-agent.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
 	@echo "✅  gate-agent passed"
 
 gate-obs: ## Gate: observability, metrics, and SLO validation
@@ -682,6 +693,8 @@ gate-obs: ## Gate: observability, metrics, and SLO validation
 	# Note: gate-obs is advisory per policy, so skipped tests are allowed
 	@echo "✅  gate-obs passed (advisory - skipped tests allowed)"
 
+gates-validate-policy: gate-policy ## Alias: use canonical target gate-policy
+
 gate-release-policy: ## Gate: release policy compliance
 	@echo "→ Gate: Release Policy"
 	@if [ ! -d tests/release ] || [ -z "$$(find tests/release -name 'test_*.py' -print -quit)" ]; then \
@@ -690,11 +703,11 @@ gate-release-policy: ## Gate: release policy compliance
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/release/ --junitxml=$(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/check_deprecations.py
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
+	$(PYTHON) scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
-gates-sign-manifest: ## Sign artifact manifest with SHA-256
+gate-sign-manifest: ## Gate: sign artifact manifest with SHA-256
 	@echo "→ Gate: Sign Manifest"
 	@mkdir -p $(ARTIFACT_DIR)/logs
 	@if [ ! -d $(ARTIFACT_DIR) ]; then \
@@ -708,17 +721,23 @@ gates-sign-manifest: ## Sign artifact manifest with SHA-256
 		exit 1; \
 	fi
 	@find $(ARTIFACT_DIR) -type f -not -path "*/logs/*" -not -name "manifest.sha256" -exec sha256sum {} \; > $(ARTIFACT_DIR)/manifest.sha256
-	@echo "✅  gates-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
+	@echo "✅  gate-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
 
-gates-render-summary: ## Render release summary with gate results
+gates-sign-manifest: gate-sign-manifest ## Alias: use canonical target gate-sign-manifest
+
+gate-summary: ## Gate: render release summary with gate results
 	@echo "→ Gate: Render Summary"
 	@bash scripts/ops/render-release-summary.sh
 	@test -s $(ARTIFACT_DIR)/summary.md || (echo "❌ Summary file not generated" && exit 1)
-	@echo "✅  gates-render-summary passed"
+	@echo "✅  gate-summary passed"
 
-release-gate: ## Run the policy-driven production readiness gate sequence
+gates-render-summary: gate-summary ## Alias: use canonical target gate-summary
+
+gate-production: ## Gate: run the policy-driven production readiness gate sequence
 	@echo "🚀 Starting Release Gate Sequence..."
 	@bash scripts/ops/release-gate.sh $(PROFILE)
+
+release-gate: gate-production ## Alias: use canonical target gate-production
 
 contract-lint: ## Run ESLint contract rules across all packages
 	@echo "→ Running contract lint rules..."
