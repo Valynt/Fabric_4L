@@ -8,7 +8,7 @@ between local/unit database compatibility and production-readiness validation.
 | Validation category | Allowed database | Required marker / gate | Scope |
 |---|---|---|---|
 | Pure unit tests | SQLite is allowed when the test does not assert PostgreSQL-specific behavior | `unit` or another non-production marker | Deterministic local tests for pure logic, model serialization, and compatibility shims |
-| Production DB invariants | PostgreSQL only | `postgres_only`, `requires_postgres`, and `production_db_invariant`; run by `make db-production-readiness-gate` | RLS, migrations, constraints, indexes, tenant context hooks, pool/transaction behavior, and production URL policy |
+| Production DB invariants | PostgreSQL only | `postgres_only`, `requires_postgres`, and `production_db_invariant`; run by `make gate-database-live` in an isolated live DB environment | RLS, migrations, constraints, indexes, tenant context hooks, pool/transaction behavior, and production URL policy |
 | Static adapter conformance | No live DB required, but must prove production behavior structurally | `contract_static` and `production_db_invariant` | `INTENTIONAL_DB_ADAPTER_BYPASS` modules must retain fail-closed source-level guards |
 
 SQLite compatibility is intentionally **not** production-readiness evidence.  A test
@@ -16,7 +16,7 @@ may use SQLite only when it validates pure local/unit behavior that is independe
 PostgreSQL semantics.  Any test that claims coverage for RLS, Alembic migrations,
 database constraints, indexes, `SET LOCAL app.tenant_id`, connection pool defaults,
 fail-closed tenant behavior, or transaction semantics must live in the PostgreSQL-only
-suite and be selected by `db-production-readiness-gate`.
+suite and be selected by `gate-database-live`, while static conformance remains in `gate-database`.
 
 ## Canonical shared interface
 
@@ -56,17 +56,27 @@ Those conformance tests prove each bypass module still enforces:
 
 ## Gate contract
 
-Run the database production-readiness gate with:
+Run the static local database readiness gate with:
 
 ```bash
+make gate-database
+# Compatibility alias:
 make db-production-readiness-gate
 ```
 
-The gate performs three checks:
+The static gate performs local, non-destructive checks:
 
-1. `scripts/ci/check_db_bootstrap_conformance.py` ensures every runtime DB bootstrap either uses the shared adapter or declares `INTENTIONAL_DB_ADAPTER_BYPASS = True`.
-2. `scripts/ci/check_db_production_readiness_split.py` ensures PostgreSQL-only production invariants are not validated solely by SQLite compatibility tests.
-3. `pytest tests/production_readiness -m "contract_static or postgres_only"` runs static bypass conformance plus the PostgreSQL-backed suite and fails on skipped tests via `scripts/ci/assert_no_pytest_skips.py`.
+1. `check-migration-heads` and `check-migration-entrypoints` validate Alembic revision topology, maintained migration entrypoints, and history commands.
+2. `scripts/ci/check_migration_runtime_consistency.py` verifies checked-in runtime DB URLs without opening a DB connection.
+3. `scripts/ci/check_database_governance_docs.py` validates this matrix and related DB governance docs remain wired to the database gate contract.
+4. `scripts/ci/check_db_bootstrap_conformance.py` ensures every runtime DB bootstrap either uses the shared adapter or declares `INTENTIONAL_DB_ADAPTER_BYPASS = True`.
+5. `scripts/ci/check_db_production_readiness_split.py` ensures PostgreSQL-only production invariants are not validated solely by SQLite compatibility tests.
+6. Static projection consistency and `contract_static` production-readiness tests run under pytest and fail on skipped tests via `scripts/ci/assert_no_pytest_skips.py`.
 
-A missing PostgreSQL URL is a gate failure, not a skip.  Configure `TEST_DATABASE_URL`
-(or `DATABASE_URL`) with a PostgreSQL URL before running production-readiness validation.
+Live or environment-dependent checks are intentionally separate:
+
+```bash
+make gate-database-live
+```
+
+`gate-database-live` runs disposable PostgreSQL migration round trips through `check-migration-postgres-roundtrip`, the production-like DB readiness script, and backup/restore drills. A missing PostgreSQL URL is a live-gate failure, not a skip. Configure `DB_MIGRATION_DATABASE_URL`, `TEST_DATABASE_URL`, or `DATABASE_URL` with isolated disposable PostgreSQL targets before running live production-readiness validation.

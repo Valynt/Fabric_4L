@@ -2,13 +2,13 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gate-migration-readiness gate-database-readiness gate-backup-restore-readiness \
 	gate-api-contracts gate-auth-readiness gate-secrets-readiness gate-deployment-readiness \
@@ -20,7 +20,7 @@
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
-	check-migration-rollback-policy check-migration-postgres-roundtrip db-production-readiness-gate \
+	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -123,8 +123,31 @@ check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and m
 	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
 	@$(PYTHON) scripts/ci/check_migration_drift.py --database-url "$(DB_MIGRATION_DATABASE_URL)" --round-trip
 
-db-production-readiness-gate: check-migration-heads check-migration-rollback-policy check-migration-postgres-roundtrip ## Blocking PostgreSQL migration production-readiness gate
-	@echo "✅  db-production-readiness-gate passed"
+check-migration-runtime-consistency: ## Static migration/runtime URL and revision consistency checks
+	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
+
+check-database-governance-docs: ## Static validation for database runtime compatibility and governance docs
+	@$(PYTHON) scripts/ci/check_database_governance_docs.py
+
+gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs ## Gate: static local database readiness checks (no live DB required)
+	@echo "→ Gate: Database Readiness — static local checks"
+	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/gate-database-consistency.xml
+	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-consistency.xml
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static" --junitxml=$(GATE_JUNIT_DIR)/gate-database-static.xml
+	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-static.xml
+	@echo "✅  gate-database passed"
+
+db-production-readiness-gate: gate-database ## Alias for the static local database readiness gate
+	@echo "✅  db-production-readiness-gate alias passed"
+
+gate-database-live: check-migration-postgres-roundtrip ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
+	@echo "→ Gate: Database Readiness — live isolated checks"
+	@bash scripts/ci/run_db_production_readiness_gate.sh
+	@bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  gate-database-live passed"
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
@@ -534,11 +557,6 @@ migrate-layer5: ## Run Alembic migrations for Layer 5 only
 migrate-api: ## Run Alembic migrations for API gateway only
 	cd services/api && alembic -c migrations/alembic.ini upgrade head
 
-db-production-readiness-gate: ## Gate: production-like database readiness, migrations, isolation, backup/restore, and observability evidence
-	@echo "→ Gate: DB Production Readiness"
-	bash scripts/ci/run_db_production_readiness_gate.sh
-	@echo "✅  db-production-readiness-gate passed"
-
 # ─── Contracts ────────────────────────────────────────────────────────────────
 
 contracts: ## Export OpenAPI specs from all layers
@@ -626,8 +644,13 @@ gate-mandatory-security-regression: ## Gate: mandatory security regression suite
 	bash scripts/ci/mandatory_security_regression_gate.sh
 	@echo "✅  gate-mandatory-security-regression passed"
 
-gate-security: gate-mandatory-security-regression ## Gate: release-critical tenant isolation, auth enforcement, and fail-closed security regression
-	@echo "→ Gate: Security & Tenant Isolation — release-critical suite"
+gate-tenant-isolation: ## Gate: dedicated tenant isolation launch-readiness suite
+	@echo "→ Gate: Tenant Isolation — dedicated launch-readiness suite"
+	bash scripts/ci/tenant_isolation_readiness_gate.sh
+	@echo "✅  gate-tenant-isolation passed"
+
+gate-security: gate-mandatory-security-regression ## Gate: broader security regression coverage beyond the dedicated tenant isolation gate
+	@echo "→ Gate: Security — broader auth, fail-closed, and regression suite"
 	@echo "✅  gate-security passed"
 
 gate-security-broad: ## Advisory gate: exhaustive legacy security coverage for Broad GA backlog classification
@@ -660,8 +683,12 @@ db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projecti
 	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
 	@echo "✅  db-production-readiness-gate passed"
 
-gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+gate-local-production-subset: gate-security db-production-readiness-gate ## Run a local-only production-readiness subset; not a ship/no-ship decision
+	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make gate-production for the full release gate"
+
+# Backward-compatible alias retained for scripts/users that still call gate-all.
+gate-all: gate-local-production-subset ## Compatibility alias for the local-only subset; not a production-readiness decision
+	@echo "⚠️  gate-all is local-only and does not authorize production release; run make gate-production or make production-readiness-gate for the full suite"
 
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
@@ -882,11 +909,6 @@ contract-lint: ## Run ESLint contract rules across all packages
 test-backup-drills: ## Run backup/DR drill tests (requires pytest-asyncio)
 	@echo "→ Running backup manager tests..."
 	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
-
-db-production-readiness-gate: ## Run PostgreSQL backup/restore production-readiness drill
-	@echo "→ Running PostgreSQL backup/restore production-readiness drill..."
-	bash scripts/ops/test_postgres_backup_restore.sh
-	@echo "✅  db-production-readiness-gate passed"
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 

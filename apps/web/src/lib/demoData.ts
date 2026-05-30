@@ -1,3 +1,6 @@
+// WARNING: This file contains demo customer data. Never import directly in production.
+// Use getDemoData() which returns empty demo arrays in production. (P1-006)
+
 /**
  * Demo data for local development only.
  *
@@ -62,3 +65,20 @@ export const DEFAULT_COMPANIES: CompanyOption[] = import.meta.env.DEV
 export const DEFAULT_ACTIVITIES: ActivityItem[] = import.meta.env.DEV
   ? _DEV_ACTIVITIES
   : _PROD_ACTIVITIES
+
+export interface DemoData {
+  companies: CompanyOption[]
+  activities: ActivityItem[]
+}
+
+/**
+ * Get dev-only demo data. Returns empty arrays in production so customer names
+ * cannot appear through this helper in production UI code paths.
+ */
+export function getDemoData(): DemoData {
+  if (import.meta.env.PROD) {
+    return { companies: [], activities: [] }
+  }
+
+  return { companies: _DEV_COMPANIES, activities: _DEV_ACTIVITIES }
+}
