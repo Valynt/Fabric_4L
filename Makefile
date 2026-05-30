@@ -8,7 +8,7 @@
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
 	db-production-readiness-gate gate-all \
@@ -656,8 +656,12 @@ db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projecti
 	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
 	@echo "✅  db-production-readiness-gate passed"
 
-gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+gate-local-production-subset: gate-security db-production-readiness-gate ## Run a local-only production-readiness subset; not a ship/no-ship decision
+	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make gate-production for the full release gate"
+
+# Backward-compatible alias retained for scripts/users that still call gate-all.
+gate-all: gate-local-production-subset ## Compatibility alias for the local-only subset; not a production-readiness decision
+	@echo "⚠️  gate-all is local-only and does not authorize production release; run make gate-production or make production-readiness-gate for the full suite"
 
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
