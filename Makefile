@@ -9,6 +9,9 @@
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate \
+	gate-tenant-isolation gate-database gate-migrations gate-api-contracts gate-auth gate-secrets gate-deployment gate-launch-blockers \
+	gate-backup-restore gate-frontend gate-reliability gate-rollback gate-performance gate-data-governance gate-compliance gate-incident-response \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -623,6 +626,110 @@ gate-config: ## Gate: startup validation, security config hardening
 gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
+# Tiered release-readiness targets intentionally delegate to release-gate
+# policy profiles instead of inlining long prerequisite lists here. The policy
+# file stays the single source of truth for which gates compose each tier.
+gate-production-core: ## Run near-term production-critical readiness gates via policy profile
+	@$(MAKE) release-gate PROFILE=production-core
+
+tier0-production-safety-gate: ## Run Tier 0 production-safety gates via policy profile
+	@$(MAKE) release-gate PROFILE=tier0-production-safety
+
+tier1-beta-readiness-gate: ## Run Tier 1 beta-readiness gates via policy profile
+	@$(MAKE) release-gate PROFILE=tier1-beta-readiness
+
+tier2-enterprise-readiness-gate: ## Run Tier 2 enterprise-readiness gates via policy profile
+	@$(MAKE) release-gate PROFILE=tier2-enterprise-readiness
+
+gate-tenant-isolation: ## Gate: tenant isolation and tenant-boundary enforcement
+	@echo "→ Gate: Tenant Isolation"
+	$(GATE_PYTEST) tests/security/test_tenant_isolation.py tests/integration/test_cross_layer_tenant_isolation.py tests/context/test_tenant_context_contract.py tests/tools/test_tool_tenant_boundaries.py
+	@$(PYTHON) scripts/ci/check_unscoped_tenant_match.py
+	@echo "✅  gate-tenant-isolation passed"
+
+gate-database: ## Gate: database runtime contract and transaction safety
+	@echo "→ Gate: Database"
+	$(GATE_PYTEST) tests/contract/test_runtime_db_postgres_contract.py tests/integration/test_acid_properties.py tests/integration/test_transaction_rollback.py
+	@echo "✅  gate-database passed"
+
+gate-migrations: ## Gate: migration entrypoints, heads, and release migration safety
+	@echo "→ Gate: Migrations"
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
+	$(GATE_PYTEST) tests/release/test_migration_safety_policy.py tests/scripts/ci/test_check_alembic_graphs.py
+	@echo "✅  gate-migrations passed"
+
+gate-api-contracts: ## Gate: API contract drift, shape, and endpoint-family coverage
+	@echo "→ Gate: API Contracts"
+	@$(PYTHON) scripts/ci/platform_contract_lint.py
+	$(GATE_PYTEST) tests/contract/ tests/pact/test_l4_consumer_contract.py tests/ci/test_contract_endpoint_family_coverage_gate.py
+	@echo "✅  gate-api-contracts passed"
+
+gate-auth: ## Gate: auth enforcement, route auth, OIDC, JWT, and bypass guards
+	@echo "→ Gate: Auth"
+	$(GATE_PYTEST) services/api/app/tests/test_auth_enforcement.py tests/ci/test_route_auth_gate.py tests/contract/test_startup_bypass_guard_contract.py tests/integration/test_oidc_flow.py tests/shared/identity/
+	@echo "✅  gate-auth passed"
+
+gate-secrets: ## Gate: secret hygiene, manifest safety, and vault bootstrap checks
+	@echo "→ Gate: Secrets"
+	@$(PYTHON) scripts/ci/check_keycloak_realm_seed_security.py
+	@$(PYTHON) scripts/ci/check_manifest_secret_hygiene.py
+	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
+	$(GATE_PYTEST) tests/release/test_secret_policy.py tests/scripts/security/test_placeholder_secret_scan.py tests/shared/secrets/test_infisical_bootstrap.py tests/shared/identity/test_vault_check.py
+	@echo "✅  gate-secrets passed"
+
+gate-deployment: ## Gate: deployment manifests, compose config, ingress, and workload policies
+	@echo "→ Gate: Deployment"
+	$(GATE_PYTEST) tests/ci/test_docker_compose_config.py tests/ci/test_bunnyshell_environment_contract.py tests/k8s/
+	@echo "✅  gate-deployment passed"
+
+gate-launch-blockers: ## Gate: explicit launch blockers, placeholders, and production safety policy
+	@echo "→ Gate: Launch Blockers"
+	$(GATE_PYTEST) tests/k8s/test_production_blockers.py tests/ci/test_launch_evidence_bundle.py tests/ci/test_launch_readiness_workflow.py tests/release/test_no_placeholder_gates.py services/api/app/tests/test_production_safety.py
+	@echo "✅  gate-launch-blockers passed"
+
+gate-backup-restore: ## Gate: backup and restore drill coverage
+	@echo "→ Gate: Backup/Restore"
+	@echo "→ Running backup manager tests..."
+	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
+	@echo "✅  gate-backup-restore passed"
+
+gate-frontend: ## Gate: frontend unit tests, contract checks, and production build
+	@echo "→ Gate: Frontend"
+	@pnpm --dir apps/web run test
+	@pnpm --dir apps/web run test:contracts
+	@pnpm --dir apps/web run build
+	@echo "✅  gate-frontend passed"
+
+gate-reliability: gate-chaos ## Gate: reliability and dependency-failure behavior
+	@echo "✅  gate-reliability passed"
+
+gate-rollback: ## Gate: GitOps rollout and rollback controls
+	@echo "→ Gate: Rollback"
+	$(GATE_PYTEST) tests/gitops/test_rollouts.py
+	@echo "✅  gate-rollback passed"
+
+gate-performance: ## Gate: performance regression, capacity, and SLO policy tests
+	@echo "→ Gate: Performance"
+	$(GATE_PYTEST) tests/performance/ tests/ci/test_perf_slo_baseline.py
+	@echo "✅  gate-performance passed"
+
+gate-data-governance: ## Gate: retention, deletion, audit ledger, and governance policies
+	@echo "→ Gate: Data Governance"
+	$(GATE_PYTEST) tests/contract/test_retention_deletion_contract.py tests/shared/audit/ tests/shared/governance/ tests/docs/test_cryptography_doc_alignment.py
+	@echo "✅  gate-data-governance passed"
+
+gate-compliance: ## Gate: compliance, deprecation, and release-policy evidence
+	@echo "→ Gate: Compliance"
+	@$(PYTHON) scripts/ci/check_deprecations.py
+	$(GATE_PYTEST) tests/release/test_platform_contract_deprecations.py tests/release/test_deprecation_map_release_gate.py tests/release/test_deprecation_budget.py tests/ci/test_required_check_policy.py
+	@echo "✅  gate-compliance passed"
+
+gate-incident-response: ## Gate: incident-response runbook and operational readiness policy
+	@echo "→ Gate: Incident Response"
+	$(GATE_PYTEST) tests/ci/test_incident_runbook_contacts_policy.py tests/release/test_observability_deployment_readiness.py
+	@echo "✅  gate-incident-response passed"
+
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
 
@@ -637,8 +744,8 @@ lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-l
 gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,database,contracts,deployment,frontend,performance,governance,compliance,incident-response}
 	@echo "✅  gates-validate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
@@ -649,7 +756,7 @@ gate-chaos: ## Gate: dependency chaos and failure injection
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/chaos/ --junitxml=$(GATE_JUNIT_DIR)/gate-chaos.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
 	@echo "✅  gate-chaos passed"
 
 gate-smoke: ## Gate: cross-domain smoke tests
@@ -657,7 +764,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 	@test -s tests/e2e/test_value_engine_smoke_contract.py || (echo "❌ Smoke contract test is missing" && exit 1)
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/e2e/test_value_engine_smoke_contract.py --junitxml=$(GATE_JUNIT_DIR)/gate-smoke.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
 	@echo "✅  gate-smoke passed"
 
 gate-agent: ## Gate: agent provenance and behavior regression
@@ -668,7 +775,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/agents/ --junitxml=$(GATE_JUNIT_DIR)/gate-agent.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
 	@echo "✅  gate-agent passed"
 
 gate-obs: ## Gate: observability, metrics, and SLO validation
@@ -690,8 +797,8 @@ gate-release-policy: ## Gate: release policy compliance
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/release/ --junitxml=$(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/check_deprecations.py
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
+	$(PYTHON) scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
 gates-sign-manifest: ## Sign artifact manifest with SHA-256

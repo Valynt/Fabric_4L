@@ -55,6 +55,58 @@ profiles:
       - sign-manifest
       - summary
 
+  production-core:
+    description: "Near-term critical production gates for architecture, security, tenant isolation, database, migrations, API contracts, auth, secrets, deployment, and launch blockers"
+    gates:
+      - policy
+      - arch
+      - security
+      - tenant-isolation
+      - database
+      - migrations
+      - api-contracts
+      - auth
+      - secrets
+      - deployment
+      - launch-blockers
+      - summary
+
+  tier0-production-safety:
+    description: "Tier 0 safety gate for security, tenant isolation, database, backup/restore, secrets, auth, and launch blockers"
+    gates:
+      - policy
+      - security
+      - tenant-isolation
+      - database
+      - backup-restore
+      - secrets
+      - auth
+      - launch-blockers
+      - summary
+
+  tier1-beta-readiness:
+    description: "Tier 1 beta readiness gate for API contracts, frontend, observability, reliability, deployment, and rollback"
+    gates:
+      - policy
+      - api-contracts
+      - frontend
+      - obs
+      - reliability
+      - deployment
+      - rollback
+      - summary
+
+  tier2-enterprise-readiness:
+    description: "Tier 2 enterprise readiness gate for performance, agents, data governance, compliance, and incident response"
+    gates:
+      - policy
+      - performance
+      - agents
+      - data-governance
+      - compliance
+      - incident-response
+      - summary
+
 gate-definitions:
   policy:
     target: gates-validate-policy
@@ -81,6 +133,125 @@ gate-definitions:
     description: "Tenant isolation, RLS, auth enforcement, export access"
     class: blocking
     artifact-dir: artifacts/security
+    required: true
+
+  tenant-isolation:
+    target: gate-tenant-isolation
+    description: "Tenant isolation and tenant-boundary enforcement"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  database:
+    target: gate-database
+    description: "Database runtime contract, transaction safety, and persistence checks"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
+
+  migrations:
+    target: gate-migrations
+    description: "Migration entrypoints, Alembic heads, and release migration safety"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
+
+  api-contracts:
+    target: gate-api-contracts
+    description: "API contract drift, shape, and endpoint-family coverage"
+    class: blocking
+    artifact-dir: artifacts/contracts
+    required: true
+
+  auth:
+    target: gate-auth
+    description: "Auth enforcement, OIDC/JWT behavior, route auth, and bypass guards"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  secrets:
+    target: gate-secrets
+    description: "Secret hygiene, manifest safety, placeholder scans, and vault bootstrap checks"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+
+  deployment:
+    target: gate-deployment
+    description: "Deployment manifest, compose, ingress, workload, and environment controls"
+    class: blocking
+    artifact-dir: artifacts/deployment
+    required: true
+
+  launch-blockers:
+    target: gate-launch-blockers
+    description: "Explicit production launch blockers, placeholder gate policy, and production safety checks"
+    class: blocking
+    artifact-dir: artifacts/release
+    required: true
+
+  backup-restore:
+    target: gate-backup-restore
+    description: "Backup and restore drill coverage"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
+
+  frontend:
+    target: gate-frontend
+    description: "Frontend unit tests, contract checks, and production build"
+    class: blocking
+    artifact-dir: artifacts/frontend
+    required: true
+
+  reliability:
+    target: gate-reliability
+    description: "Reliability and dependency-failure behavior"
+    class: blocking
+    artifact-dir: artifacts/chaos
+    required: true
+
+  rollback:
+    target: gate-rollback
+    description: "GitOps rollout and rollback controls"
+    class: blocking
+    artifact-dir: artifacts/deployment
+    required: true
+
+  performance:
+    target: gate-performance
+    description: "Performance regression, capacity, and SLO policy tests"
+    class: blocking
+    artifact-dir: artifacts/performance
+    required: true
+
+  agents:
+    target: gate-agent
+    description: "Enterprise agent provenance, behavior regression, and tool boundaries"
+    class: blocking
+    artifact-dir: artifacts/agent
+    required: true
+
+  data-governance:
+    target: gate-data-governance
+    description: "Retention, deletion, audit ledger, and governance policies"
+    class: blocking
+    artifact-dir: artifacts/governance
+    required: true
+
+  compliance:
+    target: gate-compliance
+    description: "Compliance, deprecation, and release-policy evidence"
+    class: blocking
+    artifact-dir: artifacts/compliance
+    required: true
+
+  incident-response:
+    target: gate-incident-response
+    description: "Incident-response runbook and operational readiness policy"
+    class: blocking
+    artifact-dir: artifacts/incident-response
     required: true
 
   security-broad:
@@ -151,6 +322,34 @@ gate-definitions:
     required: true
 
 deployment_profiles:
+  production-core:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier0-production-safety:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier1-beta-readiness:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
+  tier2-enterprise-readiness:
+    ingress_strategy: nginx-path
+    required_controls:
+      - ingress_strategy
+      - cors
+      - auth_integration
+      - rate_limiting_annotations
   pr-fast:
     ingress_strategy: nginx-path
     required_controls:
