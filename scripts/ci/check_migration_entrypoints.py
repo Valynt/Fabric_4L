@@ -51,7 +51,7 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
         name="layer3-knowledge",
         service_dir=Path("services/layer3-knowledge"),
         required_paths=(Path("src/migrations"),),
-        entrypoint_command=("python", "-m", "pip", "--version"),
+        entrypoint_command=("python", "-c", "import sys; print(sys.version.split()[0])"),
         history_commands=(("python", "-c", "from pathlib import Path; p=Path('src/migrations'); files=sorted(x.name for x in p.iterdir() if x.is_file()); print(len(files))"),),
     ),
     ServiceMigrationContract(
@@ -83,7 +83,7 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
         name="layer6-benchmarks",
         service_dir=Path("services/layer6-benchmarks"),
         required_paths=(Path("migrations/versions"),),
-        entrypoint_command=("python", "-m", "pip", "--version"),
+        entrypoint_command=("python", "-c", "import sys; print(sys.version.split()[0])"),
         history_commands=(("python", "-c", "from pathlib import Path; p=Path('migrations/versions'); files=sorted(x.name for x in p.iterdir() if x.is_file()); print(len(files))"),),
     ),
 )
@@ -98,7 +98,8 @@ def _check_commands_available() -> list[str]:
 
 
 def _run_command(cmd: tuple[str, ...], cwd: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(cmd, cwd=cwd, text=True, capture_output=True, check=False)
+    normalized_cmd = (sys.executable, *cmd[1:]) if cmd and cmd[0] == "python" else cmd
+    return subprocess.run(normalized_cmd, cwd=cwd, text=True, capture_output=True, check=False)
 
 
 def _find_versions_dir(service_dir: Path) -> Path | None:
