@@ -11,7 +11,7 @@ This guide covers local development environment setup for the Value Fabric platf
 
 ## Quick Start
 
-Python tooling resolves `python3.11` first when available, then falls back to `python3`/`python`. For pyenv, the root `.python-version` intentionally contains `3.11` so `pyenv local 3.11` can select the latest installed 3.11 patch instead of forcing one brittle patch version.
+Python tooling resolves `python3.11` first when available, then falls back only to `python3`/`python` interpreters that report Python 3.11 or newer. For pyenv, the root `.python-version` intentionally contains `3.11` so `pyenv local 3.11` can select the latest installed 3.11 patch instead of forcing one brittle patch version. Override make targets with `make PYTHON=/path/to/python3.11 ...` if your local shim path is non-standard.
 
 ```bash
 # Optional for pyenv users

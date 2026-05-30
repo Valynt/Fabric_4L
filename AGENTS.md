@@ -26,6 +26,8 @@ infisical login
 
 # 2. Select a local Python 3.11 interpreter (optional if python3.11 is already on PATH)
 #    pyenv users can install the latest known 3.11 patch and keep .python-version pinned to the 3.11 series.
+#    The Makefile resolves python3.11 first and then only accepts python3/python shims that are >=3.11;
+#    use `make PYTHON=/path/to/python3.11 ...` if your local shim path is unusual.
 pyenv install --skip-existing "$(pyenv latest -k 3.11)"
 pyenv local 3.11
 #    If your pyenv does not support series aliases, choose any installed 3.11.x patch explicitly.

@@ -9,18 +9,7 @@ from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-=======
 from ..db.audited_mutation import AuditedGraphMutation
->>>>>>> theirs
-=======
-from ..db.audited_mutation import AuditedGraphMutation
->>>>>>> theirs
-=======
-from ..db.audited_mutation import AuditedGraphMutation
->>>>>>> theirs
 from ..db.query_execution import run_validated_query
 from ..ingestion.neo4j_loader import (
     Neo4jLoader,
@@ -34,6 +23,7 @@ class SyncManager_sync_extraction_resultResult(TypedDictModel):
     source_id: Any
     status: str
 
+
 class SyncManager_get_sync_statusResult(TypedDictModel):
     content_hash: Any
     error: Any
@@ -43,13 +33,12 @@ class SyncManager_get_sync_statusResult(TypedDictModel):
     synced_at: Any
     tenant_id: Any
 
+
 logger = logging.getLogger(__name__)
 
 
 class SyncConflictError(Exception):
     """Raised when a sync conflict is detected."""
-
-    pass
 
 
 class SyncManager:
@@ -91,39 +80,27 @@ class SyncManager:
         force_full_sync: bool = False,
         tenant_id: str | None = None,
     ) -> dict:
-        """Synchronize an extraction result from Layer 2.
-
-        Args:
-            rdf_data: RDF/Turtle string from Layer 2
-            source_id: Unique identifier for the source document
-            extraction_job_id: ID of the extraction job
-            content_hash: Hash of the content for change detection
-            force_full_sync: If True, performs full reload regardless of hash
-            tenant_id: Validated tenant UUID for data isolation
-
-        Returns:
-            Dictionary with sync statistics
-        """
+        """Synchronize an extraction result from Layer 2."""
         start_time = datetime.utcnow()
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
 
-        # Compute content hash if not provided
         if content_hash is None:
             content_hash = self._compute_hash(rdf_data)
 
-        # Check if sync is needed
         if not force_full_sync:
-            existing_hash = await self._get_source_hash(source_id, tenant_id=validated_tenant_id)
+            existing_hash = await self._get_source_hash(
+                source_id, tenant_id=validated_tenant_id
+            )
             if existing_hash == content_hash:
-                logger.info(f"Source {source_id} unchanged, skipping sync")
-                return SyncManager_sync_extraction_resultResult.model_validate({
-                    "status": "skipped",
-                    "reason": "content_unchanged",
-                    "source_id": source_id,
-                })
+                logger.info("Source %s unchanged, skipping sync", source_id)
+                return SyncManager_sync_extraction_resultResult.model_validate(
+                    {
+                        "status": "skipped",
+                        "reason": "content_unchanged",
+                        "source_id": source_id,
+                    }
+                )
 
-
-        # Perform sync
         stats = {
             "status": "synced",
             "source_id": source_id,
@@ -134,16 +111,12 @@ class SyncManager:
         }
 
         try:
-            # For incremental syncs, we'd compare and only update changed entities
-            # For now, we do a full delete and reload for simplicity
             if force_full_sync:
-                # Delete existing data from this source
                 delete_stats = await self.loader.delete_by_source(
                     source_id, tenant_id=validated_tenant_id
                 )
                 stats["deleted"] = delete_stats
 
-            # Load new data with tenant isolation
             load_stats = await self.loader.load_turtle_string(
                 rdf_data,
                 source_id=source_id,
@@ -152,7 +125,6 @@ class SyncManager:
             )
             stats.update(load_stats)
 
-            # Update sync metadata
             await self._update_sync_metadata(
                 source_id,
                 extraction_job_id,
@@ -165,9 +137,10 @@ class SyncManager:
             stats["duration_seconds"] = (datetime.utcnow() - start_time).total_seconds()
 
             logger.info(
-                f"Successfully synced source {source_id} "
-                f"({stats.get('entities_loaded', 0)} entities, "
-                f"{stats.get('relationships_loaded', 0)} relationships)"
+                "Successfully synced source %s (%s entities, %s relationships)",
+                source_id,
+                stats.get("entities_loaded", 0),
+                stats.get("relationships_loaded", 0),
             )
 
         except RDFLoadError as e:
@@ -185,16 +158,10 @@ class SyncManager:
 
         return stats
 
-    async def get_sync_status(self, source_id: str, tenant_id: str | None) -> dict | None:
-        """Get synchronization status for a source.
-
-        Args:
-            source_id: Source document ID
-            tenant_id: Tenant context required for metadata isolation
-
-        Returns:
-            Sync status dictionary or None if not found
-        """
+    async def get_sync_status(
+        self, source_id: str, tenant_id: str | None
+    ) -> dict | None:
+        """Get synchronization status for a source."""
         tenant_id = validate_ingestion_tenant_id(tenant_id)
         driver = await self.loader._get_driver()
 
@@ -209,46 +176,28 @@ class SyncManager:
                 """,
                 {"source_id": source_id, "tenant_id": tenant_id},
                 tenant_id=tenant_id,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
                 query_name="sync_manager.get_sync_status",
-=======
-                query_name="sync_manager_get_sync_status",
->>>>>>> theirs
-=======
-                query_name="sync_manager_get_sync_status",
->>>>>>> theirs
-=======
-                query_name="sync_manager_get_sync_status",
->>>>>>> theirs
             )
             record = await result.single()
 
             if record:
                 node = record["s"]
-                return SyncManager_get_sync_statusResult.model_validate({
-                    "source_id": node["source_id"],
-                    "last_extraction_job_id": node.get("extraction_job_id"),
-                    "content_hash": node.get("content_hash"),
-                    "synced_at": node.get("synced_at"),
-                    "status": node.get("status"),
-                    "error": node.get("error"),
-                    "tenant_id": node.get("tenant_id"),
-                })
-
+                return SyncManager_get_sync_statusResult.model_validate(
+                    {
+                        "source_id": node["source_id"],
+                        "last_extraction_job_id": node.get("extraction_job_id"),
+                        "content_hash": node.get("content_hash"),
+                        "synced_at": node.get("synced_at"),
+                        "status": node.get("status"),
+                        "error": node.get("error"),
+                        "tenant_id": node.get("tenant_id"),
+                    }
+                )
 
             return None
 
     async def list_synced_sources(self, tenant_id: str | None) -> list[dict]:
-        """List all sources that have been synchronized.
-
-        Args:
-            tenant_id: Tenant context required for metadata isolation
-
-        Returns:
-            List of sync status dictionaries
-        """
+        """List all sources that have been synchronized."""
         tenant_id = validate_ingestion_tenant_id(tenant_id)
         driver = await self.loader._get_driver()
         sources = []
@@ -265,19 +214,7 @@ class SyncManager:
                 """,
                 {"tenant_id": tenant_id},
                 tenant_id=tenant_id,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
                 query_name="sync_manager.list_synced_sources",
-=======
-                query_name="sync_manager_list_synced_sources",
->>>>>>> theirs
-=======
-                query_name="sync_manager_list_synced_sources",
->>>>>>> theirs
-=======
-                query_name="sync_manager_list_synced_sources",
->>>>>>> theirs
             )
 
             async for record in result:
@@ -296,35 +233,19 @@ class SyncManager:
         return sources
 
     async def delete_source(self, source_id: str, tenant_id: str | None) -> dict:
-        """Delete all data from a source and its sync metadata.
-
-        Args:
-            source_id: Source document ID
-            tenant_id: Validated tenant UUID for deletion scope
-
-        Returns:
-            Deletion statistics
-        """
+        """Delete all data from a source and its sync metadata."""
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
-        # Delete entities and relationships
-        stats = await self.loader.delete_by_source(source_id, tenant_id=validated_tenant_id)
+        stats = await self.loader.delete_by_source(
+            source_id, tenant_id=validated_tenant_id
+        )
 
-        # Delete sync metadata
         driver = await self.loader._get_driver()
         async with driver.session(database=self.settings.neo4j_database) as session:
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            await run_validated_query(
-=======
+            # AuditedGraphMutation has node-id deletion, but this path must delete
+            # all SyncMetadata revisions for a source. Execute the tenant-scoped
+            # predicate delete through the validated gateway and emit an explicit
+            # audit event immediately afterwards.
             result = await run_validated_query(
->>>>>>> theirs
-=======
-            result = await run_validated_query(
->>>>>>> theirs
-=======
-            result = await run_validated_query(
->>>>>>> theirs
                 session,
                 """
                 MATCH (s:SyncMetadata {source_id: $source_id, tenant_id: $tenant_id})
@@ -333,17 +254,8 @@ class SyncManager:
                 """,
                 {"source_id": source_id, "tenant_id": validated_tenant_id},
                 tenant_id=validated_tenant_id,
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
                 allow_system_query=True,
                 query_name="sync_manager.delete_sync_metadata",
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-                query_name="sync_manager_delete_metadata",
             )
             record = await result.single()
             mutation = AuditedGraphMutation(
@@ -356,42 +268,22 @@ class SyncManager:
                 "SyncMetadata",
                 source_id,
                 {"source_id": source_id, "deleted": record["deleted"] if record else 0},
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             )
 
         stats["source_id"] = source_id
         stats["sync_metadata_deleted"] = True
 
-        logger.info(f"Deleted source {source_id} and all associated data")
+        logger.info("Deleted source %s and all associated data", source_id)
         return stats
 
     def _compute_hash(self, content: str) -> str:
-        """Compute SHA256 hash of content.
-
-        Args:
-            content: String content to hash
-
-        Returns:
-            Hex digest of hash
-        """
+        """Compute SHA256 hash of content."""
         return hashlib.sha256(content.encode("utf-8")).hexdigest()
 
-    async def _get_source_hash(self, source_id: str, tenant_id: str | None) -> str | None:
-        """Get the last known content hash for a source.
-
-        Args:
-            source_id: Source document ID
-            tenant_id: Tenant context required for metadata isolation
-
-        Returns:
-            Content hash or None if source not found
-        """
+    async def _get_source_hash(
+        self, source_id: str, tenant_id: str | None
+    ) -> str | None:
+        """Get the last known content hash for a source."""
         status = await self.get_sync_status(source_id, tenant_id=tenant_id)
         return status.get("content_hash") if status else None
 
@@ -404,16 +296,7 @@ class SyncManager:
         error: str | None = None,
         tenant_id: str | None = None,
     ) -> None:
-        """Update sync metadata for a source.
-
-        Args:
-            source_id: Source document ID
-            extraction_job_id: Extraction job ID
-            content_hash: Content hash
-            status: Sync status (success, failed)
-            error: Error message if failed
-            tenant_id: Tenant context required for metadata updates
-        """
+        """Update sync metadata for a source through the audited mutation gateway."""
         tenant_id = validate_ingestion_tenant_id(tenant_id)
         driver = await self.loader._get_driver()
 
@@ -430,24 +313,6 @@ class SyncManager:
             metadata["error"] = error
 
         async with driver.session(database=self.settings.neo4j_database) as session:
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            await run_validated_query(
-                session,
-                """
-                CREATE (s:SyncMetadata $metadata)
-                RETURN s
-                """,
-                {"metadata": metadata},
-                tenant_id=tenant_id,
-                allow_system_query=True,
-                query_name="sync_manager.update_sync_metadata",
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             mutation = AuditedGraphMutation(
                 tenant_id=tenant_id,
                 session=session,
@@ -457,11 +322,4 @@ class SyncManager:
                 "SyncMetadata",
                 f"{source_id}:{extraction_job_id}:{metadata['synced_at']}",
                 metadata,
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             )

@@ -671,7 +671,6 @@ async def sync_customer(
 # Webhook Endpoint
 # ============================================================================
 
-@router.post("/webhook", response_model=stripe_webhookResult, status_code=status.HTTP_200_OK)
 async def stripe_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -749,7 +748,6 @@ async def stripe_webhook(
 # Usage Metering Endpoints
 # ============================================================================
 
-@router.post("/events", response_model=ingest_usage_eventResult)
 async def ingest_usage_event(
     request: UsageEventRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -813,7 +811,6 @@ async def ingest_usage_event(
         raise ServiceUnavailableError(message="Failed to ingest usage event")
 
 
-@router.post("/events/batch", response_model=ingest_usage_batchResult)
 async def ingest_usage_batch(
     request: UsageBatchRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -870,7 +867,6 @@ async def ingest_usage_batch(
         raise ServiceUnavailableError(message="Failed to process batch")
 
 
-@router.get("/usage/{customer_id}/summary", response_model=UsageSummaryResponse)
 async def get_usage_summary(
     customer_id: str,
     metric_name: str,
@@ -910,7 +906,6 @@ async def get_usage_summary(
         raise ServiceUnavailableError(message="Failed to retrieve usage summary")
 
 
-@router.get("/usage/{customer_id}/events", response_model=list[UsageEventResponse])
 async def list_usage_events(
     customer_id: str,
     metric_name: str | None = None,
@@ -970,7 +965,6 @@ async def list_usage_events(
         raise ServiceUnavailableError(message="Failed to retrieve usage events")
 
 
-@router.post("/usage/{customer_id}/sync", response_model=UsageSyncResponse)
 async def sync_usage_to_stripe(
     customer_id: str,
     metric_name: str | None = None,
@@ -1025,7 +1019,6 @@ async def sync_usage_to_stripe(
 # Overage Detection & Limits
 # ============================================================================
 
-@router.get("/limits/{customer_id}", response_model=get_usage_limitsResult)
 async def get_usage_limits(
     customer_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -1082,7 +1075,6 @@ async def get_usage_limits(
         raise ServiceUnavailableError(message="Failed to retrieve usage limits")
 
 
-@router.post("/limits/{customer_id}/check", response_model=LimitsCheckResponse)
 async def check_request_allowed(
     customer_id: str,
     metric_name: str,
@@ -1127,7 +1119,6 @@ async def check_request_allowed(
         raise ServiceUnavailableError(message="Failed to validate request")
 
 
-@router.get("/plans/{plan_id}/limits", response_model=get_plan_limitsResult)
 async def get_plan_limits(
     plan_id: str,
 ) -> dict[str, Any]:
@@ -1156,6 +1147,17 @@ async def get_plan_limits(
         "plan_name": plan.name,
         "limits": limits,
     })
+
+
+# Adjacent route modules register webhook, usage, and overage endpoints
+# without changing the public /billing path surface.
+from .billing_overages import router as billing_overages_router
+from .billing_usage import router as billing_usage_router
+from .billing_webhooks import router as billing_webhooks_router
+
+router.include_router(billing_webhooks_router)
+router.include_router(billing_usage_router)
+router.include_router(billing_overages_router)
 
 
 # ============================================================================

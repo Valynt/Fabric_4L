@@ -86,7 +86,7 @@ cp .env.example .env
 
 ### 2. Select Python 3.11
 
-The backend services declare `requires-python = ">=3.11"`; any supported Python 3.11+ patch release is acceptable. The root `.python-version` tracks the `3.11` series so pyenv users do not need the exact `3.11.10` patch.
+The backend services declare `requires-python = ">=3.11"`; any supported Python 3.11+ patch release is acceptable. The root `.python-version` tracks the `3.11` series so pyenv users do not need the exact `3.11.10` patch. The `Makefile` resolves `python3.11` first and then falls back only to `python3`/`python` interpreters that report Python 3.11 or newer; override it with `make PYTHON=/path/to/python3.11 ...` if your local shim path is unusual.
 
 ```bash
 # Optional for pyenv users; skip if python3.11 already resolves on PATH

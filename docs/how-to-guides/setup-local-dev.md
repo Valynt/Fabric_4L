@@ -23,7 +23,7 @@ Before starting:
 
 1. Complete the [Quickstart Guide](../getting-started/quickstart.md)
 2. Install development tools:
-   - Python 3.11+ (any patch release; Python 3.11.10 is not specifically required)
+   - Python 3.11+ (any patch release; Python 3.11.10 is not specifically required; Make targets resolve `python3.11` first and otherwise require a `python3`/`python` shim that reports >=3.11)
    - Node.js 20+
    - VS Code (recommended) or PyCharm
    - Git with SSH key configured

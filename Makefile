@@ -43,9 +43,13 @@ POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
 DB_MIGRATION_DATABASE_URL ?=
 
-PYTHON ?= $(shell command -v python3.11 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || printf python3)
+PYTHON ?= $(shell for candidate in python3.11 python3 python; do \
+	if command -v $$candidate >/dev/null 2>&1 && $$candidate -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then \
+		command -v $$candidate; exit 0; \
+	fi; \
+done; printf python3.11)
 PIP    := $(PYTHON) -m pip install -e
-# Use python -m pytest to ensure pytest is available via the Python interpreter
+# Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
 PYTEST := $(PYTHON) -m pytest -v --tb=short
 
 # Ensure mypy is available before running typecheck targets

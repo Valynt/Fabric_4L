@@ -23,7 +23,7 @@ from uuid import UUID
 from langgraph.checkpoint.base import BaseCheckpointSaver
 from langgraph.errors import NodeInterrupt
 
-from ..models.agent_state import AgentState, BaseAgentState, WorkflowStatus
+from ..models.agent_state import AgentState, WorkflowStatus
 
 
 class WorkflowExecutionError(Exception):
@@ -47,12 +47,16 @@ from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
-from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver, ReplayDecision
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
 from ..tools.registry import ToolRegistry
 from ..workflows import WORKFLOW_TYPES, create_workflow
+from .checkpoint_replay import (
+    compute_state_hash,
+    get_latest_persisted_checkpoint_hash,
+    resolve_resume_policy,
+)
 from .execution_checkpointing import persist_interruption_if_needed
 from .execution_dispatch import build_workflow_task
 from .execution_persistence import mark_workflow_running, persist_workflow_failure
@@ -204,31 +208,8 @@ class OrchestrationController:
 
     @staticmethod
     def _compute_state_hash(state: AgentState) -> str:
-        """Compute a deterministic hash for checkpoint conflict detection.
-
-        Uses canonical JSON serialization of the state's key fields.
-        """
-        import hashlib
-        import json
-
-        canonical = json.dumps(
-            {
-                "workflow_id": state.workflow_id,
-                "run_id": state.run_id,
-                "trace_id": state.trace_id,
-                "tenant_id": state.tenant_id,
-                "workflow_type": str(state.workflow_type.value if hasattr(state.workflow_type, "value") else state.workflow_type),
-                "current_node": state.current_node,
-                "status": str(state.status.value if hasattr(state.status, "value") else state.status),
-                "input_data": state.input_data,
-                "output_data": state.output_data,
-                "metadata": {k: v for k, v in (state.metadata or {}).items() if k not in ("run_envelope", "checkpoint_hash")},
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        )
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        """Compute a deterministic hash for checkpoint conflict detection."""
+        return compute_state_hash(state)
 
     async def _resolve_resume_policy(
         self,
@@ -237,119 +218,15 @@ class OrchestrationController:
         state: AgentState,
         target_checkpoint_id: str | None = None,
     ) -> None:
-        """Validate a resume attempt against the canonical ReplayConflictPolicy.
-
-        Computes real checkpoint hashes and enforces exact-match, collision,
-        age, and duplicate-replay guards.
-
-        Raises:
-            WorkflowExecutionError: If the resume violates policy.
-        """
-        resolver = ReplayConflictResolver()
-        checkpoint_hash = self._compute_state_hash(state)
-
-        # Expected hash is the one stored when the checkpoint was originally saved
-        expected_hash = (state.metadata or {}).get("checkpoint_hash")
-
-        checkpoint_id = target_checkpoint_id or str(state.current_node or "latest")
-        run_id = state.run_id or workflow_id
-        latest_hash = await self._get_latest_persisted_checkpoint_hash(
-            tenant_id=str(state.tenant_id),
+        """Validate a resume attempt against the canonical ReplayConflictPolicy."""
+        await resolve_resume_policy(
+            self,
             workflow_id=workflow_id,
-            run_id=run_id,
-            checkpoint_id=checkpoint_id,
+            state=state,
+            target_checkpoint_id=target_checkpoint_id,
+            workflow_execution_error_type=WorkflowExecutionError,
+            checkpoint_conflict_error_type=CheckpointConflictError,
         )
-
-        if latest_hash != checkpoint_hash:
-            try:
-                from ..metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics:
-                    metrics.increment_checkpoint_collision_outcome(
-                        workflow_type=str(
-                            state.workflow_type.value
-                            if hasattr(state.workflow_type, "value")
-                            else state.workflow_type
-                        ),
-                        tenant_id=str(state.tenant_id or "unknown"),
-                        outcome="mismatch",
-                    )
-            except Exception:
-                logger.debug("Failed to record checkpoint collision mismatch metric", exc_info=True)
-            conflict_metadata = {
-                "workflow_id": workflow_id,
-                "run_id": run_id,
-                "checkpoint_id": checkpoint_id,
-                "expected_hash": checkpoint_hash,
-                "actual_hash": latest_hash,
-            }
-            lifecycle_logger.emit(
-                stage="checkpoint_conflict",
-                context=self._lifecycle_context(
-                    workflow_id,
-                    tenant_id=str(state.tenant_id or "unknown"),
-                    checkpoint_id=checkpoint_id,
-                ),
-                **conflict_metadata,
-            )
-            raise CheckpointConflictError("Checkpoint hash mismatch", conflict_metadata)
-        try:
-            from ..metrics.prometheus_metrics import get_metrics
-
-            metrics = get_metrics()
-            if metrics:
-                metrics.increment_checkpoint_collision_outcome(
-                    workflow_type=str(
-                        state.workflow_type.value
-                        if hasattr(state.workflow_type, "value")
-                        else state.workflow_type
-                    ),
-                    tenant_id=str(state.tenant_id or "unknown"),
-                    outcome="match",
-                )
-        except Exception:
-            logger.debug("Failed to record checkpoint collision match metric", exc_info=True)
-
-        # Age guard uses paused_at or started_at
-        checkpoint_created_at = state.paused_at or state.started_at
-        if isinstance(checkpoint_created_at, str):
-            from datetime import datetime as _dt
-            checkpoint_created_at = _dt.fromisoformat(checkpoint_created_at.replace("Z", "+00:00"))
-
-        # Validate against policy
-        try:
-            resolver.validate_resume_attempt(
-                workflow_status=state.status,
-                checkpoint_created_at=checkpoint_created_at,
-                checkpoint_hash=checkpoint_hash,
-                expected_hash=expected_hash,
-                latest_checkpoint_hash=latest_hash,
-            )
-        except ReplayConflictError as rce:
-            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
-
-        # Duplicate replay detection
-        tenant_id = state.tenant_id or "unknown"
-        try:
-            decision = resolver.evaluate_duplicate_replay(
-                run_id=run_id,
-                tenant_id=tenant_id,
-                checkpoint_id=target_checkpoint_id,
-                seen_fingerprints=self._seen_replay_fingerprints,
-            )
-            if decision == ReplayDecision.REJECT:
-                raise ReplayConflictError("Replay rejected: duplicate replay detected")
-        except ReplayConflictError as rce:
-            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
-
-        # Record fingerprint for future deduplication
-        fingerprint = resolver.compute_replay_fingerprint(
-            run_id=run_id,
-            tenant_id=tenant_id,
-            checkpoint_id=target_checkpoint_id,
-        )
-        self._seen_replay_fingerprints.add(fingerprint)
 
     async def _get_latest_persisted_checkpoint_hash(
         self,
@@ -359,37 +236,15 @@ class OrchestrationController:
         run_id: str,
         checkpoint_id: str,
     ) -> str:
-        """Load the latest persisted checkpoint hash from durable state.
-
-        Uses canonical checkpoint storage when available, scoped by tenant and
-        workflow identifiers. Falls back to persisted workflow state hash.
-        """
-        conn = self.checkpoint_saver.conn if self.checkpoint_saver and hasattr(self.checkpoint_saver, "conn") else None
-        if conn is not None and hasattr(conn, "fetchrow"):
-            row = await conn.fetchrow(
-                """
-                SELECT checkpoint->'channel_values' as state_data
-                FROM checkpoints
-                WHERE thread_id = $1
-                  AND checkpoint_id = $2
-                  AND checkpoint->'channel_values'->>'tenant_id' = $3
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                workflow_id,
-                checkpoint_id,
-                tenant_id,
-            )
-            if row and isinstance(row.get("state_data"), dict):
-                return self._compute_state_hash(BaseAgentState.model_validate(row["state_data"]))
-
-        latest_state = await self.state_manager.load_state(workflow_id)
-        if latest_state is None:
-            raise WorkflowExecutionError(
-                f"No persisted checkpoint state for tenant={tenant_id} run_id={run_id} "
-                f"workflow_id={workflow_id} checkpoint_id={checkpoint_id}"
-            )
-        return self._compute_state_hash(latest_state)
+        """Load the latest persisted checkpoint hash from durable state."""
+        return await get_latest_persisted_checkpoint_hash(
+            self,
+            tenant_id=tenant_id,
+            workflow_id=workflow_id,
+            run_id=run_id,
+            checkpoint_id=checkpoint_id,
+            workflow_execution_error_type=WorkflowExecutionError,
+        )
 
     def __init__(
         self,

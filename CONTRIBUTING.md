@@ -26,9 +26,11 @@ cp .env.example .env
 
 # 3. Select Python 3.11 if needed
 #    pyenv users can rely on the root .python-version series pin.
+#    Make targets resolve python3.11 first and otherwise require python3/python to be >=3.11.
 pyenv install --skip-existing "$(pyenv latest -k 3.11)"
 pyenv local 3.11
 #    Or select any concrete installed 3.11.x patch if your pyenv does not support series aliases.
+#    Use `make PYTHON=/path/to/python3.11 ...` if your shim path is non-standard.
 
 # 4. Start infrastructure
 make up

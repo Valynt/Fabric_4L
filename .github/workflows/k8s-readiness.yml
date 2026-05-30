@@ -53,16 +53,13 @@ jobs:
           python-version: "3.11"
 
       - name: Install preflight dependencies
-        run: pip install pyyaml
+        run: python -m pip install pyyaml
 
       - name: Run Kubernetes preflight guardrails
         run: python scripts/ci/k8s_preflight.py
-<<<<<<< ours
 
       - name: Reject :latest/:main in production K8s manifests
-        run: python3 scripts/ci/check_production_k8s_mutable_tags.py
-=======
->>>>>>> theirs
+        run: python scripts/ci/check_production_k8s_mutable_tags.py
 
       - name: Render overlays
         run: |

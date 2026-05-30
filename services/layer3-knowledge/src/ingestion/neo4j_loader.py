@@ -71,7 +71,9 @@ def _validate_internal_system_tenant_id(tenant_id: str) -> str:
     """Validate the explicit internal-only platform ingestion scope."""
     normalized = str(tenant_id).strip().lower()
     if normalized != "system":
-        raise TenantValidationError("internal system ingestion requires tenant_id='system'")
+        raise TenantValidationError(
+            "internal system ingestion requires tenant_id='system'"
+        )
     return normalized
 
 
@@ -212,7 +214,9 @@ class Neo4jLoader:
         for entity_type in ENTITY_TYPES:
             type_uris = (VF[entity_type], VF_HTTPS[entity_type])
 
-            for subject in {s for type_uri in type_uris for s in graph.subjects(RDF.type, type_uri)}:
+            for subject in {
+                s for type_uri in type_uris for s in graph.subjects(RDF.type, type_uri)
+            }:
                 entity_data: dict[str, Any] = {"uri": str(subject)}
 
                 for predicate, obj in graph.predicate_objects(subject):
@@ -562,10 +566,12 @@ class Neo4jLoader:
                 rel.get("predicate", "").lower().replace("-", "_").replace(" ", "_")
             )
             if predicate in RELATIONSHIP_TYPES:
-                by_type[predicate].append({
-                    "src_id": rel.get("source_id"),
-                    "tgt_id": rel.get("target_id"),
-                })
+                by_type[predicate].append(
+                    {
+                        "src_id": rel.get("source_id"),
+                        "tgt_id": rel.get("target_id"),
+                    }
+                )
             else:
                 logger.warning(
                     "Skipping unknown relationship type '%s' (source=%s → target=%s)",
@@ -620,32 +626,14 @@ class Neo4jLoader:
                 )
 
         total_loaded = 0
+        loaded_at = datetime.utcnow().isoformat()
+        mutation = AuditedGraphMutation(
+            tenant_id=validated_tenant_id,
+            session=session,
+            operation_source="neo4j_loader._load_relationships_native",
+        )
+
         for rel_type, rels in by_type.items():
-<<<<<<< ours
-<<<<<<< ours
-<<<<<<< ours
-            try:
-                mutation = AuditedGraphMutation(
-                    tenant_id=validated_tenant_id,
-                    session=session,
-                    operation_source="neo4j_loader._load_relationships_native",
-                )
-                triples = [
-                    {"src_id": rel.get("source_id"), "tgt_id": rel.get("target_id")}
-                    for rel in rels
-                ]
-                result = await mutation.write_relationships_batch(rel_type, triples)
-                total_loaded += result.get("count", 0)
-=======
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
-            mutation = AuditedGraphMutation(
-                tenant_id=validated_tenant_id,
-                session=session,
-                operation_source="neo4j_loader._load_relationships_native",
-            )
             try:
                 for rel in rels:
                     await mutation.write_relationship(
@@ -670,19 +658,14 @@ class Neo4jLoader:
                         },
                     )
                     total_loaded += 1
-<<<<<<< ours
-<<<<<<< ours
->>>>>>> theirs
-=======
->>>>>>> theirs
-=======
->>>>>>> theirs
             except Exception as exc:
                 logger.error("Failed to load %s relationships: %s", rel_type, exc)
 
         return total_loaded
 
-    async def delete_by_source(self, source_id: str, tenant_id: str | None = None) -> dict:
+    async def delete_by_source(
+        self, source_id: str, tenant_id: str | None = None
+    ) -> dict:
         """Delete all entities and relationships from a specific source.
 
         Phase 1 hardening: Uses AuditedGraphMutation for bulk deletion.

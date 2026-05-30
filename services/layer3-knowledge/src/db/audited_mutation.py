@@ -18,9 +18,10 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from db.query_execution import run_tenant_query
+from db.query_execution import run_validated_query
 from utils.cypher_security import (
     ALLOWED_REL_TYPES,
+    TENANT_OWNED_LABELS,
     validate_cypher_identifier,
 )
 
@@ -51,7 +52,11 @@ class AuditedGraphMutation:
         account_id: str | None = None,
         operation_source: str | None = None,
     ):
-        self.tenant_id = tenant_id
+        normalized_tenant_id = str(tenant_id).strip() if tenant_id is not None else ""
+        if not normalized_tenant_id:
+            raise ValueError("tenant_id is required for audited graph mutations")
+
+        self.tenant_id = normalized_tenant_id
         self.session = session
         self.metrics = metrics or get_metrics()
         self.request_id = request_id
@@ -67,7 +72,9 @@ class AuditedGraphMutation:
         versioned: bool = True,  # Changed to default True for security
     ) -> dict[str, Any]:
         """Merge a relationship between two tenant-scoped nodes and audit the change."""
-        validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="relationship type")
+        validate_cypher_identifier(
+            rel_type, ALLOWED_REL_TYPES, kind="relationship type"
+        )
 
         now = datetime.now(UTC).isoformat()
         props = dict(properties or {})
@@ -85,7 +92,7 @@ class AuditedGraphMutation:
         RETURN r
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 merge_query,
                 {
@@ -96,6 +103,7 @@ class AuditedGraphMutation:
                     "properties": props,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("relationship")
         except Exception:
@@ -116,7 +124,9 @@ class AuditedGraphMutation:
         tgt_id: str,
     ) -> dict[str, Any]:
         """Delete a relationship between two tenant-scoped nodes and audit the change."""
-        validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="relationship type")
+        validate_cypher_identifier(
+            rel_type, ALLOWED_REL_TYPES, kind="relationship type"
+        )
 
         delete_query = f"""
         MATCH (src {{id: $src_id, tenant_id: $tenant_id}})
@@ -125,7 +135,7 @@ class AuditedGraphMutation:
         DELETE r
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 delete_query,
                 {
@@ -134,6 +144,7 @@ class AuditedGraphMutation:
                     "tenant_id": self.tenant_id,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("relationship_delete")
         except Exception:
@@ -167,7 +178,7 @@ class AuditedGraphMutation:
             operation_source: $operation_source
         })
         """
-        await run_tenant_query(
+        await run_validated_query(
             self.session,
             audit_query,
             {
@@ -204,7 +215,7 @@ class AuditedGraphMutation:
             details: $details
         })
         """
-        await run_tenant_query(
+        await run_validated_query(
             self.session,
             version_query,
             {
@@ -230,6 +241,7 @@ class AuditedGraphMutation:
         properties: dict[str, Any],
     ) -> dict[str, Any]:
         """Merge a tenant-scoped node and audit the change."""
+        validate_cypher_identifier(label, TENANT_OWNED_LABELS, kind="node label")
         now = datetime.now(UTC).isoformat()
         props = dict(properties or {})
         props["id"] = node_id
@@ -242,7 +254,7 @@ class AuditedGraphMutation:
         RETURN n
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 merge_query,
                 {
@@ -251,6 +263,7 @@ class AuditedGraphMutation:
                     "properties": props,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("node")
         except Exception:
@@ -267,12 +280,13 @@ class AuditedGraphMutation:
         node_id: str,
     ) -> dict[str, Any]:
         """Delete a tenant-scoped node and audit the change."""
+        validate_cypher_identifier(label, TENANT_OWNED_LABELS, kind="node label")
         delete_query = f"""
         MATCH (n:{label} {{id: $id, tenant_id: $tenant_id}})
         DETACH DELETE n
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 delete_query,
                 {
@@ -280,6 +294,7 @@ class AuditedGraphMutation:
                     "tenant_id": self.tenant_id,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("node_delete")
         except Exception:
@@ -312,7 +327,7 @@ class AuditedGraphMutation:
             operation_source: $operation_source
         })
         """
-        await run_tenant_query(
+        await run_validated_query(
             self.session,
             audit_query,
             {
@@ -341,6 +356,7 @@ class AuditedGraphMutation:
         nodes: list[dict[str, Any]],
     ) -> dict[str, Any]:
         """Batch merge tenant-scoped nodes and audit the batch operation."""
+        validate_cypher_identifier(label, TENANT_OWNED_LABELS, kind="node label")
         now = datetime.now(UTC).isoformat()
         node_count = len(nodes)
 
@@ -352,14 +368,18 @@ class AuditedGraphMutation:
         RETURN count(n) as merged
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 merge_query,
                 {
                     "nodes": [
                         {
                             "id": n.get("id"),
-                            "properties": {**n, "tenant_id": self.tenant_id, "updated_at": now}
+                            "properties": {
+                                **n,
+                                "tenant_id": self.tenant_id,
+                                "updated_at": now,
+                            },
                         }
                         for n in nodes
                     ],
@@ -367,13 +387,16 @@ class AuditedGraphMutation:
                     "now": now,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("node_batch")
         except Exception:
             self._increment_mutation_failure("node_batch_error")
             raise
 
-        await self._audit_node("WRITE_NODES_BATCH", label, f"batch_{node_count}", {"count": node_count})
+        await self._audit_node(
+            "WRITE_NODES_BATCH", label, f"batch_{node_count}", {"count": node_count}
+        )
 
         return {"status": "ok", "label": label, "count": node_count}
 
@@ -383,7 +406,9 @@ class AuditedGraphMutation:
         triples: list[dict[str, str]],
     ) -> dict[str, Any]:
         """Batch merge relationships and audit the batch operation."""
-        validate_cypher_identifier(rel_type, ALLOWED_REL_TYPES, kind="relationship type")
+        validate_cypher_identifier(
+            rel_type, ALLOWED_REL_TYPES, kind="relationship type"
+        )
 
         if rel_type not in ALLOWED_REL_TYPES:
             self._increment_mutation_failure("relationship_type_not_allowed")
@@ -401,7 +426,7 @@ class AuditedGraphMutation:
         RETURN count(r) as merged
         """
         try:
-            await run_tenant_query(
+            await run_validated_query(
                 self.session,
                 merge_query,
                 {
@@ -410,6 +435,7 @@ class AuditedGraphMutation:
                     "now": now,
                 },
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             self._increment_mutation_success("relationship_batch")
         except Exception:
@@ -421,7 +447,7 @@ class AuditedGraphMutation:
             f"batch_{triple_count}",
             rel_type,
             f"batch_{triple_count}",
-            {"count": triple_count}
+            {"count": triple_count},
         )
 
         return {"status": "ok", "rel_type": rel_type, "count": triple_count}
@@ -441,11 +467,12 @@ class AuditedGraphMutation:
         RETURN count(r) as deleted
         """
         try:
-            rel_result = await run_tenant_query(
+            rel_result = await run_validated_query(
                 self.session,
                 rel_query,
                 {"source_id": source_id, "tenant_id": self.tenant_id},
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             record = await rel_result.single()
             stats["relationships_deleted"] = record["deleted"] if record else 0
@@ -462,11 +489,12 @@ class AuditedGraphMutation:
         RETURN count(n) as deleted
         """
         try:
-            entity_result = await run_tenant_query(
+            entity_result = await run_validated_query(
                 self.session,
                 entity_query,
                 {"source_id": source_id, "tenant_id": self.tenant_id},
                 tenant_id=self.tenant_id,
+                allow_system_query=True,
             )
             record = await entity_result.single()
             stats["entities_deleted"] = record["deleted"] if record else 0
@@ -487,7 +515,9 @@ class AuditedGraphMutation:
         """Increment mutation success counter."""
         if self.metrics:
             try:
-                self.metrics.increment_graph_mutation_success(operation_type=operation_type)
+                self.metrics.increment_graph_mutation_success(
+                    operation_type=operation_type
+                )
             except AttributeError:
                 # Metrics may not have this method yet, will add in Phase 3
                 pass
