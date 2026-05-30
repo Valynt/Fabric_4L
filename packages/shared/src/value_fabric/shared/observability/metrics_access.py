@@ -9,7 +9,7 @@ Verification order:
   1. ``Authorization: Bearer <token>`` matching ``METRICS_INTERNAL_SCRAPE_TOKEN``.
   2. ``X-Prometheus-Scrape-Token: <token>`` matching the same env var.
   3. Origin IP in RFC1918 private space or loopback (cluster-internal scrape).
-  4. ``ENVIRONMENT=development`` AND ``ALLOW_INSECURE_DEV_AUTH_BYPASS=true``.
+  4. ``ENVIRONMENT=development`` AND ``ALLOW_INSECURE_DEV_AUTH_BYPASS set to true``.
 
 A denied request is logged with diagnostic context and returns ``False``.
 """
@@ -19,6 +19,7 @@ from __future__ import annotations
 import logging
 import os
 import secrets
+import warnings
 from collections.abc import Mapping
 from typing import Any
 
@@ -125,6 +126,11 @@ def verify_metrics_access(request: Any) -> bool:
     env = _runtime_environment()
     allow_bypass = os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").lower() == "true"
     if env == "development" and allow_bypass:
+        warnings.warn(
+            "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; metrics auth is bypassed.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
         # Emit a WARNING so operators notice bypass is active.
         # The flag= extra field lets log aggregators alert on this event.
         logger.warning(

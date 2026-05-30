@@ -167,6 +167,13 @@ class Layer6Settings(BaseSettings):
         if (self.allow_dev_auth_bypass or "").strip().lower() == "i_understand_risk":
             legacy_active.append("ALLOW_DEV_AUTH_BYPASS")
 
+        if self.environment == "development" and self.allow_insecure_dev_auth_bypass:
+            warnings.warn(
+                "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+
         if legacy_active:
             warnings.warn(
                 f"Layer 6: deprecated auth bypass flag(s) set: {', '.join(legacy_active)}. "
