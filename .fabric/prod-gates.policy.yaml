@@ -35,6 +35,7 @@ profiles:
       - state
       - agent
       - obs
+      - db-readiness
       - release-policy
       - summary
 
@@ -51,6 +52,7 @@ profiles:
       - state
       - agent
       - obs
+      - db-readiness
       - release-policy
       - sign-manifest
       - summary
@@ -128,6 +130,14 @@ gate-definitions:
     artifact-dir: artifacts/obs
     required: false
     caveat: "Performance tests require live services or k6."
+
+
+  db-readiness:
+    target: db-production-readiness-gate
+    description: "Production-like database migrations, rollback, drift, tenant isolation, backup/restore, cross-store replay, credentials, and alert evidence"
+    class: blocking
+    artifact-dir: artifacts/release/db-readiness
+    required: true
 
   release-policy:
     target: gate-release-policy
