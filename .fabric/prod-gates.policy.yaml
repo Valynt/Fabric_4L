@@ -62,14 +62,14 @@ profiles:
 
 gate-definitions:
   policy:
-    target: gates-validate-policy
+    target: gate-policy
     description: "Validate policy schema, profile existence, and artifact directories"
     class: blocking
     artifact-dir: artifacts/release
     required: true
 
   lint:
-    target: lint-release
+    target: gate-lint
     description: "Lint all Python layers with ruff"
     class: blocking
     required: true
@@ -119,7 +119,7 @@ gate-definitions:
     required: true
 
   db-consistency:
-    target: db-production-readiness-gate
+    target: gate-db-consistency
     description: "Canonical PostgreSQL event replay into derived graph, vector, embedding, and object-store projections"
     class: blocking
     artifact-dir: artifacts/release/junit
@@ -143,7 +143,7 @@ gate-definitions:
 
 
   db-readiness:
-    target: db-production-readiness-gate
+    target: gate-db-readiness
     description: "Production-like database migrations, rollback, drift, tenant isolation, backup/restore, cross-store replay, credentials, and alert evidence"
     class: blocking
     artifact-dir: artifacts/release/db-readiness
@@ -157,14 +157,14 @@ gate-definitions:
     required: true
 
   sign-manifest:
-    target: gates-sign-manifest
+    target: gate-sign-manifest
     description: "Sign artifact manifest with SHA-256"
     class: artifact
     artifact-dir: artifacts/release
     required: true
 
   summary:
-    target: gates-render-summary
+    target: gate-summary
     description: "Render release summary with gate results"
     class: artifact
     artifact-dir: artifacts/release

@@ -69,7 +69,7 @@ isolated PostgreSQL containers, creates tenant-scoped sample data, runs
 `psql`, and compares per-tenant checksums.
 
 ```bash
-make db-production-readiness-gate
+make gate-db-dr
 ```
 
 Evidence is written to `artifacts/postgres-backup-restore/`:

@@ -14,7 +14,7 @@ This register defines which data stores are canonical and which stores are deriv
 
 ## Required consistency scenarios
 
-The `db-production-readiness-gate` must validate these failure modes:
+The `gate-db-consistency` target must validate these failure modes:
 
 1. A canonical PostgreSQL write succeeds while Neo4j or vector projection fails; replay must later converge the graph/vector projections without duplicating derived rows.
 2. A document upload event is canonicalized while embedding generation fails; object-store projection can succeed, and the embedding failure remains inspectable and replayable.
@@ -39,7 +39,7 @@ Layer-specific adapters may use real databases and queues, but they must preserv
 Run the local database production readiness gate with:
 
 ```bash
-make db-production-readiness-gate
+make gate-db-consistency
 ```
 
 The gate runs `tests/integration/test_cross_store_consistency.py`, which covers replay, idempotency, orphan detection, and dead-letter inspection without requiring live infrastructure.

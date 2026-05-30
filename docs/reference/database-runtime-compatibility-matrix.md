@@ -8,7 +8,7 @@ between local/unit database compatibility and production-readiness validation.
 | Validation category | Allowed database | Required marker / gate | Scope |
 |---|---|---|---|
 | Pure unit tests | SQLite is allowed when the test does not assert PostgreSQL-specific behavior | `unit` or another non-production marker | Deterministic local tests for pure logic, model serialization, and compatibility shims |
-| Production DB invariants | PostgreSQL only | `postgres_only`, `requires_postgres`, and `production_db_invariant`; run by `make db-production-readiness-gate` | RLS, migrations, constraints, indexes, tenant context hooks, pool/transaction behavior, and production URL policy |
+| Production DB invariants | PostgreSQL only | `postgres_only`, `requires_postgres`, and `production_db_invariant`; run by `make gate-db-readiness` | RLS, migrations, constraints, indexes, tenant context hooks, pool/transaction behavior, and production URL policy |
 | Static adapter conformance | No live DB required, but must prove production behavior structurally | `contract_static` and `production_db_invariant` | `INTENTIONAL_DB_ADAPTER_BYPASS` modules must retain fail-closed source-level guards |
 
 SQLite compatibility is intentionally **not** production-readiness evidence.  A test
@@ -16,7 +16,7 @@ may use SQLite only when it validates pure local/unit behavior that is independe
 PostgreSQL semantics.  Any test that claims coverage for RLS, Alembic migrations,
 database constraints, indexes, `SET LOCAL app.tenant_id`, connection pool defaults,
 fail-closed tenant behavior, or transaction semantics must live in the PostgreSQL-only
-suite and be selected by `db-production-readiness-gate`.
+suite and be selected by `gate-db-readiness`.
 
 ## Canonical shared interface
 
@@ -59,7 +59,7 @@ Those conformance tests prove each bypass module still enforces:
 Run the database production-readiness gate with:
 
 ```bash
-make db-production-readiness-gate
+make gate-db-readiness
 ```
 
 The gate performs three checks:

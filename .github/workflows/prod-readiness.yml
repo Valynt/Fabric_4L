@@ -39,7 +39,7 @@ jobs:
         run: |
           mkdir -p ${ARTIFACT_DIR}/{arch,security,chaos,smoke,agent,state,obs,readiness,release,junit}
       - name: Validate policy schema
-        run: make gates-validate-policy POLICY_FILE=${POLICY_FILE}
+        run: make gate-policy POLICY_FILE=${POLICY_FILE}
       - name: Validate policy enforcement matrix coverage
         run: python scripts/ci/validate_policy_enforcement_matrix.py
       - uses: actions/upload-artifact@v4
@@ -206,7 +206,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Run DB production readiness gate
-        run: make db-production-readiness-gate PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+        run: make gate-db-readiness PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
       - uses: actions/upload-artifact@v4
         with:
           name: db-readiness-artifacts
@@ -287,7 +287,7 @@ jobs:
           bash scripts/ops/release-gate.sh "${{ needs.determine-profile.outputs.profile }}"
       - name: Sign release manifest
         if: success() && needs.determine-profile.outputs.profile != 'pr-fast'
-        run: make gates-sign-manifest
+        run: make gate-sign-manifest
       - name: Validate canonical release artifacts
         if: success()
         run: |
@@ -311,7 +311,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/download-artifact@v4
       - name: Build PR summary
-        run: make gates-render-summary
+        run: make gate-summary
       - name: Assert machine-readable gate result exists
         run: test -s artifacts/release/gate-result.json
       - name: Publish summary

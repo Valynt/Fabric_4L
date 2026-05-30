@@ -2,21 +2,22 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
-        preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
+        preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-db-migrations gate-db-consistency gate-db-readiness gate-db-dr \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
-	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
-	db-production-readiness-gate gate-all \
-	gate-production production-readiness-gate \
+	gate-policy gate-lint gate-sign-manifest gate-summary gates-validate-policy gates-sign-manifest gates-render-summary lint-release release-gate \
+	gate-all gate-production \
+	architecture-readiness-gate security-readiness-gate production-readiness-gate db-production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
-	check-migration-rollback-policy check-migration-postgres-roundtrip db-production-readiness-gate \
+	check-migration-rollback-policy check-migration-postgres-roundtrip check-db-postgres-invariants \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -119,8 +120,8 @@ check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and m
 	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
 	@$(PYTHON) scripts/ci/check_migration_drift.py --database-url "$(DB_MIGRATION_DATABASE_URL)" --round-trip
 
-db-production-readiness-gate: check-migration-heads check-migration-rollback-policy check-migration-postgres-roundtrip ## Blocking PostgreSQL migration production-readiness gate
-	@echo "✅  db-production-readiness-gate passed"
+gate-db-migrations: check-migration-heads check-migration-rollback-policy check-migration-postgres-roundtrip ## Gate: PostgreSQL migration heads, rollback policy, and round-trip drift checks
+	@echo "✅  gate-db-migrations passed"
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
@@ -530,10 +531,10 @@ migrate-layer5: ## Run Alembic migrations for Layer 5 only
 migrate-api: ## Run Alembic migrations for API gateway only
 	cd services/api && alembic -c migrations/alembic.ini upgrade head
 
-db-production-readiness-gate: ## Gate: production-like database readiness, migrations, isolation, backup/restore, and observability evidence
+gate-db-readiness: ## Gate: production-like database readiness, migrations, isolation, backup/restore, and observability evidence
 	@echo "→ Gate: DB Production Readiness"
 	bash scripts/ci/run_db_production_readiness_gate.sh
-	@echo "✅  db-production-readiness-gate passed"
+	@echo "✅  gate-db-readiness passed"
 
 # ─── Contracts ────────────────────────────────────────────────────────────────
 
@@ -649,30 +650,39 @@ gate-config: ## Gate: startup validation, security config hardening
 gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
 	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
 
-db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
-	@echo "→ Gate: DB Production Readiness — cross-store consistency"
+gate-db-consistency: ## Gate: cross-store canonical/derived DB projection consistency
+	@echo "→ Gate: DB Consistency — cross-store canonical/derived projections"
 	@mkdir -p $(GATE_JUNIT_DIR)
-	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	@echo "✅  db-production-readiness-gate passed"
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/gate-db-consistency.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-db-consistency.xml
+	@echo "✅  gate-db-consistency passed"
 
-gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
+gate-all: gate-security gate-db-consistency ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
 
-production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
+production-readiness-gate: gate-production ## Alias for gate-production (backward compat)
 	@echo "✅  production-readiness-gate completed"
 
-db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
-	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
+architecture-readiness-gate: gate-arch ## Alias for gate-arch (backward compat)
+	@echo "✅  architecture-readiness-gate completed"
+
+security-readiness-gate: gate-security ## Alias for gate-security (backward compat)
+	@echo "✅  security-readiness-gate completed"
+
+db-production-readiness-gate: gate-db-readiness ## Alias for gate-db-readiness (backward compat)
+	@echo "✅  db-production-readiness-gate completed"
+
+check-db-postgres-invariants: ## Check PostgreSQL-only database production-readiness invariants
+	@echo "→ Check: Database Production Readiness (PostgreSQL-only)"
 	$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
 	$(PYTHON) scripts/ci/check_db_production_readiness_split.py
 	@mkdir -p $(GATE_JUNIT_DIR)
-	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	@echo "✅  db-production-readiness-gate passed"
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/check-db-postgres-invariants.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/check-db-postgres-invariants.xml
+	@echo "✅  check-db-postgres-invariants passed"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
@@ -682,15 +692,21 @@ collect-95-plus-evidence: ## Collect full 95+ production-readiness evidence pack
 
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 
-lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Lint all layers (release variant)
-	@echo "✅  Release lint complete"
+gate-lint: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-layer6 ## Gate: lint all layers (release variant)
+	@echo "✅  gate-lint passed"
 
-gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
+lint-release: gate-lint ## Alias for gate-lint (backward compat)
+	@echo "✅  lint-release completed"
+
+gate-policy: ## Gate: validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
-	@echo "✅  gates-validate-policy passed"
+	@echo "✅  gate-policy passed"
+
+gates-validate-policy: gate-policy ## Alias for gate-policy (backward compat)
+	@echo "✅  gates-validate-policy completed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
 	@echo "→ Gate: Chaos"
@@ -700,7 +716,7 @@ gate-chaos: ## Gate: dependency chaos and failure injection
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/chaos/ --junitxml=$(GATE_JUNIT_DIR)/gate-chaos.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
 	@echo "✅  gate-chaos passed"
 
 gate-smoke: ## Gate: cross-domain smoke tests
@@ -708,7 +724,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 	@test -s tests/e2e/test_value_engine_smoke_contract.py || (echo "❌ Smoke contract test is missing" && exit 1)
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/e2e/test_value_engine_smoke_contract.py --junitxml=$(GATE_JUNIT_DIR)/gate-smoke.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
 	@echo "✅  gate-smoke passed"
 
 gate-agent: ## Gate: agent provenance and behavior regression
@@ -719,7 +735,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/agents/ --junitxml=$(GATE_JUNIT_DIR)/gate-agent.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
 	@echo "✅  gate-agent passed"
 
 gate-obs: ## Gate: observability, metrics, and SLO validation
@@ -741,11 +757,11 @@ gate-release-policy: ## Gate: release policy compliance
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/release/ --junitxml=$(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/check_deprecations.py
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
+	$(PYTHON) scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
-gates-sign-manifest: ## Sign artifact manifest with SHA-256
+gate-sign-manifest: ## Gate: sign artifact manifest with SHA-256
 	@echo "→ Gate: Sign Manifest"
 	@mkdir -p $(ARTIFACT_DIR)/logs
 	@if [ ! -d $(ARTIFACT_DIR) ]; then \
@@ -759,13 +775,19 @@ gates-sign-manifest: ## Sign artifact manifest with SHA-256
 		exit 1; \
 	fi
 	@find $(ARTIFACT_DIR) -type f -not -path "*/logs/*" -not -name "manifest.sha256" -exec sha256sum {} \; > $(ARTIFACT_DIR)/manifest.sha256
-	@echo "✅  gates-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
+	@echo "✅  gate-sign-manifest passed ($$(wc -l < $(ARTIFACT_DIR)/manifest.sha256) files)"
 
-gates-render-summary: ## Render release summary with gate results
+gates-sign-manifest: gate-sign-manifest ## Alias for gate-sign-manifest (backward compat)
+	@echo "✅  gates-sign-manifest completed"
+
+gate-summary: ## Gate: render release summary with gate results
 	@echo "→ Gate: Render Summary"
 	@bash scripts/ops/render-release-summary.sh
 	@test -s $(ARTIFACT_DIR)/summary.md || (echo "❌ Summary file not generated" && exit 1)
-	@echo "✅  gates-render-summary passed"
+	@echo "✅  gate-summary passed"
+
+gates-render-summary: gate-summary ## Alias for gate-summary (backward compat)
+	@echo "✅  gates-render-summary completed"
 
 release-gate: ## Run the policy-driven production readiness gate sequence
 	@echo "🚀 Starting Release Gate Sequence..."
@@ -781,10 +803,10 @@ test-backup-drills: ## Run backup/DR drill tests (requires pytest-asyncio)
 	@echo "→ Running backup manager tests..."
 	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
 
-db-production-readiness-gate: ## Run PostgreSQL backup/restore production-readiness drill
-	@echo "→ Running PostgreSQL backup/restore production-readiness drill..."
+gate-db-dr: ## Gate: PostgreSQL backup/restore production-readiness drill
+	@echo "→ Gate: PostgreSQL backup/restore production-readiness drill..."
 	bash scripts/ops/test_postgres_backup_restore.sh
-	@echo "✅  db-production-readiness-gate passed"
+	@echo "✅  gate-db-dr passed"
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 

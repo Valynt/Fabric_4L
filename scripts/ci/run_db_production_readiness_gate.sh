@@ -197,4 +197,4 @@ cat > "${ARTIFACT_DIR}/db-production-readiness-summary.md" <<SUMMARY
 - Observability: production alert metadata and readiness evidence checks
 SUMMARY
 
-echo "✅ db-production-readiness-gate passed"
+echo "✅ gate-db-readiness passed"

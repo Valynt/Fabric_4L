@@ -14,6 +14,33 @@ The readiness assessment identified enterprise SSO/OIDC, central model managemen
 
 A P0 gate must not be marked production PASS merely because repository files exist. PASS requires a live or staging environment that exercises the relevant control with external dependencies configured, sensitive values externalized, and evidence captured without secrets.
 
+## Canonical Makefile Production Gate Targets
+
+Production readiness gates use concise `gate-*` Makefile targets as the canonical operator interface. Policy files, CI orchestration, and new documentation should reference these canonical names in `target:` fields and command examples.
+
+| Canonical target | Purpose | Backwards-compatible alias |
+|---|---|---|
+| `gate-policy` | Gate policy schema, profile, and artifact-directory validation. | `gates-validate-policy` |
+| `gate-lint` | Release lint across Python layers. | `lint-release` |
+| `gate-arch` | Architecture conformance, tenant guards, and testability checks. | `architecture-readiness-gate` |
+| `gate-security` | Release-critical tenant isolation, auth enforcement, and fail-closed security regression. | `security-readiness-gate` |
+| `gate-security-broad` | Advisory exhaustive legacy security coverage for Broad GA backlog classification. | None |
+| `gate-state` | Frontend/backend state alignment and workflow type consistency. | None |
+| `gate-db-consistency` | Cross-store canonical PostgreSQL event replay into derived graph, vector, embedding, and object-store projections. | None |
+| `gate-db-readiness` | Production-like database readiness across migrations, rollback, drift, tenant isolation, backup/restore, cross-store replay, credentials, and alert evidence. | `db-production-readiness-gate` |
+| `gate-db-migrations` | PostgreSQL migration heads, rollback policy, and round-trip drift checks against a disposable maintenance database. | None |
+| `gate-db-dr` | PostgreSQL backup/restore production-readiness drill. | None |
+| `gate-chaos` | Dependency chaos and failure injection. | None |
+| `gate-smoke` | Cross-domain smoke tests and golden-path verification. | None |
+| `gate-agent` | Agent provenance, behavior regression, and tool-boundary checks. | None |
+| `gate-obs` | Observability, metrics, health-check, and SLO validation. | None |
+| `gate-release-policy` | Release policy compliance, deprecation checks, and version-freeze validation. | None |
+| `gate-sign-manifest` | Release artifact manifest signing. | `gates-sign-manifest` |
+| `gate-summary` | Release summary rendering. | `gates-render-summary` |
+| `gate-production` | Full policy-driven production-readiness suite plus evidence collection. | `production-readiness-gate` |
+
+Do not add new `*-readiness-gate` targets for production gates unless they are explicit aliases to a canonical `gate-*` target. Distinct database concerns must keep distinct canonical names (`gate-db-consistency`, `gate-db-readiness`, `gate-db-migrations`, or `gate-db-dr`) so similarly named targets cannot accumulate different prerequisites or recipes.
+
 
 ## Phase 0 Deliverable Criteria
 
