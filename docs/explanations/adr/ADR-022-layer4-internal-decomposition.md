@@ -1,6 +1,6 @@
-<!-- ADR-021: Layer 4 Internal Decomposition -->
+<!-- ADR-022: Layer 4 Internal Decomposition -->
 
-# ADR-021: Layer 4 Internal Decomposition
+# ADR-022: Layer 4 Internal Decomposition
 
 **Status:** Proposed  
 **Date:** May 22, 2026  
