@@ -13,6 +13,15 @@ from value_fabric.shared.error_handling.exceptions import (
     ValidationError,
 )
 
+<<<<<<< ours
+=======
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
+>>>>>>> theirs
 """Billing API routes for Stripe integration.
 
 Provides endpoints for subscription management, customer portal,
@@ -1824,4 +1833,7 @@ from .billing_webhooks import router as webhook_router
 router.include_router(webhook_router)
 router.include_router(usage_router)
 router.include_router(overage_router)
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs

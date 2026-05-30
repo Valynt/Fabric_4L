@@ -182,6 +182,13 @@ jobs:
           python scripts/ci/check_layer3_source_mirror.py | tee artifacts/layer3-source-mirror.txt
           exit ${PIPESTATUS[0]}
 
+      - name: Enforce Layer 3 Cypher tenant inventory
+        run: |
+          mkdir -p artifacts
+          python scripts/ci/check_l3_cypher_tenant_inventory.py \
+            --write-report \
+            --report artifacts/l3-cypher-tenant-inventory.json
+
       - name: Build duplicate source-tree evidence report
         run: |
           mkdir -p artifacts

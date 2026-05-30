@@ -54,6 +54,7 @@ def test_governance_middleware_installed():
 
 
 <<<<<<< ours
+<<<<<<< ours
 def test_production_startup_fails_without_auth_keys():
     """Production startup must raise RuntimeError when FABRIC_AUTH_PUBLIC_KEYS missing."""
     with patch.dict(os.environ, {
@@ -84,6 +85,8 @@ def test_public_tenant_context_exemptions_are_health_and_readiness_only():
     )
     assert _S2S_INTERNAL_PATHS.isdisjoint(_TENANT_CONTEXT_EXEMPT_PATHS)
 =======
+=======
+>>>>>>> theirs
 def _assert_auth_keys_required_for_environment(monkeypatch: pytest.MonkeyPatch, environment: str):
     monkeypatch.setenv("ENVIRONMENT", environment)
     monkeypatch.delenv("LAYER2_ENV", raising=False)
@@ -121,4 +124,7 @@ def test_development_startup_allows_missing_auth_keys(monkeypatch: pytest.Monkey
     assert _is_strict_runtime() is False
     keys_missing = not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip()
     assert keys_missing is True
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs

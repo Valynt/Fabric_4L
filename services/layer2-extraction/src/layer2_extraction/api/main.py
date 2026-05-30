@@ -191,6 +191,7 @@ app.add_middleware(
 logger.info("GovernanceMiddleware installed", component="layer2-extraction")
 
 <<<<<<< ours
+<<<<<<< ours
 # Production startup guard: fail fast if auth keys are missing.
 if _is_production_like():
     import os
@@ -203,11 +204,16 @@ if _is_production_like():
             "SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)."
         )
 =======
+=======
+>>>>>>> theirs
 # Strict-environment startup guard: fail fast if auth keys are missing.
 if _is_strict_runtime() and not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
     raise RuntimeError(
         "FABRIC_AUTH_PUBLIC_KEYS is required in strict environments for Layer 2 authentication."
     )
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 
 # Register canonical error envelope handlers from shared package

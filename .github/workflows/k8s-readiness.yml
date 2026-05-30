@@ -57,9 +57,12 @@ jobs:
 
       - name: Run Kubernetes preflight guardrails
         run: python scripts/ci/k8s_preflight.py
+<<<<<<< ours
 
       - name: Reject :latest/:main in production K8s manifests
         run: python3 scripts/ci/check_production_k8s_mutable_tags.py
+=======
+>>>>>>> theirs
 
       - name: Render overlays
         run: |

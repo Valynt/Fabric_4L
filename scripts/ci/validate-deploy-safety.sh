@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Validate that the deploy workflow contains explicit safety checks and cannot
-# proceed with a placeholder kubeconfig.
+# Validate that the deploy workflow contains explicit safety checks, real SBOM
+# verification, environment health probes, and cloud-provider kubeconfig setup.
 #
 # Usage:
 #   bash scripts/ci/validate-deploy-safety.sh
@@ -23,31 +23,87 @@ fi
 ERRORS=0
 
 # -----------------------------------------------------------------------------
-# Check 1: Deploy workflow kubeconfig step exits with error (fail-closed)
+# Check 1: Workflow does not contain known deployment placeholders.
 # -----------------------------------------------------------------------------
-echo "==> Checking deploy kubeconfig step fails closed ..."
+echo "==> Checking deploy workflow has no forbidden placeholder strings ..."
 
-if ! grep -A 5 "echo \"::error::Kubeconfig is not configured\"" "${DEPLOY_WORKFLOW}" | grep -q "exit 1"; then
-  echo "::error::Deploy workflow kubeconfig step does not exit with error (fail-closed)"
+for forbidden in \
+  "SBOM verification placeholder" \
+  "Environment health check placeholder" \
+  "Kubeconfig is not configured"; do
+  if grep -qF "${forbidden}" "${DEPLOY_WORKFLOW}"; then
+    echo "::error::Deploy workflow still contains forbidden placeholder string: ${forbidden}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+# -----------------------------------------------------------------------------
+# Check 2: SBOM verification retrieves artifacts and validates image digests.
+# -----------------------------------------------------------------------------
+echo "==> Checking SBOM artifact retrieval and digest verification ..."
+
+for required in \
+  "Download SBOM and signing artifacts" \
+  "actions/download-artifact@v4" \
+  "Verify SBOMs against deploy image digests" \
+  "deployed_digest" \
+  "cosign verify-attestation" \
+  "cosign verify-blob"; do
+  if ! grep -qF "${required}" "${DEPLOY_WORKFLOW}"; then
+    echo "::error::Deploy workflow missing SBOM verification control: ${required}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+# -----------------------------------------------------------------------------
+# Check 3: Environment health checks call API and service readiness endpoints.
+# -----------------------------------------------------------------------------
+echo "==> Checking deploy workflow has environment-specific health checks ..."
+
+for required in \
+  "Check environment health" \
+  "DEV_API_BASE_URL" \
+  "STAGING_API_BASE_URL" \
+  "PRODUCTION_API_BASE_URL" \
+  "/health/live" \
+  "/ready" \
+  "/api/v1/ingestion/health" \
+  "/layer4/health" \
+  "curl --fail"; do
+  if ! grep -qF "${required}" "${DEPLOY_WORKFLOW}"; then
+    echo "::error::Deploy workflow missing health-check control: ${required}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
+# -----------------------------------------------------------------------------
+# Check 4: Deploy and rollback configure kubeconfig through AWS/EKS OIDC.
+# -----------------------------------------------------------------------------
+echo "==> Checking cloud-provider kubeconfig setup ..."
+
+if [[ $(grep -c "Configure AWS credentials (OIDC)" "${DEPLOY_WORKFLOW}") -lt 2 ]]; then
+  echo "::error::Deploy workflow must configure AWS OIDC credentials for deploy and rollback"
   ERRORS=$((ERRORS + 1))
 fi
 
-# -----------------------------------------------------------------------------
-# Check 2: Rollback job kubeconfig step also exits with error
-# -----------------------------------------------------------------------------
-echo "==> Checking rollback kubeconfig step fails closed ..."
-
-ROLLBACK_KUBECONFIG=$(grep -n "Configure kubeconfig" "${DEPLOY_WORKFLOW}" | tail -1 | cut -d: -f1)
-if [[ -n "${ROLLBACK_KUBECONFIG}" ]]; then
-  # Check the second occurrence (rollback job) has exit 1
-  if ! sed -n "${ROLLBACK_KUBECONFIG},+20p" "${DEPLOY_WORKFLOW}" | grep -q "exit 1"; then
-    echo "::error::Rollback workflow kubeconfig step does not exit with error (fail-closed)"
-    ERRORS=$((ERRORS + 1))
-  fi
+if [[ $(grep -c "Configure kubeconfig (EKS)" "${DEPLOY_WORKFLOW}") -lt 2 ]]; then
+  echo "::error::Deploy workflow must configure EKS kubeconfig for deploy and rollback"
+  ERRORS=$((ERRORS + 1))
 fi
 
+for required in \
+  "aws eks update-kubeconfig" \
+  "AWS_DEPLOY_ROLE_ARN secret is required" \
+  "kubectl current-context is empty" \
+  "kubectl cluster-info"; do
+  if ! grep -qF "${required}" "${DEPLOY_WORKFLOW}"; then
+    echo "::error::Deploy workflow missing kubeconfig fail-closed control: ${required}"
+    ERRORS=$((ERRORS + 1))
+  fi
+done
+
 # -----------------------------------------------------------------------------
-# Check 3: Deploy workflow has cluster context confirmation
+# Check 5: Deploy workflow has cluster context confirmation.
 # -----------------------------------------------------------------------------
 echo "==> Checking deploy workflow has cluster context confirmation ..."
 
@@ -57,7 +113,7 @@ if ! grep -q "Confirm cluster context and namespace" "${DEPLOY_WORKFLOW}"; then
 fi
 
 # -----------------------------------------------------------------------------
-# Check 4: Deploy workflow rejects mutable image refs in preflight
+# Check 6: Deploy workflow rejects mutable image refs in preflight.
 # -----------------------------------------------------------------------------
 echo "==> Checking deploy workflow rejects mutable image refs ..."
 
@@ -67,7 +123,7 @@ if ! grep -q "Mutable image reference is forbidden" "${DEPLOY_WORKFLOW}"; then
 fi
 
 # -----------------------------------------------------------------------------
-# Check 5: Deploy workflow has rollback job
+# Check 7: Deploy workflow has rollback job.
 # -----------------------------------------------------------------------------
 echo "==> Checking deploy workflow has rollback job ..."
 

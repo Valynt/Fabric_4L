@@ -233,6 +233,7 @@ async def _create_entity(
                 operation_source="analytics._create_entity",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             )
             properties = dict(operation.properties or {})
             properties["entity_type"] = (
@@ -242,6 +243,8 @@ async def _create_entity(
             return {"success": True, "entity_id": entity_id}
     except Exception as e:
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             )
@@ -257,6 +260,9 @@ async def _create_entity(
             return {"success": True, "entity_id": entity_id}
     except Exception:
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -279,6 +285,7 @@ async def _update_entity(
                 operation_source="analytics._update_entity",
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             )
             await mutation.write_node(
                 "Entity", operation.entity_id, operation.properties or {}
@@ -286,6 +293,8 @@ async def _update_entity(
             return {"success": True}
     except Exception as e:
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             )
@@ -317,6 +326,9 @@ async def _update_entity(
             return {"success": False, "error": "Entity not found"}
     except Exception:
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -340,9 +352,15 @@ async def _delete_entity(
             )
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             await mutation.delete_node("Entity", operation.entity_id)
             return {"success": True}
     except Exception as e:
+=======
+            await mutation.delete_node("Entity", operation.entity_id or "")
+            return {"success": True}
+    except Exception:
+>>>>>>> theirs
 =======
             await mutation.delete_node("Entity", operation.entity_id or "")
             return {"success": True}
@@ -381,6 +399,7 @@ async def _snapshot_entity(
                 session,
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
                 "MATCH (n:Entity {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
                 {"entity_id": entity_id, "tenant_id": tenant_id},
                 tenant_id=tenant_id,
@@ -388,11 +407,16 @@ async def _snapshot_entity(
 =======
 =======
 >>>>>>> theirs
+=======
+>>>>>>> theirs
                 "MATCH (n {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
                 {"entity_id": entity_id, "tenant_id": tenant_id},
                 tenant_id=tenant_id,
                 query_name="analytics_snapshot_entity",
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -412,6 +436,7 @@ async def _restore_entity(
         async with driver.session() as session:
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             mutation = AuditedGraphMutation(
                 tenant_id=tenant_id,
                 session=session,
@@ -419,6 +444,8 @@ async def _restore_entity(
             )
             await mutation.write_node("Entity", entity_id, snapshot)
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             result = await run_validated_query(
@@ -441,6 +468,9 @@ async def _restore_entity(
                 )
                 await mutation._audit_node("RESTORE_NODE", "Entity", entity_id, snapshot)
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
@@ -456,6 +486,12 @@ async def _recreate_entity(
         async with driver.session() as session:
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
+=======
+            node_id = str(snapshot.get("id") or "")
+            if not node_id:
+                raise ValueError("snapshot id is required to recreate entity")
+>>>>>>> theirs
 =======
             node_id = str(snapshot.get("id") or "")
             if not node_id:
@@ -473,7 +509,11 @@ async def _recreate_entity(
             )
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             await mutation.write_node("Entity", str(snapshot.get("id")), snapshot)
+=======
+            await mutation.write_node("Entity", node_id, snapshot)
+>>>>>>> theirs
 =======
             await mutation.write_node("Entity", node_id, snapshot)
 >>>>>>> theirs

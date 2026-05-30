@@ -72,9 +72,13 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
 <<<<<<< ours
+<<<<<<< ours
 	@python scripts/ci/python_contract_lint.py --strict
 	@echo "→ Checking Layer 1 API main shim drift..."
 	@$(PYTHON) scripts/ci/check_layer1_api_main_shim_drift.py
+=======
+	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
+>>>>>>> theirs
 =======
 	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
 >>>>>>> theirs

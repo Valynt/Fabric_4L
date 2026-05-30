@@ -623,6 +623,7 @@ class Neo4jLoader:
         for rel_type, rels in by_type.items():
 <<<<<<< ours
 <<<<<<< ours
+<<<<<<< ours
             try:
                 mutation = AuditedGraphMutation(
                     tenant_id=validated_tenant_id,
@@ -636,6 +637,8 @@ class Neo4jLoader:
                 result = await mutation.write_relationships_batch(rel_type, triples)
                 total_loaded += result.get("count", 0)
 =======
+=======
+>>>>>>> theirs
 =======
 >>>>>>> theirs
             mutation = AuditedGraphMutation(
@@ -668,6 +671,9 @@ class Neo4jLoader:
                     )
                     total_loaded += 1
 <<<<<<< ours
+<<<<<<< ours
+>>>>>>> theirs
+=======
 >>>>>>> theirs
 =======
 >>>>>>> theirs
