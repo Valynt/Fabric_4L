@@ -48,6 +48,7 @@ profiles:
       - lint
       - arch
       - security
+      - tenant-isolation
       - security-broad
       - chaos
       - smoke
@@ -83,10 +84,18 @@ gate-definitions:
 
   security:
     target: gate-security
-    description: "Tenant isolation, RLS, auth enforcement, export access"
+    description: "Broad security regression coverage for auth, fail-closed behavior, and launch-readiness security controls"
     class: blocking
     artifact-dir: artifacts/security
     required: true
+
+  tenant-isolation:
+    target: gate-tenant-isolation
+    description: "Dedicated tenant isolation readiness signal covering cross-tenant API guards, fail-closed tenant boundaries, tenant mismatch rejection, tenant context contracts, and the cross-layer tenant isolation matrix"
+    class: blocking
+    artifact-dir: artifacts/security
+    required: true
+    artifact: artifacts/security/tenant-isolation-summary.md
 
   security-broad:
     target: gate-security-broad

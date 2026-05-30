@@ -622,8 +622,13 @@ gate-mandatory-security-regression: ## Gate: mandatory security regression suite
 	bash scripts/ci/mandatory_security_regression_gate.sh
 	@echo "✅  gate-mandatory-security-regression passed"
 
-gate-security: gate-mandatory-security-regression ## Gate: release-critical tenant isolation, auth enforcement, and fail-closed security regression
-	@echo "→ Gate: Security & Tenant Isolation — release-critical suite"
+gate-tenant-isolation: ## Gate: dedicated tenant isolation launch-readiness suite
+	@echo "→ Gate: Tenant Isolation — dedicated launch-readiness suite"
+	bash scripts/ci/tenant_isolation_readiness_gate.sh
+	@echo "✅  gate-tenant-isolation passed"
+
+gate-security: gate-mandatory-security-regression ## Gate: broader security regression coverage beyond the dedicated tenant isolation gate
+	@echo "→ Gate: Security — broader auth, fail-closed, and regression suite"
 	@echo "✅  gate-security passed"
 
 gate-security-broad: ## Advisory gate: exhaustive legacy security coverage for Broad GA backlog classification
@@ -692,7 +697,7 @@ lint-release: lint-layer1 lint-layer2 lint-layer3 lint-layer4 lint-layer5 lint-l
 gates-validate-policy: ## Validate gate policy schema, profile existence, and artifact dirs
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
-	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gates-validate-policy passed"
 
