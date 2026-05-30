@@ -155,6 +155,7 @@ PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
         "/docs",
         "/openapi.json",
         "/redoc",
+        "/v1/billing/webhook",
         "/",
     }
 )

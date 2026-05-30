@@ -422,6 +422,86 @@
           }
         }
       }
+    },
+    "/v1/billing/webhook": {
+      "post": {
+        "summary": "Stripe Webhook",
+        "description": "Receives Stripe webhook events. Authentication is performed with the Stripe-Signature HMAC header; tenant headers are not accepted as webhook authentication.",
+        "operationId": "stripe_webhook_v1_billing_webhook_post",
+        "parameters": [
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stripe-Signature"
+            },
+            "description": "Stripe webhook signature header containing timestamp and v1 HMAC signature."
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": [
+                  "id"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "description": "Stripe event id used for replay protection."
+                  },
+                  "type": {
+                    "type": "string",
+                    "description": "Stripe event type."
+                  }
+                },
+                "title": "StripeWebhookEvent"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Webhook accepted after Stripe signature verification.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "required": [
+                    "received",
+                    "event_id"
+                  ],
+                  "properties": {
+                    "received": {
+                      "type": "boolean"
+                    },
+                    "event_id": {
+                      "type": "string"
+                    }
+                  },
+                  "title": "StripeWebhookResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid Stripe webhook payload, signature, timestamp, or replayed event.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
