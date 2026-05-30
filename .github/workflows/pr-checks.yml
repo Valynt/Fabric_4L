@@ -1307,6 +1307,11 @@ jobs:
         working-directory: packages/platform-contract
         run: pnpm install --frozen-lockfile
 
+      - name: Validate Fabric_4L OpenAPI documentation
+        run: |
+          python -c "import json; json.load(open('contracts/openapi/fabric-4l-api.json'))"
+          python scripts/ci/validate_fabric_openapi_docs.py
+
       - name: Run contract and architecture tests
         run: make contract-tests
 
