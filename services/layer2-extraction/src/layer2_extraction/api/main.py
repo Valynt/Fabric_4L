@@ -38,6 +38,7 @@ from value_fabric.shared.environment import (
     is_production_like_environment,
 )
 from value_fabric.shared.secrets import load_infisical_secrets
+from value_fabric.shared.security.config import is_strict_environment
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 from layer2_extraction.api.deps import RequestContext
@@ -109,25 +110,24 @@ from value_fabric.shared.fastapi_framework import (
 )
 
 
-def _current_environment() -> str:
-    """Return the normalized runtime environment for production fail-closed policy checks."""
-    return (
-        os.getenv("ENVIRONMENT")
-        or os.getenv("APP_ENV")
-        or os.getenv("LAYER2_ENV")
-        or "development"
-    ).strip().lower()
+def _current_environment() -> str | None:
+    """Return the normalized runtime environment for auth fail-closed policy checks.
 
-
-def _is_production_like() -> bool:
-    """Return True only for the exact 'production' environment.
-
-    This changes the previous fail-safe policy to an explicit allowlist.
-    Staging and unknown/custom environments are NOT treated as production-like.
-    For safety-critical checks that must run in both production and staging,
-    use is_strict_environment() from value_fabric.shared.security.config instead.
+    Local bypass of startup auth-key enforcement is allowed only when an explicit
+    development/test environment is configured. Missing or custom environments
+    are treated as strict by ``is_strict_environment``.
     """
-    return _current_environment() == "production"
+    for key in ("LAYER2_ENV", "ENVIRONMENT", "APP_ENV"):
+        value = os.getenv(key, "").strip()
+        if value:
+            return value.lower()
+    return None
+
+
+def _is_strict_runtime() -> bool:
+    """Return whether Layer 2 must enforce strict startup safety checks."""
+    environment = _current_environment()
+    return is_strict_environment(environment or "unknown")
 
 
 # App start time for uptime calculation
@@ -190,6 +190,7 @@ app.add_middleware(
 )
 logger.info("GovernanceMiddleware installed", component="layer2-extraction")
 
+<<<<<<< ours
 # Production startup guard: fail fast if auth keys are missing.
 if _is_production_like():
     import os
@@ -201,6 +202,13 @@ if _is_production_like():
         raise RuntimeError(
             "SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)."
         )
+=======
+# Strict-environment startup guard: fail fast if auth keys are missing.
+if _is_strict_runtime() and not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip():
+    raise RuntimeError(
+        "FABRIC_AUTH_PUBLIC_KEYS is required in strict environments for Layer 2 authentication."
+    )
+>>>>>>> theirs
 
 # Register canonical error envelope handlers from shared package
 try:
@@ -313,24 +321,24 @@ _OPENAI_KEY_PLACEHOLDERS = frozenset({
 def _get_validated_openai_key() -> str | None:
     """Return the OpenAI API key from the environment, or None if absent.
 
-    Raises RuntimeError in production-like environments when:
+    Raises RuntimeError in strict environments when:
     - The key is missing entirely.
     - The key matches a known placeholder value.
     - The key does not start with the 'sk-' prefix expected by the OpenAI SDK.
     """
     key = os.getenv("OPENAI_API_KEY", "").strip()
     if not key or key.lower() in _OPENAI_KEY_PLACEHOLDERS:
-        if _is_production_like():
+        if _is_strict_runtime():
             raise RuntimeError(
                 "OPENAI_API_KEY is missing or set to a placeholder value. "
-                "A valid key is required in production-like Layer 2 environments."
+                "A valid key is required in strict Layer 2 environments."
             )
         return None
     if not key.startswith("sk-"):
-        if _is_production_like():
+        if _is_strict_runtime():
             raise RuntimeError(
                 "OPENAI_API_KEY does not start with 'sk-' — likely a misconfigured placeholder. "
-                "Refusing to start in production-like environment."
+                "Refusing to start in strict environment."
             )
         logger.warning("OPENAI_API_KEY does not start with 'sk-'; key may be invalid")
     return key
@@ -469,7 +477,7 @@ _UNSET = object()
 try:
     pending_ingestion_store: PendingIngestionStore = build_pending_ingestion_store()
 except Exception as exc:
-    if _is_production_like():
+    if _is_strict_runtime():
         logger.error("Layer 2 pending-ingestion store is required in %s: %s", _current_environment(), exc)
         raise RuntimeError(
             f"Layer 2 pending-ingestion store is required in {_current_environment()}: {exc}"

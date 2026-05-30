@@ -9,7 +9,7 @@ repo structure, change safety rules, and how to add agents, skills, and provider
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (any patch release; Python 3.11.10 is not specifically required)
 - Node.js 22+ (>=22.12.0) and pnpm 10+
 - Docker + Docker Compose
 - `make`
@@ -24,20 +24,26 @@ git clone https://github.com/bmsull560/Fabric_4L.git && cd Fabric_4L
 cp .env.example .env
 # Edit .env — fill in OPENAI_API_KEY (or LAYER4_TOGETHER_API_KEY) and JWT_SECRET at minimum
 
-# 3. Start infrastructure
+# 3. Select Python 3.11 if needed
+#    pyenv users can rely on the root .python-version series pin.
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+#    Or select any concrete installed 3.11.x patch if your pyenv does not support series aliases.
+
+# 4. Start infrastructure
 make up
 # Or directly: docker compose -f docker-compose.dev.yml up -d
 
-# 4. Install all service dev dependencies (installs into the pytest pipx venv)
+# 5. Install all service dev dependencies (installs into the pytest pipx venv)
 make setup
 
-# 5. Install frontend dependencies
+# 6. Install frontend dependencies
 pnpm --dir apps/web install
 
-# 6. Run migrations
+# 7. Run migrations
 make migrate
 
-# 7. Verify everything passes
+# 8. Verify everything passes
 make setup && make test-layer1 test-layer2 test-layer3 test-layer4 test-layer5 test-layer6
 make verify
 ```

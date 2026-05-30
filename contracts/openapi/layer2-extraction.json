@@ -1838,40 +1838,48 @@
         "type": "object",
         "title": "HTTPValidationError",
         "required": [
-          "message",
-          "code",
-          "trace_id"
+          "error"
         ],
         "additionalProperties": false,
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Machine-readable error code"
-          },
-          "trace_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Request trace ID for support correlation"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "type": "object",
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
             ],
-            "description": "Optional sanitized error details"
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
           }
         },
-        "description": "Deprecated compatibility alias for ErrorResponse. Use ErrorResponse for new clients."
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
       "ImportSchemaRequest": {
         "properties": {
@@ -2694,37 +2702,92 @@
         "type": "object",
         "title": "ErrorResponse",
         "required": [
-          "message",
-          "code",
-          "trace_id"
+          "error"
         ],
         "additionalProperties": false,
         "properties": {
-          "message": {
-            "type": "string",
-            "description": "Human-readable error message"
-          },
-          "code": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Machine-readable error code"
-          },
-          "trace_id": {
-            "type": "string",
-            "minLength": 1,
-            "description": "Request trace ID for support correlation"
-          },
-          "details": {
-            "anyOf": [
-              {
-                "type": "object",
-                "additionalProperties": true
-              },
-              {
-                "type": "null"
-              }
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
             ],
-            "description": "Optional sanitized error details"
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        },
+        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "ErrorEnvelope": {
+        "type": "object",
+        "title": "ErrorEnvelope",
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
           }
         }
       }

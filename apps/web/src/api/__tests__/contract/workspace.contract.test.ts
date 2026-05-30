@@ -160,9 +160,11 @@ describe('Contract: Workspace Tab API', () => {
       assertSchema(
         ApiErrorSchema,
         {
-          message: 'Authentication required',
-          code: 'AUTHENTICATION_ERROR',
-          trace_id: 'trace-workspace-401',
+          error: {
+            message: 'Authentication required',
+            code: 'AUTHENTICATION_ERROR',
+            request_id: 'trace-workspace-401',
+          },
         },
         'workspace auth failure response'
       );
@@ -170,9 +172,11 @@ describe('Contract: Workspace Tab API', () => {
       assertSchema(
         ApiErrorSchema,
         {
-          message: 'Invalid tab_key. Must be one of the allowed workspace tabs.',
-          code: 'VALIDATION_ERROR',
-          trace_id: 'trace-workspace-400',
+          error: {
+            message: 'Invalid tab_key. Must be one of the allowed workspace tabs.',
+            code: 'VALIDATION_ERROR',
+            request_id: 'trace-workspace-400',
+          },
         },
         'workspace invalid-tab error response'
       );
@@ -229,7 +233,7 @@ describe('Contract: Workspace Tab API', () => {
     it('401 matches ApiError shape', () => {
       assertSchema(
         ApiErrorSchema,
-        { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-ws-401' },
+        { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-ws-401' } },
         'ApiError (401 workspace)'
       );
     });
@@ -237,20 +241,20 @@ describe('Contract: Workspace Tab API', () => {
     it('403 cross-tenant workspace access matches ApiError shape', () => {
       const err = assertSchema(
         ApiErrorSchema,
-        { message: 'Case does not belong to your tenant', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-ws-403' },
+        { error: { message: 'Case does not belong to your tenant', code: 'AUTHORIZATION_ERROR', request_id: 'trace-ws-403' } },
         'ApiError (403 workspace)'
       );
-      expect(err.code).toBe('AUTHORIZATION_ERROR');
-      expect(err.trace_id).toBeTruthy();
+      expect(err.error.code).toBe('AUTHORIZATION_ERROR');
+      expect(err.error.request_id).toBeTruthy();
     });
 
     it('404 case not found matches ApiError shape', () => {
       const err = assertSchema(
         ApiErrorSchema,
-        { message: 'Case not found', code: 'NOT_FOUND', trace_id: 'trace-ws-404' },
+        { error: { message: 'Case not found', code: 'NOT_FOUND', request_id: 'trace-ws-404' } },
         'ApiError (404 workspace)'
       );
-      expect(err.code).toBe('NOT_FOUND');
+      expect(err.error.code).toBe('NOT_FOUND');
     });
   });
 
@@ -291,9 +295,11 @@ describe('Contract: Workspace Tab API', () => {
       assertSchema(
         ApiErrorSchema,
         {
-          message: 'Workspace intelligence generation requires the production AI workflow integration and will not return sample data.',
-          code: 'not_implemented',
-          trace_id: 'trace-workspace-501',
+          error: {
+            message: 'Workspace intelligence generation requires the production AI workflow integration and will not return sample data.',
+            code: 'not_implemented',
+            request_id: 'trace-workspace-501',
+          },
         },
         'workspace generation fail-closed response'
       );

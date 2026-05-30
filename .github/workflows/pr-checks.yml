@@ -38,6 +38,11 @@ jobs:
         run: |
           git fetch --no-tags --prune origin "${{ github.base_ref || 'main' }}"
 
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: '3.11'
+
       - name: Enforce frontend root policy (apps/web only)
         run: |
           python scripts/ci/check_frontend_root_policy.py --base-ref "origin/${{ github.base_ref || 'main' }}"
@@ -54,15 +59,10 @@ jobs:
           python .github/scripts/enforce_secret_store_security.py
 
       - name: Validate workflow target/artifact references
-        run: python3 scripts/ci/check_workflow_targets_and_artifacts.py
+        run: python scripts/ci/check_workflow_targets_and_artifacts.py
 
       - name: Enforce ADR numbering policy
         run: python scripts/ci/check_adr_numbering.py
-
-      - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
-        with:
-          python-version: '3.11'
 
       - name: Enforce production alert metadata (runbook + on-call owner)
         run: |
@@ -120,7 +120,7 @@ jobs:
       - name: Enforce graph storage encryption policy
         run: |
           pip install pyyaml
-          python3 scripts/ci/check_graph_storage_encryption.py
+          python scripts/ci/check_graph_storage_encryption.py
 
       - name: Check for dev auth bypass in production compose files
         run: |
@@ -256,7 +256,7 @@ jobs:
       - name: Run webhook security matrix and build report artifact
         run: |
           pip install pytest
-          python3 scripts/ci/webhook_security_matrix_report.py
+          python scripts/ci/webhook_security_matrix_report.py
 
       - name: Tenant boundary static runtime enforcement
         run: |

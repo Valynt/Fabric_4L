@@ -46,12 +46,15 @@ export type LayerKey = z.infer<typeof LayerKeySchema>;
 /** API path validation - must start with / */
 const ApiPathSchema = z.string().regex(/^\//, 'API path must start with /');
 
-/** Backend error response schema - replaces unsafe `as ErrorResponse` */
+/** Backend error response schema - canonical ErrorEnvelope plus legacy FastAPI detail fallback. */
 const ErrorResponseSchema = z.object({
-  message: z.string().optional(),
-  code: z.string().optional(),
-  trace_id: z.string().optional(),
-  // FastAPI validation errors use `detail` — may be a string or array of issues
+  error: z.object({
+    code: z.string().min(1),
+    message: z.string(),
+    request_id: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }).optional(),
+  // FastAPI validation errors use `detail` when a service has not installed the shared handler.
   detail: z.union([
     z.string(),
     z.array(z.object({ loc: z.array(z.unknown()), msg: z.string(), type: z.string() })),
@@ -337,7 +340,7 @@ class ApiClient {
             (typeof error.response?.headers['x-request-id'] === 'string'
               ? error.response.headers['x-request-id']
               : null) ??
-            errorData.trace_id ??
+            errorData.error?.request_id ??
             null;
 
           if (error.response?.status === 401) {
@@ -349,7 +352,7 @@ class ApiClient {
             url: error.config?.url,
             method: error.config?.method,
             status: error.response?.status,
-            errorCode: errorData.code,
+            errorCode: errorData.error?.code,
             traceId,
             message: error.message,
           });
@@ -358,9 +361,9 @@ class ApiClient {
           // Prefer `detail` (FastAPI format) over generic `message` for richer error messages.
           const detailMessage = extractDetailMessage(errorData.detail);
           const apiError = new ApiError(
-            detailMessage ?? errorData.message ?? error.message ?? 'API request failed',
+            detailMessage ?? errorData.error?.message ?? error.message ?? 'API request failed',
             error.response?.status ?? 500,
-            errorData.code ?? 'INTERNAL_ERROR',
+            errorData.error?.code ?? 'INTERNAL_ERROR',
             traceId
           );
 

@@ -1,8 +1,8 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Value Fabric — Ground Truth Layer (L5)",
-    "description": "Evidence-backed, CFO-defensible facts for the Value Fabric platform. Provides a validation state machine (extracted → supported → corroborated → approved), a 0–5 maturity ladder, and bidirectional integration with the Layer 3 Knowledge Graph.",
+    "title": "Value Fabric \u2014 Ground Truth Layer (L5)",
+    "description": "Evidence-backed, CFO-defensible facts for the Value Fabric platform. Provides a validation state machine (extracted \u2192 supported \u2192 corroborated \u2192 approved), a 0\u20135 maturity ladder, and bidirectional integration with the Layer 3 Knowledge Graph.",
     "contact": {
       "name": "Value Fabric Engineering",
       "url": "https://github.com/bmsull560/Fabric_4L"
@@ -106,10 +106,10 @@
                   "type": "null"
                 }
               ],
-              "description": "Minimum maturity level (0–5)",
+              "description": "Minimum maturity level (0\u20135)",
               "title": "Min Maturity"
             },
-            "description": "Minimum maturity level (0–5)"
+            "description": "Minimum maturity level (0\u20135)"
           },
           {
             "name": "min_confidence",
@@ -618,7 +618,7 @@
           "ground-truth"
         ],
         "summary": "Get maturity ladder definition",
-        "description": "Returns the full 0–5 maturity ladder with descriptions and advancement criteria.",
+        "description": "Returns the full 0\u20135 maturity ladder with descriptions and advancement criteria.",
         "operationId": "get_maturity_ladder_api_v1_maturity_ladder_get",
         "responses": {
           "200": {
@@ -1503,7 +1503,7 @@
             "maximum": 1,
             "minimum": 0,
             "title": "Confidence Contribution",
-            "description": "Contribution to overall confidence (0.0–1.0)",
+            "description": "Contribution to overall confidence (0.0\u20131.0)",
             "default": 0
           },
           "source_date": {
@@ -1795,7 +1795,7 @@
           "levels"
         ],
         "title": "MaturityLadderResponse",
-        "description": "Reference endpoint — returns the full maturity ladder definition."
+        "description": "Reference endpoint \u2014 returns the full maturity ladder definition."
       },
       "MaturityLevelDetail": {
         "properties": {
@@ -3036,7 +3036,7 @@
             },
             "type": "array",
             "title": "Sources",
-            "description": "Initial evidence sources (optional — can be added later via POST /truths/{id}/sources)"
+            "description": "Initial evidence sources (optional \u2014 can be added later via POST /truths/{id}/sources)"
           }
         },
         "type": "object",
@@ -3045,7 +3045,7 @@
           "confidence"
         ],
         "title": "TruthObjectCreate",
-        "description": "Schema for POST /truths — create a new TruthObject.\n\nThe tenant_id is injected from the auth context in the router;\nit is not accepted from the request body."
+        "description": "Schema for POST /truths \u2014 create a new TruthObject.\n\nThe tenant_id is injected from the auth context in the router;\nit is not accepted from the request body."
       },
       "TruthObjectListResponse": {
         "properties": {
@@ -3541,7 +3541,7 @@
             "maximum": 1,
             "minimum": 0,
             "title": "Confidence Contribution",
-            "description": "Contribution to overall confidence (0.0–1.0)",
+            "description": "Contribution to overall confidence (0.0\u20131.0)",
             "default": 0
           },
           "source_date": {
@@ -3645,7 +3645,7 @@
             "maximum": 1,
             "minimum": 0,
             "title": "Confidence Contribution",
-            "description": "Contribution to overall confidence (0.0–1.0)",
+            "description": "Contribution to overall confidence (0.0\u20131.0)",
             "default": 0
           },
           "source_date": {
@@ -3721,7 +3721,7 @@
           "expired"
         ],
         "title": "TruthStatus",
-        "description": "Truth lifecycle state machine — aligned with target trust-governance taxonomy.\n\nTransitions:\n  proposed → validated | disputed | rejected\n  validated → disputed | superseded | expired\n  disputed → validated | rejected\n  rejected → (terminal)\n  superseded → (terminal)\n  expired → (terminal)"
+        "description": "Truth lifecycle state machine \u2014 aligned with target trust-governance taxonomy.\n\nTransitions:\n  proposed \u2192 validated | disputed | rejected\n  validated \u2192 disputed | superseded | expired\n  disputed \u2192 validated | rejected\n  rejected \u2192 (terminal)\n  superseded \u2192 (terminal)\n  expired \u2192 (terminal)"
       },
       "TruthValue": {
         "properties": {
@@ -3859,7 +3859,7 @@
           "actor"
         ],
         "title": "ValidateRequest",
-        "description": "Schema for POST /truths/{id}/validate — trigger a state transition.\n\naction values:\n  validate         — PROPOSED → VALIDATED (requires evidence + actor)\n  dispute          — ANY → DISPUTED (requires dispute_reason)\n  resolve_dispute  — DISPUTED → VALIDATED\n  reject           — PROPOSED|DISPUTED → REJECTED (requires rejection_reason)\n  supersede        — VALIDATED → SUPERSEDED (requires superseded_by_id)\n  operationalize   — VALIDATED → maturity 5 (status stays VALIDATED)"
+        "description": "Schema for POST /truths/{id}/validate \u2014 trigger a state transition.\n\naction values:\n  validate         \u2014 PROPOSED \u2192 VALIDATED (requires evidence + actor)\n  dispute          \u2014 ANY \u2192 DISPUTED (requires dispute_reason)\n  resolve_dispute  \u2014 DISPUTED \u2192 VALIDATED\n  reject           \u2014 PROPOSED|DISPUTED \u2192 REJECTED (requires rejection_reason)\n  supersede        \u2014 VALIDATED \u2192 SUPERSEDED (requires superseded_by_id)\n  operationalize   \u2014 VALIDATED \u2192 maturity 5 (status stays VALIDATED)"
       },
       "ValidateResponse": {
         "properties": {

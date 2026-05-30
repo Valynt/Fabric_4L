@@ -177,30 +177,30 @@ describe('Contract: C1 stream auth failures', () => {
   it('401 before stream opens matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-c1-401' },
+      { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-c1-401' } },
       'ApiError (401 pre-stream)'
     );
-    expect(err.message).toBeTruthy();
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.message).toBeTruthy();
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('403 when tenant lacks C1 entitlement matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'C1 feature not available on current plan', code: 'FEATURE_NOT_ENTITLED', trace_id: 'trace-c1-403' },
+      { error: { message: 'C1 feature not available on current plan', code: 'FEATURE_NOT_ENTITLED', request_id: 'trace-c1-403' } },
       'ApiError (403 entitlement)'
     );
-    expect(err.code).toBe('FEATURE_NOT_ENTITLED');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('FEATURE_NOT_ENTITLED');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('404 when business_case_id does not exist in tenant matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Business case not found', code: 'NOT_FOUND', trace_id: 'trace-c1-404' },
+      { error: { message: 'Business case not found', code: 'NOT_FOUND', request_id: 'trace-c1-404' } },
       'ApiError (404 case)'
     );
-    expect(err.code).toBe('NOT_FOUND');
+    expect(err.error.code).toBe('NOT_FOUND');
   });
 });
 

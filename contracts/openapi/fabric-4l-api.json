@@ -10059,8 +10059,7 @@
                 ],
                 "description": "Optional sanitized error details"
               }
-            },
-            "description": "Error value for Httpvalidation Error."
+            }
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
@@ -12501,11 +12500,9 @@
                 ],
                 "description": "Optional sanitized error details"
               }
-            },
-            "description": "Error value for Error Envelope."
+            }
           }
-        },
-        "description": "Error Envelope model used by the Fabric_4L production API. Fields are tenant-scoped where tenant_id or account_id is present and are validated according to this OpenAPI schema."
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -12549,8 +12546,7 @@
                 ],
                 "description": "Optional sanitized error details"
               }
-            },
-            "description": "Error value for Error Response."
+            }
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."

@@ -134,28 +134,32 @@ describe('Contract: accounts create auth failures', () => {
     const err = assertSchema(
       ApiErrorSchema,
       {
-        message: 'Authentication required',
-        code: 'AUTHENTICATION_ERROR',
-        trace_id: 'trace-account-create-401',
+        error: {
+          message: 'Authentication required',
+          code: 'AUTHENTICATION_ERROR',
+          request_id: 'trace-account-create-401',
+        },
       },
       'ApiError (401 account create)'
     );
 
-    expect(err.code).toBe('AUTHENTICATION_ERROR');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('AUTHENTICATION_ERROR');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('403 cross-tenant account creation matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
       {
-        message: 'Tenant is not authorized to create this account',
-        code: 'AUTHORIZATION_ERROR',
-        trace_id: 'trace-account-create-403',
+        error: {
+          message: 'Tenant is not authorized to create this account',
+          code: 'AUTHORIZATION_ERROR',
+          request_id: 'trace-account-create-403',
+        },
       },
       'ApiError (403 account create)'
     );
 
-    expect(err.code).toBe('AUTHORIZATION_ERROR');
+    expect(err.error.code).toBe('AUTHORIZATION_ERROR');
   });
 });

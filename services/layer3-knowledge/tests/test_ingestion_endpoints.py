@@ -1,11 +1,129 @@
 """Integration tests for ingestion endpoints."""
 
 
+from types import SimpleNamespace
+
 import pytest
+from fastapi import FastAPI, Request
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
 
+from value_fabric.shared.error_handling.handlers import register_exception_handlers
+
 from conftest import TestUtils
+
+
+class TenantScopedSyncManager:
+    """Small in-memory sync manager that only returns data for the caller tenant."""
+
+    def __init__(self):
+        self.records = {
+            ("tenant-a", "source-a"): {
+                "source_id": "source-a",
+                "last_extraction_job_id": "job-a",
+                "content_hash": "hash-a",
+                "synced_at": "2024-01-01T00:00:00Z",
+                "status": "synced",
+                "error": None,
+            },
+            ("tenant-b", "source-b"): {
+                "source_id": "source-b",
+                "last_extraction_job_id": "job-b",
+                "content_hash": "hash-b",
+                "synced_at": "2024-01-02T00:00:00Z",
+                "status": "synced",
+                "error": None,
+            },
+        }
+        self.deleted = []
+        self.status_calls = []
+        self.delete_calls = []
+
+    async def get_sync_status(self, source_id: str, tenant_id: str | None):
+        self.status_calls.append((source_id, tenant_id))
+        return self.records.get((tenant_id, source_id))
+
+    async def delete_source(self, source_id: str, tenant_id: str | None):
+        self.delete_calls.append((source_id, tenant_id))
+        key = (tenant_id, source_id)
+        if key not in self.records:
+            return {"entities_deleted": 0, "relationships_deleted": 0}
+
+        del self.records[key]
+        self.deleted.append(key)
+        return {"entities_deleted": 3, "relationships_deleted": 4}
+
+
+@pytest.fixture
+def tenant_scoped_ingestion_app():
+    """Build a minimal app that mirrors authenticated request context extraction."""
+    from api.routes import ingestion
+
+    app = FastAPI()
+    manager = TenantScopedSyncManager()
+
+    @app.middleware("http")
+    async def authenticated_context_middleware(request: Request, call_next):
+        tenant_id = request.headers.get("x-test-tenant")
+        if tenant_id:
+            request.state.context = SimpleNamespace(tenant_id=tenant_id)
+        return await call_next(request)
+
+    app.dependency_overrides[ingestion.get_sync_manager] = lambda: manager
+    app.include_router(ingestion.router)
+    register_exception_handlers(app)
+    return app, manager
+
+
+class TestIngestionTenantIsolation:
+    """Hostile tenant regression coverage for ingestion metadata endpoints."""
+
+    @pytest.mark.parametrize(
+        ("method", "path"),
+        [
+            ("get", "/v1/ingest/status/source-a"),
+            ("delete", "/v1/ingest/source-a"),
+        ],
+    )
+    def test_missing_auth_context_returns_401(
+        self, tenant_scoped_ingestion_app, method, path
+    ):
+        app, manager = tenant_scoped_ingestion_app
+
+        with TestClient(app) as client:
+            response = getattr(client, method)(path)
+
+        assert response.status_code == 401
+        assert manager.status_calls == []
+        assert manager.delete_calls == []
+
+    def test_tenant_a_cannot_read_tenant_b_sync_metadata(self, tenant_scoped_ingestion_app):
+        app, manager = tenant_scoped_ingestion_app
+
+        with TestClient(app) as client:
+            response = client.get(
+                "/v1/ingest/status/source-b",
+                headers={"x-test-tenant": "tenant-a"},
+            )
+
+        assert response.status_code == 404
+        assert manager.status_calls == [("source-b", "tenant-a")]
+
+    def test_tenant_a_cannot_delete_tenant_b_source_data(self, tenant_scoped_ingestion_app):
+        app, manager = tenant_scoped_ingestion_app
+
+        with TestClient(app) as client:
+            response = client.delete(
+                "/v1/ingest/source-b",
+                headers={"x-test-tenant": "tenant-a"},
+            )
+
+        assert response.status_code == 200
+        assert response.json()["entities_deleted"] == 0
+        assert response.json()["relationships_deleted"] == 0
+        assert manager.delete_calls == [("source-b", "tenant-a")]
+        assert ("tenant-b", "source-b") in manager.records
+        assert ("tenant-b", "source-b") not in manager.deleted
 
 
 class TestIngestionEndpoints:

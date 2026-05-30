@@ -22,7 +22,7 @@ def map_exception_to_http_contract(
     """Map shared exceptions to Layer 5 canonical HTTP handler envelope."""
     return {
         "error": {
-            "code": str(exc.error_code),
+            "code": exc.error_code.value,
             "message": exc.message,
             "request_id": request_id,
             "details": None,

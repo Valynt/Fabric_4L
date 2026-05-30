@@ -9,20 +9,20 @@ import {
   ExtractionStatusSchema,
 } from './_helpers';
 
-describe('Contract Domain Coverage: auth', () => {
+describe('Contract Domain Coverage: auth failures', () => {
   it('accepts canonical auth failure payload', () => {
     assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'UNAUTHORIZED', trace_id: 'trace-auth-1' },
+      { error: { message: 'Authentication required', code: 'UNAUTHORIZED', request_id: 'trace-auth-1' } },
       'Auth error payload'
     );
   });
 
-  it('rejects auth failure payload missing trace_id', () => {
+  it('rejects auth failure payload missing request_id', () => {
     assertSchemaRejects(
       ApiErrorSchema,
       { message: 'Authentication required', code: 'UNAUTHORIZED' },
-      'Auth error without trace_id'
+      'Auth error without request_id'
     );
   });
 });
@@ -55,7 +55,7 @@ describe('Contract Domain Coverage: admin', () => {
   it('accepts cross-tenant authorization error shape', () => {
     assertSchema(
       CrossTenantErrorSchema,
-      { message: 'Forbidden', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-admin-1' },
+      { error: { message: 'Forbidden', code: 'AUTHORIZATION_ERROR', request_id: 'trace-admin-1' } },
       'Admin cross-tenant authorization error'
     );
   });

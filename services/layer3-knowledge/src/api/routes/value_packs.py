@@ -1,4 +1,11 @@
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -35,6 +42,7 @@ from ...api.routes._utils import get_tenant_id_from_api_key, increment_patch_ver
 from ...api.routes.formulas import evaluate_expression
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key
+from .value_packs_mapping import build_pack_detail_from_record, build_valuepack_response
 from ...db.driver import get_driver
 from ...db.audited_mutation import AuditedGraphMutation
 from ...db.query_execution import run_validated_query
@@ -58,9 +66,11 @@ class _build_fork_paramsResult(TypedDictModel):
     version: Any
     workspace_id: Any
 
+
 class seed_valuepack_dataResult(TypedDictModel):
     industry_id: Any
     status: str
+
 
 logger = get_logger(__name__)
 
@@ -123,7 +133,7 @@ DEFAULT_PAGE_SIZE = 50
 
 # Pack ID validation regex: allows UUIDs OR slug-style IDs (alphanumeric, hyphens, underscores)
 # Examples: "manufacturing-v1", "life-sciences-v1", "550e8400-e29b-41d4-a716-446655440000"
-VALID_PACK_ID_PATTERN = re.compile(r'^[a-zA-Z0-9_-]+$')
+VALID_PACK_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]+$")
 MAX_PACK_ID_LENGTH = 128
 
 
@@ -137,10 +147,14 @@ def _validate_pack_id(pack_id: str) -> None:
         HTTPException: 400 if pack_id format is invalid or too long.
     """
     if not pack_id:
-        raise ValidationError(message = "pack_id is required")
+        raise ValidationError(message="pack_id is required")
 
     if len(pack_id) > MAX_PACK_ID_LENGTH:
-        raise ValidationError(message = str(f"pack_id exceeds maximum length ({MAX_PACK_ID_LENGTH} chars): {pack_id[:50]}..."))
+        raise ValidationError(
+            message=str(
+                f"pack_id exceeds maximum length ({MAX_PACK_ID_LENGTH} chars): {pack_id[:50]}..."
+            )
+        )
 
     # Check if it's a valid UUID
     try:
@@ -151,7 +165,12 @@ def _validate_pack_id(pack_id: str) -> None:
 
     # Check slug format (alphanumeric, hyphens, underscores)
     if not VALID_PACK_ID_PATTERN.match(pack_id):
-        raise ValidationError(message = str(f"Invalid pack_id format: {pack_id}. Must be UUID or slug-style (alphanumeric, hyphens, underscores)."))
+        raise ValidationError(
+            message=str(
+                f"Invalid pack_id format: {pack_id}. Must be UUID or slug-style (alphanumeric, hyphens, underscores)."
+            )
+        )
+
 
 router = APIRouter()
 
@@ -354,11 +373,15 @@ async def _update_relationships(
         found_ids = set(record["found_ids"]) if record else set()
         missing = set(target_ids) - found_ids
         if missing:
-            raise ValidationError(message = str(f"{target_label} IDs not found: {sorted(missing)}"))
+            raise ValidationError(
+                message=str(f"{target_label} IDs not found: {sorted(missing)}")
+            )
 
     # Phase 1 hardening: Use AuditedGraphMutation for all relationship writes
     if not tenant_id:
-        raise AuthorizationError(message="Tenant context is required for relationship mutations")
+        raise AuthorizationError(
+            message="Tenant context is required for relationship mutations"
+        )
     mutation = AuditedGraphMutation(
         tenant_id=tenant_id,
         session=tx,
@@ -374,7 +397,9 @@ async def _update_relationships(
     MATCH (vp)-[r:{rel_type}]->(t)
     RETURN t.id as target_id
     """
-    existing_result = await run_validated_query(tx, existing_query, pack_id=pack_id, tenant_id=tenant_id)
+    existing_result = await run_validated_query(
+        tx, existing_query, pack_id=pack_id, tenant_id=tenant_id
+    )
     existing_records = await existing_result.data()
     for record in existing_records:
         await mutation.delete_relationship(pack_id, rel_type, record["target_id"])
@@ -408,72 +433,20 @@ async def _get_pack_detail(
     """
 
     async with driver.session() as session:
-        result = await run_validated_query(session, query, pack_id=pack_id, tenant_id=tenant_id)
+        result = await run_validated_query(
+            session, query, pack_id=pack_id, tenant_id=tenant_id
+        )
         record = await result.single()
 
         if not record:
             return None
 
-        vp = record["vp"]
-
-        drivers = [
-            ValueDriverSummary(
-                driver_id=d["id"],
-                name=d.get("name", ""),
-                category=d.get("category", ""),
-                weight=1.0,
-            )
-            for d in record["drivers"]
-            if d
-        ]
-
-        formulas = [
-            FormulaSummary(
-                formula_id=f["id"],
-                name=f.get("name", ""),
-                version=f.get("version", DEFAULT_VERSION),
-                variables=f.get("variables", []),
-            )
-            for f in record["formulas"]
-            if f
-        ]
-
-        benchmarks = [
-            BenchmarkSummary(
-                dataset_id=b["id"],
-                metric=b.get("metric", ""),
-                industry=b.get("industry", ""),
-            )
-            for b in record["benchmarks"]
-            if b
-        ]
-
-        return PackDetail(
-            pack_id=vp["id"],
-            name=vp.get("name", ""),
-            description=vp.get("description", ""),
-            industry=vp.get("industry", ""),
-            segment=vp.get("segment"),
-            status=vp.get("status", "draft"),
-            version=vp.get("version", DEFAULT_VERSION),
-            drivers=drivers,
-            formulas=formulas,
-            benchmarks=benchmarks,
-            created_at=vp.get("createdAt", datetime.now(UTC).isoformat()),
-            updated_at=vp.get("updatedAt"),
-            created_by=vp.get("createdBy"),
-            workspace_id=vp.get("workspaceId"),
-            is_loaded=vp.get("isLoaded", False),
-            workflow_count=record["workflow_count"],
-            scope=vp.get("scope", "global"),
-            category=vp.get("category"),
-        )
+        return build_pack_detail_from_record(record)
 
 
 # API Endpoints
 
 
-@router.get("/packs", response_model=list[PackSummary])
 async def list_packs(
     industry: str | None = None,
     status: str | None = None,
@@ -506,7 +479,9 @@ async def list_packs(
         )
         params["search"] = search
 
-    where_clause = " AND ".join(where_clauses)  # cypher-dynamic-safe: where_clauses are hardcoded literals
+    where_clause = " AND ".join(
+        where_clauses
+    )  # cypher-dynamic-safe: where_clauses are hardcoded literals
 
     # SECURITY: All related nodes filtered by tenant_id
     query = f"""
@@ -552,7 +527,6 @@ async def list_packs(
         ]
 
 
-@router.get("/packs/{pack_id}", response_model=PackDetail)
 async def get_pack(
     pack_id: str,
     driver: AsyncDriver = Depends(get_driver),
@@ -566,11 +540,10 @@ async def get_pack(
 
     pack = await _get_pack_detail(driver, pack_id, tenant_id)
     if not pack:
-        raise NotFoundError(message = "Pack not found")
+        raise NotFoundError(message="Pack not found")
     return pack
 
 
-@router.post("/packs", response_model=PackDetail, status_code=201)
 async def create_pack(
     request: PackCreateRequest,
     driver: AsyncDriver = Depends(get_driver),
@@ -622,7 +595,8 @@ async def create_pack(
 
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
-            result = await run_validated_query(tx,
+            result = await run_validated_query(
+                tx,
                 query,
                 pack_id=pack_id,
                 name=request.name,
@@ -733,7 +707,9 @@ def _build_update_params(
 
 
 async def _update_pack_relationships(
-    tx, pack_id: str, request: PackCreateRequest | PackUpdateRequest,
+    tx,
+    pack_id: str,
+    request: PackCreateRequest | PackUpdateRequest,
     tenant_id: str | None = None,
     request_id: str | None = None,
     account_id: str | None = None,
@@ -746,22 +722,39 @@ async def _update_pack_relationships(
     """
     if request.driver_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasDriver", "ValueDriver", request.driver_ids, tenant_id,
-            request_id=request_id, account_id=account_id
+            tx,
+            pack_id,
+            "hasDriver",
+            "ValueDriver",
+            request.driver_ids,
+            tenant_id,
+            request_id=request_id,
+            account_id=account_id,
         )
     if request.formula_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasFormula", "Formula", request.formula_ids, tenant_id,
-            request_id=request_id, account_id=account_id
+            tx,
+            pack_id,
+            "hasFormula",
+            "Formula",
+            request.formula_ids,
+            tenant_id,
+            request_id=request_id,
+            account_id=account_id,
         )
     if request.benchmark_ids is not None:
         await _update_relationships(
-            tx, pack_id, "hasBenchmark", "BenchmarkDataset", request.benchmark_ids, tenant_id,
-            request_id=request_id, account_id=account_id
+            tx,
+            pack_id,
+            "hasBenchmark",
+            "BenchmarkDataset",
+            request.benchmark_ids,
+            tenant_id,
+            request_id=request_id,
+            account_id=account_id,
         )
 
 
-@router.put("/packs/{pack_id}", response_model=PackDetail)
 async def update_pack(
     pack_id: str,
     request: PackUpdateRequest,
@@ -778,9 +771,11 @@ async def update_pack(
     # SECURITY: Verify pack exists with tenant scoping
     check_query = "MATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id}) RETURN vp"
     async with driver.session() as session:
-        result = await run_validated_query(session, check_query, pack_id=pack_id, tenant_id=tenant_id)
+        result = await run_validated_query(
+            session, check_query, pack_id=pack_id, tenant_id=tenant_id
+        )
         if not await result.single():
-            raise NotFoundError(message = "Pack not found")
+            raise NotFoundError(message="Pack not found")
 
     # Build and execute update
     set_clauses, params = _build_update_params(request, pack_id)
@@ -795,10 +790,24 @@ async def update_pack(
         async with session.begin_transaction() as tx:
             await run_validated_query(tx, update_query, **params)
             # Phase 1 hardening: Pass request context for audit trail
-            request_id = getattr(fastapi_request.state, "request_id", None) if fastapi_request else None
-            account_id = getattr(fastapi_request.state, "account_id", None) if fastapi_request else None
-            await _update_pack_relationships(tx, pack_id, request, tenant_id,
-                                          request_id=request_id, account_id=account_id)
+            request_id = (
+                getattr(fastapi_request.state, "request_id", None)
+                if fastapi_request
+                else None
+            )
+            account_id = (
+                getattr(fastapi_request.state, "account_id", None)
+                if fastapi_request
+                else None
+            )
+            await _update_pack_relationships(
+                tx,
+                pack_id,
+                request,
+                tenant_id,
+                request_id=request_id,
+                account_id=account_id,
+            )
 
         # Re-query for consistent view with relationships
         pack = await _get_pack_detail(driver, pack_id, tenant_id)
@@ -823,7 +832,9 @@ async def _get_pack_formulas(
            f.name as name
     """
     async with driver.session() as session:
-        result = await run_validated_query(session, query, pack_id=pack_id, tenant_id=tenant_id)
+        result = await run_validated_query(
+            session, query, pack_id=pack_id, tenant_id=tenant_id
+        )
         records = await result.data()
         return records
 
@@ -885,7 +896,6 @@ def _merge_variables(
     return merged
 
 
-@router.post("/packs/{pack_id}/execute", response_model=PackExecuteResponse)
 async def execute_pack(
     pack_id: str,
     request: PackExecuteRequest,
@@ -906,7 +916,7 @@ async def execute_pack(
     pack_formulas = await _get_pack_formulas(driver, pack_id, tenant_id)
 
     if not pack_formulas:
-        raise ValidationError(message = str(f"Pack {pack_id} has no formulas to execute"))
+        raise ValidationError(message=str(f"Pack {pack_id} has no formulas to execute"))
 
     # Create execution record
     create_query = """
@@ -927,7 +937,8 @@ async def execute_pack(
     """
 
     async with driver.session() as session:
-        result = await run_validated_query(session,
+        result = await run_validated_query(
+            session,
             create_query,
             pack_id=pack_id,
             execution_id=execution_id,
@@ -996,7 +1007,8 @@ async def execute_pack(
 
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
-            await run_validated_query(tx,
+            await run_validated_query(
+                tx,
                 complete_query,
                 execution_id=execution_id,
                 status=execution_status,
@@ -1025,10 +1037,12 @@ async def _get_original_pack(
     """
     query = "// strict-scoped-query-execution: fork source pack is tenant-scoped\nMATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id}) RETURN vp"
     async with driver.session() as session:
-        result = await run_validated_query(session, query, pack_id=pack_id, tenant_id=tenant_id)
+        result = await run_validated_query(
+            session, query, pack_id=pack_id, tenant_id=tenant_id
+        )
         record = await result.single()
         if not record:
-            raise NotFoundError(message = "Pack not found")
+            raise NotFoundError(message="Pack not found")
         return record["vp"]
 
 
@@ -1044,24 +1058,24 @@ def _build_fork_params(
     name = request.name or f"{orig.get('name', 'Unnamed')} (Fork)"
     now = datetime.now(UTC).isoformat()
 
-    return _build_fork_paramsResult.model_validate({
-        "old_pack_id": orig["id"],
-        "new_pack_id": new_pack_id,
-        "name": name,
-        "description": orig.get("description", ""),
-        "industry": orig.get("industry", ""),
-        "segment": orig.get("segment"),
-        "version": new_version,
-        "status": STATUS_DRAFT,
-        "workspace_id": request.workspace_id,
-        "created_at": now,
-        "created_by": request.user_id,
-    })
+    return _build_fork_paramsResult.model_validate(
+        {
+            "old_pack_id": orig["id"],
+            "new_pack_id": new_pack_id,
+            "name": name,
+            "description": orig.get("description", ""),
+            "industry": orig.get("industry", ""),
+            "segment": orig.get("segment"),
+            "version": new_version,
+            "status": STATUS_DRAFT,
+            "workspace_id": request.workspace_id,
+            "created_at": now,
+            "created_by": request.user_id,
+        }
+    )
 
 
-async def _execute_fork(
-    driver: AsyncDriver, params: dict[str, Any]
-) -> dict[str, Any]:
+async def _execute_fork(driver: AsyncDriver, params: dict[str, Any]) -> dict[str, Any]:
     """Execute fork creation in Neo4j.
 
     Creates new pack with relationships copied from original.
@@ -1114,7 +1128,6 @@ async def _execute_fork(
         return record["new"]
 
 
-@router.post("/packs/{pack_id}/fork", response_model=PackForkResponse, status_code=201)
 async def fork_pack(
     pack_id: str,
     request: PackForkRequest,
@@ -1142,7 +1155,6 @@ async def fork_pack(
     )
 
 
-@router.post("/packs/{pack_id}/apply", response_model=PackExecuteResponse)
 async def apply_pack(
     pack_id: str,
     request: PackExecuteRequest,
@@ -1172,7 +1184,6 @@ def _init_default_valuepacks():
                 _valuepack_db[vp.industry_id] = vp
 
 
-@router.get("/valuepacks", response_model=ValuePackListResponse)
 async def list_valuepacks(
     tier: int | None = Query(None, description="Filter by tier (1, 2, or 3)"),
     search: str | None = Query(None, description="Search in name/description"),
@@ -1182,143 +1193,134 @@ async def list_valuepacks(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """List all ValuePacks with optional filtering.
-    
+
     Returns paginated list of ValuePack summaries.
     """
     _init_default_valuepacks()
-    
+
     # Filter ValuePacks
     filtered = list(_valuepack_db.values())
-    
+
     if tier:
         filtered = [vp for vp in filtered if vp.tier.value == tier]
-    
+
     if is_active is not None:
         filtered = [vp for vp in filtered if vp.is_active == is_active]
-    
+
     if search:
         search_lower = search.lower()
         filtered = [
-            vp for vp in filtered 
-            if (search_lower in vp.display_name.lower() or 
-                search_lower in vp.description.lower())
+            vp
+            for vp in filtered
+            if (
+                search_lower in vp.display_name.lower()
+                or search_lower in vp.description.lower()
+            )
         ]
-    
+
     # Pagination
     total = len(filtered)
     start = (page - 1) * page_size
     end = start + page_size
     paginated = filtered[start:end]
-    
+
     # Convert to response format
-    items = [
-        ValuePackResponse(**vp.model_dump(), completeness_score=1.0)
-        for vp in paginated
-    ]
-    
+    items = [build_valuepack_response(vp) for vp in paginated]
+
     return ValuePackListResponse(
-        items=items,
-        total=total,
-        page=page,
-        page_size=page_size,
-        has_more=end < total
+        items=items, total=total, page=page, page_size=page_size, has_more=end < total
     )
 
 
-@router.get("/valuepacks/{industry_id}", response_model=ValuePackResponse)
 async def get_valuepack(
     industry_id: str,
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get a specific ValuePack by industry_id.
-    
+
     Returns complete ValuePack schema v1.0 data.
     """
     _init_default_valuepacks()
-    
+
     if industry_id not in _valuepack_db:
-        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
-    
+        raise NotFoundError(message=str(f"ValuePack not found: {industry_id}"))
+
     vp = _valuepack_db[industry_id]
-    return ValuePackResponse(**vp.model_dump(), completeness_score=1.0)
+    return build_valuepack_response(vp)
 
 
-@router.post("/valuepacks", response_model=ValuePackResponse, status_code=201)
 async def create_valuepack(
     request: ValuePackCreate,
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Create a new ValuePack.
-    
+
     All fields must conform to ValuePack Schema v1.0.
     """
     _init_default_valuepacks()
-    
+
     if request.industry_id in _valuepack_db:
         raise ConflictError(message=f"ValuePack already exists: {request.industry_id}")
-    
+
     _valuepack_db[request.industry_id] = request
     logger.info(f"Created ValuePack: {request.industry_id}")
-    
-    return ValuePackResponse(**request.model_dump(), completeness_score=1.0)
+
+    return build_valuepack_response(request)
 
 
-@router.put("/valuepacks/{industry_id}", response_model=ValuePackResponse)
 async def update_valuepack(
     industry_id: str,
     request: ValuePackUpdate,
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Update an existing ValuePack.
-    
+
     Only provided fields are updated; others remain unchanged.
     """
     _init_default_valuepacks()
-    
+
     if industry_id not in _valuepack_db:
-        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
-    
+        raise NotFoundError(message=str(f"ValuePack not found: {industry_id}"))
+
     existing = _valuepack_db[industry_id]
     update_data = request.model_dump(exclude_unset=True)
-    
+
     # Merge update into existing
     merged = existing.model_copy(update=update_data)
     _valuepack_db[industry_id] = merged
-    
+
     logger.info(f"Updated ValuePack: {industry_id}")
-    return ValuePackResponse(**merged.model_dump(), completeness_score=1.0)
+    return build_valuepack_response(merged)
 
 
-@router.delete("/valuepacks/{industry_id}", status_code=204)
 async def delete_valuepack(
     industry_id: str,
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Soft-delete a ValuePack (marks as inactive)."""
     _init_default_valuepacks()
-    
+
     if industry_id not in _valuepack_db:
-        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
-    
+        raise NotFoundError(message=str(f"ValuePack not found: {industry_id}"))
+
     _valuepack_db[industry_id].is_active = False
     logger.info(f"Soft-deleted ValuePack: {industry_id}")
 
 
-@router.get("/valuepacks/ontology-map", response_model=OntologyMapResponse)
 async def get_ontology_map(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get cross-industry ontology map.
-    
+
     Returns shared drivers, model types, and proof patterns across all industries.
     """
     _init_default_valuepacks()
-    
+
     # Collect all tags and categorize
     all_drivers = {}
     all_models = {}
     all_proofs = {}
-    
+
     for vp in _valuepack_db.values():
         # Drivers
         for driver in vp.primary_value_drivers:
@@ -1327,11 +1329,11 @@ async def get_ontology_map(
                     "id": driver.id,
                     "name": driver.name,
                     "industries": [],
-                    "count": 0
+                    "count": 0,
                 }
             all_drivers[driver.id]["industries"].append(vp.industry_id)
             all_drivers[driver.id]["count"] += 1
-        
+
         # Models
         for model in vp.economic_model_types:
             if model.id not in all_models:
@@ -1339,11 +1341,11 @@ async def get_ontology_map(
                     "id": model.id,
                     "name": model.name,
                     "industries": [],
-                    "count": 0
+                    "count": 0,
                 }
             all_models[model.id]["industries"].append(vp.industry_id)
             all_models[model.id]["count"] += 1
-        
+
         # Proof patterns
         for proof in vp.proof_requirements:
             if proof.id not in all_proofs:
@@ -1351,16 +1353,16 @@ async def get_ontology_map(
                     "id": proof.id,
                     "requirement": proof.requirement,
                     "industries": [],
-                    "count": 0
+                    "count": 0,
                 }
             all_proofs[proof.id]["industries"].append(vp.industry_id)
             all_proofs[proof.id]["count"] += 1
-    
+
     # Filter to those appearing in 2+ industries
     shared_drivers = [d for d in all_drivers.values() if d["count"] >= 2]
     shared_models = [m for m in all_models.values() if m["count"] >= 2]
     shared_proofs = [p for p in all_proofs.values() if p["count"] >= 2]
-    
+
     # Build cross-reference matrix
     industry_ids = list(_valuepack_db.keys())
     matrix = {}
@@ -1368,126 +1370,121 @@ async def get_ontology_map(
         matrix[driver_id] = {}
         for ind_id in industry_ids:
             matrix[driver_id][ind_id] = 1 if ind_id in driver_data["industries"] else 0
-    
+
     return OntologyMapResponse(
         shared_drivers=shared_drivers,
         shared_model_types=shared_models,
         shared_proof_patterns=shared_proofs,
-        cross_reference_matrix=matrix
+        cross_reference_matrix=matrix,
     )
 
 
-@router.get("/valuepacks/composable-templates", response_model=ComposableTemplateLibraryResponse)
 async def get_composable_templates(
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Get the composable template library.
-    
+
     Returns reusable calculation patterns and their industry usage.
     """
     _init_default_valuepacks()
-    
+
     # Collect all templates
     all_templates = {}
     template_usage: dict[str, list[str]] = {}
-    
+
     for vp in _valuepack_db.values():
         for template in vp.composable_model_templates:
             all_templates[template.template_id] = template
             if template.template_id not in template_usage:
                 template_usage[template.template_id] = []
             template_usage[template.template_id].extend(template.applicable_industries)
-    
+
     return ComposableTemplateLibraryResponse(
-        templates=list(all_templates.values()),
-        template_usage=template_usage
+        templates=list(all_templates.values()), template_usage=template_usage
     )
 
 
-@router.post("/valuepacks/compare", response_model=ValuePackComparisonResponse)
 async def compare_valuepacks(
     request: ValuePackComparisonRequest,
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Compare multiple ValuePacks side-by-side.
-    
+
     Returns detailed comparison across all schema dimensions.
     """
     _init_default_valuepacks()
-    
+
     # Validate all IDs exist
     for ind_id in request.industry_ids:
         if ind_id not in _valuepack_db:
-            raise NotFoundError(message = str(f"ValuePack not found: {ind_id}"))
-    
+            raise NotFoundError(message=str(f"ValuePack not found: {ind_id}"))
+
     # Get full ValuePacks
     valuepacks = [
-        ValuePackResponse(**_valuepack_db[ind_id].model_dump(), completeness_score=1.0)
+        build_valuepack_response(_valuepack_db[ind_id])
         for ind_id in request.industry_ids
     ]
-    
+
     # Build comparison matrix
     comparison = {}
-    
+
     # Compare drivers
     comparison["value_drivers"] = {
         ind_id: [d.name for d in _valuepack_db[ind_id].primary_value_drivers]
         for ind_id in request.industry_ids
     }
-    
+
     # Compare use cases
     comparison["use_cases"] = {
         ind_id: [uc.name for uc in _valuepack_db[ind_id].core_use_cases]
         for ind_id in request.industry_ids
     }
-    
+
     # Compare tiers
     comparison["tiers"] = {
-        ind_id: _valuepack_db[ind_id].tier.name
-        for ind_id in request.industry_ids
+        ind_id: _valuepack_db[ind_id].tier.name for ind_id in request.industry_ids
     }
-    
+
     # Find shared templates
     shared_templates = set()
     for vp in valuepacks:
         for template in vp.composable_model_templates:
             if len(template.applicable_industries) >= 2:
                 shared_templates.add(template.template_id)
-    
+
     # Differentiation analysis
     differentiation = {}
     for ind_id in request.industry_ids:
         vp = _valuepack_db[ind_id]
         wins = [w.statement for w in vp.why_it_wins]
         differentiation[ind_id] = f"Differentiated by: {', '.join(wins[:2])}"
-    
+
     return ValuePackComparisonResponse(
         valuepacks=valuepacks,
         comparison_matrix=comparison,
         shared_templates=list(shared_templates),
-        differentiation_analysis=differentiation
+        differentiation_analysis=differentiation,
     )
 
 
-@router.post("/valuepacks/{industry_id}/seed", status_code=201)
 async def seed_valuepack_data(
     industry_id: str,
     driver: AsyncDriver = Depends(get_driver),
     api_key: APIKey = Depends(get_current_api_key),
 ):
     """Seed ValuePack data into Neo4j knowledge graph.
-    
+
     Creates nodes and relationships for the ValuePack's economic graph,
     value drivers, use cases, and ontology tags.
     """
     _init_default_valuepacks()
-    
+
     if industry_id not in _valuepack_db:
-        raise NotFoundError(message = str(f"ValuePack not found: {industry_id}"))
-    
+        raise NotFoundError(message=str(f"ValuePack not found: {industry_id}"))
+
     vp = _valuepack_db[industry_id]
     tenant_id = _tenant_id_from_api_key(api_key)
-    
+
     # Build Cypher query to create ValuePack graph
     cypher = """
     MERGE (vp:ValuePack {industry_id: $industry_id, tenant_id: $tenant_id})
@@ -1526,7 +1523,7 @@ async def seed_valuepack_data(
     
     RETURN vp.industry_id as seeded_id
     """
-    
+
     params = {
         "industry_id": vp.industry_id,
         "tenant_id": tenant_id,
@@ -1539,13 +1536,23 @@ async def seed_valuepack_data(
         "use_cases": [uc.model_dump() for uc in vp.core_use_cases],
         "model_types": [mt.model_dump() for mt in vp.economic_model_types],
     }
-    
+
     async with driver.session() as session:
         # strict-scoped-query-execution: seeding cypher MERGEs all tenant-owned nodes with tenant_id
         result = await run_validated_query(session, cypher, **params)
         record = await result.single()
         if not record:
             raise ServiceUnavailableError(message="Failed to seed ValuePack data")
-    
+
     logger.info(f"Seeded ValuePack data to Neo4j: {industry_id}")
-    return seed_valuepack_dataResult.model_validate({"status": "seeded", "industry_id": industry_id})
+    return seed_valuepack_dataResult.model_validate(
+        {"status": "seeded", "industry_id": industry_id}
+    )
+
+
+# Local route modules register cohesive Value Pack route groups without changing public paths.
+from .value_packs_pack_routes import router as pack_router
+from .value_packs_framework_routes import router as valuepack_framework_router
+
+router.include_router(pack_router)
+router.include_router(valuepack_framework_router)

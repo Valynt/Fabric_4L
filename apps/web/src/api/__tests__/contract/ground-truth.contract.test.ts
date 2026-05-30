@@ -317,7 +317,7 @@ describe('Contract: ground truth auth failures', () => {
   it('401 matches ApiError shape', () => {
     assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-gt-401' },
+      { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-gt-401' } },
       'ApiError (401)'
     );
   });
@@ -325,20 +325,20 @@ describe('Contract: ground truth auth failures', () => {
   it('cross-tenant 403 matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Truth object does not belong to your tenant', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-gt-403' },
+      { error: { message: 'Truth object does not belong to your tenant', code: 'AUTHORIZATION_ERROR', request_id: 'trace-gt-403' } },
       'ApiError (403 cross-tenant)'
     );
-    expect(err.code).toBe('AUTHORIZATION_ERROR');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('AUTHORIZATION_ERROR');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('truth not found 404 matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Truth object not found', code: 'NOT_FOUND', trace_id: 'trace-gt-404' },
+      { error: { message: 'Truth object not found', code: 'NOT_FOUND', request_id: 'trace-gt-404' } },
       'ApiError (404 truth)'
     );
-    expect(err.code).toBe('NOT_FOUND');
+    expect(err.error.code).toBe('NOT_FOUND');
   });
 });
 

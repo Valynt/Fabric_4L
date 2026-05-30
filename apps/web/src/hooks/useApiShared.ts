@@ -178,8 +178,12 @@ export async function withApiError<T, E extends BaseApiError>(
       );
       if (typeof axiosErr.response?.data === 'object' && axiosErr.response?.data !== null) {
         const responseData = axiosErr.response.data as Record<string, unknown>;
-        newError.errorCode = typeof responseData.code === 'string' ? responseData.code : undefined;
-        newError.traceId = typeof responseData.trace_id === 'string' ? responseData.trace_id : null;
+        const envelope = responseData.error;
+        if (typeof envelope === 'object' && envelope !== null) {
+          const errorEnvelope = envelope as Record<string, unknown>;
+          newError.errorCode = typeof errorEnvelope.code === 'string' ? errorEnvelope.code : undefined;
+          newError.traceId = typeof errorEnvelope.request_id === 'string' ? errorEnvelope.request_id : null;
+        }
       }
       newError.cause = err;
       throw newError;

@@ -1,4 +1,5 @@
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
 """
 Layer 5 Ground Truth — FastAPI application entry point.
 
@@ -273,17 +274,20 @@ def _layer3_error_response(request: Request, exc: Layer3ClientError) -> JSONResp
     )
     context = getattr(request.state, "governance_context", None)
     tenant_id = getattr(context, "tenant_id", None) or getattr(exc, "tenant_id", None)
+    safe_request_id = str(request_id) if request_id else "req_layer3_dependency"
     return JSONResponse(
         status_code=exc.status_code,
-        headers={"X-Request-ID": str(request_id)} if request_id else None,
+        headers={"X-Request-ID": safe_request_id},
         content={
-            "code": exc.error_code,
-            "message": str(exc),
-            "trace_id": str(request_id) if request_id else None,
-            "details": {
-                "service": "layer3-knowledge",
-                "tenant_id": str(tenant_id) if tenant_id is not None else None,
-            },
+            "error": {
+                "code": exc.error_code,
+                "message": str(exc),
+                "request_id": safe_request_id,
+                "details": {
+                    "service": "layer3-knowledge",
+                    "tenant_id": str(tenant_id) if tenant_id is not None else None,
+                },
+            }
         },
     )
 
@@ -307,7 +311,7 @@ async def layer3_security_exception_handler(
                 code=exc.error_code,
                 message=exc.message,
                 request_id=request_id,
-                details=exc.details if hasattr(exc, 'details') else None,
+                details=exc.details if hasattr(exc, "details") else None,
             )
         )
         return JSONResponse(
@@ -339,7 +343,7 @@ async def layer3_operational_exception_handler(
                 code=exc.error_code,
                 message=exc.message,
                 request_id=request_id,
-                details=exc.details if hasattr(exc, 'details') else None,
+                details=exc.details if hasattr(exc, "details") else None,
             )
         )
         return JSONResponse(
@@ -366,7 +370,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("L5: OpenTelemetry tracing initialized")
 
     settings = get_settings()
-    reject_insecure_bypass_in_production(service_name="layer5-ground-truth", settings=settings)
+    reject_insecure_bypass_in_production(
+        service_name="layer5-ground-truth", settings=settings
+    )
     logger.info("Starting Layer 5 Ground Truth service on port %d", settings.api_port)
 
     # Security: fail fast if weak JWT secret is used in production
@@ -539,17 +545,27 @@ def create_app() -> FastAPI:
         finally:
             clear_request_log_context()
 
-
     @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException) -> JSONResponse:
+    async def http_exception_handler(
+        request: Request, exc: HTTPException
+    ) -> JSONResponse:
         # Use canonical error envelope format
         try:
-            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+            from value_fabric.shared.error_handling.models import (
+                ErrorEnvelope,
+                ErrorDetail,
+            )
             from value_fabric.shared.error_handling.handlers import get_request_trace_id
 
             request_id = get_request_trace_id(request)
-            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
-            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            detail = (
+                exc.detail
+                if isinstance(exc.detail, dict)
+                else {"message": str(exc.detail)}
+            )
+            error_code = str(
+                detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION"
+            )
             message = detail.get("message") or detail.get("detail") or str(exc.detail)
 
             error_envelope = ErrorEnvelope(
@@ -567,14 +583,30 @@ def create_app() -> FastAPI:
             )
         except ImportError:
             # Fallback to old format if shared package not available
-            detail = exc.detail if isinstance(exc.detail, dict) else {"message": str(exc.detail)}
-            error_code = str(detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION")
+            detail = (
+                exc.detail
+                if isinstance(exc.detail, dict)
+                else {"message": str(exc.detail)}
+            )
+            error_code = str(
+                detail.get("error_code") or detail.get("code") or "HTTP_EXCEPTION"
+            )
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", ""))
+                if ctx and getattr(ctx, "tenant_id", None)
+                else None
+            )
             request_id = request.headers.get("X-Request-ID")
-            is_security_error = exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
+            is_security_error = (
+                exc.status_code in (401, 403) or error_code in SECURITY_ERROR_CODES
+            )
             logger.warning(
-                "security error response" if is_security_error else "operational http error response",
+                (
+                    "security error response"
+                    if is_security_error
+                    else "operational http error response"
+                ),
                 extra={
                     "error_code": error_code,
                     "request_id": request_id,
@@ -583,20 +615,32 @@ def create_app() -> FastAPI:
                     "status_code": exc.status_code,
                 },
             )
+            safe_request_id = str(request_id) if request_id else "req_http_exception"
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
-                    "error": "security_error" if is_security_error else "operational_error",
-                    "error_code": error_code,
-                    "message": detail.get("message") or detail.get("detail") or str(exc.detail),
+                    "error": {
+                        "code": error_code,
+                        "message": detail.get("message")
+                        or detail.get("detail")
+                        or str(exc.detail),
+                        "request_id": safe_request_id,
+                        "details": None,
+                    }
                 },
+                headers={"X-Request-ID": safe_request_id},
             )
 
     @app.exception_handler(Exception)
-    async def unhandled_exception_handler(request: Request, exc: Exception) -> JSONResponse:
+    async def unhandled_exception_handler(
+        request: Request, exc: Exception
+    ) -> JSONResponse:
         # Use canonical error envelope format
         try:
-            from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
+            from value_fabric.shared.error_handling.models import (
+                ErrorEnvelope,
+                ErrorDetail,
+            )
             from value_fabric.shared.error_handling.handlers import get_request_trace_id
 
             request_id = get_request_trace_id(request)
@@ -617,7 +661,11 @@ def create_app() -> FastAPI:
             # Fallback to old format if shared package not available
             request_id = request.headers.get("X-Request-ID")
             ctx = getattr(request.state, "governance_context", None)
-            tenant_id = str(getattr(ctx, "tenant_id", "")) if ctx and getattr(ctx, "tenant_id", None) else None
+            tenant_id = (
+                str(getattr(ctx, "tenant_id", ""))
+                if ctx and getattr(ctx, "tenant_id", None)
+                else None
+            )
             logger.exception(
                 "unhandled operational error",
                 extra={
@@ -627,13 +675,20 @@ def create_app() -> FastAPI:
                     "path": request.url.path,
                 },
             )
+            safe_request_id = (
+                str(request_id) if request_id else "req_unhandled_exception"
+            )
             return JSONResponse(
                 status_code=500,
                 content={
-                    "error": "operational_error",
-                    "error_code": "L5_UNHANDLED_ERROR",
-                    "message": "Internal server error",
+                    "error": {
+                        "code": "INTERNAL_ERROR",
+                        "message": "Internal server error",
+                        "request_id": safe_request_id,
+                        "details": None,
+                    }
                 },
+                headers={"X-Request-ID": safe_request_id},
             )
 
     class _AppStateRateLimiterProxy:
@@ -696,7 +751,9 @@ def create_app() -> FastAPI:
 
         app.include_router(assumption_governance_router)
     except ImportError:
-        logging.getLogger(__name__).warning("Assumption Governance router not available")
+        logging.getLogger(__name__).warning(
+            "Assumption Governance router not available"
+        )
 
     # Mount the Governance router (new unified governance APIs)
     try:
@@ -713,7 +770,9 @@ def create_app() -> FastAPI:
         # Verify internal access for metrics (blocks public ingress access).
         # Delegated to shared.observability so all layers stay aligned.
         if not verify_metrics_access(request):
-            raise AuthorizationError(message = "Metrics endpoint requires internal access")
+            raise AuthorizationError(
+                message="Metrics endpoint requires internal access"
+            )
 
         metrics = get_metrics()
         if not metrics:
@@ -786,16 +845,20 @@ def create_app() -> FastAPI:
                 status_code=503,
             )
 
-
     @app.get("/health/audit-writes", tags=["system"], include_in_schema=False)
     async def audit_write_health() -> JSONResponse:
-        from layer5_ground_truth.services.audit_write_monitor import get_audit_write_stats
+        from layer5_ground_truth.services.audit_write_monitor import (
+            get_audit_write_stats,
+        )
 
         stats = get_audit_write_stats()
         failures = int(stats.get("failures_total", 0))
         status_code = 200 if failures == 0 else 503
         return JSONResponse(
-            content={"status": "ok" if failures == 0 else "degraded", "audit_write_failures_total": failures},
+            content={
+                "status": "ok" if failures == 0 else "degraded",
+                "audit_write_failures_total": failures,
+            },
             status_code=status_code,
         )
 
@@ -921,6 +984,8 @@ app = create_app()
 
 # Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
 # No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+from value_fabric.shared.identity.fabric_auth import (
+    register_fabric_auth_from_env,
+)  # noqa: E402
 
 register_fabric_auth_from_env(app, service_name="layer5-ground-truth")

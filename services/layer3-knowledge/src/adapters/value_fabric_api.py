@@ -18,11 +18,13 @@ def map_exception_to_contract_detail(
     exc: ValueFabricException,
     *,
     request_id: str | None = None,
-) -> dict[str, object | None]:
-    """Map shared exception primitives to the Layer 3 flat contract shape."""
+) -> dict[str, dict[str, object | None]]:
+    """Map shared exception primitives to the canonical ErrorEnvelope shape."""
     return {
-        "error": str(exc.error_code),
-        "message": exc.message,
-        "details": exc.details,
-        "request_id": request_id,
+        "error": {
+            "code": exc.error_code.value,
+            "message": exc.message,
+            "request_id": request_id,
+            "details": exc.details or None,
+        }
     }

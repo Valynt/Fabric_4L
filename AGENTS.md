@@ -11,7 +11,7 @@
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.11+ (any patch release; the repo does not require Python 3.11.10 specifically)
 - Node.js ≥ 22.12.0 and pnpm 10.18.1
 - Docker + Docker Compose
 - `make`
@@ -24,26 +24,32 @@
 #    Then log in:
 infisical login
 
-# 2. Enable pnpm via corepack (do not use npm/yarn)
+# 2. Select a local Python 3.11 interpreter (optional if python3.11 is already on PATH)
+#    pyenv users can install the latest known 3.11 patch and keep .python-version pinned to the 3.11 series.
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+#    If your pyenv does not support series aliases, choose any installed 3.11.x patch explicitly.
+
+# 3. Enable pnpm via corepack (do not use npm/yarn)
 corepack enable
 corepack prepare pnpm@10.18.1 --activate
 
-# 3. Install frontend dependencies
+# 4. Install frontend dependencies
 pnpm install --frozen-lockfile
 
-# 4. Install Python service dependencies into the pytest pipx venv
+# 5. Install Python service dependencies into the pytest pipx venv
 make setup
 
-# 5. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
+# 6. Start infrastructure (PostgreSQL, Redis, Neo4j, Keycloak)
 #    Using Infisical-generated env (recommended):
 pnpm env:dev && docker compose -f docker-compose.dev.yml --env-file .env.generated up -d
 #    Or legacy manual .env:
 #    cp .env.example .env && docker compose -f docker-compose.dev.yml up -d
 
-# 6. Run database migrations
+# 7. Run database migrations
 make migrate
 
-# 7. Verify everything passes
+# 8. Verify everything passes
 make verify
 ```
 

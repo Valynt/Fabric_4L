@@ -77,10 +77,18 @@ async def ingest_rdf(
 @router.get("/ingest/status/{source_id}", response_model=SyncStatusResponse)
 async def get_sync_status(
     source_id: str,
+    fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
 ) -> SyncStatusResponse:
     """Get synchronisation status for a source."""
-    status = await sync_manager.get_sync_status(source_id)
+    ctx = getattr(fastapi_request.state, "context", None)
+    tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
+    if not tenant_id:
+        raise AuthenticationError(
+            message="Authenticated tenant context required for ingestion"
+        )
+
+    status = await sync_manager.get_sync_status(source_id, tenant_id=tenant_id)
     if not status:
         raise NotFoundError(message = str(f"Source {source_id} not found"))
 
@@ -97,10 +105,18 @@ async def get_sync_status(
 @router.delete("/ingest/{source_id}")
 async def delete_source(
     source_id: str,
+    fastapi_request: Request,
     sync_manager=Depends(get_sync_manager),
 ) -> dict[str, Any]:
     """Delete all data for a source."""
-    stats = await sync_manager.delete_source(source_id)
+    ctx = getattr(fastapi_request.state, "context", None)
+    tenant_id = str(ctx.tenant_id) if ctx and getattr(ctx, "tenant_id", None) else None
+    if not tenant_id:
+        raise AuthenticationError(
+            message="Authenticated tenant context required for ingestion"
+        )
+
+    stats = await sync_manager.delete_source(source_id, tenant_id=tenant_id)
     return {
         "status": "deleted",
         "source_id": source_id,

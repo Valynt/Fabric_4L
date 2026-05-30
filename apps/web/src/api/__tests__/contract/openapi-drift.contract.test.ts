@@ -299,11 +299,11 @@ describe('OpenAPI drift: negative-path consistency', () => {
 
 describe('Contract: drift-detection auth failures', () => {
   it('401 matches ApiError shape', () => {
-    assertSchema(ApiErrorSchema, { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-drift-401' }, 'ApiError (401)');
+    assertSchema(ApiErrorSchema, { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-drift-401' } }, 'ApiError (401)');
   });
 
   it('403 forbidden matches ApiError shape', () => {
-    assertSchema(ApiErrorSchema, { message: 'Access denied', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-drift-403' }, 'ApiError (403)');
+    assertSchema(ApiErrorSchema, { error: { message: 'Access denied', code: 'AUTHORIZATION_ERROR', request_id: 'trace-drift-403' } }, 'ApiError (403)');
   });
 });
 
@@ -311,9 +311,8 @@ describe('Contract: drift-detection auth failures', () => {
 
 describe('OpenAPI drift: common error shapes', () => {
   it('ApiError fixture is compatible with canonical ErrorResponse', () => {
-    const frontendError = { message: 'Bad request', code: 'VALIDATION_ERROR', trace_id: 'abc' };
-    // layer2-extraction.json defines the flat ErrorResponse that matches frontend ApiErrorSchema.
-    // layer4-agents.json uses wrapped ErrorEnvelope — cross-layer alignment is tracked separately.
+    const frontendError = { error: { message: 'Bad request', code: 'VALIDATION_ERROR', request_id: 'abc' } };
+    // layer2-extraction.json defines the canonical ErrorEnvelope that matches frontend ApiErrorSchema.
     assertCanonicalSchema(ApiErrorSchema, 'layer2-extraction.json', '#/components/schemas/ErrorResponse', frontendError, 'frontend ApiError');
   });
 });

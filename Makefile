@@ -43,8 +43,8 @@ POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
 DB_MIGRATION_DATABASE_URL ?=
 
-PYTHON ?= python3
-PIP    := pip install -e
+PYTHON ?= $(shell command -v python3.11 2>/dev/null || command -v python3 2>/dev/null || command -v python 2>/dev/null || printf python3)
+PIP    := $(PYTHON) -m pip install -e
 # Use python -m pytest to ensure pytest is available via the Python interpreter
 PYTEST := $(PYTHON) -m pytest -v --tb=short
 
@@ -69,17 +69,21 @@ verify: check-conflict-markers check-no-nul-bytes check-migration-heads \
 
 verify-structure: ## Run structural preflight and Python contract lint checks
 	@echo "→ Running structural preflight..."
-	@python scripts/ci/structural_preflight.py --strict
+	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
+<<<<<<< ours
 	@python scripts/ci/python_contract_lint.py --strict
 	@echo "→ Checking Layer 1 API main shim drift..."
 	@$(PYTHON) scripts/ci/check_layer1_api_main_shim_drift.py
+=======
+	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
+>>>>>>> theirs
 	@echo "→ Running strict shared-import enforcement..."
-	@python scripts/ci/check_shared_imports.py --strict --scope executable
+	@$(PYTHON) scripts/ci/check_shared_imports.py --strict --scope executable
 	@echo "→ Running import topology tests..."
-	@python -m pytest tests/contract/test_import_topology.py -q
+	@$(PYTHON) -m pytest tests/contract/test_import_topology.py -q
 	@echo "→ Running strict navigation pattern check..."
-	@cd apps/web && python ../../scripts/ci/check_navigation_patterns.py --strict
+	@cd apps/web && $(PYTHON) ../../scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "✅  Structure verification passed"
@@ -88,10 +92,10 @@ check-layer4-boundaries: ## Report/fail on Layer 4 bounded-context dependency vi
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 
 check-ui-duplicates: ## Block new duplicate UI component filenames between prototype and production trees
-	@python3 scripts/check_ui_duplicate_filenames.py
+	@$(PYTHON) scripts/check_ui_duplicate_filenames.py
 
 check-readiness-consistency: ## Ensure canonical readiness percentages are aligned and archives are snapshot-tagged
-	@python3 scripts/ci/check_readiness_consistency.py
+	@$(PYTHON) scripts/ci/check_readiness_consistency.py
 
 check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps its release-significant coverage markers
 	@$(PYTHON) scripts/ci/assert_master_workflow_traceability.py
@@ -103,24 +107,24 @@ check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tr
 	@bash scripts/ci/check_conflict_markers.sh
 
 check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
-	@python3 scripts/ci/check_no_nul_bytes.py
+	@$(PYTHON) scripts/ci/check_no_nul_bytes.py
 
 check-keycloak-realm-seed-security: ## Fail when committed Keycloak realm seed includes embedded secrets/default credentials
-	@python3 scripts/ci/check_keycloak_realm_seed_security.py
+	@$(PYTHON) scripts/ci/check_keycloak_realm_seed_security.py
 
 
 check-manifest-secret-hygiene: ## Enforce secret-only references and denylisted sensitive patterns in production manifests
-	@python3 scripts/ci/check_manifest_secret_hygiene.py
+	@$(PYTHON) scripts/ci/check_manifest_secret_hygiene.py
 check-path-env-hygiene: ## Fail on suspicious tracked path artifacts and unapproved tracked .env-style files
-	@python3 scripts/ci/check_path_and_env_hygiene.py
+	@$(PYTHON) scripts/ci/check_path_and_env_hygiene.py
 check-migration-entrypoints: ## Ensure maintained services expose migration entrypoints and revision history commands
-	@python3 scripts/ci/check_migration_entrypoints.py
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
 
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
-	@python3 scripts/ci/check_migration_entrypoints.py
+	@$(PYTHON) scripts/ci/check_migration_entrypoints.py
 
 check-migration-rollback-policy: ## Enforce rollback documentation and approval for unsupported downgrades
-	@python3 scripts/ci/check_migration_rollback_policy.py
+	@$(PYTHON) scripts/ci/check_migration_rollback_policy.py
 
 check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and metadata drift checks against PostgreSQL
 	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
@@ -154,8 +158,8 @@ gate-database-live: check-migration-postgres-roundtrip ## Live/destructive datab
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
-	@set +e; python -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
-	 python scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
+	@set +e; $(PYTHON) -m pytest --collect-only -q -ra tests > artifacts/pytest-collection.txt 2>&1; collect_status=$$?; set -e; \
+	 $(PYTHON) scripts/ci/check_pytest_skip_governance.py artifacts/pytest-collection.txt --allowlist config/ci/pytest_skip_allowlist.yaml --baseline config/ci/pytest_skip_baseline.json --write-report artifacts/pytest-skip-governance.json; \
 	 if [ "$$collect_status" -ne 0 ]; then echo "pytest collection exited non-zero ($$collect_status); structural-preflight should catch import errors separately."; fi
 
 check-layer3-legacy-tenant-dependency-imports: ## Block legacy Layer 3 tenant dependency imports under src/api/
@@ -167,10 +171,10 @@ check-test-skip-register-uniqueness: ## Enforce uniqueness of test skip register
 	@$(PYTHON) scripts/ci/check_test_skip_register_uniqueness.py --register config/ci/test_skip_register.yaml
 
 check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on unarchived failing snapshots
-	@python3 scripts/ci/check_reports_evidence_policy.py
+	@$(PYTHON) scripts/ci/check_reports_evidence_policy.py
 check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories)
 	@mkdir -p artifacts
-	@python scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
+	@$(PYTHON) scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
 
 
 verify-strict: verify contract-drift ## Full verification including contract drift detection (slower)
@@ -431,14 +435,14 @@ test-layer2-5: ## Run Layer 2.5 tests
 	cd services/layer2-5-signal-refinery && $(PYTEST) tests/
 
 test-layer3: ## Run Layer 3 tests
-	python scripts/ci/check_layer3_source_mirror.py
+	$(PYTHON) scripts/ci/check_layer3_source_mirror.py
 	cd services/layer3-knowledge && $(PYTEST) tests/
 
 test-layer4: ## Run Layer 4 tests
 	cd services/layer4-agents && $(PYTEST) tests/
 
 test-layer5: ## Run Layer 5 tests
-	cd services/layer5-ground-truth && python scripts/check_no_duplicate_modules.py
+	cd services/layer5-ground-truth && $(PYTHON) scripts/check_no_duplicate_modules.py
 	cd services/layer5-ground-truth && $(PYTEST) tests/
 
 test-layer6: ## Run Layer 6 tests
@@ -719,7 +723,7 @@ db-production-readiness-gate: ## Gate: PostgreSQL-only database production readi
 	$(PYTHON) scripts/ci/check_db_production_readiness_split.py
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
 	@echo "✅  db-production-readiness-gate passed"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
@@ -837,7 +841,7 @@ gate-chaos: ## Gate: dependency chaos and failure injection
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/chaos/ --junitxml=$(GATE_JUNIT_DIR)/gate-chaos.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-chaos.xml
 	@echo "✅  gate-chaos passed"
 
 gate-smoke: ## Gate: cross-domain smoke tests
@@ -845,7 +849,7 @@ gate-smoke: ## Gate: cross-domain smoke tests
 	@test -s tests/e2e/test_value_engine_smoke_contract.py || (echo "❌ Smoke contract test is missing" && exit 1)
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/e2e/test_value_engine_smoke_contract.py --junitxml=$(GATE_JUNIT_DIR)/gate-smoke.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-smoke.xml
 	@echo "✅  gate-smoke passed"
 
 gate-agent: ## Gate: agent provenance and behavior regression
@@ -856,7 +860,7 @@ gate-agent: ## Gate: agent provenance and behavior regression
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/agents/ --junitxml=$(GATE_JUNIT_DIR)/gate-agent.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-agent.xml
 	@echo "✅  gate-agent passed"
 
 gate-obs: ## Gate: observability, metrics, and SLO validation
@@ -878,8 +882,8 @@ gate-release-policy: ## Gate: release policy compliance
 	fi
 	@mkdir -p $(GATE_JUNIT_DIR)
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/release/ --junitxml=$(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
-	python scripts/ci/check_deprecations.py
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-release-policy.xml
+	$(PYTHON) scripts/ci/check_deprecations.py
 	@echo "✅  gate-release-policy passed"
 
 gate-sign-manifest: ## Gate: sign artifact manifest with SHA-256
@@ -957,18 +961,18 @@ HARNESS_DIR := .windsurf/harness
 
 harness-task: ## Assemble VF harness context for a task (TASK=... FILES=...)
 	@echo "→ Assembling Value Fabric harness context..."
-	@cd $(HARNESS_DIR) && python vf_context.py
+	@cd $(HARNESS_DIR) && $(PYTHON) vf_context.py
 
 harness-guard: ## Run pre-edit boundary and contract checks (TASK=... FILES=...)
 	@echo "→ Running harness pre-edit guard..."
-	@cd $(HARNESS_DIR) && python vf_contract_guard.py
+	@cd $(HARNESS_DIR) && $(PYTHON) vf_contract_guard.py
 
 harness-check: harness-guard harness-task ## Full harness preflight (guard + context)
 	@echo "✅  Harness preflight complete"
 
 docs-harness: ## Validate harness documentation artifacts (endpoints, models, runbook, config)
 	@echo "→ Validating harness docs..."
-	@python3 scripts/generate_harness_docs.py --check
+	@$(PYTHON) scripts/generate_harness_docs.py --check
 
 
 check-value-fabric-public-imports:
@@ -976,4 +980,4 @@ check-value-fabric-public-imports:
 
 
 check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in boundary adapter files
-	@python3 scripts/ci/check_raw_http_exception_usage.py
+	@$(PYTHON) scripts/ci/check_raw_http_exception_usage.py

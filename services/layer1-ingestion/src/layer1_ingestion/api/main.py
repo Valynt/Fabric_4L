@@ -1,4 +1,12 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.
@@ -36,7 +44,11 @@ try:
         FrameworkRateLimitConfig,
         create_fabric_app,
     )
-    from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
+    from value_fabric.shared.fastapi_framework.health import (
+        CallableProbe,
+        ProbeResult,
+        RedisHealthProbe,
+    )
     from value_fabric.shared.identity.api_key_stub import reject_api_key_unsupported
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -114,7 +126,7 @@ class _UnavailableTask:
             error=str(self.import_error),
             exc_info=self.import_error,
         )
-        raise ServiceUnavailableError(message = str(_build_task_unavailable_detail()))
+        raise ServiceUnavailableError(message=str(_build_task_unavailable_detail()))
 
 
 try:
@@ -153,9 +165,11 @@ def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
         "message": "URL blocked by compliance policy",
     }
 
+
 # =============================================================================
 # DEPRECATION REGISTER
 # =============================================================================
+
 
 class _load_deprecation_registerResult(TypedDictModel):
     deprecations: list[Any]
@@ -170,8 +184,14 @@ def _load_deprecation_register() -> dict:
             with open(register_path, encoding="utf-8") as f:
                 return json.load(f)
     except Exception as e:
-        logger.warning("Failed to load deprecation register", error_code="DEPRECATION_LOAD_ERROR", error=repr(e))
-    return _load_deprecation_registerResult.model_validate({"deprecations": []}).model_dump()
+        logger.warning(
+            "Failed to load deprecation register",
+            error_code="DEPRECATION_LOAD_ERROR",
+            error=repr(e),
+        )
+    return _load_deprecation_registerResult.model_validate(
+        {"deprecations": []}
+    ).model_dump()
 
 
 def _check_deprecation_warnings(register: dict) -> None:
@@ -236,7 +256,9 @@ def _add_deprecation_headers(response: Response, endpoint_path: str) -> None:
 metrics = initialize_metrics()
 
 # Vault health check error message
-_VAULT_UNREACHABLE_ERROR = "Vault unreachable â€” cannot start in production without secrets backend"
+_VAULT_UNREACHABLE_ERROR = (
+    "Vault unreachable â€” cannot start in production without secrets backend"
+)
 
 
 @asynccontextmanager
@@ -258,8 +280,11 @@ async def _l1_db_probe() -> ProbeResult:
     """Readiness probe for Layer 1 PostgreSQL (sync engine)."""
     import asyncio
     from sqlalchemy import text
+
     try:
-        await asyncio.to_thread(lambda: engine.connect().execute(text("SELECT 1")).close())
+        await asyncio.to_thread(
+            lambda: engine.connect().execute(text("SELECT 1")).close()
+        )
     except Exception as exc:
         return ProbeResult(name="postgres", healthy=False, detail=str(exc))
     return ProbeResult(name="postgres", healthy=True)
@@ -288,7 +313,10 @@ app = create_fabric_app(
     ),
     rate_limit=FrameworkRateLimitConfig(
         mode=EnforcementMode.ENFORCE,
-        rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
+        rate_limiter_factory=lambda: __import__(
+            "value_fabric.shared.rate_limiting.tenant_rate_limiter",
+            fromlist=["TenantRateLimiter"],
+        ).TenantRateLimiter.create_from_env(),
     ),
 )
 
@@ -306,10 +334,12 @@ app = create_fabric_app(
 _security_config_l1 = SecurityConfig.from_env(
     # P1-14 FIX: Removed /v1/ingest paths from skip list
     # All untrusted input must pass through SecurityMiddleware validation
-    skip_validation_paths=frozenset({
-        "/health",
-        "/metrics",
-    }),
+    skip_validation_paths=frozenset(
+        {
+            "/health",
+            "/metrics",
+        }
+    ),
     strict_mode=True,
 )
 add_security_middleware(app, config=_security_config_l1)
@@ -317,7 +347,9 @@ register_exception_handlers(app)
 
 # Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
 # No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+from value_fabric.shared.identity.fabric_auth import (
+    register_fabric_auth_from_env,
+)  # noqa: E402
 
 register_fabric_auth_from_env(app, service_name="layer1-ingestion")
 
@@ -345,6 +377,7 @@ class cancel_jobResult(TypedDictModel):
     job_id: Any
     status: str
 
+
 class get_job_resultsResult(TypedDictModel):
     data: Any
     format: Any
@@ -353,10 +386,12 @@ class get_job_resultsResult(TypedDictModel):
     page: Any
     total_records: Any
 
+
 class retry_jobResult(TypedDictModel):
     new_job_id: Any
     original_job_id: Any
     status: Any
+
 
 class list_contentResult(TypedDictModel):
     items: Any
@@ -364,28 +399,35 @@ class list_contentResult(TypedDictModel):
     page: Any
     total: Any
 
+
 class list_compliance_logsResult(TypedDictModel):
     items: Any
     limit: Any
     page: Any
     total: Any
 
+
 class trigger_cleanupResult(TypedDictModel):
     message: str
     status: str
+
 
 class legacy_health_checkResult(TypedDictModel):
     dependencies: Any
     note: str
     status: Any
 
-app.add_middleware(GovernanceMiddleware, api_key_resolver=reject_api_key_unsupported, rate_limiter=redis_rate_limiter)
+
+app.add_middleware(
+    GovernanceMiddleware,
+    api_key_resolver=reject_api_key_unsupported,
+    rate_limiter=redis_rate_limiter,
+)
 
 # Add metrics middleware if available â€” INNERMOST
 if metrics:
     metrics_middleware = MetricsMiddleware(metrics)
     app.middleware("http")(metrics_middleware)
-
 
 
 # Create router for spec-compliant endpoints
@@ -398,22 +440,23 @@ router = APIRouter(prefix="/api/v1/ingestion")
 
 
 def get_tenant_id(request: Request) -> UUID:
-    """Extract organization (tenant) ID from the GovernanceMiddleware context.
-    """
+    """Extract organization (tenant) ID from the GovernanceMiddleware context."""
     ctx = getattr(request.state, "governance_context", None)
     header_value = request.headers.get("X-Organization-ID")
     if ctx is not None:
         if header_value and str(header_value) != str(ctx.tenant_id):
-            raise AuthorizationError(message = "X-Organization-ID does not match authenticated tenant")
+            raise AuthorizationError(
+                message="X-Organization-ID does not match authenticated tenant"
+            )
         return ctx.tenant_id
 
     if header_value:
         try:
             UUID(header_value)
         except ValueError:
-            raise ValidationError(message = "Invalid X-Organization-ID header format")
+            raise ValidationError(message="Invalid X-Organization-ID header format")
 
-    raise AuthenticationError(message = "Authentication required")
+    raise AuthenticationError(message="Authentication required")
 
 
 def get_current_user_id(request: Request) -> UUID:
@@ -432,9 +475,9 @@ def get_current_user_id(request: Request) -> UUID:
             metrics = get_metrics()
             if metrics:
                 metrics.increment_errors(error_type="invalid_uuid", component="auth")
-            raise AuthenticationError(message = "Invalid user ID format")
+            raise AuthenticationError(message="Invalid user ID format")
     # P0 FIX: Never fall back to a hardcoded user â€” require authentication
-    raise AuthenticationError(message = "Authentication required")
+    raise AuthenticationError(message="Authentication required")
 
 
 # =============================================================================
@@ -579,8 +622,12 @@ class CreateTargetRequest(BaseModel):
     url: str = Field(..., description="Target URL")
     target_type: TargetType = TargetType.SINGLE_PAGE
     crawl_path: CrawlPath = CrawlPath.BROWSER  # HTTPX Fast Path selection
-    extraction_config: ExtractionConfigInput = Field(default_factory=lambda: ExtractionConfigInput())
-    browser_config: BrowserConfigInput = Field(default_factory=lambda: BrowserConfigInput())
+    extraction_config: ExtractionConfigInput = Field(
+        default_factory=lambda: ExtractionConfigInput()
+    )
+    browser_config: BrowserConfigInput = Field(
+        default_factory=lambda: BrowserConfigInput()
+    )
     schedule: ScheduleInput | None = None
     rate_limit: RateLimitInput = Field(default_factory=lambda: RateLimitInput())
     compliance: ComplianceInput = Field(default_factory=lambda: ComplianceInput())
@@ -685,11 +732,13 @@ class ValidateTargetResponse(BaseModel):
 
 
 # Cloud metadata endpoints that must never be targeted by callbacks.
-_SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset({
-    "169.254.169.254",          # AWS / Azure / GCP instance metadata
-    "metadata.google.internal", # GCP metadata domain
-    "metadata.internal",        # GCP/internal alias
-})
+_SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
+    {
+        "169.254.169.254",  # AWS / Azure / GCP instance metadata
+        "metadata.google.internal",  # GCP metadata domain
+        "metadata.internal",  # GCP/internal alias
+    }
+)
 
 
 def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
@@ -726,7 +775,9 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
             or addr.is_reserved
             or addr.is_unspecified
         ):
-            raise ValueError("callback_url must not point to private or reserved IP addresses")
+            raise ValueError(
+                "callback_url must not point to private or reserved IP addresses"
+            )
     return value
 
 
@@ -1159,7 +1210,6 @@ class ProxyPoolResponse(BaseModel):
 # =============================================================================
 
 
-@router.get("/targets", response_model=TargetListResponse)
 async def list_targets(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
@@ -1222,11 +1272,15 @@ async def list_targets(
             )
             for t in targets
         ],
-        pagination={"page": page, "limit": limit, "total": total, "total_pages": total_pages},
+        pagination={
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages,
+        },
     )
 
 
-@router.post("/targets", response_model=ScrapingTargetDetail, status_code=201)
 async def create_target(
     request: CreateTargetRequest,
     org_id: UUID = Depends(get_tenant_id),
@@ -1240,21 +1294,25 @@ async def create_target(
             request.url, allowlist_domains=request.compliance.domain_allowlist
         )
     except URLSafetyError as exc:
-        raise ValidationError(message = str(_url_safety_error_payload(exc.reason_code))) from exc
+        raise ValidationError(
+            message=str(_url_safety_error_payload(exc.reason_code))
+        ) from exc
 
     # Validate extraction schema if method requires LLM
     if (
         request.extraction_config.method == ExtractionMethod.AI_LLM
         and not request.extraction_config.llm_provider
     ):
-        raise ValidationError(message = "llm_provider is required when method is AI_LLM")
+        raise ValidationError(message="llm_provider is required when method is AI_LLM")
 
     # Build config objects
     extraction_config = {
         "method": request.extraction_config.method.value,
-        "llm_provider": request.extraction_config.llm_provider.value
-        if request.extraction_config.llm_provider
-        else None,
+        "llm_provider": (
+            request.extraction_config.llm_provider.value
+            if request.extraction_config.llm_provider
+            else None
+        ),
         "extraction_schema": request.extraction_config.extraction_schema,
         "visual_hints": request.extraction_config.visual_hints,
         "max_depth": request.extraction_config.max_depth,
@@ -1309,9 +1367,11 @@ async def create_target(
     proxy_config = {
         "enabled": request.proxy_config.enabled,
         "rotation_strategy": request.proxy_config.rotation_strategy.value,
-        "proxy_pool_id": str(request.proxy_config.proxy_pool_id)
-        if request.proxy_config.proxy_pool_id
-        else None,
+        "proxy_pool_id": (
+            str(request.proxy_config.proxy_pool_id)
+            if request.proxy_config.proxy_pool_id
+            else None
+        ),
         "sticky_sessions": request.proxy_config.sticky_sessions,
         "session_duration_minutes": request.proxy_config.session_duration_minutes,
     }
@@ -1354,9 +1414,10 @@ async def create_target(
     return _target_to_detail(target)
 
 
-@router.get("/targets/{target_id}", response_model=ScrapingTargetDetail)
 async def get_target(
-    target_id: UUID, org_id: UUID = Depends(get_tenant_id), db: Session = Depends(get_db_from_context_sync)
+    target_id: UUID,
+    org_id: UUID = Depends(get_tenant_id),
+    db: Session = Depends(get_db_from_context_sync),
 ):
     """Get detailed information about a specific target."""
     target = (
@@ -1366,12 +1427,11 @@ async def get_target(
     )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     return _target_to_detail(target)
 
 
-@router.put("/targets/{target_id}", response_model=ScrapingTargetDetail)
 async def update_target(
     target_id: UUID,
     request: UpdateTargetRequest,
@@ -1386,7 +1446,7 @@ async def update_target(
     )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     # Check if jobs are in progress
     active_jobs = (
@@ -1410,7 +1470,9 @@ async def update_target(
     )
 
     if active_jobs > 0:
-        raise ConflictError(message=f"Cannot modify target with {active_jobs} active jobs")
+        raise ConflictError(
+            message=f"Cannot modify target with {active_jobs} active jobs"
+        )
 
     # Update fields
     if request.name is not None:
@@ -1432,9 +1494,11 @@ async def update_target(
     if request.extraction_config:
         target.extraction_config = {
             "method": request.extraction_config.method.value,
-            "llm_provider": request.extraction_config.llm_provider.value
-            if request.extraction_config.llm_provider
-            else None,
+            "llm_provider": (
+                request.extraction_config.llm_provider.value
+                if request.extraction_config.llm_provider
+                else None
+            ),
             "extraction_schema": request.extraction_config.extraction_schema,
             "visual_hints": request.extraction_config.visual_hints,
             "max_depth": request.extraction_config.max_depth,
@@ -1484,9 +1548,11 @@ async def update_target(
         target.proxy_config = {
             "enabled": request.proxy_config.enabled,
             "rotation_strategy": request.proxy_config.rotation_strategy.value,
-            "proxy_pool_id": str(request.proxy_config.proxy_pool_id)
-            if request.proxy_config.proxy_pool_id
-            else None,
+            "proxy_pool_id": (
+                str(request.proxy_config.proxy_pool_id)
+                if request.proxy_config.proxy_pool_id
+                else None
+            ),
             "sticky_sessions": request.proxy_config.sticky_sessions,
             "session_duration_minutes": request.proxy_config.session_duration_minutes,
         }
@@ -1520,7 +1586,6 @@ async def update_target(
     return _target_to_detail(target)
 
 
-@router.delete("/targets/{target_id}", status_code=204)
 async def delete_target(
     target_id: UUID,
     force: bool = Query(default=False, description="Hard delete if no jobs exist"),
@@ -1535,7 +1600,7 @@ async def delete_target(
     )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     job_count = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).count()
 
@@ -1554,7 +1619,6 @@ async def delete_target(
     return None
 
 
-@router.post("/targets/{target_id}/validate", response_model=ValidateTargetResponse)
 async def validate_target(
     target_id: UUID,
     request: ValidateTargetRequest,
@@ -1569,7 +1633,7 @@ async def validate_target(
     )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     errors = []
     warnings = []
@@ -1578,11 +1642,15 @@ async def validate_target(
     # Validate URL
     test_url = request.test_url or target.url
     try:
-        validate_url_safety(test_url, allowlist_domains=(target.compliance or {}).get("domain_allowlist"))
+        validate_url_safety(
+            test_url,
+            allowlist_domains=(target.compliance or {}).get("domain_allowlist"),
+        )
     except URLSafetyError as exc:
         errors.append(
             ValidationError(
-                field="url", message=f"URL blocked by compliance policy ({exc.reason_code})"
+                field="url",
+                message=f"URL blocked by compliance policy ({exc.reason_code})",
             )
         )
 
@@ -1602,14 +1670,21 @@ async def validate_target(
         from urllib.parse import urlparse
 
         from ..compliance.robots_checker import RobotsChecker
+
         parsed = urlparse(test_url)
         checker = RobotsChecker(tenant_id=str(org_id))
         domain = parsed.netloc
         allowed, reason, rules = await checker.check_url(domain, test_url)
-        robots_check = {"allowed": allowed, "crawl_delay": rules.get("crawl_delay") if rules else None}
+        robots_check = {
+            "allowed": allowed,
+            "crawl_delay": rules.get("crawl_delay") if rules else None,
+        }
         if not allowed:
             warnings.append(
-                ValidationWarning(field="robots_txt", message=reason or "URL is disallowed by robots.txt")
+                ValidationWarning(
+                    field="robots_txt",
+                    message=reason or "URL is disallowed by robots.txt",
+                )
             )
 
     valid = len(errors) == 0
@@ -1619,7 +1694,6 @@ async def validate_target(
     )
 
 
-@router.post("/targets/{target_id}/execute", response_model=ExecuteTargetResponse, status_code=202)
 async def execute_target(
     target_id: UUID,
     request: ExecuteTargetRequest,
@@ -1635,7 +1709,7 @@ async def execute_target(
     )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
         raise ConflictError(message=f"Target is not active (status: {target.status})")
@@ -1644,12 +1718,15 @@ async def execute_target(
     if request.idempotency_key:
         idempotency_key = f"idempotency:{org_id}:{target_id}:{request.idempotency_key}"
         from ..shared.database import redis_client
+
         if redis_client:
             # Try to set idempotency key atomically (only if not exists)
             # This prevents race condition where multiple requests create duplicate jobs
             job_id_placeholder = f"placeholder:{uuid4()}"
-            set_result = redis_client.set(idempotency_key, job_id_placeholder, nx=True, ex=86400)
-            
+            set_result = redis_client.set(
+                idempotency_key, job_id_placeholder, nx=True, ex=86400
+            )
+
             if set_result is None:
                 # Key already exists - return existing job
                 existing_job_id = redis_client.get(idempotency_key)
@@ -1663,6 +1740,7 @@ async def execute_target(
                     existing_job = db.query(ScrapingJob).get(UUID(existing_job_id))
                     if existing_job and existing_job.tenant_id == org_id:
                         from ..metrics.prometheus_metrics import get_metrics
+
                         metrics = get_metrics()
                         if metrics and metrics.config.enabled:
                             metrics.increment_idempotency_key_hit()
@@ -1683,6 +1761,7 @@ async def execute_target(
             else:
                 # Successfully claimed idempotency key
                 from ..metrics.prometheus_metrics import get_metrics
+
                 metrics = get_metrics()
                 if metrics and metrics.config.enabled:
                     metrics.increment_idempotency_key_miss()
@@ -1722,6 +1801,7 @@ async def execute_target(
     if request.idempotency_key:
         idempotency_key = f"idempotency:{org_id}:{target_id}:{request.idempotency_key}"
         from ..shared.database import redis_client
+
         if redis_client:
             redis_client.setex(idempotency_key, 86400, str(job.id))  # 24h TTL
 
@@ -1731,7 +1811,6 @@ async def execute_target(
             job_id=job.id, tenant_id=org_id, stage=stage.value, status="PENDING"
         )
         db.add(stage_detail)
-
 
     # Queue job
     job.status = JobStatus.QUEUED.value
@@ -1764,7 +1843,6 @@ async def execute_target(
 # =============================================================================
 
 
-@router.get("/targets/{target_id}/decisions", response_model=list[CrawlDecisionSummary])
 async def get_target_decisions(
     target_id: UUID,
     limit: int = Query(default=50, ge=1, le=100),
@@ -1777,13 +1855,14 @@ async def get_target_decisions(
     for this target, showing routing choices and outcomes.
     """
     # Verify target exists and belongs to org
-    target = db.query(ScrapingTarget).filter(
-        ScrapingTarget.id == target_id,
-        ScrapingTarget.tenant_id == org_id
-    ).first()
+    target = (
+        db.query(ScrapingTarget)
+        .filter(ScrapingTarget.id == target_id, ScrapingTarget.tenant_id == org_id)
+        .first()
+    )
 
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     # Get decisions for all jobs of this target
     jobs = db.query(ScrapingJob).filter(ScrapingJob.target_id == target_id).all()
@@ -1815,7 +1894,6 @@ async def get_target_decisions(
     ]
 
 
-@router.get("/jobs/{job_id}/router-report", response_model=RouterQualityReportResponse)
 async def get_job_router_report(
     job_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -1827,13 +1905,14 @@ async def get_job_router_report(
     and performance characteristics for analysis.
     """
     # Verify job exists and belongs to org
-    job = db.query(ScrapingJob).filter(
-        ScrapingJob.id == job_id,
-        ScrapingJob.tenant_id == org_id
-    ).first()
+    job = (
+        db.query(ScrapingJob)
+        .filter(ScrapingJob.id == job_id, ScrapingJob.tenant_id == org_id)
+        .first()
+    )
 
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     repo = CrawlDecisionRepository(db)
     report = await repo.get_router_quality_report(str(job_id))
@@ -1853,7 +1932,6 @@ async def get_job_router_report(
     )
 
 
-@router.get("/domains/{domain}/fallback-stats", response_model=DomainFallbackStatsResponse)
 async def get_domain_fallback_stats(
     domain: str,
     days: int = Query(default=7, ge=1, le=30),
@@ -1868,20 +1946,25 @@ async def get_domain_fallback_stats(
     from datetime import timedelta
 
     # Verify org has crawled this domain (basic authorization check)
-    has_access = db.query(CrawlDecision).filter(
-        CrawlDecision.domain == domain,
-        CrawlDecision.tenant_id == org_id
-    ).first()
+    has_access = (
+        db.query(CrawlDecision)
+        .filter(CrawlDecision.domain == domain, CrawlDecision.tenant_id == org_id)
+        .first()
+    )
 
     if not has_access:
         # Check if any target URL matches this domain
-        has_target = db.query(ScrapingTarget).filter(
-            ScrapingTarget.tenant_id == org_id,
-            ScrapingTarget.url.ilike(f"%{domain}%")
-        ).first()
+        has_target = (
+            db.query(ScrapingTarget)
+            .filter(
+                ScrapingTarget.tenant_id == org_id,
+                ScrapingTarget.url.ilike(f"%{domain}%"),
+            )
+            .first()
+        )
 
         if not has_target:
-            raise AuthorizationError(message = "No access to this domain")
+            raise AuthorizationError(message="No access to this domain")
 
     since = datetime.now(UTC) - timedelta(days=days)
     repo = CrawlDecisionRepository(db)
@@ -1905,7 +1988,6 @@ async def get_domain_fallback_stats(
 # =============================================================================
 
 
-@router.get("/jobs", response_model=JobListResponse)
 async def list_jobs(
     page: int = Query(default=1, ge=1),
     limit: int = Query(default=20, ge=1, le=100),
@@ -1994,15 +2076,23 @@ async def list_jobs(
         aggregation={
             "by_status": by_status,
             "total_execution_time_ms": sum(j.resources_compute_time_ms for j in jobs),
-            "total_records_extracted": sum(j.results_extracted_record_count for j in jobs),
+            "total_records_extracted": sum(
+                j.results_extracted_record_count for j in jobs
+            ),
         },
-        pagination={"page": page, "limit": limit, "total": total, "total_pages": total_pages},
+        pagination={
+            "page": page,
+            "limit": limit,
+            "total": total,
+            "total_pages": total_pages,
+        },
     )
 
 
-@router.get("/jobs/{job_id}", response_model=ScrapingJobDetail)
 async def get_job(
-    job_id: UUID, org_id: UUID = Depends(get_tenant_id), db: Session = Depends(get_db_from_context_sync)
+    job_id: UUID,
+    org_id: UUID = Depends(get_tenant_id),
+    db: Session = Depends(get_db_from_context_sync),
 ):
     """Get detailed job information including execution stages."""
     job = (
@@ -2012,7 +2102,7 @@ async def get_job(
     )
 
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     stages = (
         db.query(JobStageDetail)
@@ -2091,9 +2181,10 @@ async def get_job(
     )
 
 
-@router.delete("/jobs/{job_id}", status_code=202)
 async def cancel_job(
-    job_id: UUID, org_id: UUID = Depends(get_tenant_id), db: Session = Depends(get_db_from_context_sync)
+    job_id: UUID,
+    org_id: UUID = Depends(get_tenant_id),
+    db: Session = Depends(get_db_from_context_sync),
 ):
     """Cancel a running or queued job."""
     job = (
@@ -2103,7 +2194,7 @@ async def cancel_job(
     )
 
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     # Can only cancel jobs that haven't completed
     terminal_states = [
@@ -2121,12 +2212,15 @@ async def cancel_job(
 
     logger.info("Cancelled scraping job", job_id=str(job_id))
 
-    return cancel_jobResult.model_validate({"status": "CANCELLED", "job_id": str(job_id)})
+    return cancel_jobResult.model_validate(
+        {"status": "CANCELLED", "job_id": str(job_id)}
+    )
 
 
-@router.get("/jobs/{job_id}/progress", response_model=JobProgressResponse)
 async def get_job_progress(
-    job_id: UUID, org_id: UUID = Depends(get_tenant_id), db: Session = Depends(get_db_from_context_sync)
+    job_id: UUID,
+    org_id: UUID = Depends(get_tenant_id),
+    db: Session = Depends(get_db_from_context_sync),
 ):
     """Get real-time job progress."""
     job = (
@@ -2136,7 +2230,7 @@ async def get_job_progress(
     )
 
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     return JobProgressResponse(
         job_id=job.id,
@@ -2153,7 +2247,6 @@ async def get_job_progress(
     )
 
 
-@router.get("/jobs/{job_id}/results")
 async def get_job_results(
     job_id: UUID,
     page: int = Query(default=1, ge=1),
@@ -2172,7 +2265,7 @@ async def get_job_results(
     )
 
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     query = db.query(ExtractedData).filter(
         ExtractedData.job_id == job_id, ExtractedData.tenant_id == org_id
@@ -2182,29 +2275,32 @@ async def get_job_results(
     offset = (page - 1) * limit
     data = query.offset(offset).limit(limit).all()
 
-    return get_job_resultsResult.model_validate({
-        "job_id": str(job_id),
-        "format": format,
-        "total_records": total,
-        "data": [
-            {
-                "id": str(d.id),
-                "raw_content_id": str(d.raw_content_id),
-                "extraction_method": d.extraction_method,
-                "confidence": float(d.extraction_confidence_score)
-                if d.extraction_confidence_score
-                else None,
-                "data": d.data,
-                "created_at": d.created_at.isoformat(),
-            }
-            for d in data
-        ],
-        "page": page,
-        "limit": limit,
-    })
+    return get_job_resultsResult.model_validate(
+        {
+            "job_id": str(job_id),
+            "format": format,
+            "total_records": total,
+            "data": [
+                {
+                    "id": str(d.id),
+                    "raw_content_id": str(d.raw_content_id),
+                    "extraction_method": d.extraction_method,
+                    "confidence": (
+                        float(d.extraction_confidence_score)
+                        if d.extraction_confidence_score
+                        else None
+                    ),
+                    "data": d.data,
+                    "created_at": d.created_at.isoformat(),
+                }
+                for d in data
+            ],
+            "page": page,
+            "limit": limit,
+        }
+    )
 
 
-@router.post("/jobs/{job_id}/retry", status_code=202)
 async def retry_job(
     job_id: UUID,
     request: RetryJobRequest,
@@ -2220,10 +2316,15 @@ async def retry_job(
     )
 
     if not original_job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
-    if original_job.status not in [JobStatus.FAILED.value, JobStatus.PARTIAL_SUCCESS.value]:
-        raise ConflictError(message="Only failed or partially successful jobs can be retried")
+    if original_job.status not in [
+        JobStatus.FAILED.value,
+        JobStatus.PARTIAL_SUCCESS.value,
+    ]:
+        raise ConflictError(
+            message="Only failed or partially successful jobs can be retried"
+        )
 
     # Create new job with same configuration
     correlation_id = f"retry:{job_id}:{uuid4()}"
@@ -2248,19 +2349,22 @@ async def retry_job(
         )
         db.add(stage_detail)
 
-
     # Queue new job
     new_job.status = JobStatus.QUEUED.value
 
     process_scraping_job.delay(str(new_job.id), str(new_job.tenant_id))
 
-    logger.info("Created retry job", original_job_id=str(job_id), new_job_id=str(new_job.id))
+    logger.info(
+        "Created retry job", original_job_id=str(job_id), new_job_id=str(new_job.id)
+    )
 
-    return retry_jobResult.model_validate({
-        "original_job_id": str(job_id),
-        "new_job_id": str(new_job.id),
-        "status": JobStatus.QUEUED.value,
-    })
+    return retry_jobResult.model_validate(
+        {
+            "original_job_id": str(job_id),
+            "new_job_id": str(new_job.id),
+            "status": JobStatus.QUEUED.value,
+        }
+    )
 
 
 # =============================================================================
@@ -2285,7 +2389,9 @@ def _source_corpus_to_response(corpus: SourceCorpus) -> SourceCorpusResponse:
     )
 
 
-def _account_packet_to_response(packet: AccountIntelligencePacket) -> AccountIntelligencePacketResponse:
+def _account_packet_to_response(
+    packet: AccountIntelligencePacket,
+) -> AccountIntelligencePacketResponse:
     """Convert an AccountIntelligencePacket DB model to its API response."""
     return AccountIntelligencePacketResponse(
         id=packet.id,
@@ -2328,14 +2434,14 @@ def _create_skill_job(
         .first()
     )
     if not target:
-        raise NotFoundError(message = "Target not found")
+        raise NotFoundError(message="Target not found")
 
     if target.status != TargetStatus.ACTIVE.value:
         raise ConflictError(message=f"Target is not active (status: {target.status})")
 
     skill = get_skill(job_type.value)
     if not skill:
-        raise ValidationError(message = str(f"Unknown job_type: {job_type.value}"))
+        raise ValidationError(message=str(f"Unknown job_type: {job_type.value}"))
 
     configuration = {
         "target_id": str(target.id),
@@ -2343,8 +2449,16 @@ def _create_skill_job(
         "url": target.url,
         "target_type": target.target_type,
         "job_type": job_type.value,
-        "company_name" if job_type == ScrapingJobType.LICENSING_COMPANY_INTAKE else "account_name": entity_name,
-        "company_id" if job_type == ScrapingJobType.LICENSING_COMPANY_INTAKE else "account_id": entity_id,
+        (
+            "company_name"
+            if job_type == ScrapingJobType.LICENSING_COMPANY_INTAKE
+            else "account_name"
+        ): entity_name,
+        (
+            "company_id"
+            if job_type == ScrapingJobType.LICENSING_COMPANY_INTAKE
+            else "account_id"
+        ): entity_id,
         "extraction_config": target.extraction_config,
         "browser_config": target.browser_config,
         "rate_limit": target.rate_limit,
@@ -2393,7 +2507,6 @@ def _create_skill_job(
     return job
 
 
-@router.post("/jobs/licensing-company-intake", response_model=SkillJobResponse, status_code=202)
 async def create_licensing_company_intake_job(
     request: CreateLicensingCompanyIntakeRequest,
     org_id: UUID = Depends(get_tenant_id),
@@ -2436,7 +2549,6 @@ async def create_licensing_company_intake_job(
     )
 
 
-@router.post("/jobs/prospect-research", response_model=SkillJobResponse, status_code=202)
 async def create_prospect_research_job(
     request: CreateProspectResearchRequest,
     org_id: UUID = Depends(get_tenant_id),
@@ -2479,7 +2591,6 @@ async def create_prospect_research_job(
     )
 
 
-@router.get("/corpuses/{corpus_id}", response_model=SourceCorpusResponse)
 async def get_source_corpus(
     corpus_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -2492,11 +2603,10 @@ async def get_source_corpus(
         .first()
     )
     if not corpus:
-        raise NotFoundError(message = "Corpus not found")
+        raise NotFoundError(message="Corpus not found")
     return _source_corpus_to_response(corpus)
 
 
-@router.get("/intelligence-packets/{packet_id}", response_model=AccountIntelligencePacketResponse)
 async def get_account_intelligence_packet(
     packet_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -2505,15 +2615,17 @@ async def get_account_intelligence_packet(
     """Retrieve an AccountIntelligencePacket by ID."""
     packet = (
         db.query(AccountIntelligencePacket)
-        .filter(AccountIntelligencePacket.id == packet_id, AccountIntelligencePacket.tenant_id == org_id)
+        .filter(
+            AccountIntelligencePacket.id == packet_id,
+            AccountIntelligencePacket.tenant_id == org_id,
+        )
         .first()
     )
     if not packet:
-        raise NotFoundError(message = "Intelligence packet not found")
+        raise NotFoundError(message="Intelligence packet not found")
     return _account_packet_to_response(packet)
 
 
-@router.get("/jobs/{job_id}/skill-output")
 async def get_job_skill_output(
     job_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -2526,10 +2638,10 @@ async def get_job_skill_output(
         .first()
     )
     if not job:
-        raise NotFoundError(message = "Job not found")
+        raise NotFoundError(message="Job not found")
 
     if not job.skill_name:
-        raise NotFoundError(message = "Job has no skill output")
+        raise NotFoundError(message="Job has no skill output")
 
     if job.output_contract == "SourceCorpus":
         corpus = (
@@ -2538,7 +2650,7 @@ async def get_job_skill_output(
             .first()
         )
         if not corpus:
-            raise NotFoundError(message = "SourceCorpus not yet available")
+            raise NotFoundError(message="SourceCorpus not yet available")
         return {
             "output_contract": "SourceCorpus",
             "data": _source_corpus_to_response(corpus).model_dump(),
@@ -2547,17 +2659,22 @@ async def get_job_skill_output(
     if job.output_contract == "AccountIntelligencePacket":
         packet = (
             db.query(AccountIntelligencePacket)
-            .filter(AccountIntelligencePacket.job_id == job_id, AccountIntelligencePacket.tenant_id == org_id)
+            .filter(
+                AccountIntelligencePacket.job_id == job_id,
+                AccountIntelligencePacket.tenant_id == org_id,
+            )
             .first()
         )
         if not packet:
-            raise NotFoundError(message = "AccountIntelligencePacket not yet available")
+            raise NotFoundError(message="AccountIntelligencePacket not yet available")
         return {
             "output_contract": "AccountIntelligencePacket",
             "data": _account_packet_to_response(packet).model_dump(),
         }
 
-    raise ValidationError(message = str(f"Unknown output_contract: {job.output_contract}"))
+    raise ValidationError(
+        message=str(f"Unknown output_contract: {job.output_contract}")
+    )
 
 
 # =============================================================================
@@ -2569,9 +2686,7 @@ _DEFAULT_LIST_LIMIT = 20
 
 
 def _corpus_to_summary(corpus: SourceCorpus) -> SourceCorpusSummary:
-    source_count = sum(
-        g.get("count", 0) for g in (corpus.source_groups or [])
-    )
+    source_count = sum(g.get("count", 0) for g in (corpus.source_groups or []))
     return SourceCorpusSummary(
         id=corpus.id,
         company_name=corpus.company_name,
@@ -2583,7 +2698,9 @@ def _corpus_to_summary(corpus: SourceCorpus) -> SourceCorpusSummary:
     )
 
 
-def _packet_to_summary(packet: AccountIntelligencePacket) -> AccountIntelligencePacketSummary:
+def _packet_to_summary(
+    packet: AccountIntelligencePacket,
+) -> AccountIntelligencePacketSummary:
     signals = packet.observed_signals or []
     high_conf = sum(1 for s in signals if s.get("confidence") == "high")
     return AccountIntelligencePacketSummary(
@@ -2597,7 +2714,6 @@ def _packet_to_summary(packet: AccountIntelligencePacket) -> AccountIntelligence
     )
 
 
-@router.get("/source-corpora", response_model=SourceCorpusListResponse)
 async def list_source_corpora(
     company_id: str | None = Query(default=None),
     job_id: UUID | None = Query(default=None),
@@ -2605,7 +2721,10 @@ async def list_source_corpora(
     created_after: datetime | None = Query(default=None),
     created_before: datetime | None = Query(default=None),
     limit: int = Query(default=_DEFAULT_LIST_LIMIT, ge=1, le=_MAX_LIST_LIMIT),
-    cursor: str | None = Query(default=None, description="ISO-8601 created_at of last seen item for cursor pagination"),
+    cursor: str | None = Query(
+        default=None,
+        description="ISO-8601 created_at of last seen item for cursor pagination",
+    ),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
@@ -2630,10 +2749,13 @@ async def list_source_corpora(
     if cursor:
         try:
             from datetime import datetime as _dt
+
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(SourceCorpus.created_at < cursor_dt)
         except ValueError:
-            raise ValidationError(message = "Invalid cursor format; expected ISO-8601 datetime")
+            raise ValidationError(
+                message="Invalid cursor format; expected ISO-8601 datetime"
+            )
 
     total = q.count()
     items = q.order_by(SourceCorpus.created_at.desc()).limit(limit).all()
@@ -2650,7 +2772,6 @@ async def list_source_corpora(
     )
 
 
-@router.get("/source-corpora/{corpus_id}", response_model=SourceCorpusResponse)
 async def get_source_corpus_detail(
     corpus_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -2666,18 +2787,20 @@ async def get_source_corpus_detail(
         .first()
     )
     if not corpus:
-        raise NotFoundError(message = "SourceCorpus not found")
+        raise NotFoundError(message="SourceCorpus not found")
     return _source_corpus_to_response(corpus)
 
 
-@router.get("/account-intelligence-packets", response_model=AccountIntelligencePacketListResponse)
 async def list_account_intelligence_packets(
     account_id: str | None = Query(default=None),
     job_id: UUID | None = Query(default=None),
     created_after: datetime | None = Query(default=None),
     created_before: datetime | None = Query(default=None),
     limit: int = Query(default=_DEFAULT_LIST_LIMIT, ge=1, le=_MAX_LIST_LIMIT),
-    cursor: str | None = Query(default=None, description="ISO-8601 created_at of last seen item for cursor pagination"),
+    cursor: str | None = Query(
+        default=None,
+        description="ISO-8601 created_at of last seen item for cursor pagination",
+    ),
     org_id: UUID = Depends(get_tenant_id),
     db: Session = Depends(get_db_from_context_sync),
 ):
@@ -2701,10 +2824,13 @@ async def list_account_intelligence_packets(
     if cursor:
         try:
             from datetime import datetime as _dt
+
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(AccountIntelligencePacket.created_at < cursor_dt)
         except ValueError:
-            raise ValidationError(message = "Invalid cursor format; expected ISO-8601 datetime")
+            raise ValidationError(
+                message="Invalid cursor format; expected ISO-8601 datetime"
+            )
 
     total = q.count()
     items = q.order_by(AccountIntelligencePacket.created_at.desc()).limit(limit).all()
@@ -2721,7 +2847,6 @@ async def list_account_intelligence_packets(
     )
 
 
-@router.get("/account-intelligence-packets/{packet_id}", response_model=AccountIntelligencePacketResponse)
 async def get_account_intelligence_packet_detail(
     packet_id: UUID,
     org_id: UUID = Depends(get_tenant_id),
@@ -2740,7 +2865,7 @@ async def get_account_intelligence_packet_detail(
         .first()
     )
     if not packet:
-        raise NotFoundError(message = "AccountIntelligencePacket not found")
+        raise NotFoundError(message="AccountIntelligencePacket not found")
     return _account_packet_to_response(packet)
 
 
@@ -2749,7 +2874,6 @@ async def get_account_intelligence_packet_detail(
 # =============================================================================
 
 
-@router.get("/content/raw/{content_id}", response_model=RawContentResponse)
 async def get_raw_content(
     content_id: UUID,
     include_html: bool = Query(default=True),
@@ -2766,7 +2890,7 @@ async def get_raw_content(
     )
 
     if not content:
-        raise NotFoundError(message = "Content not found")
+        raise NotFoundError(message="Content not found")
 
     storage = {}
     if include_html:
@@ -2804,7 +2928,6 @@ async def get_raw_content(
     )
 
 
-@router.get("/content/extracted/{extracted_data_id}", response_model=ExtractedDataResponse)
 async def get_extracted_data(
     extracted_data_id: UUID,
     format: str = Query(default="json", regex="^(json|markdown|flattened)$"),
@@ -2814,28 +2937,34 @@ async def get_extracted_data(
     """Retrieve extracted data by ID."""
     data = (
         db.query(ExtractedData)
-        .filter(ExtractedData.id == extracted_data_id, ExtractedData.tenant_id == org_id)
+        .filter(
+            ExtractedData.id == extracted_data_id, ExtractedData.tenant_id == org_id
+        )
         .first()
     )
 
     if not data:
-        raise NotFoundError(message = "Extracted data not found")
+        raise NotFoundError(message="Extracted data not found")
 
     return ExtractedDataResponse(
         id=data.id,
         job_id=data.job_id,
         raw_content_id=data.raw_content_id,
         extraction_method=data.extraction_method,
-        extraction_confidence_score=float(data.extraction_confidence_score)
-        if data.extraction_confidence_score
-        else 0.0,
+        extraction_confidence_score=(
+            float(data.extraction_confidence_score)
+            if data.extraction_confidence_score
+            else 0.0
+        ),
         data=data.data,
         validation={
             "schema_valid": data.validation_schema_valid,
             "errors": data.validation_errors,
-            "data_quality_score": float(data.validation_data_quality_score)
-            if data.validation_data_quality_score
-            else 0.0,
+            "data_quality_score": (
+                float(data.validation_data_quality_score)
+                if data.validation_data_quality_score
+                else 0.0
+            ),
         },
         post_processing={
             "pii_redaction_applied": data.post_pii_redaction_applied,
@@ -2847,7 +2976,6 @@ async def get_extracted_data(
     )
 
 
-@router.get("/content")
 async def list_content(
     job_id: UUID | None = Query(None),
     domain: str | None = Query(None),
@@ -2871,24 +2999,28 @@ async def list_content(
 
     total = query.count()
     offset = (page - 1) * limit
-    items = query.order_by(RawContent.created_at.desc()).offset(offset).limit(limit).all()
+    items = (
+        query.order_by(RawContent.created_at.desc()).offset(offset).limit(limit).all()
+    )
 
-    return list_contentResult.model_validate({
-        "items": [
-            {
-                "id": str(item.id),
-                "job_id": str(item.job_id),
-                "source_url": item.source_url,
-                "source_domain": item.source_domain,
-                "processing_status": item.processing_status,
-                "created_at": item.created_at.isoformat(),
-            }
-            for item in items
-        ],
-        "total": total,
-        "page": page,
-        "limit": limit,
-    })
+    return list_contentResult.model_validate(
+        {
+            "items": [
+                {
+                    "id": str(item.id),
+                    "job_id": str(item.job_id),
+                    "source_url": item.source_url,
+                    "source_domain": item.source_domain,
+                    "processing_status": item.processing_status,
+                    "created_at": item.created_at.isoformat(),
+                }
+                for item in items
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit,
+        }
+    )
 
 
 # =============================================================================
@@ -2896,7 +3028,6 @@ async def list_content(
 # =============================================================================
 
 
-@router.get("/compliance/logs")
 async def list_compliance_logs(
     event_type: list[ComplianceEventType] | None = Query(None),
     severity: str | None = Query(None),
@@ -2933,28 +3064,34 @@ async def list_compliance_logs(
 
     total = query.count()
     offset = (page - 1) * limit
-    logs = query.order_by(ComplianceLog.created_at.desc()).offset(offset).limit(limit).all()
+    logs = (
+        query.order_by(ComplianceLog.created_at.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
 
-    return list_compliance_logsResult.model_validate({
-        "items": [
-            {
-                "id": str(log.id),
-                "event_type": log.event_type,
-                "severity": log.severity,
-                "request_url": log.request_url,
-                "request_timestamp": log.request_timestamp.isoformat(),
-                "response_action_taken": log.response_action_taken,
-                "created_at": log.created_at.isoformat(),
-            }
-            for log in logs
-        ],
-        "total": total,
-        "page": page,
-        "limit": limit,
-    })
+    return list_compliance_logsResult.model_validate(
+        {
+            "items": [
+                {
+                    "id": str(log.id),
+                    "event_type": log.event_type,
+                    "severity": log.severity,
+                    "request_url": log.request_url,
+                    "request_timestamp": log.request_timestamp.isoformat(),
+                    "response_action_taken": log.response_action_taken,
+                    "created_at": log.created_at.isoformat(),
+                }
+                for log in logs
+            ],
+            "total": total,
+            "page": page,
+            "limit": limit,
+        }
+    )
 
 
-@router.get("/compliance/summary", response_model=ComplianceSummaryResponse)
 async def get_compliance_summary(
     period_start: datetime = Query(...),
     period_end: datetime = Query(...),
@@ -3005,7 +3142,9 @@ async def get_compliance_summary(
         for log in rate_limit_logs
         if isinstance((log.rate_limit_event or {}).get("delay_ms"), int)
     ]
-    average_delay_ms = int(sum(delay_values) / len(delay_values)) if delay_values else None
+    average_delay_ms = (
+        int(sum(delay_values) / len(delay_values)) if delay_values else None
+    )
 
     allowlisted_count = query.filter(
         ComplianceLog.event_type == ComplianceEventType.DOMAIN_ALLOWED.value
@@ -3025,9 +3164,11 @@ async def get_compliance_summary(
             "average_delay_ms": average_delay_ms,
             "average_delay_ms_metadata": {
                 "status": "unknown" if average_delay_ms is None else "measured",
-                "reason": "No delay_ms values found in compliance rate_limit_event logs"
-                if average_delay_ms is None
-                else None,
+                "reason": (
+                    "No delay_ms values found in compliance rate_limit_event logs"
+                    if average_delay_ms is None
+                    else None
+                ),
             },
         },
         pii_detection={
@@ -3050,7 +3191,6 @@ async def get_compliance_summary(
 # =============================================================================
 
 
-@router.get("/health", response_model=HealthCheckResponse)
 async def health_check(db: Session = Depends(get_db_from_context_sync)):
     """Enhanced health check endpoint."""
     components = {}
@@ -3059,11 +3199,16 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
     # Database check
     try:
         from sqlalchemy import text
+
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception as e:
-        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e))
-        components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
+        logger.error(
+            "health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e)
+        )
+        components["database"] = ComponentHealth(
+            status="unhealthy", message="Database connection failed"
+        )
 
     # Queue check (Redis)
     try:
@@ -3072,7 +3217,9 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         redis_client.ping()
         components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
     except Exception:
-        components["queue"] = ComponentHealth(status="degraded", message="Redis not available")
+        components["queue"] = ComponentHealth(
+            status="degraded", message="Redis not available"
+        )
 
     # Active jobs metrics
     active_jobs = (
@@ -3093,7 +3240,11 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         .count()
     )
 
-    queued_jobs = db.query(ScrapingJob).filter(ScrapingJob.status == JobStatus.QUEUED.value).count()
+    queued_jobs = (
+        db.query(ScrapingJob)
+        .filter(ScrapingJob.status == JobStatus.QUEUED.value)
+        .count()
+    )
 
     started_jobs = db.query(ScrapingJob).all()
     wait_times_ms = [
@@ -3101,7 +3252,9 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         for job in started_jobs
         if job.started_at and job.created_at
     ]
-    average_wait_time_ms = int(sum(wait_times_ms) / len(wait_times_ms)) if wait_times_ms else None
+    average_wait_time_ms = (
+        int(sum(wait_times_ms) / len(wait_times_ms)) if wait_times_ms else None
+    )
 
     metrics = {
         "active_jobs": active_jobs,
@@ -3114,9 +3267,11 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         "average_wait_time_ms": average_wait_time_ms,
         "average_wait_time_ms_metadata": {
             "status": "unknown" if average_wait_time_ms is None else "measured",
-            "reason": "No started jobs available to calculate queue wait time"
-            if average_wait_time_ms is None
-            else None,
+            "reason": (
+                "No started jobs available to calculate queue wait time"
+                if average_wait_time_ms is None
+                else None
+            ),
         },
     }
 
@@ -3137,26 +3292,30 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
     )
 
 
-@router.get("/metrics")
 async def metrics_endpoint(request: Request):
     """Prometheus-compatible metrics endpoint."""
     metrics = get_metrics()
 
     if not metrics:
         return Response(
-            content="Metrics collection is disabled", status_code=503, media_type="text/plain"
+            content="Metrics collection is disabled",
+            status_code=503,
+            media_type="text/plain",
         )
 
     try:
         metrics_data = metrics.get_metrics()
-        return Response(content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8")
+        return Response(
+            content=metrics_data, media_type="text/plain; version=0.0.4; charset=utf-8"
+        )
     except Exception as e:
         return Response(
-            content=f"Error generating metrics: {e}", status_code=500, media_type="text/plain"
+            content=f"Error generating metrics: {e}",
+            status_code=500,
+            media_type="text/plain",
         )
 
 
-@router.post("/admin/cleanup")
 async def trigger_cleanup(
     days: int = Query(default=30, ge=1, le=365),
     org_id: UUID = Depends(get_tenant_id),
@@ -3166,10 +3325,12 @@ async def trigger_cleanup(
     SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
     """
     cleanup_old_content.delay(days, str(org_id))
-    return trigger_cleanupResult.model_validate({
-        "message": f"Cleanup initiated for content older than {days} days",
-        "status": "processing",
-    })
+    return trigger_cleanupResult.model_validate(
+        {
+            "message": f"Cleanup initiated for content older than {days} days",
+            "status": "processing",
+        }
+    )
 
 
 # =============================================================================
@@ -3177,7 +3338,6 @@ async def trigger_cleanup(
 # =============================================================================
 
 
-@router.post("/proxy-pools", response_model=ProxyPoolResponse)
 async def create_proxy_pool_endpoint(
     request: CreateProxyPoolRequest,
     org_id: UUID = Depends(get_tenant_id),
@@ -3227,7 +3387,11 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
         tags=target.tags or [],
         description=target.description,
         url_pattern=target.url_pattern,
-        crawl_path=target.extraction_config.get("crawl_path", "browser") if target.extraction_config else "browser",
+        crawl_path=(
+            target.extraction_config.get("crawl_path", "browser")
+            if target.extraction_config
+            else "browser"
+        ),
         extraction_config=target.extraction_config or {},
         browser_config=target.browser_config or {},
         schedule=target.schedule,
@@ -3241,6 +3405,23 @@ def _target_to_detail(target: ScrapingTarget) -> ScrapingTargetDetail:
 
 
 # Include the router in the main app
+
+
+# Adjacent route modules register cohesive endpoint groups without changing public paths.
+from .main_admin_routes import router as admin_routes
+from .main_compliance_routes import router as compliance_routes
+from .main_content_routes import router as content_routes
+from .main_job_routes import router as job_routes
+from .main_skill_routes import router as skill_routes
+from .main_target_routes import router as target_routes
+
+router.include_router(target_routes)
+router.include_router(job_routes)
+router.include_router(skill_routes)
+router.include_router(content_routes)
+router.include_router(compliance_routes)
+router.include_router(admin_routes)
+
 app.include_router(router)
 
 
@@ -3258,11 +3439,20 @@ async def legacy_health_check():
     db = SessionLocal()
     try:
         from sqlalchemy import text
+
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e))
-        dependencies.append({"name": "database", "status": "unhealthy", "error": "Database connection failed"})
+        logger.error(
+            "health_check_database_failed", error_code="DB_HEALTH_ERROR", error=repr(e)
+        )
+        dependencies.append(
+            {
+                "name": "database",
+                "status": "unhealthy",
+                "error": "Database connection failed",
+            }
+        )
         overall_status = "degraded"
     finally:
         db.close()
@@ -3271,22 +3461,32 @@ async def legacy_health_check():
     try:
         if redis_client is None:
             dependencies.append(
-                {"name": "redis", "status": "degraded", "error": "Redis client not configured"}
+                {
+                    "name": "redis",
+                    "status": "degraded",
+                    "error": "Redis client not configured",
+                }
             )
             overall_status = "degraded"
         else:
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
     except Exception as e:
-        logger.error("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR", error=repr(e))
-        dependencies.append({"name": "redis", "status": "degraded", "error": "Redis connection failed"})
+        logger.error(
+            "health_check_redis_failed", error_code="REDIS_HEALTH_ERROR", error=repr(e)
+        )
+        dependencies.append(
+            {"name": "redis", "status": "degraded", "error": "Redis connection failed"}
+        )
         overall_status = "degraded"
 
-    return legacy_health_checkResult.model_validate({
-        "status": overall_status,
-        "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
-        "dependencies": dependencies,
-    })
+    return legacy_health_checkResult.model_validate(
+        {
+            "status": overall_status,
+            "note": "Legacy endpoint; use /api/v1/ingestion/health for full schema response",
+            "dependencies": dependencies,
+        }
+    )
 
 
 if __name__ == "__main__":

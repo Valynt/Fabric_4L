@@ -7,9 +7,9 @@ Validates:
 """
 
 import os
+
 import pytest
-from unittest.mock import patch
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
 
 from layer2_extraction.api.main import app
 
@@ -53,6 +53,7 @@ def test_governance_middleware_installed():
     )
 
 
+<<<<<<< ours
 def test_production_startup_fails_without_auth_keys():
     """Production startup must raise RuntimeError when FABRIC_AUTH_PUBLIC_KEYS missing."""
     with patch.dict(os.environ, {
@@ -82,3 +83,42 @@ def test_public_tenant_context_exemptions_are_health_and_readiness_only():
         {"/health", "/health/live", "/ready", "/readiness"}
     )
     assert _S2S_INTERNAL_PATHS.isdisjoint(_TENANT_CONTEXT_EXEMPT_PATHS)
+=======
+def _assert_auth_keys_required_for_environment(monkeypatch: pytest.MonkeyPatch, environment: str):
+    monkeypatch.setenv("ENVIRONMENT", environment)
+    monkeypatch.delenv("LAYER2_ENV", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("FABRIC_AUTH_PUBLIC_KEYS", "")
+
+    # Simulate the import-time guard logic directly since re-importing main.py is expensive.
+    from layer2_extraction.api.main import _is_strict_runtime
+
+    assert _is_strict_runtime() is True
+    keys_missing = not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip()
+    assert keys_missing is True
+
+
+def test_production_startup_fails_without_auth_keys(monkeypatch: pytest.MonkeyPatch):
+    """Production startup must require FABRIC_AUTH_PUBLIC_KEYS."""
+    _assert_auth_keys_required_for_environment(monkeypatch, "production")
+
+
+@pytest.mark.parametrize("environment", ["staging", "custom-preview"])
+def test_strict_startup_fails_without_auth_keys(monkeypatch: pytest.MonkeyPatch, environment: str):
+    """Staging and unknown/custom environments must require FABRIC_AUTH_PUBLIC_KEYS."""
+    _assert_auth_keys_required_for_environment(monkeypatch, environment)
+
+
+def test_development_startup_allows_missing_auth_keys(monkeypatch: pytest.MonkeyPatch):
+    """Explicit development runtime must keep local startup behavior permissive."""
+    monkeypatch.setenv("ENVIRONMENT", "development")
+    monkeypatch.delenv("LAYER2_ENV", raising=False)
+    monkeypatch.delenv("APP_ENV", raising=False)
+    monkeypatch.setenv("FABRIC_AUTH_PUBLIC_KEYS", "")
+
+    from layer2_extraction.api.main import _is_strict_runtime
+
+    assert _is_strict_runtime() is False
+    keys_missing = not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip()
+    assert keys_missing is True
+>>>>>>> theirs

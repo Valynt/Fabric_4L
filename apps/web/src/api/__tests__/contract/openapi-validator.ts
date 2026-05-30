@@ -223,13 +223,10 @@ export const OPENAPI_SCHEMA_MAP: Record<
   },
 
   // Common
-  // NOTE: layer4-agents.json uses wrapped ErrorEnvelope; layer2-extraction.json
-  // has the flat ErrorResponse that matches the frontend ApiErrorSchema.
-  // TODO: Align all layers to a single error envelope shape.
   ApiErrorSchema: {
-    specFile: 'layer2-extraction.json',
-    ref: '#/components/schemas/ErrorResponse',
-    description: 'Common API error shape (flat format from L2 spec)',
+    specFile: 'fabric-4l-api.json',
+    ref: '#/components/schemas/ErrorEnvelope',
+    description: 'Canonical shared API error envelope',
   },
 };
 

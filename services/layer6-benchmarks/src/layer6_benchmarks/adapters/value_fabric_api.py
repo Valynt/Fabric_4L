@@ -19,10 +19,10 @@ def map_exception_to_contract_detail(
     *,
     request_id: str,
 ) -> dict[str, dict[str, object | None]]:
-    """Map shared exception primitives to Layer 6 canonical envelope shape."""
+    """Map shared exception primitives to the canonical ErrorEnvelope shape."""
     return {
         "error": {
-            "code": str(exc.error_code),
+            "code": exc.error_code.value,
             "message": exc.message,
             "request_id": request_id,
             "details": exc.details or None,

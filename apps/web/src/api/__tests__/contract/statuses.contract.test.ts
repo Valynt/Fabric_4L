@@ -9,6 +9,7 @@ import {
   L3_SYNC_STATUSES,
 } from '@/api/statuses';
 import { ServiceStatusSchema } from '@/lib/schemas/healthMonitor';
+import { ApiErrorSchema, assertSchema } from './_helpers';
 
 
 describe('status contract alignment', () => {
@@ -39,5 +40,16 @@ describe('status contract alignment', () => {
       'deprecated',
       'retired',
     ]);
+  });
+});
+
+
+describe('Contract: statuses auth failures', () => {
+  it('validates canonical status API auth error envelope', () => {
+    assertSchema(
+      ApiErrorSchema,
+      { error: { code: 'AUTHENTICATION_ERROR', message: 'Authentication required', request_id: 'trace-status-401' } },
+      'Status auth error envelope'
+    );
   });
 });

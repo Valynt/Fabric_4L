@@ -42,12 +42,16 @@ from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
-from ..policies.replay_conflict import ReplayConflictError, ReplayConflictResolver, ReplayDecision
 from ..harness.models import GateStatus, GateType, HumanGate
 from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
 from ..tools.registry import ToolRegistry
 from ..workflows import WORKFLOW_TYPES, create_workflow
+from .checkpoint_replay import (
+    compute_state_hash,
+    get_latest_persisted_checkpoint_hash,
+    resolve_resume_policy,
+)
 from .execution_checkpointing import persist_interruption_if_needed
 from .execution_dispatch import build_workflow_task
 from .execution_persistence import mark_workflow_running, persist_workflow_failure
@@ -66,6 +70,7 @@ class OrchestrationController_get_resultResult(TypedDictModel):
     status: Any
     workflow_id: Any
 
+
 class OrchestrationController_get_workflow_statusResult(TypedDictModel):
     completed_at: Any
     current_node: Any
@@ -82,6 +87,7 @@ class OrchestrationController_get_workflow_statusResult(TypedDictModel):
     workflow_id: Any
     workflow_type: Any
 
+
 class OrchestrationController_get_cluster_healthResult(TypedDictModel):
     active_workflows: Any
     avg_load: Any
@@ -90,6 +96,7 @@ class OrchestrationController_get_cluster_healthResult(TypedDictModel):
     running_tasks: Any
     status: Any
     utilization: Any
+
 
 logger = logging.getLogger(__name__)
 lifecycle_logger = Layer4LifecycleLogger(logger)
@@ -187,8 +194,7 @@ class OrchestrationController:
         kwargs: dict[str, Any] = {
             "request_id": workflow_id,
             "trace_id": envelope_data.get("trace_id") or workflow_id,
-            "tenant_id": tenant_id
-            or str(meta.get("tenant_id") or "unknown"),
+            "tenant_id": tenant_id or str(meta.get("tenant_id") or "unknown"),
             "workflow_id": workflow_id,
             "run_id": envelope_data.get("run_id") or workflow_id,
             "provider_name": "langgraph",
@@ -199,31 +205,8 @@ class OrchestrationController:
 
     @staticmethod
     def _compute_state_hash(state: AgentState) -> str:
-        """Compute a deterministic hash for checkpoint conflict detection.
-
-        Uses canonical JSON serialization of the state's key fields.
-        """
-        import hashlib
-        import json
-
-        canonical = json.dumps(
-            {
-                "workflow_id": state.workflow_id,
-                "run_id": state.run_id,
-                "trace_id": state.trace_id,
-                "tenant_id": state.tenant_id,
-                "workflow_type": str(state.workflow_type.value if hasattr(state.workflow_type, "value") else state.workflow_type),
-                "current_node": state.current_node,
-                "status": str(state.status.value if hasattr(state.status, "value") else state.status),
-                "input_data": state.input_data,
-                "output_data": state.output_data,
-                "metadata": {k: v for k, v in (state.metadata or {}).items() if k not in ("run_envelope", "checkpoint_hash")},
-            },
-            sort_keys=True,
-            separators=(",", ":"),
-            default=str,
-        )
-        return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+        """Compute a deterministic hash for checkpoint conflict detection."""
+        return compute_state_hash(state)
 
     async def _resolve_resume_policy(
         self,
@@ -232,119 +215,15 @@ class OrchestrationController:
         state: AgentState,
         target_checkpoint_id: str | None = None,
     ) -> None:
-        """Validate a resume attempt against the canonical ReplayConflictPolicy.
-
-        Computes real checkpoint hashes and enforces exact-match, collision,
-        age, and duplicate-replay guards.
-
-        Raises:
-            WorkflowExecutionError: If the resume violates policy.
-        """
-        resolver = ReplayConflictResolver()
-        checkpoint_hash = self._compute_state_hash(state)
-
-        # Expected hash is the one stored when the checkpoint was originally saved
-        expected_hash = (state.metadata or {}).get("checkpoint_hash")
-
-        checkpoint_id = target_checkpoint_id or str(state.current_node or "latest")
-        run_id = state.run_id or workflow_id
-        latest_hash = await self._get_latest_persisted_checkpoint_hash(
-            tenant_id=str(state.tenant_id),
+        """Validate a resume attempt against the canonical ReplayConflictPolicy."""
+        await resolve_resume_policy(
+            self,
             workflow_id=workflow_id,
-            run_id=run_id,
-            checkpoint_id=checkpoint_id,
+            state=state,
+            target_checkpoint_id=target_checkpoint_id,
+            workflow_execution_error_type=WorkflowExecutionError,
+            checkpoint_conflict_error_type=CheckpointConflictError,
         )
-
-        if latest_hash != checkpoint_hash:
-            try:
-                from ..metrics.prometheus_metrics import get_metrics
-
-                metrics = get_metrics()
-                if metrics:
-                    metrics.increment_checkpoint_collision_outcome(
-                        workflow_type=str(
-                            state.workflow_type.value
-                            if hasattr(state.workflow_type, "value")
-                            else state.workflow_type
-                        ),
-                        tenant_id=str(state.tenant_id or "unknown"),
-                        outcome="mismatch",
-                    )
-            except Exception:
-                logger.debug("Failed to record checkpoint collision mismatch metric", exc_info=True)
-            conflict_metadata = {
-                "workflow_id": workflow_id,
-                "run_id": run_id,
-                "checkpoint_id": checkpoint_id,
-                "expected_hash": checkpoint_hash,
-                "actual_hash": latest_hash,
-            }
-            lifecycle_logger.emit(
-                stage="checkpoint_conflict",
-                context=self._lifecycle_context(
-                    workflow_id,
-                    tenant_id=str(state.tenant_id or "unknown"),
-                    checkpoint_id=checkpoint_id,
-                ),
-                **conflict_metadata,
-            )
-            raise CheckpointConflictError("Checkpoint hash mismatch", conflict_metadata)
-        try:
-            from ..metrics.prometheus_metrics import get_metrics
-
-            metrics = get_metrics()
-            if metrics:
-                metrics.increment_checkpoint_collision_outcome(
-                    workflow_type=str(
-                        state.workflow_type.value
-                        if hasattr(state.workflow_type, "value")
-                        else state.workflow_type
-                    ),
-                    tenant_id=str(state.tenant_id or "unknown"),
-                    outcome="match",
-                )
-        except Exception:
-            logger.debug("Failed to record checkpoint collision match metric", exc_info=True)
-
-        # Age guard uses paused_at or started_at
-        checkpoint_created_at = state.paused_at or state.started_at
-        if isinstance(checkpoint_created_at, str):
-            from datetime import datetime as _dt
-            checkpoint_created_at = _dt.fromisoformat(checkpoint_created_at.replace("Z", "+00:00"))
-
-        # Validate against policy
-        try:
-            resolver.validate_resume_attempt(
-                workflow_status=state.status,
-                checkpoint_created_at=checkpoint_created_at,
-                checkpoint_hash=checkpoint_hash,
-                expected_hash=expected_hash,
-                latest_checkpoint_hash=latest_hash,
-            )
-        except ReplayConflictError as rce:
-            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
-
-        # Duplicate replay detection
-        tenant_id = state.tenant_id or "unknown"
-        try:
-            decision = resolver.evaluate_duplicate_replay(
-                run_id=run_id,
-                tenant_id=tenant_id,
-                checkpoint_id=target_checkpoint_id,
-                seen_fingerprints=self._seen_replay_fingerprints,
-            )
-            if decision == ReplayDecision.REJECT:
-                raise ReplayConflictError("Replay rejected: duplicate replay detected")
-        except ReplayConflictError as rce:
-            raise WorkflowExecutionError(f"Replay conflict: {rce}") from rce
-
-        # Record fingerprint for future deduplication
-        fingerprint = resolver.compute_replay_fingerprint(
-            run_id=run_id,
-            tenant_id=tenant_id,
-            checkpoint_id=target_checkpoint_id,
-        )
-        self._seen_replay_fingerprints.add(fingerprint)
 
     async def _get_latest_persisted_checkpoint_hash(
         self,
@@ -354,37 +233,15 @@ class OrchestrationController:
         run_id: str,
         checkpoint_id: str,
     ) -> str:
-        """Load the latest persisted checkpoint hash from durable state.
-
-        Uses canonical checkpoint storage when available, scoped by tenant and
-        workflow identifiers. Falls back to persisted workflow state hash.
-        """
-        conn = self.checkpoint_saver.conn if self.checkpoint_saver and hasattr(self.checkpoint_saver, "conn") else None
-        if conn is not None and hasattr(conn, "fetchrow"):
-            row = await conn.fetchrow(
-                """
-                SELECT checkpoint->'channel_values' as state_data
-                FROM checkpoints
-                WHERE thread_id = $1
-                  AND checkpoint_id = $2
-                  AND checkpoint->'channel_values'->>'tenant_id' = $3
-                ORDER BY created_at DESC
-                LIMIT 1
-                """,
-                workflow_id,
-                checkpoint_id,
-                tenant_id,
-            )
-            if row and isinstance(row.get("state_data"), dict):
-                return self._compute_state_hash(BaseAgentState.model_validate(row["state_data"]))
-
-        latest_state = await self.state_manager.load_state(workflow_id)
-        if latest_state is None:
-            raise WorkflowExecutionError(
-                f"No persisted checkpoint state for tenant={tenant_id} run_id={run_id} "
-                f"workflow_id={workflow_id} checkpoint_id={checkpoint_id}"
-            )
-        return self._compute_state_hash(latest_state)
+        """Load the latest persisted checkpoint hash from durable state."""
+        return await get_latest_persisted_checkpoint_hash(
+            self,
+            tenant_id=tenant_id,
+            workflow_id=workflow_id,
+            run_id=run_id,
+            checkpoint_id=checkpoint_id,
+            workflow_execution_error_type=WorkflowExecutionError,
+        )
 
     def __init__(
         self,
@@ -633,9 +490,13 @@ class OrchestrationController:
         if self.checkpoint_saver is None:
             import os
 
-            from value_fabric.shared.security.config import is_production_like_environment
+            from value_fabric.shared.security.config import (
+                is_production_like_environment,
+            )
 
-            environment = os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV")
+            environment = (
+                os.getenv("ENVIRONMENT") or os.getenv("ENV") or os.getenv("APP_ENV")
+            )
             if is_production_like_environment(environment):
                 raise WorkflowExecutionError(
                     "Production workflow execution requires a durable checkpoint saver"
@@ -645,6 +506,7 @@ class OrchestrationController:
         active_count = len(self._active_workflows)
         if active_count >= self.max_concurrent:
             from ..exceptions import ConcurrencyLimitExceeded
+
             raise ConcurrencyLimitExceeded(
                 f"Maximum concurrent workflows ({self.max_concurrent}) exceeded. "
                 f"Current active: {active_count}. Retry after existing workflows complete."
@@ -660,7 +522,9 @@ class OrchestrationController:
         trace_id = str(uuid4())
 
         # Create workflow with checkpointing if available
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver
+        )
         initial_state = workflow.create_initial_state(
             input_data,
             tenant_id=tenant_id,
@@ -679,7 +543,10 @@ class OrchestrationController:
         )
         # Resolve tenant-aware timeout and store metadata with timeout tracking
         from ..config.settings import get_settings
-        resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
+
+        resolved_timeout_seconds, timeout_source = (
+            await self._resolve_workflow_timeout_seconds(tenant_id)
+        )
 
         initial_state.run_envelope = envelope
         if approval_evidence is not None:
@@ -751,6 +618,7 @@ class OrchestrationController:
         }:
             try:
                 from ..models.reasoning_trace import validate_reasoning_trace
+
                 validate_reasoning_trace(result.reasoning_trace, strict=True)
             except ValueError as exc:
                 result.status = WorkflowStatus.FAILED
@@ -818,18 +686,19 @@ class OrchestrationController:
 
         # Prefer canonical run envelope for identity fields when available
         envelope = state.run_envelope
-        return OrchestrationController_get_resultResult.model_validate({  # type: ignore[no-any-return]
-            "workflow_id": envelope.workflow_id if envelope else state.workflow_id,
-            "run_id": envelope.run_id if envelope else state.run_id,
-            "trace_id": envelope.trace_id if envelope else state.trace_id,
-            "output": output,
-            "metadata": result_metadata,
-            "status": self._fmt_enum(state.status),
-            "created_at": self._fmt_dt(state.started_at),
-            "started_at": self._fmt_dt(state.started_at),
-            "completed_at": self._fmt_dt(state.completed_at),
-        })
-
+        return OrchestrationController_get_resultResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "workflow_id": envelope.workflow_id if envelope else state.workflow_id,
+                "run_id": envelope.run_id if envelope else state.run_id,
+                "trace_id": envelope.trace_id if envelope else state.trace_id,
+                "output": output,
+                "metadata": result_metadata,
+                "status": self._fmt_enum(state.status),
+                "created_at": self._fmt_dt(state.started_at),
+                "started_at": self._fmt_dt(state.started_at),
+                "completed_at": self._fmt_dt(state.completed_at),
+            }
+        )
 
     async def schedule_workflow(
         self,
@@ -865,7 +734,9 @@ class OrchestrationController:
         schedule_id = f"sched-{datetime.now(UTC).timestamp()}"
 
         execute_time = scheduled_time or datetime.now(UTC)
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver
+        )
         initial_state = workflow.create_initial_state(
             input_data,
             tenant_id=tenant_id,
@@ -974,7 +845,9 @@ class OrchestrationController:
             task_id=task_id,
             workflow_instance_id=task_id,
             capability=capability,
-            agent_type=getattr(self._registered_agents.get(agent_id), "agent_type", "Unknown"),
+            agent_type=getattr(
+                self._registered_agents.get(agent_id), "agent_type", "Unknown"
+            ),
             context={"tenant_id": tenant_id},
             parameters=parameters,
             timeout_seconds=timeout_seconds,
@@ -1026,28 +899,43 @@ class OrchestrationController:
         else:
             envelope_data = envelope.model_dump()
 
-        return OrchestrationController_get_workflow_statusResult.model_validate({  # type: ignore[no-any-return]
-            "workflow_id": workflow_id,
-            "workflow_type": self._fmt_enum(state.workflow_type),
-            "status": self._fmt_enum(state.status),
-            "current_node": state.current_node,
-            "progress_percentage": self._calculate_progress(state),
-            "started_at": self._fmt_dt(state.started_at),
-            "completed_at": self._fmt_dt(state.completed_at),
-            "estimated_duration_seconds": metadata.get("estimated_duration"),
-            "error_count": len(state.errors),
-            "has_output": bool(state.output_data),
-            "tenant_id": envelope.tenant_id if envelope else metadata.get("tenant_id"),
-            "user_id": metadata.get("user_id"),
-            "priority": metadata.get("priority"),
-            "scheduler_status": scheduler_status.get("status") if scheduler_status else None,
-            "run_id": envelope.run_id if envelope else envelope_data.get("run_id") or state.run_id,
-            "trace_id": envelope.trace_id if envelope else envelope_data.get("trace_id") or state.trace_id,
-            "checkpoint_id": envelope.checkpoint_id if envelope else None,
-        })
+        return OrchestrationController_get_workflow_statusResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "workflow_id": workflow_id,
+                "workflow_type": self._fmt_enum(state.workflow_type),
+                "status": self._fmt_enum(state.status),
+                "current_node": state.current_node,
+                "progress_percentage": self._calculate_progress(state),
+                "started_at": self._fmt_dt(state.started_at),
+                "completed_at": self._fmt_dt(state.completed_at),
+                "estimated_duration_seconds": metadata.get("estimated_duration"),
+                "error_count": len(state.errors),
+                "has_output": bool(state.output_data),
+                "tenant_id": (
+                    envelope.tenant_id if envelope else metadata.get("tenant_id")
+                ),
+                "user_id": metadata.get("user_id"),
+                "priority": metadata.get("priority"),
+                "scheduler_status": (
+                    scheduler_status.get("status") if scheduler_status else None
+                ),
+                "run_id": (
+                    envelope.run_id
+                    if envelope
+                    else envelope_data.get("run_id") or state.run_id
+                ),
+                "trace_id": (
+                    envelope.trace_id
+                    if envelope
+                    else envelope_data.get("trace_id") or state.trace_id
+                ),
+                "checkpoint_id": envelope.checkpoint_id if envelope else None,
+            }
+        )
 
-
-    async def cancel_workflow(self, workflow_id: str, reason: str | None = None) -> bool:
+    async def cancel_workflow(
+        self, workflow_id: str, reason: str | None = None
+    ) -> bool:
         """Cancel a workflow.
 
         Args:
@@ -1142,7 +1030,9 @@ class OrchestrationController:
         state.metadata["paused_at"] = paused_at.isoformat()
         state.metadata["checkpoint_hash"] = self._compute_state_hash(state)
         await self.state_manager.save_state(workflow_id, state)
-        logger.info("Interrupted workflow %s at node %s", workflow_id, state.current_node)
+        logger.info(
+            "Interrupted workflow %s at node %s", workflow_id, state.current_node
+        )
         tenant_id = str(
             (state.metadata or {}).get("tenant_id")
             or self._workflow_metadata.get(workflow_id, {}).get("tenant_id")
@@ -1151,12 +1041,16 @@ class OrchestrationController:
         lifecycle_logger.emit(
             stage="checkpoint",
             context=self._lifecycle_context(
-                workflow_id, tenant_id=tenant_id, checkpoint_id=str(state.current_node or "interrupted")
+                workflow_id,
+                tenant_id=tenant_id,
+                checkpoint_id=str(state.current_node or "interrupted"),
             ),
         )
         return True
 
-    async def archive_workflow(self, workflow_id: str, tenant_id: str | None = None) -> dict[str, Any] | None:
+    async def archive_workflow(
+        self, workflow_id: str, tenant_id: str | None = None
+    ) -> dict[str, Any] | None:
         """Archive a workflow.
 
         Args:
@@ -1257,7 +1151,9 @@ class OrchestrationController:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
         # Re-create workflow with checkpoint saver.
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver
+        )
 
         # Update metadata
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
@@ -1365,7 +1261,9 @@ class OrchestrationController:
         if not workflow_type:
             raise WorkflowExecutionError(f"No workflow type found for {workflow_id}")
 
-        workflow = create_workflow(workflow_type, self.tool_registry, self.checkpoint_saver)
+        workflow = create_workflow(
+            workflow_type, self.tool_registry, self.checkpoint_saver
+        )
 
         metadata["resumed_at"] = datetime.now(UTC).isoformat()
         metadata["resumed_by"] = user_id
@@ -1470,7 +1368,9 @@ class OrchestrationController:
 
         return sorted(
             workflows,
-            key=lambda item: str(item.get("completed_at") or item.get("started_at") or ""),
+            key=lambda item: str(
+                item.get("completed_at") or item.get("started_at") or ""
+            ),
             reverse=True,
         )
 
@@ -1483,43 +1383,44 @@ class OrchestrationController:
         router_health = self.message_router.get_cluster_health()
         scheduler_stats = self.scheduler.get_stats()
 
-        return OrchestrationController_get_cluster_healthResult.model_validate({  # type: ignore[no-any-return]
-            "status": router_health.get("status", "unknown"),
-            "registered_agents": len(self._registered_agents),
-            "active_workflows": len(self._active_workflows),
-            "pending_tasks": scheduler_stats.get("pending_tasks", 0),
-            "running_tasks": scheduler_stats.get("running_tasks", 0),
-            "avg_load": router_health.get("avg_load", 0),
-            "utilization": scheduler_stats.get("utilization", 0),
-        })
-
+        return OrchestrationController_get_cluster_healthResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "status": router_health.get("status", "unknown"),
+                "registered_agents": len(self._registered_agents),
+                "active_workflows": len(self._active_workflows),
+                "pending_tasks": scheduler_stats.get("pending_tasks", 0),
+                "running_tasks": scheduler_stats.get("running_tasks", 0),
+                "avg_load": router_health.get("avg_load", 0),
+                "utilization": scheduler_stats.get("utilization", 0),
+            }
+        )
 
     async def recover_workflows(self) -> list[dict[str, Any]]:
         """On startup, identify and handle orphaned workflows from previous pod.
-        
+
         Called during application startup to find workflows that were RUNNING/PENDING
         in Redis but not in this pod's memory. Marks them as INTERRUPTED for
         manual review or auto-resume.
-        
+
         Returns:
             List of recovered workflow IDs with status
         """
         logger.info("Scanning for orphaned workflows to recover...")
-        
+
         # Get active workflows from Redis that aren't in our memory
         orphaned_ids = await self.state_manager.list_active_workflows()
         recovered = []
-        
+
         for workflow_id in orphaned_ids:
             # Skip if this workflow is already in our active workflows
             if workflow_id in self._active_workflows:
                 continue
-            
+
             try:
                 state = await self.state_manager.load_state(workflow_id)
                 if not state:
                     continue
-                
+
                 # Mark as INTERRUPTED with recovery information
                 state.status = WorkflowStatus.INTERRUPTED
                 state.errors.append(
@@ -1527,35 +1428,45 @@ class OrchestrationController:
                     "Resume manually or via API."
                 )
                 await self.state_manager.save_state(workflow_id, state)
-                
-                recovered.append({
-                    "workflow_id": workflow_id,
-                    "workflow_type": self._fmt_enum(state.workflow_type),
-                    "status": self._fmt_enum(state.status),
-                    "previous_status": "RUNNING",
-                    "current_node": state.current_node,
-                    "recovery_available": True,
-                })
-                
+
+                recovered.append(
+                    {
+                        "workflow_id": workflow_id,
+                        "workflow_type": self._fmt_enum(state.workflow_type),
+                        "status": self._fmt_enum(state.status),
+                        "previous_status": "RUNNING",
+                        "current_node": state.current_node,
+                        "recovery_available": True,
+                    }
+                )
+
                 logger.warning(
                     f"Marked orphaned workflow {workflow_id} as INTERRUPTED "
                     f"(was at node: {state.current_node})"
                 )
-                
+
             except (ValueError, RuntimeError) as e:
-                logger.error("Failed to recover workflow", extra={"workflow_id": workflow_id, "error_type": type(e).__name__}, exc_info=True)
-                recovered.append({
-                    "workflow_id": workflow_id,
-                    "status": "ERROR",
-                    "error": "Workflow recovery failed",
-                    "error_code": "WORKFLOW_RECOVERY_ERROR",
-                })
-        
+                logger.error(
+                    "Failed to recover workflow",
+                    extra={"workflow_id": workflow_id, "error_type": type(e).__name__},
+                    exc_info=True,
+                )
+                recovered.append(
+                    {
+                        "workflow_id": workflow_id,
+                        "status": "ERROR",
+                        "error": "Workflow recovery failed",
+                        "error_code": "WORKFLOW_RECOVERY_ERROR",
+                    }
+                )
+
         if recovered:
-            logger.info(f"Recovery complete: {len(recovered)} workflows marked as INTERRUPTED")
+            logger.info(
+                f"Recovery complete: {len(recovered)} workflows marked as INTERRUPTED"
+            )
         else:
             logger.info("No orphaned workflows found")
-        
+
         return recovered
 
     def _create_agent_handler(
@@ -1638,7 +1549,12 @@ class OrchestrationController:
 
         try:
             from ..config.settings import get_settings
-            timeout_seconds = int(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
+
+            timeout_seconds = int(
+                task.parameters.get(
+                    "timeout_seconds", get_settings().workflow_timeout_seconds
+                )
+            )
             result = await asyncio.wait_for(
                 workflow.run(initial_state, thread_id=workflow_id),
                 timeout=timeout_seconds,
@@ -1646,7 +1562,9 @@ class OrchestrationController:
 
             if result.status == WorkflowStatus.COMPLETED:
                 validation = validate_final_output(result)
-                result.metadata["output_validation"] = validation.model_dump(mode="json")
+                result.metadata["output_validation"] = validation.model_dump(
+                    mode="json"
+                )
                 if not validation.valid:
                     result.status = WorkflowStatus.FAILED
                     result.metadata["needs_review"] = True
@@ -1661,7 +1579,10 @@ class OrchestrationController:
                         },
                     }
                     result.errors.extend(
-                        [f"OUTPUT_SCHEMA_VALIDATION_FAILED: {err}" for err in validation.errors]
+                        [
+                            f"OUTPUT_SCHEMA_VALIDATION_FAILED: {err}"
+                            for err in validation.errors
+                        ]
                     )
 
             await self.state_manager.save_state(workflow_id, result)
@@ -1709,7 +1630,10 @@ class OrchestrationController:
                 workflow_id=workflow_id,
             )
             paused = await self.state_manager.load_state(workflow_id)
-            if paused and paused.status in {WorkflowStatus.PAUSED, WorkflowStatus.INTERRUPTED}:
+            if paused and paused.status in {
+                WorkflowStatus.PAUSED,
+                WorkflowStatus.INTERRUPTED,
+            }:
                 raise
             raise
         except (RuntimeError, ValueError) as exc:
@@ -1753,7 +1677,9 @@ class OrchestrationController:
             elapsed = (datetime.now(UTC) - start_time).total_seconds()
             if elapsed > timeout_seconds:
                 # Cancel the workflow
-                await self.cancel_workflow(workflow_id, reason=f"Global timeout exceeded ({timeout_seconds}s)")
+                await self.cancel_workflow(
+                    workflow_id, reason=f"Global timeout exceeded ({timeout_seconds}s)"
+                )
                 raise WorkflowTimeoutError(
                     f"Workflow {workflow_id} timed out after {timeout_seconds} seconds"
                 )
@@ -1770,7 +1696,9 @@ class OrchestrationController:
 
             await asyncio.sleep(0.5)
 
-    def _extract_tenant_timeout(self, tenant_settings: dict[str, Any] | None) -> int | None:
+    def _extract_tenant_timeout(
+        self, tenant_settings: dict[str, Any] | None
+    ) -> int | None:
         if not tenant_settings:
             return None
         cursor: Any
@@ -1785,8 +1713,11 @@ class OrchestrationController:
                 return cursor
         return None
 
-    async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
+    async def _resolve_workflow_timeout_seconds(
+        self, tenant_id: str | None
+    ) -> tuple[int, str]:
         from ..config.settings import get_settings
+
         source = "service_default"
         selected = get_settings().workflow_timeout_seconds
 
@@ -1797,18 +1728,28 @@ class OrchestrationController:
                 from ..tenants.service import get_tenant_settings
 
                 tenant_uuid = UUID(str(tenant_id))
-                async with db_session_for_context(RequestContext(tenant_id=tenant_uuid)) as db:
+                async with db_session_for_context(
+                    RequestContext(tenant_id=tenant_uuid)
+                ) as db:
                     tenant_settings = await get_tenant_settings(db, tenant_uuid)
                 tenant_timeout = self._extract_tenant_timeout(tenant_settings)
                 if tenant_timeout is not None:
                     selected = tenant_timeout
                     source = "tenant_settings"
             except Exception:
-                logger.debug("Tenant timeout override resolution failed for tenant_id=%s", tenant_id, exc_info=True)
+                logger.debug(
+                    "Tenant timeout override resolution failed for tenant_id=%s",
+                    tenant_id,
+                    exc_info=True,
+                )
 
         min_timeout = get_settings().workflow_timeout_min_seconds
         max_timeout = get_settings().workflow_timeout_max_seconds
-        if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
+        if (
+            not isinstance(selected, int)
+            or selected < min_timeout
+            or selected > max_timeout
+        ):
             source = "safe_fallback"
             selected = get_settings().workflow_timeout_fallback_seconds
 
@@ -1883,9 +1824,14 @@ class OrchestrationController:
         # Hardening: emit repeated failure metric
         try:
             from ..metrics.prometheus_metrics import get_metrics
+
             metrics = get_metrics()
             if metrics:
-                workflow_type = task.parameters.get("workflow_type", "unknown") if hasattr(task, "parameters") else "unknown"
+                workflow_type = (
+                    task.parameters.get("workflow_type", "unknown")
+                    if hasattr(task, "parameters")
+                    else "unknown"
+                )
                 tenant_id = task.tenant_id if hasattr(task, "tenant_id") else "unknown"
                 failure_class = type(exception).__name__
                 metrics.increment_repeated_failure(
@@ -1896,7 +1842,9 @@ class OrchestrationController:
         except Exception:
             pass
 
-    async def detect_and_record_stuck_workflows(self, threshold_seconds: int = 600) -> None:
+    async def detect_and_record_stuck_workflows(
+        self, threshold_seconds: int = 600
+    ) -> None:
         """Detect workflows stuck longer than threshold and emit metric.
 
         Args:
@@ -1904,6 +1852,7 @@ class OrchestrationController:
         """
         try:
             from ..metrics.prometheus_metrics import get_metrics
+
             metrics = get_metrics()
             if not metrics:
                 return
@@ -1915,13 +1864,18 @@ class OrchestrationController:
             state = await self.state_manager.load_state(workflow_id)
             if not state:
                 continue
-            if state.status not in {WorkflowStatus.RUNNING, WorkflowStatus.PAUSED, WorkflowStatus.INTERRUPTED}:
+            if state.status not in {
+                WorkflowStatus.RUNNING,
+                WorkflowStatus.PAUSED,
+                WorkflowStatus.INTERRUPTED,
+            }:
                 continue
             started_at = state.started_at or state.metadata.get("started_at")
             if not started_at:
                 continue
             if isinstance(started_at, str):
                 from datetime import datetime as _dt
+
                 started_at = _dt.fromisoformat(started_at.replace("Z", "+00:00"))
             elapsed = (datetime.now(UTC) - started_at).total_seconds()
             if elapsed > threshold_seconds:

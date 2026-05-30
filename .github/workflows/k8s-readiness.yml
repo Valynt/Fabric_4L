@@ -56,7 +56,7 @@ jobs:
         run: pip install pyyaml
 
       - name: Run Kubernetes preflight guardrails
-        run: python3 scripts/ci/k8s_preflight.py
+        run: python scripts/ci/k8s_preflight.py
 
       - name: Reject :latest/:main in production K8s manifests
         run: python3 scripts/ci/check_production_k8s_mutable_tags.py

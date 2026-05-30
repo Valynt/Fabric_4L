@@ -64,6 +64,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
       - name: Verify image signatures
         uses: sigstore/cosign-installer@v3.8.1
 
@@ -121,7 +126,7 @@ jobs:
             dev) PROFILE="pr-fast" ;;
             *) echo "Unknown environment: ${{ env.ENVIRONMENT }}"; exit 1 ;;
           esac
-          python3 scripts/ci/validate_deploy_profile_controls.py             --policy-file .fabric/prod-gates.policy.yaml             --profile "$PROFILE"
+          python scripts/ci/validate_deploy_profile_controls.py             --policy-file .fabric/prod-gates.policy.yaml             --profile "$PROFILE"
 
       - name: Block unverified production promotion
         if: env.ENVIRONMENT == 'production'

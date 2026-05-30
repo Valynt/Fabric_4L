@@ -23,7 +23,7 @@ Before starting:
 
 1. Complete the [Quickstart Guide](../getting-started/quickstart.md)
 2. Install development tools:
-   - Python 3.11+
+   - Python 3.11+ (any patch release; Python 3.11.10 is not specifically required)
    - Node.js 20+
    - VS Code (recommended) or PyCharm
    - Git with SSH key configured
@@ -102,11 +102,15 @@ graph TB
 git clone git@github.com:bmsull560/Fabric_4L.git
 cd Fabric_4L
 
+# Select Python 3.11 if your shell does not already provide python3.11
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+
 # Create Python virtual environments for each layer
 cd value-fabric
 
 # Layer 1
-python -m venv layer1-ingestion/.venv
+python3.11 -m venv layer1-ingestion/.venv
 source layer1-ingestion/.venv/bin/activate  # Windows: .\layer1-ingestion\.venv\Scripts\activate
 pip install -e layer1-ingestion/[dev]
 deactivate

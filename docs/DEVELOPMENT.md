@@ -5,13 +5,19 @@ This guide covers local development environment setup for the Value Fabric platf
 ## Prerequisites
 
 - Docker ≥ 24.0 and Docker Compose v2
-- Python 3.11+
+- Python 3.11+ (any patch release; the project does not require Python 3.11.10 specifically)
 - Node.js ≥ 22.12.0 (for frontend / tooling)
 - `make` (optional but recommended)
 
 ## Quick Start
 
+Python tooling resolves `python3.11` first when available, then falls back to `python3`/`python`. For pyenv, the root `.python-version` intentionally contains `3.11` so `pyenv local 3.11` can select the latest installed 3.11 patch instead of forcing one brittle patch version.
+
 ```bash
+# Optional for pyenv users
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+
 # Start core dev services (Postgres, Redis, Neo4j)
 make up
 # or

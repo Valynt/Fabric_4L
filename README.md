@@ -84,22 +84,33 @@ cp .env.example .env
 # Fill in OPENAI_API_KEY and JWT_SECRET
 ```
 
-### 2. Start infrastructure
+### 2. Select Python 3.11
+
+The backend services declare `requires-python = ">=3.11"`; any supported Python 3.11+ patch release is acceptable. The root `.python-version` tracks the `3.11` series so pyenv users do not need the exact `3.11.10` patch.
+
+```bash
+# Optional for pyenv users; skip if python3.11 already resolves on PATH
+pyenv install --skip-existing "$(pyenv latest -k 3.11)"
+pyenv local 3.11
+# Or choose any installed 3.11.x patch explicitly if your pyenv does not support series aliases.
+```
+
+### 3. Start infrastructure
 ```bash
 docker compose -f docker-compose.full.yml up -d
 ```
 
-### 3. Run migrations
+### 4. Run migrations
 ```bash
 make migrate
 ```
 
-### 4. Verify everything works
+### 5. Verify everything works
 ```bash
 make verify
 ```
 
-### 5. Open the UI
+### 6. Open the UI
 ```bash
 open http://localhost:5173
 ```

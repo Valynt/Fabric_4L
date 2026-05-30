@@ -271,7 +271,7 @@ describe('Contract: intelligence auth failures', () => {
   it('401 matches ApiError shape', () => {
     assertSchema(
       ApiErrorSchema,
-      { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', trace_id: 'trace-intel-401' },
+      { error: { message: 'Authentication required', code: 'AUTHENTICATION_ERROR', request_id: 'trace-intel-401' } },
       'ApiError (401)'
     );
   });
@@ -279,19 +279,19 @@ describe('Contract: intelligence auth failures', () => {
   it('cross-tenant 403 matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Account does not belong to your tenant', code: 'AUTHORIZATION_ERROR', trace_id: 'trace-intel-403' },
+      { error: { message: 'Account does not belong to your tenant', code: 'AUTHORIZATION_ERROR', request_id: 'trace-intel-403' } },
       'ApiError (403 cross-tenant)'
     );
-    expect(err.code).toBe('AUTHORIZATION_ERROR');
-    expect(err.trace_id).toBeTruthy();
+    expect(err.error.code).toBe('AUTHORIZATION_ERROR');
+    expect(err.error.request_id).toBeTruthy();
   });
 
   it('account not found 404 matches ApiError shape', () => {
     const err = assertSchema(
       ApiErrorSchema,
-      { message: 'Account not found', code: 'NOT_FOUND', trace_id: 'trace-intel-404' },
+      { error: { message: 'Account not found', code: 'NOT_FOUND', request_id: 'trace-intel-404' } },
       'ApiError (404 account)'
     );
-    expect(err.code).toBe('NOT_FOUND');
+    expect(err.error.code).toBe('NOT_FOUND');
   });
 });

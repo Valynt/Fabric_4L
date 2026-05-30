@@ -17,10 +17,12 @@ import {
 // ---------------------------------------------------------------------------
 
 export const ApiErrorSchema = z.object({
-  message: z.string(),
-  code: z.string().min(1),
-  trace_id: z.string().min(1),
-  details: z.record(z.string(), z.unknown()).nullable().optional(),
+  error: z.object({
+    code: z.string().min(1),
+    message: z.string(),
+    request_id: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
 });
 
 export const PaginatedSchema = <T extends z.ZodTypeAny>(item: T) =>
@@ -38,10 +40,12 @@ export const TenantContextSchema = z.object({
 });
 
 export const CrossTenantErrorSchema = z.object({
-  message: z.string().min(1),
-  code: z.literal('AUTHORIZATION_ERROR'),
-  trace_id: z.string().min(1),
-  details: z.record(z.string(), z.unknown()).nullable().optional(),
+  error: z.object({
+    code: z.literal('AUTHORIZATION_ERROR'),
+    message: z.string().min(1),
+    request_id: z.string().min(1),
+    details: z.record(z.string(), z.unknown()).nullable().optional(),
+  }),
 });
 
 // ---------------------------------------------------------------------------
