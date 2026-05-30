@@ -8,7 +8,10 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
+	gate-production production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -620,8 +623,14 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
-gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
-	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
+	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
+
+gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
+	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
+
+production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
+	@echo "✅  production-readiness-gate completed"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
