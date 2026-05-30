@@ -16,6 +16,7 @@ import logging
 import os
 from collections.abc import Generator
 from contextlib import contextmanager
+from urllib.parse import urlparse
 from uuid import UUID
 
 from fastapi import Depends, Request, status
@@ -30,13 +31,46 @@ from .config import settings
 # Tune these based on your load: pool_size + max_overflow = max concurrent connections
 DB_POOL_SIZE = int(os.getenv("DB_POOL_SIZE", "20"))  # Increased from 5 to 20
 DB_MAX_OVERFLOW = int(os.getenv("DB_MAX_OVERFLOW", "30"))  # Increased from 10 to 30
+DB_POOL_TIMEOUT = int(os.getenv("DB_POOL_TIMEOUT", "30"))
 # P0-05: Configurable statement timeout (default 5 minutes for long-running operations)
 DB_STATEMENT_TIMEOUT_MS = int(os.getenv("DB_STATEMENT_TIMEOUT_MS", "300000"))  # 5 minutes default
 logger = logging.getLogger(__name__)
+_RLS_SUPPORTED_SCHEMES = frozenset(
+    {"postgresql", "postgres", "postgresql+asyncpg", "postgresql+psycopg"}
+)
+_RLS_SUPERUSER_NAMES = frozenset(
+    {"postgres", "rdsadmin", "cloudsqladmin", "azure_superuser"}
+)
 _PRIVILEGED_REASON_HEADER = "X-Privileged-Reason"
 _TENANT_CONTEXT_STATE_KEY = "tenant_context_state"
 _TENANT_CONTEXT_VALUE_KEY = "tenant_context_value"
 _TENANT_BYPASS_REASON_KEY = "tenant_context_bypass_reason"
+
+
+def _is_production_like_runtime() -> bool:
+    return bool(getattr(settings, "is_production_like", False))
+
+
+def _assert_rls_safe_database_url(database_url: str, *, source: str) -> None:
+    if not _is_production_like_runtime():
+        return
+
+    parsed = urlparse(database_url)
+    scheme = (parsed.scheme or "").lower()
+    username = (parsed.username or "").lower()
+
+    if scheme not in _RLS_SUPPORTED_SCHEMES:
+        raise RuntimeError(
+            f"{source} must use PostgreSQL with RLS-capable tenant isolation in protected environments."
+        )
+
+    if username in _RLS_SUPERUSER_NAMES:
+        raise RuntimeError(
+            f"{source} must not use PostgreSQL superuser role '{username}' in protected environments."
+        )
+
+
+_assert_rls_safe_database_url(settings.database_url, source="Layer 1 database URL")
 
 # Create engine with configurable pool settings
 # P0-05: Add statement_timeout for query timeout protection (configurable via env var)
@@ -45,6 +79,7 @@ engine = create_engine(
     pool_size=DB_POOL_SIZE, 
     max_overflow=DB_MAX_OVERFLOW, 
     pool_pre_ping=True, 
+    pool_timeout=DB_POOL_TIMEOUT,
     echo=settings.debug,
     connect_args={
         "options": f"-c statement_timeout={DB_STATEMENT_TIMEOUT_MS}",
