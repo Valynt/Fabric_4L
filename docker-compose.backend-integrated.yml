@@ -299,7 +299,7 @@ services:
     ports:
       - "8004:8000"
     environment:
-          JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
+      JWT_SECRET: dev-local-secret-do-not-use-in-production-minimum-32-chars
       # Must equal Layer 5's SERVICE_AUTH_SECRET so the Layer5GroundTruthClient's
       # X-Service-Auth HMAC handshake is accepted by Layer 5 GovernanceMiddleware.
       SERVICE_AUTH_SECRET: dev-local-service-auth-secret-do-not-use-in-production-32c

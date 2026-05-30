@@ -51,6 +51,18 @@ _LAYER3_SRC = _REPO_ROOT / "services" / "layer3-knowledge" / "src"
 if _LAYER3_SRC.exists() and str(_LAYER3_SRC) not in sys.path:
     sys.path.insert(0, str(_LAYER3_SRC))
 
+_LAYER1_SRC = _REPO_ROOT / "services" / "layer1-ingestion" / "src"
+if _LAYER1_SRC.exists() and str(_LAYER1_SRC) not in sys.path:
+    sys.path.insert(0, str(_LAYER1_SRC))
+
+_LAYER5_SRC = _REPO_ROOT / "services" / "layer5-ground-truth" / "src"
+if _LAYER5_SRC.exists() and str(_LAYER5_SRC) not in sys.path:
+    sys.path.insert(0, str(_LAYER5_SRC))
+
+_LAYER7_SRC = _REPO_ROOT / "services" / "layer7-billing" / "src"
+if _LAYER7_SRC.exists() and str(_LAYER7_SRC) not in sys.path:
+    sys.path.insert(0, str(_LAYER7_SRC))
+
 
 def _install_legacy_src_namespace() -> None:
     """Expose legacy ``src.*`` imports deterministically for repo collection.

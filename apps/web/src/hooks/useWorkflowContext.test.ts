@@ -13,13 +13,13 @@ describe('useWorkflowContext', () => {
     expect(result.current.step?.stepIndex).toBe(4);
   });
 
-  it('returns undefined values when params are absent (default path)', () => {
+  it('returns default step object when params are absent', () => {
     const wrapper = createWrapperWithRouterPath('/accounts/new');
     const { result } = renderHook(() => useWorkflowContext(), { wrapper });
 
     expect(result.current.accountId).toBeUndefined();
     expect(result.current.sessionId).toBeUndefined();
-    expect(result.current.step).toBeUndefined();
+    expect(result.current.step).toEqual({ stepIndex: 0, stepKey: 'unknown', activeTab: undefined });
   });
 
   it('propagates invalid numeric step as NaN (error-like branch)', () => {

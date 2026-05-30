@@ -149,6 +149,8 @@ def create_app() -> FastAPI:
         enforce_tenant_context=False,
         docs_url="/docs",
         redoc_url="/redoc",
+        telemetry_service_name="layer2-5-signal-refinery",
+        instrument_telemetry=True,
     )
 
     # Routes

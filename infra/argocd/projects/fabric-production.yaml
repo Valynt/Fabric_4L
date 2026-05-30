@@ -1,0 +1,31 @@
+apiVersion: argoproj.io/v1alpha1
+kind: AppProject
+metadata:
+  name: fabric-production
+  namespace: argocd
+spec:
+  description: "Fabric_4L production deployments"
+  sourceRepos:
+    - "https://github.com/bmsull560/Fabric_4L.git"
+  destinations:
+    - namespace: fabric-prod
+      server: https://kubernetes.default.svc
+    - namespace: fabric-staging
+      server: https://kubernetes.default.svc
+  clusterResourceWhitelist:
+    - group: ""
+      kind: Namespace
+    - group: networking.k8s.io
+      kind: IngressClass
+  namespaceResourceBlacklist:
+    - group: ""
+      kind: ResourceQuota
+  roles:
+    - name: admin
+      description: "Full admin access to fabric production"
+      policies:
+        - p, proj:fabric-production:admin, applications, *, fabric-production/*, allow
+      groups:
+        - platform-team
+  orphanedResources:
+    warn: true

@@ -225,10 +225,10 @@ def init_telemetry(service_name: str, *, endpoint: str | None = None) -> Any | N
     except ImportError:
         return None
 
-    # Configurable sampling ratio via env var; defaults to 1.0 (always on)
-    # for backward compatibility.  Set OTEL_SAMPLE_RATIO=0.01 in
-    # production to avoid trace volume overload.
-    sample_ratio = float(os.getenv("OTEL_SAMPLE_RATIO", "1.0"))
+    # Configurable sampling ratio via env var; defaults to 0.01 (1%)
+    # in production to avoid trace volume overload.  Set OTEL_SAMPLE_RATIO=1.0
+    # only in development or for targeted high-fidelity debugging.
+    sample_ratio = float(os.getenv("OTEL_SAMPLE_RATIO", "0.01"))
     resource = Resource.create({SERVICE_NAME: service_name})
     sampler = ParentBasedTraceIdRatio(sample_ratio)
     provider = TracerProvider(resource=resource, sampler=sampler)

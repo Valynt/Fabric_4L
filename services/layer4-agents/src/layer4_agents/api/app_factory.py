@@ -12,6 +12,7 @@ from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
 from opentelemetry.sdk.resources import SERVICE_NAME, Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 from value_fabric.shared.fastapi_framework import create_fabric_app
 from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult
 from value_fabric.shared.observability import configure_observability
@@ -28,10 +29,14 @@ from .startup import build_lifespan, runtime_state, start_optional_integrations
 
 
 def init_telemetry() -> TracerProvider | None:
+    import os
+
     if not get_settings().otel_exporter_endpoint:
         return None
+    sample_ratio = float(os.getenv("OTEL_SAMPLE_RATIO", "0.01"))
     resource = Resource.create({SERVICE_NAME: "layer4-agents"})
-    provider = TracerProvider(resource=resource)
+    sampler = ParentBasedTraceIdRatio(sample_ratio)
+    provider = TracerProvider(resource=resource, sampler=sampler)
     exporter = OTLPSpanExporter(endpoint=f"{get_settings().otel_exporter_endpoint}/v1/traces")
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)

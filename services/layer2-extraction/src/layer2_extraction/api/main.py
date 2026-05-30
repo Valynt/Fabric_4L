@@ -177,6 +177,10 @@ if _is_production_like():
         raise RuntimeError(
             "FABRIC_AUTH_PUBLIC_KEYS is required in production for Layer 2 authentication."
         )
+    if not os.getenv("SERVICE_AUTH_SECRET", "").strip():
+        raise RuntimeError(
+            "SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)."
+        )
 
 # Register canonical error envelope handlers from shared package
 try:
@@ -208,47 +212,59 @@ _S2S_EXPECTED_AUD = "layer2-extraction"
 async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg]
     """Enforce inbound S2S JWT on internal extraction routes.
 
-    Only active when SERVICE_AUTH_SECRET is configured.  In dev environments
-    without the secret, the check is skipped so local testing remains possible.
+    In production-like environments, the check is mandatory and fails closed.
+    In dev environments without SERVICE_AUTH_SECRET, the check is skipped.
     """
     if request.method == "POST" and request.url.path in _S2S_INTERNAL_PATHS:
         _secret = os.getenv("SERVICE_AUTH_SECRET", "").strip()
-        if _secret:
-            auth_header = request.headers.get("Authorization", "")
-            if not auth_header.startswith("Bearer "):
+        if not _secret:
+            if _is_production_like():
                 from fastapi.responses import JSONResponse as _JSONResponse
                 return _JSONResponse(
-                    status_code=401,
+                    status_code=503,
                     content={
-                        "detail": "S2S Bearer token required for internal extraction routes",
-                        "code": "s2s_token_required",
+                        "detail": "S2S authentication not configured in production",
+                        "code": "s2s_misconfiguration",
                     },
                 )
-            _token = auth_header[7:]
-            try:
-                from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_s2s
-                _claims = _decode_s2s(_token, expected_audience=_S2S_EXPECTED_AUD)
-            except Exception:
-                _claims = None
+            # Dev: skip S2S check when secret is not configured
+            return await call_next(request)
 
-            if _claims is None:
-                from fastapi.responses import JSONResponse as _JSONResponse
-                return _JSONResponse(
-                    status_code=401,
-                    content={
-                        "detail": "Invalid or expired S2S token for internal extraction route",
-                        "code": "s2s_token_invalid",
-                    },
-                )
-            if _claims.sub != _S2S_EXPECTED_SUB:
-                from fastapi.responses import JSONResponse as _JSONResponse
-                return _JSONResponse(
-                    status_code=403,
-                    content={
-                        "detail": f"Unexpected service caller: {_claims.sub!r}",
-                        "code": "s2s_caller_forbidden",
-                    },
-                )
+        auth_header = request.headers.get("Authorization", "")
+        if not auth_header.startswith("Bearer "):
+            from fastapi.responses import JSONResponse as _JSONResponse
+            return _JSONResponse(
+                status_code=401,
+                content={
+                    "detail": "S2S Bearer token required for internal extraction routes",
+                    "code": "s2s_token_required",
+                },
+            )
+        _token = auth_header[7:]
+        try:
+            from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_s2s
+            _claims = _decode_s2s(_token, expected_audience=_S2S_EXPECTED_AUD)
+        except Exception:
+            _claims = None
+
+        if _claims is None:
+            from fastapi.responses import JSONResponse as _JSONResponse
+            return _JSONResponse(
+                status_code=401,
+                content={
+                    "detail": "Invalid or expired S2S token for internal extraction route",
+                    "code": "s2s_token_invalid",
+                },
+            )
+        if _claims.sub != _S2S_EXPECTED_SUB:
+            from fastapi.responses import JSONResponse as _JSONResponse
+            return _JSONResponse(
+                status_code=403,
+                content={
+                    "detail": f"Unexpected service caller: {_claims.sub!r}",
+                    "code": "s2s_caller_forbidden",
+                },
+            )
 
     return await call_next(request)
 

@@ -8,6 +8,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY apps/web/package.json ./apps/web/
 COPY packages/eslint-plugin-fabric-contracts/package.json ./packages/eslint-plugin-fabric-contracts/
 COPY packages/config/package.json ./packages/config/
+COPY scripts/enforce-package-manager.cjs ./scripts/
 
 # Install from workspace root
 RUN pnpm install --frozen-lockfile

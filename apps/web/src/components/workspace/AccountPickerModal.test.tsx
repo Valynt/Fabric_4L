@@ -5,7 +5,6 @@ import { MemoryRouter } from "react-router-dom";
 import AccountPickerModal from "./AccountPickerModal";
 import type { Account, AccountListResponse } from "@/hooks/useAccounts";
 import { useWorkflowSessionStore } from "@/stores/workflowSessionStore";
-import { useWorkflowStore } from "@/workflow/store/workflowStore";
 
 const mockNavigate = vi.fn();
 const mockSetSelectedAccountId = vi.fn();
@@ -71,7 +70,6 @@ describe("AccountPickerModal", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useWorkflowSessionStore.getState().clearContext();
-    useWorkflowStore.getState().reset();
   });
 
   it("renders loading skeleton when accounts are loading", () => {

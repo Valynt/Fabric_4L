@@ -23,6 +23,13 @@ from ..service import BillingService
 
 logger = structlog.get_logger(__name__)
 
+# OpenTelemetry bootstrap — aligns with shared framework contract (P0-007)
+try:
+    from value_fabric.shared.fastapi_framework.app import init_telemetry, instrument_fastapi_app
+except ImportError:
+    init_telemetry = None  # type: ignore[assignment]
+    instrument_fastapi_app = None  # type: ignore[assignment]
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):  # noqa: ANN001
@@ -43,6 +50,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url=None,
 )
+
+if init_telemetry is not None:
+    app.state.telemetry_provider = init_telemetry("billing")
+    if instrument_fastapi_app is not None:
+        instrument_fastapi_app(app, enabled=app.state.telemetry_provider is not None)
+        logger.info("billing_telemetry_initialized", service="billing")
 
 
 # ---------------------------------------------------------------------------

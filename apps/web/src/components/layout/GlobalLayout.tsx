@@ -1,6 +1,5 @@
-
 import { Suspense, useCallback, useState } from "react";
-import { Outlet, useMatch } from "react-router-dom";
+import { Outlet, useLocation, useMatch } from "react-router-dom";
 import { Spinner } from "@/components/ui/spinner";
 import { SkipLink } from "@/components/ui/skip-link";
 import { LeftNavigation } from "./LeftNavigation";
@@ -8,10 +7,58 @@ import { AppHeader } from "./AppHeader";
 import { AgentChat } from "./AgentChat";
 import { AgentSidePanel } from "./AgentSidePanel";
 import { MobileNavigation } from "./MobileNavigation";
-import { WorkflowStepIndicator } from "@/workflow/components/WorkflowStepIndicator";
+import {
+  ACCOUNT_WORKFLOW_STEPS,
+  WorkflowStepIndicator,
+  type WorkflowStep,
+} from "@/workflow/components/WorkflowStepIndicator";
 import { useUserTierStore } from "@/stores/userTierStore";
 import type { AgentChatMode } from "@/types/layout";
 import type { UserTier } from "@/navigation/navigationService";
+
+interface WorkflowIndicatorState {
+  activeStepId: string;
+  completedStepIds: string[];
+  steps: WorkflowStep[];
+}
+
+function getWorkflowIndicatorState(
+  pathname: string
+): WorkflowIndicatorState | null {
+  if (!pathname.includes("/accounts/")) {
+    return null;
+  }
+
+  if (pathname.includes("/deliverables/")) {
+    return {
+      steps: ACCOUNT_WORKFLOW_STEPS,
+      activeStepId: "deliverables",
+      completedStepIds: ["scope", "intelligence", "studio"],
+    };
+  }
+
+  if (pathname.includes("/studio/")) {
+    return {
+      steps: ACCOUNT_WORKFLOW_STEPS,
+      activeStepId: "studio",
+      completedStepIds: ["scope", "intelligence"],
+    };
+  }
+
+  if (pathname.includes("/intelligence/")) {
+    return {
+      steps: ACCOUNT_WORKFLOW_STEPS,
+      activeStepId: "intelligence",
+      completedStepIds: ["scope"],
+    };
+  }
+
+  return {
+    steps: ACCOUNT_WORKFLOW_STEPS,
+    activeStepId: "scope",
+    completedStepIds: [],
+  };
+}
 
 // ── Workspace Layout Wrapper ──────────────────────────────────────────────────
 // Workspace routes (intelligence, hypothesis, drivers, calculator, etc.) need
@@ -19,12 +66,20 @@ import type { UserTier } from "@/navigation/navigationService";
 // shells (account header + tab bar + scrollable canvas + right rail) fill the
 // entire content area. Regular pages keep the padded container.
 
-export function WorkspaceLayoutWrapper({ children }: { children: React.ReactNode }) {
+export function WorkspaceLayoutWrapper({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   // Hooks must be called unconditionally on every render — do not use ||
   // short-circuiting because it changes the hook count between renders.
-  const matchIntelligence = useMatch("/t/:tenantSlug/accounts/:accountId/intelligence/*");
+  const matchIntelligence = useMatch(
+    "/t/:tenantSlug/accounts/:accountId/intelligence/*"
+  );
   const matchStudio = useMatch("/t/:tenantSlug/accounts/:accountId/studio/*");
-  const matchDeliverables = useMatch("/t/:tenantSlug/accounts/:accountId/deliverables/*");
+  const matchDeliverables = useMatch(
+    "/t/:tenantSlug/accounts/:accountId/deliverables/*"
+  );
   const matchAccounts = useMatch("/t/:tenantSlug/accounts/*");
   const matchSettings = useMatch("/settings/*");
 
@@ -69,16 +124,17 @@ export function WorkspaceLayoutWrapper({ children }: { children: React.ReactNode
 
 export function GlobalLayout() {
   const [leftNavCollapsed, setLeftNavCollapsed] = useState(false);
+  const { pathname } = useLocation();
   // Mobile navigation uses persistent icon rail (MobilePersistentSidebar).
   // Hamburger menu drawer is not implemented; no open/close state needed.
-  const rawTier = useUserTierStore((state) => state.currentTier);
+  const rawTier = useUserTierStore(state => state.currentTier);
   const currentTier: UserTier = rawTier === "unknown" ? "standard" : rawTier;
-  const setCurrentTier = useUserTierStore((state) => state.setTier);
+  const setCurrentTier = useUserTierStore(state => state.setTier);
   const [isAdvancedModeEnabled, setIsAdvancedModeEnabled] = useState(false);
   const [agentMode, setAgentMode] = useState<AgentChatMode>("closed");
 
   const toggleLeftNav = useCallback(() => {
-    setLeftNavCollapsed((current) => !current);
+    setLeftNavCollapsed(current => !current);
   }, []);
 
   const openAgentModal = useCallback(() => {
@@ -99,6 +155,7 @@ export function GlobalLayout() {
   }, []);
 
   const agentPanelOpen = agentMode === "panel";
+  const workflowIndicatorState = getWorkflowIndicatorState(pathname);
 
   return (
     <div
@@ -131,8 +188,18 @@ export function GlobalLayout() {
           leftNavCollapsed={leftNavCollapsed}
         />
 
-        <main id="main-content" tabIndex={-1} className="min-h-0 flex-1 overflow-auto outline-none">
-          <WorkflowStepIndicator />
+        <main
+          id="main-content"
+          tabIndex={-1}
+          className="min-h-0 flex-1 overflow-auto outline-none"
+        >
+          {workflowIndicatorState && (
+            <WorkflowStepIndicator
+              steps={workflowIndicatorState.steps}
+              activeStepId={workflowIndicatorState.activeStepId}
+              completedStepIds={workflowIndicatorState.completedStepIds}
+            />
+          )}
           <WorkspaceLayoutWrapper>
             <Outlet />
           </WorkspaceLayoutWrapper>
@@ -140,10 +207,7 @@ export function GlobalLayout() {
       </div>
 
       {agentPanelOpen && (
-        <AgentSidePanel
-          onClose={closeAgent}
-          onMinimize={minimizeAgentPanel}
-        />
+        <AgentSidePanel onClose={closeAgent} onMinimize={minimizeAgentPanel} />
       )}
 
       {/* On smaller screens, show agent as modal instead of panel */}

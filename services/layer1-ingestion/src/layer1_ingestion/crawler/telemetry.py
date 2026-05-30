@@ -14,6 +14,7 @@ from opentelemetry import trace
 from opentelemetry.sdk.resources import Resource
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
 from opentelemetry.trace import Span, Status, StatusCode
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
@@ -71,13 +72,15 @@ def init_telemetry(
         resource_attrs.update(attributes)
 
     resource = Resource.create(resource_attrs)
-    provider = TracerProvider(resource=resource)
 
     # Use OTLP exporter when OTEL_EXPORTER_OTLP_ENDPOINT is configured.
     # Fall back to ConsoleSpanExporter in development/test environments only.
     # A misconfigured production pod (missing endpoint) will log a warning so
     # the gap is visible in logs rather than silently dropping traces.
     import os as _os
+    sample_ratio = float(_os.getenv("OTEL_SAMPLE_RATIO", "0.01"))
+    sampler = ParentBasedTraceIdRatio(sample_ratio)
+    provider = TracerProvider(resource=resource, sampler=sampler)
     otlp_endpoint = _os.getenv("OTEL_EXPORTER_OTLP_ENDPOINT", "").strip()
     if otlp_endpoint:
         from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter

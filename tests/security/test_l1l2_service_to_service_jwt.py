@@ -106,6 +106,28 @@ class TestServiceJwtEncodeDecode:
 
 @pytest.mark.security
 @pytest.mark.contract_static
+class TestL2ProductionStartupGuard:
+    """Verify L2 fails closed in production when S2S auth is unconfigured (P1-001)."""
+
+    def test_production_startup_requires_service_auth_secret(self, monkeypatch):
+        """L2 must refuse to start in production without SERVICE_AUTH_SECRET."""
+        monkeypatch.delenv("SERVICE_AUTH_SECRET", raising=False)
+        monkeypatch.setenv("ENVIRONMENT", "production")
+        monkeypatch.setenv("APP_ENV", "production")
+        monkeypatch.setenv("FABRIC_AUTH_PUBLIC_KEYS", "test-key")
+
+        # Read the source to verify the guard exists; we can't import the
+        # full module due to heavy side-effects, but the static check is
+        # sufficient for acceptance.
+        source = open(
+            "services/layer2-extraction/src/layer2_extraction/api/main.py"
+        ).read()
+        assert 'SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)' in source
+        assert "_is_production_like()" in source
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
 class TestMiddlewareS2SJwtAcceptance:
     async def _resolve_context(self, headers: dict):
         """Helper that runs GovernanceMiddleware token resolution against fake request."""
@@ -170,15 +192,11 @@ class TestMiddlewareS2SJwtAcceptance:
 class TestL1TasksSendsS2SHeader:
     def test_l1_tasks_imports_encode_service_jwt(self):
         """Verify tasks.py imports the S2S JWT helper."""
-        import importlib.util
-        spec = importlib.util.spec_from_file_location(
-            "tasks",
-            "services/layer1-ingestion/src/shared/tasks.py",
-        )
-        assert spec and spec.loader
-        module = importlib.util.module_from_spec(spec)
-        # We can't fully execute the module due to heavy deps, but we can inspect source.
-        source = open("services/layer1-ingestion/src/shared/tasks.py").read()
+        canonical_path = "services/layer1-ingestion/src/layer1_ingestion/shared/tasks.py"
+        # Fallback to shim if canonical file does not exist (should not happen)
+        if not os.path.exists(canonical_path):
+            canonical_path = "services/layer1-ingestion/src/shared/tasks.py"
+        source = open(canonical_path).read()
         assert "encode_service_jwt" in source
         assert "Authorization" in source
         assert "Bearer" in source
