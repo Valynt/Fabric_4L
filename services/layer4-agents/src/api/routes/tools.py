@@ -18,7 +18,7 @@ from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.policy_registry import authorize_action
 
-from ...config.settings import settings
+from ...config.settings import get_settings
 from ...contracts.tool_dto import ToolCategoriesResponse, ToolSchemaResponse
 from ...database import get_db_from_context
 from ...engine.executor import WorkflowExecutor
@@ -298,7 +298,7 @@ async def export_document_tool(
     """
     authorize_action("layer4.tools.export_document", context)
     try:
-        if not settings.export_storage_endpoint:
+        if not get_settings().export_storage_endpoint:
             raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
 
         result = await workflow_executor.get_result(request.business_case_id)
@@ -418,7 +418,7 @@ async def export_document_tool(
 
         download_url = await generate_download_url(object_key=pdf_key)
         manifest_url = await generate_download_url(object_key=manifest_key)
-        expires_at = datetime.now(UTC).timestamp() + settings.export_signed_url_ttl_seconds
+        expires_at = datetime.now(UTC).timestamp() + get_settings().export_signed_url_ttl_seconds
         expires_at_iso = datetime.fromtimestamp(expires_at, tz=UTC).isoformat()
 
         package_event = emit_audit_event(

@@ -330,7 +330,7 @@ async def test_l2_fail_closed_without_context() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_ctx_source_of_truth() -> None:
-    from layer3_knowledge.api.routes import products as l3_products
+    from src.api.routes import products as l3_products
 
     service = AsyncMock()
     service.create_product.return_value = {"id": "prod-1"}
@@ -344,7 +344,7 @@ async def test_l3_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> None:
-    from layer3_knowledge.services import product_service as l3_service
+    from src.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
@@ -359,7 +359,7 @@ async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> N
 
 @pytest.mark.asyncio
 async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> None:
-    from layer3_knowledge.services import product_service as l3_service
+    from src.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))
@@ -373,7 +373,7 @@ async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> 
 
 
 def test_l3_query_filters_present() -> None:
-    from layer3_knowledge.services import product_service as l3_service
+    from src.services import product_service as l3_service
 
     content = inspect.getsource(l3_service.ProductService.list_products)
     condition = 'where_clauses = ["p.tenant_id = $tenant_id"]' in content
@@ -382,7 +382,7 @@ def test_l3_query_filters_present() -> None:
 
 @pytest.mark.asyncio
 async def test_l3_fail_closed_without_context(monkeypatch: pytest.MonkeyPatch) -> None:
-    from layer3_knowledge.services import product_service as l3_service
+    from src.services import product_service as l3_service
 
     session = _FakeNeo4jSession(record=None)
     service = l3_service.ProductService(_FakeNeo4jDriver(session))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from layer3_knowledge.api.rate_limiter import RateLimiter, TenantRateLimiter
+from src.api.rate_limiter import RateLimiter, TenantRateLimiter
 
 
 @pytest.mark.asyncio

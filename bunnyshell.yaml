@@ -124,7 +124,7 @@ components:
             command:
                 - celery
                 - '-A'
-                - src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - worker
                 - '--loglevel=info'
                 - '--concurrency=2'

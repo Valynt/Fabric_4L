@@ -12,8 +12,6 @@ services/layer3-knowledge/src/api/services/tenant_resolution.py
 """
 
 
-from fastapi import
-
 from .services.tenant_resolution import resolve_ingest_tenant_id as _canonical
 
 

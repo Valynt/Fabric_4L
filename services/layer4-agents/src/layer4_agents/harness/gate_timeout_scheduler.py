@@ -149,11 +149,11 @@ class GateTimeoutScheduler:
 
 def create_gate_timeout_scheduler(session_factory) -> GateTimeoutScheduler:
     """Factory for the gate timeout scheduler."""
-    from ..config.settings import settings
+    from ..config.settings import get_settings
 
     return GateTimeoutScheduler(
         session_factory,
-        timeout_seconds=settings.agent_gate_timeout_seconds,
+        timeout_seconds=get_settings().agent_gate_timeout_seconds,
     )
 
 

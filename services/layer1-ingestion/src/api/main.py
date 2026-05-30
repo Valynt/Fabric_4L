@@ -289,6 +289,7 @@ app = create_fabric_app(
         mode=EnforcementMode.ENFORCE,
         rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),
     ),
+    instrument_telemetry=True,
 )
 
 # Effective middleware/request order (outermost -> innermost):

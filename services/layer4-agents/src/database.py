@@ -24,7 +24,7 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 # Import settings at module level for early validation and clarity
-from .config.settings import settings
+from .config.settings import get_settings
 
 # Task 4.1: Default isolation tier constant
 DEFAULT_ISOLATION_TIER = "shared"
@@ -303,8 +303,8 @@ def get_engine() -> AsyncEngine:
         _assert_rls_safe_database_url(database_url, source="Layer 4 database URL")
         _engine = create_async_engine(
             database_url,
-            pool_size=settings.database_pool_size,
-            max_overflow=settings.database_max_overflow,
+            pool_size=get_settings().database_pool_size,
+            max_overflow=get_settings().database_max_overflow,
             pool_pre_ping=True,
             pool_timeout=30.0,
             echo=False,

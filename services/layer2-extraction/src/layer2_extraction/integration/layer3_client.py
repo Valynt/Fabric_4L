@@ -82,7 +82,10 @@ class Layer3KnowledgeClient:
         self.base_url = base_url or "http://localhost:8003"
         self._api_key = api_key
         self._owns_client = client is None
-        self._client = client or httpx.AsyncClient(timeout=30.0)
+        self._client = client or httpx.AsyncClient(
+            timeout=30.0,
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+        )
         self._health_cache_ttl_seconds = 5.0
         self._last_health_check: float = 0.0
         self._last_health_result = False

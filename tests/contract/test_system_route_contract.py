@@ -10,8 +10,8 @@ from types import ModuleType, SimpleNamespace
 import pytest
 
 try:
-    from layer3_knowledge.api.models import ServiceMetrics
-    from layer3_knowledge.api.routes import system as layer3_system
+    from src.api.models import ServiceMetrics
+    from src.api.routes import system as layer3_system
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",

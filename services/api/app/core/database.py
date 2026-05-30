@@ -531,9 +531,11 @@ class PostgreSQLTable(Generic[T]):
                 params.append(normalized_tenant_id)
         query += " ORDER BY id"
         if limit is not None:
-            query += f" LIMIT {int(limit)}"
+            query += " LIMIT %s"
+            params.append(int(limit))
         if offset is not None:
-            query += f" OFFSET {int(offset)}"
+            query += " OFFSET %s"
+            params.append(int(offset))
 
         with self._pool.connection() as conn:
             self._set_tenant_guc(conn, normalized_tenant_id)
@@ -834,17 +836,11 @@ def get_pg_engine() -> Any:
     return _pg_engine
 
 
-def close_engine() -> None:
+async def close_engine() -> None:
     """Dispose the shared PostgreSQL engine and psycopg pool. Call during application shutdown."""
     global _pg_engine
     if _pg_engine is not None:
-        import asyncio
-        try:
-            loop = asyncio.get_running_loop()
-            loop.create_task(_pg_engine.dispose())
-        except RuntimeError:
-            # No running loop — sync disposal fallback
-            pass
+        await _pg_engine.dispose()
         _pg_engine = None
     _close_psycopg_pool()
 

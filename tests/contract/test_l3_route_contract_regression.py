@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 try:
-    from layer3_knowledge.api.app_monolith import app
+    from src.api.app_monolith import app
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",

@@ -48,6 +48,15 @@ class Settings(BaseSettings):
             raise ValueError("JWT_SECRET cannot be empty or a known weak default")
         return v
 
+    @field_validator("jwt_algorithm", mode="after")
+    @classmethod
+    def _reject_weak_jwt_algorithm(cls, v: str, info) -> str:
+        data = info.data
+        env = str(data.get("environment", "development")).lower()
+        if env in PRODUCTION_LIKE_ENVIRONMENTS and v.upper() == "HS256":
+            raise ValueError("jwt_algorithm must not be HS256 in production-like environments; use RS256 or stronger")
+        return v
+
     @property
     def is_production(self) -> bool:
         return self.environment.lower() in PRODUCTION_LIKE_ENVIRONMENTS

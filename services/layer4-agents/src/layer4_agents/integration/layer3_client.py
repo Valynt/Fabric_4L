@@ -65,7 +65,10 @@ class Layer3Client:
     async def _get_client(self) -> httpx.AsyncClient:
         """Get or create HTTP client."""
         if self._client is None:
-            self._client = httpx.AsyncClient(timeout=self.timeout)
+            self._client = httpx.AsyncClient(
+                timeout=self.timeout,
+                limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
+            )
         return self._client
 
     def _get_headers(self, tenant_id: str | None = None) -> dict[str, str]:

@@ -157,6 +157,7 @@ app = create_fabric_app(
     health_probes=[RedisHealthProbe(name="redis", _client=_redis_client)],
     readiness_path="/ready",
     enforce_tenant_context=False,
+    instrument_telemetry=True,
 )
 
 # Register health endpoint

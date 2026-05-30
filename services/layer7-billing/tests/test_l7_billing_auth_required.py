@@ -10,7 +10,7 @@ import pytest
 from httpx import AsyncClient, ASGITransport
 
 from layer7_billing.api.main import app
-from conftest import auth_headers, mint_token
+from .conftest import auth_headers, mint_token
 
 
 @pytest.mark.asyncio

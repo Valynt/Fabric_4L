@@ -111,3 +111,12 @@ createRoot(document.getElementById("root")!).render(
     </Suspense>
   </StrictMode>
 );
+
+// P2-006: Register service worker for offline asset caching
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .catch((err) => console.error("Service worker registration failed:", err));
+  });
+}

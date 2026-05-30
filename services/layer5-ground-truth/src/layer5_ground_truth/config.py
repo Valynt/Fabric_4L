@@ -308,6 +308,8 @@ class Settings(BaseSettings):
             errors.append("DEBUG must be false")
         if len(self.jwt_secret) < 32 or self.jwt_secret.strip().lower() in WEAK_JWT_SECRETS:
             errors.append("JWT_SECRET must be a non-placeholder value of at least 32 characters")
+        if self.jwt_algorithm.upper() == "HS256":
+            errors.append("JWT_ALGORITHM must not be HS256 in production-like environments; use RS256 or stronger")
         if not self.jwt_issuer.strip():
             errors.append("JWT_ISSUER must be configured")
         if not self.jwt_audience.strip():

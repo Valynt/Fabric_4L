@@ -203,10 +203,10 @@ def build_lifespan(
 
 
 async def start_optional_integrations(app: FastAPI) -> None:
-    from ..config.settings import settings
+    from ..config.settings import get_settings
     from ..services.oidc_cleanup import create_oidc_cleanup_task
 
-    if settings.enable_crm_scheduler:
+    if get_settings().enable_crm_scheduler:
         runtime_state.crm_sync_scheduler = await get_crm_sync_scheduler()
         await runtime_state.crm_sync_scheduler.start()
     if runtime_state.state_manager and getattr(runtime_state.state_manager, "redis_client", None):
@@ -215,7 +215,7 @@ async def start_optional_integrations(app: FastAPI) -> None:
             runtime_state.crm_sync_job_runner = CRMSyncJobRunner(redis_client)
             await runtime_state.crm_sync_job_runner.start()
 
-    if settings.enable_oidc_cleanup:
+    if get_settings().enable_oidc_cleanup:
         from ..database import get_db_from_context
         runtime_state.oidc_cleanup_task = await create_oidc_cleanup_task(
             db_session_factory=get_db_from_context,

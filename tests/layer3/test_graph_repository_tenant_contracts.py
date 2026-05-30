@@ -5,13 +5,13 @@ from types import SimpleNamespace
 
 import pytest
 
-from layer3_knowledge.db.query_execution import (
+from src.db.query_execution import (
     TenantExecutionContext,
     TenantQueryExecutor,
     TenantQueryValidationError,
 )
-from layer3_knowledge.retrieval.hybrid_search import HybridSearch
-from layer3_knowledge.schema.constraints import CONSTRAINTS, INDEXES
+from src.retrieval.hybrid_search import HybridSearch
+from src.schema.constraints import CONSTRAINTS, INDEXES
 
 
 def test_missing_tenant_context_fails_closed_for_graph_reads() -> None:
@@ -59,11 +59,11 @@ async def test_hybrid_search_forwards_authenticated_tenant_to_vector_store() -> 
 
 
 def test_graph_service_entrypoints_require_explicit_tenant_id() -> None:
-    from layer3_knowledge.services.competitive_intel_service import CompetitiveIntelService
-    from layer3_knowledge.services.evidence_search import EvidenceSearchService
-    from layer3_knowledge.services.product_service import ProductService
-    from layer3_knowledge.services.signal_persistence import SignalPersistenceService
-    from layer3_knowledge.services.signal_quantification import SignalQuantificationService
+    from src.services.competitive_intel_service import CompetitiveIntelService
+    from src.services.evidence_search import EvidenceSearchService
+    from src.services.product_service import ProductService
+    from src.services.signal_persistence import SignalPersistenceService
+    from src.services.signal_quantification import SignalQuantificationService
 
     service_methods = [
         ProductService.create_product,

@@ -11,7 +11,7 @@ import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 from sqlalchemy import select, Result, text
 
-from conftest import auth_headers, billing_context
+from .conftest import auth_headers, billing_context
 
 
 @pytest.mark.asyncio

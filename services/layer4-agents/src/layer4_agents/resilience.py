@@ -16,7 +16,7 @@ from typing import Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from .config.settings import settings
+from .config.settings import get_settings
 
 
 class CircuitBreakerRegistry_get_all_statesResult(TypedDictModel):
@@ -117,8 +117,8 @@ class TenantRateLimiter:
     def __init__(self):
         self._buckets: dict[str, TokenBucket] = {}
         self._lock = asyncio.Lock()
-        self._capacity = settings.rate_limit_burst_size
-        self._refill_rate = settings.rate_limit_requests_per_minute / 60.0
+        self._capacity = get_settings().rate_limit_burst_size
+        self._refill_rate = get_settings().rate_limit_requests_per_minute / 60.0
 
     async def check_rate_limit(self, tenant_id: str) -> bool:
         """Check if request is within rate limit for tenant.
@@ -200,9 +200,9 @@ class CircuitBreaker:
     """
 
     service_name: str
-    failure_threshold: int = settings.circuit_breaker_failure_threshold
-    recovery_timeout: float = settings.circuit_breaker_recovery_timeout_seconds
-    half_open_max_calls: int = settings.circuit_breaker_half_open_max_calls
+    failure_threshold: int = field(default_factory=lambda: get_settings().circuit_breaker_failure_threshold)
+    recovery_timeout: float = field(default_factory=lambda: get_settings().circuit_breaker_recovery_timeout_seconds)
+    half_open_max_calls: int = field(default_factory=lambda: get_settings().circuit_breaker_half_open_max_calls)
 
     state: CircuitState = field(default=CircuitState.CLOSED)
     failures: int = field(default=0)

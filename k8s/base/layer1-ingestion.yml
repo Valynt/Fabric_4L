@@ -127,7 +127,7 @@ spec:
         # Celery worker sidecar
         - name: celery-worker
           image: value-fabric/layer1-ingestion:main
-          command: ["celery", "-A", "src.shared.tasks", "worker", "-l", "info"]
+          command: ["celery", "-A", "layer1_ingestion.shared.tasks", "worker", "-l", "info"]
           securityContext:
             runAsNonRoot: true
             runAsUser: 1000

@@ -6,9 +6,9 @@ from uuid import UUID
 import pytest
 from value_fabric.shared.identity import RequestContext
 
-from layer3_knowledge.api.dependencies_tenant import Neo4jTenantSession
-from layer3_knowledge.api.models import GraphRAGQuery, SearchRequest, SearchType
-from layer3_knowledge.api.routes import entities, query_search
+from src.api.dependencies_tenant import Neo4jTenantSession
+from src.api.models import GraphRAGQuery, SearchRequest, SearchType
+from src.api.routes import entities, query_search
 
 
 class _FakeSession:

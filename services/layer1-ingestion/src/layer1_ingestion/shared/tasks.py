@@ -153,7 +153,7 @@ celery_app = Celery(
     "layer1_ingestion",
     broker=settings.redis_url,
     backend=settings.redis_url,
-    include=["src.shared.tasks"],
+    include=["layer1_ingestion.shared.tasks"],
 )
 
 # Celery configuration
@@ -285,7 +285,7 @@ def process_scraping_job(self, job_id: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def compliance_check_stage(self, job_id: UUID, tenant_id: str):
+async def compliance_check_stage(self, job_id: UUID, tenant_id: str):
     """Stage 1: Compliance Check (robots.txt, rate limits, domain policies).
     
     Args:
@@ -381,7 +381,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
                 )
                 domain = url.split("/")[2] if "/" in url else url
 
-                allowed, reason, rules = asyncio.run(checker.check_url(domain, url))
+                allowed, reason, rules = await checker.check_url(domain, url)
                 crawl_delay = rules.get("crawl_delay") if rules else None
 
                 # Log compliance check
@@ -460,7 +460,7 @@ def compliance_check_stage(self, job_id: UUID, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
+async def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
     """Stages 2-4: Smart crawl with routing (FAST / FAST_WITH_FALLBACK / BROWSER).
 
     OPTIMIZATION: Integrates SmartRouter to choose between HTTPX fast path
@@ -540,7 +540,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
             if routing_decision.route == RouteType.FAST:
                 logger.info("Using FAST path (HTTPX)", job_id=str(job_id), url=url)
-                fast_result = asyncio.run(_execute_fast_path(url))
+                fast_result = await _execute_fast_path(url)
                 final_path = "fast"
                 html_bytes = (fast_result.html or "").encode("utf-8")
                 decision_record.final_path = "fast"
@@ -555,7 +555,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
             elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
                 logger.info("Using FAST_WITH_FALLBACK path", job_id=str(job_id), url=url)
-                fast_result = asyncio.run(_execute_fast_path(url))
+                fast_result = await _execute_fast_path(url)
                 decision_record.fast_duration_ms = fast_result.fetch_time_ms
                 decision_record.spa_detected = fast_result.is_spa_detected
                 quality = gate.evaluate(fast_result)
@@ -577,7 +577,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
                         url=url,
                         fallback_reason=quality.fallback_reason,
                     )
-                    crawl_result = asyncio.run(_crawl_browser(url, browser_config))
+                    crawl_result = await _crawl_browser(url, browser_config)
                     final_path = "fallback"
                     decision_record.final_path = "fallback"
                     decision_record.status_code = crawl_result.status_code
@@ -588,7 +588,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
             else:  # RouteType.BROWSER
                 logger.info("Using BROWSER path (Playwright)", job_id=str(job_id), url=url)
-                crawl_result = asyncio.run(_crawl_browser(url, browser_config))
+                crawl_result = await _crawl_browser(url, browser_config)
                 final_path = "browser"
                 decision_record.final_path = "browser"
                 decision_record.status_code = crawl_result.status_code
@@ -598,7 +598,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
                 decision_record.text_length = len(crawl_result.html_content or "") // 10
 
             # Persist routing decision and emit path metric
-            asyncio.run(decision_repo.save(decision_record))
+            await decision_repo.save(decision_record)
             metrics = get_metrics()
             if metrics:
                 metrics.increment_crawl_path(path=final_path, domain_class=_domain_class(url))
@@ -726,7 +726,7 @@ def browser_crawl_stage(self, prev_result: dict, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=5)
-def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
+async def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
     """Stage 5: AI/LLM Extraction (conditional based on config).
     
     Args:
@@ -863,7 +863,7 @@ def ai_extraction_stage(self, prev_result: dict, tenant_id: str):
                         return response.json()
 
                 try:
-                    extraction_result = asyncio.run(_call_l2())
+                    extraction_result = await _call_l2()
                     tokens_consumed = extraction_result.get("tokens_consumed", 0)
                 except httpx.HTTPStatusError as e:
                     if e.response.status_code in (429, 503, 504):
@@ -1653,7 +1653,7 @@ def execute_pipeline_stage(job_id: str, stage: str, tenant_id: str):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
+async def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_mode: str = "browser"):
     """Crawl a single URL with Smart Router and hybrid FAST/BROWSER paths.
 
     Implements the hardening-pass routing logic with:
@@ -1733,7 +1733,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
         # 2. EXECUTE BASED ON ROUTING DECISION
         if routing_decision.route == RouteType.FAST:
             # Direct fast path
-            result = asyncio.run(_execute_fast_path(url))
+            result = await _execute_fast_path(url)
 
             decision_record.final_path = "fast"
             decision_record.status_code = result.status_code
@@ -1749,7 +1749,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
 
         elif routing_decision.route == RouteType.FAST_WITH_FALLBACK:
             # Try fast path, fallback if quality fails
-            result = asyncio.run(_execute_fast_path(url))
+            result = await _execute_fast_path(url)
 
             decision_record.fast_duration_ms = result.fetch_time_ms
             decision_record.spa_detected = result.is_spa_detected
@@ -1783,7 +1783,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
                     fallback_reason=quality.fallback_reason,
                 )
 
-                browser_result = asyncio.run(_execute_browser_path(url, routing_decision.stagehand_config))
+                browser_result = await _execute_browser_path(url, routing_decision.stagehand_config)
 
                 decision_record.final_path = "fallback"
                 decision_record.status_code = browser_result.get("status_code")
@@ -1798,7 +1798,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
 
         else:  # RouteType.BROWSER
             # Direct browser path
-            browser_result = asyncio.run(_execute_browser_path(url, routing_decision.stagehand_config))
+            browser_result = await _execute_browser_path(url, routing_decision.stagehand_config)
 
             decision_record.final_path = "browser"
             decision_record.status_code = browser_result.get("status_code")
@@ -1808,7 +1808,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
             decision_record.text_length = browser_result.get("text_length", 0)
 
         # 3. PERSIST CANONICAL DECISION
-        asyncio.run(decision_repo.save(decision_record))
+        await decision_repo.save(decision_record)
 
         logger.info(
             "Crawl completed with routing",
@@ -1843,7 +1843,7 @@ def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, target_m
             decision_record.error_type = type(exc).__name__
             decision_record.error_message = sanitize_log_error(exc)[:500]  # Truncate long messages
             try:
-                asyncio.run(decision_repo.save(decision_record))
+                await decision_repo.save(decision_record)
             except Exception:
                 pass  # Don't let decision save failure mask original error
 
@@ -2151,8 +2151,8 @@ def purge_expired_raw_content(self) -> dict:
     iterates over active tenants under RLS to ensure tenant isolation.
     """
     try:
+        # Use the default retention window; per-record granularity can be added later.
         return cleanup_old_content(days=30, tenant_id=None)
     except Exception as exc:
         logger.error("purge_expired_raw_content failed: %s", exc)
         raise self.retry(exc=exc, countdown=3600)  # retry after 1 hour
-

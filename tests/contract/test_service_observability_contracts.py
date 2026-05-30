@@ -33,7 +33,7 @@ def test_layer2_observability_endpoints_contract() -> None:
 
 @pytest.mark.unit
 def test_layer3_observability_endpoints_contract() -> None:
-    from layer3_knowledge.api.main import app
+    from src.api.main import app
 
     assert_paths_present(app, ("/health", "/ready", "/metrics"))
     client = TestClient(app)

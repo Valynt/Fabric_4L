@@ -1,5 +1,6 @@
 import { RouterProvider } from "react-router-dom";
 import { ErrorBoundary } from "@/components";
+import { OfflineBanner } from "@/components/OfflineBanner";
 import { Toaster } from "@/components/ui/sonner";
 import { ThemeProvider } from "@/contexts/ThemeContext";
 import { AuthProvider } from "@/contexts/AuthContext";
@@ -13,6 +14,7 @@ export default function App() {
       <ThemeProvider defaultTheme="light" switchable>
         <AuthProvider>
           <TooltipProvider>
+            <OfflineBanner />
             <ClerkAuthBridge />
             <Toaster />
             <RouterProvider router={router} />

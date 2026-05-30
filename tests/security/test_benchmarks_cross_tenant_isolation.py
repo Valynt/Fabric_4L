@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from layer3_knowledge.api.routes.benchmarks import _get_authenticated_tenant_id
+from src.api.routes.benchmarks import _get_authenticated_tenant_id
 
 pytestmark = pytest.mark.tenant_boundary
 

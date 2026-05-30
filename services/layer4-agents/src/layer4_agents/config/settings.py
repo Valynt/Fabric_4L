@@ -11,6 +11,7 @@ import importlib
 import importlib.util
 import logging
 import secrets
+from functools import lru_cache
 from urllib.parse import urlparse
 
 logger = logging.getLogger(__name__)
@@ -656,8 +657,12 @@ class Settings(BaseSettings):
 
 
 # ==========================================================================
-# Global Settings Instance
+# Lazy Settings Accessor (P2-002)
 # ==========================================================================
 
-# P0-29: This will fail fast on startup if required config is missing
-settings = Settings()
+# Use lazy accessor to avoid import-time side effects.
+# Call configure_settings() during app lifespan startup before first use.
+@lru_cache
+def get_settings() -> Settings:
+    """Return cached Settings instance (created on first call)."""
+    return Settings()

@@ -1,13 +1,13 @@
 import pytest
 
 try:
-    from layer3_knowledge.api.models import (
+    from src.api.models import (
         GRAPH_FIELD_ALIAS_REMOVAL_VERSION,
         GraphEdge,
         GraphNode,
         get_deprecated_field_usage_counters,
     )
-    from layer3_knowledge.api.main import app
+    from src.api.main import app
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",

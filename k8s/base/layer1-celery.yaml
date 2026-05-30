@@ -44,7 +44,7 @@ spec:
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "worker"
           - "--loglevel=info"
           - "--concurrency=4"
@@ -83,7 +83,7 @@ spec:
             command:
             - celery
             - -A
-            - layer1_ingestion.src.shared.tasks
+            - layer1_ingestion.shared.tasks
             - inspect
             - --timeout
             - "5"
@@ -96,7 +96,7 @@ spec:
             command:
               - celery
               - -A
-              - layer1_ingestion.src.shared.tasks
+              - layer1_ingestion.shared.tasks
               - inspect
               - --timeout
               - "5"
@@ -150,7 +150,7 @@ spec:
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "beat"
           - "--loglevel=info"
           - "--scheduler"
@@ -266,7 +266,7 @@ spec:
         command: ["celery"]
         args:
           - "-A"
-          - "layer1_ingestion.src.shared.tasks"
+          - "layer1_ingestion.shared.tasks"
           - "flower"
           - "--port=5555"
           - "--url_prefix=/flower"

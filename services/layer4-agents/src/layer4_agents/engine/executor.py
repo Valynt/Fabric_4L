@@ -683,7 +683,7 @@ class OrchestrationController:
             workflow_type=workflow_type,
         )
         # Resolve tenant-aware timeout and store metadata with timeout tracking
-        from ..config.settings import settings
+        from ..config.settings import get_settings
         resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
 
         initial_state.run_envelope = envelope
@@ -1639,8 +1639,8 @@ class OrchestrationController:
         self._active_workflows[workflow_id] = current_task
 
         try:
-            from ..config.settings import settings
-            timeout_seconds = int(task.parameters.get("timeout_seconds", settings.workflow_timeout_seconds))
+            from ..config.settings import get_settings
+            timeout_seconds = int(task.parameters.get("timeout_seconds", get_settings().workflow_timeout_seconds))
             result = await asyncio.wait_for(
                 workflow.run(initial_state, thread_id=workflow_id),
                 timeout=timeout_seconds,
@@ -1788,9 +1788,9 @@ class OrchestrationController:
         return None
 
     async def _resolve_workflow_timeout_seconds(self, tenant_id: str | None) -> tuple[int, str]:
-        from ..config.settings import settings
+        from ..config.settings import get_settings
         source = "service_default"
-        selected = settings.workflow_timeout_seconds
+        selected = get_settings().workflow_timeout_seconds
 
         if tenant_id:
             try:
@@ -1808,11 +1808,11 @@ class OrchestrationController:
             except Exception:
                 logger.debug("Tenant timeout override resolution failed for tenant_id=%s", tenant_id, exc_info=True)
 
-        min_timeout = settings.workflow_timeout_min_seconds
-        max_timeout = settings.workflow_timeout_max_seconds
+        min_timeout = get_settings().workflow_timeout_min_seconds
+        max_timeout = get_settings().workflow_timeout_max_seconds
         if not isinstance(selected, int) or selected < min_timeout or selected > max_timeout:
             source = "safe_fallback"
-            selected = settings.workflow_timeout_fallback_seconds
+            selected = get_settings().workflow_timeout_fallback_seconds
 
         if selected < min_timeout:
             selected = min_timeout

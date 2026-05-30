@@ -20,10 +20,11 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    event,
     func,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
-from sqlalchemy.orm import declarative_base, event, relationship
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 

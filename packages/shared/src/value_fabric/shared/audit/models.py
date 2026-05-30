@@ -131,6 +131,7 @@ class AuditEvent(BaseModel):
     request_id: Optional[str] = None
     outcome: AuditOutcome = AuditOutcome.SUCCESS
     details: Dict[str, Any] = Field(default_factory=dict, description="Action-specific metadata")
+    chain_id: Optional[str] = Field(None, description="Hash-chain identifier for audit ledger")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
 
     def __await__(self):

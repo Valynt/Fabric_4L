@@ -8,7 +8,7 @@ import logging
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 
-from ..config.settings import settings
+from ..config.settings import get_settings
 from ..feature_flags.api import feature_flags_router
 from ..registry.api.routes import router as models_router
 from ..services.stripe_client import StripeNotConfiguredError
@@ -98,7 +98,7 @@ def register_routers(app: FastAPI) -> None:
     # billing_not_configured response (HTTP 402) rather than a 404.
     # StripeNotConfiguredError is caught by the exception handler below.
     app.include_router(billing_router, prefix="/v1")
-    if settings.is_billing_configured:
+    if get_settings().is_billing_configured:
         logger.info("Billing routes enabled (Stripe configured)")
     else:
         logger.info("Billing routes registered in fail-closed mode (STRIPE_SECRET_KEY not set)")

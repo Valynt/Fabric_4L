@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 from fastapi import HTTPException
 
-from layer3_knowledge.api.app_monolith import _resolve_ingest_tenant_id
+from src.api.app_monolith import _resolve_ingest_tenant_id
 
 
 def test_ingest_tenant_resolution_requires_authenticated_context() -> None:

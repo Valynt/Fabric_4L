@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import pytest
 
-from layer3_knowledge.api.dependencies_tenant import Neo4jTenantSession
+from src.api.dependencies_tenant import Neo4jTenantSession
 
 
 class _RecordingSession:

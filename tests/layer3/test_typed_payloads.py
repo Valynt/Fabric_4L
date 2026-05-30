@@ -2,9 +2,9 @@ from datetime import UTC, datetime
 
 import pytest
 
-from layer3_knowledge.analytics.manager import AnalyticsConfig, AnalyticsEvent, AnalyticsManager
-from layer3_knowledge.security.monitor import SecurityConfig, SecurityEvent, SecurityMonitor
-from layer3_knowledge.security.query_validator import ValidationFinding, ValidationSeverity
+from src.analytics.manager import AnalyticsConfig, AnalyticsEvent, AnalyticsManager
+from src.security.monitor import SecurityConfig, SecurityEvent, SecurityMonitor
+from src.security.query_validator import ValidationFinding, ValidationSeverity
 
 
 def test_validation_finding_to_dict_shape() -> None:

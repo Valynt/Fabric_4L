@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 
@@ -322,6 +322,16 @@ class AppConfig(BaseModel):
     custom: dict[str, Any] = Field(
         default_factory=dict, description="Custom configuration"
     )
+
+    @model_validator(mode="after")
+    def validate_production_jwt_algorithm(self) -> "AppConfig":
+        """Fail-closed: reject HS256 JWT algorithm in production."""
+        if self.environment == Environment.PRODUCTION:
+            if self.auth.algorithm.upper() == "HS256":
+                raise ValueError(
+                    "algorithm must not be HS256 in production; use RS256 or stronger"
+                )
+        return self
 
     model_config = ConfigDict(
         env_file=".env",

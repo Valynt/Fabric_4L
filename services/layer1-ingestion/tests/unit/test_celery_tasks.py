@@ -421,7 +421,7 @@ class TestCeleryRetryBehavior:
         mock_session.query.return_value.get.return_value = mock_job
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
-            with patch("src.shared.tasks._update_stage"):
+            with patch("layer1_ingestion.shared.tasks._update_stage"):
                 # Should raise or handle gracefully (not crash silently)
                 # AttributeError because code does config.get() when config is None
                 # Pass string job_id to match Celery JSON serialization

@@ -221,11 +221,17 @@ def init_telemetry(service_name: str, *, endpoint: str | None = None) -> Any | N
         from opentelemetry.sdk.resources import SERVICE_NAME, Resource
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import BatchSpanProcessor
+        from opentelemetry.sdk.trace.sampling import ParentBasedTraceIdRatio
     except ImportError:
         return None
 
+    # Configurable sampling ratio via env var; defaults to 1.0 (always on)
+    # for backward compatibility.  Set OTEL_SAMPLE_RATIO=0.01 in
+    # production to avoid trace volume overload.
+    sample_ratio = float(os.getenv("OTEL_SAMPLE_RATIO", "1.0"))
     resource = Resource.create({SERVICE_NAME: service_name})
-    provider = TracerProvider(resource=resource)
+    sampler = ParentBasedTraceIdRatio(sample_ratio)
+    provider = TracerProvider(resource=resource, sampler=sampler)
     exporter = OTLPSpanExporter(endpoint=f"{otel_endpoint}/v1/traces")
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)

@@ -213,7 +213,7 @@ class TestCacheKeyIsolation:
         
         Rationale: Without tenant_id, tenant A could read tenant B's cached entities.
         """
-        from layer3_knowledge.api.cache import get_cached_entity, set_cached_entity
+        from src.api.cache import get_cached_entity, set_cached_entity
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -267,7 +267,7 @@ class TestCacheKeyIsolation:
         
         Rationale: Shared query cache would leak search results between tenants.
         """
-        from layer3_knowledge.api.cache import get_cached_query, set_cached_query
+        from src.api.cache import get_cached_query, set_cached_query
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -315,7 +315,7 @@ class TestCacheKeyIsolation:
         
         Rationale: Bulk invalidation must maintain tenant boundaries.
         """
-        from layer3_knowledge.api.cache import invalidate_tenant_cache
+        from src.api.cache import invalidate_tenant_cache
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -488,7 +488,7 @@ class TestDegradedModeIsolation:
         Rationale: Cache miss should trigger fresh DB query with tenant filter,
         not return data from another tenant.
         """
-        from layer3_knowledge.api.cache import get_cached_entity
+        from src.api.cache import get_cached_entity
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -527,7 +527,7 @@ class TestDegradedModeIsolation:
         
         mock_redis.set = mock_set
         
-        from layer3_knowledge.api.cache import set_cached_entity
+        from src.api.cache import set_cached_entity
         
         with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Request 1: Tenant A
@@ -564,7 +564,7 @@ class TestCachePoisoningPrevention:
         
         Attack scenario: Malicious tenant crafts cache key to pollute another tenant.
         """
-        from layer3_knowledge.api.cache import set_cached_entity
+        from src.api.cache import set_cached_entity
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -601,7 +601,7 @@ class TestCachePoisoningPrevention:
         Attack scenario: Tenant provides entity_id with embedded tenant_id
         to bypass tenant scoping.
         """
-        from layer3_knowledge.api.cache import set_cached_entity
+        from src.api.cache import set_cached_entity
         
         tenant_a = uuid4()
         tenant_b = uuid4()
@@ -638,7 +638,7 @@ class TestCachePoisoningPrevention:
         
         Attack scenario: Tenant A tries to invalidate all caches using wildcard.
         """
-        from layer3_knowledge.api.cache import invalidate_cache_pattern
+        from src.api.cache import invalidate_cache_pattern
         
         tenant_a = uuid4()
         tenant_b = uuid4()

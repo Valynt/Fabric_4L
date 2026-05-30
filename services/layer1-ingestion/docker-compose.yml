@@ -108,7 +108,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: layer1-worker
-    command: celery -A src.shared.tasks worker --loglevel=info --concurrency=2
+    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=2
     environment:
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/layer1_ingestion
       LAYER1_REDIS_URL: redis://redis:6379/0
@@ -133,7 +133,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: layer1-beat
-    command: celery -A src.shared.tasks beat --loglevel=info
+    command: celery -A layer1_ingestion.shared.tasks beat --loglevel=info
     environment:
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@postgres:5432/layer1_ingestion
       LAYER1_REDIS_URL: redis://redis:6379/0

@@ -39,6 +39,12 @@ def _derive_fernet_key(master_key: str) -> bytes:
     return base64.urlsafe_b64encode(raw)
 
 
+def _is_production_like() -> bool:
+    """Return True if the current environment is production-like."""
+    env = os.getenv("ENVIRONMENT", "development").strip().lower()
+    return env in {"production", "prod", "staging", "stage"}
+
+
 def _get_fernet() -> Fernet | None:
     """Return a Fernet instance or None if no key is configured."""
     key = os.getenv("CREDENTIALS_MASTER_KEY", "").strip()
@@ -107,6 +113,11 @@ class EncryptedString(TypeDecorator):
             return None
         fernet = _get_fernet()
         if fernet is None:
+            if _is_production_like():
+                raise RuntimeError(
+                    "CREDENTIALS_MASTER_KEY is required in production-like environments. "
+                    "EncryptedString cannot fall back to plaintext."
+                )
             logger.warning(
                 "CREDENTIALS_MASTER_KEY not set; storing plaintext. "
                 "Configure a strong 256-bit key for production."

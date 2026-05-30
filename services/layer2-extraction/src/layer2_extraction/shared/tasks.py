@@ -4,10 +4,8 @@ Provides async task processing for entity and relationship extraction,
 enabling scalable queue-based processing instead of synchronous HTTP calls.
 """
 
-import asyncio
 import logging
 import os
-from typing import Any
 
 from celery import Celery
 
@@ -71,7 +69,7 @@ logger = logging.getLogger(__name__)
 
 
 @celery_app.task(bind=True, max_retries=3)
-def run_extraction_task(self, job_id: str, source_url: str, content: str, config: dict, mark_pipeline_complete: bool = True):
+async def run_extraction_task(self, job_id: str, source_url: str, content: str, config: dict, mark_pipeline_complete: bool = True):
     """Execute full extraction pipeline via Celery task.
 
     Wraps the async run_extraction function for Celery compatibility.
@@ -98,16 +96,13 @@ def run_extraction_task(self, job_id: str, source_url: str, content: str, config
         # Import here to avoid circular dependencies
         from layer2_extraction.api.main import run_extraction
 
-        # Run the async extraction function using asyncio.run
-        # Note: This works in Celery because the task runs in a fresh process
-        # where no event loop exists yet
-        result = asyncio.run(run_extraction(
+        await run_extraction(
             job_id=job_id,
             source_url=source_url,
             content=content,
             config=config,
             mark_pipeline_complete=mark_pipeline_complete,
-        ))
+        )
 
         logger.info("Extraction task completed", job_id=job_id)
         return {
@@ -122,7 +117,7 @@ def run_extraction_task(self, job_id: str, source_url: str, content: str, config
 
 
 @celery_app.task(bind=True, max_retries=3)
-def extract_entities_task(self, job_id: str, content: str, config: dict):
+async def extract_entities_task(self, job_id: str, content: str, config: dict):
     """Extract entities from content via Celery task.
 
     Args:
@@ -148,7 +143,7 @@ def extract_entities_task(self, job_id: str, content: str, config: dict):
         all_entities = []
 
         for chunk in chunks:
-            entities = asyncio.run(extractor.extract_entities(chunk, config.get("extraction_schema")))
+            entities = await extractor.extract_entities(chunk, config.get("extraction_schema"))
             all_entities.extend(entities)
 
         logger.info("Entity extraction task completed", job_id=job_id, entity_count=len(all_entities))
@@ -165,7 +160,7 @@ def extract_entities_task(self, job_id: str, content: str, config: dict):
 
 
 @celery_app.task(bind=True, max_retries=3)
-def extract_relationships_task(self, job_id: str, entities: list, config: dict):
+async def extract_relationships_task(self, job_id: str, entities: list, config: dict):
     """Extract relationships between entities via Celery task.
 
     Args:
@@ -184,7 +179,7 @@ def extract_relationships_task(self, job_id: str, entities: list, config: dict):
 
         # Extract relationships
         extractor = RelationshipExtractor()
-        relationships = asyncio.run(extractor.extract_relationships(entities, config.get("extraction_schema")))
+        relationships = await extractor.extract_relationships(entities, config.get("extraction_schema"))
 
         logger.info("Relationship extraction task completed", job_id=job_id, relationship_count=len(relationships))
         return {

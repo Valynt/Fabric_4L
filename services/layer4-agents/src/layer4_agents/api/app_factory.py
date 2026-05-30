@@ -17,7 +17,7 @@ from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeRes
 from value_fabric.shared.observability import configure_observability
 from value_fabric.shared.security import validate_production_safety
 
-from ..config.settings import settings
+from ..config.settings import get_settings
 
 logger = logging.getLogger(__name__)
 from ..metrics import initialize_metrics
@@ -28,11 +28,11 @@ from .startup import build_lifespan, runtime_state, start_optional_integrations
 
 
 def init_telemetry() -> TracerProvider | None:
-    if not settings.otel_exporter_endpoint:
+    if not get_settings().otel_exporter_endpoint:
         return None
     resource = Resource.create({SERVICE_NAME: "layer4-agents"})
     provider = TracerProvider(resource=resource)
-    exporter = OTLPSpanExporter(endpoint=f"{settings.otel_exporter_endpoint}/v1/traces")
+    exporter = OTLPSpanExporter(endpoint=f"{get_settings().otel_exporter_endpoint}/v1/traces")
     provider.add_span_processor(BatchSpanProcessor(exporter))
     trace.set_tracer_provider(provider)
     return provider
@@ -85,7 +85,7 @@ def create_app() -> FastAPI:
         readiness_path="/ready",
     )
 
-    if settings.otel_exporter_endpoint:
+    if get_settings().otel_exporter_endpoint:
         FastAPIInstrumentor.instrument_app(app)
 
     app.state.metrics = initialize_metrics()

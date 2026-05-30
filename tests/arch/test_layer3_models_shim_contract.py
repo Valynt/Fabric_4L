@@ -30,7 +30,7 @@ def test_layer3_models_is_substantive_canonical_module() -> None:
         "This file is the canonical Layer 3 API models source."
     )
     # Must not be a circular self-import shim
-    assert "from layer3_knowledge.api.models import *" not in content, (
+    assert "from src.api.models import *" not in content, (
         "Circular self-import detected: this file IS value_fabric.layer3.api.models "
         "via the path-redirect shim and cannot re-export itself."
     )

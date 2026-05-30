@@ -550,7 +550,7 @@ class TestCrossLayerContextValidation:
         
         Rationale: Knowledge graph endpoints must enforce tenant isolation.
         """
-        from layer3_knowledge.api.main import app
+        from src.api.main import app
         
         client = TestClient(app)
         

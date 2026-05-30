@@ -25,12 +25,17 @@ from typing import Any, Callable, Dict, Optional, Set
 from uuid import UUID, uuid4
 
 try:
-    from prometheus_client import Counter
-    _AUDIT_WRITE_FAILURES = Counter(
-        "value_fabric_audit_write_failures_total",
-        "Total number of audit event write failures",
-        ["failure_type"]
-    )
+    from prometheus_client import Counter, REGISTRY
+
+    _METRIC_NAME = "value_fabric_audit_write_failures_total"
+    if _METRIC_NAME in REGISTRY._names_to_collectors:
+        _AUDIT_WRITE_FAILURES = REGISTRY._names_to_collectors[_METRIC_NAME]
+    else:
+        _AUDIT_WRITE_FAILURES = Counter(
+            _METRIC_NAME,
+            "Total number of audit event write failures",
+            ["failure_type"],
+        )
     _METRICS_AVAILABLE = True
 except ImportError:
     _METRICS_AVAILABLE = False
@@ -200,6 +205,7 @@ def emit_audit_event(
         request_id=request_id,
         outcome=outcome,
         details=safe_details,
+        chain_id=chain_id,
     )
 
     # Write to structured log (always).  Sensitive keys are scrubbed above.
@@ -230,6 +236,44 @@ def emit_audit_event(
         pass
 
     return event
+
+
+# Compatibility helper used by test_ledger_chain.py
+def _create_audit_event(
+    action: AuditAction,
+    *,
+    tenant_id: Optional[UUID] = None,
+    user_id: Optional[str] = None,
+    api_key_id: Optional[str] = None,
+    resource_type: Optional[str] = None,
+    resource_id: Optional[str] = None,
+    ip_address: Optional[str] = None,
+    user_agent: Optional[str] = None,
+    request_id: Optional[str] = None,
+    outcome: AuditOutcome = AuditOutcome.SUCCESS,
+    details: Optional[Dict[str, Any]] = None,
+    chain_id: Optional[str] = None,
+) -> AuditEvent:
+    """Create an AuditEvent without emitting to the log stream.
+
+    Used by ledger chain tests and other callers that need a plain
+    event object for correlation without side effects.
+    """
+    safe_details = _scrub_details(details or {})
+    return AuditEvent(
+        action=action,
+        tenant_id=tenant_id,
+        user_id=user_id,
+        api_key_id=api_key_id,
+        resource_type=resource_type,
+        resource_id=resource_id,
+        ip_address=ip_address,
+        user_agent=user_agent,
+        request_id=request_id,
+        outcome=outcome,
+        details=safe_details,
+        chain_id=chain_id,
+    )
 
 
 # ---------------------------------------------------------------------------

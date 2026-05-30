@@ -139,7 +139,7 @@ def test_x_tenant_id_requires_service_secret():
 
 def test_safe_eval_blocks_unsafe_expressions():
     """P0-2: AST evaluator should reject dangerous constructs."""
-    from layer3_knowledge.services.signal_quantification import SignalQuantificationService
+    from src.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
@@ -165,7 +165,7 @@ def test_safe_eval_blocks_unsafe_expressions():
 
 def test_safe_eval_allows_safe_expressions():
     """P0-2: AST evaluator should allow safe arithmetic."""
-    from layer3_knowledge.services.signal_quantification import SignalQuantificationService
+    from src.services.signal_quantification import SignalQuantificationService
     from neo4j import AsyncDriver
 
     service = SignalQuantificationService(Mock(spec=AsyncDriver))
@@ -232,7 +232,7 @@ def test_websocket_requires_token():
 @pytest.mark.xfail(strict=False, reason='Pickle serializer check requires live Redis connection')
 def test_pickle_serializer_disabled():
     """P1-10: Pickle serializer should raise ValueError."""
-    from layer3_knowledge.cache.redis_cache import RedisCache
+    from src.cache.redis_cache import RedisCache
 
     cache = RedisCache(redis_url="redis://localhost:6379/0")
     cache.config.serializer = "pickle"

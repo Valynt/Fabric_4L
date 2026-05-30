@@ -174,7 +174,7 @@ services:
         INSTALL_PLAYWRIGHT_BROWSERS: 'false'
         BASE_IMAGE: ${BASE_IMAGE:-}
     container_name: vf-live-layer1-worker
-    command: celery -A src.shared.tasks worker --loglevel=info --concurrency=2
+    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=2
     environment:
       LAYER1_ENVIRONMENT: development
       LAYER1_DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ingestion
@@ -190,7 +190,7 @@ services:
     healthcheck:
       test:
       - CMD-SHELL
-      - /app/.venv/bin/celery -A src.shared.tasks inspect ping -d celery@$$(hostname)
+      - /app/.venv/bin/celery -A layer1_ingestion.shared.tasks inspect ping -d celery@$$(hostname)
         --timeout=5
       interval: 15s
       timeout: 10s

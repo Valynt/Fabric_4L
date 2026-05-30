@@ -69,6 +69,7 @@ class Layer2ExtractionClient:
             base_url=self.base_url,
             headers=headers,
             timeout=timeout,
+            limits=httpx.Limits(max_connections=100, max_keepalive_connections=20),
         )
 
     def _get_headers(self, tenant_id: str | None = None) -> dict[str, str]:

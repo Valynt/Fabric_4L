@@ -9,7 +9,7 @@ import pytest
 import jwt
 from unittest.mock import MagicMock, AsyncMock
 
-# Layer 3 source root is needed by tests that import layer3_knowledge.*
+# Layer 3 source root is needed by tests that import src.*
 # (e.g. test_neo4j_cross_tenant_write_isolation.py).  The value_fabric.layer3
 # shim appends services/layer3-knowledge/src to its __path__, but bare
 # intra-package imports inside that tree (e.g. ``from api.dependencies import

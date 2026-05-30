@@ -2,8 +2,8 @@ import pytest
 
 try:
     from fastapi.testclient import TestClient
-    from layer3_knowledge.api.app_monolith import app
-    from layer3_knowledge.api.dependencies import get_graph_rag, get_hybrid_search
+    from src.api.app_monolith import app
+    from src.api.dependencies import get_graph_rag, get_hybrid_search
 except (ImportError, Exception):
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",

@@ -12,7 +12,7 @@ from httpx import AsyncClient, ASGITransport
 from unittest.mock import AsyncMock, patch
 
 from layer7_billing.api.main import app
-from conftest import auth_headers
+from .conftest import auth_headers
 
 
 @pytest.mark.asyncio

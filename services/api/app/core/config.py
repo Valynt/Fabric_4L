@@ -155,6 +155,8 @@ class Settings(BaseSettings):
                 errors.append("JWT_ISSUER must be configured in production-like environments")
             if not self.jwt_audience.strip():
                 errors.append("JWT_AUDIENCE must be configured in production-like environments")
+            if self.algorithm.upper() == "HS256":
+                errors.append("algorithm must not be HS256 in production-like environments; use RS256 or stronger")
 
         try:
             _validate_exact_cors_origins(self.cors_origins, production_like=self.is_production_like)

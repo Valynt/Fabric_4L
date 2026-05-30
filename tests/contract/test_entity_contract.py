@@ -9,7 +9,7 @@ from datetime import UTC, datetime
 
 try:
     from pydantic import ValidationError
-    from layer3_knowledge.api.models import (
+    from src.api.models import (
         EntitySummary,
         EntityDetail,
         EntityFilterRequest,
@@ -20,7 +20,7 @@ try:
     )
 except (ImportError, Exception):
     pytest.skip(
-        "layer3_knowledge service stack not available (check PYTHONPATH / installed packages)",
+        "src service stack not available (check PYTHONPATH / installed packages)",
         allow_module_level=True,
     )
 
@@ -381,7 +381,7 @@ class TestFieldConsistency:
 
     def test_status_values_consistent(self):
         """Test that status enum is consistent everywhere."""
-        from layer3_knowledge.api.models import EntityStatus
+        from src.api.models import EntityStatus
         
         expected_values = {"validated", "pending", "draft", "deprecated"}
         actual_values = set(EntityStatus.__args__)
@@ -391,7 +391,7 @@ class TestFieldConsistency:
 
     def test_confidence_label_values_consistent(self):
         """Test confidence_label enum consistency."""
-        from layer3_knowledge.api.models import ConfidenceLabel
+        from src.api.models import ConfidenceLabel
         
         expected_values = {"high", "medium", "low"}
         actual_values = set(ConfidenceLabel.__args__)

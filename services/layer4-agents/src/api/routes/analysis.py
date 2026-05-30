@@ -32,7 +32,7 @@ from value_fabric.shared.identity.jwt import encode_jwt
 from value_fabric.shared.identity.policy_registry import authorize_action
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ...config.settings import settings
+from ...config.settings import get_settings
 from ...engine.executor import WorkflowExecutor
 from ...models.agent_state import (
     BusinessCaseAgentState,
@@ -435,7 +435,7 @@ async def _require_tenant_account(db: AsyncSession, account_id: UUID, context: R
 
 def _require_validation_seed_allowed(http_request: Request, context: RequestContext) -> None:
     """Fail closed unless this is an authenticated, non-production seed request."""
-    if settings.environment == "production":
+    if get_settings().environment == "production":
         raise AuthorizationError(message = "Validation seeding is disabled in production")
     if not context.tenant_id:
         raise AuthorizationError(message = "Validation seeding requires tenant context")
@@ -1329,7 +1329,7 @@ async def export_business_case(
     if not isinstance(document_bytes, bytes):
         document_bytes = bytes(document_bytes)
 
-    if not settings.export_storage_endpoint:
+    if not get_settings().export_storage_endpoint:
         raise ServiceUnavailableError(message = "Export storage endpoint is not configured")
 
     workflow_id = (
@@ -1380,7 +1380,7 @@ async def export_business_case(
     document_url = await generate_download_url(object_key=object_key)
     manifest_url = await generate_download_url(object_key=manifest_key)
     expires_at = datetime.fromtimestamp(
-        datetime.now(UTC).timestamp() + settings.export_signed_url_ttl_seconds,
+        datetime.now(UTC).timestamp() + get_settings().export_signed_url_ttl_seconds,
         tz=UTC,
     ).isoformat()
 

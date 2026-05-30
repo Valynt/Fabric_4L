@@ -21,6 +21,9 @@ async def db_session():
 
     factory = async_sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
     async with factory() as session:
+        # Mark session with tenant context to satisfy layer4-agents global event listener
+        session.info["tenant_context_state"] = "set"
+        session.info["tenant_context_value"] = "test-tenant"
         yield session
 
     await engine.dispose()

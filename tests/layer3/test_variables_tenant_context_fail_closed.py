@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock
 import pytest
 from fastapi import HTTPException
 
-from layer3_knowledge.api.routes import variables
+from src.api.routes import variables
 
 pytestmark = pytest.mark.skip(
     reason="[LAYER3_CODE_DRIFT] Tests reference stale function signatures "

@@ -266,7 +266,7 @@ class TestLayer3Neo4jSpecifics:
     def test_neo4j_tenant_session_wrapper(self):
         """Layer 3 provides Neo4jTenantSession for graph-aware scoping."""
         try:
-            from layer3_knowledge.api.dependencies_tenant import (
+            from src.api.dependencies_tenant import (
                 Neo4jTenantSession,
                 get_neo4j_with_tenant,
             )

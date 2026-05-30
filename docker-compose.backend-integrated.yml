@@ -176,7 +176,7 @@ services:
         INSTALL_PLAYWRIGHT_BROWSERS: "false"
         BASE_IMAGE: ${BASE_IMAGE:-}
     container_name: vf-bi-layer1-worker
-    command: celery -A src.shared.tasks worker --loglevel=info --concurrency=2
+    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=2
     environment:
       LAYER1_ENVIRONMENT: development
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5432/ingestion

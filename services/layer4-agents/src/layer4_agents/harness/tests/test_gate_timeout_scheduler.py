@@ -58,8 +58,9 @@ class _FakeSessionFactory:
 def test_create_gate_timeout_scheduler_uses_default_when_env_absent(monkeypatch):
     monkeypatch.delenv("LAYER4_AGENT_GATE_TIMEOUT_SECONDS", raising=False)
 
-    from config.settings import settings as layer4_settings
+    from config.settings import get_settings as get_layer4_settings
 
+    layer4_settings = get_layer4_settings()
     monkeypatch.setattr(layer4_settings, "agent_gate_timeout_seconds", DEFAULT_GATE_TIMEOUT_SECONDS)
     scheduler = create_gate_timeout_scheduler(_FakeSessionFactory(_FakeSession([])))
 
@@ -67,8 +68,9 @@ def test_create_gate_timeout_scheduler_uses_default_when_env_absent(monkeypatch)
 
 
 def test_create_gate_timeout_scheduler_uses_env_override(monkeypatch):
-    from config.settings import settings as layer4_settings
+    from config.settings import get_settings as get_layer4_settings
 
+    layer4_settings = get_layer4_settings()
     monkeypatch.setattr(layer4_settings, "agent_gate_timeout_seconds", 900)
     scheduler = create_gate_timeout_scheduler(_FakeSessionFactory(_FakeSession([])))
 

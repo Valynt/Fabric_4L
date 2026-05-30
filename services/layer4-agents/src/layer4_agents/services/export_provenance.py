@@ -11,7 +11,7 @@ from value_fabric.shared.crypto.canonical import canonical_hash
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ..config.settings import settings
+from ..config.settings import get_settings
 
 
 class _normalize_source_pointerResult(TypedDictModel):
@@ -295,9 +295,9 @@ def build_export_provenance_manifest(
             "stakeholders": [item.get("id") for item in sdes_bundle.get("stakeholders", [])],
         },
         "model_versions": {
-            "openai_model": settings.openai_model,
-            "anthropic_model": settings.anthropic_model,
-            "layer4_app_version": settings.app_version,
+            "openai_model": get_settings().openai_model,
+            "anthropic_model": get_settings().anthropic_model,
+            "layer4_app_version": get_settings().app_version,
         },
         "tool_versions": {
             "export_document": "1.1.0",

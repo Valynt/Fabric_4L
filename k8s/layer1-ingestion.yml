@@ -139,7 +139,7 @@ spec:
             readOnlyRootFilesystem: true
             capabilities:
               drop: ["ALL"]
-          command: ["celery", "-A", "layer1_ingestion.src.shared.tasks", "worker", "-l", "info"]
+          command: ["celery", "-A", "layer1_ingestion.shared.tasks", "worker", "-l", "info"]
           envFrom:
             - configMapRef:
                 name: value-fabric-config
@@ -176,7 +176,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"
@@ -189,7 +189,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"
@@ -202,7 +202,7 @@ spec:
               command:
                 - celery
                 - -A
-                - layer1_ingestion.src.shared.tasks
+                - layer1_ingestion.shared.tasks
                 - inspect
                 - --timeout
                 - "5"

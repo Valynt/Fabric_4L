@@ -34,7 +34,7 @@ class TestImportTopology:
     @pytest.mark.parametrize("layer", [
         "layer1_ingestion",
         "layer2_extraction",
-        "layer3_knowledge",
+        "src",
         "layer4_agents",
         "layer5_ground_truth",
         "layer6_benchmarks",

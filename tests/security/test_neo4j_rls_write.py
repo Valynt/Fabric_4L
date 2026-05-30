@@ -225,7 +225,7 @@ class TestNeo4jWriteTenantEnforcement:
     async def test_entity_create_uses_jwt_tenant_not_body(self):
         """P0: Entity creation must use JWT tenant_id, not a body-supplied value."""
         try:
-            from layer3_knowledge.api.main import (
+            from src.api.main import (
                 create_entity,
                 NEO4J_TENANT_AVAILABLE,
             )
@@ -255,7 +255,7 @@ class TestNeo4jWriteTenantEnforcement:
 
         # Build a minimal entity payload that includes a body-level tenant_id
         try:
-            from layer3_knowledge.api.main import EntityCreateRequest
+            from src.api.main import EntityCreateRequest
             payload = EntityCreateRequest(
                 entity_type="Company",
                 properties={"name": "Acme", "tenant_id": body_tenant},
@@ -288,7 +288,7 @@ class TestNeo4jWriteTenantEnforcement:
     async def test_entity_update_scoped_to_jwt_tenant(self):
         """P0: Entity update must only affect nodes owned by the JWT tenant."""
         try:
-            from layer3_knowledge.api.main import (
+            from src.api.main import (
                 update_entity,
                 NEO4J_TENANT_AVAILABLE,
             )
@@ -339,7 +339,7 @@ class TestNeo4jWriteTenantEnforcement:
     async def test_entity_delete_scoped_to_jwt_tenant(self):
         """P0: Entity deletion must only affect nodes owned by the JWT tenant."""
         try:
-            from layer3_knowledge.api.main import (
+            from src.api.main import (
                 delete_entity,
                 NEO4J_TENANT_AVAILABLE,
             )
@@ -389,7 +389,7 @@ class TestNeo4jWriteTenantEnforcement:
     async def test_batch_write_all_operations_scoped_to_jwt_tenant(self):
         """P0: Batch write operations must all use JWT tenant_id."""
         try:
-            from layer3_knowledge.api.main import (
+            from src.api.main import (
                 batch_entity_operations,
                 NEO4J_TENANT_AVAILABLE,
                 BatchEntityRequest,

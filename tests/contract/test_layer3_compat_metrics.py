@@ -1,14 +1,14 @@
 import pytest
 
 try:
-    from layer3_knowledge.services.compat_metrics import (
+    from src.services.compat_metrics import (
         get_compat_metrics_snapshot,
         record_deprecated_legacy_field_usage,
         record_deprecated_route_hit,
     )
 except (ImportError, Exception):
     pytest.skip(
-        "layer3_knowledge service stack not available (pre-existing blocker #1/#9)",
+        "src service stack not available (pre-existing blocker #1/#9)",
         allow_module_level=True,
     )
 

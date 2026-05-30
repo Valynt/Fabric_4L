@@ -78,7 +78,7 @@ async def lifespan(app: FastAPI):
         yield
     finally:
         from app.core.database import close_engine
-        close_engine()
+        await close_engine()
 
 
 async def _api_db_probe() -> ProbeResult:
@@ -125,6 +125,7 @@ app = create_fabric_app(
         idempotency=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
     ),
     enforce_tenant_context=True,
+    instrument_telemetry=True,
     rate_limit=FrameworkRateLimitConfig(
         mode=EnforcementMode.ENFORCE,
         rate_limiter_factory=lambda: __import__("value_fabric.shared.rate_limiting.tenant_rate_limiter", fromlist=["TenantRateLimiter"]).TenantRateLimiter.create_from_env(),

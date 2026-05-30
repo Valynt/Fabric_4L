@@ -83,7 +83,7 @@ def _install_legacy_src_namespace() -> None:
     namespace("src", [layer4, layer3])
     namespace("src.api", [layer4 / "api", layer3 / "api"])
     namespace("src.api.routes", [layer4 / "api" / "routes", layer3 / "api" / "routes"])
-    namespace("src.services", [layer4 / "services"])
+    namespace("src.services", [layer4 / "services", layer3 / "services"])
     namespace("src.engine", [layer4 / "engine"])
     namespace("src.tools", [layer4 / "tools"])
     namespace("src.workflows", [layer4 / "workflows"])

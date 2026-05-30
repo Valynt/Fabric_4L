@@ -18,7 +18,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from layer3_knowledge.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
+from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
 from starlette.requests import Request as StarletteRequest
 
 pytestmark = pytest.mark.tenant_boundary
