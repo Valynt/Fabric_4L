@@ -430,7 +430,7 @@ components:
             deploy:
                 resources:
                     limits:
-                        cpus: '0.5'
+                        cpus: '0.125'
                         memory: '256MiB'
     -
         kind: Service
@@ -516,7 +516,7 @@ components:
             deploy:
                 resources:
                     limits:
-                        cpus: '2'
+                        cpus: '1'
                         memory: '2GiB'
         volumes:
             -
