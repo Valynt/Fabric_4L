@@ -20,6 +20,7 @@ profiles:
       - security
       - security-broad
       - state
+      - db-consistency
       - summary
 
   mainline-full:
@@ -33,6 +34,7 @@ profiles:
       - chaos
       - smoke
       - state
+      - db-consistency
       - agent
       - obs
       - db-readiness
@@ -50,6 +52,7 @@ profiles:
       - chaos
       - smoke
       - state
+      - db-consistency
       - agent
       - obs
       - db-readiness
@@ -113,6 +116,13 @@ gate-definitions:
     description: "Frontend/backend state alignment, workflow type consistency"
     class: blocking
     artifact-dir: artifacts/state
+    required: true
+
+  db-consistency:
+    target: db-production-readiness-gate
+    description: "Canonical PostgreSQL event replay into derived graph, vector, embedding, and object-store projections"
+    class: blocking
+    artifact-dir: artifacts/release/junit
     required: true
 
   agent:
