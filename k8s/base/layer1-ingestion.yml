@@ -67,7 +67,10 @@ spec:
                 name: value-fabric-config
           env:
             - name: DATABASE_URL
-              value: "postgresql://postgres:postgres@postgres:5432/ingestion"
+              valueFrom:
+                secretKeyRef:
+                  name: layer1-db-credentials
+                  key: DATABASE_URL
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:
@@ -138,7 +141,10 @@ spec:
                 name: value-fabric-config
           env:
             - name: DATABASE_URL
-              value: "postgresql://postgres:postgres@postgres:5432/ingestion"
+              valueFrom:
+                secretKeyRef:
+                  name: layer1-db-credentials
+                  key: DATABASE_URL
             - name: REDIS_URL
               valueFrom:
                 secretKeyRef:

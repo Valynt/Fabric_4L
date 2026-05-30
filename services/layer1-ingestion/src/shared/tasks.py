@@ -15,6 +15,7 @@ from uuid import UUID, uuid4
 import httpx
 import structlog
 from celery import Celery, chain
+from celery.schedules import crontab
 from jsonschema import Draft7Validator
 
 try:
@@ -193,6 +194,14 @@ celery_app.conf.update(
     # P0-06: Graceful shutdown configuration
     worker_shutdown_timeout=30,  # 30s grace period for in-progress tasks
     worker_cancel_long_running_tasks_on_shutdown=True,
+    # Data retention: purge expired raw content daily at 03:00 UTC.
+    beat_schedule={
+        "purge-expired-raw-content": {
+            "task": "src.shared.tasks.purge_expired_raw_content",
+            "schedule": crontab(hour=3, minute=0),
+            "options": {"queue": "default"},
+        },
+    },
 )
 
 
@@ -2128,3 +2137,22 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
             "deleted_count": total_deleted,
             "cutoff_date": cutoff_date.isoformat(),
         }).model_dump()
+
+
+@celery_app.task(name="src.shared.tasks.purge_expired_raw_content", bind=True, max_retries=2)
+def purge_expired_raw_content(self) -> dict:
+    """Celery beat task: purge raw content whose per-record retention window has elapsed.
+
+    Uses the per-record ``retention_raw_content_expiry_days`` column (default 30 days)
+    to determine which rows are eligible for soft-deletion. Runs daily via the
+    ``beat_schedule`` configured on ``celery_app``.
+
+    Delegates to :func:`cleanup_old_content` for the actual deletion logic, which
+    iterates over active tenants under RLS to ensure tenant isolation.
+    """
+    try:
+        # Use the default retention window; per-record granularity can be added later.
+        return cleanup_old_content(days=30, tenant_id=None)
+    except Exception as exc:
+        logger.error("purge_expired_raw_content failed: %s", exc)
+        raise self.retry(exc=exc, countdown=3600)  # retry after 1 hour

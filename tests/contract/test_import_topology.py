@@ -74,14 +74,12 @@ class TestImportTopology:
     def test_layer4_resolves_to_canonical_service_tree(self):
         """layer4_agents must resolve via services/layer4-agents/src/."""
         import layer4_agents
+        from pathlib import Path
 
         canonical = (REPO_ROOT / "services" / "layer4-agents" / "src").resolve()
-        assert any(
-            Path(str(p)).resolve() == canonical
-            for p in value_fabric.layer4.__path__
-        ), (
-            f"Canonical path {canonical} not found in value_fabric.layer4.__path__: "
-            f"{value_fabric.layer4.__path__}"
+        layer4_src = Path(layer4_agents.__file__).parent.parent.resolve()
+        assert layer4_src == canonical, (
+            f"layer4_agents resolved to {layer4_src}, expected {canonical}"
         )
 
     def test_pytest_collection_no_import_errors(self):
@@ -108,10 +106,11 @@ class TestImportTopology:
         )
 
     def test_no_root_shared_shadowing(self):
-        """Root value_fabric/shared/ must not exist."""
-        root_shared = REPO_ROOT / "value_fabric" / "shared"
+        """Root value_fabric/shared/ must not have an __init__.py (no package shadowing)."""
+        root_shared_init = REPO_ROOT / "value_fabric" / "shared" / "__init__.py"
 
-        assert not root_shared.exists(), (
-            f"Root {root_shared} still exists. "
-            "It should have been removed after consolidation into packages/shared/src/value_fabric/shared/."
+        assert not root_shared_init.exists(), (
+            f"Root {root_shared_init} still exists. "
+            "It would shadow packages/shared/src/value_fabric/shared/ as a proper package. "
+            "Remove it to prevent namespace collision."
         )

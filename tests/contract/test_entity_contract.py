@@ -5,21 +5,25 @@ These tests do not require Neo4j and run quickly.
 """
 
 import pytest
-from datetime import datetime, UTC
-from pydantic import ValidationError
+from datetime import UTC, datetime
 
-from layer3_knowledge.api.models import (
-    EntitySummary,
-    EntityDetail,
-    EntityFilterRequest,
-    EntityListResponse,
-    EntityRelationships,
-    RelationshipPreview,
-    ProvenanceEvent,
-)
+try:
+    from pydantic import ValidationError
+    from layer3_knowledge.api.models import (
+        EntitySummary,
+        EntityDetail,
+        EntityFilterRequest,
+        EntityListResponse,
+        EntityRelationships,
+        RelationshipPreview,
+        ProvenanceEvent,
+    )
+except (ImportError, Exception):
+    pytest.skip(
+        "layer3_knowledge service stack not available (check PYTHONPATH / installed packages)",
+        allow_module_level=True,
+    )
 
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
 
 class TestEntitySummaryContract:
     """Validate EntitySummary canonical contract."""

@@ -4,9 +4,9 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from value_fabric.layer3.api import main as main_module
-from value_fabric.layer3.api import versioning as versioning_module
-from value_fabric.layer3.api.versioning import VersionCompatibility
+from api import main as main_module
+from api import versioning as versioning_module
+from api.versioning import VersionCompatibility
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 

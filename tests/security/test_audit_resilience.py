@@ -48,14 +48,6 @@ class TestAuditEmitterResilience:
         assert event is not None, "emit_audit_event must return an AuditEvent."
         assert event.action == AuditAction.TENANT_CREATED
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "P1 gap 8: emit_audit_event propagates logger failures. "
-            "Fix: wrap logger.info in try/except in emitter.py. "
-            "Remove this marker once the fix is applied."
-        ),
-    )
     def test_emit_audit_event_does_not_raise_when_logger_fails(self):
         """NEGATIVE: If the audit logger raises, emit_audit_event must not propagate it."""
         with patch("value_fabric.shared.audit.emitter.logger") as mock_logger:
@@ -68,14 +60,6 @@ class TestAuditEmitterResilience:
             # Reaching here means the emitter caught the exception — test passes.
             # While the gap exists, logger.info raises and the test xfails (expected).
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "P1 gap 8: emit_audit_event does not guard against unserializable details. "
-            "Fix: scrub details dict before logging. "
-            "Remove this marker once the fix is applied."
-        ),
-    )
     def test_emit_audit_event_does_not_raise_on_serialisation_error(self):
         """ADVERSARIAL: Unserializable details must not crash the emitter."""
         class _Unserializable:
@@ -89,14 +73,6 @@ class TestAuditEmitterResilience:
         )
         # Reaching here means the emitter handled the unserializable value gracefully.
 
-    @pytest.mark.xfail(
-        strict=True,
-        reason=(
-            "P1 gap 8: emit_audit_event propagates OSError from logger. "
-            "Fix: wrap logger.info in try/except. "
-            "Remove this marker once the fix is applied."
-        ),
-    )
     def test_emit_audit_event_logs_failure_without_raising(self, caplog):
         """NEGATIVE: When the logger raises, the failure is swallowed (not re-raised)."""
         with patch("value_fabric.shared.audit.emitter.logger") as mock_logger:

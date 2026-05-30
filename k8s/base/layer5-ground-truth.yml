@@ -74,9 +74,15 @@ spec:
                 name: value-fabric-config
           env:
             - name: DATABASE_URL
-              value: "postgresql+asyncpg://postgres:postgres@postgres:5432/ground_truth"
+              valueFrom:
+                secretKeyRef:
+                  name: layer5-database-secret
+                  key: database-url
             - name: DATABASE_URL_SYNC
-              value: "postgresql+psycopg2://postgres:postgres@postgres:5432/ground_truth"
+              valueFrom:
+                secretKeyRef:
+                  name: layer5-database-secret
+                  key: database-url-sync
             - name: LAYER3_BASE_URL
               valueFrom:
                 configMapKeyRef:

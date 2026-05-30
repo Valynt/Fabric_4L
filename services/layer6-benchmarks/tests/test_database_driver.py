@@ -5,8 +5,13 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import pytest
 from neo4j.exceptions import AuthError, ServiceUnavailable, TransientError
 
+<<<<<<< HEAD
 import layer6_benchmarks.database as db_module
 from layer6_benchmarks.database import close_driver, create_driver, get_driver, health_check
+=======
+import value_fabric.layer6.database as db_module
+from value_fabric.layer6.database import close_driver, create_driver, get_driver, health_check
+>>>>>>> ab2ac2c2 (```)
 
 # Capture the real health_check before conftest's autouse mock_neo4j_health fixture patches it.
 _real_health_check = health_check
@@ -24,10 +29,17 @@ class TestCreateDriver:
         settings.neo4j_max_pool_size = 10
 
         with patch(
+<<<<<<< HEAD
             "layer6_benchmarks.database.AsyncGraphDatabase.driver",
             side_effect=[TransientError("conn lost"), mock_driver],
         ) as mock_db_driver:
             with patch("layer6_benchmarks.database.asyncio.sleep", new_callable=AsyncMock):
+=======
+            "value_fabric.layer6.database.AsyncGraphDatabase.driver",
+            side_effect=[TransientError("conn lost"), mock_driver],
+        ) as mock_db_driver:
+            with patch("value_fabric.layer6.database.asyncio.sleep", new_callable=AsyncMock):
+>>>>>>> ab2ac2c2 (```)
                 driver = await create_driver(settings)
 
         assert driver is mock_driver
@@ -41,7 +53,11 @@ class TestCreateDriver:
         settings.neo4j_max_pool_size = 10
 
         with patch(
+<<<<<<< HEAD
             "layer6_benchmarks.database.AsyncGraphDatabase.driver",
+=======
+            "value_fabric.layer6.database.AsyncGraphDatabase.driver",
+>>>>>>> ab2ac2c2 (```)
             return_value=AsyncMock(
                 verify_connectivity=AsyncMock(side_effect=AuthError("bad auth"))
             ),
@@ -60,10 +76,17 @@ class TestCreateDriver:
         settings.neo4j_max_pool_size = 10
 
         with patch(
+<<<<<<< HEAD
             "layer6_benchmarks.database.AsyncGraphDatabase.driver",
             side_effect=ServiceUnavailable("down"),
         ) as mock_db_driver:
             with patch("layer6_benchmarks.database.asyncio.sleep", new_callable=AsyncMock):
+=======
+            "value_fabric.layer6.database.AsyncGraphDatabase.driver",
+            side_effect=ServiceUnavailable("down"),
+        ) as mock_db_driver:
+            with patch("value_fabric.layer6.database.asyncio.sleep", new_callable=AsyncMock):
+>>>>>>> ab2ac2c2 (```)
                 with pytest.raises(ServiceUnavailable) as exc_info:
                     await create_driver(settings)
 
@@ -86,7 +109,11 @@ class TestHealthCheck:
         settings = MagicMock()
         settings.neo4j_database = "neo4j"
 
+<<<<<<< HEAD
         with patch("layer6_benchmarks.database.get_driver", return_value=mock_driver):
+=======
+        with patch("value_fabric.layer6.database.get_driver", return_value=mock_driver):
+>>>>>>> ab2ac2c2 (```)
             result = await _real_health_check(settings)
 
         assert result == {"status": "healthy"}
@@ -94,7 +121,11 @@ class TestHealthCheck:
     @pytest.mark.asyncio
     async def test_returns_unhealthy_on_exception(self) -> None:
         with patch(
+<<<<<<< HEAD
             "layer6_benchmarks.database.get_driver",
+=======
+            "value_fabric.layer6.database.get_driver",
+>>>>>>> ab2ac2c2 (```)
             side_effect=ServiceUnavailable("down"),
         ):
             result = await _real_health_check()

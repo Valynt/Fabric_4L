@@ -1,5 +1,9 @@
-"""Redirect shim: value_fabric.layer6.* -> services/layer6-benchmarks/src/layer6_benchmarks/*.
+# Shim neutralized — canonical source lives in services/layer6-benchmarks/src/
+# Use canonical imports: layer6_benchmarks.*
+# This file is retained as an empty namespace placeholder.
 
+<<<<<<< HEAD
+=======
 Canonical Layer 6 code lives in ``services/layer6-benchmarks/src/layer6_benchmarks/``.
 This shim appends the canonical package path to ``__path__`` so that
 ``import value_fabric.layer6.api.main`` resolves to the canonical tree.
@@ -53,3 +57,4 @@ def configure_structured_logging() -> None:
         cache_logger_on_first_use=True,
     )
     logging.basicConfig(level=logging.INFO, format="%(message)s", stream=sys.stdout)
+>>>>>>> f43ab27b (```)

@@ -25,13 +25,13 @@ import pytest
 # Import services directly (no conftest dependency)
 # ---------------------------------------------------------------------------
 
-from value_fabric.layer3.services.competitive_intel_service import (
+from services.competitive_intel_service import (
     BattlecardCreate,
     CompetitorCreate,
     CompetitiveIntelService,
     WinLossRecord,
 )
-from value_fabric.layer3.services.roi_calculator_service import (
+from services.roi_calculator_service import (
     ROICalculatorService,
     ROIInputs,
     ROIOutputs,

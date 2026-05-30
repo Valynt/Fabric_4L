@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, TypedDict
 
-from value_fabric.layer3.utils.cypher_security import (
+from utils.cypher_security import (
     TENANT_OWNED_LABELS,
     validate_tenant_scoped_cypher,
 )
@@ -407,7 +407,7 @@ class ValidatedNeo4jSession:
         Raises:
             UnscopedQueryError: If query fails tenant isolation validation
         """
-        from value_fabric.layer3.db.query_execution import (
+        from db.query_execution import (
             TenantExecutionContext,
             TenantQueryExecutor,
             TenantQueryValidationError,

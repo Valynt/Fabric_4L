@@ -108,7 +108,7 @@ class CRMSyncService:
     async def sync_provider(
         self,
         provider: CRMProvider,
-        tenant_id: str = "default",
+        tenant_id: str,
         incremental: bool = True,
         account_ids: list[str] | None = None,
     ) -> dict[str, Any]:
@@ -116,6 +116,7 @@ class CRMSyncService:
 
         Args:
             provider: CRM provider (salesforce or hubspot)
+            tenant_id: Authenticated tenant — required, never falls back to "default"
             incremental: If True, only sync recently modified accounts
             account_ids: Optional list of specific account IDs to sync
 
@@ -562,7 +563,7 @@ class CRMSyncService:
         })
 
     async def get_sync_status(
-        self, provider: CRMProvider, tenant_id: str = "default"
+        self, provider: CRMProvider, tenant_id: str
     ) -> AccountSyncStatus | None:
         """Get current sync status for a provider."""
         result = await self.db.execute(

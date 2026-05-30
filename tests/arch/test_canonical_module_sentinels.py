@@ -222,15 +222,15 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
 # ---------------------------------------------------------------------------
 
 
-def test_layer6_resolves_to_canonical_service_tree() -> None:
-    """value_fabric.layer6 must resolve via services/layer6-benchmarks/src/."""
-    import value_fabric.layer6
-
-    canonical = (REPO_ROOT / "services" / "layer6-benchmarks" / "src").resolve()
-    # value_fabric.layer6.__path__ should contain the canonical service src
-    assert any(
-        Path(p).resolve() == canonical for p in value_fabric.layer6.__path__
-    ), f"value_fabric.layer6 path {value_fabric.layer6.__path__} does not include {canonical}"
+def test_layer6_canonical_service_files_exist() -> None:
+    """value_fabric.layer6 shim is neutralized; canonical L6 files must still exist."""
+    canonical = REPO_ROOT / "services" / "layer6-benchmarks" / "src"
+    assert (canonical / "api" / "main.py").exists(), (
+        f"Layer 6 canonical api/main.py not found at {canonical}"
+    )
+    assert (canonical / "settings.py").exists(), (
+        f"Layer 6 canonical settings.py not found at {canonical}"
+    )
 
 
 def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:

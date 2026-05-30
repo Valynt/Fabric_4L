@@ -25,7 +25,7 @@ class BusinessCaseService:
         opportunity_id: str | None,
         status: str,
         document_url: str | None,
-        tenant_id: str | None = None,
+        tenant_id: str,
     ) -> BusinessCaseRecord:
         """Create or update a case record keyed by case_id."""
         existing = await self.db.get(BusinessCaseRecord, case_id)
@@ -35,8 +35,7 @@ class BusinessCaseService:
             existing.opportunity_id = opportunity_id
             existing.status = status
             existing.document_url = document_url
-            if tenant_id is not None:
-                existing.tenant_id = tenant_id
+            existing.tenant_id = tenant_id
             record = existing
         else:
             record = BusinessCaseRecord(
@@ -46,7 +45,7 @@ class BusinessCaseService:
                 opportunity_id=opportunity_id,
                 status=status,
                 document_url=document_url,
-                tenant_id=tenant_id or "default",
+                tenant_id=tenant_id,
             )
             self.db.add(record)
 

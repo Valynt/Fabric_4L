@@ -132,16 +132,40 @@ jobs:
           fi
 
   # ============================================
+  # Production Approval Gate
+  # ============================================
+  # This job requires a GitHub Environment protection rule with
+  # required reviewers for the 'production' environment.
+  # Configure in: Settings > Environments > production > Protection rules
+  approval-gate:
+    name: Production Approval Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: preflight
+    environment:
+      name: ${{ inputs.environment == 'production' && 'production' || inputs.environment }}
+    steps:
+      - name: Confirm deployment approval
+        run: |
+          echo "Environment '${{ inputs.environment }}' has been approved for deployment."
+          echo "Deploying image: ${{ env.IMAGE_REF }}"
+          echo "Approver: ${{ github.actor }}"
+          echo "Run ID: ${{ github.run_id }}"
+
+  # ============================================
   # Deploy to Environment
   # ============================================
   deploy:
     name: Deploy to ${{ inputs.environment }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    needs: preflight
+    needs: [preflight, approval-gate]
     environment:
       name: ${{ inputs.environment }}
       url: ${{ steps.deploy-info.outputs.url }}
+    permissions:
+      id-token: write      # Required for AWS OIDC / IRSA
+      contents: read
 
     steps:
       - uses: actions/checkout@v4
@@ -156,36 +180,24 @@ jobs:
         with:
           version: 'v3.16.2'
 
-      - name: Configure kubeconfig
-        run: |
-          # =========================================================================
-          # PRODUCTION DEPLOYMENT SAFETY
-          #
-          # This workflow REQUIRES a real cloud-provider kubeconfig. The placeholder
-          # below must be replaced with the actual provider action before any
-          # production deploy can succeed.
-          #
-          # Supported options (uncomment ONE based on your cloud provider):
-          # -------------------------------------------------------------------------
-          # AWS EKS:
-          #   aws eks update-kubeconfig \
-          #     --region us-east-1 \
-          #     --name value-fabric-${{ env.ENVIRONMENT }}
-          #
-          # GKE:
-          #   gcloud container clusters get-credentials value-fabric \
-          #     --zone us-central1
-          #
-          # AKS:
-          #   az aks get-credentials \
-          #     --resource-group value-fabric \
-          #     --name value-fabric-${{ env.ENVIRONMENT }}
-          # =========================================================================
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
-          echo "::error::Kubeconfig is not configured. Replace the placeholder in"
-          echo "::error::.github/workflows/deploy.yml with your cloud-provider action."
-          echo "Environment: ${{ env.ENVIRONMENT }}"
-          exit 1
+      - name: Configure kubeconfig (EKS)
+        run: |
+          CLUSTER_NAME="${{ vars.EKS_CLUSTER_NAME || 'value-fabric' }}"
+          AWS_REGION="${{ vars.AWS_REGION || 'us-east-1' }}"
+
+          echo "Configuring kubeconfig for EKS cluster: ${CLUSTER_NAME} in ${AWS_REGION}"
+          aws eks update-kubeconfig \
+            --region "${AWS_REGION}" \
+            --name "${CLUSTER_NAME}"
+
+          CURRENT_CONTEXT=$(kubectl config current-context)
+          echo "Kubeconfig configured. Current context: ${CURRENT_CONTEXT}"
 
       - name: Confirm cluster context and namespace
         run: |

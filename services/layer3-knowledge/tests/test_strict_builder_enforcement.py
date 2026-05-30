@@ -15,12 +15,12 @@ from collections.abc import AsyncIterator
 
 import pytest
 
-from value_fabric.layer3.analytics.centrality import CentralityAnalyzer
-from value_fabric.layer3.analytics.communities import CommunityDetector
-from value_fabric.layer3.analytics.similarity import SimilarityAnalyzer
-from value_fabric.layer3.retrieval.graph_rag import GraphRAGEngine
-from value_fabric.layer3.retrieval.hybrid_search import HybridSearch
-from value_fabric.layer3.retrieval.vector_store import Neo4jVectorStore
+from analytics.centrality import CentralityAnalyzer
+from analytics.communities import CommunityDetector
+from analytics.similarity import SimilarityAnalyzer
+from retrieval.graph_rag import GraphRAGEngine
+from retrieval.hybrid_search import HybridSearch
+from retrieval.vector_store import Neo4jVectorStore
 from value_fabric.shared.identity.context import (
     RequestContext,
     RequestContextManager,
@@ -34,7 +34,7 @@ from value_fabric.shared.identity.isolation import (
     TenantLabelPolicy,
     TenantScopedCypher,
 )
-from value_fabric.layer3.api.dependencies_tenant import Neo4jTenantSession
+from api.dependencies_tenant import Neo4jTenantSession
 from unittest.mock import AsyncMock
 
 

@@ -1,10 +1,23 @@
 # L6 Package Restructuring Plan
 
+<<<<<<< HEAD
+**Status:** Done - complete
+**Created:** 2026-05-28
+**Priority:** HIGH
+**Blocks:** L6 canonical imports, facade removal, test migration
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+
+
+=======
 **Status:** Planning Phase  
 **Created:** 2026-05-28  
 **Priority:** HIGH  
 **Blocks:** L6 canonical imports, facade removal, test migration
 
+>>>>>>> 29cd3004 (```)
 ## Goal
 
 Make L6 importable through its canonical package name `layer6_benchmarks.*` without relying on `value_fabric.layer6.*`.
@@ -189,6 +202,16 @@ services/layer6-benchmarks/src/
 | `from value_fabric.layer6.api.startup_logging import` | `from layer6_benchmarks.api.startup_logging import` | test_startup_logging.py |
 
 ### Dockerfile Imports (Change Required)
+<<<<<<< HEAD
+**Old:** `COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/`
+**New:** `COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/` (no change - facade still needed temporarily)
+
+### pyproject.toml (Change Required)
+**Old:** `packages = ["src"]`
+**New:** `packages = ["src/layer6_benchmarks"]` or keep `["src"]` with proper nesting
+
+**Old pythonpath:** `pythonpath = [".", "src", "../..", "../../packages/shared/src"]`
+=======
 **Old:** `COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/`  
 **New:** `COPY services/layer6-benchmarks/src/ ./value_fabric/layer6/` (no change - facade still needed temporarily)
 
@@ -197,6 +220,7 @@ services/layer6-benchmarks/src/
 **New:** `packages = ["src/layer6_benchmarks"]` or keep `["src"]` with proper nesting
 
 **Old pythonpath:** `pythonpath = [".", "src", "../..", "../../packages/shared/src"]`  
+>>>>>>> 29cd3004 (```)
 **New pythonpath:** `pythonpath = [".", "src", "../..", "../../packages/shared/src"]` (no change - still needed for local development)
 
 ## 4. Compatibility Strategy

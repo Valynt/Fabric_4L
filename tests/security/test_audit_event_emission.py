@@ -9,7 +9,7 @@ from uuid import uuid4
 
 import pytest
 
-from value_fabric.layer4 import database_facade as database
+import database_facade as database
 
 
 def _canonical_db():

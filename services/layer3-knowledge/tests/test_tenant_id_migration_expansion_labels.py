@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from value_fabric.layer3.migrations.migrate_tenant_ids import TenantIdMigration
+from migrations.migrate_tenant_ids import TenantIdMigration
 
 
 class _FakeResult:

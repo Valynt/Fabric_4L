@@ -87,6 +87,7 @@ def _install_legacy_src_namespace() -> None:
     namespace("src.engine", [layer4 / "engine"])
     namespace("src.tools", [layer4 / "tools"])
     namespace("src.workflows", [layer4 / "workflows"])
+    namespace("src.api.websocket", [layer4 / "api" / "websocket"])
 
 
 _install_legacy_src_namespace()

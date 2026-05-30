@@ -8,8 +8,8 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from conftest import TestUtils
-from value_fabric.layer3.api.routes import system as system_routes
-from value_fabric.layer3.api.models import ServiceMetrics
+from api.routes import system as system_routes
+from api.models import ServiceMetrics
 
 
 class TestPackagedSystemRoutes:

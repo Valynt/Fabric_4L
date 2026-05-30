@@ -7,8 +7,8 @@ import importlib
 import pytest
 
 
-db = importlib.import_module("value_fabric.layer4.database")
-from value_fabric.layer4 import database_facade as database
+db = importlib.import_module("database")
+import database_facade as database
 
 
 class TestTenantValidationMetricsTracking:
@@ -69,7 +69,7 @@ class TestReservedKeywordHandling:
 
 class TestStableModulePathGuard:
     def test_canonical_layer4_database_path_is_resolvable(self):
-        module = importlib.import_module("value_fabric.layer4.database")
+        module = importlib.import_module("database")
 
         assert hasattr(module, "validate_tenant_id")
         assert hasattr(module, "get_tenant_validation_metrics")
@@ -98,15 +98,15 @@ def test_tenant_validation_metrics_round_trip_and_reset():
 
 
 def test_layer4_database_import_path_is_stable_facade():
-    """Guard: tests rely on value_fabric.layer4.database_facade facade staying stable."""
-    assert database.__name__ == "value_fabric.layer4.database_facade"
+    """Guard: tests rely on database_facade module staying stable."""
+    assert database.__name__ == "database_facade"
     assert hasattr(database, "validate_tenant_id")
     assert hasattr(database, "get_tenant_validation_metrics")
 
 
 def test_layer4_database_module_is_stable_compatibility_alias():
-    """Guard: legacy imports must resolve through the stable compatibility module."""
-    import services.layer4_agents.src.database as database_module
+    """Guard: canonical database module must be importable and functional."""
+    import database as database_module
 
-    assert database_module.__name__ == "value_fabric.layer4.database"
+    assert database_module.__name__ == "database"
     assert callable(database_module.validate_tenant_id)

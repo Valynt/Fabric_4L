@@ -30,7 +30,7 @@ import {
  *   8. Deliverables list + detail
  *   9. Governance routes (traces, formulas, benchmarks, value-packs)
  *   10. Context routes (sources, graph)
- *   11. Legacy routes still render
+ *   11. Account creation route (/accounts/new)
  *   12. 404 / unauthorized graceful states
  */
 
@@ -341,36 +341,14 @@ test.describe('Route Validation', () => {
   });
 
   // ═══════════════════════════════════════════════════════════════
-  // 11. Legacy Routes
+  // 11. Account Creation Route
   // ═══════════════════════════════════════════════════════════════
-  test.describe('Legacy Routes', () => {
-    test('workflow routes still render (not 404)', async ({ page }) => {
+  test.describe('Account Creation', () => {
+    test('/accounts/new route renders account creation form', async ({ page }) => {
       await setUserTier(page, 'standard');
-      const routes = ['/workflow', '/workflow/intelligence', '/workflow/ai-model', '/workflow/driver-tree', '/workflow/evidence', '/workflow/calculator', '/workflow/value-case'];
-      for (const route of routes) {
-        await page.goto(route);
-        await expect(page.locator('body')).not.toContainText('Page not found');
-        await expect(page.locator('body')).not.toContainText('404');
-      }
-    });
-
-    test('value-pilot routes still render (not 404)', async ({ page }) => {
-      await setUserTier(page, 'standard');
-      await page.goto('/value-pilot');
+      await page.goto('/accounts/new');
       await expect(page.locator('body')).not.toContainText('Page not found');
       await expect(page.locator('body')).not.toContainText('404');
-    });
-
-    test('workflow prospect redirect works', async ({ page }) => {
-      await setUserTier(page, 'standard');
-      await page.goto('/workflow/prospect');
-      await expect(page).toHaveURL(/\/workflow$/);
-    });
-
-    test('value-pilot prospect redirect works', async ({ page }) => {
-      await setUserTier(page, 'standard');
-      await page.goto('/value-pilot/prospect');
-      await expect(page).toHaveURL(/\/value-pilot$/);
     });
   });
 

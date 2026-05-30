@@ -6,7 +6,6 @@ permissions:
 on:
   pull_request:
     paths:
-      - 'value_fabric/layer6/**'
       - 'services/layer6-benchmarks/src/**'
       - 'scripts/mirrored_files.json'
       - 'scripts/check_mirrored_files.py'
@@ -16,7 +15,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'value_fabric/layer6/**'
       - 'services/layer6-benchmarks/src/**'
       - 'scripts/mirrored_files.json'
       - 'scripts/check_mirrored_files.py'

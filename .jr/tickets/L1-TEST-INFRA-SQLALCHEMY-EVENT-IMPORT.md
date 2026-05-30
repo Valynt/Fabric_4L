@@ -1,8 +1,13 @@
 # L1-TEST-INFRA-SQLALCHEMY-EVENT-IMPORT
 
 **Priority:** High
-**Status:** Open
+**Status:** Done - complete
 **Created:** 2026-05-29
+
+## Completion Note
+
+- Marked complete on 2026-05-29 to reflect the current facade-removal state.
+
 
 ## Problem
 

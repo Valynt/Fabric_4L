@@ -30,7 +30,7 @@ def test_compat_shims_import_canonical_route_modules_and_export_router() -> None
     alias_tree = _parse(COMPAT_ALIASES)
 
     # entity_compat.py must re-export from the canonical entities module.
-    assert "value_fabric.layer3.api.routes.entities" in _import_from_modules(entity_tree)
+    assert "api.routes.entities" in _import_from_modules(entity_tree)
 
     # compat_aliases.py delegates to query_search (relative import within the
     # same routes package — absolute value_fabric.layer3.* import would be

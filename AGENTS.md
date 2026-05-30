@@ -289,7 +289,7 @@ services/
   layer5-ground-truth/       L5: TruthObject validation, maturity ladder (port 8005)
   layer6-benchmarks/         L6: Peer comparison, statistical validation (port 8006)
   api/                       Shared API gateway / auth enforcement
-value_fabric/                Runtime Python packages (canonical source for L1–L4, L6, shared)
+value_fabric/                Neutralized namespace shim (layers 1–6 redirected; value_fabric.shared.* still active via packages/shared/src)
 packages/
   shared/                    Shared Python library (tenant context, base models)
   platform-contract/         Cross-layer contract definitions and test harness
@@ -402,23 +402,24 @@ Use these canonical paths first.
 ### Runtime packages
 
 ```text
-value_fabric/layer1/
-value_fabric/layer2/
-value_fabric/layer3/
-value_fabric/layer4/
+services/layer1-ingestion/src/layer1_ingestion/
+services/layer2-extraction/src/layer2_extraction/
+services/layer3-knowledge/src/
+services/layer4-agents/src/layer4_agents/
 services/layer5-ground-truth/src/layer5_ground_truth/
-value_fabric/layer6/
-value_fabric/shared/
+services/layer6-benchmarks/src/layer6_benchmarks/
+packages/shared/src/value_fabric/shared/
 ```
 
 ### Runtime API modules
 
 ```text
-value_fabric/layer1/api/routes/
-value_fabric/layer2/api/routes/
-value_fabric/layer3/api/routes/
+services/layer1-ingestion/src/layer1_ingestion/api/routes/
+services/layer2-extraction/src/layer2_extraction/api/routes/
+services/layer3-knowledge/src/api/routes/
+services/layer4-agents/src/api/routes/
 services/layer5-ground-truth/src/layer5_ground_truth/api/
-value_fabric/layer6/api/routes/
+services/layer6-benchmarks/src/layer6_benchmarks/api/routes/
 ```
 
 ### Maintained deployable services

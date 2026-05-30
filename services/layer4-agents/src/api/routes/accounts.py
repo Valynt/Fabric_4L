@@ -303,7 +303,7 @@ async def get_sync_status_all(
     """Get sync status for all CRM providers."""
     service = AccountService(db)
 
-    sync_statuses = await service.get_all_sync_status()
+    sync_statuses = await service.get_all_sync_status(tenant_id=str(_ctx.tenant_id))
 
     # Determine overall status
     any_failed = any(s.status == "failed" for s in sync_statuses)
@@ -344,6 +344,7 @@ async def sync_accounts(
     service = AccountService(db)
 
     result = await service.trigger_sync(
+        tenant_id=str(_ctx.tenant_id),
         provider=request.provider,
         account_ids=request.account_ids,
         force_refresh=request.force_refresh,

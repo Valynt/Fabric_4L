@@ -9,7 +9,7 @@ Tests verify:
 import pytest
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from value_fabric.layer3.schema.entity_resolution import (
+from schema.entity_resolution import (
     BatchResolutionRequest,
     EntityResolutionRequest,
     EntityResolutionResponse,
@@ -18,7 +18,7 @@ from value_fabric.layer3.schema.entity_resolution import (
     ResolutionStrategy,
     TieBreakRule,
 )
-from value_fabric.layer3.services.entity_resolution import EntityResolutionService
+from services.entity_resolution import EntityResolutionService
 
 
 class TestResolutionStability:

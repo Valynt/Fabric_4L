@@ -1,4 +1,4 @@
-from value_fabric.layer3.api.models import (
+from api.models import (
     GRAPH_FIELD_ALIAS_REMOVAL_VERSION,
     _include_legacy_graph_aliases,
     _serialize_entity,

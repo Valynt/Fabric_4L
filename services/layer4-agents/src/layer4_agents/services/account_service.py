@@ -364,7 +364,7 @@ class AccountService:
     # ========================================================================
 
     async def get_sync_status(
-        self, provider: CRMProvider, tenant_id: str = "default"
+        self, provider: CRMProvider, tenant_id: str
     ) -> AccountSyncStatus | None:
         """Get sync status for a provider."""
         result = await self.db.execute(
@@ -375,7 +375,7 @@ class AccountService:
         )
         return result.scalar_one_or_none()
 
-    async def get_all_sync_status(self, tenant_id: str = "default") -> list[AccountSyncStatus]:
+    async def get_all_sync_status(self, tenant_id: str) -> list[AccountSyncStatus]:
         """Get sync status for all providers."""
         result = await self.db.execute(
             select(AccountSyncStatus).where(AccountSyncStatus.tenant_id == tenant_id)
@@ -384,14 +384,18 @@ class AccountService:
 
     async def trigger_sync(
         self,
+        tenant_id: str,
         provider: CRMProvider | None = None,
         account_ids: list[str] | None = None,
         force_refresh: bool = False,
     ) -> dict:
         """Trigger manual sync for accounts.
 
+        ``tenant_id`` is required — callers must pass the authenticated tenant.
         Uses CRMSyncService to execute the actual synchronization.
         """
+        if not tenant_id:
+            raise ValueError("tenant_id is required for CRM sync")
         sync_id = f"sync-{datetime.now(UTC).strftime('%Y%m%d%H%M%S')}"
 
         # Initialize sync service
@@ -401,6 +405,7 @@ class AccountService:
             # Sync specific provider
             stats = await sync_service.sync_provider(
                 provider,
+                tenant_id=tenant_id,
                 incremental=not force_refresh,
                 account_ids=account_ids,
             )
@@ -419,6 +424,7 @@ class AccountService:
             for prov in [CRMProvider.SALESFORCE, CRMProvider.HUBSPOT]:
                 stats = await sync_service.sync_provider(
                     prov,
+                    tenant_id=tenant_id,
                     incremental=not force_refresh,
                     account_ids=account_ids,
                 )
@@ -442,6 +448,7 @@ class AccountService:
             for prov in [CRMProvider.SALESFORCE, CRMProvider.HUBSPOT]:
                 stats = await sync_service.sync_provider(
                     prov,
+                    tenant_id=tenant_id,
                     incremental=not force_refresh,
                 )
                 all_stats.append(stats)

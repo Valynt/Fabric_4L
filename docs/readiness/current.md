@@ -2,8 +2,26 @@
 
 - **Canonical Source:** This document is the single source of truth for launch readiness criteria and percentage.
 - **Generated From CI:** `make verify` (lint, type-check, tests, contract tests, build gates) and release-gate evidence scripts.
-- **Snapshot Date (UTC):** 2026-05-19
-- **Launch Readiness:** **≥85% assurance score** (production-ready threshold met; all code-level P0/P1 blockers resolved)
+- **Snapshot Date (UTC):** 2026-05-20
+- **Last Updated:** 2026-05-20
+- **Launch Readiness:** **BLOCKED** — open P0 items remain (see Current Status below)
+
+## Current Status
+
+> ⚠️ **The platform is NOT production-ready.** There are **4 open P0 blockers** being actively worked:
+>
+> | ID | Area | Status |
+> |---|---|---|
+> | P0-1 | Security / RLS | 🔴 Open — `test_remediation_migrations_do_not_reintroduce_null_visibility` fails |
+> | P0-2 | Architecture | 🔴 Open — 5 architecture conformance suite failures block `gate-arch` |
+> | P0-3 | Security / Cache | 🔴 Open — Redis cache tenant isolation gate is false-green (all 14 tests fail) |
+> | P0-4 | Infra / K8s | 🔴 Open — Deploy workflow kubeconfig placeholders fixed in this PR; awaiting validation |
+>
+> **Previously resolved:**
+> - ✅ P0-0 — Merge conflict markers resolved
+> - ✅ P0-004 (this ticket) — Deploy workflow now uses AWS OIDC auth + server-side dry-run + rollout checks
+> - ✅ P0-008 (this ticket) — API gateway Alembic migration structure created
+> - ✅ P0-010 (this ticket) — Readiness docs regenerated from live evidence
 
 ## CI Evidence Inputs
 

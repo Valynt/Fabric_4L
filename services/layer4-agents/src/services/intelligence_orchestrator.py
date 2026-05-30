@@ -430,10 +430,12 @@ class IntelligenceOrchestrator:
     # ------------------------------------------------------------------
 
     async def get_pipeline_summary(
-        self
+        self,
+        tenant_id: str | None = None,
     ) -> dict[str, Any]:
         """Get aggregated intelligence across all accounts."""
-        tenant_id = _get_tenant_id()
+        if tenant_id is None:
+            tenant_id = _get_tenant_id()
         query = """
         MATCH (vh:ValueHypothesis {tenant_id: $tenant_id})
         WITH vh.account_id AS account_id,

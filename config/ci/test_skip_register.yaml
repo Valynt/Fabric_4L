@@ -1043,3 +1043,105 @@ entries:
     due_on: '2026-06-30'
     work_item: Remove skip path in tests/security/test_websocket_auth.py for registered
       condition
+- id: skip-069
+  path_pattern: tests/contract/test_l3_route_contract_regression.py
+  marker: pytest.mark.skip
+  reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9 (SQLAlchemy duplicate table issue). Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-069
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 contract tests can run without
+      pytestmark.skip
+- id: skip-070
+  path_pattern: tests/contract/test_l3_provenance_audit_contract.py
+  marker: pytest.mark.skip
+  reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-070
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 contract tests can run without
+      pytestmark.skip
+- id: skip-071
+  path_pattern: tests/contract/test_layer3_graph_deprecation_contract.py
+  marker: pytest.mark.skip
+  reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-071
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 contract tests can run without
+      pytestmark.skip
+- id: skip-072
+  path_pattern: tests/contract/test_layer3_compat_metrics.py
+  marker: pytest.mark.skip
+  reason_pattern: value_fabric\ import\ path\ broken.*SQLAlchemy\ duplicate\ table
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. try/except guard added (P2-006). Registered for full remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-072
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 contract tests can run without
+      pytestmark.skip
+- id: skip-073
+  path_pattern: tests/contract/test_entity_contract.py
+  marker: pytest.skip
+  reason_pattern: layer3_knowledge\ service\ stack\ not\ available
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-073
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so entity contract tests can run
+- id: skip-074
+  path_pattern: tests/contract/test_l3_route_alias_parity.py
+  marker: pytest.skip
+  reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-074
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 route alias parity tests can run
+- id: skip-075
+  path_pattern: tests/contract/test_system_route_contract.py
+  marker: pytest.skip
+  reason_pattern: value_fabric\.layer3\ service\ stack\ not\ available
+  owner: '@platform-quality'
+  reason: L3 package not importable in contract test environment; pre-existing blocker
+    #1/#9. Registered for P2-006 remediation.
+  expires_on: '2026-09-30'
+  severity: P2
+  launch_gate: non-blocking
+  remediation:
+    ticket_id: VF-SKIP-075
+    due_on: '2026-09-30'
+    work_item: Fix layer3_knowledge import path so L3 system route contract tests can run

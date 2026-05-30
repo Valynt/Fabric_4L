@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from value_fabric.layer3.api.routes.knowledge import (
+from api.routes.knowledge import (
     get_benchmark_variables,
     get_value_driver_formulas,
 )

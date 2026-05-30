@@ -9,7 +9,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_admin
@@ -180,6 +180,12 @@ async def get_tenant_audit_log(
     try:
         from value_fabric.shared.audit.models import AuditEvent
 
+        # P1-016: COUNT(*) for total to avoid O(n) fetch-all
+        count_result = await db.execute(
+            select(func.count()).select_from(AuditEvent).where(AuditEvent.tenant_id == tenant_id)
+        )
+        total_count: int = count_result.scalar_one()
+
         result = await db.execute(
             select(AuditEvent)
             .where(AuditEvent.tenant_id == tenant_id)
@@ -200,7 +206,7 @@ async def get_tenant_audit_log(
                 )
                 for e in events
             ],
-            total=len(events),
+            total=total_count,
             limit=limit,
             offset=offset,
         )

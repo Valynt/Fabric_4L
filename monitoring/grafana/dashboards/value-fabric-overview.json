@@ -34,42 +34,42 @@
       "targetBlank": true,
       "title": "Auth Incident Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/enterprise-oidc-sso-incident"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/operational/enterprise-oidc-sso-incident.md"
     },
     {
       "icon": "link",
       "targetBlank": true,
       "title": "Postgres Incident Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/postgres-unreachable"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
     },
     {
       "icon": "link",
       "targetBlank": true,
       "title": "Redis Incident Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/redis-unreachable"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
     },
     {
       "icon": "link",
       "targetBlank": true,
       "title": "Neo4j Incident Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/neo4j-unreachable"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
     },
     {
       "icon": "link",
       "targetBlank": true,
       "title": "Workflow Stall Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/agent-workflow-stall"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
     },
     {
       "icon": "link",
       "targetBlank": true,
       "title": "Provider Outage Runbook",
       "type": "link",
-      "url": "https://wiki.internal/runbooks/llm-provider-outage"
+      "url": "https://github.com/bmsull560/Fabric_4L/blob/main/docs/runbooks/README.md"
     }
   ],
   "panels": [

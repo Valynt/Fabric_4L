@@ -683,12 +683,20 @@ class ValidateTargetResponse(BaseModel):
     browser_test: dict[str, Any] | None = None
 
 
+# Cloud metadata endpoints that must never be targeted by callbacks.
+_SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset({
+    "169.254.169.254",          # AWS / Azure / GCP instance metadata
+    "metadata.google.internal", # GCP metadata domain
+    "metadata.internal",        # GCP/internal alias
+})
+
+
 def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
     """Block SSRF-prone callback URLs (private IPs, localhost, non-HTTPS)."""
     if value is None:
         return None
-    from urllib.parse import urlparse
     import ipaddress
+    from urllib.parse import urlparse
 
     parsed = urlparse(value)
     if parsed.scheme != "https":
@@ -697,15 +705,27 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
     if not hostname:
         raise ValueError("callback_url must have a valid hostname")
     hostname_lower = hostname.lower()
+    # Reject well-known localhost variants and cloud metadata hostnames.
     if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
         raise ValueError("callback_url must not point to localhost")
+    if hostname_lower in _SSRF_BLOCKED_HOSTNAMES:
+        raise ValueError("callback_url must not point to cloud metadata endpoints")
+    # For IP literals, block all non-public ranges.
+    # Use try/except/else so only the ipaddress parse failure is caught;
+    # the intentional ValueError raised inside the `else` block propagates normally.
     try:
         addr = ipaddress.ip_address(hostname)
-        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
-            raise ValueError("callback_url must not point to private or reserved IP addresses")
     except ValueError:
-        # hostname is not an IP address, that's fine
-        pass
+        pass  # hostname is a domain name, not an IP literal — OK at this stage
+    else:
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_unspecified
+        ):
+            raise ValueError("callback_url must not point to private or reserved IP addresses")
     return value
 
 

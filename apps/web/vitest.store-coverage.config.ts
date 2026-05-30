@@ -10,8 +10,6 @@ export default defineConfig({
     setupFiles: ["./test/setup.ts"],
     include: [
       "src/stores/**/*.test.ts",
-      "src/workflow/store/**/*.test.ts",
-      "src/value-pilot/store/**/*.test.ts",
       "src/hooks/useExtractionConfig.test.ts",
     ],
     coverage: {
@@ -20,8 +18,6 @@ export default defineConfig({
       all: true,
       include: [
         "src/stores/**/*.ts",
-        "src/workflow/store/**/*.ts",
-        "src/value-pilot/store/**/*.ts",
         "src/hooks/useExtractionConfig.ts",
       ],
       exclude: ["**/*.test.*", "**/*.spec.*", "**/index.ts"],

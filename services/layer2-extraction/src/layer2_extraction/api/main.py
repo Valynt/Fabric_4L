@@ -52,10 +52,7 @@ except Exception:
 
 logger = structlog.get_logger(__name__)
 
-try:
-    from value_fabric.shared.identity.middleware import GovernanceMiddleware
-except ImportError:
-    GovernanceMiddleware = None  # type: ignore
+from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
 try:
     load_infisical_secrets()
@@ -164,12 +161,6 @@ app = create_fabric_app(
 # Register health endpoint
 register_health_endpoint(app, service_name="layer2-extraction")
 
-# P0-002: Unconditionally install GovernanceMiddleware for fail-closed auth.
-# The previous register_fabric_auth_from_env was conditional and left routes
-# unprotected when FABRIC_AUTH_PUBLIC_KEYS was unset.
-if GovernanceMiddleware is None:
-    raise RuntimeError("GovernanceMiddleware is required for Layer 2 authentication.")
-
 app.add_middleware(
     GovernanceMiddleware,
     api_key_resolver=None,
@@ -195,6 +186,72 @@ except ImportError:
 
 app.include_router(signal_lifecycle_router)
 
+# ── P1-017: Inbound S2S JWT guard for internal extraction routes ──────────────
+# L1 Celery dispatch signs outbound requests with encode_service_jwt (sub=
+# "layer1-ingestion", aud="layer2-extraction").  GovernanceMiddleware validates
+# user-facing JWTs but does NOT enforce the service-specific sub/aud claims.
+# This middleware enforces that when SERVICE_AUTH_SECRET is configured, these
+# three internal routes may ONLY be called with a valid L1 S2S token.
+
+_S2S_INTERNAL_PATHS: frozenset[str] = frozenset({
+    "/v1/extract",
+    "/v1/extract-and-ingest",
+    "/v1/extract/batch",
+})
+_S2S_EXPECTED_SUB = "layer1-ingestion"
+_S2S_EXPECTED_AUD = "layer2-extraction"
+
+
+@app.middleware("http")
+async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg]
+    """Enforce inbound S2S JWT on internal extraction routes.
+
+    Only active when SERVICE_AUTH_SECRET is configured.  In dev environments
+    without the secret, the check is skipped so local testing remains possible.
+    """
+    if request.method == "POST" and request.url.path in _S2S_INTERNAL_PATHS:
+        _secret = os.getenv("SERVICE_AUTH_SECRET", "").strip()
+        if _secret:
+            auth_header = request.headers.get("Authorization", "")
+            if not auth_header.startswith("Bearer "):
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "S2S Bearer token required for internal extraction routes",
+                        "code": "s2s_token_required",
+                    },
+                )
+            _token = auth_header[7:]
+            try:
+                from value_fabric.shared.identity.jwt import decode_service_jwt as _decode_s2s
+                _claims = _decode_s2s(_token, expected_audience=_S2S_EXPECTED_AUD)
+            except Exception:
+                _claims = None
+
+            if _claims is None:
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=401,
+                    content={
+                        "detail": "Invalid or expired S2S token for internal extraction route",
+                        "code": "s2s_token_invalid",
+                    },
+                )
+            if _claims.sub != _S2S_EXPECTED_SUB:
+                from fastapi.responses import JSONResponse as _JSONResponse
+                return _JSONResponse(
+                    status_code=403,
+                    content={
+                        "detail": f"Unexpected service caller: {_claims.sub!r}",
+                        "code": "s2s_caller_forbidden",
+                    },
+                )
+
+    return await call_next(request)
+
+# ── End P1-017 ────────────────────────────────────────────────────────────────
+
 # Extraction configuration constants
 DEFAULT_CHUNK_SIZE = 2000
 DEFAULT_CHUNK_OVERLAP = 200
@@ -208,13 +265,45 @@ DEFAULT_RDF_OUTPUT_DIR = "/tmp/rdf"
 _entity_extractor = None
 _relationship_extractor = None
 
+# Known placeholder values that must not be used as real API keys.
+_OPENAI_KEY_PLACEHOLDERS = frozenset({
+    "", "your-openai-api-key", "sk-placeholder", "sk-test", "replace-me",
+    "your_openai_api_key", "openai_api_key", "none", "null",
+})
+
+
+def _get_validated_openai_key() -> str | None:
+    """Return the OpenAI API key from the environment, or None if absent.
+
+    Raises RuntimeError in production-like environments when:
+    - The key is missing entirely.
+    - The key matches a known placeholder value.
+    - The key does not start with the 'sk-' prefix expected by the OpenAI SDK.
+    """
+    key = os.getenv("OPENAI_API_KEY", "").strip()
+    if not key or key.lower() in _OPENAI_KEY_PLACEHOLDERS:
+        if _is_production_like():
+            raise RuntimeError(
+                "OPENAI_API_KEY is missing or set to a placeholder value. "
+                "A valid key is required in production-like Layer 2 environments."
+            )
+        return None
+    if not key.startswith("sk-"):
+        if _is_production_like():
+            raise RuntimeError(
+                "OPENAI_API_KEY does not start with 'sk-' — likely a misconfigured placeholder. "
+                "Refusing to start in production-like environment."
+            )
+        logger.warning("OPENAI_API_KEY does not start with 'sk-'; key may be invalid")
+    return key
+
 
 def get_entity_extractor():
     """Get or create the entity extractor (lazy initialization)."""
     global _entity_extractor
     if _entity_extractor is None:
         _entity_extractor = EntityExtractor(
-            api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("LLM_MODEL", "gpt-4o")
+            api_key=_get_validated_openai_key(), model=os.getenv("LLM_MODEL", "gpt-4o")
         )
     return _entity_extractor
 
@@ -224,7 +313,7 @@ def get_relationship_extractor():
     global _relationship_extractor
     if _relationship_extractor is None:
         _relationship_extractor = RelationshipExtractor(
-            api_key=os.getenv("OPENAI_API_KEY"), model=os.getenv("LLM_MODEL", "gpt-4o")
+            api_key=_get_validated_openai_key(), model=os.getenv("LLM_MODEL", "gpt-4o")
         )
     return _relationship_extractor
 
@@ -915,7 +1004,7 @@ async def run_extraction(
         )
         step_align = ExtractionStep(step_name="semantic_alignment", started_at=datetime.now(UTC))
 
-        aligner = SemanticAligner(similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, api_key=os.getenv("OPENAI_API_KEY"))
+        aligner = SemanticAligner(similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD, api_key=_get_validated_openai_key())
 
         # Align each entity type
         aligned_entities = {}
@@ -948,7 +1037,7 @@ async def run_extraction(
 
         deduplicated = await deduplicate_entities(
             all_entities,
-            api_key=os.getenv("OPENAI_API_KEY"),
+            api_key=_get_validated_openai_key(),
             similarity_threshold=DEFAULT_SIMILARITY_THRESHOLD,
             relationships=all_relationships,
             enable_coreference=True,

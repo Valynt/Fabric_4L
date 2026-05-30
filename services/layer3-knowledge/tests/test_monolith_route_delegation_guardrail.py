@@ -26,7 +26,7 @@ def test_app_monolith_file_is_absent():
 
 def test_v2_domain_routers_importable():
     """All Sprint 3 V2 domain routers must be importable without a runtime."""
-    from value_fabric.layer3.api.routes import (  # noqa: F401
+    from api.routes import (  # noqa: F401
         agents,
         analytics,
         documents,
@@ -37,6 +37,6 @@ def test_v2_domain_routers_importable():
 
 def test_main_app_is_importable():
     """The composition root must be importable and expose the FastAPI app."""
-    from value_fabric.layer3.api.main import app  # noqa: F401
+    from api.main import app  # noqa: F401
 
     assert app is not None

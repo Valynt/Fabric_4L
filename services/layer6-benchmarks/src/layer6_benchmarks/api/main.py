@@ -115,7 +115,6 @@ def _public_startup_config() -> dict[str, Any]:
         "testing": _SETTINGS.testing,
         "auth_required": _SETTINGS.auth_required,
         "allow_insecure_dev_auth_bypass": _SETTINGS.allow_insecure_dev_auth_bypass,
-        "jwt_fallback_to_query_param": _SETTINGS.jwt_fallback_to_query_param,
         "allow_ephemeral_encryption": _SETTINGS.allow_ephemeral_encryption,
         "database_scheme": db_url.scheme,
         "database_host": db_url.hostname,
@@ -267,12 +266,11 @@ try:
     from value_fabric.shared.identity.middleware import GovernanceMiddleware
 
     app.add_middleware(GovernanceMiddleware, api_key_resolver=reject_api_key_unsupported)
-except ImportError:
-    if _SETTINGS.environment in ("production", "staging"):
-        raise RuntimeError(
-            "GovernanceMiddleware is required in production/staging — shared.identity must be importable"
-        )
-    logger.warning("shared.identity not importable — GovernanceMiddleware skipped in dev.")
+except ImportError as _gov_import_err:
+    raise RuntimeError(
+        "GovernanceMiddleware is required in all environments — "
+        "shared.identity.middleware is not importable."
+    ) from _gov_import_err
 
 
 @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)

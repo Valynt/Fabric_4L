@@ -230,7 +230,6 @@ services:
       LOG_LEVEL: info
     volumes:
       - ./services/layer2-extraction/src:/app/src:ro
-      - ./value_fabric/layer2:/app/value_fabric/layer2:ro
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       postgres:
@@ -271,7 +270,6 @@ services:
       LOG_LEVEL: info
     volumes:
       - ./services/layer3-knowledge/src:/app/src:ro
-      - ./value_fabric/layer3:/app/value_fabric/layer3:ro
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     depends_on:
       neo4j:
@@ -391,7 +389,6 @@ services:
         condition: service_healthy
     volumes:
       - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./value_fabric/layer5:/app/value_fabric/layer5:ro
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -420,7 +417,6 @@ services:
         condition: service_healthy
     volumes:
       - ./services/layer5-ground-truth/src:/app/src:ro
-      - ./value_fabric/layer5:/app/value_fabric/layer5:ro
       - ./packages/shared/src/value_fabric/shared:/app/value_fabric/shared:ro
     extra_hosts:
       - "host.docker.internal:host-gateway"

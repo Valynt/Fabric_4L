@@ -1,7 +1,7 @@
 import os
 
-from value_fabric.layer3.api.models import GraphEdge, GraphNode, get_deprecated_field_usage_counters
-from value_fabric.layer3.api.main import app
+from api.models import GraphEdge, GraphNode, get_deprecated_field_usage_counters
+from api.main import app
 
 
 def test_legacy_alias_warning_mode_allows_routes(test_client):

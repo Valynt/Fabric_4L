@@ -14,7 +14,7 @@ import pytest
 
 # _extract_tenant_id is a module-private helper replicated in each domain
 # router that needs it. The dependencies module is the canonical reference.
-from value_fabric.layer3.api.dependencies import _extract_tenant_id
+from api.dependencies import _extract_tenant_id
 
 
 class TestExtractTenantId:

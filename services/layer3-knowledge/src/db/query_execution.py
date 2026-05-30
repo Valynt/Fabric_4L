@@ -29,7 +29,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from value_fabric.layer3.utils.cypher_security import TENANT_OWNED_LABELS
+from utils.cypher_security import TENANT_OWNED_LABELS
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
 from ..graph.query_guards import (

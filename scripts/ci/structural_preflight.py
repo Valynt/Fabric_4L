@@ -364,6 +364,56 @@ def check_ci_wiring(repo_root: Path) -> list[Finding]:
     return findings
 
 
+def check_hardcoded_db_credentials(repo_root: Path) -> list[Finding]:
+    """Detect hardcoded postgres:postgres credentials in K8s manifests and configs.
+
+    Hardcoded credentials in K8s manifests are exposed to anyone with read access to
+    the repo AND to anyone who can run `kubectl describe pod`. They must always be
+    injected via secretKeyRef.
+    """
+    findings: list[Finding] = []
+    # Pattern: literal postgres:postgres in a URL string (catches the most common form)
+    credential_pattern = re.compile(
+        r"postgres:postgres@|:[Pp]assword@|postgresql://\w+:\w+@"
+    )
+    # Only scan infrastructure files (K8s manifests, Docker Compose, shell scripts)
+    scan_dirs = ["k8s", "infra", "scripts"]
+    scan_suffixes = {".yml", ".yaml", ".sh", ".env.example"}
+
+    for scan_dir in scan_dirs:
+        target = repo_root / scan_dir
+        if not target.is_dir():
+            continue
+        for file in target.rglob("*"):
+            # Skip template files that intentionally document the pattern
+            if file.suffix not in scan_suffixes:
+                continue
+            if "secrets.yml.template" in file.name or "secrets.yaml.template" in file.name:
+                continue
+            try:
+                content = file.read_text(encoding="utf-8", errors="ignore")
+            except OSError:
+                continue
+            for i, line in enumerate(content.splitlines(), start=1):
+                if credential_pattern.search(line):
+                    findings.append(Finding(
+                        check_id="hardcoded_db_credentials",
+                        severity="critical",
+                        path=f"{file.relative_to(repo_root)}:{i}",
+                        finding_type="hardcoded_credentials",
+                        message=(
+                            f"Hardcoded database credentials detected at line {i}. "
+                            "Use secretKeyRef to inject credentials from a K8s Secret."
+                        ),
+                        recommendation=(
+                            "Replace `value: \"postgresql://user:pass@...\"` with "
+                            "`valueFrom: secretKeyRef: name: <secret> key: <key>` and "
+                            "add the corresponding Secret to k8s/secrets.yml.template."
+                        ),
+                    ))
+    return findings
+
+
 def main():
     parser = argparse.ArgumentParser(
         description="Structural preflight scanner for Fabric_4L"
@@ -386,6 +436,7 @@ def main():
     all_findings.extend(check_pytest_config(repo_root))
     all_findings.extend(check_tool_manifest_alignment(repo_root))
     all_findings.extend(check_ci_wiring(repo_root))
+    all_findings.extend(check_hardcoded_db_credentials(repo_root))
 
     # Determine strict failures
     strict_failures = [f for f in all_findings if f.severity in ("critical", "high")]

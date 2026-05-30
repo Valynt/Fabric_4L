@@ -47,7 +47,7 @@ from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..db.query_execution import run_validated_query
-
+from .cypher_scope_guard import validate_tenant_scoped_cypher
 
 class ROICalculatorService_compare_scenariosResult(TypedDictModel):
     discount_rate: Any
@@ -504,6 +504,9 @@ class ROICalculatorService:
         """
         count_query = f"MATCH (t:ROITemplate) WHERE {where} RETURN count(t) AS total"
 
+        validate_tenant_scoped_cypher(query, tenant_id)
+        validate_tenant_scoped_cypher(count_query, tenant_id)
+
         async with self._driver.session() as session:
             # strict-scoped-query-execution: dynamic query parameters include tenant_id
             count_result = await run_validated_query(session, count_query, params)
@@ -646,6 +649,9 @@ class ROICalculatorService:
         SKIP $skip LIMIT $limit
         """
         count_query = f"MATCH (rc:ROICalculation) WHERE {where} RETURN count(rc) AS total"
+
+        validate_tenant_scoped_cypher(query, tenant_id)
+        validate_tenant_scoped_cypher(count_query, tenant_id)
 
         async with self._driver.session() as session:
             # strict-scoped-query-execution: dynamic query parameters include tenant_id

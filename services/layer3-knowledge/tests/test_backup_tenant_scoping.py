@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from value_fabric.layer3.backup.backup_manager import (
+from backup.backup_manager import (
     BackupConfig,
     BackupManager,
     BackupRequest,

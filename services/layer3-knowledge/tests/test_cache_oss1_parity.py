@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from value_fabric.layer3.cache import (
+from cache import (
     AiocacheCacheAdapter,
     CacheConfig,
     CachePort,

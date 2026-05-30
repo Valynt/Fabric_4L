@@ -58,7 +58,11 @@ chunk_store_config:
 
 table_manager:
   retention_deletes_enabled: true
-  retention_period: 168h
+  # Hot log retention: 30 days.  Logs older than 30 days are deleted from
+  # primary storage.  For cold/archival retention (up to 1 year), ship logs
+  # to object storage (S3/GCS) via the compactor or a Fluentd/Fluent-Bit
+  # S3 sink.  See docs/observability/log-retention-policy.md for full policy.
+  retention_period: 720h
 
 frontend:
   encoding: protobuf

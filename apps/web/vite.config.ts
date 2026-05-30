@@ -227,6 +227,7 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    chunkSizeWarningLimit: 750,
     rollupOptions: {
       output: {
         manualChunks: (id) => {
@@ -343,10 +344,10 @@ export default defineConfig({
         "src/app/settings/**",
       ],
       thresholds: {
-        lines: 60,
-        functions: 60,
-        statements: 60,
-        branches: 50,
+        lines: 70,
+        functions: 70,
+        statements: 70,
+        branches: 60,
       },
     },
   },

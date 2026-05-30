@@ -29,13 +29,13 @@ pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 # ---------------------------------------------------------------------------
 # Module path constants for mocking
 # ---------------------------------------------------------------------------
-MOCK_PROVISIONING_MODULE = "value_fabric.layer4.tenants.provisioning"
+MOCK_PROVISIONING_MODULE = "tenants.provisioning"
 MOCK_TENANT_SECRET_MANAGER = f"{MOCK_PROVISIONING_MODULE}.TenantSecretManager"
 MOCK_EMIT_AUDIT = f"{MOCK_PROVISIONING_MODULE}.emit_audit_event"
 
 # Provisioning route module for webhook tests
 MOCK_WEBHOOK_MODULE = (
-    "value_fabric.layer4.tenants.api.routes.provisioning"
+    "tenants.api.routes.provisioning"
 )
 
 # Default environments expected by the provisioning service

@@ -382,6 +382,7 @@ async def _smoke_business_case_response(
         opportunity_id=request.opportunity_id,
         status="draft",
         document_url=None,
+        tenant_id=str(context.tenant_id),
     )
     emit_audit_event(
         AuditAction.BUSINESS_CASE_GENERATED,
@@ -1003,6 +1004,7 @@ async def generate_business_case(
             opportunity_id=request.opportunity_id,
             status=result.status.value,
             document_url=assemble_data.get("document_url"),
+            tenant_id=str(context.tenant_id),
         )
 
         return BusinessCaseResponse(

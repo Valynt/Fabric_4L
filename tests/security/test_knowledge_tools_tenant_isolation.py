@@ -24,8 +24,8 @@ import pytest
 # Lazy import fixtures to avoid import errors at collection time
 def _get_knowledge_tools():
     """Import knowledge tools via canonical package imports."""
-    from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool, SemanticSearchTool
-    from services.layer4_agents.src.models.tool_schemas import QueryGraphInput, SemanticSearchInput
+    from layer4_agents.tools.knowledge_tools import QueryGraphTool, SemanticSearchTool
+    from layer4_agents.models.tool_schemas import QueryGraphInput, SemanticSearchInput
     
     return QueryGraphTool, SemanticSearchTool, QueryGraphInput, SemanticSearchInput
 
@@ -48,7 +48,7 @@ def mock_tenant_context(monkeypatch):
     mock_ctx.assert_valid = MagicMock()
     
     # Patch get_current_tenant_context to return our mock
-    with patch("value_fabric.layer4.shared.domain.context.get_current_tenant_context") as mock_get_ctx:
+    with patch("layer4_agents.shared.domain.context.get_current_tenant_context") as mock_get_ctx:
         mock_get_ctx.return_value = mock_ctx
         yield mock_ctx
 
