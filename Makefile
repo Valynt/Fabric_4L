@@ -12,6 +12,7 @@
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-migration-rollback-policy check-migration-postgres-roundtrip db-production-readiness-gate \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -31,6 +32,7 @@ SHELL := /bin/bash
 PROFILE ?= release-candidate
 POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
+DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON ?= python3
 PIP    := pip install -e
@@ -105,6 +107,16 @@ check-migration-entrypoints: ## Ensure maintained services expose migration entr
 
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
 	@python3 scripts/ci/check_migration_entrypoints.py
+
+check-migration-rollback-policy: ## Enforce rollback documentation and approval for unsupported downgrades
+	@python3 scripts/ci/check_migration_rollback_policy.py
+
+check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and metadata drift checks against PostgreSQL
+	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
+	@$(PYTHON) scripts/ci/check_migration_drift.py --database-url "$(DB_MIGRATION_DATABASE_URL)" --round-trip
+
+db-production-readiness-gate: check-migration-heads check-migration-rollback-policy check-migration-postgres-roundtrip ## Blocking PostgreSQL migration production-readiness gate
+	@echo "✅  db-production-readiness-gate passed"
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
