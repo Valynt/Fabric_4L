@@ -500,8 +500,17 @@ async def cancel_subscription(
             "subscription_id": result["subscription_id"],
         }
     except ValueError as e:
-        logger.warning(f"Subscription cancellation failed: {e}")
-        raise ValidationError(message = "Subscription cancellation failed") from e
+        error_text = str(e).lower()
+        logger.warning(
+            "Subscription cancellation failed",
+            extra={
+                "error_type": type(e).__name__,
+                "not_found": "subscription" in error_text and "found" in error_text,
+            },
+        )
+        if "subscription" in error_text and "found" in error_text:
+            raise NotFoundError(message="Subscription not found") from e
+        raise ValidationError(message="Subscription cancellation failed") from e
 
 
 @router.post("/subscription/update-plan", response_model=UpdatePlanResponse)
