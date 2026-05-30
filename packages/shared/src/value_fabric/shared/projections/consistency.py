@@ -185,8 +185,6 @@ class CrossStoreProjectionRebuilder:
 
         applied = 0
         for event, attempt in self.outbox.pending_for(self.targets):
-            if attempt.status == ProjectionStatus.DEAD_LETTER:
-                continue
             target = self.targets[attempt.target]
             try:
                 target.project(event)
