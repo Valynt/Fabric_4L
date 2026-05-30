@@ -1,0 +1,66 @@
+name: Performance Baseline
+
+permissions:
+  contents: read
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+on:
+  schedule:
+    - cron: '0 5 * * *' # Daily 05:00 UTC
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Base URL for the critical-path API gateway'
+        required: false
+        default: 'http://localhost:8000'
+
+concurrency:
+  group: performance-baseline-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  critical-path-baseline:
+    name: Critical-path k6 baseline
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Set up k6
+        uses: grafana/setup-k6-action@v1
+
+      - name: Restore performance baseline cache
+        uses: actions/cache@v4
+        with:
+          path: artifacts/performance/baseline.json
+          key: performance-baseline-${{ github.ref_name }}-${{ github.run_id }}
+          restore-keys: |
+            performance-baseline-${{ github.ref_name }}-
+
+      - name: Run baseline and regression detector
+        env:
+          BASE_URL: ${{ inputs.base_url || vars.PERFORMANCE_BASE_URL || 'http://localhost:8000' }}
+          TEST_TOKEN: ${{ secrets.PERFORMANCE_TEST_TOKEN }}
+          TEST_TENANT_ID: ${{ vars.PERFORMANCE_TEST_TENANT_ID }}
+        run: |
+          python3 scripts/perf/slo-baseline.py \
+            --base-url "$BASE_URL" \
+            --test-token "$TEST_TOKEN" \
+            --test-tenant-id "$TEST_TENANT_ID"
+
+      - name: Upload performance baseline artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-baseline-${{ github.run_id }}
+          path: artifacts/performance/
+          retention-days: 30

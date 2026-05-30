@@ -186,6 +186,6 @@ make test-backup-drills
 
 ## Related Documentation
 
-- [Threat Model](../security/threat-model.md) - Security controls for backup encryption
-- [API Reference](../API_REFERENCE.md) - Backup management endpoints
-- [Semantic Contract](../semantic_contract.md) - Data integrity guarantees
+- [Threat Model](../../../security/threat-model.md) - Security controls for backup encryption
+- [API Reference](../../../API_REFERENCE.md) - Backup management endpoints
+- [Semantic Contract](../../../semantic_contract.md) - Data integrity guarantees
