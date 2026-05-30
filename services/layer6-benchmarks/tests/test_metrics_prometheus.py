@@ -4,10 +4,14 @@ import pytest
 from prometheus_client import CollectorRegistry
 
 <<<<<<< HEAD
+<<<<<<< HEAD
 from layer6_benchmarks.metrics.prometheus_metrics import (
 =======
 from value_fabric.layer6.metrics.prometheus_metrics import (
 >>>>>>> ab2ac2c2 (```)
+=======
+from layer6_benchmarks.metrics.prometheus_metrics import (
+>>>>>>> 29cd3004 (```)
     MetricsConfig,
     MetricsMiddleware,
     PrometheusMetrics,
