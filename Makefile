@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
@@ -467,6 +467,18 @@ perf-eval: ## Evaluate k6 results against versioned SLO thresholds
 
 build: ## Build frontend production bundle
 	cd apps/web && pnpm run build
+
+docker-build: ## Build all deployable production Docker images locally
+	docker build -t fabric-4l/api-gateway:local -f services/api/Dockerfile .
+	docker build -t fabric-4l/layer1-ingestion:local -f services/layer1-ingestion/Dockerfile .
+	docker build -t fabric-4l/layer2-extraction:local -f services/layer2-extraction/Dockerfile .
+	docker build -t fabric-4l/layer2-5-signal-refinery:local -f services/layer2-5-signal-refinery/Dockerfile .
+	docker build -t fabric-4l/layer3-knowledge:local -f services/layer3-knowledge/Dockerfile .
+	docker build -t fabric-4l/layer4-agents:local -f services/layer4-agents/Dockerfile .
+	docker build -t fabric-4l/layer5-ground-truth:local -f services/layer5-ground-truth/Dockerfile .
+	docker build -t fabric-4l/layer6-benchmarks:local -f services/layer6-benchmarks/Dockerfile .
+	docker build -t fabric-4l/layer7-billing:local -f services/layer7-billing/Dockerfile .
+	docker build -t fabric-4l/web:local -f apps/web/Dockerfile .
 
 # ─── Database ─────────────────────────────────────────────────────────────────
 

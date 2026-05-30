@@ -1,6 +1,7 @@
 """Configuration for Layer 5 Ground Truth service."""
 
 import logging
+import warnings
 from functools import lru_cache
 from typing import ClassVar
 from urllib.parse import urlparse
@@ -293,6 +294,12 @@ class Settings(BaseSettings):
     def validate_production_fail_closed(self) -> "Settings":
         """Reject unsafe production-like configuration before app startup."""
         if not self.is_production_like:
+            if self.effective_environment == "development" and self.allow_insecure_dev_auth_bypass:
+                warnings.warn(
+                    "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active.",
+                    RuntimeWarning,
+                    stacklevel=2,
+                )
             return self
 
         errors: list[str] = []

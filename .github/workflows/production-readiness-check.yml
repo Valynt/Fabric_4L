@@ -1,0 +1,70 @@
+name: Production Readiness Checklist
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+    inputs:
+      python_version:
+        description: Python version used for the readiness check.
+        required: false
+        default: "3.11"
+      node_version:
+        description: Node.js version used for the readiness check.
+        required: false
+        default: "22.12.0"
+
+jobs:
+  production-readiness-check:
+    name: Run production readiness checklist
+    runs-on: ubuntu-latest
+    timeout-minutes: 360
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ inputs.python_version }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ inputs.node_version }}
+
+      - name: Enable pnpm
+        shell: bash
+        run: |
+          set -euo pipefail
+          corepack enable
+          corepack prepare pnpm@10.18.1 --activate
+
+      - name: Install readiness CLI tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          python -m pip install --upgrade pip pip-audit
+          go install github.com/gitleaks/gitleaks/v8@latest
+          echo "$(go env GOPATH)/bin" >> "${GITHUB_PATH}"
+
+          KUSTOMIZE_VERSION="5.7.1"
+          curl -fsSL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" \
+            | tar -xz -C /tmp kustomize
+          sudo install /tmp/kustomize /usr/local/bin/kustomize
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v4
+
+      - name: Install project dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+          make setup
+
+      - name: Run production readiness checklist
+        shell: bash
+        run: ./scripts/production-readiness-check.sh
