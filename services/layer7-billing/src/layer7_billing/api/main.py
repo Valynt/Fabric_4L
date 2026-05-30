@@ -1,7 +1,12 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from fastapi import Depends
+import json
+import os
+import time
+from typing import Any
+
+from fastapi import Depends, Header, HTTPException, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -14,10 +19,47 @@ from value_fabric.shared.identity.dependencies import require_authenticated
 from ..database import get_db_from_context, health_probe, lifespan
 from .. import repository
 from ..logging_config import configure_structured_logging
+from ..webhook_security import (
+    DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
+    verify_stripe_webhook_signature,
+)
 
 # Configure structured logging
 configure_structured_logging()
 logger = structlog.get_logger(__name__)
+
+
+_STRIPE_WEBHOOK_REPLAY_CACHE: dict[str, int] = {}
+
+
+def _stripe_webhook_secret() -> str | None:
+    return os.getenv("STRIPE_WEBHOOK_SECRET")
+
+
+def _stripe_webhook_tolerance_seconds() -> int:
+    raw_tolerance = os.getenv(
+        "STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS",
+        str(DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS),
+    )
+    try:
+        return int(raw_tolerance)
+    except ValueError:
+        return DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS
+
+
+def _reject_replayed_stripe_event(
+    event_id: str, timestamp: int, *, now: int | None = None
+) -> None:
+    current_time = int(time.time()) if now is None else now
+    tolerance_seconds = _stripe_webhook_tolerance_seconds()
+    expired_before = current_time - tolerance_seconds
+    for cached_event_id, cached_timestamp in list(_STRIPE_WEBHOOK_REPLAY_CACHE.items()):
+        if cached_timestamp < expired_before:
+            del _STRIPE_WEBHOOK_REPLAY_CACHE[cached_event_id]
+
+    if event_id in _STRIPE_WEBHOOK_REPLAY_CACHE:
+        raise ValueError("Duplicate Stripe webhook event")
+    _STRIPE_WEBHOOK_REPLAY_CACHE[event_id] = timestamp
 
 
 class Plan(BaseModel):
@@ -166,3 +208,63 @@ async def payment_state(
     state = await repository.get_payment_state(db, str(ctx.tenant_id))
     logger.info("Payment state retrieved", tenant_id=str(ctx.tenant_id), state_key=state.get("state_key"), operation="payment_state", route="/v1/billing/payment-state")
     return state
+
+
+@app.post("/v1/billing/webhook")
+async def stripe_webhook(
+    request: Request,
+    stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+) -> dict[str, Any]:
+    """Receive Stripe billing webhooks after HMAC signature verification.
+
+    Stripe webhooks are authenticated by ``Stripe-Signature`` rather than a
+    tenant header or user JWT. The raw request body is verified before JSON is
+    parsed, and event IDs are cached within the timestamp tolerance window to
+    reject immediate replay attempts.
+    """
+
+    body = await request.body()
+    tolerance_seconds = _stripe_webhook_tolerance_seconds()
+    try:
+        signature = verify_stripe_webhook_signature(
+            body,
+            stripe_signature,
+            _stripe_webhook_secret(),
+            tolerance_seconds=tolerance_seconds,
+        )
+        event = json.loads(body)
+        event_id = event.get("id") if isinstance(event, dict) else None
+        event_type = event.get("type") if isinstance(event, dict) else None
+        if not isinstance(event_id, str) or not event_id.strip():
+            raise ValueError("Stripe webhook event id is required")
+        _reject_replayed_stripe_event(event_id, signature.timestamp)
+    except json.JSONDecodeError as exc:
+        logger.warning(
+            "Stripe webhook JSON decoding rejected",
+            operation="stripe_webhook",
+            route="/v1/billing/webhook",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Stripe webhook payload",
+        ) from exc
+    except ValueError as exc:
+        logger.warning(
+            "Stripe webhook validation rejected",
+            reason=str(exc),
+            operation="stripe_webhook",
+            route="/v1/billing/webhook",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Invalid Stripe webhook payload",
+        ) from exc
+
+    logger.info(
+        "Stripe webhook accepted",
+        event_id=event_id,
+        event_type=event_type,
+        operation="stripe_webhook",
+        route="/v1/billing/webhook",
+    )
+    return {"received": True, "event_id": event_id}
