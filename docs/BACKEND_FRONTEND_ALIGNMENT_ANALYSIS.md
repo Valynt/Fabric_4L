@@ -436,7 +436,7 @@ ProspectSetup.tsx
 
 **Endpoint:** `POST /v1/prospects/{id}/start-analysis`
 
-**Location:** `services/layer4-agents/src/api/routes/prospects.py:310-588`
+**Location:** `services/layer4-agents/src/layer4_agents/api/routes/prospects.py:310-588`
 
 **Rationale:**
 - Consolidates prospect creation + workflow trigger in single atomic operation
@@ -610,9 +610,9 @@ interface StartAnalysisResponse {
 ### Backend Key Files
 - `services/layer3-knowledge/src/api/routes/products.py:138-333`
 - `services/layer3-knowledge/src/api/routes/evidence.py:105-286`
-- `services/layer4-agents/src/api/routes/prospects.py:40-100`
-- `services/layer4-agents/src/api/routes/value_hypotheses.py:99-256`
-- `services/layer4-agents/src/api/routes/workflows.py:243-649`
+- `services/layer4-agents/src/layer4_agents/api/routes/prospects.py:40-100`
+- `services/layer4-agents/src/layer4_agents/api/routes/value_hypotheses.py:99-256`
+- `services/layer4-agents/src/layer4_agents/api/routes/workflows.py:243-649`
 
 ### Frontend Key Files
 - `apps/web/src/value-pilot/pages/ProspectSetup.tsx:1-340`

@@ -951,7 +951,7 @@ Even for internal APIs:
 
 **Affected Consumers:**
 - Frontend: `apps/web/src/features/workflows/hooks/useWorkflowStatus.ts`
-- Agents: `services/layer4-agents/src/tools/monitor_workflow.py`
+- Agents: `services/layer4-agents/src/layer4_agents/tools/monitor_workflow.py`
 - Tests: `tests/contract/test_l4_workflows_contract.py`
 
 **Migration Plan:**

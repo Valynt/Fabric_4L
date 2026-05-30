@@ -21,7 +21,7 @@ The implementation adds `apps/web/src/lib/schemas/evidence.ts` as the evidence d
 | `docs/contracts/type-alignment-sprint-5-evidence-boundary-evidence.md` | Records Sprint 5 implementation scope, validation evidence, residual risks, and handoff recommendations. |
 | `contracts/openapi/layer3-knowledge.json`, `contracts/openapi/layer4-agents.json`, `apps/web/src/api/generated/l3/index.ts`, `apps/web/src/api/generated/l4/index.ts` | Includes regenerated contract artifacts required by the rebased backend service sources so the repository contract freshness gate passes from the committed tree. |
 | `apps/web/src/pages/AgentWorkflows.tsx` | Applies minimal compatibility fixes for upstream workflow request and status changes discovered during rebase validation, preserving Sprint 5 typecheck. |
-| `services/layer4-agents/src/api/routes/workflows.py` | Stabilizes the Layer 4 workflow type enum order so regenerated OpenAPI and frontend DTO artifacts remain deterministic across contract freshness runs. |
+| `services/layer4-agents/src/layer4_agents/api/routes/workflows.py` | Stabilizes the Layer 4 workflow type enum order so regenerated OpenAPI and frontend DTO artifacts remain deterministic across contract freshness runs. |
 
 ## Boundary Scope
 

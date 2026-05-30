@@ -4,7 +4,7 @@ import os
 samples = [
     "services/layer3-knowledge/src/api/routes/entities.py",
     "services/layer3-knowledge/src/retrieval/graph_rag.py",
-    "services/layer4-agents/src/tools/registry.py",
+    "services/layer4-agents/src/layer4_agents/tools/registry.py",
     "services/layer3-knowledge/src/schema/initializer.py",
     "services/layer4-agents/src/database.py",
 ]

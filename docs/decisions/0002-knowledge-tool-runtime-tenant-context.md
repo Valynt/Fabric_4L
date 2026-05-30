@@ -21,7 +21,7 @@ Change `knowledge_tools.py` to resolve tenant context **at execution time** thro
 
 ### File changed
 
-- `services/layer4-agents/src/tools/knowledge_tools.py`
+- `services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py`
   - Before: stored a local reference to the context resolver function (e.g., `_resolve_tenant = some_module.resolve_tenant`)
   - After: imports the context module and calls `tenant_context.resolve_tenant(...)` at each tool invocation
 
@@ -72,7 +72,7 @@ tests/security/test_knowledge_tools_tenant_isolation.py::test_tenant_resolution_
 ## Related
 - Related ADRs: [ADR-0003: Audit Emission Middleware Boundary](0003-audit-emission-middleware-boundary.md) -- both concern Layer 4 tenant context propagation
 - Related files:
-  - `services/layer4-agents/src/tools/knowledge_tools.py`
+  - `services/layer4-agents/src/layer4_agents/tools/knowledge_tools.py`
   - `tests/security/test_knowledge_tools_tenant_isolation.py`
 - Related tests:
   - `python -m pytest tests/security/test_knowledge_tools_tenant_isolation.py -n 0 --maxfail=1 -vv`

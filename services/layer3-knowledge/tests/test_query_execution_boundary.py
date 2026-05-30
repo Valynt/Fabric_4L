@@ -15,13 +15,13 @@ from db.query_execution import TenantQueryValidationError, run_validated_query
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 HIGH_RISK_RUNTIME_ROOTS = (
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "routes",
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "services",
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "agents",
+    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api",
+    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "ingestion",
     REPO_ROOT / "services" / "layer3-knowledge" / "src" / "analytics",
-    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "retrieval",
+    REPO_ROOT / "services" / "layer3-knowledge" / "src" / "agents",
 )
 SCANNER = REPO_ROOT / "scripts" / "check_layer3_cypher_scope.py"
+QUERY_ENTRYPOINT_SCANNER = REPO_ROOT / "scripts" / "ci" / "check_layer3_query_entrypoints.py"
 ALLOWED_SYSTEM_SCOPED_PATH_FRAGMENTS = (
     "services/layer3-knowledge/src/schema/",
     "services/layer3-knowledge/src/migrations/",
@@ -79,11 +79,37 @@ def test_layer3_scanner_blocks_direct_session_run_in_high_risk_runtime() -> None
             "--root",
             str(REPO_ROOT),
             "--paths",
-            "services/layer3-knowledge/src/api/routes",
-            "services/layer3-knowledge/src/services",
-            "services/layer3-knowledge/src/agents",
+            "services/layer3-knowledge/src/api",
+            "services/layer3-knowledge/src/ingestion",
             "services/layer3-knowledge/src/analytics",
+            "services/layer3-knowledge/src/agents",
             "--warnings-as-errors",
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stdout + "\n" + result.stderr
+
+
+
+
+@pytest.mark.mandatory
+def test_layer3_query_entrypoint_matrix_blocks_direct_session_run_in_runtime() -> None:
+    """CI entrypoint matrix must fail if L3 runtime code calls session.run directly."""
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(QUERY_ENTRYPOINT_SCANNER),
+            "services/layer3-knowledge/src/api",
+            "services/layer3-knowledge/src/ingestion",
+            "services/layer3-knowledge/src/analytics",
+            "services/layer3-knowledge/src/agents",
+            "--report-json",
+            "artifacts/test-layer3-query-entrypoint-matrix.json",
         ],
         cwd=REPO_ROOT,
         text=True,

@@ -6,10 +6,13 @@ on:
     paths:
       - 'k8s/**'
       - '.github/workflows/k8s-validation.yml'
+      - 'scripts/ci/check_production_k8s_mutable_tags.py'
   push:
     branches: [main]
     paths:
       - 'k8s/**'
+      - '.github/workflows/k8s-validation.yml'
+      - 'scripts/ci/check_production_k8s_mutable_tags.py'
   workflow_dispatch:
 
 permissions:
@@ -46,6 +49,9 @@ jobs:
           kubectl kustomize k8s/overlays/production/ > /dev/null
           echo "Production overlay: OK"
 
+      - name: Reject :latest/:main in production K8s manifests
+        run: python3 scripts/ci/check_production_k8s_mutable_tags.py
+
       - name: Validate staging overlay
         run: |
           echo "Validating staging overlay..."
@@ -55,7 +61,7 @@ jobs:
       - name: Validate dev overlay
         run: |
           echo "Validating dev overlay..."
-          kubectl kustomize k8s/overlays/dev/ > /dev/null
+          kubectl kustomize k8s/envs/dev/ > /dev/null
           echo "Dev overlay: OK"
 
       - name: Check for forbidden legacy paths in manifests

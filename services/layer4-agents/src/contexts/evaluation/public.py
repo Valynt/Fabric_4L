@@ -1,5 +1,7 @@
-"""Public façade for evaluation context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...models.tool_schemas import EvaluateFormulaInput, EvaluateFormulaOutput
+The implementation lives in ``layer4_agents.contexts.evaluation.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["EvaluateFormulaInput", "EvaluateFormulaOutput"]
+from layer4_agents.contexts.evaluation.public import *  # noqa: F401,F403

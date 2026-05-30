@@ -1,9 +1,9 @@
 """Background worker that drains the Redis audit queue into PostgreSQL.
 
 P1-005: Runs as an asyncio task (typically started in a FastAPI lifespan) and
-polls the ``audit:pending`` Redis list.  Each event is written to the
-``audit_events`` table with exponential-backoff retry.  After 3 failed attempts
-the event is moved to ``audit:dead-letter``.
+polls the environment/service-scoped audit pending Redis list.  Each event is
+written to the ``audit_events`` table with exponential-backoff retry.  After 3
+failed attempts the event is moved to the matching audit dead-letter list.
 """
 
 from __future__ import annotations

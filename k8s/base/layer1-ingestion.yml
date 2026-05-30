@@ -51,7 +51,7 @@ spec:
           emptyDir: {}
       containers:
         - name: api
-          image: value-fabric/layer1-ingestion:main
+          image: services/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000
@@ -126,7 +126,7 @@ spec:
               mountPath: /app/raw-content
         # Celery worker sidecar
         - name: celery-worker
-          image: value-fabric/layer1-ingestion:main
+          image: services/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           command: ["celery", "-A", "layer1_ingestion.shared.tasks", "worker", "-l", "info"]
           securityContext:
             runAsNonRoot: true

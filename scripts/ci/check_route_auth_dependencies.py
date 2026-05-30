@@ -18,10 +18,10 @@ import yaml
 HTTP_METHODS = {"get", "post", "put", "patch", "delete", "options", "head"}
 DEFAULT_TARGETS = [
     "services/api/app/main.py",
-    "services/layer1-ingestion/src/api/main.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "services/layer3-knowledge/src/api/main.py",
-    "services/layer4-agents/src/api/main.py",
+    "services/layer4-agents/src/layer4_agents/api/main.py",
     "services/layer5-ground-truth/src/layer5_ground_truth/api/main.py",
     "services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
 ]

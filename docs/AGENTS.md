@@ -193,9 +193,9 @@ If it fails, keep the canonical implementation in `services/layer5-ground-truth/
    }
    ```
 
-3. Implement the tool function in `services/layer4-agents/src/tools/`.
+3. Implement the tool function in `services/layer4-agents/src/layer4_agents/tools/`.
 
-4. Register the tool in `services/layer4-agents/src/tools/__init__.py`.
+4. Register the tool in `services/layer4-agents/src/layer4_agents/tools/__init__.py`.
 
 5. Add a golden-trace eval in `tests/evals/skills/test_<name>.py`.
 
@@ -207,7 +207,7 @@ If it fails, keep the canonical implementation in `services/layer5-ground-truth/
 
 1. Create the agent definition in `layer4-agents/agents/<name>_agent.md` with frontmatter
    listing its allowed skills.
-2. Implement the agent in `services/layer4-agents/src/agents/<name>.py`.
+2. Implement the agent in `services/layer4-agents/src/layer4_agents/agents/<name>.py`.
 3. Register it in the agent router.
 4. Add integration tests in `services/layer4-agents/tests/`.
 5. Document its purpose and constraints in the definition file.

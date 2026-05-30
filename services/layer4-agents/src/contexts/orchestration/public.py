@@ -1,5 +1,7 @@
-"""Public façade for orchestration context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...engine.state_manager import StateManager
+The implementation lives in ``layer4_agents.contexts.orchestration.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["StateManager"]
+from layer4_agents.contexts.orchestration.public import *  # noqa: F401,F403

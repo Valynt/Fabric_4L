@@ -1,9 +1,7 @@
-"""Layer 4 agents services package.
+"""Compatibility shim for the canonical Layer 4 module.
 
-Provides flat-namespace `services.*` imports used internally by Layer 4
-modules (e.g. `from services.llm_output_parser import parse_llm_json`).
-
-Marker file required so that during OpenAPI schema export the layer4 `src/`
-path resolves `services` as a regular package and Python does not aggregate
-other layers' `services/` directories via namespace-package resolution.
+The implementation lives in ``layer4_agents.services``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
 """
+
+from layer4_agents.services import *  # noqa: F401,F403

@@ -1,5 +1,7 @@
-"""Public façade for provider adapter context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...models.account import CRMProvider
+The implementation lives in ``layer4_agents.contexts.providers.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["CRMProvider"]
+from layer4_agents.contexts.providers.public import *  # noqa: F401,F403

@@ -1,32 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-from datetime import UTC, datetime
-from typing import Any
+The implementation lives in ``layer4_agents.engine.execution_dispatch``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .scheduler import ScheduledTask
-
-
-def build_workflow_task(*, priority: int, workflow_id: str, tenant_id: str | None, user_id: str | None, workflow_type: str, workflow: Any, initial_state: Any, checkpoint_interval: int, handler: Any) -> ScheduledTask:
-    return ScheduledTask(
-        priority=priority,
-        scheduled_time=datetime.now(UTC),
-        task_id=f"wf-{workflow_id}",
-        workflow_instance_id=workflow_id,
-        capability="workflow_execution",
-        agent_type="OrchestrationController",
-        context={"tenant_id": tenant_id, "user_id": user_id, "workflow_type": workflow_type},
-        parameters={
-            "workflow": workflow,
-            "initial_state": initial_state,
-            "workflow_id": workflow_id,
-            "checkpoint_interval": checkpoint_interval,
-            "handler": handler,
-        },
-        tenant_id=tenant_id,
-        tenant_context={
-            "tenant_id": tenant_id,
-            "user_id": user_id,
-            "workflow_type": workflow_type,
-            "auth_source": "workflow_execution",
-        },
-    )
+from layer4_agents.engine.execution_dispatch import *  # noqa: F401,F403

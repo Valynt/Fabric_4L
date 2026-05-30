@@ -1,9 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Configuration module for Layer 4 Agents."""
+The implementation lives in ``layer4_agents.config``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from .checkpoint import CheckpointConfig, get_checkpoint_saver
-from .settings import configure_settings
-
-__all__ = ["CheckpointConfig", "get_checkpoint_saver", "configure_settings"]
+from layer4_agents.config import *  # noqa: F401,F403

@@ -49,7 +49,7 @@ spec:
           emptyDir: {}
       containers:
         - name: api
-          image: value-fabric/layer4-agents:main
+          image: services/layer4-agents@sha256:0300c79009d884d2576a6b7dcb15606316f02fcadb9a6800a7da4fcf1e205f29
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

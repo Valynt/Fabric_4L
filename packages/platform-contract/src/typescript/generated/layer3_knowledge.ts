@@ -2300,6 +2300,64 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/graph/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Graph Signals */
+        get: operations["list_graph_signals_v1_graph_signals_get"];
+        put?: never;
+        /**
+         * Persist Signal
+         * @description Persist a ValueSignal as a Neo4j node and link to its Account.
+         *
+         *     Called by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).
+         *     Phase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.
+         */
+        post: operations["persist_signal_v1_graph_signals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/signals/{signal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Graph Signal */
+        get: operations["get_graph_signal_v1_graph_signals__signal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/signals/{signal_id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Signal Related */
+        get: operations["get_signal_related_v1_graph_signals__signal_id__related_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -4524,23 +4582,10 @@ export interface components {
              */
             density: number;
         };
-        /**
-         * HTTPValidationError
-         * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
-         */
+        /** HTTPValidationError */
         HTTPValidationError: {
-            error: {
-                /** @description Machine-readable error code */
-                code: string;
-                /** @description Human-readable error message */
-                message: string;
-                /** @description Request ID for support correlation */
-                request_id: string;
-                /** @description Optional sanitized error details */
-                details?: {
-                    [key: string]: unknown;
-                } | null;
-            };
+            /** Detail */
+            detail?: components["schemas"]["ValidationError"][];
         };
         /**
          * HealthResponse
@@ -7765,6 +7810,51 @@ export interface components {
                     [key: string]: unknown;
                 } | null;
             };
+        };
+        /** SignalListResponse */
+        SignalListResponse: {
+            /** Items */
+            items: components["schemas"]["SignalNode"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
+        /** SignalNode */
+        SignalNode: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Type */
+            type: string;
+            /** Content */
+            content: string;
+            /** Confidence */
+            confidence: number;
+            /** Trust Score */
+            trust_score?: number | null;
+            /** Lifecycle State */
+            lifecycle_state?: string | null;
+            /** Impact Area */
+            impact_area?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** SignalRelatedResponse */
+        SignalRelatedResponse: {
+            /** Value Drivers */
+            value_drivers: unknown[];
+            /** Personas */
+            personas: unknown[];
+            /** Accounts */
+            accounts: unknown[];
         };
     };
     responses: never;
@@ -12313,6 +12403,139 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_graph_signals_v1_graph_signals_get: {
+        parameters: {
+            query: {
+                account_id: string;
+                lifecycle_states?: string[] | null;
+                types?: string[] | null;
+                min_confidence?: number;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    persist_signal_v1_graph_signals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalNode"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_graph_signal_v1_graph_signals__signal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalNode"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_signal_related_v1_graph_signals__signal_id__related_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalRelatedResponse"];
                 };
             };
             /** @description Validation Error */

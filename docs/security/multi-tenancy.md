@@ -366,4 +366,4 @@ Every request has its tenant resolution logged:
 - `shared/identity/context.py` - RequestContext definition
 - `shared/identity/middleware.py` - GovernanceMiddleware
 - `services/layer4-agents/src/database.py` - DB session management
-- `services/layer4-agents/src/tenants/models/` - Tenant models
+- `services/layer4-agents/src/layer4_agents/tenants/models/` - Tenant models

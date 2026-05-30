@@ -36,11 +36,11 @@ Critical security gaps (tenant isolation bypass, environment fallback, missing R
 
 | File | Change |
 |------|--------|
-| `services/layer4-agents/src/services/crm_sync_scheduler.py` | **Rewritten.** Removed `app.tenant_id = ''`. Added per-tenant sweep with `db_session_for_context()`. |
-| `services/layer4-agents/src/services/crm_sync_service.py` | Removed `ALLOW_ENV_CRM_FALLBACK`. Added token refresh call. Added structured logging and metrics. |
-| `services/layer4-agents/src/services/integration_service.py` | Added `refresh_salesforce_token()`. **SECURITY:** Removed `refresh_token` from `create_or_update_integration()` API. Tokens only obtained via OAuth callback. |
-| `services/layer4-agents/src/models/integration.py` | Added `DEGRADED` to `IntegrationStatus`. Added `refresh_token_encrypted` and `salesforce_org_id` columns. `to_dict()` now returns `has_refresh_token: bool` instead of token. |
-| `services/layer4-agents/src/api/routes/integrations.py` | **SECURITY:** Removed `refresh_token` from `IntegrationCreateRequest`. Response schema now includes `has_refresh_token: bool`. |
+| `services/layer4-agents/src/layer4_agents/services/crm_sync_scheduler.py` | **Rewritten.** Removed `app.tenant_id = ''`. Added per-tenant sweep with `db_session_for_context()`. |
+| `services/layer4-agents/src/layer4_agents/services/crm_sync_service.py` | Removed `ALLOW_ENV_CRM_FALLBACK`. Added token refresh call. Added structured logging and metrics. |
+| `services/layer4-agents/src/layer4_agents/services/integration_service.py` | Added `refresh_salesforce_token()`. **SECURITY:** Removed `refresh_token` from `create_or_update_integration()` API. Tokens only obtained via OAuth callback. |
+| `services/layer4-agents/src/layer4_agents/models/integration.py` | Added `DEGRADED` to `IntegrationStatus`. Added `refresh_token_encrypted` and `salesforce_org_id` columns. `to_dict()` now returns `has_refresh_token: bool` instead of token. |
+| `services/layer4-agents/src/layer4_agents/api/routes/integrations.py` | **SECURITY:** Removed `refresh_token` from `IntegrationCreateRequest`. Response schema now includes `has_refresh_token: bool`. |
 | `services/layer4-agents/migrations/versions/021_add_salesforce_oauth_fields.py` | **New migration.** Adds columns and partial index for active Salesforce integrations. |
 | `.env.example` | Documented `SALESFORCE_CLIENT_ID`, `SALESFORCE_CLIENT_SECRET`, `SALESFORCE_REDIRECT_URI`. Added warning about `ALLOW_ENV_CRM_FALLBACK`. |
 

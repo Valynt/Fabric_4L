@@ -6,11 +6,13 @@ on:
     paths:
       - "k8s/**"
       - ".github/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
   push:
     branches: [main]
     paths:
       - "k8s/**"
       - ".github/workflows/k8s-readiness.yml"
+      - "scripts/ci/check_production_k8s_mutable_tags.py"
   workflow_dispatch:
 
 permissions: read-all
@@ -56,10 +58,13 @@ jobs:
       - name: Run Kubernetes preflight guardrails
         run: python3 scripts/ci/k8s_preflight.py
 
+      - name: Reject :latest/:main in production K8s manifests
+        run: python3 scripts/ci/check_production_k8s_mutable_tags.py
+
       - name: Render overlays
         run: |
-          kustomize build k8s/overlays/dev > /tmp/dev.yaml
-          kustomize build k8s/overlays/prod > /tmp/prod.yaml
+          kustomize build k8s/envs/dev --load-restrictor=LoadRestrictionsNone > /tmp/dev.yaml
+          kustomize build k8s/envs/prod --load-restrictor=LoadRestrictionsNone > /tmp/prod.yaml
 
       - name: Schema validate overlays
         run: |
@@ -109,11 +114,11 @@ jobs:
 
       - name: Server-side dry-run (dev overlay)
         run: |
-          kubectl apply --dry-run=server -k k8s/overlays/dev
+          kubectl apply --dry-run=server -k k8s/envs/dev
 
       - name: Server-side dry-run (prod overlay)
         run: |
-          kubectl apply --dry-run=server -k k8s/overlays/prod
+          kubectl apply --dry-run=server -k k8s/envs/prod
 
       - name: Upload rendered manifests on failure
         if: failure()

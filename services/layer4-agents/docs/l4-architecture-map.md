@@ -9,12 +9,12 @@ This map defines bounded contexts for Layer 4 and the intended import boundaries
 
 | Context | Primary modules | Public façade |
 |---|---|---|
-| Orchestration | `agents/`, `workflows/`, `engine/` | `services/layer4-agents/src/contexts/orchestration/public.py` |
-| Tools | `tools/`, `skills/` | `services/layer4-agents/src/contexts/tools/public.py` |
-| Memory / checkpointing | `messaging/`, `models/run_envelope.py`, `engine/state_manager.py` | `services/layer4-agents/src/contexts/memory/public.py` |
-| Provider adapters | `integration/`, `models/account.py`, `models/integration.py`, `models/crm_sync_job.py` | `services/layer4-agents/src/contexts/providers/public.py` |
-| Evaluation | `harness/`, `models/workflow_config.py`, `models/tool_schemas.py` | `services/layer4-agents/src/contexts/evaluation/public.py` |
-| API surface | `api/`, `contracts/` | `services/layer4-agents/src/contexts/api_surface/public.py` |
+| Orchestration | `agents/`, `workflows/`, `engine/` | `services/layer4-agents/src/layer4_agents/contexts/orchestration/public.py` |
+| Tools | `tools/`, `skills/` | `services/layer4-agents/src/layer4_agents/contexts/tools/public.py` |
+| Memory / checkpointing | `messaging/`, `models/run_envelope.py`, `engine/state_manager.py` | `services/layer4-agents/src/layer4_agents/contexts/memory/public.py` |
+| Provider adapters | `integration/`, `models/account.py`, `models/integration.py`, `models/crm_sync_job.py` | `services/layer4-agents/src/layer4_agents/contexts/providers/public.py` |
+| Evaluation | `harness/`, `models/workflow_config.py`, `models/tool_schemas.py` | `services/layer4-agents/src/layer4_agents/contexts/evaluation/public.py` |
+| API surface | `api/`, `contracts/` | `services/layer4-agents/src/layer4_agents/contexts/api_surface/public.py` |
 
 ## Dependency rules
 

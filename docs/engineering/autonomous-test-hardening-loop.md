@@ -6,7 +6,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 1
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py`
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py`
 - **Defect or missing behavior:** `_execute_generate_sections` returns `BusinessCaseGeneratorWorkflow__execute_generate_sectionsResult` missing required fields `blocked`, `error`, `remediation_items`, `truth_references`
 - **Why this matters:** Pydantic v2 raises `ValidationError` when required fields are missing, causing the workflow step to crash at runtime
 - **Test added:** `test_generate_sections_returns_complete_result_with_all_required_fields` in `tests/test_langgraph_execution.py`
@@ -19,7 +19,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 2
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py`
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py`
 - **Defect or missing behavior:** `_execute_roi_subworkflow` returns `BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult` missing required fields `status` and `roi_results` when `case_input` is None
 - **Why this matters:** Pydantic v2 raises `ValidationError`, causing the workflow step to crash
 - **Test added:** `test_roi_subworkflow_returns_complete_result_when_input_missing` in `tests/test_langgraph_execution.py`
@@ -32,7 +32,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 3
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py`
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py`
 - **Defect or missing behavior:** `_execute_verify_truth_requirements` returns `BusinessCaseGeneratorWorkflow__execute_verify_truth_requirementsResult` missing required fields `organization_id`, `requirements`, `truth_references`, `remediation_items` when `case_input` is None
 - **Why this matters:** Pydantic v2 raises `ValidationError`, causing the workflow step to crash
 - **Test added:** `test_verify_truth_requirements_returns_complete_result_when_input_missing` in `tests/test_langgraph_execution.py`
@@ -46,7 +46,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 4
-- **Area inspected:** `services/layer4-agents/src/workflows/whitespace.py`
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/whitespace.py`
 - **Defect or missing behavior:** `_execute_analyze_prospect` success path missing required `error`; `_execute_identify_gaps` success path missing required `error`; `_execute_score_opportunity` success path missing required `score`. Additionally, f-string JSON example on line 158 used single braces causing `ValueError: Invalid format specifier` at runtime.
 - **Why this matters:** Pydantic v2 raises `ValidationError` when required fields are missing, crashing the workflow step. The f-string bug would also crash the workflow whenever the code path is reached.
 - **Tests added:** `test_analyze_prospect_returns_complete_result`, `test_identify_gaps_returns_complete_result`, `test_score_opportunity_returns_complete_result` in `tests/test_langgraph_execution.py` (under `TestWhitespaceAnalysisWorkflow`)
@@ -59,7 +59,7 @@ Start: 2026-05-13
   - Added `"error": ""` to `_execute_identify_gaps` success return dict
   - Added `"score": int(total_score)` to `_execute_score_opportunity` success return dict
   - Escaped JSON braces in f-string on line 158 (`{{` and `}}`)
-  - Also fixed `get_openai_provider` in `services/layer4-agents/src/services/llm_provider.py` to handle Pydantic model configs (not just dicts) — it was failing with `AttributeError: 'WorkflowConfig' object has no attribute 'get'`
+  - Also fixed `get_openai_provider` in `services/layer4-agents/src/layer4_agents/services/llm_provider.py` to handle Pydantic model configs (not just dicts) — it was failing with `AttributeError: 'WorkflowConfig' object has no attribute 'get'`
 - **Validation run:** `pytest tests/test_langgraph_execution.py::TestWhitespaceAnalysisWorkflow -v`
 - **Result:** 3 passed, 0 failed
 - **Remaining risk:** `_execute_query_capabilities` may have ToolResult contract drift (`.get("results")` on a ToolResult object). Other workflow files (`prospecting.py`, `competitive_analysis.py`, etc.) should be audited for the same required-field omission pattern.
@@ -68,7 +68,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 5
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py` (continued audit)
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py` (continued audit)
 - **Defect or missing behavior:** 
   - `_execute_gather_inputs` success path (line ~199) missing required `error` field
   - `_execute_verify_truth_requirements` no-requirements path (line ~441) missing required `organization_id` field
@@ -84,13 +84,13 @@ Start: 2026-05-13
   - Added `"organization_id": None` to `_execute_verify_truth_requirements` no-requirements return dict
 - **Validation run:** `pytest tests/test_langgraph_execution.py::TestBusinessCaseGeneratorWorkflow -v`
 - **Result:** 9 passed, 0 failed
-- **Remaining risk:** `_execute_query_capabilities` in `whitespace.py` uses `.get("results")` on `tool_registry.execute()` return, which will fail with ToolResult contract drift. `_sync_ground_truths_to_kg` success path returns raw `sync_result` from Layer5 client without validating against `BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult`. Other workflow files outside `services/layer4-agents/src/workflows/` may have similar patterns.
+- **Remaining risk:** `_execute_query_capabilities` in `whitespace.py` uses `.get("results")` on `tool_registry.execute()` return, which will fail with ToolResult contract drift. `_sync_ground_truths_to_kg` success path returns raw `sync_result` from Layer5 client without validating against `BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult`. Other workflow files outside `services/layer4-agents/src/layer4_agents/workflows/` may have similar patterns.
 
 
 ---
 
 ## Loop 6
-- **Area inspected:** `services/layer4-agents/src/workflows/whitespace.py` (ToolResult contract drift)
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/whitespace.py` (ToolResult contract drift)
 - **Defect or missing behavior:** `_execute_query_capabilities` and `_execute_identify_gaps` called `.get("results", [])` directly on `tool_registry.execute()` return. In production the registry returns `ToolResult` (not a raw dict), so `.get()` raises `AttributeError`.
 - **Why this matters:** Workflow steps crash at runtime when real ToolRegistry is wired in, because `ToolResult` has no `.get()` method — data lives in `.data`
 - **Test added:** `test_query_capabilities_handles_tool_result_contract` in `tests/test_langgraph_execution.py` (feeds `ToolResult.success(data={...})` to the mock registry)
@@ -107,7 +107,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 7
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py` — `_sync_ground_truths_to_kg`
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py` — `_sync_ground_truths_to_kg`
 - **Defect or missing behavior:** Success path returned raw `sync_result` from Layer 5 client without validating against `BusinessCaseGeneratorWorkflow__sync_ground_truths_to_kgResult`. If the upstream API omitted `error` (common on success), downstream consumers expecting the contract shape would receive an unvalidated dict.
 - **Why this matters:** Contract drift between Layer 4 workflow output and its declared result model; future consumers or serialization could break
 - **Test added:** `test_sync_ground_truths_normalizes_success_result` in `tests/test_langgraph_execution.py`
@@ -121,7 +121,7 @@ Start: 2026-05-13
 ---
 
 ## Loop 8
-- **Area inspected:** `services/layer4-agents/src/workflows/business_case.py` — async/await mismatch and ToolResult contract drift
+- **Area inspected:** `services/layer4-agents/src/layer4_agents/workflows/business_case.py` — async/await mismatch and ToolResult contract drift
 - **Defect or missing behavior:** 
   1. `is_enabled` (async feature-flag check) was called synchronously, causing it to return a coroutine object instead of a bool. This meant `enhanced_mode` was always truthy and the coroutine was never awaited.
   2. Multiple `.get()` calls on raw `tool_registry.execute()` results: `query_result.get("results")`, `chart_result.get("chart_data")`, `section_result.get("content")`, `result.get("document_bytes")`. Production `ToolRegistry.execute` returns `ToolResult` (data nested in `.data`), so these `.get()` calls would return `None` instead of the actual payload.

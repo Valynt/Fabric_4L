@@ -97,7 +97,7 @@ Confirm whether the provider discovery document, JWKS endpoint, authorization en
 Canonical runtime auth boundaries and integration points:
 - Shared identity boundary: `packages/shared/src/value_fabric/shared/identity/` (JWT decode, JWKS resolution, auth context, middleware, dependency gates).
 - Service middleware entrypoints: each service `api/main.py` (or equivalent) where `GovernanceMiddleware` is mounted.
-- Layer 4 OAuth callback boundary: `services/layer4-agents/src/api/routes/integrations.py` (`/v1/integrations/salesforce/oauth/callback`).
+- Layer 4 OAuth callback boundary: `services/layer4-agents/src/layer4_agents/api/routes/integrations.py` (`/v1/integrations/salesforce/oauth/callback`).
 
 Configuration and secret-management guardrail:
 - Keep `OIDC_ISSUER`, `OIDC_AUDIENCE`, `OIDC_JWKS_URL`/`OIDC_JWKS_JSON`, and callback state-signing secrets in Infisical/Vault (or ExternalSecrets-backed injection), not in repo-tracked environment files.

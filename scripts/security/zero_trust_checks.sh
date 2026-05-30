@@ -129,7 +129,7 @@ JSON
 # ZT-3 Service auth checks
 # ----------------------
 deps_file="${ROOT_DIR}/packages/shared/src/value_fabric/shared/identity/dependencies.py"
-l4_settings_file="${ROOT_DIR}/services/layer4-agents/src/config/settings.py"
+l4_settings_file="${ROOT_DIR}/services/layer4-agents/src/layer4_agents/config/settings.py"
 
 if check_file_contains "$middleware_file" "Bearer" && check_file_contains "$middleware_file" "X-API-Key"; then
   record "ZT-3.1 service authn paths" "pass" "Bearer + API key support found"

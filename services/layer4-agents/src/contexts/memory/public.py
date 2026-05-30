@@ -1,5 +1,7 @@
-"""Public façade for memory/checkpointing context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...models.run_envelope import RunEnvelope
+The implementation lives in ``layer4_agents.contexts.memory.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["RunEnvelope"]
+from layer4_agents.contexts.memory.public import *  # noqa: F401,F403

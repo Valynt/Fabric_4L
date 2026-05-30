@@ -19,6 +19,9 @@ Until then this directory is the **canonical DDL artifact** for:
 - `fabric_api_records`      (P0-01 JSONB bridge facade for API gateway domain objects)
 
 Every tenant-scoped table enables RLS with the canonical
-`tenant_id = current_setting('app.tenant_id', true)` predicate. The
+`tenant_id = current_setting('app.tenant_id', true)` predicate.
+`fabric_api_records` also forces RLS for table owners and applies the same
+predicate as both `USING` and `WITH CHECK`, so reserved tenant keywords such
+as `admin`, `internal`, and `system` do not bypass write isolation. The
 `apply_tenant_rls` helper in `value_fabric.shared.identity.fabric_auth.rls`
 sets that GUC from the verified `AuthContext` envelope on each request.

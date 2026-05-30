@@ -12,6 +12,7 @@ via the shared TenantScopedCypher utility.
 
 import logging
 import uuid
+from datetime import datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -23,6 +24,8 @@ from ...api.dependencies import (
     get_neo4j_driver,
     get_similarity_analyzer,
 )
+from ...db.audited_mutation import AuditedGraphMutation
+from ...db.query_execution import run_validated_query
 from ...api.models import (
     BatchAnalyticsRequest,
     BatchAnalyticsResponse,
@@ -41,6 +44,8 @@ from ...api.models import (
     SimilarityRequest,
     SimilarityResponse,
 )
+from ...db.audited_mutation import AuditedGraphMutation
+from ...db.query_execution import run_validated_query
 
 logger = logging.getLogger(__name__)
 
@@ -222,35 +227,39 @@ async def _create_entity(
     try:
         entity_id = str(uuid.uuid4())
         async with driver.session() as session:
-            query = """
-            CREATE (n:Entity {
-                id: $id,
-                entity_type: $entity_type,
-                tenant_id: $tenant_id,
-                created_at: datetime(),
-                updated_at: datetime()
-            })
-            SET n += $properties
-            RETURN n.id as entity_id
-            """
-            result = await session.run(
-                query,
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._create_entity",
+<<<<<<< ours
+<<<<<<< ours
+            )
+            properties = dict(operation.properties or {})
+            properties["entity_type"] = (
+                operation.entity_type.value if operation.entity_type else "Unknown"
+            )
+            await mutation.write_node("Entity", entity_id, properties)
+            return {"success": True, "entity_id": entity_id}
+    except Exception as e:
+=======
+=======
+>>>>>>> theirs
+            )
+            await mutation.write_node(
+                "Entity",
+                entity_id,
                 {
-                    "id": entity_id,
-                    "entity_type": (
-                        operation.entity_type.value
-                        if operation.entity_type
-                        else "Unknown"
-                    ),
-                    "tenant_id": tenant_id,
-                    "properties": operation.properties or {},
+                    **(operation.properties or {}),
+                    "entity_type": operation.entity_type.value if operation.entity_type else "Unknown",
+                    "created_at": datetime.utcnow().isoformat(),
                 },
             )
-            record = await result.single()
-            if record:
-                return {"success": True, "entity_id": record["entity_id"]}
-            return {"success": False, "error": "Failed to create entity"}
-    except Exception as e:
+            return {"success": True, "entity_id": entity_id}
+    except Exception:
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
@@ -261,25 +270,56 @@ async def _update_entity(
     if not tenant_id:
         return {"success": False, "error": "tenant_id is required for entity updates"}
     try:
+        if not await _snapshot_entity(driver, operation.entity_id, tenant_id):
+            return {"success": False, "error": "Entity not found"}
         async with driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._update_entity",
+<<<<<<< ours
+<<<<<<< ours
+            )
+            await mutation.write_node(
+                "Entity", operation.entity_id, operation.properties or {}
+            )
+            return {"success": True}
+    except Exception as e:
+=======
+=======
+>>>>>>> theirs
+            )
             query = """
             MATCH (n {id: $entity_id, tenant_id: $tenant_id})
             SET n += $properties, n.updated_at = datetime()
             RETURN n.id as entity_id
             """
-            result = await session.run(
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "entity_id": operation.entity_id,
                     "tenant_id": tenant_id,
                     "properties": operation.properties or {},
                 },
+                tenant_id=tenant_id,
+                query_name="analytics_update_entity",
             )
             record = await result.single()
             if record:
+                await mutation._audit_node(
+                    "UPDATE_NODE",
+                    "Entity",
+                    operation.entity_id or "unknown",
+                    operation.properties or {},
+                )
                 return {"success": True}
             return {"success": False, "error": "Entity not found"}
-    except Exception as e:
+    except Exception:
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
         return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
@@ -290,20 +330,29 @@ async def _delete_entity(
     if not tenant_id:
         return {"success": False, "error": "tenant_id is required for entity deletion"}
     try:
-        async with driver.session() as session:
-            query = """
-            MATCH (n {id: $entity_id, tenant_id: $tenant_id})
-            DETACH DELETE n
-            RETURN count(n) as deleted
-            """
-            result = await session.run(
-                query, {"entity_id": operation.entity_id, "tenant_id": tenant_id}
-            )
-            record = await result.single()
-            if record and record["deleted"] > 0:
-                return {"success": True}
+        if not await _snapshot_entity(driver, operation.entity_id, tenant_id):
             return {"success": False, "error": "Entity not found"}
+        async with driver.session() as session:
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._delete_entity",
+            )
+<<<<<<< ours
+<<<<<<< ours
+            await mutation.delete_node("Entity", operation.entity_id)
+            return {"success": True}
     except Exception as e:
+=======
+            await mutation.delete_node("Entity", operation.entity_id or "")
+            return {"success": True}
+    except Exception:
+>>>>>>> theirs
+=======
+            await mutation.delete_node("Entity", operation.entity_id or "")
+            return {"success": True}
+    except Exception:
+>>>>>>> theirs
         return {"success": False, "error": "ENTITY_CREATE_ERROR"}
 
 
@@ -314,10 +363,12 @@ async def _delete_entity_by_id(
     if not tenant_id:
         raise ValueError("tenant_id is required for entity deletion")
     async with driver.session() as session:
-        await session.run(
-            "MATCH (n {id: $entity_id, tenant_id: $tenant_id}) DETACH DELETE n",
-            {"entity_id": entity_id, "tenant_id": tenant_id},
+        mutation = AuditedGraphMutation(
+            tenant_id=tenant_id,
+            session=session,
+            operation_source="analytics._delete_entity_by_id",
         )
+        await mutation.delete_node("Entity", entity_id)
 
 
 async def _snapshot_entity(
@@ -326,9 +377,25 @@ async def _snapshot_entity(
     """Capture a node's current properties for rollback purposes."""
     try:
         async with driver.session() as session:
-            result = await session.run(
+            result = await run_validated_query(
+                session,
+<<<<<<< ours
+<<<<<<< ours
+                "MATCH (n:Entity {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
+                {"entity_id": entity_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                query_name="analytics.snapshot_entity",
+=======
+=======
+>>>>>>> theirs
                 "MATCH (n {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
                 {"entity_id": entity_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                query_name="analytics_snapshot_entity",
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
             )
             record = await result.single()
             return dict(record["props"]) if record else None
@@ -343,13 +410,40 @@ async def _restore_entity(
     """Restore a node to a previously captured snapshot."""
     try:
         async with driver.session() as session:
-            await session.run(
+<<<<<<< ours
+<<<<<<< ours
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._restore_entity",
+            )
+            await mutation.write_node("Entity", entity_id, snapshot)
+=======
+=======
+>>>>>>> theirs
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (n {id: $entity_id, tenant_id: $tenant_id})
                 SET n = $snapshot
+                RETURN n.id as entity_id
                 """,
                 {"entity_id": entity_id, "tenant_id": tenant_id, "snapshot": snapshot},
+                tenant_id=tenant_id,
+                query_name="analytics_restore_entity",
             )
+            record = await result.single()
+            if record:
+                mutation = AuditedGraphMutation(
+                    tenant_id=tenant_id,
+                    session=session,
+                    operation_source="analytics._restore_entity",
+                )
+                await mutation._audit_node("RESTORE_NODE", "Entity", entity_id, snapshot)
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
     except Exception as e:
         logger.error("Rollback restore failed for entity %s: %s", entity_id, e)
 
@@ -360,13 +454,32 @@ async def _recreate_entity(
     """Re-create a node that was deleted during a batch that is being rolled back."""
     try:
         async with driver.session() as session:
-            await session.run(
-                """
-                CREATE (n:Entity)
-                SET n = $snapshot
-                """,
-                {"snapshot": {**snapshot, "tenant_id": tenant_id}},
+<<<<<<< ours
+<<<<<<< ours
+=======
+            node_id = str(snapshot.get("id") or "")
+            if not node_id:
+                raise ValueError("snapshot id is required to recreate entity")
+>>>>>>> theirs
+=======
+            node_id = str(snapshot.get("id") or "")
+            if not node_id:
+                raise ValueError("snapshot id is required to recreate entity")
+>>>>>>> theirs
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="analytics._recreate_entity",
             )
+<<<<<<< ours
+<<<<<<< ours
+            await mutation.write_node("Entity", str(snapshot.get("id")), snapshot)
+=======
+            await mutation.write_node("Entity", node_id, snapshot)
+>>>>>>> theirs
+=======
+            await mutation.write_node("Entity", node_id, snapshot)
+>>>>>>> theirs
     except Exception as e:
         logger.error(
             "Rollback re-create failed for entity %s: %s",
@@ -468,7 +581,7 @@ async def batch_entity_operations(
                         }
                     )
 
-            except Exception as e:
+            except Exception:
                 failed += 1
                 results.append(
                     {

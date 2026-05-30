@@ -50,11 +50,11 @@ Comprehensive production security audit completed. **10 security/reliability iss
 ## Files Changed
 
 ```
-services/layer4-agents/src/api/main.py                          (+14 lines)
-services/layer4-agents/src/api/routes/billing.py                (+63 lines)
-services/layer4-agents/src/api/routes/health_badges.py        (+14 lines)
-services/layer4-agents/src/config/settings.py                   (+46 lines)
-services/layer4-agents/src/metrics/prometheus_metrics.py      (+76 lines)
+services/layer4-agents/src/layer4_agents/api/main.py                          (+14 lines)
+services/layer4-agents/src/layer4_agents/api/routes/billing.py                (+63 lines)
+services/layer4-agents/src/layer4_agents/api/routes/health_badges.py        (+14 lines)
+services/layer4-agents/src/layer4_agents/config/settings.py                   (+46 lines)
+services/layer4-agents/src/layer4_agents/metrics/prometheus_metrics.py      (+76 lines)
 services/layer4-agents/tests/test_security_fixes.py             (+342 lines)
 ```
 

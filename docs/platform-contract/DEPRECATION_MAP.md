@@ -5,7 +5,7 @@
 | Deprecated Pattern | Canonical Replacement | Migration Deadline | Notes | Migration Status | Validation |
 |---|---|---|---|
 | request.state.context | request.state.governance_context | 2026-05-15 | Layer 3 still uses old name | complete | `rg` scan across canonical runtime paths (no hits) |
-| TenantContext (L4) | shared.identity.RequestContext | 2026-05-15 | services/layer4-agents/src/tenant/context.py | waived-with-exception | DEP-EXC-2026-05-15-L4-TENANTCONTEXT |
+| TenantContext (L4) | shared.identity.RequestContext | 2026-05-15 | services/layer4-agents/src/layer4_agents/tenant/context.py | waived-with-exception | DEP-EXC-2026-05-15-L4-TENANTCONTEXT |
 | get_db() | get_db_from_context() | 2026-06-01 | Health checks excepted | in-progress | Pending migration/validation |
 | get_db_with_tenant() | get_db_from_context() | 2026-06-01 | Header-based session creation | in-progress | Pending migration/validation |
 | db_session() context manager | db_session_for_context() | 2026-06-01 | Background tasks | in-progress | Pending migration/validation |

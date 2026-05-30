@@ -1378,7 +1378,10 @@ class OrchestrationController:
 
         try:
             result = await workflow.run(
-                state, thread_id=workflow_id, resume_data=resume_data
+                state,
+                thread_id=workflow_id,
+                checkpoint_config={"checkpoint_id": checkpoint_id},
+                resume_data=resume_data,
             )
         except WorkflowExecutionError:
             raise

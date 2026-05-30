@@ -293,6 +293,37 @@ class TestResumeWorkflow:
         assert result["checkpoint_id"] == "chk-test-001"
         mock_workflow.run.assert_called_once()
 
+    @pytest.mark.asyncio
+    async def test_resume_from_checkpoint_uses_requested_checkpoint_not_latest(
+        self, controller_with_running_state, state_manager
+    ):
+        """Resume passes the requested checkpoint ID when a thread has later checkpoints."""
+        controller, workflow_id, existing_state = controller_with_running_state
+        requested_checkpoint_id = "chk-requested-001"
+        latest_checkpoint_id = "chk-latest-002"
+        existing_state.metadata["checkpoint_history"] = [
+            requested_checkpoint_id,
+            latest_checkpoint_id,
+        ]
+        await state_manager.save_state(workflow_id, existing_state)
+
+        mock_workflow = Mock(spec=BaseWorkflow)
+        mock_workflow.run = AsyncMock(return_value=existing_state)
+
+        with patch("layer4_agents.engine.executor.create_workflow", return_value=mock_workflow):
+            result = await controller.resume_from_checkpoint(
+                workflow_id=workflow_id,
+                checkpoint_id=requested_checkpoint_id,
+                user_id="test-user",
+                resume_data={"approved": True},
+            )
+
+        assert result["checkpoint_id"] == requested_checkpoint_id
+        _, kwargs = mock_workflow.run.call_args
+        assert kwargs["thread_id"] == workflow_id
+        assert kwargs["checkpoint_config"] == {"checkpoint_id": requested_checkpoint_id}
+        assert kwargs["checkpoint_config"]["checkpoint_id"] != latest_checkpoint_id
+
 
 @pytest.mark.unit
 class TestCheckpointConfiguration:

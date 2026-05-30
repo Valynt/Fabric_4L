@@ -23,7 +23,7 @@ spec:
               spec:
                 containers:
                   - name: check
-                    image: curlimages/curl:latest
+                    image: curlimages/curl:8.9.1
                     command:
                       - /bin/sh
                       - -c
@@ -130,7 +130,7 @@ spec:
               spec:
                 containers:
                   - name: evaluate
-                    image: bitnami/kubectl:latest
+                    image: bitnami/kubectl:1.30.0
                     command:
                       - /bin/bash
                       - -c

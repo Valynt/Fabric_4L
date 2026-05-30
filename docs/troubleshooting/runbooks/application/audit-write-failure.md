@@ -76,15 +76,66 @@ kubectl exec -n value-fabric -it deployment/postgres -- \
 
 ### 4. Check Audit Queue Status
 
+Async audit Redis queues are namespaced by deployment context so environments
+and services sharing a Redis instance cannot consume each other's audit events.
+The runtime key format is:
+
+```text
+audit:<environment>:<service-name>:pending
+audit:<environment>:<service-name>:dead-letter
+```
+
+- `<environment>` comes from `ENVIRONMENT`, then `APP_ENV`, then the fallback
+  `development`.
+- `<service-name>` comes from `SERVICE_NAME`, then the fallback `value-fabric`.
+- Components are lower-cased and normalized to Redis-key-safe characters.
+- `AUDIT_REDIS_KEY_PREFIX` is a temporary compatibility override. Setting it to
+  `audit` keeps the legacy keys `audit:pending` and `audit:dead-letter`; setting
+  it to another prefix uses `<prefix>:pending` and `<prefix>:dead-letter`.
+
 ```bash
+# Set these to the values configured on the affected deployment.
+ENVIRONMENT=production
+SERVICE_NAME=layer4-agents
+PENDING_KEY="audit:${ENVIRONMENT}:${SERVICE_NAME}:pending"
+DEAD_LETTER_KEY="audit:${ENVIRONMENT}:${SERVICE_NAME}:dead-letter"
+
 # Check Redis audit queue depth (if using async audit)
 kubectl exec -n value-fabric -it deployment/redis -- \
-  redis-cli LLEN audit_queue
+  redis-cli LLEN "${PENDING_KEY}"
 
 # Check for stale audit messages
 kubectl exec -n value-fabric -it deployment/redis -- \
-  redis-cli LRANGE audit_queue 0 10
+  redis-cli LRANGE "${PENDING_KEY}" 0 10
+
+# Check dead-letter backlog
+kubectl exec -n value-fabric -it deployment/redis -- \
+  redis-cli LLEN "${DEAD_LETTER_KEY}"
 ```
+
+#### Operational migration plan for existing audit Redis queues
+
+Use `AUDIT_REDIS_KEY_PREFIX=audit` only as a short-lived rollback bridge while
+old workers still need to drain `audit:pending` and `audit:dead-letter`. For a
+normal migration to namespaced queues:
+
+1. Identify each deployment's target `ENVIRONMENT` or `APP_ENV` and
+   `SERVICE_NAME`, and calculate the target pending and dead-letter keys using
+   the format above.
+2. Pause audit queue workers for the deployment, or scale them to zero, so Redis
+   lists do not change while messages are copied.
+3. Copy any existing legacy backlog from `audit:pending` to the target pending
+   key, preserving list order. Copy `audit:dead-letter` to the target
+   dead-letter key for operator replay/inspection continuity.
+4. Deploy workers without `AUDIT_REDIS_KEY_PREFIX` so they read/write the
+   namespaced keys. Keep producers and workers on the same environment/service
+   values.
+5. Verify `LLEN` on the namespaced pending key decreases as workers drain, and
+   verify legacy key lengths remain zero or unchanged after cutover.
+6. Remove `AUDIT_REDIS_KEY_PREFIX` from manifests and secret stores after all
+   environments have migrated; keep the old legacy keys until the audit
+   retention window has elapsed, then delete them during a scheduled
+   maintenance window.
 
 ### 5. Inspect Audit Table Constraints
 

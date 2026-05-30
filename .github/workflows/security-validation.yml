@@ -159,7 +159,7 @@ jobs:
           echo "Checking rate limiting in all layers..."
           
           # Check Layer 1
-          if ! grep -q "RedisRateLimiter" services/layer1-ingestion/src/api/main.py; then
+          if ! grep -q "RedisRateLimiter" services/layer1-ingestion/src/layer1_ingestion/api/main.py; then
             echo "ERROR: Layer 1 missing RedisRateLimiter"
             exit 1
           fi
@@ -173,7 +173,7 @@ jobs:
           echo "✓ Layer 2 has RedisRateLimiter"
           
           # Check Layer 4
-          if ! grep -q "RedisRateLimiter" services/layer4-agents/src/api/main.py; then
+          if ! grep -q "RedisRateLimiter" services/layer4-agents/src/layer4_agents/api/main.py; then
             echo "ERROR: Layer 4 missing RedisRateLimiter"
             exit 1
           fi

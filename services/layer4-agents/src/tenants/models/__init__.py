@@ -1,11 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""SQLAlchemy models for tenant governance."""
+The implementation lives in ``layer4_agents.tenants.models``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from .api_key import APIKey
-from .isolation_tier_history import TenantIsolationTierHistory
-from .tenant import IsolationTier, Tenant
-from .user import User
-
-__all__ = ["Tenant", "User", "APIKey", "IsolationTier", "TenantIsolationTierHistory"]
+from layer4_agents.tenants.models import *  # noqa: F401,F403

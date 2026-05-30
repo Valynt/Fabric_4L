@@ -1,5 +1,7 @@
-"""Public façade for tools context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...tools.registry import ToolRegistry
+The implementation lives in ``layer4_agents.contexts.tools.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["ToolRegistry"]
+from layer4_agents.contexts.tools.public import *  # noqa: F401,F403

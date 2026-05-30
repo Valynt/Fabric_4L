@@ -14,7 +14,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 SERVICE_BASELINES: dict[str, dict[str, object]] = {
     "layer1": {
-        "path": "services/layer1-ingestion/src/api/main.py",
+        "path": "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
         "must_contain": [
             "GovernanceMiddleware",
             "register_exception_handlers(app)",
@@ -107,7 +107,7 @@ def test_entrypoint_baseline_contract_markers_present(
 def test_all_maintained_entrypoints_are_covered() -> None:
     """Fail fast if inventory coverage drifts from maintained service list."""
     expected = {
-        "services/layer1-ingestion/src/api/main.py",
+        "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
         "services/layer2-extraction/src/layer2_extraction/api/main.py",
         "services/layer3-knowledge/src/api/main.py",
         "services/layer4-agents/src/api/main.py",

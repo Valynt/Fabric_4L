@@ -87,6 +87,7 @@ TENANT_OWNED_LABELS: frozenset[str] = frozenset({
     "Signal",
     "Source",
     "Stakeholder",
+    "SyncMetadata",
     "UseCase",
     "ValueDriver",
     "ValueLever",
@@ -102,20 +103,57 @@ TENANT_OWNED_LABELS: frozenset[str] = frozenset({
 # Dynamic identifier allowlists (SEC-L3-CYPHER-003 / GOV-L3-006)
 #
 # These govern which Neo4j labels and relationship types may be interpolated
-# directly into Cypher strings in _update_relationships (value_packs.py).
+# directly into Cypher strings by approved audited mutation helpers.
 # Labels and rel-types are not parameterisable in Cypher, so they must be
 # validated against an explicit allowlist before interpolation.
 #
-# To add a new relationship: extend both sets, add the corresponding call in
-# _update_pack_relationships, and update the Semgrep rule comment in
-# .semgrep/cypher-dynamic-guard.yml.
+# To add a new relationship: extend this set only after the relationship is
+# accepted as a platform contract/schema type, and update the Semgrep rule
+# comment in .semgrep/cypher-dynamic-guard.yml if its scope changes.
 # ---------------------------------------------------------------------------
 
 ALLOWED_REL_TYPES: frozenset[str] = frozenset({
+    "addresses",
+    "belongsTo",
+    "belongsToPack",
+    "benefitsFrom",
+    "contains",
+    "delivers",
+    "dependsOn",
+    "drivenBy",
+    "enables",
+    "exhibits",
+    "extractedFrom",
+    "generatedBy",
+    "hasFeature",
     "hasDriver",
     "hasFormula",
     "hasBenchmark",
     "hasWorkflow",
+    "implementedBy",
+    "implements",
+    "impacts",
+    "involves",
+    "mapsTo",
+    "mapsToAPQC",
+    "mapsToBIAN",
+    "mapsToFIBO",
+    "measuredBy",
+    "measures",
+    "operatesIn",
+    "owns",
+    "partOf",
+    "performs",
+    "provides",
+    "quantifiedBy",
+    "requires",
+    "requiresFeature",
+    "semanticallyEquivalent",
+    "subTypeOf",
+    "supportedBy",
+    "supersedes",
+    "usedIn",
+    "validatedBy",
 })
 
 ALLOWED_TARGET_LABELS: frozenset[str] = frozenset({

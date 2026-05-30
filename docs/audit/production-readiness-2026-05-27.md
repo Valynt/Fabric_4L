@@ -395,7 +395,7 @@ Fabric_4L/
 ### PROD-P2-003: L4 TODO in Billing Service
 - **Severity:** P2
 - **Category:** Backend / Code Quality
-- **Description:** `services/layer4-agents/src/services/billing_service.py:412` has a TODO about using structured exception codes from Stripe SDK.
+- **Description:** `services/layer4-agents/src/layer4_agents/services/billing_service.py:412` has a TODO about using structured exception codes from Stripe SDK.
 - **Acceptance criteria:** Replace string-matching error handling with structured exception codes.
 - **Estimated effort:** S
 

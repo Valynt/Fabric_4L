@@ -65,7 +65,7 @@ Phase 2 — Service wrapper
   docker-compose.dev.yml                         ← port 8007
 
 Phase 3 — Proxy migration
-  services/layer4-agents/src/api/routes/billing.py
+  services/layer4-agents/src/layer4_agents/api/routes/billing.py
     → becomes a thin proxy to services/billing/ via HTTP client
   → Remove after all callers migrate (target: 2026-09-30)
 ```

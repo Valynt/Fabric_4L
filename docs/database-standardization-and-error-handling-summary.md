@@ -132,7 +132,7 @@ This document summarizes the implementation of the database standardization and 
 **High-Priority Services** (by HTTPException count):
 - `services/api/app/routers/` - 78 sites
 - `services/layer3-knowledge/src/api/routes/` - 67 sites
-- `services/layer4-agents/src/api/routes/` - 51 sites
+- `services/layer4-agents/src/layer4_agents/api/routes/` - 51 sites
 - `services/layer5-ground-truth/src/layer5_ground_truth/api/` - 35 sites
 - `services/layer1-ingestion/src/api/` - 6 sites
 

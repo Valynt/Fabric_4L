@@ -227,6 +227,11 @@ def evaluate(
         for error in register_errors
         if " expired on " in error
     ]
+    mandatory_p0_entries = [
+        entry
+        for entry in register
+        if entry.severity == "P0" and entry.launch_gate == "mandatory"
+    ]
     summary = {
         "total_registered_markers": len(register),
         "total_detected_markers": len(findings),
@@ -234,6 +239,7 @@ def evaluate(
         "unregistered_markers": len(unregistered),
         "forbidden_markers": len(forbidden),
         "matched_register_entries": len(matched_ids),
+        "mandatory_p0_register_entries": len(mandatory_p0_entries),
     }
     return {
         "summary": summary,
@@ -246,6 +252,10 @@ def evaluate(
         "findings": [finding.__dict__ for finding in findings],
         "unregistered": [finding.__dict__ for finding in unregistered],
         "forbidden": [finding.__dict__ for finding in forbidden],
+        "mandatory_p0_entries": [
+            {**entry.__dict__, "expires_on": entry.expires_on.isoformat()}
+            for entry in mandatory_p0_entries
+        ],
         "stale_entries": stale_entries,
         "registered_entries": len(register),
         "matched_entries": len(matched_ids),
@@ -264,6 +274,7 @@ def _write_github_step_summary(path: Path, report: dict[str, Any]) -> None:
         f"| Unregistered markers | {summary['unregistered_markers']} |",
         f"| Forbidden markers | {summary['forbidden_markers']} |",
         f"| Matched register entries | {summary['matched_register_entries']} |",
+        f"| Mandatory P0 register entries | {summary['mandatory_p0_register_entries']} |",
         "",
     ]
     if report["register_errors"] or report["unregistered"] or report["forbidden"]:
@@ -282,6 +293,14 @@ def main() -> int:
     parser.add_argument("--register", type=Path, default=Path("config/ci/test_skip_register.yaml"))
     parser.add_argument("--scan-root", action="append", dest="scan_roots")
     parser.add_argument("--write-report", type=Path)
+    parser.add_argument(
+        "--fail-mandatory-p0",
+        action="store_true",
+        help=(
+            "Fail if the skip register contains any severity=P0 entries with "
+            "launch_gate=mandatory, even before expires_on. Use in release workflows."
+        ),
+    )
     args = parser.parse_args()
 
     root = _repo_root()
@@ -300,12 +319,21 @@ def main() -> int:
         f"{len(report['forbidden'])} forbidden, "
         f"{report['expired_register_entries']} expired, "
         f"{report['matched_register_entries']} matched, "
+        f"{len(report['mandatory_p0_entries'])} mandatory P0, "
         f"{len(report['register_errors'])} register error(s)"
     )
     for key in ("register_errors", "unregistered", "forbidden"):
         for item in report[key]:
             print(f"ERROR {key}: {item}", file=sys.stderr)
-    return 1 if report["register_errors"] or report["unregistered"] or report["forbidden"] else 0
+    if args.fail_mandatory_p0 and report["mandatory_p0_entries"]:
+        for item in report["mandatory_p0_entries"]:
+            print(f"ERROR mandatory_p0_entries: {item}", file=sys.stderr)
+    return 1 if (
+        report["register_errors"]
+        or report["unregistered"]
+        or report["forbidden"]
+        or (args.fail_mandatory_p0 and report["mandatory_p0_entries"])
+    ) else 0
 
 
 if __name__ == "__main__":

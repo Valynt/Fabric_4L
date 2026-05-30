@@ -66,3 +66,19 @@ def test_production_startup_fails_without_auth_keys():
         assert is_prod is True
         keys_missing = not os.getenv("FABRIC_AUTH_PUBLIC_KEYS", "").strip()
         assert keys_missing is True
+
+
+def test_tenant_enforcement_middleware_installed_fail_closed():
+    """Layer 2 must install shared tenant enforcement instead of opting out."""
+    middleware_names = [m.cls.__name__ for m in app.user_middleware]
+    assert "_TenantEnforcementMiddleware" in middleware_names
+
+
+def test_public_tenant_context_exemptions_are_health_and_readiness_only():
+    """Only documented health/readiness probes bypass tenant-context enforcement."""
+    from layer2_extraction.api.main import _S2S_INTERNAL_PATHS, _TENANT_CONTEXT_EXEMPT_PATHS
+
+    assert _TENANT_CONTEXT_EXEMPT_PATHS == frozenset(
+        {"/health", "/health/live", "/ready", "/readiness"}
+    )
+    assert _S2S_INTERNAL_PATHS.isdisjoint(_TENANT_CONTEXT_EXEMPT_PATHS)

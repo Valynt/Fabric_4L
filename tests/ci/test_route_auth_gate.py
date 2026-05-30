@@ -9,7 +9,7 @@ GATE_SCRIPT = REPO_ROOT / "scripts/ci/check_route_auth_dependencies.py"
 
 EXPECTED_SERVICE_TARGETS = [
     "services/api/app/main.py",
-    "services/layer1-ingestion/src/api/main.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "services/layer3-knowledge/src/api/main.py",
     "services/layer4-agents/src/api/main.py",

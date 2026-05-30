@@ -45,35 +45,117 @@ jobs:
       - name: Set up Docker Compose
         run: docker compose version
 
+      - name: Assert performance workflow has no auth bypass flags
+        run: python3 scripts/ci/check_performance_workflow_auth_bypass.py .github/workflows/performance-load-tests.yml
+
       - name: Start ephemeral stack
         run: |
-          cat > .env <<'EOF'
-          OPENAI_API_KEY=${OPENAI_API_KEY:?set OPENAI_API_KEY}
+          cat > .env <<EOF
+          POSTGRES_USER=valuefabric
+          POSTGRES_PASSWORD=valuefabric
+          OPENAI_API_KEY=${OPENAI_API_KEY:-sk-ci-test-key}
           ANTHROPIC_API_KEY=sk-ci-test-key
           NEO4J_PASSWORD=valuefabric
-          JWT_SECRET=${JWT_SECRET:?set JWT_SECRET}
+          JWT_SECRET=performance-load-test-jwt-secret-minimum-32-chars
           JWT_ALGORITHM=HS256
-          AUTH_BYPASS_ENABLED=true
+          JWT_ISSUER=value-fabric-internal
+          JWT_AUDIENCE=value-fabric-services
+          SERVICE_AUTH_SECRET=performance-load-test-service-auth-secret-32-chars
+          API_KEY_HMAC_SECRET=performance-load-test-api-key-hmac-secret-32-chars
+          LAYER4_DATABASE_URL=postgresql+asyncpg://valuefabric:valuefabric@postgres:5432/ground_truth
           ENVIRONMENT=ci
           REDIS_PASSWORD=valuefabric
           FLOWER_PASSWORD=valuefabric
           GRAFANA_ADMIN_PASSWORD=valuefabric
           EOF
-          docker compose -f docker-compose.full.yml up -d neo4j redis postgres layer2-extraction layer3-knowledge layer4-agents
+          cat > docker-compose.performance-auth.yml <<'EOF'
+          services:
+            layer2-extraction:
+              ports:
+                - "8002:8000"
+              env_file:
+                - .env
+            layer3-knowledge:
+              ports:
+                - "8003:8001"
+              env_file:
+                - .env
+            layer4-agents:
+              env_file:
+                - .env
+          EOF
+          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml up -d neo4j redis postgres layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for services to become healthy
         run: |
           echo "Waiting for service health checks..."
           for i in {1..30}; do
             sleep 10
-            healthy=$(docker compose -f docker-compose.full.yml ps --format json 2>/dev/null | grep -c '"Health":"healthy"' || echo "0")
+            healthy=$(docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml ps --format json 2>/dev/null | grep -c '"Health":"healthy"' || echo "0")
             echo "Check $i/30: $healthy healthy containers"
             if [ "$healthy" -ge "6" ]; then
               echo "Core stack is healthy"
               break
             fi
           done
-          docker compose -f docker-compose.full.yml ps
+          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml ps
+
+      - name: Generate CI auth tokens
+        run: |
+          node <<'NODE' >> "$GITHUB_ENV"
+          const crypto = require('crypto');
+
+          const jwtSecret = 'performance-load-test-jwt-secret-minimum-32-chars';
+          const serviceAuthSecret = 'performance-load-test-service-auth-secret-32-chars';
+          const tenantId = '00000000-0000-4000-a000-000000000042';
+          const userId = '00000000-0000-4000-a000-000000000043';
+
+          function base64url(value) {
+            return Buffer.from(JSON.stringify(value))
+              .toString('base64')
+              .replace(/=/g, '')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_');
+          }
+
+          function sign(payload, secret) {
+            const header = base64url({ alg: 'HS256', typ: 'JWT', kid: 'active' });
+            const body = base64url(payload);
+            const signature = crypto
+              .createHmac('sha256', secret)
+              .update(`${header}.${body}`)
+              .digest('base64')
+              .replace(/=/g, '')
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_');
+            return `${header}.${body}.${signature}`;
+          }
+
+          const now = Math.floor(Date.now() / 1000);
+          const userToken = sign({
+            tenant_id: tenantId,
+            sub: userId,
+            roles: ['tenant_admin'],
+            iat: now,
+            nbf: now,
+            exp: now + 3600,
+            iss: 'value-fabric-internal',
+            aud: 'value-fabric-services',
+          }, jwtSecret);
+          const s2sToken = sign({
+            tenant_id: tenantId,
+            sub: 'layer1-ingestion',
+            iat: now,
+            nbf: now,
+            exp: now + 300,
+            iss: 'value-fabric-s2s',
+            aud: 'layer2-extraction',
+          }, serviceAuthSecret);
+
+          console.log(`PERF_TENANT_ID=${tenantId}`);
+          console.log(`PERF_AUTH_BEARER=${userToken}`);
+          console.log(`PERF_S2S_BEARER=${s2sToken}`);
+          NODE
 
       - name: Run k6 critical-path performance suite
         run: |
@@ -86,6 +168,9 @@ jobs:
             --env L3_URL=http://localhost:8003 \
             --env L4_URL=http://localhost:8004 \
             --env PERF_DURATION="${PERF_DURATION}" \
+            --env PERF_TENANT_ID="${PERF_TENANT_ID}" \
+            --env PERF_AUTH_BEARER="${PERF_AUTH_BEARER}" \
+            --env PERF_S2S_BEARER="${PERF_S2S_BEARER}" \
             tests/performance/k6/l2_l3_l4_critical_paths.js
 
       - name: Evaluate SLO targets, regression threshold, and burn-rate windows
@@ -125,7 +210,7 @@ jobs:
         if: failure()
         run: |
           mkdir -p artifacts/performance/logs
-          docker compose -f docker-compose.full.yml logs > artifacts/performance/logs/docker-compose.log
+          docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml logs > artifacts/performance/logs/docker-compose.log
 
       - name: Upload failure logs
         if: failure()
@@ -137,4 +222,4 @@ jobs:
 
       - name: Tear down ephemeral stack
         if: always()
-        run: docker compose -f docker-compose.full.yml down -v
+        run: docker compose -f docker-compose.full.yml -f docker-compose.performance-auth.yml down -v

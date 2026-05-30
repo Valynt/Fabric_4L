@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: web
-          image: apps/web:main
+          image: apps/web@sha256:0aa8f24975fc35f039525dcfabdb6d50b76699407090df0d4c4f73d32cb0e4a7
           imagePullPolicy: Always
           securityContext:
             runAsUser: 1000

@@ -29,7 +29,7 @@ patches:
   - path: staging-replicas-patch.yml
 
 # Image overrides: match exact base image names, redirect to GHCR.
-# Base manifests use bare names (services/<name>:main, apps/web:main).
+# Base manifests use digest-pinned service placeholders (services/<name>@sha256:<digest>, apps/web@sha256:<digest>).
 #
 # Image digests are injected at deploy time by scripts/ci/prepare_kustomize_deploy.sh.
 # This file must not contain mutable tags (latest, main, semver, branch names).
@@ -37,25 +37,25 @@ patches:
 images:
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:13029594c9b8a1084e95fddac9b5143605f947b974c742ff8c84b2a0729423ec
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d
   - name: services/layer4-agents
     newName: ghcr.io/bmsull560/fabric_4l/layer4-agents
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:0300c79009d884d2576a6b7dcb15606316f02fcadb9a6800a7da4fcf1e205f29
   - name: services/layer5-ground-truth
     newName: ghcr.io/bmsull560/fabric_4l/layer5-ground-truth
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
   - name: services/layer6-benchmarks
     newName: ghcr.io/bmsull560/fabric_4l/layer6-benchmarks
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:2093ee632e2db237f9fb25e32d487fa9e157c26b35679886fd928b98618bae19
   - name: apps/web
     newName: ghcr.io/bmsull560/fabric_4l/frontend
-    # digest: injected by scripts/ci/prepare_kustomize_deploy.sh
+    digest: sha256:0aa8f24975fc35f039525dcfabdb6d50b76699407090df0d4c4f73d32cb0e4a7
   # Infrastructure images use explicit versions.
   - name: postgres
     newTag: "15.10-alpine"

@@ -99,18 +99,10 @@ class Neo4jTenantSessionSecured:
     3. Blocks unscoped Entity MATCH clauses that could leak data
     
     Example:
-        >>> async with Neo4jTenantSessionSecured(driver, tenant_id) as session:
-        ...     # Valid query - passes validation
-        ...     result = await session.run(
-        ...         "MATCH (e:Entity {id: $id, tenant_id: $tenant_id}) RETURN e",
-        ...         id="abc"
-        ...     )
-        ...     
-        ...     # Invalid query - raises UnscopedQueryError
-        ...     result = await session.run(
-        ...         "MATCH (e:Entity {id: $id}) RETURN e",  # Missing tenant_id!
-        ...         id="abc"
-        ...     )
+        Use this wrapper as the approved execution boundary for route-scoped
+        Cypher. Queries that include tenant predicates pass validation; queries
+        missing tenant predicates raise ``UnscopedQueryError`` before reaching
+        the underlying Neo4j session.
     """
     
     def __init__(

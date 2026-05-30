@@ -23,7 +23,7 @@ Fabric_4L currently utilizes a custom `LLMClient` in `/home/ubuntu/Fabric_4L/ser
 *   Retry logic for API errors.
 *   Optional model resolution from the Layer 4 model registry.
 
-Layer 4 (`/home/ubuntu/Fabric_4L/services/layer4-agents/src/api/main.py`) includes OpenTelemetry tracing for distributed observability, using an OTLP HTTP exporter [6]. Layer 5 (`/home/ubuntu/Fabric_4L/services/layer5-ground-truth/src/layer5_ground_truth/models/model_registry.py`) maintains a robust model registry for governance, tracking model versions, deployments, capabilities, cost, and evaluation results [7].
+Layer 4 (`/home/ubuntu/Fabric_4L/services/layer4-agents/src/layer4_agents/api/main.py`) includes OpenTelemetry tracing for distributed observability, using an OTLP HTTP exporter [6]. Layer 5 (`/home/ubuntu/Fabric_4L/services/layer5-ground-truth/src/layer5_ground_truth/models/model_registry.py`) maintains a robust model registry for governance, tracking model versions, deployments, capabilities, cost, and evaluation results [7].
 
 ## 4. Proposed Integration Architecture and Data Flow
 
@@ -91,5 +91,5 @@ Integrating Maxim AI's Bifrost into Fabric_4L represents a strategic enhancement
 [3] [Maxim AI - Bifrost Observability](https://docs.getbifrost.ai/features/observability/maxim)
 [4] [Understanding Agentic RAG, Choosing the Right tool for ...](https://www.getmaxim.ai/articles/agentic-rag-and-best-tool-for-rag-observability/)
 [5] `/home/ubuntu/Fabric_4L/services/layer2-extraction/src/layer2_extraction/shared/llm_client.py`
-[6] `/home/ubuntu/Fabric_4L/services/layer4-agents/src/api/main.py`
+[6] `/home/ubuntu/Fabric_4L/services/layer4-agents/src/layer4_agents/api/main.py`
 [7] `/home/ubuntu/Fabric_4L/services/layer5-ground-truth/src/layer5_ground_truth/models/model_registry.py`

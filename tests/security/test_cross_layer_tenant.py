@@ -265,21 +265,19 @@ class TestLayer3Neo4jSpecifics:
 
     def test_neo4j_tenant_session_wrapper(self):
         """Layer 3 provides Neo4jTenantSession for graph-aware scoping."""
-        try:
-            from src.api.dependencies_tenant import (
-                Neo4jTenantSession,
-                get_neo4j_with_tenant,
-            )
+        from src.api.dependencies_tenant_secured import (
+            Neo4jTenantSessionSecured,
+            get_neo4j_with_tenant,
+        )
 
-            # Verify the dependency exists
-            assert callable(get_neo4j_with_tenant)
+        # Verify the dependency exists without relying on a live Neo4j instance.
+        assert callable(get_neo4j_with_tenant)
 
-            # Verify session wrapper has tenant scoping
-            session_mock = MagicMock()
-            neo4j = Neo4jTenantSession(session_mock, tenant_id="test-tenant")
-            assert neo4j.tenant_id == "test-tenant"
-        except ImportError as e:
-            pytest.skip(f"Layer 3 Neo4j dependencies not yet available: {e}")
+        # Verify the secured session wrapper carries tenant scope with a fake driver.
+        driver_mock = MagicMock()
+        neo4j = Neo4jTenantSessionSecured(driver_mock, tenant_id="test-tenant")
+        assert neo4j.tenant_id == "test-tenant"
+        assert neo4j.is_bypass is False
 
 
 class TestMigrationCompleteness:

@@ -1150,7 +1150,7 @@ open http://localhost:5173
 ## Core concepts
 
 - **Contracts** — All tool schemas and API shapes live in `contracts/`. They are the source of truth.
-- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/engine/`.
+- **Runtime** — Provider-agnostic orchestration in `services/layer4-agents/src/layer4_agents/engine/`.
 - **Agents** — Behavior defined as versioned artifacts in `services/layer4-agents/agents/` and `services/layer4-agents/skills/`.
 - **Providers** — Vendor-specific adapters (OpenAI, Anthropic, Neo4j, pgvector) isolated from core logic.
 - **Packs** — Domain vertical extensions that add ontology, formulas, and variables without touching core.

@@ -1,20 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Metrics package initialization for Layer 4."""
+The implementation lives in ``layer4_agents.metrics``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from .prometheus_metrics import (
-    MetricsConfig,
-    MetricsMiddleware,
-    PrometheusMetrics,
-    get_metrics,
-    initialize_metrics,
-)
-
-__all__ = [
-    "MetricsConfig",
-    "PrometheusMetrics",
-    "MetricsMiddleware",
-    "get_metrics",
-    "initialize_metrics",
-]
+from layer4_agents.metrics import *  # noqa: F401,F403

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -11,10 +10,10 @@ Stores ValueSignal objects as Neo4j nodes and provides tenant-scoped
 query endpoints for L4 agents and the frontend.
 
 Routes:
-  POST  /api/v1/graph/signals                    Persist a ValueSignal node
-  GET   /api/v1/graph/signals                    Query ValueSignal nodes
-  GET   /api/v1/graph/signals/{signal_id}        Get a single ValueSignal node
-  GET   /api/v1/graph/signals/{signal_id}/related Related entities
+  POST  /v1/graph/signals                    Persist a ValueSignal node
+  GET   /v1/graph/signals                    Query ValueSignal nodes
+  GET   /v1/graph/signals/{signal_id}        Get a single ValueSignal node
+  GET   /v1/graph/signals/{signal_id}/related Related entities
 """
 
 
@@ -23,6 +22,13 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
 from value_fabric.shared.identity import RequestContext, require_authenticated
 
 from ...api.dependencies_tenant_secured import (
@@ -31,12 +37,10 @@ from ...api.dependencies_tenant_secured import (
 from ...api.dependencies_tenant_secured import (
     get_neo4j_secured as get_neo4j_with_tenant,
 )
-from ...security.account_authorization import (
-    check_account_access,
-    verify_entity_account_access,
-)
+from ...security.account_authorization import check_account_access
 
 logger = logging.getLogger(__name__)
+
 
 class SignalNode(BaseModel):
     id: str
@@ -66,7 +70,7 @@ class SignalRelatedResponse(BaseModel):
 
 
 router = APIRouter(
-    prefix="/api/v1/graph/signals",
+    prefix="/graph/signals",
     tags=["signals"],
     dependencies=[Depends(require_authenticated)],
 )
@@ -129,7 +133,13 @@ RETURN
 """
 
 _ALL_LIFECYCLE_STATES = [
-    "draft", "extracted", "validated", "rejected", "promoted", "expired", "superseded"
+    "draft",
+    "extracted",
+    "validated",
+    "rejected",
+    "promoted",
+    "expired",
+    "superseded",
 ]
 
 
@@ -138,7 +148,7 @@ def _node_to_dict(node: Any) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------
-# POST /api/v1/graph/signals — persist a ValueSignal node
+# POST /v1/graph/signals — persist a ValueSignal node
 # ---------------------------------------------------------------------------
 
 
@@ -161,7 +171,7 @@ async def persist_signal(
     # Enforce tenant from context, not body
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise AuthenticationError(message = "Tenant context required")
+        raise AuthenticationError(message="Tenant context required")
 
     # Phase 4 hardening: Check account authorization for account-scoped entity
     try:
@@ -172,8 +182,10 @@ async def persist_signal(
             tenant_id=tenant_id,
         )
     except Exception as e:
-        logger.error("Account authorization failed", exc_info=e, extra={"tenant_id": tenant_id})
-        raise AuthorizationError(message = "Account authorization failed") from e
+        logger.error(
+            "Account authorization failed", exc_info=e, extra={"tenant_id": tenant_id}
+        )
+        raise AuthorizationError(message="Account authorization failed") from e
 
     params = {
         "id": body["id"],
@@ -195,15 +207,15 @@ async def persist_signal(
         result = await neo4j.run(_UPSERT_SIGNAL_CYPHER, params)
         record = await result.single()
         if record:
-            return {"status": "ok", "signal": _node_to_dict(record["s"])}
-        return {"status": "ok", "signal": params}
+            return _node_to_dict(record["s"])
+        return params
     except Exception as exc:
         logger.exception("Failed to persist ValueSignal %s to Neo4j", body.get("id"))
         raise ServiceUnavailableError(message="Graph persistence failed") from exc
 
 
 # ---------------------------------------------------------------------------
-# GET /api/v1/graph/signals — query signals
+# GET /v1/graph/signals — query signals
 # ---------------------------------------------------------------------------
 
 
@@ -220,7 +232,7 @@ async def list_graph_signals(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise AuthenticationError(message = "Tenant context required")
+        raise AuthenticationError(message="Tenant context required")
 
     states = lifecycle_states or _ALL_LIFECYCLE_STATES
 
@@ -251,7 +263,7 @@ async def list_graph_signals(
 
 
 # ---------------------------------------------------------------------------
-# GET /api/v1/graph/signals/{signal_id} — single signal
+# GET /v1/graph/signals/{signal_id} — single signal
 # ---------------------------------------------------------------------------
 
 
@@ -263,13 +275,15 @@ async def get_graph_signal(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise AuthenticationError(message = "Tenant context required")
+        raise AuthenticationError(message="Tenant context required")
 
     try:
-        result = await neo4j.run(_GET_SIGNAL_CYPHER, {"id": signal_id, "tenant_id": tenant_id})
+        result = await neo4j.run(
+            _GET_SIGNAL_CYPHER, {"id": signal_id, "tenant_id": tenant_id}
+        )
         record = await result.single()
         if not record:
-            raise NotFoundError(message = "Signal not found in graph")
+            raise NotFoundError(message="Signal not found in graph")
         return _node_to_dict(record["s"])
     except HTTPException:
         raise
@@ -279,7 +293,7 @@ async def get_graph_signal(
 
 
 # ---------------------------------------------------------------------------
-# GET /api/v1/graph/signals/{signal_id}/related — related entities
+# GET /v1/graph/signals/{signal_id}/related — related entities
 # ---------------------------------------------------------------------------
 
 
@@ -291,10 +305,12 @@ async def get_signal_related(
 ) -> dict[str, Any]:
     tenant_id = neo4j.tenant_id
     if not tenant_id:
-        raise AuthenticationError(message = "Tenant context required")
+        raise AuthenticationError(message="Tenant context required")
 
     try:
-        result = await neo4j.run(_RELATED_CYPHER, {"id": signal_id, "tenant_id": tenant_id})
+        result = await neo4j.run(
+            _RELATED_CYPHER, {"id": signal_id, "tenant_id": tenant_id}
+        )
         record = await result.single()
         if not record:
             return {"value_drivers": [], "personas": [], "accounts": []}

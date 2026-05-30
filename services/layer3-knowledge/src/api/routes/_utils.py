@@ -10,7 +10,6 @@ Common helpers for validation, parsing, and formatting.
 
 import re
 
-from fastapi import
 
 from ...auth.api_keys import APIKey
 

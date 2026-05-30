@@ -21,8 +21,8 @@ controls:
           - tenant header enforcement
     implementation_files:
       - docs/compliance/control-matrix.md
-      - services/layer4-agents/src/tenants/api/routes/tenants.py
-      - services/layer4-agents/src/tenants/api/routes/users.py
+      - services/layer4-agents/src/layer4_agents/tenants/api/routes/tenants.py
+      - services/layer4-agents/src/layer4_agents/tenants/api/routes/users.py
     monitoring_signals:
       - ci: .github/workflows/pr-checks.yml
       - audit_log: services/layer4-agents/migrations/versions/003_add_audit_events.py
@@ -50,10 +50,10 @@ controls:
         delete_days: 30
         export_status_days: 7
     implementation_files:
-      - services/layer4-agents/src/tenants/api/routes/tenants.py
-      - services/layer4-agents/src/tenants/api/routes/users.py
-      - services/layer4-agents/src/tenants/api/routes/api_keys.py
-      - services/layer4-agents/src/api/routes/analysis.py
+      - services/layer4-agents/src/layer4_agents/tenants/api/routes/tenants.py
+      - services/layer4-agents/src/layer4_agents/tenants/api/routes/users.py
+      - services/layer4-agents/src/layer4_agents/tenants/api/routes/api_keys.py
+      - services/layer4-agents/src/layer4_agents/api/routes/analysis.py
       - services/layer1-ingestion/src/shared/tasks.py
     monitoring_signals:
       - ci: .github/workflows/audit-evidence.yml

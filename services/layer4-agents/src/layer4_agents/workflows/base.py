@@ -393,6 +393,7 @@ class BaseWorkflow(ABC):
         thread_id: str | None = None,
         recursion_limit: int | None = None,
         resume_data: Any = None,
+        checkpoint_config: dict[str, Any] | None = None,
         **kwargs,
     ) -> AgentState:
         """Execute the workflow.
@@ -402,6 +403,9 @@ class BaseWorkflow(ABC):
             thread_id: Optional thread ID for checkpointing
             recursion_limit: Maximum recursion steps (default: DEFAULT_RECURSION_LIMIT)
             resume_data: Optional resume value for native LangGraph HITL resume
+            checkpoint_config: Optional LangGraph checkpoint configurable fields
+                such as ``checkpoint_id`` or ``checkpoint_ns``. Values are
+                merged with ``thread_id`` and passed through to LangGraph.
             **kwargs: Additional run parameters
 
         Returns:
@@ -422,6 +426,8 @@ class BaseWorkflow(ABC):
         compiled = self.compile()
 
         config = {"configurable": {}, "recursion_limit": recursion_limit}
+        if checkpoint_config:
+            config["configurable"].update(checkpoint_config)
         if thread_id:
             config["configurable"]["thread_id"] = thread_id
 
@@ -441,6 +447,7 @@ class BaseWorkflow(ABC):
                 trace_id=trace_id,
                 tenant_id=tenant_id,
                 thread_id=thread_id,
+                checkpoint_id=config["configurable"].get("checkpoint_id"),
             )
         else:
             input_val = initial_state.model_dump()
@@ -452,6 +459,7 @@ class BaseWorkflow(ABC):
                 tenant_id=tenant_id,
                 workflow_type=getattr(initial_state, "workflow_type", "unknown"),
                 thread_id=thread_id,
+                checkpoint_id=config["configurable"].get("checkpoint_id"),
                 recursion_limit=recursion_limit,
             )
             if approval_decision is not None:

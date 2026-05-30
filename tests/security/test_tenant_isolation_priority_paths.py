@@ -6,7 +6,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 PRIORITY_FILES = [
     "services/layer1-ingestion/src/api/routes/compatibility.py",
-    "services/layer1-ingestion/src/api/main.py",
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
     "services/layer3-knowledge/src/api/routes/knowledge.py",
     "services/layer3-knowledge/src/api/routes/query_search.py",
     "services/layer4-agents/src/api/routes/intelligence.py",
@@ -25,7 +25,7 @@ FORBIDDEN_PATTERNS = [
 ]
 
 REQUIRED_AUTH_PATTERNS = {
-    "services/layer1-ingestion/src/api/main.py": ["governance_context", "Depends(get_tenant_id)"],
+    "services/layer1-ingestion/src/layer1_ingestion/api/main.py": ["governance_context", "Depends(get_tenant_id)"],
     "services/layer3-knowledge/src/api/routes/query_search.py": ["tenant_id", "ctx"],
     "services/layer4-agents/src/api/routes/intelligence.py": ["Depends(get_verified_tenant_id)", "tenant_id: str"],
     "services/layer6-benchmarks/src/api/main.py": ["_require_tenant_id", "ctx.tenant_id"],

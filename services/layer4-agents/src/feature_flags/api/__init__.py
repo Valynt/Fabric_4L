@@ -1,8 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Feature flags API package."""
+The implementation lives in ``layer4_agents.feature_flags.api``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from .routes import router as feature_flags_router
-
-__all__ = ["feature_flags_router"]
+from layer4_agents.feature_flags.api import *  # noqa: F401,F403

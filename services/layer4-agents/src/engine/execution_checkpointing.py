@@ -1,42 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-from datetime import UTC, datetime
-from typing import Any
+The implementation lives in ``layer4_agents.engine.execution_checkpointing``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from ..models.agent_state import WorkflowStatus
-
-
-async def persist_interruption_if_needed(*, state_manager: Any, workflow_id: str) -> None:
-    paused = await state_manager.load_state(workflow_id)
-    if paused and paused.status in {WorkflowStatus.PAUSED, WorkflowStatus.INTERRUPTED}:
-        return
-    if paused:
-        paused.status = WorkflowStatus.INTERRUPTED
-        paused.metadata["interrupted_at"] = datetime.now(UTC).isoformat()
-        paused.metadata["interruption_reason"] = "task cancellation"
-        await state_manager.save_state(workflow_id, paused)
-
-
-def record_checkpoint_corruption(
-    workflow_type: str,
-    tenant_id: str,
-    reason: str = "hash_mismatch",
-) -> None:
-    """Emit checkpoint corruption metric if metrics are initialized.
-
-    Args:
-        workflow_type: Type of workflow whose checkpoint is corrupted.
-        tenant_id: Owning tenant identifier.
-        reason: Classification of corruption (e.g. 'hash_mismatch', 'unreadable').
-    """
-    try:
-        from ..metrics.prometheus_metrics import get_metrics
-
-        metrics = get_metrics()
-        if metrics:
-            metrics.increment_checkpoint_corruption(
-                workflow_type=workflow_type,
-                tenant_id=tenant_id,
-            )
-    except Exception:
-        pass
+from layer4_agents.engine.execution_checkpointing import *  # noqa: F401,F403

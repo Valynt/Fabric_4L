@@ -81,7 +81,7 @@ class AuditedGraphMutation:
         MATCH (src {{id: $src_id, tenant_id: $tenant_id}})
         MATCH (tgt {{id: $tgt_id, tenant_id: $tenant_id}})
         MERGE (src)-[r:{rel_type}]->(tgt)
-        SET r.updated_at = $now
+        SET r += $properties, r.updated_at = $now
         RETURN r
         """
         try:
@@ -93,12 +93,12 @@ class AuditedGraphMutation:
                     "tgt_id": tgt_id,
                     "tenant_id": self.tenant_id,
                     "now": now,
-                    **props,
+                    "properties": props,
                 },
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("relationship")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("relationship_write_error")
             raise
 
@@ -136,7 +136,7 @@ class AuditedGraphMutation:
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("relationship_delete")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("relationship_delete_error")
             raise
 
@@ -253,7 +253,7 @@ class AuditedGraphMutation:
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("node")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("node_write_error")
             raise
 
@@ -282,7 +282,7 @@ class AuditedGraphMutation:
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("node_delete")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("node_delete_error")
             raise
 
@@ -352,7 +352,7 @@ class AuditedGraphMutation:
         RETURN count(n) as merged
         """
         try:
-            result = await run_tenant_query(
+            await run_tenant_query(
                 self.session,
                 merge_query,
                 {
@@ -369,7 +369,7 @@ class AuditedGraphMutation:
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("node_batch")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("node_batch_error")
             raise
 
@@ -412,7 +412,7 @@ class AuditedGraphMutation:
                 tenant_id=self.tenant_id,
             )
             self._increment_mutation_success("relationship_batch")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("relationship_batch_error")
             raise
 
@@ -450,7 +450,7 @@ class AuditedGraphMutation:
             record = await rel_result.single()
             stats["relationships_deleted"] = record["deleted"] if record else 0
             self._increment_mutation_success("relationship_delete_batch")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("relationship_delete_batch_error")
             raise
 
@@ -471,7 +471,7 @@ class AuditedGraphMutation:
             record = await entity_result.single()
             stats["entities_deleted"] = record["deleted"] if record else 0
             self._increment_mutation_success("node_delete_batch")
-        except Exception as e:
+        except Exception:
             self._increment_mutation_failure("node_delete_batch_error")
             raise
 

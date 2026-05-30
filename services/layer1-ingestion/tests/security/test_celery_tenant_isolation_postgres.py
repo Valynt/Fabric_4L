@@ -174,7 +174,7 @@ class TestPipelineChainTenantPropagation:
         # This is a static check - we verify the code pattern
         import re
         
-        main_file = 'src/api/main.py'
+        main_file = 'src/layer1_ingestion/api/main.py'
         with open(main_file, 'r', encoding='utf-8') as f:
             content = f.read()
         

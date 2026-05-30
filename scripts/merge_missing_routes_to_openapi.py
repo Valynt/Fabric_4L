@@ -180,10 +180,10 @@ def main() -> int:
         },
         "layer4-agents": {
             "router_dir": [
-                Path("services/layer4-agents/src/api/routes"),
-                Path("services/layer4-agents/src/tenants/api/routes"),
-                Path("services/layer4-agents/src/registry/api"),
-                Path("services/layer4-agents/src/messaging"),
+                Path("services/layer4-agents/src/layer4_agents/api/routes"),
+                Path("services/layer4-agents/src/layer4_agents/tenants/api/routes"),
+                Path("services/layer4-agents/src/layer4_agents/registry/api"),
+                Path("services/layer4-agents/src/layer4_agents/messaging"),
             ],
             "spec_path": Path("contracts/openapi/layer4-agents.json"),
             "prefix": "/v1",

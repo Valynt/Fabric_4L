@@ -26,13 +26,12 @@ class CanonicalModuleSentinel:
 # Add entries only for modules that would cause broad architecture drift
 # if logic moved into compatibility-only roots.
 SENTINELS: tuple[CanonicalModuleSentinel, ...] = (
-    # Layer 1 migrated to service-first per ADR-027 (2026-05-13).
-    # Compatibility is handled by namespace package __path__ appending
-    # in value_fabric/layer1/__init__.py; no per-module shim files remain.
+    # Layer 1 runtime ownership lives under layer1_ingestion.api.main.
+    # The legacy src/api/main.py path must remain a thin compatibility shim.
     CanonicalModuleSentinel(
         name="layer1_api_main",
-        canonical_path="services/layer1-ingestion/src/api/main.py",
-        compatibility_path="value_fabric/layer1/__init__.py",
+        canonical_path="services/layer1-ingestion/src/layer1_ingestion/api/main.py",
+        compatibility_path="services/layer1-ingestion/src/api/main.py",
     ),
     # Layer 2 migrated to service-first per ADR-027 (2026-05-14).
     # Compatibility is handled by namespace package __path__ appending

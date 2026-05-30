@@ -284,7 +284,7 @@ class TestSecurityHardeningCompleteness:
         """All dispatch calls should pass tenant_id."""
         import re
         
-        for api_file in ['src/api/main.py', 
+        for api_file in ['src/layer1_ingestion/api/main.py',
                         'src/api/app_monolith.py']:
             with open(api_file, 'r', encoding='utf-8') as f:
                 content = f.read()

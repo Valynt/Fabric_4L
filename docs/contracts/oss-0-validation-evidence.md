@@ -29,8 +29,8 @@ The implementation intentionally avoided enabling `aiocache`, `pybreaker`, Celer
 | `services/layer3-knowledge/tests/test_cache_ports.py` | Verifies the legacy cache adapter delegates through the stable port contract. |
 | `services/layer3-knowledge/tests/conftest.py` | Lazily constructs the API app so cache-only tests do not trigger unrelated API imports at collection time. |
 | `services/layer4-agents/src/resilience_ports.py` | Defines Layer 4 resilience ports and legacy adapters. |
-| `services/layer4-agents/src/engine/ports.py` | Defines the task-execution port and legacy scheduler adapter. |
-| `services/layer4-agents/src/engine/__init__.py` | Exports task-execution port symbols without changing scheduler defaults. |
+| `services/layer4-agents/src/layer4_agents/engine/ports.py` | Defines the task-execution port and legacy scheduler adapter. |
+| `services/layer4-agents/src/layer4_agents/engine/__init__.py` | Exports task-execution port symbols without changing scheduler defaults. |
 | `services/layer4-agents/tests/unit/test_oss0_ports.py` | Verifies Layer 4 port adapters preserve current behavior boundaries. |
 | `services/layer4-agents/tests/unit/test_task_scheduler.py` | Adds OSS-0 scheduler characterization coverage for retry tenant preservation and public result shape. |
 

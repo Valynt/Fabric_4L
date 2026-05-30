@@ -127,7 +127,7 @@ docs/explanations/adr/ @value-fabric/architects @value-fabric/maintainers
 # Require agent team + architects
 # ============================================
 
-services/layer4-agents/src/agents/ @value-fabric/agent-team @value-fabric/architects
+services/layer4-agents/src/layer4_agents/agents/ @value-fabric/agent-team @value-fabric/architects
 services/layer4-agents/skills/ @value-fabric/agent-team @value-fabric/architects
 services/layer4-agents/workflows/ @value-fabric/agent-team @value-fabric/architects
 

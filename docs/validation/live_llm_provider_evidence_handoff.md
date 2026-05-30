@@ -6,7 +6,7 @@ This handoff documents the launch evidence required for live or provider-sandbox
 
 Repository-local coverage exists for several behavior contracts:
 
-- Layer 4 OpenAI provider wiring in `services/layer4-agents/src/services/llm_provider.py`.
+- Layer 4 OpenAI provider wiring in `services/layer4-agents/src/layer4_agents/services/llm_provider.py`.
 - Mock-disabled live frontend guardrails through `apps/web/scripts/live-env-guard.mjs` and live Playwright scripts.
 - Grounding, refusal, fact/assumption labels, tenant-scoped evidence, and prompt-injection behavior in `services/layer4-agents/tests/test_agent_grounding_and_refusal.py`.
 - LLM token and cost tracking in `services/layer4-agents/tests/test_llm_cost_tracking.py` and `services/layer4-agents/tests/test_llm_cost_metrics.py`.

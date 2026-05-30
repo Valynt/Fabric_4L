@@ -1,0 +1,4 @@
+{
+  "description": "Narrow allowlist for direct Neo4j session.run calls in L3 runtime paths. Entries are limited to explicit system/schema/migration/bootstrap/backup/health paths and must include owner, expiry, scope, and justification.",
+  "entries": []
+}

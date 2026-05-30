@@ -1,35 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Policy artifacts for Layer 4 workflow governance."""
+The implementation lives in ``layer4_agents.policies``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from ..harness.models import ActionClass, GateType
-from .approval_actions import (
-    ACTION_APPROVAL_POLICIES,
-    ActionApprovalPolicy,
-    ApprovalRequiredError,
-    get_policy,
-    requires_approval,
-)
-from .replay_conflict import (
-    CollisionAction,
-    ReplayDecision,
-    ReplayConflictError,
-    ReplayConflictPolicy,
-    ReplayConflictResolver,
-)
-
-__all__ = [
-    "ReplayConflictPolicy",
-    "ReplayConflictResolver",
-    "ReplayConflictError",
-    "ReplayDecision",
-    "CollisionAction",
-    "ActionClass",
-    "ActionApprovalPolicy",
-    "GateType",
-    "ApprovalRequiredError",
-    "ACTION_APPROVAL_POLICIES",
-    "get_policy",
-    "requires_approval",
-]
+from layer4_agents.policies import *  # noqa: F401,F403

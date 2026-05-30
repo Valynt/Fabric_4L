@@ -11,7 +11,7 @@ Fabric_4L will implement a cross-layer **harness** in L4 that coordinates agent 
 
 ## Consequences
 
-- **L4 remains the orchestration layer.** The harness lives in `services/layer4-agents/src/harness/`.
+- **L4 remains the orchestration layer.** The harness lives in `services/layer4-agents/src/layer4_agents/harness/`.
 - **L5 remains the ground-truth and validation layer.** The harness provides a hook interface to L5, not a replacement.
 - **L3 remains the knowledge and context layer.** The harness resolves context from L3, doesn't duplicate it.
 - **L6 remains the benchmark and policy layer.** Benchmark references are passed through, not interpreted.

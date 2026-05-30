@@ -1,217 +1,162 @@
 """Security tests for Neo4j tenant query enforcement (Sprint 5).
 
 Validates that Cypher queries in Layer 3 include tenant_id filtering
-when tenant context is available. This prevents cross-tenant data leaks.
+without requiring a live Neo4j instance. Live graph connectivity belongs in
+``integration``/``requires_neo4j`` profiles; these mandatory security tests use
+hermetic fakes so tenant-scoping regressions cannot be skipped by dependency
+availability.
 """
 
+from __future__ import annotations
+
+import re
 import uuid
-from unittest.mock import MagicMock, AsyncMock, patch, ANY
+from pathlib import Path
+from unittest.mock import MagicMock
 
 import pytest
 
+from src.api.dependencies import _extract_tenant_id as dependency_extract_tenant_id
+from src.api.models import BatchEntityOperation, BatchEntityRequest
+from src.api.routes.analytics import batch_entity_operations
+from src.api.routes.entities import get_entity_detail
+from value_fabric.shared.error_handling.exceptions import NotFoundError
+
+
+class RecordingTenantNeo4jSession:
+    """Hermetic stand-in for the secured Layer 3 tenant Neo4j session."""
+
+    def __init__(self, tenant_id: str, records: list[dict] | None = None) -> None:
+        self.tenant_id = tenant_id
+        self.records = records or []
+        self.calls: list[tuple[str, dict]] = []
+
+    async def execute_query(self, query: str, parameters: dict | None = None, **kwargs) -> list[dict]:
+        params = dict(parameters or {})
+        params.update(kwargs)
+        params.setdefault("tenant_id", self.tenant_id)
+        params.setdefault("_tenant_id", self.tenant_id)
+        self.calls.append((query, params))
+        return self.records
+
+
+def _request_with_context(tenant_id: str) -> MagicMock:
+    request = MagicMock()
+    request.state.context = MagicMock(tenant_id=tenant_id)
+    request.state.tenant_id = tenant_id
+    return request
+
+
+def _assert_query_is_tenant_scoped(query: str, params: dict, tenant_id: str) -> None:
+    assert "tenant_id" in query, f"Query missing tenant_id predicate: {query}"
+    assert "$tenant_id" in query, f"Query missing tenant_id parameter: {query}"
+    assert params["tenant_id"] == tenant_id
+
 
 class TestNeo4jTenantQueryEnforcement:
-    """Verify tenant_id is included in Cypher queries when context available."""
+    """Verify tenant_id is included in Cypher queries when context is available."""
 
     @pytest.mark.asyncio
-    async def test_entity_detail_query_includes_tenant_id(self, mock_neo4j_driver):
-        """P0: Entity detail query must include tenant_id when context available."""
-        # Import here to handle optional dependencies
-        try:
-            from src.api.main import (
-                get_entity_detail,
-                NEO4J_TENANT_AVAILABLE,
-            )
-        except ImportError:
-            pytest.skip("Layer 3 not available")
-
-        if not NEO4J_TENANT_AVAILABLE:
-            pytest.skip("Neo4j tenant support not available")
-
-        # Arrange: Create mock request with tenant context
+    async def test_entity_detail_query_includes_tenant_id(self):
+        """P0: Entity detail query must include tenant_id when context is available."""
         tenant_id = str(uuid.uuid4())
         entity_id = "test-entity-123"
-        
-        mock_context = MagicMock()
-        mock_context.tenant_id = tenant_id
-        
-        mock_request = MagicMock()
-        mock_request.state.governance_context = mock_context
-        
-        # Use fixture for mock driver
-        mock_driver, mock_session, mock_result = mock_neo4j_driver
-        mock_result.single.return_value = None  # Entity not found is fine
-        
-        # Act: Call the endpoint
-        with pytest.raises(Exception):  # Will raise 404, but query should be captured
+        neo4j = RecordingTenantNeo4jSession(tenant_id)
+
+        with pytest.raises(NotFoundError):
             await get_entity_detail(
                 entity_id=entity_id,
-                neo4j_driver=mock_driver,
-                request=mock_request,
+                _ctx=MagicMock(tenant_id=tenant_id),
+                neo4j=neo4j,
+                app_state=MagicMock(),
             )
-        
-        # Assert: Verify query was called with tenant_id
-        mock_session.run.assert_called()
-        call_args = mock_session.run.call_args
-        query = call_args[0][0] if call_args[0] else call_args[1].get("query", "")
-        params = call_args[1] if len(call_args) > 1 and isinstance(call_args[1], dict) else call_args[0][1] if len(call_args[0]) > 1 else {}
-        
-        # Verify tenant_id appears in query
-        assert "tenant_id" in query, f"Query missing tenant_id: {query}"
-        assert "$tenant_id" in query, f"Query missing tenant_id parameter: {query}"
+
+        assert neo4j.calls, "Entity detail route did not execute a Neo4j query"
+        query, params = neo4j.calls[0]
+        _assert_query_is_tenant_scoped(query, params, tenant_id)
+        assert params["entity_id"] == entity_id
 
     @pytest.mark.asyncio
     async def test_batch_operations_pass_tenant_id_to_helpers(self, mock_neo4j_driver):
         """P0: Batch operations must pass tenant_id to helper functions."""
-        try:
-            from src.api.main import (
-                batch_entity_operations,
-                NEO4J_TENANT_AVAILABLE,
-                BatchEntityRequest,
-                BatchEntityOperation,
-            )
-        except ImportError:
-            pytest.skip("Layer 3 not available")
-
-        if not NEO4J_TENANT_AVAILABLE:
-            pytest.skip("Neo4j tenant support not available")
-
-        # Arrange
         tenant_id = str(uuid.uuid4())
         entity_id = "test-entity-456"
-        
-        mock_context = MagicMock()
-        mock_context.tenant_id = tenant_id
-        
-        mock_request = MagicMock()
-        mock_request.state.governance_context = mock_context
-        
-        # Create batch request with update operation
+        request = _request_with_context(tenant_id)
         batch_request = BatchEntityRequest(
             operations=[
                 BatchEntityOperation(
                     operation="update",
                     entity_id=entity_id,
-                    properties={"name": "Updated Name"}
+                    properties={"name": "Updated Name"},
                 )
             ],
-            atomic=False
+            atomic=False,
         )
-        
-        # Use fixture for mock driver
         mock_driver, mock_session, mock_result = mock_neo4j_driver
         mock_result.single.return_value = {"entity_id": entity_id}
-        
-        # Act
+
         response = await batch_entity_operations(
             request=batch_request,
             neo4j_driver=mock_driver,
-            fastapi_request=mock_request,
+            fastapi_request=request,
         )
-        
-        # Assert: Verify update query included tenant_id
+
+        assert response.successful == 1
         mock_session.run.assert_called()
-        
-        # Find the update call (second call typically)
-        found_tenant_filter = False
+        scoped_calls = []
         for call in mock_session.run.call_args_list:
-            query = call[0][0] if call[0] else ""
-            if "tenant_id" in query and "$tenant_id" in query:
-                found_tenant_filter = True
-                break
-        
-        assert found_tenant_filter, "Update query missing tenant_id filter"
+            query = call.args[0]
+            params = call.args[1] if len(call.args) > 1 else call.kwargs
+            if "$tenant_id" in query:
+                scoped_calls.append((query, params))
+
+        assert scoped_calls, "Update query missing tenant_id filter"
+        for query, params in scoped_calls:
+            _assert_query_is_tenant_scoped(query, params, tenant_id)
 
     def test_cypher_query_patterns_include_tenant_filtering(self):
-        """Verify source code contains tenant_id filtering in MATCH patterns."""
-        from pathlib import Path
-        # Count tenant_id occurrences in MATCH patterns
-        import re
-
-        candidate_roots = [
-            Path("value_fabric/layer3"),
-            Path("services/layer3-knowledge/src"),
-        ]
+        """Mandatory static equivalent: Layer 3 source must contain tenant-scoped MATCH patterns."""
         source_parts: list[str] = []
-        for root in candidate_roots:
-            if root.exists():
-                for path in root.rglob("*.py"):
-                    if "__pycache__" not in path.parts:
-                        source_parts.append(path.read_text(encoding="utf-8"))
-
-        if not source_parts:
-            pytest.skip("Layer 3 source not available")
+        for root in [Path("services/layer3-knowledge/src")]:
+            assert root.exists(), f"Layer 3 source root is missing: {root}"
+            for path in root.rglob("*.py"):
+                if "__pycache__" not in path.parts:
+                    source_parts.append(path.read_text(encoding="utf-8"))
 
         source = "\n".join(source_parts)
         tenant_patterns = re.findall(r"MATCH.*?tenant_id.*?\$tenant_id", source, re.DOTALL)
-        
-        # Sprint 5 should have at least 10 tenant-scoped query patterns
         assert len(tenant_patterns) >= 10, (
             f"Expected >= 10 tenant-scoped MATCH patterns, found {len(tenant_patterns)}. "
-            f"Source may be missing tenant_id filtering."
+            "Source may be missing tenant_id filtering."
         )
 
     @pytest.mark.asyncio
-    async def test_fallback_query_used_when_no_tenant_context(self, mock_neo4j_driver):
-        """Query without tenant_id should be used when no context available."""
-        try:
-            from src.api.main import (
-                get_entity_detail,
-                NEO4J_TENANT_AVAILABLE,
-            )
-        except ImportError:
-            pytest.skip("Layer 3 not available")
+    @pytest.mark.integration
+    async def test_missing_tenant_context_fails_closed_in_legacy_helper(self, mock_neo4j_driver):
+        """Integration profile: legacy compatibility path without tenant context is explicit."""
+        # This legacy direct-driver helper path is outside the mandatory profile;
+        # mandatory tenant scoping is covered by the static/unit tests above.
+        from src.api.routes.analytics import _update_entity
 
-        if not NEO4J_TENANT_AVAILABLE:
-            pytest.skip("Neo4j tenant support not available")
-
-        # Arrange: No tenant context (backward compatibility)
-        entity_id = "test-entity-789"
-        
-        # Use fixture for mock driver
-        mock_driver, mock_session, mock_result = mock_neo4j_driver
-        mock_result.single.return_value = None
-        
-        # Act: Call with no request (or request without context)
-        with pytest.raises(Exception):
-            await get_entity_detail(
-                entity_id=entity_id,
-                neo4j_driver=mock_driver,
-                request=None,
-            )
-        
-        # Assert: Verify fallback query used (no tenant_id)
-        mock_session.run.assert_called()
-        call_args = mock_session.run.call_args
-        query = call_args[0][0] if call_args[0] else ""
-        
-        # Should use fallback query without tenant_id
-        assert "$tenant_id" not in query, (
-            f"Fallback query should not have tenant_id: {query}"
+        operation = BatchEntityOperation(
+            operation="update",
+            entity_id="test-entity-789",
+            properties={"name": "Updated Name"},
         )
+        result = await _update_entity(mock_neo4j_driver[0], operation, tenant_id=None)
+        assert result == {"success": False, "error": "tenant_id is required for entity updates"}
 
 
 class TestTenantIdParameterValidation:
-    """Verify tenant_id parameter is correctly formatted in queries."""
+    """Verify tenant_id parameters are correctly formatted in query helpers."""
 
     def test_tenant_id_converted_to_string_in_params(self):
         """tenant_id should be string in query parameters."""
-        try:
-            from src.api.main import _extract_tenant_id
-        except ImportError:
-            pytest.skip("Layer 3 not available")
-        
-        # Arrange: UUID tenant_id
         tenant_uuid = uuid.uuid4()
-        mock_context = MagicMock()
-        mock_context.tenant_id = tenant_uuid
-        
-        mock_request = MagicMock()
-        mock_request.state.governance_context = mock_context
-        
-        # Act
-        result = _extract_tenant_id(mock_request)
-        
-        # Assert
+        request = _request_with_context(str(tenant_uuid))
+        request.state.tenant_id = tenant_uuid
+
+        result = dependency_extract_tenant_id(request)
+
         assert isinstance(result, str)
         assert result == str(tenant_uuid)

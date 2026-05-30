@@ -1,9 +1,10 @@
 """Redis-backed durable queue for audit events with retry and dead-letter support.
 
 P1-005: Replaces fire-and-forget BackgroundTask with a Redis list that survives
-DB blips.  Events are pushed to ``audit:pending`` and drained by a background
-worker.  After 3 failed delivery attempts with exponential backoff, events are
-moved to ``audit:dead-letter`` for manual inspection.
+DB blips.  Events are pushed to environment/service-scoped audit pending keys
+and drained by a background worker.  After 3 failed delivery attempts with
+exponential backoff, events are moved to the matching dead-letter key for
+manual inspection.
 """
 
 from __future__ import annotations
@@ -11,16 +12,48 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
 from typing import Any
 
 from .models import AuditEvent
 
 logger = logging.getLogger("vf.audit")
 
-_PENDING_KEY = "audit:pending"
-_DEAD_LETTER_KEY = "audit:dead-letter"
 _TTL_SECONDS = 7 * 24 * 60 * 60  # 7 days
 _MAX_RETRIES = 3
+_DEFAULT_ENVIRONMENT = "development"
+_DEFAULT_SERVICE_NAME = "value-fabric"
+_COMPONENT_RE = re.compile(r"[^a-z0-9_.-]+")
+
+
+def _normalise_key_component(value: str | None, *, fallback: str) -> str:
+    """Return a Redis-key-safe, deterministic namespace component."""
+    component = (value or fallback).strip().lower()
+    component = _COMPONENT_RE.sub("-", component).strip("-._")
+    return component or fallback
+
+
+def _audit_redis_key(name: str) -> str:
+    """Build an audit Redis key from the configured namespace and suffix.
+
+    ``AUDIT_REDIS_KEY_PREFIX`` is an explicit compatibility escape hatch: when
+    set to ``audit``, queues use the previous ``audit:pending`` and
+    ``audit:dead-letter`` names.  Without that override, the namespace includes
+    environment and service to prevent cross-environment queue sharing.
+    """
+    explicit_prefix = os.getenv("AUDIT_REDIS_KEY_PREFIX", "").strip().strip(":")
+    if explicit_prefix:
+        return f"{explicit_prefix}:{name}"
+
+    environment = _normalise_key_component(
+        os.getenv("ENVIRONMENT") or os.getenv("APP_ENV"),
+        fallback=_DEFAULT_ENVIRONMENT,
+    )
+    service_name = _normalise_key_component(
+        os.getenv("SERVICE_NAME"),
+        fallback=_DEFAULT_SERVICE_NAME,
+    )
+    return f"audit:{environment}:{service_name}:{name}"
 
 
 class RedisAuditQueue:
@@ -33,6 +66,8 @@ class RedisAuditQueue:
     def __init__(self, redis_client: Any | None = None) -> None:
         self._redis = redis_client
         self._available = redis_client is not None
+        self._pending_key = _audit_redis_key("pending")
+        self._dead_letter_key = _audit_redis_key("dead-letter")
 
     @classmethod
     def from_env(cls) -> "RedisAuditQueue":
@@ -59,8 +94,8 @@ class RedisAuditQueue:
             "last_error": None,
         }
         try:
-            await self._redis.lpush(_PENDING_KEY, json.dumps(payload))
-            await self._redis.expire(_PENDING_KEY, _TTL_SECONDS)
+            await self._redis.lpush(self._pending_key, json.dumps(payload))
+            await self._redis.expire(self._pending_key, _TTL_SECONDS)
             return True
         except Exception as exc:
             logger.error("Failed to push audit event to Redis: %s", exc)
@@ -74,7 +109,7 @@ class RedisAuditQueue:
         if not self._available or self._redis is None:
             return None
         try:
-            result = await self._redis.brpop(_PENDING_KEY, timeout=timeout)
+            result = await self._redis.brpop(self._pending_key, timeout=timeout)
             if result is None:
                 return None
             # result is (key, value)
@@ -93,8 +128,8 @@ class RedisAuditQueue:
             "vf.audit", 20, "", 0, "", (), None
         ).created
         try:
-            await self._redis.lpush(_DEAD_LETTER_KEY, json.dumps(payload))
-            await self._redis.expire(_DEAD_LETTER_KEY, _TTL_SECONDS)
+            await self._redis.lpush(self._dead_letter_key, json.dumps(payload))
+            await self._redis.expire(self._dead_letter_key, _TTL_SECONDS)
         except Exception as exc:
             logger.error("Failed to dead-letter audit event: %s", exc)
 
@@ -103,8 +138,8 @@ class RedisAuditQueue:
         if not self._available or self._redis is None:
             return False
         try:
-            await self._redis.lpush(_PENDING_KEY, json.dumps(payload))
-            await self._redis.expire(_PENDING_KEY, _TTL_SECONDS)
+            await self._redis.lpush(self._pending_key, json.dumps(payload))
+            await self._redis.expire(self._pending_key, _TTL_SECONDS)
             return True
         except Exception as exc:
             logger.error("Failed to requeue audit event: %s", exc)
@@ -115,7 +150,7 @@ class RedisAuditQueue:
         if not self._available or self._redis is None:
             return 0
         try:
-            count = await self._redis.llen(_PENDING_KEY)
+            count = await self._redis.llen(self._pending_key)
             return count or 0
         except Exception:
             return 0
@@ -125,7 +160,7 @@ class RedisAuditQueue:
         if not self._available or self._redis is None:
             return 0
         try:
-            count = await self._redis.llen(_DEAD_LETTER_KEY)
+            count = await self._redis.llen(self._dead_letter_key)
             return count or 0
         except Exception:
             return 0

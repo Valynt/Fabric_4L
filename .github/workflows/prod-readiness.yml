@@ -35,6 +35,14 @@ jobs:
     needs: [determine-profile]
     steps:
       - uses: actions/checkout@v4
+      - name: Enforce release P0 skip policy
+        if: needs.determine-profile.outputs.profile == 'release-candidate'
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyyaml
+          python scripts/ci/check_test_skip_governance.py \
+            --register config/ci/test_skip_register.yaml \
+            --fail-mandatory-p0
       - name: Create artifact directories
         run: |
           mkdir -p ${ARTIFACT_DIR}/{arch,security,chaos,smoke,agent,state,obs,readiness,release,junit}

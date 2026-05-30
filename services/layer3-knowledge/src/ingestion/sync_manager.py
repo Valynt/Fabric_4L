@@ -9,6 +9,15 @@ from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
+<<<<<<< ours
+<<<<<<< ours
+=======
+from ..db.audited_mutation import AuditedGraphMutation
+>>>>>>> theirs
+=======
+from ..db.audited_mutation import AuditedGraphMutation
+>>>>>>> theirs
+from ..db.query_execution import run_validated_query
 from ..ingestion.neo4j_loader import (
     Neo4jLoader,
     RDFLoadError,
@@ -186,7 +195,8 @@ class SyncManager:
         driver = await self.loader._get_driver()
 
         async with driver.session(database=self.settings.neo4j_database) as session:
-            result = await session.run(
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (s:SyncMetadata {source_id: $source_id, tenant_id: $tenant_id})
                 RETURN s
@@ -194,6 +204,16 @@ class SyncManager:
                 LIMIT 1
                 """,
                 {"source_id": source_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+<<<<<<< ours
+<<<<<<< ours
+                query_name="sync_manager.get_sync_status",
+=======
+                query_name="sync_manager_get_sync_status",
+>>>>>>> theirs
+=======
+                query_name="sync_manager_get_sync_status",
+>>>>>>> theirs
             )
             record = await result.single()
 
@@ -226,7 +246,8 @@ class SyncManager:
         sources = []
 
         async with driver.session(database=self.settings.neo4j_database) as session:
-            result = await session.run(
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (s:SyncMetadata {tenant_id: $tenant_id})
                 WITH s.source_id as source_id, max(s.synced_at) as latest
@@ -235,6 +256,16 @@ class SyncManager:
                 ORDER BY s.synced_at DESC
                 """,
                 {"tenant_id": tenant_id},
+                tenant_id=tenant_id,
+<<<<<<< ours
+<<<<<<< ours
+                query_name="sync_manager.list_synced_sources",
+=======
+                query_name="sync_manager_list_synced_sources",
+>>>>>>> theirs
+=======
+                query_name="sync_manager_list_synced_sources",
+>>>>>>> theirs
             )
 
             async for record in result:
@@ -269,12 +300,47 @@ class SyncManager:
         # Delete sync metadata
         driver = await self.loader._get_driver()
         async with driver.session(database=self.settings.neo4j_database) as session:
-            await session.run(
+<<<<<<< ours
+<<<<<<< ours
+            await run_validated_query(
+=======
+            result = await run_validated_query(
+>>>>>>> theirs
+=======
+            result = await run_validated_query(
+>>>>>>> theirs
+                session,
                 """
                 MATCH (s:SyncMetadata {source_id: $source_id, tenant_id: $tenant_id})
                 DELETE s
+                RETURN count(s) as deleted
                 """,
                 {"source_id": source_id, "tenant_id": validated_tenant_id},
+                tenant_id=validated_tenant_id,
+<<<<<<< ours
+<<<<<<< ours
+                allow_system_query=True,
+                query_name="sync_manager.delete_sync_metadata",
+=======
+=======
+>>>>>>> theirs
+                query_name="sync_manager_delete_metadata",
+            )
+            record = await result.single()
+            mutation = AuditedGraphMutation(
+                tenant_id=validated_tenant_id,
+                session=session,
+                operation_source="sync_manager.delete_source",
+            )
+            await mutation._audit_node(
+                "DELETE_SYNC_METADATA",
+                "SyncMetadata",
+                source_id,
+                {"source_id": source_id, "deleted": record["deleted"] if record else 0},
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
             )
 
         stats["source_id"] = source_id
@@ -342,10 +408,32 @@ class SyncManager:
             metadata["error"] = error
 
         async with driver.session(database=self.settings.neo4j_database) as session:
-            await session.run(
+<<<<<<< ours
+<<<<<<< ours
+            await run_validated_query(
+                session,
                 """
                 CREATE (s:SyncMetadata $metadata)
                 RETURN s
                 """,
                 {"metadata": metadata},
+                tenant_id=tenant_id,
+                allow_system_query=True,
+                query_name="sync_manager.update_sync_metadata",
+=======
+=======
+>>>>>>> theirs
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="sync_manager._update_sync_metadata",
+            )
+            await mutation.write_node(
+                "SyncMetadata",
+                f"{source_id}:{extraction_job_id}:{metadata['synced_at']}",
+                metadata,
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
             )

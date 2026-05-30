@@ -8,7 +8,7 @@ Scope (router/API boundary):
 - ``services/*/src/**/api/routes/**/*.py``
 - ``services/*/src/**/api/main.py``
 - ``services/api/app/routers/**/*.py``
-- ``services/layer4-agents/src/tenants/api/routes/**/*.py``
+- ``services/layer4-agents/src/layer4_agents/tenants/api/routes/**/*.py``
 
 Behavior:
 - Walks each matching file with the ``ast`` module and reports every
@@ -39,7 +39,7 @@ ROUTER_GLOBS = (
     "services/*/src/**/api/main.py",
     "services/api/app/routers/**/*.py",
     "services/api/app/main.py",
-    "services/layer4-agents/src/tenants/api/routes/**/*.py",
+    "services/layer4-agents/src/layer4_agents/tenants/api/routes/**/*.py",
     "services/layer2-extraction/src/layer2_extraction/api/main.py",
     "services/layer5-ground-truth/src/layer5_ground_truth/api/**/*.py",
     "services/layer6-benchmarks/src/api/main.py",

@@ -21,7 +21,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/core/tool_registry.py
         detail: execute() rejects missing tenant context and tenant mismatches.
-      - path: services/layer4-agents/src/workflows/roi_calculator.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/roi_calculator.py
         detail: Workflow passes tenant context into tool call inputs.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_tool_execution_contract.py
@@ -30,9 +30,9 @@ requirements:
     requirement: Stable run ID per workflow run
     status: partially_integrated
     runtime_enforcement:
-      - path: services/layer4-agents/src/workflows/state.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/state.py
         detail: workflow_id exists in typed workflow state.
-      - path: services/layer4-agents/src/workflows/base.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/base.py
         detail: Base state initialization populates workflow identifier.
     enforcement_tests:
       - path: services/layer4-agents/tests/unit/test_workflow_state_machine.py
@@ -41,9 +41,9 @@ requirements:
     requirement: Persisted checkpointing + resume support
     status: implemented
     runtime_enforcement:
-      - path: services/layer4-agents/src/workflows/base.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/base.py
         detail: LangGraph compile path supports checkpointer injection.
-      - path: services/layer4-agents/src/workflows/state.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/state.py
         detail: Interrupted/paused/resume fields are represented in state.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_checkpoint_boundary.py
@@ -54,7 +54,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/core/tool_registry.py
         detail: Tenant-scoped idempotency cache and required idempotency_key for irreversible categories.
-      - path: services/layer4-agents/src/workflows/base.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/base.py
         detail: Node retry policy and retry-aware execution flow.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_usage_idempotency.py
@@ -65,7 +65,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/core/tool_registry.py
         detail: Approval-required categories block execution until approved.
-      - path: services/layer4-agents/src/workflows/state.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/state.py
         detail: Pause/resume actor metadata in workflow state.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_action_level_approval.py
@@ -74,7 +74,7 @@ requirements:
     requirement: Explicit replay-conflict policy
     status: not_enforced_end_to_end
     runtime_enforcement:
-      - path: services/layer4-agents/src/workflows/base.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/base.py
         detail: Retry and interruption mechanics exist, but no centralized replay-conflict policy enforcement gate.
     enforcement_tests: []
   - id: R7
@@ -105,7 +105,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/prompts/registry.py
         detail: Prompt/output schema loading facilities exist.
-      - path: services/layer4-agents/src/workflows/state.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/state.py
         detail: Typed state models enforce substantial internal structure.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_workflow_canonical_contract.py
@@ -116,7 +116,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/core/tool_registry.py
         detail: Structured safe errors with recoverability semantics.
-      - path: services/layer4-agents/src/workflows/base.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/base.py
         detail: Failure status/error capture and retry path handling.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_error_handling_paths.py
@@ -127,7 +127,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/prompts/registry.py
         detail: Prompt loading by workflow/version path with frontmatter metadata.
-      - path: services/layer4-agents/src/workflows/types.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/types.py
         detail: Workflow type/config structures for controlled evolution.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_workflow_canonical_contract.py
@@ -138,7 +138,7 @@ requirements:
     runtime_enforcement:
       - path: services/layer4-agents/src/core/tool_registry.py
         detail: Approval gating exists for protected actions.
-      - path: services/layer4-agents/src/workflows/state.py
+      - path: services/layer4-agents/src/layer4_agents/workflows/state.py
         detail: Pause/resume fields support human-in-loop transitions.
     enforcement_tests:
       - path: services/layer4-agents/tests/test_action_level_approval.py

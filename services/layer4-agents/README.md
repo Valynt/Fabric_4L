@@ -1,7 +1,7 @@
 # Layer 4: Agentic Workflow Engine
 > Routing/versioning reference: see the canonical [Service Routing and API Version Matrix](../../docs/reference/service-routing-and-api-version-matrix.md).
 
-> Runtime path governance: net-new layer logic must go to canonical runtime packages in `value_fabric/layer*/`. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
+> Runtime path governance: net-new Layer 4 logic must go to the canonical `services/layer4-agents/src/layer4_agents/` package. See [`docs/reference/layer-runtime-path-governance.md`](../../docs/reference/layer-runtime-path-governance.md).
 
 LangGraph-powered agentic workflow layer for the Value Fabric platform.
 
@@ -41,21 +41,21 @@ alembic upgrade head
 pytest tests/ -v
 
 # Start API server
-uvicorn src.api.main:app --reload
+uvicorn layer4_agents.api.main:app --reload
 ```
 
 
 ## Canonical namespace and compatibility timeline
 
-- Runtime/deployment entrypoint remains `uvicorn src.api.main:app` (from `services/layer4-agents/src/api/main.py`).
-- Canonical Python import namespace for Layer 4 is `value_fabric.layer4.*`.
-- `layer4_agents/*` at repo root is a deprecated compatibility shim only (deprecated on **2026-05-12**; removal review by **2026-09-30**).
-- New code must not import `layer4_agents.*`; CI enforces this via `scripts/ci/check_layer4_canonical_imports.py`.
+- Runtime/deployment entrypoint remains `uvicorn layer4_agents.api.main:app` (from `services/layer4-agents/src/layer4_agents/api/main.py`).
+- Canonical Python import namespace for Layer 4 is `layer4_agents.*`.
+- `services/layer4-agents/src/{api,agents,engine,workflows,services,...}` top-level packages are deprecated compatibility shims only.
+- New code must import `layer4_agents.*`; CI rejects duplicate top-level implementation files via `scripts/ci/check_duplicate_source_trees.py`.
 
 ## Architecture
 
 ```
-src/
+src/layer4_agents/
 ├── models/          # Agent state, workflow configs, tool schemas
 ├── workflows/       # LangGraph workflow definitions
 ├── tools/           # 24 skill implementations

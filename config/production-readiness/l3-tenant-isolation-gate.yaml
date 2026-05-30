@@ -1,6 +1,6 @@
 # Production Readiness Gate: L3 Knowledge Graph Tenant Isolation
 # =============================================================================
-# Status: CLOSED — tenant isolation controls verified for Layer 3 scoped modules.
+# Status: OPEN — blocks production until all L3 runtime Cypher paths use approved execution boundaries.
 #
 # This gate tracks the completion of tenant isolation for Layer 3 (Knowledge Graph)
 # Neo4j routes. L3 uses application-level tenant scoping (Cypher query filtering)
@@ -23,14 +23,40 @@ metadata:
   owner: "platform-security"
 
 status:
-  overall: "CLOSED"
+  overall: "OPEN"
   # P0 = blocks production; P1 = high risk; P2 = tracked
   priority: "P0"
-  closure_date: "2026-05-05"
+  closure_date: null
   reason: |
-    All five L3 route modules migrated to Neo4jTenantSession with tenant_id
-    filtering. Static scanner reports 0 errors across benchmarks, variables,
-    models, formulas, and formula_governance modules.
+    Blocking gate reopened: L3 runtime modules must not call Neo4j
+    session.run(...) directly for tenant-owned reads, writes, or deletes.
+    Production remains blocked until api, ingestion, analytics, and agents paths
+    use run_validated_query, Neo4jTenantSessionSecured.run, AuditedGraphMutation,
+    or another approved audited execution wrapper.
+
+
+execution_boundary_gate:
+  status: BLOCKING
+  owner: "platform-security"
+  effective_date: "2026-05-30"
+  scanned_paths:
+    - services/layer3-knowledge/src/api
+    - services/layer3-knowledge/src/ingestion
+    - services/layer3-knowledge/src/analytics
+    - services/layer3-knowledge/src/agents
+  approved_runtime_boundaries:
+    tenant_owned_reads:
+      - run_validated_query
+      - Neo4jTenantSessionSecured.run
+    tenant_owned_writes_deletes:
+      - AuditedGraphMutation
+      - approved audited mutation wrapper
+  direct_session_run_policy: DENY
+  allowlist_policy: |
+    Only explicit system, schema, migration, backup, bootstrap, or health paths
+    may be allowlisted. Every allowlist entry must include owner, expiry,
+    scope, and justification, and must fail closed after expiry.
+  allowlist_entries: []
 
 modules:
   # ── COMPLETE ── Migrated to Neo4jTenantSession with tenant_id filtering ──────

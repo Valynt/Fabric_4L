@@ -156,7 +156,7 @@ REDIS_URL=redis://localhost:6379/0
 EOF
 
 # Run with hot reload
-uvicorn src.api.main:app --reload --port 8001 --log-level debug
+uvicorn layer4_agents.api.main:app --reload --port 8001 --log-level debug
 ```
 
 ### Layer 2 (Extraction)
@@ -166,7 +166,7 @@ cd services/layer2-extraction
 source .venv/bin/activate
 
 # Run with hot reload
-uvicorn src.api.main:app --reload --port 8002 --log-level debug
+uvicorn layer4_agents.api.main:app --reload --port 8002 --log-level debug
 ```
 
 ### Layer 3 (Knowledge)
@@ -175,7 +175,7 @@ uvicorn src.api.main:app --reload --port 8002 --log-level debug
 cd services/layer3-knowledge
 source .venv/bin/bin/activate
 
-uvicorn src.api.main:app --reload --port 8003 --log-level debug
+uvicorn layer4_agents.api.main:app --reload --port 8003 --log-level debug
 ```
 
 ### Layer 4 (Agents)
@@ -184,7 +184,7 @@ uvicorn src.api.main:app --reload --port 8003 --log-level debug
 cd services/layer4-agents
 source .venv/bin/activate
 
-uvicorn src.api.main:app --reload --port 8004 --log-level debug
+uvicorn layer4_agents.api.main:app --reload --port 8004 --log-level debug
 ```
 
 ### Frontend

@@ -7,7 +7,7 @@ Validates that Layer 4 tools conform to CONTRACT.md §2.4:
 - Proper error structure with recoverable flag
 
 Usage:
-    python3 scripts/ci/check_tool_contracts.py services/layer4-agents/src/tools/
+    python3 scripts/ci/check_tool_contracts.py services/layer4-agents/src/layer4_agents/tools/
 """
 
 from __future__ import annotations

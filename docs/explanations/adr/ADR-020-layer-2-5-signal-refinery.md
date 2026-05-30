@@ -214,7 +214,7 @@ python -m pytest services/layer2-5-signal-refinery/tests/test_l3_client.py -v
 - [Value Signal Model](../../../packages/shared/src/value_fabric/shared/models/value_signal.py) — Canonical Pydantic model
 - [L2 Extraction API](../../reference/layer2-extraction-api.md) — Raw extraction output format
 - [L3 Knowledge Graph API](../../reference/layer3-knowledge-api.md) — Signal persistence endpoint
-- [Signal Tools](../../../services/layer4-agents/src/tools/signal_tools.py) — Layer 4 consumption
+- [Signal Tools](../../../services/layer4-agents/src/layer4_agents/tools/signal_tools.py) — Layer 4 consumption
 
 ---
 

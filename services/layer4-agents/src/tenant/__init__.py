@@ -1,17 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Tenant isolation system for multi-tenancy support.
-
-Provides tenant context management and request isolation.
+The implementation lives in ``layer4_agents.tenant``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
 """
 
-
-from .context import TenantContext, get_current_tenant, set_current_tenant
-from .middleware import TenantMiddleware
-
-__all__ = [
-    "TenantContext",
-    "get_current_tenant",
-    "set_current_tenant",
-    "TenantMiddleware",
-]
+from layer4_agents.tenant import *  # noqa: F401,F403

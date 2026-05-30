@@ -1,26 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Backward-compatible exports for Stripe billing webhook security helpers.
-
-Canonical implementations live in value_fabric.layer4.services.billing_security.
+The implementation lives in ``layer4_agents.services.billing_webhook_security``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
 """
 
-from .billing_security import (
-    STRIPE_WEBHOOK_SKIP_IP_CHECK,
-    STRIPE_WEBHOOK_IPS,
-    ensure_timestamp_within_tolerance,
-    get_client_ip,
-    is_stripe_webhook_ip,
-    parse_stripe_signature_header,
-    validate_webhook_request_security,
-)
-
-__all__ = [
-    "STRIPE_WEBHOOK_IPS",
-    "STRIPE_WEBHOOK_SKIP_IP_CHECK",
-    "ensure_timestamp_within_tolerance",
-    "get_client_ip",
-    "is_stripe_webhook_ip",
-    "parse_stripe_signature_header",
-    "validate_webhook_request_security",
-]
+from layer4_agents.services.billing_webhook_security import *  # noqa: F401,F403

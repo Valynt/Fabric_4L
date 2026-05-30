@@ -101,6 +101,12 @@ from layer2_extraction.validation.artifact_validator import (
 from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
 from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
+from value_fabric.shared.fastapi_framework import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
+    HealthChecksConfig,
+)
 
 
 def _current_environment() -> str:
@@ -139,6 +145,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Shutdown
     logger.info("Layer2 extraction service shutting down")
 
+# Public unauthenticated probes. All business/API and internal extraction routes
+# must establish tenant context; S2S-only extraction routes stay outside this
+# allowlist so they continue through the dedicated S2S JWT guard below.
+_TENANT_CONTEXT_EXEMPT_PATHS: frozenset[str] = frozenset({
+    "/health",
+    "/health/live",
+    "/ready",
+    "/readiness",
+})
+
 _redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 _redis_client = None
 try:
@@ -156,7 +172,11 @@ app = create_fabric_app(
     lifespan=lifespan,
     health_probes=[RedisHealthProbe(name="redis", _client=_redis_client)],
     readiness_path="/ready",
-    enforce_tenant_context=False,
+    enforcement_rollout=EnforcementRolloutConfig(
+        tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),
+        health_checks=HealthChecksConfig(route_opt_out_paths=_TENANT_CONTEXT_EXEMPT_PATHS),
+    ),
+    enforce_tenant_context=True,
     instrument_telemetry=True,
 )
 

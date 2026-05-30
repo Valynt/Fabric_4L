@@ -602,7 +602,6 @@ class Neo4jLoader:
         validated against RELATIONSHIP_TYPES before interpolation to prevent
         injection.
         """
-        loaded_at = datetime.utcnow().isoformat()
         by_type: dict[str, list[dict]] = defaultdict(list)
         validated_tenant_id = validate_ingestion_tenant_id(tenant_id)
 
@@ -622,54 +621,56 @@ class Neo4jLoader:
 
         total_loaded = 0
         for rel_type, rels in by_type.items():
-            params = {
-                "relationships": rels,
-                "source_id": source_id,
-                "extraction_job_id": extraction_job_id,
-                "loaded_at": loaded_at,
-                "tenant_id": validated_tenant_id,
-            }
-            # rel_type is validated against RELATIONSHIP_TYPES above — safe to
-            # interpolate into the query string.
-            query = f"""
-            UNWIND $relationships AS rel
-            MATCH (source {{id: rel.source_id, tenant_id: $tenant_id}})
-            MATCH (target {{id: rel.target_id, tenant_id: $tenant_id}})
-            MERGE (source)-[r:{rel_type} {{source_id: rel.source_id, target_id: rel.target_id}}]->(target)
-            ON CREATE SET
-                r.source_id = $source_id,
-                r.extraction_job_id = $extraction_job_id,
-                r.loaded_at = datetime($loaded_at),
-                r.confidence = rel.confidence,
-                r.raw_predicate = rel.raw_predicate,
-                r.impact_level = rel.impact_level,
-                r.strength = rel.strength,
-                r.enablement_type = rel.enablement_type,
-                r.benefit_type = rel.benefit_type,
-                r.driver_type = rel.driver_type,
-                r.contribution_weight = rel.contribution_weight,
-                r.influence_weight = rel.influence_weight,
-                r.created_at = datetime()
-            ON MATCH SET
-                r.source_id = $source_id,
-                r.extraction_job_id = $extraction_job_id,
-                r.loaded_at = datetime($loaded_at),
-                r.confidence = rel.confidence,
-                r.raw_predicate = rel.raw_predicate,
-                r.impact_level = rel.impact_level,
-                r.strength = rel.strength,
-                r.enablement_type = rel.enablement_type,
-                r.benefit_type = rel.benefit_type,
-                r.driver_type = rel.driver_type,
-                r.contribution_weight = rel.contribution_weight,
-                r.influence_weight = rel.influence_weight,
-                r.updated_at = datetime()
-            RETURN count(r) AS loaded
-            """
+<<<<<<< ours
+<<<<<<< ours
             try:
-                result = await session.run(query, params)
-                record = await result.single()
-                total_loaded += record["loaded"] if record else 0
+                mutation = AuditedGraphMutation(
+                    tenant_id=validated_tenant_id,
+                    session=session,
+                    operation_source="neo4j_loader._load_relationships_native",
+                )
+                triples = [
+                    {"src_id": rel.get("source_id"), "tgt_id": rel.get("target_id")}
+                    for rel in rels
+                ]
+                result = await mutation.write_relationships_batch(rel_type, triples)
+                total_loaded += result.get("count", 0)
+=======
+=======
+>>>>>>> theirs
+            mutation = AuditedGraphMutation(
+                tenant_id=validated_tenant_id,
+                session=session,
+                operation_source="neo4j_loader._load_relationships_native",
+            )
+            try:
+                for rel in rels:
+                    await mutation.write_relationship(
+                        rel["source_id"],
+                        rel_type,
+                        rel["target_id"],
+                        properties={
+                            "source_id": source_id,
+                            "source_entity_id": rel["source_id"],
+                            "target_entity_id": rel["target_id"],
+                            "extraction_job_id": extraction_job_id,
+                            "loaded_at": loaded_at,
+                            "confidence": rel.get("confidence"),
+                            "raw_predicate": rel.get("raw_predicate"),
+                            "impact_level": rel.get("impact_level"),
+                            "strength": rel.get("strength"),
+                            "enablement_type": rel.get("enablement_type"),
+                            "benefit_type": rel.get("benefit_type"),
+                            "driver_type": rel.get("driver_type"),
+                            "contribution_weight": rel.get("contribution_weight"),
+                            "influence_weight": rel.get("influence_weight"),
+                        },
+                    )
+                    total_loaded += 1
+<<<<<<< ours
+>>>>>>> theirs
+=======
+>>>>>>> theirs
             except Exception as exc:
                 logger.error("Failed to load %s relationships: %s", rel_type, exc)
 

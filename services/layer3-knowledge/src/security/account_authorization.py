@@ -245,7 +245,7 @@ def optional_account_context(request: Request) -> str | None:
     return getattr(request.state, "account_id", None)
 
 
-def verify_entity_account_access(
+async def verify_entity_account_access(
     entity_type: str,
     entity_data: dict[str, Any],
     request: Request,

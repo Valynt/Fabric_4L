@@ -12,7 +12,7 @@ import pytest
 
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
-_MAIN_PY = _PROJECT_ROOT / "services/layer1-ingestion/src/api/main.py"
+_MAIN_PY = _PROJECT_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py"
 _APP_MONOLITH_PY = _PROJECT_ROOT / "services/layer1-ingestion/src/api/app_monolith.py"
 
 

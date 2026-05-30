@@ -7203,6 +7203,247 @@
         },
         "deprecated": true
       }
+    },
+    "/v1/graph/signals": {
+      "post": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Persist Signal",
+        "description": "Persist a ValueSignal as a Neo4j node and link to its Account.\n\nCalled by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).\nPhase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.",
+        "operationId": "persist_signal_v1_graph_signals_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalNode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "List Graph Signals",
+        "operationId": "list_graph_signals_v1_graph_signals_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "lifecycle_states",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lifecycle States"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Types"
+            }
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph/signals/{signal_id}": {
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Get Graph Signal",
+        "operationId": "get_graph_signal_v1_graph_signals__signal_id__get",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalNode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph/signals/{signal_id}/related": {
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Get Signal Related",
+        "operationId": "get_signal_related_v1_graph_signals__signal_id__related_get",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalRelatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -11449,51 +11690,17 @@
         "description": "Statistics for the knowledge graph."
       },
       "HTTPValidationError": {
-        "type": "object",
-        "title": "HTTPValidationError",
-        "required": [
-          "error"
-        ],
-        "additionalProperties": false,
         "properties": {
-          "error": {
-            "type": "object",
-            "required": [
-              "code",
-              "message",
-              "request_id"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Machine-readable error code"
-              },
-              "message": {
-                "type": "string",
-                "description": "Human-readable error message"
-              },
-              "request_id": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Request ID for support correlation"
-              },
-              "details": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Optional sanitized error details"
-              }
-            }
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
           }
         },
-        "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+        "type": "object",
+        "title": "HTTPValidationError"
       },
       "HealthResponse": {
         "properties": {
@@ -18060,6 +18267,156 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "SignalListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SignalNode"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SignalListResponse"
+      },
+      "SignalNode": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "trust_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trust Score"
+          },
+          "lifecycle_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifecycle State"
+          },
+          "impact_area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact Area"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "account_id",
+          "type",
+          "content",
+          "confidence"
+        ],
+        "title": "SignalNode"
+      },
+      "SignalRelatedResponse": {
+        "properties": {
+          "value_drivers": {
+            "items": {},
+            "type": "array",
+            "title": "Value Drivers"
+          },
+          "personas": {
+            "items": {},
+            "type": "array",
+            "title": "Personas"
+          },
+          "accounts": {
+            "items": {},
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_drivers",
+          "personas",
+          "accounts"
+        ],
+        "title": "SignalRelatedResponse"
       }
     },
     "securitySchemes": {

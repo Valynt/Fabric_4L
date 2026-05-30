@@ -1,5 +1,7 @@
-"""Public façade for API surface context."""
+"""Compatibility shim for the canonical Layer 4 module.
 
-from ...api.websocket.manager import WorkflowWebSocketManager, get_ws_manager
+The implementation lives in ``layer4_agents.contexts.api_surface.public``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-__all__ = ["WorkflowWebSocketManager", "get_ws_manager"]
+from layer4_agents.contexts.api_surface.public import *  # noqa: F401,F403

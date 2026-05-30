@@ -11,7 +11,7 @@ MAX_ENTRYPOINT_BYTES = 35 * 1024
 MAX_ROUTE_MODULE_BYTES = 25 * 1024
 ENTRYPOINTS = [
     REPO_ROOT / "services/layer3-knowledge/src/api/main.py",
-    REPO_ROOT / "services/layer1-ingestion/src/api/main.py",
+    REPO_ROOT / "services/layer1-ingestion/src/layer1_ingestion/api/main.py",
 ]
 ROUTE_ROOTS = [
     REPO_ROOT / "services/layer3-knowledge/src/api/routes",

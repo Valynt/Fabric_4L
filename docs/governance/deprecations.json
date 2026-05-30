@@ -143,11 +143,11 @@
       "instanceCount": 19,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
-        "services/layer4-agents/src/agents/**/*.py",
+        "services/layer4-agents/src/layer4_agents/agents/**/*.py",
         "services/layer4-agents/workflows/**/*.py"
       ],
       "allowedPaths": [
-        "services/layer4-agents/src/tools/**/*.py",
+        "services/layer4-agents/src/layer4_agents/tools/**/*.py",
         "examples/canonical/tools/**"
       ],
       "replacement": "Central ToolRegistry with schema-first definitions",
@@ -172,7 +172,7 @@
       "lastMigration": "2026-04-28T08:35:00Z",
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
-        "services/layer4-agents/src/tools/**/*.py"
+        "services/layer4-agents/src/layer4_agents/tools/**/*.py"
       ],
       "allowedPaths": [
         "services/layer4-agents/tests/**"

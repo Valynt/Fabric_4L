@@ -4,7 +4,7 @@ from pathlib import Path
 
 MATRIX=Path('contracts/layer4-route-contract-matrix.json')
 OPENAPI=Path('contracts/openapi/layer4-agents.json')
-ROUTE_DIRS=[Path('services/layer4-agents/src/api/routes'),Path('services/layer4-agents/src/feature_flags/api'),Path('services/layer4-agents/src/tenants/api/routes'),Path('services/layer4-agents/src/registry/api')]
+ROUTE_DIRS=[Path('services/layer4-agents/src/layer4_agents/api/routes'),Path('services/layer4-agents/src/layer4_agents/feature_flags/api'),Path('services/layer4-agents/src/layer4_agents/tenants/api/routes'),Path('services/layer4-agents/src/layer4_agents/registry/api')]
 
 pat=re.compile(r'@(?:router|[a-zA-Z_][\w]*)\.(get|post|put|delete|patch)\(\s*["\']([^"\']+)')
 

@@ -1,17 +1,12 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Orchestration Controller - Enhanced workflow execution engine.
-
-Provides comprehensive workflow orchestration with:
-- Multi-agent coordination
-- Task scheduling with priorities
-- Backpressure handling
-- Message-based agent communication
-- Failure recovery
-
-This implements the OrchestrationController agent type from the specification.
+The implementation lives in ``layer4_agents.engine.executor``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
 """
 
+<<<<<<< ours
+from layer4_agents.engine.executor import *  # noqa: F401,F403
+=======
 
 import asyncio
 import logging
@@ -1378,7 +1373,10 @@ class OrchestrationController:
 
         try:
             result = await workflow.run(
-                state, thread_id=workflow_id, resume_data=resume_data
+                state,
+                thread_id=workflow_id,
+                checkpoint_config={"checkpoint_id": checkpoint_id},
+                resume_data=resume_data,
             )
         except WorkflowExecutionError:
             raise
@@ -1942,3 +1940,4 @@ class OrchestrationController:
 
 # Backward compatibility alias for route dependency typing.
 WorkflowExecutor = OrchestrationController
+>>>>>>> theirs

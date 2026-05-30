@@ -367,7 +367,7 @@ See `shared/identity/middleware.py` for implementation details.
 - [Multi-Tenancy Architecture](./multi-tenancy.md)
 - `shared/identity/context.py` - RequestContext
 - `shared/identity/middleware.py` - Token validation
-- `services/layer4-agents/src/tenants/models/` - Tenant resolution
+- `services/layer4-agents/src/layer4_agents/tenants/models/` - Tenant resolution
 
 ## Migration Note (May 2026): Cookie-Based Session Transport
 

@@ -24,7 +24,7 @@ Change the Layer 4 WebSocket auth handler to call `decode_jwt(token)` without pa
 
 ### File changed
 
-- `services/layer4-agents/src/api/websocket/routes.py`
+- `services/layer4-agents/src/layer4_agents/api/websocket/routes.py`
   - Before: `decode_jwt(token, JWT_SECRET)`
   - After: `decode_jwt(token)`
 
@@ -75,7 +75,7 @@ tests/security/test_p1_13_websocket_auth.py::test_websocket_auth_missing_token P
 ## Related
 - Related ADRs: [ADR-0004: Layer 4 Database Facade Compatibility](0004-layer4-database-facade-compatibility.md) -- both fix Layer 4 contract/export issues
 - Related files:
-  - `services/layer4-agents/src/api/websocket/routes.py`
+  - `services/layer4-agents/src/layer4_agents/api/websocket/routes.py`
   - `tests/security/test_p1_13_websocket_auth.py`
 - Related tests:
   - `python -m pytest tests/security/test_p1_13_websocket_auth.py -n 0 --maxfail=1 -vv`

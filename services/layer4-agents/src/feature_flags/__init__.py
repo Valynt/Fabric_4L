@@ -1,8 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Feature flags package for Layer 4."""
+The implementation lives in ``layer4_agents.feature_flags``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-
-from .service import FeatureFlagService
-
-__all__ = ["FeatureFlagService"]
+from layer4_agents.feature_flags import *  # noqa: F401,F403

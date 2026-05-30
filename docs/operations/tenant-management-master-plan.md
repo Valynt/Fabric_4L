@@ -71,9 +71,9 @@ Create migration to rename `organization_id` to `tenant_id` in Layer 5 tables. U
 Add proper tenant status management: `pending` → `active` → `suspended` → `deleted`. Add suspension checks to middleware.
 
 **Modified Files:**
-- `services/layer4-agents/src/tenants/models/tenant.py` (add status transitions)
+- `services/layer4-agents/src/layer4_agents/tenants/models/tenant.py` (add status transitions)
 - `packages/shared/src/value_fabric/shared/identity/middleware.py` (add suspended tenant check)
-- `services/layer4-agents/src/tenants/service.py` (add lifecycle methods)
+- `services/layer4-agents/src/layer4_agents/tenants/service.py` (add lifecycle methods)
 
 #### Task 1.4: Enhance RLS Policies
 **Estimated Effort:** 6 hours
@@ -103,8 +103,8 @@ Strengthen the existing tenant context validation. Add metrics for tenant contex
 Create the service structure for tenant provisioning (without full automation yet).
 
 **New Files:**
-- `services/layer4-agents/src/tenants/provisioning.py` (skeleton service)
-- `services/layer4-agents/src/tenants/constants.py` (status enums, defaults)
+- `services/layer4-agents/src/layer4_agents/tenants/provisioning.py` (skeleton service)
+- `services/layer4-agents/src/layer4_agents/tenants/constants.py` (status enums, defaults)
 
 ### 1.3 Acceptance Criteria
 
@@ -189,7 +189,7 @@ Contents:
 
 Implement the provisioning orchestration endpoint.
 
-**Modified File:** `services/layer4-agents/src/tenants/api/routes/tenants.py`
+**Modified File:** `services/layer4-agents/src/layer4_agents/tenants/api/routes/tenants.py`
 
 New endpoints:
 - `POST /tenants` — Create tenant (super_admin only)
@@ -208,7 +208,7 @@ New endpoints:
 
 Create endpoint for external systems to trigger tenant provisioning.
 
-**New File:** `services/layer4-agents/src/tenants/api/routes/provisioning_webhook.py`
+**New File:** `services/layer4-agents/src/layer4_agents/tenants/api/routes/provisioning_webhook.py`
 
 ```python
 @router.post("/webhooks/provision-tenant")
@@ -279,7 +279,7 @@ Deliver user-facing APIs for tenant management: registration, admin dashboard, u
 
 Create tier definitions without billing integration.
 
-**New File:** `services/layer4-agents/src/tenants/tiers.py`
+**New File:** `services/layer4-agents/src/layer4_agents/tenants/tiers.py`
 
 ```python
 TIERS = {
@@ -307,7 +307,7 @@ Add checks for:
 
 Implement usage tracking for billing preparation.
 
-**New File:** `services/layer4-agents/src/tenants/usage.py`
+**New File:** `services/layer4-agents/src/layer4_agents/tenants/usage.py`
 
 Track:
 - Agent executions per tenant
@@ -320,7 +320,7 @@ Track:
 
 Create endpoints for tenant admin dashboard.
 
-**New File:** `services/layer4-agents/src/tenants/api/routes/admin.py`
+**New File:** `services/layer4-agents/src/layer4_agents/tenants/api/routes/admin.py`
 
 Endpoints:
 - `GET /tenants/{id}/users` — List tenant users
@@ -334,7 +334,7 @@ Endpoints:
 
 Public endpoint for tenant self-registration.
 
-**Modified File:** `services/layer4-agents/src/tenants/api/routes/registration.py`
+**Modified File:** `services/layer4-agents/src/layer4_agents/tenants/api/routes/registration.py`
 
 Endpoints:
 - `POST /tenants/register` — Submit registration
@@ -352,7 +352,7 @@ Endpoints:
 
 Enhance existing API key system for tenant self-service.
 
-**Modified File:** `services/layer4-agents/src/tenants/api/routes/api_keys.py`
+**Modified File:** `services/layer4-agents/src/layer4_agents/tenants/api/routes/api_keys.py`
 
 Add:
 - Tenant admin can create/revoke keys

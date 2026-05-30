@@ -8,7 +8,7 @@ from collections import defaultdict
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-TOOLS_DIR = REPO_ROOT / "services/layer4-agents/src/tools"
+TOOLS_DIR = REPO_ROOT / "services/layer4-agents/src/layer4_agents/tools"
 TOOLS_INIT = TOOLS_DIR / "__init__.py"
 OUTPUT = REPO_ROOT / "audit-output/layer4-tool-inventory.md"
 

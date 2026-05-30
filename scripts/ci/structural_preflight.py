@@ -300,7 +300,7 @@ def check_tool_manifest_alignment(repo_root: Path) -> list[Finding]:
         findings.append(Finding(
             check_id="tool_manifest_alignment",
             severity="medium",
-            path="services/layer4-agents/src/tools/__init__.py",
+            path="services/layer4-agents/src/layer4_agents/tools/__init__.py",
             finding_type="missing_tools_init",
             message="Tools registry init not found",
             recommendation="Verify layer4-agents structure",

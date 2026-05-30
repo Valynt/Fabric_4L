@@ -1,7 +1,7 @@
-from __future__ import annotations
+"""Compatibility shim for the canonical Layer 4 module.
 
-"""Shared domain models for Layer 4 Agents."""
+The implementation lives in ``layer4_agents.shared.domain``. Keep this file as a thin
+re-export only so the packaged source of truth remains ``layer4_agents``.
+"""
 
-from .context import TenantContext, TenantContextError
-
-__all__ = ["TenantContext", "TenantContextError"]
+from layer4_agents.shared.domain import *  # noqa: F401,F403

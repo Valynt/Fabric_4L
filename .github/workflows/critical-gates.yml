@@ -1,4 +1,4 @@
-# 22 named critical gates run as a matrix job, each producing a JSON evidence artifact.
+# Named critical gates run as a matrix job, each producing a JSON evidence artifact.
 # Gates cover: auth coverage, tenant isolation, OpenAPI drift, production config policy,
 # hermetic build inputs, correlation log contract, ADR-027 import hygiene (all 6 layers),
 # Alembic head consistency, env contract structure, stale namespace dirs, and P0 security
@@ -66,6 +66,11 @@ jobs:
             owner: "@value-fabric/architects"
             escalation: "@value-fabric/maintainers"
             command: "python scripts/ci/check_layer1_imports.py --strict"
+          - id: layer1-api-main-shim-drift
+            service: layer1
+            owner: "@value-fabric/architects"
+            escalation: "@value-fabric/maintainers"
+            command: "python scripts/ci/check_layer1_api_main_shim_drift.py"
           - id: adr027-layer2-imports
             service: layer2
             owner: "@value-fabric/architects"

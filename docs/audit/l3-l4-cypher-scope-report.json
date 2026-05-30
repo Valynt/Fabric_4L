@@ -138,57 +138,57 @@
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/competitive_tools.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/competitive_tools.py",
       "line": 245,
       "function": "_query_graph_for_competitor",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/competitive_tools.py::_query_graph_for_competitor::245",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/competitive_tools.py::_query_graph_for_competitor::245",
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/knowledge.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
       "line": 77,
       "function": "get_entity",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/knowledge.py::get_entity::77",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::get_entity::77",
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/knowledge.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
       "line": 135,
       "function": "update_entity",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/knowledge.py::update_entity::135",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::update_entity::135",
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/knowledge.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
       "line": 191,
       "function": "delete_entity",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/knowledge.py::delete_entity::191",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::delete_entity::191",
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/knowledge.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
       "line": 235,
       "function": "search_entities",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/knowledge.py::search_entities::235",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::search_entities::235",
       "allowlisted": true
     },
     {
-      "path": "services/layer4-agents/src/tools/knowledge.py",
+      "path": "services/layer4-agents/src/layer4_agents/tools/knowledge.py",
       "line": 265,
       "function": "list_entities",
       "classification": "Unknown",
       "message": "session.run constant Cypher query requires explicit allowlist or scoped helper marker",
-      "finding_key": "services/layer4-agents/src/tools/knowledge.py::list_entities::265",
+      "finding_key": "services/layer4-agents/src/layer4_agents/tools/knowledge.py::list_entities::265",
       "allowlisted": true
     }
   ]

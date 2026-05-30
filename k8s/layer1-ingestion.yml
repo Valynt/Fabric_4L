@@ -48,7 +48,7 @@ spec:
               cpu: "50m"
       containers:
         - name: api
-          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true
@@ -133,7 +133,7 @@ spec:
               mountPath: /tmp
         # Celery worker sidecar
         - name: celery-worker
-          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion:main
+          image: ghcr.io/bmsull560/fabric_4l/layer1-ingestion@sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d
           securityContext:
             allowPrivilegeEscalation: false
             readOnlyRootFilesystem: true

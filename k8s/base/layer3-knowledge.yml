@@ -62,7 +62,7 @@ spec:
           emptyDir: {}
       containers:
         - name: api
-          image: value-fabric/layer3-knowledge:main
+          image: services/layer3-knowledge@sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

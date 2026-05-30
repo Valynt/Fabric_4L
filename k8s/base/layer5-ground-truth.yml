@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       initContainers:
         - name: migrate
-          image: value-fabric/layer5-ground-truth:main
+          image: services/layer5-ground-truth@sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
           command: ["alembic", "upgrade", "head"]
           env:
             - name: DATABASE_URL_SYNC
@@ -55,7 +55,7 @@ spec:
           emptyDir: {}
       containers:
         - name: api
-          image: value-fabric/layer5-ground-truth:main
+          image: services/layer5-ground-truth@sha256:6ffaf262c13f1d8e01b60486f2f55c39af8225038f1895b06136347e587e29e7
           securityContext:
             runAsUser: 1000
             runAsGroup: 1000

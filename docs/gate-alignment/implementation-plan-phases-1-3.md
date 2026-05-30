@@ -24,7 +24,7 @@ This plan implements the Governed Agent Trust Environment (GATE) framework acros
 
 ### 1.1 Canonical JSON Hashing Utility
 
-**Gap:** `services/layer4-agents/src/services/export_provenance.py` has an ad-hoc `_hash_canonical()` using `json.dumps(sort_keys=True, separators=(",", ":"))`. This is *close* to RFC 8785 but not fully compliant (no explicit float normalization, no guaranteed encoding rules).
+**Gap:** `services/layer4-agents/src/layer4_agents/services/export_provenance.py` has an ad-hoc `_hash_canonical()` using `json.dumps(sort_keys=True, separators=(",", ":"))`. This is *close* to RFC 8785 but not fully compliant (no explicit float normalization, no guaranteed encoding rules).
 
 **Action:**
 - Create `shared/crypto/canonical.py` with a strict, tested implementation.
@@ -240,13 +240,13 @@ async def emit_audit_event(
 
 ### 1.4 Tool Invocation Records in ToolRegistry
 
-**Gap:** `services/layer4-agents/src/tools/registry.py` `ToolRegistry.execute()` logs tenant context but emits no structured audit event.
+**Gap:** `services/layer4-agents/src/layer4_agents/tools/registry.py` `ToolRegistry.execute()` logs tenant context but emits no structured audit event.
 
 **Action:**
 Instrument `ToolRegistry.execute()` to emit `TOOL_INVOCATION` audit events with request/response hashing.
 
 ```python
-# services/layer4-agents/src/tools/registry.py (execute method refactor)
+# services/layer4-agents/src/layer4_agents/tools/registry.py (execute method refactor)
 
 async def execute(self, tool_name: str, input_dict: dict[str, Any]) -> dict[str, Any]:
     tool = self.get(tool_name)
@@ -743,7 +743,7 @@ class ToolGateway:
 
 ### 2.5 ToolRegistry Refactoring
 
-**Changes to `services/layer4-agents/src/tools/registry.py`:**
+**Changes to `services/layer4-agents/src/layer4_agents/tools/registry.py`:**
 1. Add `manifest_hash` class attribute to `BaseTool` (populated from `contracts/tool-manifests/<name>.json` hash at build time).
 2. Update `create_default_registry()` to load manifest hashes.
 3. Keep `ToolRegistry.execute()` as the low-level dispatcher; high-level enforcement moves to `ToolGateway`.
@@ -751,14 +751,14 @@ class ToolGateway:
 
 ### 2.6 Agent Lifecycle Integration
 
-**Changes to `services/layer4-agents/src/agents/base.py`:**
+**Changes to `services/layer4-agents/src/layer4_agents/agents/base.py`:**
 - Add `abom: AgentBillOfMaterials | None` to `BaseAgent.__init__`.
 - Load ABOM in `initialize()` via `AgentBillOfMaterials.load_for_agent(self.agent_type)`.
 - Store `abom` in `AgentState.metadata`.
 - Agents execute tools through `ToolGateway` instead of raw `ToolRegistry`.
 
 ```python
-# services/layer4-agents/src/agents/base.py (additions)
+# services/layer4-agents/src/layer4_agents/agents/base.py (additions)
 class BaseAgent(ABC):
     # ... existing attributes ...
     abom: AgentBillOfMaterials | None = None
@@ -1086,7 +1086,7 @@ class ReplayRecorder:
 
 **Integration into `BaseAgent`:**
 ```python
-# services/layer4-agents/src/agents/base.py (run method additions)
+# services/layer4-agents/src/layer4_agents/agents/base.py (run method additions)
 
 async def run(self, task: dict[str, Any], context: dict[str, Any] | None = None) -> dict[str, Any]:
     ctx = context or {}
@@ -1222,10 +1222,10 @@ tests/layer3/governance/test_memory_gateway.py
 ```
 shared/audit/models.py
 shared/audit/emitter.py
-services/layer4-agents/src/tools/registry.py
-services/layer4-agents/src/agents/base.py
+services/layer4-agents/src/layer4_agents/tools/registry.py
+services/layer4-agents/src/layer4_agents/agents/base.py
 services/layer3-knowledge/src/retrieval/graph_rag.py
-services/layer4-agents/src/services/export_provenance.py
+services/layer4-agents/src/layer4_agents/services/export_provenance.py
 packages/platform-contract/CONTRACT.md
 docs/platform-contract/DEPRECATION_MAP.md
 ```

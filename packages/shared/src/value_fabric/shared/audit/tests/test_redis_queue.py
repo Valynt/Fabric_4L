@@ -12,7 +12,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from ..models import AuditAction, AuditEvent
-from ..redis_queue import RedisAuditQueue, _DEAD_LETTER_KEY, _PENDING_KEY, _TTL_SECONDS
+from ..redis_queue import RedisAuditQueue, _audit_redis_key, _TTL_SECONDS
 
 pytestmark = [pytest.mark.integration]
 
@@ -20,17 +20,35 @@ pytestmark = [pytest.mark.integration]
 class TestRedisAuditQueueUnit:
     """Unit-level tests with mocked Redis client."""
 
+    @pytest.fixture(autouse=True)
+    def audit_queue_namespace(self, monkeypatch):
+        monkeypatch.delenv("AUDIT_REDIS_KEY_PREFIX", raising=False)
+        monkeypatch.setenv("ENVIRONMENT", "test")
+        monkeypatch.delenv("APP_ENV", raising=False)
+        monkeypatch.setenv("SERVICE_NAME", "audit-service")
+
     @pytest.fixture
     def mock_redis(self):
         """Provide a mock async Redis client."""
         client = AsyncMock()
         client.lpush = AsyncMock(return_value=1)
         client.expire = AsyncMock(return_value=1)
-        client.brpop = AsyncMock(return_value=(_PENDING_KEY, json.dumps({
-            "event": {"action": "user.login", "id": "test-uuid", "timestamp": "2024-01-01T00:00:00"},
-            "attempts": 0,
-            "last_error": None,
-        })))
+        client.brpop = AsyncMock(
+            return_value=(
+                "audit:test:audit-service:pending",
+                json.dumps(
+                    {
+                        "event": {
+                            "action": "user.login",
+                            "id": "test-uuid",
+                            "timestamp": "2024-01-01T00:00:00",
+                        },
+                        "attempts": 0,
+                        "last_error": None,
+                    }
+                ),
+            )
+        )
         client.rpush = AsyncMock(return_value=1)
         return client
 
@@ -41,6 +59,23 @@ class TestRedisAuditQueueUnit:
     def test_available_with_client(self, mock_redis):
         queue = RedisAuditQueue(mock_redis)
         assert queue._available is True
+
+    def test_uses_environment_service_namespaced_keys(self, mock_redis):
+        queue = RedisAuditQueue(mock_redis)
+        assert queue._pending_key == "audit:test:audit-service:pending"
+        assert queue._dead_letter_key == "audit:test:audit-service:dead-letter"
+
+    def test_app_env_used_when_environment_absent(self, mock_redis, monkeypatch):
+        monkeypatch.delenv("ENVIRONMENT", raising=False)
+        monkeypatch.setenv("APP_ENV", "staging")
+        queue = RedisAuditQueue(mock_redis)
+        assert queue._pending_key == "audit:staging:audit-service:pending"
+
+    def test_explicit_prefix_preserves_legacy_key_shape(self, mock_redis, monkeypatch):
+        monkeypatch.setenv("AUDIT_REDIS_KEY_PREFIX", "audit")
+        queue = RedisAuditQueue(mock_redis)
+        assert queue._pending_key == "audit:pending"
+        assert queue._dead_letter_key == "audit:dead-letter"
 
     @pytest.mark.asyncio
     async def test_push_returns_false_when_unavailable(self):
@@ -57,7 +92,9 @@ class TestRedisAuditQueueUnit:
 
         assert result is True
         mock_redis.lpush.assert_awaited_once()
-        mock_redis.expire.assert_awaited_once_with(_PENDING_KEY, _TTL_SECONDS)
+        mock_redis.expire.assert_awaited_once_with(
+            "audit:test:audit-service:pending", _TTL_SECONDS
+        )
 
     @pytest.mark.asyncio
     async def test_pop_returns_none_when_unavailable(self):
@@ -74,7 +111,9 @@ class TestRedisAuditQueueUnit:
         assert payload["attempts"] == 0
         assert payload["last_error"] is None
         assert payload["event"]["action"] == "user.login"
-        mock_redis.brpop.assert_awaited_once_with(_PENDING_KEY, timeout=5.0)
+        mock_redis.brpop.assert_awaited_once_with(
+            "audit:test:audit-service:pending", timeout=5.0
+        )
 
     @pytest.mark.asyncio
     async def test_dead_letter_noop_when_unavailable(self):
@@ -90,7 +129,7 @@ class TestRedisAuditQueueUnit:
 
         mock_redis.lpush.assert_awaited_once()
         args = mock_redis.lpush.call_args[0]
-        assert args[0] == _DEAD_LETTER_KEY
+        assert args[0] == "audit:test:audit-service:dead-letter"
         dead_payload = json.loads(args[1])
         assert dead_payload["attempts"] == 1
         assert dead_payload["dead_letter_reason"] == "max_retries"
@@ -111,10 +150,12 @@ class TestRedisAuditQueueUnit:
         assert result is True
         mock_redis.lpush.assert_awaited_once()
         args = mock_redis.lpush.call_args[0]
-        assert args[0] == _PENDING_KEY
+        assert args[0] == "audit:test:audit-service:pending"
         new_payload = json.loads(args[1])
         assert new_payload["attempts"] == 1
-        mock_redis.expire.assert_awaited_once_with(_PENDING_KEY, _TTL_SECONDS)
+        mock_redis.expire.assert_awaited_once_with(
+            "audit:test:audit-service:pending", _TTL_SECONDS
+        )
 
     @pytest.mark.asyncio
     async def test_pending_count_returns_zero_when_unavailable(self):
@@ -127,7 +168,7 @@ class TestRedisAuditQueueUnit:
         queue = RedisAuditQueue(mock_redis)
         count = await queue.pending_count()
         assert count == 5
-        mock_redis.llen.assert_awaited_once_with(_PENDING_KEY)
+        mock_redis.llen.assert_awaited_once_with("audit:test:audit-service:pending")
 
     @pytest.mark.asyncio
     async def test_dead_letter_count_returns_zero_when_unavailable(self):
@@ -140,7 +181,7 @@ class TestRedisAuditQueueUnit:
         queue = RedisAuditQueue(mock_redis)
         count = await queue.dead_letter_count()
         assert count == 3
-        mock_redis.llen.assert_awaited_once_with(_DEAD_LETTER_KEY)
+        mock_redis.llen.assert_awaited_once_with("audit:test:audit-service:dead-letter")
 
 
 @pytest.mark.integration
@@ -149,6 +190,13 @@ class TestRedisAuditQueueIntegration:
 
     Skip automatically when REDIS_URL is not available or Redis is unreachable.
     """
+
+    @pytest.fixture(autouse=True)
+    def audit_queue_namespace(self, monkeypatch):
+        monkeypatch.delenv("AUDIT_REDIS_KEY_PREFIX", raising=False)
+        monkeypatch.setenv("ENVIRONMENT", "integration")
+        monkeypatch.delenv("APP_ENV", raising=False)
+        monkeypatch.setenv("SERVICE_NAME", "audit-service")
 
     @pytest.fixture(scope="class")
     async def redis_client(self):
@@ -167,10 +215,14 @@ class TestRedisAuditQueueIntegration:
             pytest.skip(f"Redis unavailable: {exc}")
 
     @pytest.fixture(autouse=True)
-    async def clean_queues(self, redis_client):
-        await redis_client.delete(_PENDING_KEY, _DEAD_LETTER_KEY)
+    async def clean_queues(self, redis_client, audit_queue_namespace):
+        await redis_client.delete(
+            _audit_redis_key("pending"), _audit_redis_key("dead-letter")
+        )
         yield
-        await redis_client.delete(_PENDING_KEY, _DEAD_LETTER_KEY)
+        await redis_client.delete(
+            _audit_redis_key("pending"), _audit_redis_key("dead-letter")
+        )
 
     @pytest.mark.asyncio
     async def test_push_pop_roundtrip(self, redis_client):
@@ -200,9 +252,9 @@ class TestRedisAuditQueueIntegration:
 
         await queue.dead_letter(payload, reason="test_failure")
 
-        dead_len = await redis_client.llen(_DEAD_LETTER_KEY)
+        dead_len = await redis_client.llen(_audit_redis_key("dead-letter"))
         assert dead_len == 1
-        pending_len = await redis_client.llen(_PENDING_KEY)
+        pending_len = await redis_client.llen(_audit_redis_key("pending"))
         assert pending_len == 0
 
     @pytest.mark.asyncio
@@ -226,6 +278,6 @@ class TestRedisAuditQueueIntegration:
         event = AuditEvent(action=AuditAction.USER_LOGIN)
         await queue.push(event)
 
-        ttl = await redis_client.ttl(_PENDING_KEY)
+        ttl = await redis_client.ttl(_audit_redis_key("pending"))
         assert ttl > 0
         assert ttl <= _TTL_SECONDS
