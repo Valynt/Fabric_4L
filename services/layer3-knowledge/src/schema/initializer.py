@@ -181,7 +181,7 @@ class SchemaInitializer:
             await session.run(cypher)
             logger.info(f"Created {item_type}: {name}")
         except ClientError as e:
-            error_msg = str(e).lower()
+            error_msg = repr(e).lower()
             if _ERROR_ALREADY_EXISTS in error_msg or _ERROR_CONSTRAINT_EXISTS in error_msg or _ERROR_INDEX_EXISTS in error_msg:
                 logger.info(f"{item_type.capitalize()} {name} already exists")
                 return
@@ -310,7 +310,7 @@ class SchemaInitializer:
                 await session.run(constraint.drop_cypher)
                 logger.info(f"Dropped constraint: {constraint.name}")
             except ClientError as e:
-                if "does not exist" in str(e):
+                if "does not exist" in repr(e):
                     logger.debug(
                         f"Constraint {constraint.name} does not exist, skipping"
                     )
@@ -337,7 +337,7 @@ class SchemaInitializer:
                 await session.run(index.drop_cypher)
                 logger.info(f"Dropped index: {index.name}")
             except ClientError as e:
-                if "does not exist" in str(e):
+                if "does not exist" in repr(e):
                     logger.debug(f"Index {index.name} does not exist, skipping")
                 else:
                     logger.warning(f"Client error dropping index {index.name}: {e}")
