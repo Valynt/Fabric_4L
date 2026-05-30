@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills \
@@ -493,6 +493,8 @@ migrate: ## Run Alembic migrations for all Alembic-managed layers
 	cd services/layer4-agents && alembic upgrade head
 	@echo "→ Migrating Layer 5..."
 	cd services/layer5-ground-truth && alembic upgrade head
+	@echo "→ Migrating API..."
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
 
 migrate-layer1: ## Run Alembic migrations for Layer 1 only
 	cd services/layer1-ingestion && alembic upgrade head
@@ -508,6 +510,14 @@ migrate-layer4: ## Run Alembic migrations for Layer 4 only
 
 migrate-layer5: ## Run Alembic migrations for Layer 5 only
 	cd services/layer5-ground-truth && alembic upgrade head
+
+migrate-api: ## Run Alembic migrations for API gateway only
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
+
+db-production-readiness-gate: ## Gate: production-like database readiness, migrations, isolation, backup/restore, and observability evidence
+	@echo "→ Gate: DB Production Readiness"
+	bash scripts/ci/run_db_production_readiness_gate.sh
+	@echo "✅  db-production-readiness-gate passed"
 
 # ─── Contracts ────────────────────────────────────────────────────────────────
 
@@ -620,7 +630,7 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
-gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
+gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
