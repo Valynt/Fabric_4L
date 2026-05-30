@@ -8,10 +8,10 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-database db-production-readiness-gate gate-all \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-runtime-consistency check-database-governance-docs \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -105,6 +105,12 @@ check-migration-entrypoints: ## Ensure maintained services expose migration entr
 
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
 	@python3 scripts/ci/check_migration_entrypoints.py
+
+check-migration-runtime-consistency: ## Validate static migration graph and runtime DB URL consistency
+	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
+
+check-database-governance-docs: ## Validate static database runtime compatibility and migration governance docs
+	@$(PYTHON) scripts/ci/check_database_governance_docs.py
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
@@ -620,6 +626,15 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
+gate-database: check-migration-heads check-migration-entrypoints check-migration-runtime-consistency check-database-governance-docs ## Gate: static database and migration readiness checks (no live DB mutation)
+	@echo "→ Gate: Database Readiness (static, non-destructive)"
+	@$(PYTHON) -m py_compile scripts/ci/check_migration_entrypoints.py scripts/ci/check_migration_runtime_consistency.py scripts/ci/check_database_governance_docs.py
+	@echo "ℹ️  Live DB upgrade/rollback, destructive migration rehearsal, backup/restore, and production-like runtime connection checks remain outside this static local gate."
+	@echo "✅  gate-database passed"
+
+db-production-readiness-gate: gate-database ## Alias for the static database readiness gate
+	@echo "✅  db-production-readiness-gate passed"
+
 gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
@@ -638,7 +653,7 @@ gates-validate-policy: ## Validate gate policy schema, profile existence, and ar
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
 	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,database,obs,release}
 	@echo "✅  gates-validate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection

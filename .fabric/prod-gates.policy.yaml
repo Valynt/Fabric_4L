@@ -49,6 +49,7 @@ profiles:
       - chaos
       - smoke
       - state
+      - database
       - agent
       - obs
       - release-policy
@@ -120,6 +121,13 @@ gate-definitions:
     artifact-dir: artifacts/agent
     required: false
     caveat: "Agent tests exist but may fail due to missing optional dependencies."
+
+  database:
+    target: gate-database
+    description: "Static database readiness: migration graph, entrypoints, runtime consistency, and governance docs"
+    class: blocking
+    artifact-dir: artifacts/database
+    required: true
 
   obs:
     target: gate-obs
