@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Billing API routes for Stripe integration.
 
 Provides endpoints for subscription management, customer portal,
@@ -15,7 +20,16 @@ import re
 from datetime import datetime
 from typing import Any, cast
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
@@ -30,23 +44,25 @@ from ...services.billing_security import (
     validate_webhook_request_security,
 )
 
+
 def validate_customer_id(customer_id: str) -> str:
     """Validate customer_id format to prevent injection attacks.
-    
+
     Args:
         customer_id: The customer ID to validate
-        
+
     Returns:
         The validated customer ID
-        
+
     Raises:
         HTTPException: If customer_id contains invalid characters
     """
     if not customer_id:
-        raise ValidationError(message = "customer_id is required")
+        raise ValidationError(message="customer_id is required")
     if not CUSTOMER_ID_PATTERN.match(customer_id):
-        raise ValidationError(message = "customer_id contains invalid characters")
+        raise ValidationError(message="customer_id contains invalid characters")
     return customer_id
+
 
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
@@ -68,9 +84,11 @@ class get_subscriptionResult(TypedDictModel):
     plan_id: str
     status: str
 
+
 class check_featureResult(TypedDictModel):
     feature_id: Any
     has_access: Any
+
 
 class sync_customerResult(TypedDictModel):
     email: Any
@@ -79,13 +97,16 @@ class sync_customerResult(TypedDictModel):
     stripe_customer_id: Any
     tenant_id: Any
 
+
 class get_plan_limitsResult(TypedDictModel):
     limits: Any
     plan_id: Any
     plan_name: Any
 
+
 class stripe_webhookResult(TypedDictModel):
     received: bool
+
 
 class ingest_usage_eventResult(TypedDictModel):
     created_at: Any
@@ -98,11 +119,13 @@ class ingest_usage_eventResult(TypedDictModel):
     tenant_id: Any
     timestamp: Any
 
+
 class ingest_usage_batchResult(TypedDictModel):
     created: Any
     duplicates: Any
     error_details: Any
     errors: Any
+
 
 class get_usage_limitsResult(TypedDictModel):
     all_limits_ok: Any
@@ -112,9 +135,11 @@ class get_usage_limitsResult(TypedDictModel):
     total_overage_cost: Any
     warnings: Any
 
+
 class list_invoicesResult(TypedDictModel):
     invoices: Any
     pagination: dict[str, Any]
+
 
 class create_invoiceResult(TypedDictModel):
     created_at: Any
@@ -124,6 +149,7 @@ class create_invoiceResult(TypedDictModel):
     status: Any
     total_cents: Any
     total_dollars: Any
+
 
 class get_invoiceResult(TypedDictModel):
     amount_due_cents: Any
@@ -150,6 +176,7 @@ class get_invoiceResult(TypedDictModel):
     total_cents: Any
     total_dollars: Any
 
+
 class add_invoice_itemResult(TypedDictModel):
     amount_cents: Any
     amount_dollars: Any
@@ -157,6 +184,7 @@ class add_invoice_itemResult(TypedDictModel):
     id: Any
     invoice_id: Any
     type: Any
+
 
 class finalize_invoiceResult(TypedDictModel):
     amount_due_cents: Any
@@ -166,14 +194,17 @@ class finalize_invoiceResult(TypedDictModel):
     total_cents: Any
     total_dollars: Any
 
+
 class void_invoiceResult(TypedDictModel):
     id: Any
     status: Any
     voided_at: Any
 
+
 class list_chargesResult(TypedDictModel):
     charges: Any
     pagination: dict[str, Any]
+
 
 class record_chargeResult(TypedDictModel):
     amount_cents: Any
@@ -183,10 +214,12 @@ class record_chargeResult(TypedDictModel):
     status: Any
     stripe_charge_id: Any
 
+
 class reconcile_invoiceResult(TypedDictModel):
     invoice_id: Any
     mismatch_count: Any
     mismatches: Any
+
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -197,6 +230,7 @@ STRIPE_WEBHOOK_SECRET = os.environ.get("STRIPE_WEBHOOK_SECRET", "")
 # ============================================================================
 # Request/Response Models
 # ============================================================================
+
 
 class CheckoutRequest(BaseModel):
     """Request to create a checkout session."""
@@ -233,29 +267,44 @@ class SubscriptionResponse(BaseModel):
 class UsageEventRequest(BaseModel):
     """Request body for ingesting a single usage event."""
 
-    event_id: str = Field(..., min_length=1, max_length=128, description="Idempotency key")
-    customer_id: str = Field(..., min_length=1, max_length=64, description="Customer identifier")
-    event_name: str = Field(..., min_length=1, max_length=128, description="Logical event name")
-    metric_name: str = Field(..., min_length=1, max_length=64, description="Metered metric name")
+    event_id: str = Field(
+        ..., min_length=1, max_length=128, description="Idempotency key"
+    )
+    customer_id: str = Field(
+        ..., min_length=1, max_length=64, description="Customer identifier"
+    )
+    event_name: str = Field(
+        ..., min_length=1, max_length=128, description="Logical event name"
+    )
+    metric_name: str = Field(
+        ..., min_length=1, max_length=64, description="Metered metric name"
+    )
     quantity: float = Field(..., ge=0, description="Quantity to record")
     unit: str | None = Field(default=None, max_length=32, description="Unit of measure")
     timestamp: datetime = Field(..., description="Event timestamp (UTC)")
-    metadata: dict[str, Any] | None = Field(default=None, description="Optional metadata")
+    metadata: dict[str, Any] | None = Field(
+        default=None, description="Optional metadata"
+    )
 
 
 class UsageBatchRequest(BaseModel):
     """Request body for batch ingestion of usage events."""
 
-    events: list[UsageEventRequest] = Field(..., min_length=1, max_length=1000, description="Events to ingest")
+    events: list[UsageEventRequest] = Field(
+        ..., min_length=1, max_length=1000, description="Events to ingest"
+    )
 
 
 # ============================================================================
 # Subscription Endpoints
 # ============================================================================
 
+
 @router.get("/subscription", response_model=SubscriptionResponse)
 async def get_subscription(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -272,24 +321,35 @@ async def get_subscription(
 
     if not subscription:
         # Return free tier default
-        return get_subscriptionResult.model_validate({  # type: ignore[no-any-return]
-            "id": None,
-            "plan_id": "free",
-            "status": "active",
-            "current_period_start": None,
-            "current_period_end": None,
-            "cancel_at_period_end": False,
-        })
+        return get_subscriptionResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": None,
+                "plan_id": "free",
+                "status": "active",
+                "current_period_start": None,
+                "current_period_end": None,
+                "cancel_at_period_end": False,
+            }
+        )
 
-
-    return get_subscriptionResult.model_validate({  # type: ignore[no-any-return]
-        "id": subscription.id,
-        "plan_id": subscription.plan_id,
-        "status": subscription.status,
-        "current_period_start": subscription.current_period_start.isoformat() if subscription.current_period_start else None,
-        "current_period_end": subscription.current_period_end.isoformat() if subscription.current_period_end else None,
-        "cancel_at_period_end": subscription.cancel_at_period_end,
-    })
+    return get_subscriptionResult.model_validate(
+        {  # type: ignore[no-any-return]
+            "id": subscription.id,
+            "plan_id": subscription.plan_id,
+            "status": subscription.status,
+            "current_period_start": (
+                subscription.current_period_start.isoformat()
+                if subscription.current_period_start
+                else None
+            ),
+            "current_period_end": (
+                subscription.current_period_end.isoformat()
+                if subscription.current_period_end
+                else None
+            ),
+            "cancel_at_period_end": subscription.cancel_at_period_end,
+        }
+    )
 
 
 class CheckoutResponse(BaseModel):
@@ -384,7 +444,9 @@ class CustomerBalanceResponse(BaseModel):
 @router.post("/checkout", response_model=CheckoutResponse)
 async def create_checkout(
     request: CheckoutRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, str]:
@@ -409,13 +471,15 @@ async def create_checkout(
         return result
     except ValueError as e:
         logger.warning(f"Checkout creation failed: {e}")
-        raise ValidationError(message = "Checkout creation failed") from e
+        raise ValidationError(message="Checkout creation failed") from e
 
 
 @router.post("/portal", response_model=PortalResponse)
 async def create_portal(
     request: PortalRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, str]:
@@ -438,10 +502,12 @@ async def create_portal(
         return result
     except ValueError as e:
         logger.warning(f"Portal creation failed: {e}")
-        raise ValidationError(message = "Portal creation failed") from e
+        raise ValidationError(message="Portal creation failed") from e
 
 
-@router.get("/invoices/{invoice_id}/reconciliation", response_model=reconcile_invoiceResult)
+@router.get(
+    "/invoices/{invoice_id}/reconciliation", response_model=reconcile_invoiceResult
+)
 async def reconcile_invoice(
     invoice_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -453,15 +519,18 @@ async def reconcile_invoice(
         return await service.reconcile_invoice_usage(context.tenant_id, invoice_id)
     except ValueError as e:
         logger.warning("Invoice reconciliation failed: %s", e)
-        raise NotFoundError(message = "Invoice not found or cannot be reconciled") from e
+        raise NotFoundError(message="Invoice not found or cannot be reconciled") from e
 
 
 # ============================================================================
 # Subscription Lifecycle Endpoints
 # ============================================================================
 
+
 class CancelSubscriptionRequest(BaseModel):
-    cancel_immediately: bool = Field(False, description="Cancel immediately vs at period end")
+    cancel_immediately: bool = Field(
+        False, description="Cancel immediately vs at period end"
+    )
 
 
 class UpdatePlanRequest(BaseModel):
@@ -471,7 +540,9 @@ class UpdatePlanRequest(BaseModel):
 @router.post("/subscription/cancel", response_model=CancelSubscriptionResponse)
 async def cancel_subscription(
     request: CancelSubscriptionRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -496,7 +567,11 @@ async def cancel_subscription(
         return {
             "canceled": result["canceled"],
             "cancel_at_period_end": result["cancel_at_period_end"],
-            "current_period_end": result["current_period_end"].isoformat() if result["current_period_end"] else None,
+            "current_period_end": (
+                result["current_period_end"].isoformat()
+                if result["current_period_end"]
+                else None
+            ),
             "subscription_id": result["subscription_id"],
         }
     except ValueError as e:
@@ -516,7 +591,9 @@ async def cancel_subscription(
 @router.post("/subscription/update-plan", response_model=UpdatePlanResponse)
 async def update_subscription_plan(
     request: UpdatePlanRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -545,12 +622,14 @@ async def update_subscription_plan(
         }
     except ValueError as e:
         logger.warning(f"Plan update failed: {e}")
-        raise ValidationError(message = "Plan update failed") from e
+        raise ValidationError(message="Plan update failed") from e
 
 
 @router.post("/subscription/reactivate", response_model=ReactivateSubscriptionResponse)
 async def reactivate_subscription(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -576,16 +655,19 @@ async def reactivate_subscription(
         }
     except ValueError as e:
         logger.warning(f"Subscription reactivation failed: {e}")
-        raise ValidationError(message = "Subscription reactivation failed") from e
+        raise ValidationError(message="Subscription reactivation failed") from e
 
 
 # ============================================================================
 # Entitlement Endpoints
 # ============================================================================
 
+
 @router.get("/entitlements", response_model=EntitlementsResponse)
 async def get_entitlements(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -603,7 +685,9 @@ async def get_entitlements(
 
 @router.get("/check-feature", response_model=check_featureResult)
 async def check_feature(
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     feature_id: str = Query(..., min_length=1, max_length=64),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
@@ -620,20 +704,25 @@ async def check_feature(
     service = BillingService(db)
     has_access = await service.check_entitlement(customer_id, feature_id)
 
-    return check_featureResult.model_validate({  # type: ignore[no-any-return]
-        "feature_id": feature_id,
-        "has_access": has_access,
-    })
+    return check_featureResult.model_validate(
+        {  # type: ignore[no-any-return]
+            "feature_id": feature_id,
+            "has_access": has_access,
+        }
+    )
 
 
 # ============================================================================
 # Customer Management
 # ============================================================================
 
+
 @router.post("/sync-customer", response_model=sync_customerResult)
 async def sync_customer(
     request: CustomerSyncRequest,
-    customer_id: str = Query(..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"),
+    customer_id: str = Query(
+        ..., min_length=1, max_length=64, pattern=r"^[a-zA-Z0-9_-]+$"
+    ),
     db: AsyncSession = Depends(get_route_db),
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
@@ -647,10 +736,10 @@ async def sync_customer(
         Customer record with Stripe ID if available
     """
     service = BillingService(db)
-    
+
     # Extract tenant_id from context if available
     tenant_id = context.tenant_id
-    
+
     customer = await service.get_or_create_customer(
         customer_id=customer_id,
         email=request.email,
@@ -658,20 +747,22 @@ async def sync_customer(
         tenant_id=tenant_id,
     )
 
-    return sync_customerResult.model_validate({  # type: ignore[no-any-return]
-        "id": customer.id,
-        "stripe_customer_id": customer.stripe_customer_id,
-        "email": customer.email,
-        "name": customer.name,
-        "tenant_id": customer.tenant_id,
-    })
+    return sync_customerResult.model_validate(
+        {  # type: ignore[no-any-return]
+            "id": customer.id,
+            "stripe_customer_id": customer.stripe_customer_id,
+            "email": customer.email,
+            "name": customer.name,
+            "tenant_id": customer.tenant_id,
+        }
+    )
 
 
 # ============================================================================
 # Webhook Endpoint
 # ============================================================================
 
-@router.post("/webhook", response_model=stripe_webhookResult, status_code=status.HTTP_200_OK)
+
 async def stripe_webhook(
     request: Request,
     background_tasks: BackgroundTasks,
@@ -712,7 +803,7 @@ async def stripe_webhook(
         raise
     except ValueError as e:
         logger.warning(f"Webhook security validation failed: {e}")
-        raise ValidationError(message = "Invalid webhook payload") from e
+        raise ValidationError(message="Invalid webhook payload") from e
 
     # Read raw body for signature verification
     body = await request.body()
@@ -720,23 +811,29 @@ async def stripe_webhook(
     service = BillingService(db)
 
     try:
-        inbox = await service.handle_webhook(body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+        inbox = await service.handle_webhook(
+            body, stripe_signature, STRIPE_WEBHOOK_SECRET
+        )
         if inbox.status != "processed":
+
             async def _process() -> None:
                 session_factory = get_session_factory()
                 async with session_factory() as worker_db:
                     worker = BillingService(worker_db)
                     try:
-                        await worker.process_webhook_event(inbox.id, body, stripe_signature, STRIPE_WEBHOOK_SECRET)
+                        await worker.process_webhook_event(
+                            inbox.id, body, stripe_signature, STRIPE_WEBHOOK_SECRET
+                        )
                         await worker_db.commit()
                     except Exception:
                         await worker_db.rollback()
                         logger.exception("Webhook processing failed")
+
             background_tasks.add_task(_process)
         return stripe_webhookResult.model_validate({"received": True})  # type: ignore[no-any-return]
     except ValueError as e:
         logger.warning(f"Webhook validation failed: {e}")
-        raise ValidationError(message = "Invalid webhook payload") from e
+        raise ValidationError(message="Invalid webhook payload") from e
     except StripeError as e:
         logger.error(f"Stripe API error during webhook: {e}")
         raise ServiceUnavailableError(message="Stripe processing failed") from e
@@ -749,7 +846,7 @@ async def stripe_webhook(
 # Usage Metering Endpoints
 # ============================================================================
 
-@router.post("/events", response_model=ingest_usage_eventResult)
+
 async def ingest_usage_event(
     request: UsageEventRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -768,10 +865,10 @@ async def ingest_usage_event(
         409: Duplicate event (idempotency conflict)
     """
     tenant_id = context.tenant_id
-    
+
     service = UsageService(db, tenant_id=tenant_id)
     overage_service = OverageService(db, tenant_id=tenant_id)
-    
+
     try:
         quota_result = await overage_service.validate_request(
             customer_id=request.customer_id,
@@ -791,29 +888,30 @@ async def ingest_usage_event(
             timestamp=request.timestamp,
             metadata=request.metadata,
         )
-        
-        return ingest_usage_eventResult.model_validate({  # type: ignore[no-any-return]
-            "id": event.id,
-            "event_id": event.event_id,
-            "status": event.status,
-            "tenant_id": event.tenant_id,
-            "customer_id": event.customer_id,
-            "metric_name": event.metric_name,
-            "quantity": event.quantity,
-            "timestamp": event.timestamp.isoformat(),
-            "created_at": event.created_at.isoformat(),
-        })
 
+        return ingest_usage_eventResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": event.id,
+                "event_id": event.event_id,
+                "status": event.status,
+                "tenant_id": event.tenant_id,
+                "customer_id": event.customer_id,
+                "metric_name": event.metric_name,
+                "quantity": event.quantity,
+                "timestamp": event.timestamp.isoformat(),
+                "created_at": event.created_at.isoformat(),
+            }
+        )
 
-        
     except UsageValidationError as e:
-        raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
+        raise ValidationError(
+            message="Request failed", details={"error": e.message, "field": e.field}
+        )
     except Exception as e:
         logger.exception(f"Usage event ingestion failed: {e}")
         raise ServiceUnavailableError(message="Failed to ingest usage event")
 
 
-@router.post("/events/batch", response_model=ingest_usage_batchResult)
 async def ingest_usage_batch(
     request: UsageBatchRequest,
     db: AsyncSession = Depends(get_route_db),
@@ -831,10 +929,10 @@ async def ingest_usage_batch(
         400: Batch validation error
     """
     tenant_id = context.tenant_id
-    
+
     service = UsageService(db, tenant_id=tenant_id)
     overage_service = OverageService(db, tenant_id=tenant_id)
-    
+
     try:
         projected_usage: dict[tuple[str, str], float] = {}
         for event in request.events:
@@ -853,24 +951,25 @@ async def ingest_usage_batch(
         # Convert Pydantic models to dicts for the service
         events_data = [event.model_dump() for event in request.events]
         result = await service.ingest_batch(events_data)
-        
-        return ingest_usage_batchResult.model_validate({  # type: ignore[no-any-return]
-            "created": result["created"],
-            "duplicates": result["duplicates"],
-            "errors": result["errors"],
-            "error_details": result.get("error_details"),
-        })
 
+        return ingest_usage_batchResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "created": result["created"],
+                "duplicates": result["duplicates"],
+                "errors": result["errors"],
+                "error_details": result.get("error_details"),
+            }
+        )
 
-        
     except UsageValidationError as e:
-        raise ValidationError(message = "Request failed", details = {"error": e.message, "field": e.field})
+        raise ValidationError(
+            message="Request failed", details={"error": e.message, "field": e.field}
+        )
     except Exception as e:
         logger.exception(f"Batch ingestion failed: {e}")
         raise ServiceUnavailableError(message="Failed to process batch")
 
 
-@router.get("/usage/{customer_id}/summary", response_model=UsageSummaryResponse)
 async def get_usage_summary(
     customer_id: str,
     metric_name: str,
@@ -891,9 +990,9 @@ async def get_usage_summary(
         Usage summary with total quantity and event count
     """
     tenant_id = context.tenant_id
-    
+
     service = UsageService(db, tenant_id=tenant_id)
-    
+
     try:
         summary = await service.get_usage_summary(
             customer_id=customer_id,
@@ -902,15 +1001,14 @@ async def get_usage_summary(
             end_date=end_date,
         )
         return summary
-        
+
     except UsageValidationError as e:
-        raise ValidationError(message = "Request failed", details = {"error": e.message})
+        raise ValidationError(message="Request failed", details={"error": e.message})
     except Exception as e:
         logger.exception(f"Usage summary failed: {e}")
         raise ServiceUnavailableError(message="Failed to retrieve usage summary")
 
 
-@router.get("/usage/{customer_id}/events", response_model=list[UsageEventResponse])
 async def list_usage_events(
     customer_id: str,
     metric_name: str | None = None,
@@ -935,9 +1033,9 @@ async def list_usage_events(
         List of usage events
     """
     tenant_id = context.tenant_id
-    
+
     service = UsageService(db, tenant_id=tenant_id)
-    
+
     try:
         events = await service.list_customer_usage(
             customer_id=customer_id,
@@ -947,7 +1045,7 @@ async def list_usage_events(
             limit=limit,
             offset=offset,
         )
-        
+
         return [
             {
                 "id": e.id,
@@ -962,15 +1060,14 @@ async def list_usage_events(
             }
             for e in events
         ]
-        
+
     except UsageValidationError as e:
-        raise ValidationError(message = "Request failed", details = {"error": e.message})
+        raise ValidationError(message="Request failed", details={"error": e.message})
     except Exception as e:
         logger.exception(f"Usage events listing failed: {e}")
         raise ServiceUnavailableError(message="Failed to retrieve usage events")
 
 
-@router.post("/usage/{customer_id}/sync", response_model=UsageSyncResponse)
 async def sync_usage_to_stripe(
     customer_id: str,
     metric_name: str | None = None,
@@ -994,28 +1091,34 @@ async def sync_usage_to_stripe(
         402: Stripe not configured
     """
     tenant_id = context.tenant_id
-    
+
     service = UsageService(db, tenant_id=tenant_id)
-    
+
     try:
         result = await service.sync_to_stripe(
             customer_id=customer_id,
             metric_name=metric_name,
         )
-        
+
         # Check for errors in result
         if "error" in result and result["synced"] == 0:
             if "No Stripe customer ID" in result["error"]:
-                raise ValidationError(message = "Request failed", details = {"error": result["error"], "action": "Sync customer with Stripe first via /billing/sync-customer"})
+                raise ValidationError(
+                    message="Request failed",
+                    details={
+                        "error": result["error"],
+                        "action": "Sync customer with Stripe first via /billing/sync-customer",
+                    },
+                )
             if "Stripe not configured" in result["error"]:
                 raise ServiceUnavailableError(
                     message="Stripe MeterEvents not configured",
                 )
-        
+
         return result
-        
+
     except UsageValidationError as e:
-        raise ValidationError(message = "Request failed", details = {"error": e.message})
+        raise ValidationError(message="Request failed", details={"error": e.message})
     except Exception as e:
         logger.exception(f"Stripe sync failed: {e}")
         raise ServiceUnavailableError(message="Failed to sync usage to Stripe")
@@ -1025,7 +1128,7 @@ async def sync_usage_to_stripe(
 # Overage Detection & Limits
 # ============================================================================
 
-@router.get("/limits/{customer_id}", response_model=get_usage_limitsResult)
+
 async def get_usage_limits(
     customer_id: str,
     db: AsyncSession = Depends(get_route_db),
@@ -1043,46 +1146,45 @@ async def get_usage_limits(
         Usage limits and current consumption for all metrics
     """
     tenant_id = context.tenant_id
-    
+
     service = OverageService(db, tenant_id=tenant_id)
-    
+
     try:
         quota_check = await service.check_all_limits(customer_id)
-        
-        return get_usage_limitsResult.model_validate({  # type: ignore[no-any-return]
-            "customer_id": quota_check.customer_id,
-            "plan_id": quota_check.plan_id,
-            "all_limits_ok": quota_check.all_limits_ok,
-            "warnings": quota_check.warnings,
-            "total_overage_cost": quota_check.total_overage_cost,
-            "metrics": [
-                {
-                    "metric_name": check.metric_name,
-                    "current_usage": check.current_usage,
-                    "limit": check.limit if check.limit != float("inf") else None,
-                    "percentage_used": check.percentage_used,
-                    "remaining": check.remaining,
-                    "overage": check.overage,
-                    "overage_cost": check.overage_cost,
-                    "warning_triggered": check.warning_triggered,
-                    "limit_exceeded": check.limit_exceeded,
-                    "period": {
-                        "start": check.period_start.isoformat(),
-                        "end": check.period_end.isoformat(),
-                    },
-                }
-                for check in quota_check.checks
-            ],
-        })
 
+        return get_usage_limitsResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "customer_id": quota_check.customer_id,
+                "plan_id": quota_check.plan_id,
+                "all_limits_ok": quota_check.all_limits_ok,
+                "warnings": quota_check.warnings,
+                "total_overage_cost": quota_check.total_overage_cost,
+                "metrics": [
+                    {
+                        "metric_name": check.metric_name,
+                        "current_usage": check.current_usage,
+                        "limit": check.limit if check.limit != float("inf") else None,
+                        "percentage_used": check.percentage_used,
+                        "remaining": check.remaining,
+                        "overage": check.overage,
+                        "overage_cost": check.overage_cost,
+                        "warning_triggered": check.warning_triggered,
+                        "limit_exceeded": check.limit_exceeded,
+                        "period": {
+                            "start": check.period_start.isoformat(),
+                            "end": check.period_end.isoformat(),
+                        },
+                    }
+                    for check in quota_check.checks
+                ],
+            }
+        )
 
-        
     except Exception as e:
         logger.exception(f"Usage limits check failed: {e}")
         raise ServiceUnavailableError(message="Failed to retrieve usage limits")
 
 
-@router.post("/limits/{customer_id}/check", response_model=LimitsCheckResponse)
 async def check_request_allowed(
     customer_id: str,
     metric_name: str,
@@ -1109,17 +1211,17 @@ async def check_request_allowed(
         400: Invalid request
     """
     tenant_id = context.tenant_id
-    
+
     service = OverageService(db, tenant_id=tenant_id)
-    
+
     try:
         result = await service.validate_request(customer_id, metric_name, quantity)
-        
+
         if not result["allowed"]:
             _raise_quota_exceeded(metric_name, result)
-        
+
         return result
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -1127,7 +1229,6 @@ async def check_request_allowed(
         raise ServiceUnavailableError(message="Failed to validate request")
 
 
-@router.get("/plans/{plan_id}/limits", response_model=get_plan_limitsResult)
 async def get_plan_limits(
     plan_id: str,
 ) -> dict[str, Any]:
@@ -1143,27 +1244,31 @@ async def get_plan_limits(
         Plan limits configuration
     """
     from ...config.plans import get_plan
-    
+
     plan = get_plan(plan_id)
     if not plan:
-        raise NotFoundError(message = str(f"Plan not found: {plan_id}"))
-    
+        raise NotFoundError(message=str(f"Plan not found: {plan_id}"))
+
     service = OverageService(cast(AsyncSession, None), tenant_id=None)  # No DB needed
     limits = service.get_plan_limits(plan_id)
-    
-    return get_plan_limitsResult.model_validate({  # type: ignore[no-any-return]
-        "plan_id": plan_id,
-        "plan_name": plan.name,
-        "limits": limits,
-    })
+
+    return get_plan_limitsResult.model_validate(
+        {  # type: ignore[no-any-return]
+            "plan_id": plan_id,
+            "plan_name": plan.name,
+            "limits": limits,
+        }
+    )
 
 
 # ============================================================================
 # Invoice Management
 # ============================================================================
 
+
 class CreateInvoiceRequest(BaseModel):
     """Request to create a new invoice."""
+
     customer_id: str = Field(..., description="Customer being invoiced")
     period_start: datetime = Field(..., description="Billing period start")
     period_end: datetime = Field(..., description="Billing period end")
@@ -1175,12 +1280,18 @@ class CreateInvoiceRequest(BaseModel):
 
 class AddInvoiceItemRequest(BaseModel):
     """Request to add an invoice line item."""
+
     description: str = Field(..., description="Line item description")
     amount_cents: int = Field(..., ge=0, description="Amount in cents")
     quantity: float = Field(default=1.0, gt=0, description="Quantity")
     unit_amount_cents: int | None = Field(None, description="Price per unit in cents")
-    type: str = Field(default="one_time", description="Item type: subscription, metered, one_time, proration")
-    usage_quantity: float | None = Field(None, description="Usage quantity for metered items")
+    type: str = Field(
+        default="one_time",
+        description="Item type: subscription, metered, one_time, proration",
+    )
+    usage_quantity: float | None = Field(
+        None, description="Usage quantity for metered items"
+    )
     usage_metric: str | None = Field(None, description="Usage metric for metered items")
     tax_cents: int = Field(default=0, ge=0, description="Tax amount in cents")
     discount_cents: int = Field(default=0, ge=0, description="Discount amount in cents")
@@ -1188,6 +1299,7 @@ class AddInvoiceItemRequest(BaseModel):
 
 class RecordChargeRequest(BaseModel):
     """Request to record a charge."""
+
     customer_id: str = Field(..., description="Customer being charged")
     amount_cents: int = Field(..., gt=0, description="Charge amount in cents")
     status: str = Field(default="succeeded", description="Charge status")
@@ -1213,10 +1325,10 @@ async def list_invoices(
     by customer and status.
     """
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         invoices = await service.list_invoices(
             customer_id=customer_id,
@@ -1224,31 +1336,32 @@ async def list_invoices(
             limit=limit,
             offset=offset,
         )
-        
-        return list_invoicesResult.model_validate({  # type: ignore[no-any-return]
-            "invoices": [
-                {
-                    "id": inv.id,
-                    "invoice_number": inv.invoice_number,
-                    "customer_id": inv.customer_id,
-                    "status": inv.status,
-                    "currency": inv.currency,
-                    "total_cents": inv.total,
-                    "total_dollars": inv.total_dollars,
-                    "amount_due_cents": inv.amount_due,
-                    "amount_due_dollars": inv.amount_due_dollars,
-                    "period_start": inv.period_start.isoformat(),
-                    "period_end": inv.period_end.isoformat(),
-                    "due_date": inv.due_date.isoformat() if inv.due_date else None,
-                    "created_at": inv.created_at.isoformat(),
-                    "paid_at": inv.paid_at.isoformat() if inv.paid_at else None,
-                    "item_count": len(inv.items),
-                }
-                for inv in invoices
-            ],
-            "pagination": {"limit": limit, "offset": offset},
-        })
 
+        return list_invoicesResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "invoices": [
+                    {
+                        "id": inv.id,
+                        "invoice_number": inv.invoice_number,
+                        "customer_id": inv.customer_id,
+                        "status": inv.status,
+                        "currency": inv.currency,
+                        "total_cents": inv.total,
+                        "total_dollars": inv.total_dollars,
+                        "amount_due_cents": inv.amount_due,
+                        "amount_due_dollars": inv.amount_due_dollars,
+                        "period_start": inv.period_start.isoformat(),
+                        "period_end": inv.period_end.isoformat(),
+                        "due_date": inv.due_date.isoformat() if inv.due_date else None,
+                        "created_at": inv.created_at.isoformat(),
+                        "paid_at": inv.paid_at.isoformat() if inv.paid_at else None,
+                        "item_count": len(inv.items),
+                    }
+                    for inv in invoices
+                ],
+                "pagination": {"limit": limit, "offset": offset},
+            }
+        )
 
     except Exception as e:
         logger.exception(f"Failed to list invoices: {e}")
@@ -1267,10 +1380,10 @@ async def create_invoice(
     Add line items via POST /invoices/{id}/items, then finalize via POST /invoices/{id}/finalize.
     """
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         invoice = await service.create_invoice(
             customer_id=request.customer_id,
@@ -1281,24 +1394,25 @@ async def create_invoice(
             currency=request.currency,
             description=request.description,
         )
-        
-        return create_invoiceResult.model_validate({  # type: ignore[no-any-return]
-            "id": invoice.id,
-            "invoice_number": invoice.invoice_number,
-            "customer_id": invoice.customer_id,
-            "status": invoice.status,
-            "total_cents": invoice.total,
-            "total_dollars": invoice.total_dollars,
-            "created_at": invoice.created_at.isoformat(),
-        })
 
+        return create_invoiceResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+                "customer_id": invoice.customer_id,
+                "status": invoice.status,
+                "total_cents": invoice.total,
+                "total_dollars": invoice.total_dollars,
+                "created_at": invoice.created_at.isoformat(),
+            }
+        )
 
     except ValueError as e:
         logger.warning(
             "invoice_value_error",
             extra={"error_code": "INVOICE_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise ValidationError(message = "Invalid invoice request")
+        raise ValidationError(message="Invalid invoice request")
     except Exception as e:
         logger.exception(f"Failed to create invoice: {e}")
         raise ServiceUnavailableError(message="Failed to create invoice")
@@ -1312,68 +1426,73 @@ async def get_invoice(
 ) -> dict[str, Any]:
     """Get invoice details including line items and charges."""
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
-    try:
-        invoice = await service.get_invoice(invoice_id, include_items=True, include_charges=True)
-        
-        if not invoice:
-            raise NotFoundError(message = "Invoice not found")
-        
-        return get_invoiceResult.model_validate({  # type: ignore[no-any-return]
-            "id": invoice.id,
-            "invoice_number": invoice.invoice_number,
-            "customer_id": invoice.customer_id,
-            "status": invoice.status,
-            "currency": invoice.currency,
-            "subtotal_cents": invoice.subtotal,
-            "tax_cents": invoice.tax,
-            "total_cents": invoice.total,
-            "total_dollars": invoice.total_dollars,
-            "amount_paid_cents": invoice.amount_paid,
-            "amount_due_cents": invoice.amount_due,
-            "amount_due_dollars": invoice.amount_due_dollars,
-            "balance_cents": invoice.balance,
-            "period_start": invoice.period_start.isoformat(),
-            "period_end": invoice.period_end.isoformat(),
-            "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
-            "created_at": invoice.created_at.isoformat(),
-            "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
-            "description": invoice.description,
-            "hosted_invoice_url": invoice.hosted_invoice_url,
-            "invoice_pdf_url": invoice.invoice_pdf_url,
-            "items": [
-                {
-                    "id": item.id,
-                    "type": item.type,
-                    "description": item.description,
-                    "quantity": float(item.quantity),
-                    "unit_amount_cents": item.unit_amount,
-                    "amount_cents": item.amount,
-                    "amount_dollars": item.amount_dollars,
-                    "usage_quantity": float(item.usage_quantity) if item.usage_quantity else None,
-                    "usage_metric": item.usage_metric,
-                    "tax_cents": item.tax_amount,
-                    "discount_cents": item.discount_amount,
-                }
-                for item in invoice.items
-            ],
-            "charges": [
-                {
-                    "id": charge.id,
-                    "status": charge.status,
-                    "amount_cents": charge.amount,
-                    "amount_dollars": charge.amount_dollars,
-                    "stripe_charge_id": charge.stripe_charge_id,
-                    "payment_method_type": charge.payment_method_type,
-                    "created_at": charge.created_at.isoformat(),
-                }
-                for charge in invoice.charges
-            ],
-        })
 
+    try:
+        invoice = await service.get_invoice(
+            invoice_id, include_items=True, include_charges=True
+        )
+
+        if not invoice:
+            raise NotFoundError(message="Invoice not found")
+
+        return get_invoiceResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": invoice.id,
+                "invoice_number": invoice.invoice_number,
+                "customer_id": invoice.customer_id,
+                "status": invoice.status,
+                "currency": invoice.currency,
+                "subtotal_cents": invoice.subtotal,
+                "tax_cents": invoice.tax,
+                "total_cents": invoice.total,
+                "total_dollars": invoice.total_dollars,
+                "amount_paid_cents": invoice.amount_paid,
+                "amount_due_cents": invoice.amount_due,
+                "amount_due_dollars": invoice.amount_due_dollars,
+                "balance_cents": invoice.balance,
+                "period_start": invoice.period_start.isoformat(),
+                "period_end": invoice.period_end.isoformat(),
+                "due_date": invoice.due_date.isoformat() if invoice.due_date else None,
+                "created_at": invoice.created_at.isoformat(),
+                "paid_at": invoice.paid_at.isoformat() if invoice.paid_at else None,
+                "description": invoice.description,
+                "hosted_invoice_url": invoice.hosted_invoice_url,
+                "invoice_pdf_url": invoice.invoice_pdf_url,
+                "items": [
+                    {
+                        "id": item.id,
+                        "type": item.type,
+                        "description": item.description,
+                        "quantity": float(item.quantity),
+                        "unit_amount_cents": item.unit_amount,
+                        "amount_cents": item.amount,
+                        "amount_dollars": item.amount_dollars,
+                        "usage_quantity": (
+                            float(item.usage_quantity) if item.usage_quantity else None
+                        ),
+                        "usage_metric": item.usage_metric,
+                        "tax_cents": item.tax_amount,
+                        "discount_cents": item.discount_amount,
+                    }
+                    for item in invoice.items
+                ],
+                "charges": [
+                    {
+                        "id": charge.id,
+                        "status": charge.status,
+                        "amount_cents": charge.amount,
+                        "amount_dollars": charge.amount_dollars,
+                        "stripe_charge_id": charge.stripe_charge_id,
+                        "payment_method_type": charge.payment_method_type,
+                        "created_at": charge.created_at.isoformat(),
+                    }
+                    for charge in invoice.charges
+                ],
+            }
+        )
 
     except HTTPException:
         raise
@@ -1391,10 +1510,10 @@ async def add_invoice_item(
 ) -> dict[str, Any]:
     """Add a line item to an invoice."""
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         item = await service.add_invoice_item(
             invoice_id=invoice_id,
@@ -1408,23 +1527,27 @@ async def add_invoice_item(
             tax_amount=request.tax_cents,
             discount_amount=request.discount_cents,
         )
-        
-        return add_invoice_itemResult.model_validate({  # type: ignore[no-any-return]
-            "id": item.id,
-            "invoice_id": item.invoice_id,
-            "type": item.type,
-            "description": item.description,
-            "amount_cents": item.amount,
-            "amount_dollars": item.amount_dollars,
-        })
 
+        return add_invoice_itemResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": item.id,
+                "invoice_id": item.invoice_id,
+                "type": item.type,
+                "description": item.description,
+                "amount_cents": item.amount,
+                "amount_dollars": item.amount_dollars,
+            }
+        )
 
     except ValueError as e:
         logger.warning(
             "invoice_item_value_error",
-            extra={"error_code": "INVOICE_ITEM_VALUE_ERROR", "error": sanitize_log_error(e)},
+            extra={
+                "error_code": "INVOICE_ITEM_VALUE_ERROR",
+                "error": sanitize_log_error(e),
+            },
         )
-        raise ValidationError(message = "Invalid invoice item request")
+        raise ValidationError(message="Invalid invoice item request")
     except Exception as e:
         logger.exception(f"Failed to add invoice item: {e}")
         raise ServiceUnavailableError(message="Failed to add invoice item")
@@ -1441,29 +1564,33 @@ async def finalize_invoice(
     Recalculates totals from line items and changes status to 'open'.
     """
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         invoice = await service.finalize_invoice(invoice_id)
-        
-        return finalize_invoiceResult.model_validate({  # type: ignore[no-any-return]
-            "id": invoice.id,
-            "status": invoice.status,
-            "total_cents": invoice.total,
-            "total_dollars": invoice.total_dollars,
-            "amount_due_cents": invoice.amount_due,
-            "amount_due_dollars": invoice.amount_due_dollars,
-        })
 
+        return finalize_invoiceResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": invoice.id,
+                "status": invoice.status,
+                "total_cents": invoice.total,
+                "total_dollars": invoice.total_dollars,
+                "amount_due_cents": invoice.amount_due,
+                "amount_due_dollars": invoice.amount_due_dollars,
+            }
+        )
 
     except ValueError as e:
         logger.warning(
             "invoice_finalize_value_error",
-            extra={"error_code": "INVOICE_FINALIZE_VALUE_ERROR", "error": sanitize_log_error(e)},
+            extra={
+                "error_code": "INVOICE_FINALIZE_VALUE_ERROR",
+                "error": sanitize_log_error(e),
+            },
         )
-        raise ValidationError(message = "Invalid invoice finalize request")
+        raise ValidationError(message="Invalid invoice finalize request")
     except Exception as e:
         logger.exception(f"Failed to finalize invoice: {e}")
         raise ServiceUnavailableError(message="Failed to finalize invoice")
@@ -1478,26 +1605,32 @@ async def void_invoice(
 ) -> dict[str, Any]:
     """Void an invoice."""
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         invoice = await service.void_invoice(invoice_id, reason=reason)
-        
-        return void_invoiceResult.model_validate({  # type: ignore[no-any-return]
-            "id": invoice.id,
-            "status": invoice.status,
-            "voided_at": invoice.voided_at.isoformat() if invoice.voided_at else None,
-        })
 
+        return void_invoiceResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": invoice.id,
+                "status": invoice.status,
+                "voided_at": (
+                    invoice.voided_at.isoformat() if invoice.voided_at else None
+                ),
+            }
+        )
 
     except ValueError as e:
         logger.warning(
             "invoice_void_value_error",
-            extra={"error_code": "INVOICE_VOID_VALUE_ERROR", "error": sanitize_log_error(e)},
+            extra={
+                "error_code": "INVOICE_VOID_VALUE_ERROR",
+                "error": sanitize_log_error(e),
+            },
         )
-        raise ValidationError(message = "Invalid invoice void request")
+        raise ValidationError(message="Invalid invoice void request")
     except Exception as e:
         logger.exception(f"Failed to void invoice: {e}")
         raise ServiceUnavailableError(message="Failed to void invoice")
@@ -1506,6 +1639,7 @@ async def void_invoice(
 # ============================================================================
 # Charge Management
 # ============================================================================
+
 
 @router.get("/charges", response_model=list_chargesResult)
 async def list_charges(
@@ -1519,10 +1653,10 @@ async def list_charges(
 ) -> dict[str, Any]:
     """List charge records."""
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         charges = await service.list_charges(
             customer_id=customer_id,
@@ -1531,30 +1665,31 @@ async def list_charges(
             limit=limit,
             offset=offset,
         )
-        
-        return list_chargesResult.model_validate({  # type: ignore[no-any-return]
-            "charges": [
-                {
-                    "id": chg.id,
-                    "customer_id": chg.customer_id,
-                    "invoice_id": chg.invoice_id,
-                    "status": chg.status,
-                    "amount_cents": chg.amount,
-                    "amount_dollars": chg.amount_dollars,
-                    "amount_refunded_cents": chg.amount_refunded,
-                    "net_amount_cents": chg.net_amount,
-                    "stripe_charge_id": chg.stripe_charge_id,
-                    "payment_method_type": chg.payment_method_type,
-                    "failure_code": chg.failure_code,
-                    "failure_message": chg.failure_message,
-                    "receipt_url": chg.receipt_url,
-                    "created_at": chg.created_at.isoformat(),
-                }
-                for chg in charges
-            ],
-            "pagination": {"limit": limit, "offset": offset},
-        })
 
+        return list_chargesResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "charges": [
+                    {
+                        "id": chg.id,
+                        "customer_id": chg.customer_id,
+                        "invoice_id": chg.invoice_id,
+                        "status": chg.status,
+                        "amount_cents": chg.amount,
+                        "amount_dollars": chg.amount_dollars,
+                        "amount_refunded_cents": chg.amount_refunded,
+                        "net_amount_cents": chg.net_amount,
+                        "stripe_charge_id": chg.stripe_charge_id,
+                        "payment_method_type": chg.payment_method_type,
+                        "failure_code": chg.failure_code,
+                        "failure_message": chg.failure_message,
+                        "receipt_url": chg.receipt_url,
+                        "created_at": chg.created_at.isoformat(),
+                    }
+                    for chg in charges
+                ],
+                "pagination": {"limit": limit, "offset": offset},
+            }
+        )
 
     except Exception as e:
         logger.exception(f"Failed to list charges: {e}")
@@ -1569,10 +1704,10 @@ async def record_charge(
 ) -> dict[str, Any]:
     """Record a charge attempt."""
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         charge = await service.record_charge(
             customer_id=request.customer_id,
@@ -1584,23 +1719,24 @@ async def record_charge(
             payment_method_type=request.payment_method_type,
             description=request.description,
         )
-        
-        return record_chargeResult.model_validate({  # type: ignore[no-any-return]
-            "id": charge.id,
-            "status": charge.status,
-            "amount_cents": charge.amount,
-            "amount_dollars": charge.amount_dollars,
-            "stripe_charge_id": charge.stripe_charge_id,
-            "created_at": charge.created_at.isoformat(),
-        })
 
+        return record_chargeResult.model_validate(
+            {  # type: ignore[no-any-return]
+                "id": charge.id,
+                "status": charge.status,
+                "amount_cents": charge.amount,
+                "amount_dollars": charge.amount_dollars,
+                "stripe_charge_id": charge.stripe_charge_id,
+                "created_at": charge.created_at.isoformat(),
+            }
+        )
 
     except ValueError as e:
         logger.warning(
             "charge_value_error",
             extra={"error_code": "CHARGE_VALUE_ERROR", "error": sanitize_log_error(e)},
         )
-        raise ValidationError(message = "Invalid charge request")
+        raise ValidationError(message="Invalid charge request")
     except Exception as e:
         logger.exception(f"Failed to record charge: {e}")
         raise ServiceUnavailableError(message="Failed to record charge")
@@ -1609,6 +1745,7 @@ async def record_charge(
 # ============================================================================
 # Reporting
 # ============================================================================
+
 
 @router.get("/reports/revenue", response_model=RevenueSummaryResponse)
 async def get_revenue_summary(
@@ -1622,10 +1759,10 @@ async def get_revenue_summary(
     Returns aggregated invoice and charge totals for the specified period.
     """
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         summary = await service.get_revenue_summary(period_start, period_end)
         return summary
@@ -1645,16 +1782,18 @@ async def get_customer_balance(
     Returns open invoice amounts and lifetime payment totals.
     """
     from ...services.invoice_service import InvoiceService
-    
+
     tenant_id = context.tenant_id
     service = InvoiceService(db, tenant_id=tenant_id)
-    
+
     try:
         balance = await service.get_customer_balance(customer_id)
         return balance
     except Exception as e:
         logger.exception(f"Failed to get customer balance: {e}")
         raise ServiceUnavailableError(message="Failed to retrieve customer balance")
+
+
 def _raise_quota_exceeded(metric_name: str, result: dict[str, Any]) -> None:
     """Raise a standardized hard-limit response for quota failures."""
     raise ServiceUnavailableError(
@@ -1668,3 +1807,13 @@ def _raise_quota_exceeded(metric_name: str, result: dict[str, Any]) -> None:
             "upgrade_required": True,
         },
     )
+
+
+# Local route modules register cohesive billing route groups without changing public paths.
+from .billing_overages import router as overage_router
+from .billing_usage import router as usage_router
+from .billing_webhooks import router as webhook_router
+
+router.include_router(webhook_router)
+router.include_router(usage_router)
+router.include_router(overage_router)

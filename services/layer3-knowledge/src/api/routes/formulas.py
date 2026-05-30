@@ -1,4 +1,10 @@
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -16,7 +22,7 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException
 from jsonschema import Draft202012Validator
 from pydantic import BaseModel, Field, field_validator
 from value_fabric.shared.identity.context import RequestContext
@@ -29,6 +35,7 @@ from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.routes.formula_governance import STATUS_DRAFT, STATUS_UNDER_REVIEW
 from ...auth.api_keys import APIKey
 from ...auth.middleware import get_current_api_key, require_admin_role
+from .formulas_mapping import filter_variables_by_category
 
 router = APIRouter()
 logger = get_logger(__name__)
@@ -47,7 +54,11 @@ _ALLOWED_FUNCTIONS: dict[str, Any] = {
     "round": round,
 }
 _ALLOWED_BINARY_OPERATORS: tuple[type[ast.operator], ...] = (
-    ast.Add, ast.Sub, ast.Mult, ast.Div, ast.Pow,
+    ast.Add,
+    ast.Sub,
+    ast.Mult,
+    ast.Div,
+    ast.Pow,
 )
 _ALLOWED_UNARY_OPERATORS: tuple[type[ast.unaryop], ...] = (ast.UAdd, ast.USub)
 _FORMULA_SCHEMA: dict[str, Any] = {
@@ -91,24 +102,44 @@ def _validate_formula_ast(expression: str, allowed_variables: set[str]) -> ast.A
         raise ValueError("Invalid expression syntax") from exc
 
     disallowed_nodes = (
-        ast.Attribute, ast.Subscript, ast.ListComp, ast.SetComp, ast.DictComp,
-        ast.GeneratorExp, ast.Lambda, ast.Import, ast.ImportFrom, ast.Await,
-        ast.Yield, ast.NamedExpr,
+        ast.Attribute,
+        ast.Subscript,
+        ast.ListComp,
+        ast.SetComp,
+        ast.DictComp,
+        ast.GeneratorExp,
+        ast.Lambda,
+        ast.Import,
+        ast.ImportFrom,
+        ast.Await,
+        ast.Yield,
+        ast.NamedExpr,
     )
     for node in ast.walk(tree):
         if isinstance(node, disallowed_nodes):
             raise ValueError(f"Forbidden expression construct: {type(node).__name__}")
         if isinstance(node, ast.Call):
-            if not isinstance(node.func, ast.Name) or node.func.id not in _ALLOWED_FUNCTIONS:
+            if (
+                not isinstance(node.func, ast.Name)
+                or node.func.id not in _ALLOWED_FUNCTIONS
+            ):
                 raise ValueError("Function is not allowed in formula DSL")
-        if isinstance(node, ast.BinOp) and not isinstance(node.op, _ALLOWED_BINARY_OPERATORS):
+        if isinstance(node, ast.BinOp) and not isinstance(
+            node.op, _ALLOWED_BINARY_OPERATORS
+        ):
             raise ValueError("Binary operator is not allowed")
-        if isinstance(node, ast.UnaryOp) and not isinstance(node.op, _ALLOWED_UNARY_OPERATORS):
+        if isinstance(node, ast.UnaryOp) and not isinstance(
+            node.op, _ALLOWED_UNARY_OPERATORS
+        ):
             raise ValueError("Unary operator is not allowed")
         if isinstance(node, ast.Name):
             if node.id in {"eval", "exec", "__import__", "open"}:
                 raise ValueError("Forbidden identifier in formula DSL")
-            if allowed_variables and node.id not in allowed_variables and node.id not in _ALLOWED_FUNCTIONS:
+            if (
+                allowed_variables
+                and node.id not in allowed_variables
+                and node.id not in _ALLOWED_FUNCTIONS
+            ):
                 raise ValueError(f"Unknown variable in formula: {node.id}")
     return tree
 
@@ -125,6 +156,7 @@ class FormulaInput(BaseModel):
     def validate_value_is_finite(cls, v: float) -> float:
         """Ensure value is a finite number (not inf, -inf, or nan)."""
         import math
+
         if not math.isfinite(v):
             raise ValueError("Value must be a finite number")
         return v
@@ -206,7 +238,9 @@ class FormulaMetadata(BaseModel):
     """Metadata for a registered formula."""
 
     id: str = Field(..., description="Formula identifier")
-    formula_id: str | None = Field(default=None, description="Alias for id (frontend compatibility)")
+    formula_id: str | None = Field(
+        default=None, description="Alias for id (frontend compatibility)"
+    )
     name: str = Field(..., description="Formula name")
     description: str = Field(..., description="Formula description")
     category: str = Field(..., description="Formula category (e.g., ROI, Payback, NPV)")
@@ -217,9 +251,13 @@ class FormulaMetadata(BaseModel):
     status: str = Field(default="active", description="Formula status")
     updated_at: str | None = Field(default=None, description="Last updated timestamp")
     created_at: str | None = Field(default=None, description="Creation timestamp")
-    used_in_count: int = Field(default=0, description="Number of packs using this formula")
+    used_in_count: int = Field(
+        default=0, description="Number of packs using this formula"
+    )
     owner: str | None = Field(default=None, description="Formula owner email")
-    governance_score: float | None = Field(default=None, description="Governance score 0-1")
+    governance_score: float | None = Field(
+        default=None, description="Governance score 0-1"
+    )
 
 
 class CreateFormulaRequest(BaseModel):
@@ -228,7 +266,9 @@ class CreateFormulaRequest(BaseModel):
     name: str = Field(..., description="Formula name", min_length=1, max_length=200)
     description: str = Field(..., description="Formula description", min_length=1)
     expression: str = Field(..., description="Formula expression template")
-    variables: list[VariableMetadata] = Field(default_factory=list, description="Required variables")
+    variables: list[VariableMetadata] = Field(
+        default_factory=list, description="Required variables"
+    )
     output_unit: str = Field(..., description="Output unit")
     category: str = Field(default="Custom", description="Formula category")
     owner: str | None = Field(default=None, description="Formula owner email")
@@ -244,10 +284,16 @@ class CreateFormulaRequest(BaseModel):
 class UpdateFormulaRequest(BaseModel):
     """Request to update an existing formula."""
 
-    name: str | None = Field(default=None, description="Formula name", min_length=1, max_length=200)
+    name: str | None = Field(
+        default=None, description="Formula name", min_length=1, max_length=200
+    )
     description: str | None = Field(default=None, description="Formula description")
-    expression: str | None = Field(default=None, description="Formula expression template")
-    variables: list[VariableMetadata] | None = Field(default=None, description="Required variables")
+    expression: str | None = Field(
+        default=None, description="Formula expression template"
+    )
+    variables: list[VariableMetadata] | None = Field(
+        default=None, description="Required variables"
+    )
     output_unit: str | None = Field(default=None, description="Output unit")
     category: str | None = Field(default=None, description="Formula category")
 
@@ -558,42 +604,6 @@ FORMULA_REGISTRY: list[FormulaMetadata] = [
 # ============================================================================
 
 
-@router.post(
-    "/formulas/evaluate",
-    response_model=FormulaEvaluateResponse,
-    tags=["Formulas"],
-    summary="Evaluate Formula",
-    description="Execute a formula with typed inputs and return the result.",
-    responses={
-        200: {
-            "description": "Formula evaluated successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "result": 245.5,
-                        "unit": "percent",
-                        "confidence": 0.92,
-                        "calculation_steps": [
-                            {
-                                "step": 1,
-                                "operation": "annual_benefit - annual_cost",
-                                "result": "245500.0",
-                            },
-                            {
-                                "step": 2,
-                                "operation": "divide by implementation_cost",
-                                "result": "245.5",
-                            },
-                        ],
-                        "formula_used": "(annual_benefit - annual_cost) / implementation_cost * 100",
-                    }
-                }
-            },
-        },
-        400: {"description": "Invalid inputs or formula"},
-        422: {"description": "Validation error"},
-    },
-)
 async def evaluate_formula(
     request: FormulaEvaluateRequest,
 ) -> FormulaEvaluateResponse:
@@ -609,7 +619,9 @@ async def evaluate_formula(
                 (f for f in FORMULA_REGISTRY if f.id == request.formula_id), None
             )
             if not formula:
-                raise NotFoundError(message = str(f"Formula {request.formula_id} not found"))
+                raise NotFoundError(
+                    message=str(f"Formula {request.formula_id} not found")
+                )
             expression = formula.expression
             output_unit = request.output_unit or formula.output_unit
         else:
@@ -623,7 +635,9 @@ async def evaluate_formula(
         try:
             result = evaluate_expression(expression, inputs_dict)
         except Exception:
-            raise ValidationError(message = "Formula evaluation failed. Check expression syntax and variable values.")
+            raise ValidationError(
+                message="Formula evaluation failed. Check expression syntax and variable values."
+            )
 
         # Generate calculation steps for transparency
         steps = generate_calculation_steps(expression, inputs_dict, result)
@@ -642,64 +656,6 @@ async def evaluate_formula(
         raise ServiceUnavailableError(message="FORMULA_EVALUATION_ERROR")
 
 
-_VARIABLE_CATEGORY_PATTERNS: dict[str, list[str]] = {
-    # Efficiency is checked before Financial so that "error_rate" and
-    # "automation_efficiency" match here rather than on "rate"/"cost".
-    "Efficiency": [
-        "automation", "efficiency", "error_rate", "error", "reduction",
-        "improvement", "productivity",
-    ],
-    "Operational": [
-        "volume", "transaction", "process", "manual", "hours", "time_period",
-        "period", "cycle", "throughput",
-    ],
-    "Financial": [
-        "cost", "revenue", "savings", "rate", "discount", "price", "budget",
-        "investment", "roi", "npv", "payback", "benefit",
-    ],
-    "Quality": [
-        "accuracy", "quality", "defect", "compliance", "satisfaction",
-        "score", "rating",
-    ],
-}
-
-
-def _infer_variable_category(variable_name: str) -> str:
-    """Infer a category for a variable from its name using keyword patterns.
-
-    Returns the first matching category, or "Financial" as the default
-    (most variables in the registry are financial in nature).
-    """
-    lower = variable_name.lower()
-    for category, keywords in _VARIABLE_CATEGORY_PATTERNS.items():
-        if any(kw in lower for kw in keywords):
-            return category
-    return "Financial"
-
-
-def _filter_variables_by_category(
-    variables: list[VariableMetadata], category: str
-) -> list[VariableMetadata]:
-    """Return only variables whose category matches *category* (case-insensitive).
-
-    Uses the explicit ``VariableMetadata.category`` field when set.  Falls back
-    to keyword-pattern inference for variables that have no explicit category.
-    """
-    target = category.strip().lower()
-    return [
-        v
-        for v in variables
-        if (v.category or _infer_variable_category(v.name)).lower() == target
-    ]
-
-
-@router.get(
-    "/formulas/variables",
-    response_model=VariablesRegistryResponse,
-    tags=["Formulas"],
-    summary="Get Variables Registry",
-    description="Returns metadata for all available formula variables.",
-)
 async def get_variables_registry(
     category: str | None = None,
 ) -> VariablesRegistryResponse:
@@ -707,7 +663,7 @@ async def get_variables_registry(
     variables = VARIABLE_REGISTRY
 
     if category:
-        variables = _filter_variables_by_category(variables, category)
+        variables = filter_variables_by_category(variables, category)
 
     categories = list(set(["Financial", "Operational", "Efficiency", "Quality"]))
 
@@ -718,13 +674,6 @@ async def get_variables_registry(
     )
 
 
-@router.get(
-    "/formulas",
-    response_model=FormulasRegistryResponse,
-    tags=["Formulas"],
-    summary="List Registered Formulas",
-    description="Returns all registered formulas with their metadata.",
-)
 async def list_formulas(
     category: str | None = None,
 ) -> FormulasRegistryResponse:
@@ -740,18 +689,11 @@ async def list_formulas(
     )
 
 
-@router.get(
-    "/formulas/{formula_id}",
-    response_model=FormulaMetadata,
-    tags=["Formulas"],
-    summary="Get Formula Details",
-    description="Returns details for a specific registered formula.",
-)
 async def get_formula(formula_id: str) -> FormulaMetadata:
     """Get details for a specific formula."""
     formula = next((f for f in FORMULA_REGISTRY if f.id == formula_id), None)
     if not formula:
-        raise NotFoundError(message = str(f"Formula {formula_id} not found"))
+        raise NotFoundError(message=str(f"Formula {formula_id} not found"))
     return formula
 
 
@@ -778,7 +720,8 @@ class ScenarioRequest(BaseModel):
         ..., description="Variable adjustments to apply"
     )
     base_case_data: dict[str, Any] | None = Field(
-        default=None, description="Optional base case data (total_value, implementation_cost, etc.). If provided, bypasses repository lookup."
+        default=None,
+        description="Optional base case data (total_value, implementation_cost, etc.). If provided, bypasses repository lookup.",
     )
 
 
@@ -802,48 +745,11 @@ class ScenarioResponse(BaseModel):
         default_factory=list, description="Step-by-step breakdown"
     )
     warnings: list[str] = Field(
-        default_factory=list, description="Warning messages (e.g., incomplete data, calculation warnings)"
+        default_factory=list,
+        description="Warning messages (e.g., incomplete data, calculation warnings)",
     )
 
 
-@router.post(
-    "/formulas/scenario",
-    response_model=ScenarioResponse,
-    tags=["Formulas"],
-    summary="Calculate What-If Scenario",
-    description="Calculate new business case metrics based on variable adjustments.",
-    responses={
-        200: {
-            "description": "Scenario calculated successfully",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "scenario_id": "scenario_abc123",
-                        "original_value": 500000,
-                        "adjusted_value": 600000,
-                        "delta_percentage": 20.0,
-                        "new_roi": 2.5,
-                        "new_payback_months": 8.5,
-                        "formula_used": "(total_value - implementation_cost) / implementation_cost",
-                        "calculation_steps": [
-                            {
-                                "step": 1,
-                                "operation": "Base case values",
-                                "details": {"total_value": 500000},
-                            },
-                            {
-                                "step": 2,
-                                "operation": "Adjust implementation_cost",
-                                "details": {"from": 200000, "to": 180000},
-                            },
-                        ],
-                    }
-                }
-            },
-        },
-        400: {"description": "Invalid adjustments or missing base case data"},
-    },
-)
 async def calculate_scenario(
     request: ScenarioRequest,
 ) -> ScenarioResponse:
@@ -954,7 +860,7 @@ def _evaluate_ast_node(node: ast.AST, variables: dict[str, float]) -> float:
                 raise ZeroDivisionError("Division by zero")
             return left / right
         if isinstance(node.op, ast.Pow):
-            return left ** right
+            return left**right
         raise ValueError("Unsupported binary operator")
     if isinstance(node, ast.Call):
         fn = node.func
@@ -1001,7 +907,9 @@ def generate_calculation_steps(
 # ============================================================================
 
 
-def _build_formula_metadata(formula_node: dict, variables_nodes: list) -> FormulaMetadata:
+def _build_formula_metadata(
+    formula_node: dict, variables_nodes: list
+) -> FormulaMetadata:
     """Build FormulaMetadata from Neo4j node data."""
     return FormulaMetadata(
         id=formula_node["id"],
@@ -1028,20 +936,13 @@ def _build_formula_metadata(formula_node: dict, variables_nodes: list) -> Formul
                 max_value=v.get("maxValue"),
                 required=v.get("required", True),
             )
-            for v in variables_nodes if v
+            for v in variables_nodes
+            if v
         ],
         used_in_count=0,
     )
 
 
-@router.post(
-    "/formulas",
-    response_model=FormulaMetadata,
-    status_code=status.HTTP_201_CREATED,
-    tags=["Formulas"],
-    summary="Create Formula",
-    description="Create a new formula with variables and initial version.",
-)
 async def create_formula(
     request: CreateFormulaRequest,
     api_key: APIKey = Depends(get_current_api_key),
@@ -1071,7 +972,9 @@ async def create_formula(
         )
         existing = await check_result.single()
         if existing and existing.get("existing_id"):
-            raise ConflictError(message=f"Formula with name '{request.name}' already exists")
+            raise ConflictError(
+                message=f"Formula with name '{request.name}' already exists"
+            )
 
         # Create formula, version, and variables
         await neo4j.run(
@@ -1172,13 +1075,6 @@ async def create_formula(
         return _build_formula_metadata(formula_node, variables_nodes)
 
 
-@router.patch(
-    "/formulas/{formula_id}",
-    response_model=FormulaMetadata,
-    tags=["Formulas"],
-    summary="Update Formula",
-    description="Update an existing formula. Creates new version if expression changes.",
-)
 async def update_formula(
     formula_id: str,
     request: UpdateFormulaRequest,
@@ -1205,17 +1101,21 @@ async def update_formula(
         )
         record = await check_result.single()
         if not record:
-            raise NotFoundError(message = str(f"Formula {formula_id} not found"))
+            raise NotFoundError(message=str(f"Formula {formula_id} not found"))
 
         current_status = record["status"]
         current_version = record["version"]
         current_expr = record["current_expr"]
 
         if current_status not in (STATUS_DRAFT, STATUS_UNDER_REVIEW):
-            raise ConflictError(message=f"Cannot update formula in status '{current_status}'")
+            raise ConflictError(
+                message=f"Cannot update formula in status '{current_status}'"
+            )
 
         # Check if expression changed (requires new version)
-        expr_changed = request.expression is not None and request.expression != current_expr
+        expr_changed = (
+            request.expression is not None and request.expression != current_expr
+        )
 
         # Build update properties
         update_fields = []
@@ -1327,7 +1227,9 @@ async def update_formula(
         )
         record = await result.single()
         if not record:
-            raise NotFoundError(message = str(f"Formula {formula_id} not found after update"))
+            raise NotFoundError(
+                message=str(f"Formula {formula_id} not found after update")
+            )
 
         formula_node = record["f"]
         variables_nodes = record["variables"]
@@ -1347,12 +1249,6 @@ async def update_formula(
         return _build_formula_metadata(formula_node, variables_nodes)
 
 
-@router.delete(
-    "/formulas/{formula_id}",
-    tags=["Formulas"],
-    summary="Delete Formula",
-    description="Delete a formula and all its versions. Admin only.",
-)
 async def delete_formula(
     formula_id: str,
     api_key: APIKey = Depends(require_admin_role),
@@ -1378,11 +1274,13 @@ async def delete_formula(
         )
         record = await check_result.single()
         if not record:
-            raise NotFoundError(message = str(f"Formula {formula_id} not found"))
+            raise NotFoundError(message=str(f"Formula {formula_id} not found"))
 
         ref_count = record["ref_count"]
         if ref_count > 0:
-            raise ConflictError(message=f"Cannot delete formula: referenced by {ref_count} ValuePack(s)")
+            raise ConflictError(
+                message=f"Cannot delete formula: referenced by {ref_count} ValuePack(s)"
+            )
 
         # Delete formula and related nodes
         await neo4j.run(
@@ -1421,3 +1319,13 @@ def _bump_minor_version(version: str) -> str:
         except ValueError:
             pass
     return "1.0.0"
+
+
+# Local route modules register cohesive formula route groups without changing public paths.
+from .formulas_evaluation_routes import router as formula_evaluation_router
+from .formulas_mutation_routes import router as formula_mutation_router
+from .formulas_registry_routes import router as formula_registry_router
+
+router.include_router(formula_evaluation_router)
+router.include_router(formula_registry_router)
+router.include_router(formula_mutation_router)
