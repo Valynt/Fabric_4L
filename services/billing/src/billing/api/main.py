@@ -215,8 +215,8 @@ async def cancel_subscription(
             tenant_id=tenant_id,
             at_period_end=at_period_end,
         )
-    except ValueError as exc:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(exc)) from exc
+    except ValueError:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Subscription not found") from None
     return SubscriptionRead(
         id=sub.id,
         user_id=sub.user_id,
