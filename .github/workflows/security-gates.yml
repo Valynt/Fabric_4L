@@ -28,6 +28,17 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
+  dev-auth-bypass-guard:
+    name: Dev Auth Bypass Guard
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Check committed dev auth bypass flags
+        run: bash scripts/ci/check-dev-auth-bypass.sh
+
   # Secret detection with gitleaks
   gitleaks-scan:
     name: Secret Detection (gitleaks)

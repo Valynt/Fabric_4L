@@ -146,7 +146,7 @@ class TestBypassFlagsAllowedInDevelopment:
     """Bypass flags must not raise in development — they should only log a warning."""
 
     def test_bypass_flag_does_not_raise_in_development(self, monkeypatch: pytest.MonkeyPatch):
-        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS=true is allowed in development."""
+        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS set to true is allowed in development."""
         monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
         # Must not raise in development
@@ -161,7 +161,7 @@ class TestBypassFlagsAllowedInDevelopment:
     def test_bypass_flag_logs_warning_in_development(
         self, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
     ):
-        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS=true logs at least one WARNING in development."""
+        """POSITIVE: ALLOW_INSECURE_DEV_AUTH_BYPASS set to true logs at least one WARNING in development."""
         monkeypatch.setenv("ENVIRONMENT", "development")
         monkeypatch.setenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "true")
         with caplog.at_level("WARNING"):
@@ -172,7 +172,7 @@ class TestBypassFlagsAllowedInDevelopment:
         warning_records = [r for r in caplog.records if r.levelname == "WARNING"]
         assert len(warning_records) >= 1, (
             "validate_production_safety must emit at least one WARNING when "
-            "ALLOW_INSECURE_DEV_AUTH_BYPASS=true in development."
+            "ALLOW_INSECURE_DEV_AUTH_BYPASS set to true in development."
         )
 
 

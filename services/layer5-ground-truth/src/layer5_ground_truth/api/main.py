@@ -648,7 +648,7 @@ def create_app() -> FastAPI:
     # GovernanceMiddleware — provides auth and tenant context with rate limiting.
     # Fail closed in production and staging; dev bypass requires explicit opt-in.
     #
-    # ALLOW_INSECURE_DEV_AUTH_BYPASS=true disables auth enforcement in development
+    # ALLOW_INSECURE_DEV_AUTH_BYPASS set to true disables auth enforcement in development
     # only. This flag must never be set in production or staging environments.
     # REDIS_RATE_LIMITING_REQUIRED=true forces Redis availability at startup.
     # In production-like environments Redis is always required; the lifespan
