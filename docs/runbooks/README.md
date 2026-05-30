@@ -2,6 +2,27 @@
 
 This directory contains runbooks for every alert defined in `monitoring/alerting/rules.yml`.
 
+## Standard Production Runbook Template
+
+New production runbooks must start from [`_template.md`](_template.md) and keep these sections in order:
+
+1. Purpose
+2. Trigger
+3. Severity
+4. Preconditions
+5. Immediate Actions
+6. Diagnosis Steps
+7. Resolution Steps
+8. Validation
+9. Rollback / Fallback
+10. Customer / Stakeholder Communication
+11. Evidence to Preserve
+12. Related Gates
+13. Related Runbooks
+14. Post-Incident Follow-Up
+
+`Related Gates` must name the applicable readiness or CI gates, such as deployment gates, migration readiness gates, tenant-isolation gates, backup/restore readiness gates, agent evaluation gates, and observability alert gates.
+
 ## Runbook Index
 
 | Alert | File | Severity |
