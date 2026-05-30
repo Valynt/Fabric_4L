@@ -8,7 +8,7 @@
         preflight up down logs check-deprecations test-backup-drills \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config gate-all \
+	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config db-production-readiness-gate gate-all \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -620,6 +620,13 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
+db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
+	@echo "→ Gate: DB Production Readiness — cross-store consistency"
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
+
 gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
 
@@ -638,7 +645,7 @@ gates-validate-policy: ## Validate gate policy schema, profile existence, and ar
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
 	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gates-validate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
