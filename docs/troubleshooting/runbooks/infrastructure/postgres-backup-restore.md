@@ -1,5 +1,7 @@
 # PostgreSQL Backup and Restore Runbook
 
+This runbook is PostgreSQL-specific and separate from the Neo4j/Layer 3 graph backup procedures.
+
 **Scope:** Value Fabric production PostgreSQL — logical backups via `pg_dump`  
 **Owner:** Platform Engineering  
 **Review cycle:** Quarterly  
@@ -58,6 +60,27 @@ infisical run -- python3 scripts/ops/postgres_backup.py --dry-run
 ```bash
 infisical run -- python3 scripts/ops/postgres_backup.py
 ```
+
+### Logical backup/restore smoke drill
+
+Run this before release candidates and at least quarterly. The drill starts two
+isolated PostgreSQL containers, creates tenant-scoped sample data, runs
+`scripts/ops/postgres_backup.py` with `pg_dump`, restores the artifact with
+`psql`, and compares per-tenant checksums.
+
+```bash
+make db-production-readiness-gate
+```
+
+Evidence is written to `artifacts/postgres-backup-restore/`:
+
+- `backup-artifact.sha256` — SHA-256 checksum of the logical backup artifact.
+- `source-checksums.txt` — per-tenant source row counts and checksums.
+- `restored-checksums.txt` — per-tenant restored row counts and checksums.
+- `evidence.json` — image, database names, run ID, and evidence file paths.
+
+The gate fails if any checksum differs or if the restored tenant count is not
+exactly the expected source tenant count.
 
 ---
 
@@ -160,6 +183,41 @@ psql -h $POSTGRES_HOST -U $POSTGRES_USER value_fabric_restore \
 3. Smoke-test with `make test-backend-integrated-release-smoke`.
 4. If healthy, flip the load balancer to the restored instance.
 5. Keep the old instance available for 24 hours before decommissioning.
+
+---
+
+## Physical Backups and PITR Strategy
+
+Logical `pg_dump` backups are the smoke-testable safety net and are suitable for
+schema-level validation, tenant-integrity checks, and small emergency restores.
+Production PostgreSQL should also use a physical backup and point-in-time
+recovery (PITR) strategy:
+
+### Managed PostgreSQL (recommended production posture)
+
+Use the managed provider's native continuous backup feature as the physical/PITR
+source of truth. Examples include AWS RDS/Aurora automated backups plus
+point-in-time restore, Cloud SQL automated backups plus PITR, or Azure Database
+for PostgreSQL automated backups plus PITR. Configure:
+
+1. Continuous WAL archiving / transaction-log backup.
+2. Cross-AZ or regional backup durability where available.
+3. Backup retention that satisfies customer and compliance commitments.
+4. Quarterly point-in-time restore drills into an isolated staging database.
+5. Post-restore validation with `make migrate` and
+   `make test-backend-integrated-release-smoke` before traffic cutover.
+
+### Self-managed PostgreSQL
+
+If production ever runs self-managed PostgreSQL, add `pg_basebackup` or an
+equivalent base-backup tool plus continuous WAL archiving. Store base backups and
+WAL segments in encrypted object storage with lifecycle retention. The restore
+sequence is: restore the latest base backup, replay WAL to the target recovery
+time, start PostgreSQL in recovery mode, then run the validation steps below.
+
+Keep logical `pg_dump` drills even when physical/PITR is enabled; they provide a
+fast contract check that tenant-scoped data can be backed up and restored
+without relying on provider control-plane operations.
 
 ---
 

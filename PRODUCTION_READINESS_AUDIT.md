@@ -290,21 +290,21 @@ L2.5 Signal Refinery (8007)
 - **Dependencies:** None
 - **Owner:** Frontend / QA
 
-## PROD-P0-008: No PostgreSQL Backup Implementation
-- **Severity:** P0
+## PROD-P0-008: PostgreSQL Backup/Restore Foundation Added; Operational PITR Drill Still Required
+- **Severity:** P0 until a production/staging PITR drill is executed and retained as launch evidence
 - **Category:** Data / Operations
-- **Description:** Only Layer 3 (Neo4j) has a backup manager. The primary transactional database (PostgreSQL) has no automated backup implementation, runbook, or scheduled jobs.
+- **Description:** PostgreSQL now has repository-level logical backup/restore support and a Docker-backed drill gate. Production still requires provider-native physical/PITR configuration evidence and a dated staging or production-like restore drill before this item can be closed.
 - **Why it matters:** PostgreSQL contains all tenant data, audit events, billing records, and agent state. Data loss would be catastrophic and irreversible.
-- **Evidence:** `services/layer3-knowledge/src/backup/backup_manager.py` exists; no equivalent in L1/L4/L5/L6; `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md` is missing.
+- **Implementation evidence:** `scripts/ops/postgres_backup.py` supports `pg_dump` logical backup, Fernet encryption, local/S3/GCS storage, retention, and `psql` restore; `scripts/ops/test_postgres_backup_restore.sh` seeds tenant data, backs it up, restores to an isolated PostgreSQL instance, and compares SHA-256 plus per-tenant checksums; `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md` documents logical restore and managed PostgreSQL PITR/physical-backup strategy; `make db-production-readiness-gate` wires the drill into the Makefile.
+- **Remaining launch evidence:** Run `make db-production-readiness-gate` in a Docker-enabled CI/staging environment and retain `artifacts/postgres-backup-restore/evidence.json`, `backup-artifact.sha256`, `source-checksums.txt`, and `restored-checksums.txt`; separately attach managed PostgreSQL continuous-backup/PITR configuration and quarterly restore-drill evidence.
 - **Acceptance criteria:**
-  1. Implement pg_dump/base-backup manager with encryption and multi-storage backends.
-  2. Create runbook with RTO/RPO targets, restore procedures, and validation steps.
-  3. Add scheduled backup job (Kubernetes CronJob or external scheduler).
-  4. Test restore quarterly.
-- **Suggested implementation:** Model after L3 backup manager; use `pg_dump` for logical, `pg_basebackup` for physical; store to S3/GCS with Fernet encryption.
-- **Suggested tests:** `tests/contract/test_postgres_backup_restore.py` — backup integrity, encryption, point-in-time recovery.
-- **Estimated effort:** L
-- **Dependencies:** None
+  1. [x] Implement pg_dump logical backup manager with encryption and local/S3/GCS storage backends.
+  2. [x] Create PostgreSQL-specific runbook with RTO/RPO targets, restore procedures, validation steps, and managed physical/PITR strategy.
+  3. [x] Add scheduled backup job or external scheduler evidence (`k8s/base/postgres-backup-cronjob.yaml`).
+  4. [x] Add executable logical backup/restore drill gate (`make db-production-readiness-gate`).
+  5. [ ] Execute and archive quarterly managed PostgreSQL PITR restore evidence.
+- **Estimated effort remaining:** M
+- **Dependencies:** Docker-enabled CI/staging runner; managed PostgreSQL provider configuration
 - **Owner:** Platform / Data
 
 ## PROD-P0-009: L4 File Tools Fall Back to "default" Tenant
@@ -782,18 +782,22 @@ make test-backend-integrated-release-smoke
 
 ### TICKET-SEC-008: Add PostgreSQL Backup Manager
 **Priority:** P0  
-**Background:** Only Neo4j has backup implementation.  
-**Problem:** Primary DB unprotected against data loss.  
-**Scope:** Implement pg_dump/base-backup with encryption and storage backends.  
+**Status:** Repository foundation implemented; operational PITR evidence pending.
+**Background:** Only Neo4j previously had backup implementation.
+**Problem:** Primary DB restore readiness must be continuously proven.
+**Scope:** Implement pg_dump logical backup/restore with encryption and storage backends, plus document managed physical/PITR strategy.
 **Files affected:**
-- New: `services/api/app/backup/postgres_backup_manager.py`
-- New: `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
+- `scripts/ops/postgres_backup.py`
+- `scripts/ops/test_postgres_backup_restore.sh`
+- `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
+- `Makefile` (`db-production-readiness-gate`)
 **Acceptance criteria:**
-- [ ] Automated backups with encryption.
-- [ ] Multi-storage support (S3/GCS/Azure).
-- [ ] Restore runbook with RTO/RPO targets.
-- [ ] Quarterly restore drill documented.
-**Estimated effort:** L
+- [x] Automated logical backups with optional encryption.
+- [x] Multi-storage support (local/S3/GCS).
+- [x] Restore runbook with RTO/RPO targets.
+- [x] Logical backup/restore drill documented and wired to Make.
+- [ ] Managed PostgreSQL PITR drill documented from staging/production-like infrastructure.
+**Estimated effort remaining:** M
 
 ### TICKET-SEC-009: Implement PII Encryption at Rest
 **Priority:** P1  
@@ -1028,15 +1032,18 @@ make test-backend-integrated-release-smoke
 
 ### TICKET-INFRA-003: Add PostgreSQL Backup CronJob
 **Priority:** P0  
-**Background:** No PostgreSQL backup implementation.  
-**Scope:** Kubernetes CronJob running pg_dump with encryption; store to S3.  
+**Status:** Logical backup CronJob manifest present; managed physical/PITR evidence pending.
+**Background:** PostgreSQL requires both logical backup smoke coverage and provider/self-managed PITR.
+**Scope:** Kubernetes CronJob running pg_dump plus documented managed physical/PITR strategy.
 **Files affected:**
-- New: `k8s/base/postgres-backup-cronjob.yml`
+- `k8s/base/postgres-backup-cronjob.yaml`
+- `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
 **Acceptance criteria:**
-- [ ] Hourly logical backups.
-- [ ] Daily base backups.
-- [ ] Encrypted and uploaded to S3.
-**Estimated effort:** M
+- [x] Scheduled logical backup manifest exists.
+- [x] Logical backup/restore drill gate exists.
+- [ ] Managed physical/PITR backup configuration evidence attached.
+- [ ] Encrypted object-storage destination verified in production configuration.
+**Estimated effort remaining:** M
 
 ### TICKET-INFRA-004: Integrate Sentry for Error Aggregation
 **Priority:** P1  
@@ -1092,12 +1099,14 @@ make test-backend-integrated-release-smoke
 
 ### TICKET-DOC-003: Add PostgreSQL Backup-Restore Runbook
 **Priority:** P1  
+**Status:** Implemented; keep quarterly evidence current.
 **Files affected:**
-- New: `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
+- `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`
 **Acceptance criteria:**
-- [ ] Step-by-step restore procedure.
-- [ ] RTO/RPO targets defined.
-- [ ] Quarterly drill schedule.
+- [x] Step-by-step logical restore procedure.
+- [x] RTO/RPO targets defined.
+- [x] Quarterly logical drill schedule and Make gate documented.
+- [x] Managed PostgreSQL physical/PITR strategy documented.
 **Estimated effort:** S
 
 ---
@@ -1142,12 +1151,13 @@ make test-backend-integrated-release-smoke
 - **Evidence:** `make check-migration-heads` passes.
 
 ## Backups
-- [ ] PostgreSQL automated backups with encryption.
+- [x] PostgreSQL logical backup/restore tooling with optional encryption.
+- [ ] PostgreSQL managed physical/PITR configuration and dated restore drill evidence.
 - [ ] Neo4j automated backups with encryption.
 - [ ] Redis persistence configured (AOF or RDB).
 - [ ] Restore runbooks tested quarterly.
 - [ ] RTO ≤ 30 min, RPO ≤ 15 min validated.
-- **Evidence:** Backup artifacts exist in S3; restore drill completed.
+- **Evidence:** PostgreSQL repository evidence now includes `scripts/ops/postgres_backup.py`, `scripts/ops/test_postgres_backup_restore.sh`, `docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md`, `k8s/base/postgres-backup-cronjob.yaml`, and `make db-production-readiness-gate`. Production closure still requires archived `artifacts/postgres-backup-restore/` drill output and managed PITR evidence.
 
 ## Observability
 - [ ] Sentry integrated and receiving exceptions.
@@ -1348,7 +1358,7 @@ make test-backend-integrated-release-smoke
 ## Critical Gaps
 1. **ArgoCD Not Wired:** Application manifests exist but controller not installed; GitOps non-functional.
 2. **Placeholder K8s Secrets:** Base manifests contain hardcoded credentials relying on overlays.
-3. **No PostgreSQL Backup:** Only Neo4j has backup manager.
+3. **PostgreSQL PITR Evidence Pending:** Logical backup/restore tooling and drill gate exist; managed physical/PITR configuration and executed restore evidence are still required.
 4. **Deploy Pipeline Lacks Live Cluster Credentials:** Placeholder kubeconfig.
 5. **Blue-Green / Canary Non-Functional:** Without ArgoCD, progressive delivery is manual.
 6. **Mixed Line Endings:** CRLF warnings; Windows artifacts in root.

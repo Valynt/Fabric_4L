@@ -4,9 +4,9 @@ This directory contains runbooks for every alert defined in `monitoring/alerting
 
 ## Policy links
 
-- Severity matrix and escalation policy: [docs/operations/severity-escalation-policy.md](../operations/severity-escalation-policy.md)
-- MTTA/MTTR reporting process: [docs/operations/mtta-mttr-reporting.md](../operations/mtta-mttr-reporting.md)
-- Postmortem template and corrective actions: [docs/operations/postmortem-template.md](../operations/postmortem-template.md)
+- Severity matrix and escalation policy: [docs/operations/severity-escalation-policy.md](../../operations/severity-escalation-policy.md)
+- MTTA/MTTR reporting process: [docs/operations/mtta-mttr-reporting.md](../../operations/mtta-mttr-reporting.md)
+- Postmortem template and corrective actions: [docs/operations/postmortem-template.md](../../operations/postmortem-template.md)
 
 ## Runbook Index
 
@@ -56,5 +56,11 @@ This directory contains runbooks for every alert defined in `monitoring/alerting
 
 | Template | File | Purpose |
 |---|---|---|
-| Incident Postmortem Template | [incident-postmortem-template.md](incident-postmortem-template.md) | Mandatory post-incident write-up with action-item tracking |
-| SLOBreach | [slo-breach-response.md](slo-breach-response.md) | critical |
+| Severity Classification | [incident/severity-classification.md](incident/severity-classification.md) | SEV1-SEV4 definitions, response targets, and cadence |
+| Communication Templates | [incident/communication-template.md](incident/communication-template.md) | Internal Slack, customer status page, and post-mortem templates |
+| Data Breach Response | [incident/data-breach-response.md](incident/data-breach-response.md) | Suspected or confirmed unauthorized data access response |
+| Tenant Isolation Failure | [incident/tenant-isolation-failure.md](incident/tenant-isolation-failure.md) | Cross-tenant data exposure containment and remediation |
+| Ransomware Response | [incident/ransomware-response.md](incident/ransomware-response.md) | Encryption, destructive malware, and backup-protection response |
+| Cloud Provider Outage | [incident/cloud-provider-outage.md](incident/cloud-provider-outage.md) | AWS/GCP/Azure regional or managed-service outage response |
+| Incident Postmortem Template | [incident/incident-postmortem-template.md](incident/incident-postmortem-template.md) | Mandatory post-incident write-up with action-item tracking |
+| SLOBreach | [application/slo-breach-response.md](application/slo-breach-response.md) | critical |

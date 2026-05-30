@@ -31,9 +31,9 @@ from __future__ import annotations
 
 import gzip
 import hashlib
-import io
 import logging
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -178,8 +178,23 @@ def _sha256(path: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# pg_dump wrapper
+# pg_dump / psql wrappers
 # ---------------------------------------------------------------------------
+
+_POSTGRES_IDENTIFIER_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+def _quote_identifier(identifier: str) -> str:
+    """Return a safely quoted PostgreSQL identifier for database DDL."""
+    if not _POSTGRES_IDENTIFIER_RE.fullmatch(identifier):
+        raise RuntimeError(f"Unsafe PostgreSQL identifier: {identifier!r}")
+    return f'"{identifier}"'
+
+
+def _sql_literal(value: str) -> str:
+    """Return a single-quoted PostgreSQL literal."""
+    return "'" + value.replace("'", "''") + "'"
+
 
 def _pg_dump(host: str, port: str, user: str, dbname: str, out_path: Path) -> None:
     """Run pg_dump and write a gzipped plain-text dump to *out_path*."""
@@ -213,6 +228,114 @@ def _pg_dump(host: str, port: str, user: str, dbname: str, out_path: Path) -> No
         gz_fh.write(result.stdout)
 
     logger.info("pg_dump succeeded, %d bytes written (gzipped)", out_path.stat().st_size)
+
+
+def _psql_restore(
+    host: str,
+    port: str,
+    user: str,
+    dbname: str,
+    dump_path: Path,
+    *,
+    clean: bool = False,
+) -> None:
+    """Restore a gzipped plain-text pg_dump into *dbname* with psql."""
+    if clean:
+        quoted_dbname = _quote_identifier(dbname)
+        dbname_literal = _sql_literal(dbname)
+        admin_base_cmd = [
+            "psql",
+            "--no-password",
+            f"--host={host}",
+            f"--port={port}",
+            f"--username={user}",
+            "--dbname=postgres",
+            "--set=ON_ERROR_STOP=1",
+            "--command",
+        ]
+        _run_pg_command(
+            admin_base_cmd
+            + [
+                "SELECT pg_terminate_backend(pid) "
+                "FROM pg_stat_activity "
+                f"WHERE datname = {dbname_literal} AND pid <> pg_backend_pid();"
+            ]
+        )
+        _run_pg_command(admin_base_cmd + [f"DROP DATABASE IF EXISTS {quoted_dbname};"])
+        _run_pg_command(admin_base_cmd + [f"CREATE DATABASE {quoted_dbname};"])
+
+    cmd = [
+        "psql",
+        "--no-password",
+        f"--host={host}",
+        f"--port={port}",
+        f"--username={user}",
+        "--set=ON_ERROR_STOP=1",
+        "--dbname",
+        dbname,
+    ]
+    env = os.environ.copy()
+    pg_password = os.environ.get("POSTGRES_PASSWORD", "")
+    if pg_password:
+        env["PGPASSWORD"] = pg_password
+
+    logger.info("Restoring %s into database '%s' on %s:%s", dump_path, dbname, host, port)
+    with gzip.open(dump_path, "rb") as gz_fh:
+        result = subprocess.run(
+            cmd,
+            stdin=gz_fh,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            env=env,
+            check=False,
+        )
+    if result.returncode != 0:
+        stderr = result.stderr.decode(errors="replace")
+        raise RuntimeError(f"psql restore failed (exit {result.returncode}): {stderr}")
+    logger.info("Restore completed into database '%s'", dbname)
+
+
+def _run_pg_command(cmd: list[str]) -> None:
+    env = os.environ.copy()
+    pg_password = os.environ.get("POSTGRES_PASSWORD", "")
+    if pg_password:
+        env["PGPASSWORD"] = pg_password
+    result = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env, check=False)
+    if result.returncode != 0:
+        stderr = result.stderr.decode(errors="replace")
+        raise RuntimeError(f"PostgreSQL command failed (exit {result.returncode}): {stderr}")
+
+
+def restore_backup(input_path: Path, target_db: str, *, clean: bool = False) -> None:
+    """Decrypt (if needed), verify checksum, and restore a logical backup."""
+    host = os.environ.get("POSTGRES_HOST", "localhost")
+    port = os.environ.get("POSTGRES_PORT", "5432")
+    user = os.environ.get("POSTGRES_USER", "")
+    if not user or not target_db:
+        raise RuntimeError("POSTGRES_USER and target database are required for restore.")
+
+    if not input_path.exists():
+        raise RuntimeError(f"Backup file does not exist: {input_path}")
+
+    logger.info("Input SHA-256 checksum: %s", _sha256(input_path))
+    with tempfile.TemporaryDirectory(prefix="vf-pg-restore-") as tmpdir:
+        restore_path = input_path
+        if input_path.suffix == ".enc":
+            fernet = _get_fernet()
+            if not fernet:
+                raise RuntimeError("BACKUP_ENCRYPTION_KEY is required to restore encrypted backups.")
+            restore_path = Path(tmpdir) / input_path.with_suffix("").name
+            restore_path.write_bytes(fernet.decrypt(input_path.read_bytes()))
+            logger.info("Decrypted backup SHA-256 checksum: %s", _sha256(restore_path))
+
+        _psql_restore(
+            host=host,
+            port=port,
+            user=user,
+            dbname=target_db,
+            dump_path=restore_path,
+            clean=clean,
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -296,6 +419,20 @@ if __name__ == "__main__":
         action="store_true",
         help="Print configuration and exit without running pg_dump or uploading",
     )
+    parser.add_argument(
+        "--restore",
+        type=Path,
+        help="Restore the given .sql.gz or .sql.gz.enc logical backup with psql",
+    )
+    parser.add_argument(
+        "--target-db",
+        help="Target database for --restore",
+    )
+    parser.add_argument(
+        "--clean",
+        action="store_true",
+        help="Drop and recreate --target-db before restoring",
+    )
     args = parser.parse_args()
 
     if args.dry_run:
@@ -314,7 +451,13 @@ if __name__ == "__main__":
         sys.exit(0)
 
     try:
-        run_backup()
+        if args.restore:
+            if not args.target_db:
+                raise RuntimeError("--target-db is required with --restore")
+            restore_backup(args.restore, args.target_db, clean=args.clean)
+        else:
+            run_backup()
     except Exception as exc:
-        logger.error("Backup failed: %s", exc)
+        action = "Restore" if args.restore else "Backup"
+        logger.error("%s failed: %s", action, exc)
         sys.exit(1)

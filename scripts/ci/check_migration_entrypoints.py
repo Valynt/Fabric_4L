@@ -37,6 +37,17 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
         history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
     ),
     ServiceMigrationContract(
+        name="layer2-5-signal-refinery",
+        service_dir=Path("services/layer2-5-signal-refinery"),
+        required_paths=(
+            Path("alembic.ini"),
+            Path("src/layer2_5_signal_refinery/migrations/env.py"),
+            Path("src/layer2_5_signal_refinery/migrations/versions"),
+        ),
+        entrypoint_command=("alembic", "-c", "alembic.ini", "current", "--help"),
+        history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
+    ),
+    ServiceMigrationContract(
         name="layer3-knowledge",
         service_dir=Path("services/layer3-knowledge"),
         required_paths=(Path("src/migrations"),),
@@ -58,6 +69,13 @@ CONTRACTS: tuple[ServiceMigrationContract, ...] = (
             Path("src/layer5_ground_truth/migrations/env.py"),
             Path("src/layer5_ground_truth/migrations/versions"),
         ),
+        entrypoint_command=("alembic", "-c", "alembic.ini", "current", "--help"),
+        history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
+    ),
+    ServiceMigrationContract(
+        name="api",
+        service_dir=Path("services/api/migrations"),
+        required_paths=(Path("alembic.ini"), Path("env.py"), Path("versions")),
         entrypoint_command=("alembic", "-c", "alembic.ini", "current", "--help"),
         history_commands=(("alembic", "-c", "alembic.ini", "history", "--help"), ("alembic", "-c", "alembic.ini", "heads", "--help")),
     ),
@@ -86,7 +104,9 @@ def _run_command(cmd: tuple[str, ...], cwd: Path) -> subprocess.CompletedProcess
 def _find_versions_dir(service_dir: Path) -> Path | None:
     candidates = [
         service_dir / "migrations" / "versions",
+        service_dir / "src" / "layer2_5_signal_refinery" / "migrations" / "versions",
         service_dir / "src" / "layer5_ground_truth" / "migrations" / "versions",
+        service_dir / "versions",
     ]
     for c in candidates:
         if c.exists():
