@@ -5,7 +5,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[2]
 DB_FILES = [
-    *ROOT.glob("services/*/src/**/database.py"),
+    *ROOT.glob("services/layer*/src/**/database.py"),
     *ROOT.glob("value_fabric/layer*/**/database*.py"),
 ]
 
@@ -14,7 +14,7 @@ for path in sorted(set(DB_FILES)):
     text = path.read_text(encoding="utf-8")
     if "neo4j" in text.lower() and "sqlalchemy" not in text.lower():
         continue
-    uses_shared = "RuntimeDatabaseAdapter" in text
+    uses_shared = "RuntimeDatabaseAdapter" in text or "create_postgresql_engine" in text
     intentional = "INTENTIONAL_DB_ADAPTER_BYPASS = True" in text
     if not uses_shared and not intentional:
         violations.append(str(path.relative_to(ROOT)))

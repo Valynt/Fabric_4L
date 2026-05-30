@@ -1,3 +1,4 @@
+import os
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
@@ -8,6 +9,10 @@ from alembic import context
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
+
+database_url = os.environ.get("DATABASE_URL") or os.environ.get("API_DATABASE_URL")
+if database_url:
+    config.set_main_option("sqlalchemy.url", database_url)
 
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
@@ -24,6 +29,30 @@ target_metadata = None
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
+
+
+def _database_url_from_env() -> str | None:
+    """Return an explicit API migration database URL when provided.
+
+    The API gateway owns a small Alembic chain used by release gates. Keeping
+    this override in env.py lets production-readiness automation point the
+    chain at an isolated PostgreSQL database without mutating alembic.ini.
+    """
+    import os
+
+    url = (
+        os.environ.get("API_DATABASE_URL_SYNC")
+        or os.environ.get("DATABASE_URL_SYNC")
+        or os.environ.get("DATABASE_URL")
+    )
+    if not url:
+        return None
+    return url.replace("postgresql+asyncpg://", "postgresql://")
+
+
+_db_url = _database_url_from_env()
+if _db_url:
+    config.set_main_option("sqlalchemy.url", _db_url)
 
 
 def run_migrations_offline() -> None:

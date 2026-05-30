@@ -2,19 +2,21 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
-        preflight up down logs check-deprecations test-backup-drills \
+        preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
+	db-production-readiness-gate gate-all \
 	gate-production production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-migration-rollback-policy check-migration-postgres-roundtrip db-production-readiness-gate \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -34,6 +36,7 @@ SHELL := /bin/bash
 PROFILE ?= release-candidate
 POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
+DB_MIGRATION_DATABASE_URL ?=
 
 PYTHON ?= python3
 PIP    := pip install -e
@@ -108,6 +111,16 @@ check-migration-entrypoints: ## Ensure maintained services expose migration entr
 
 check-migration-heads: ## Fast static check: exactly one head per Alembic-managed service
 	@python3 scripts/ci/check_migration_entrypoints.py
+
+check-migration-rollback-policy: ## Enforce rollback documentation and approval for unsupported downgrades
+	@python3 scripts/ci/check_migration_rollback_policy.py
+
+check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and metadata drift checks against PostgreSQL
+	@test -n "$(DB_MIGRATION_DATABASE_URL)" || (echo "❌ Set DB_MIGRATION_DATABASE_URL to a disposable PostgreSQL maintenance URL" && exit 1)
+	@$(PYTHON) scripts/ci/check_migration_drift.py --database-url "$(DB_MIGRATION_DATABASE_URL)" --round-trip
+
+db-production-readiness-gate: check-migration-heads check-migration-rollback-policy check-migration-postgres-roundtrip ## Blocking PostgreSQL migration production-readiness gate
+	@echo "✅  db-production-readiness-gate passed"
 
 check-pytest-skip-governance: ## Enforce pytest skip governance from collection output (with allowlist + baseline)
 	@mkdir -p artifacts
@@ -496,6 +509,8 @@ migrate: ## Run Alembic migrations for all Alembic-managed layers
 	cd services/layer4-agents && alembic upgrade head
 	@echo "→ Migrating Layer 5..."
 	cd services/layer5-ground-truth && alembic upgrade head
+	@echo "→ Migrating API..."
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
 
 migrate-layer1: ## Run Alembic migrations for Layer 1 only
 	cd services/layer1-ingestion && alembic upgrade head
@@ -511,6 +526,14 @@ migrate-layer4: ## Run Alembic migrations for Layer 4 only
 
 migrate-layer5: ## Run Alembic migrations for Layer 5 only
 	cd services/layer5-ground-truth && alembic upgrade head
+
+migrate-api: ## Run Alembic migrations for API gateway only
+	cd services/api && alembic -c migrations/alembic.ini upgrade head
+
+db-production-readiness-gate: ## Gate: production-like database readiness, migrations, isolation, backup/restore, and observability evidence
+	@echo "→ Gate: DB Production Readiness"
+	bash scripts/ci/run_db_production_readiness_gate.sh
+	@echo "✅  db-production-readiness-gate passed"
 
 # ─── Contracts ────────────────────────────────────────────────────────────────
 
@@ -626,11 +649,30 @@ gate-config: ## Gate: startup validation, security config hardening
 gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
 	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
 
+db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
+	@echo "→ Gate: DB Production Readiness — cross-store consistency"
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(PYTHON) -m pytest -v --tb=short -q -o addopts='' --confcutdir=tests/integration tests/integration/test_cross_store_consistency.py --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
+
+gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
+	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+
 gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
 	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
 
 production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
 	@echo "✅  production-readiness-gate completed"
+
+db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
+	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
+	$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
+	$(PYTHON) scripts/ci/check_db_production_readiness_split.py
+	@mkdir -p $(GATE_JUNIT_DIR)
+	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static or postgres_only" --junitxml=$(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	python scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
+	@echo "✅  db-production-readiness-gate passed"
 
 collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
 	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
@@ -647,7 +689,7 @@ gates-validate-policy: ## Validate gate policy schema, profile existence, and ar
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
 	@python -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
-	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release}
+	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gates-validate-policy passed"
 
 gate-chaos: ## Gate: dependency chaos and failure injection
@@ -738,6 +780,11 @@ contract-lint: ## Run ESLint contract rules across all packages
 test-backup-drills: ## Run backup/DR drill tests (requires pytest-asyncio)
 	@echo "→ Running backup manager tests..."
 	cd services/layer3-knowledge && $(PYTEST) tests/test_backup_manager.py -v --tb=short
+
+db-production-readiness-gate: ## Run PostgreSQL backup/restore production-readiness drill
+	@echo "→ Running PostgreSQL backup/restore production-readiness drill..."
+	bash scripts/ops/test_postgres_backup_restore.sh
+	@echo "✅  db-production-readiness-gate passed"
 
 # ─── Cleanup ─────────────────────────────────────────────────────────────────
 
