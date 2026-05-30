@@ -8,7 +8,11 @@
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
 	check-workflow-matrix \
-	gate-mandatory-security-regression gate-security gate-state gate-arch gate-config db-production-readiness-gate gate-all \
+	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local \
+	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
+	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
+	db-production-readiness-gate gate-all \
+	gate-production production-readiness-gate \
 	collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
@@ -642,6 +646,9 @@ gate-config: ## Gate: startup validation, security config hardening
 	$(GATE_PYTEST) tests/config/
 	@echo "✅  gate-config passed"
 
+gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
+	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
+
 db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projection consistency
 	@echo "→ Gate: DB Production Readiness — cross-store consistency"
 	@mkdir -p $(GATE_JUNIT_DIR)
@@ -649,9 +656,14 @@ db-production-readiness-gate: ## Gate: cross-store canonical/derived DB projecti
 	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
 	@echo "✅  db-production-readiness-gate passed"
 
-gate-all: gate-security ## Run all production readiness gates (minimal set for local dev)
 gate-all: gate-security db-production-readiness-gate ## Run all production readiness gates (minimal set for local dev)
 	@echo "✅  All production gates passed — ship/no-ship: SHIP"
+
+gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
+	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
+
+production-readiness-gate: gate-production ## Alias for the full production-readiness gate suite
+	@echo "✅  production-readiness-gate completed"
 
 db-production-readiness-gate: ## Gate: PostgreSQL-only database production readiness invariants
 	@echo "→ Gate: Database Production Readiness (PostgreSQL-only)"
