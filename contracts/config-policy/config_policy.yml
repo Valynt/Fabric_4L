@@ -13,8 +13,6 @@ required_scope_markers:
   - "env.environment === 'development'"
 
 rules:
-  - flag: "ALLOW_INSECURE_DEV_AUTH_BYPASS"
-    dev_only_allowlist: []
   - flag: "DEV_AUTH_BYPASS"
     dev_only_allowlist: []
   - flag: "ALLOW_DEV_AUTH_BYPASS"
@@ -28,11 +26,6 @@ rules:
       - "docker-compose.release-smoke.yml"
 
 scoped_allowances:
-  - flag: "ALLOW_INSECURE_DEV_AUTH_BYPASS"
-    paths:
-      - "services/**/src/**/*config.py"
-      - "services/**/src/**/*settings.py"
-      - "packages/config/src/env/*.ts"
   - flag: "DEV_AUTH_BYPASS"
     paths:
       - "services/**/src/**/*config.py"

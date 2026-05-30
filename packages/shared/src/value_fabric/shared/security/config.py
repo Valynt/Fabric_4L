@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+import warnings
 from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
@@ -199,8 +200,22 @@ class ProductionSafetyValidator:
                 "Generate a strong secret: python3 -c \"import secrets; print(secrets.token_urlsafe(48))\""
             )
 
-        # Auth bypass flags must never be enabled in production-like envs
-        if os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").lower() in ("true", "1", "yes"):
+        # Auth bypass flags must never be enabled in production-like envs.
+        allow_insecure_bypass = os.getenv("ALLOW_INSECURE_DEV_AUTH_BYPASS", "").lower() in (
+            "true",
+            "1",
+            "yes",
+        )
+        if self.environment == "development" and allow_insecure_bypass:
+            warnings.warn(
+                "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active.",
+                RuntimeWarning,
+                stacklevel=2,
+            )
+            self.errors.append(
+                "ALLOW_INSECURE_DEV_AUTH_BYPASS is enabled in development; authentication bypass may be active."
+            )
+        elif allow_insecure_bypass:
             self.errors.append(
                 "ALLOW_INSECURE_DEV_AUTH_BYPASS must be false or unset in production-like environments. "
                 "Development authentication bypass is a critical security risk."
