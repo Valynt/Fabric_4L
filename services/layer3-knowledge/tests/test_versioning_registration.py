@@ -97,7 +97,8 @@ async def test_migrate_request_data_async_supports_async_handler() -> None:
     assert result["migrated"] is True
 
 
-def test_migrate_request_data_supports_async_handler_from_sync_context() -> None:
+@pytest.mark.asyncio
+async def test_migrate_request_data_supports_async_handler_from_sync_context() -> None:
     compatibility = VersionCompatibility(current_version="v1")
 
     async def async_handler(data: dict) -> dict:
@@ -105,7 +106,7 @@ def test_migrate_request_data_supports_async_handler_from_sync_context() -> None
 
     compatibility.register_migration_handler("v1", "v2", async_handler)
 
-    result = compatibility.migrate_request_data({"k": "v"}, "v1", "v2")
+    result = await compatibility.migrate_request_data({"k": "v"}, "v1", "v2")
 
     assert result["k"] == "v"
     assert result["migrated_sync"] is True

@@ -138,7 +138,7 @@ class CompositeTenantIndexMigration:
                     error=None
                 )
             except Exception as e:
-                error_msg = str(e)
+                error_msg = repr(e)
                 if "already exists" in error_msg or "EquivalentSchemaRule" in error_msg:
                     logger.info(f"Index already exists: {index_name}")
                     return CompositeTenantIndexMigration_createIndexResult(

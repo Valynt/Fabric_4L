@@ -78,7 +78,7 @@ data:
     [INPUT]
         Name tail
         Path /var/log/containers/*_value-fabric_*.log
-        Parser docker
+        Parser cri
         Tag kube.*
     [OUTPUT]
         Name loki

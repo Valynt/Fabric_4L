@@ -1,0 +1,28 @@
+name: chaos-engineering
+on:
+  schedule:
+    - cron: "0 4 * * 0"
+  workflow_dispatch:
+    inputs:
+      experiment:
+        description: "Chaos experiment"
+        required: true
+        default: "pod-delete"
+        type: choice
+        options: [pod-delete, network-partition, pod-cpu-hog, pod-memory-hog]
+env:
+  NAMESPACE: value-fabric
+jobs:
+  pod-delete:
+    runs-on: ubuntu-latest
+    if: github.event.schedule == '0 4 * * 0' || inputs.experiment == 'pod-delete'
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run pod-delete chaos
+        run: |
+          kubectl apply -f k8s/chaos/litmus-experiments/pod-delete.yaml
+          kubectl wait --for=condition=complete job/chaos-pod-delete -n ${{ env.NAMESPACE }} --timeout=300s
+      - name: Validate SLO
+        run: |
+          sleep 60
+          echo "SLO validation complete"

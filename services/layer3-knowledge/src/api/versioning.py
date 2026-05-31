@@ -334,7 +334,7 @@ class VersionCompatibility:
         key = f"{version}:{endpoint}"
         self.response_transformers[key] = transformer
 
-    def migrate_request_data(
+    async def migrate_request_data(
         self, data: dict[str, Any], from_version: str, to_version: str
     ) -> dict[str, Any]:
         """Migrate request data from one version to another.
@@ -368,14 +368,12 @@ class VersionCompatibility:
                 handler_result = handler(result)
                 if inspect.isawaitable(handler_result):
                     try:
-                        asyncio.get_running_loop()
+                        loop = asyncio.get_running_loop()
+                        # Already in async context - schedule as task
+                        result = await handler_result
                     except RuntimeError:
+                        # No running loop - use asyncio.run for sync contexts
                         result = asyncio.run(handler_result)
-                    else:
-                        raise RuntimeError(
-                            "Async migration handlers are registered; call "
-                            "'await migrate_request_data_async(...)' in async contexts."
-                        )
                 else:
                     result = handler_result
             except Exception as e:
