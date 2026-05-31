@@ -1,0 +1,18 @@
+# Redis non-secret configuration
+# Complements redis-endpoint ExternalSecret with static settings
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: value-fabric
+  labels:
+    component: cache
+    engine: redis
+data:
+  REDIS_PORT: "6379"
+  REDIS_SSL: "true"
+  REDIS_DB: "0"
+  # Celery-specific settings
+  CELERY_BROKER_TRANSPORT_OPTIONS: '{"visibility_timeout": 43200}'
+  CELERY_RESULT_BACKEND_TTL: "3600"

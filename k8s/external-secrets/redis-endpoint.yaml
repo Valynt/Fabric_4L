@@ -1,0 +1,52 @@
+# ElastiCache/Valkey Redis endpoint and auth token
+# Syncs from Vault to Kubernetes secrets for application consumption
+---
+apiVersion: external-secrets.io/v1beta1
+kind: ExternalSecret
+metadata:
+  name: redis-endpoint
+  namespace: value-fabric
+  labels:
+    component: cache
+    engine: redis
+    managed-by: terraform
+spec:
+  refreshInterval: "1h"
+  secretStoreRef:
+    kind: ClusterSecretStore
+    name: vault-backend
+  target:
+    name: redis-endpoint
+    creationPolicy: Owner
+    template:
+      type: Opaque
+      data:
+        # ElastiCache connection details (populated by Terraform -> Vault)
+        REDIS_HOST: "{{ .redis_host }}"
+        REDIS_PORT: "{{ .redis_port | default \"6379\" }}"
+        REDIS_AUTH_TOKEN: "{{ .redis_auth_token }}"
+        REDIS_SSL: "{{ .redis_ssl | default \"true\" }}"
+        REDIS_DB: "{{ .redis_db | default \"0\" }}"
+        # Full connection URL for Celery / redis-py
+        REDIS_URL: "rediss://:{{ .redis_auth_token }}@{{ .redis_host }}:{{ .redis_port | default \"6379\" }}/{{ .redis_db | default \"0\" }}"
+  data:
+    - secretKey: redis_host
+      remoteRef:
+        key: secret/data/fabric/redis
+        property: host
+    - secretKey: redis_port
+      remoteRef:
+        key: secret/data/fabric/redis
+        property: port
+    - secretKey: redis_auth_token
+      remoteRef:
+        key: secret/data/fabric/redis
+        property: auth_token
+    - secretKey: redis_ssl
+      remoteRef:
+        key: secret/data/fabric/redis
+        property: ssl
+    - secretKey: redis_db
+      remoteRef:
+        key: secret/data/fabric/redis
+        property: db

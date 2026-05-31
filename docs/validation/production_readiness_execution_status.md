@@ -49,6 +49,85 @@ The validator reported PASS for all P0, P1, and P2 foundations and printed the e
 | `config/production-readiness/*.json` | Provider-neutral policies for OIDC, model governance, notification, feature flags, tenant quotas, billing, SLO/SLA, and compliance controls. |
 | `scripts/ci/validate_production_readiness_plan.py` | CI-ready validator for repository foundations and evidence requirements. |
 
+## P0 Blocker Evidence
+
+Local/static verification evidence captured in `reports/p0-blockers-local-evidence-2026-05-31.md`.
+Staging and production evidence will be appended after runtime validation.
+
+## P0 Blocker Updates
+
+### P0-007: OpenTelemetry Instrumentation
+
+| Stage | Status | Evidence |
+|-------|--------|----------|
+| Implementation complete | Done | `tests/contract/test_otel_instrumentation.py`, `tests/backend_integrated/test_otel_trace_receipt.py` |
+| CI/static verification passed | Done | 6/6 static tests pass; CI gate in `.github/workflows/pr-checks.yml` |
+| Runtime validation pending | Pending | Requires live Jaeger + services in staging |
+| Staging validation pending | Pending | Run `pytest tests/backend_integrated/test_otel_trace_receipt.py -m backend_integrated` |
+| Production pass pending | Pending | After staging trace receipt confirmed |
+
+- Static contract tests: `tests/contract/test_otel_instrumentation.py`
+  - Verifies `billing` calls `init_telemetry("billing")` and `instrument_fastapi_app()`
+  - Verifies `layer2-5-signal-refinery` and `layer7-billing` pass `instrument_telemetry=True`
+  - Validates OpenTelemetry Collector YAML declares OTLP receivers on 4317/4318
+  - Confirms OTel environment variables are referenced in manifests
+- CI gate added to `.github/workflows/pr-checks.yml`
+- **Next action:** Run `tests/backend_integrated/test_otel_trace_receipt.py` in staging with live Jaeger
+
+### P0-010: Terraform CI Integration
+
+| Stage | Status | Evidence |
+|-------|--------|----------|
+| Implementation complete | Done | `.github/workflows/terraform-cd.yml`, `infra/terraform/.tflint.hcl`, 3 policy scripts |
+| CI/static verification passed | Done | Custom policy checks pass (RDS backup, ElastiCache encryption, S3 encryption) |
+| Runtime validation pending | Pending | Requires Terraform CLI + AWS OIDC for `terraform plan` |
+| Staging validation pending | Pending | Run `terraform plan` for staging; review artifact |
+| Production pass pending | Pending | Staging apply validated; manual approval gates for prod |
+
+- Terraform CI workflow: `.github/workflows/terraform-cd.yml`
+  - `terraform fmt`, `validate`, `tflint`, `plan` jobs per environment (dev/staging/prod)
+  - AWS OIDC authentication (no long-lived secrets)
+  - Plan artifact upload for future apply gates
+  - Checkov policy checks + custom RDS/ElastiCache/S3 encryption scripts
+- TFLint config: `infra/terraform/.tflint.hcl`
+- Policy check scripts (all pass locally):
+  - `scripts/ci/check_terraform_rds_backup_policy.py` — PASS
+  - `scripts/ci/check_terraform_elasticache_encryption.py` — PASS
+  - `scripts/ci/check_terraform_s3_encryption.py` — PASS
+- **Next action:** Run `terraform plan` in staging with AWS OIDC; save and review artifact
+
+### P0-002: AWS-Managed Database HA
+
+| Stage | Status | Evidence |
+|-------|--------|----------|
+| Implementation complete | Done | Terraform modules, K8s ExternalSecrets/ConfigMaps, validation scripts |
+| CI/static verification passed | Done | Module structure verified; policy checks pass; YAML manifests valid |
+| Runtime validation pending | Pending | Requires AWS account + Terraform apply |
+| Staging validation pending | Pending | RDS backup test, ElastiCache failover test, K8s connectivity test |
+| Production pass pending | Pending | Staging validation complete; Neo4j decision made |
+
+- Terraform module discovery: RDS and ElastiCache modules are complete
+  - `infra/terraform/modules/rds/` — `terraform-aws-modules/rds/aws`, Multi-AZ in prod, encryption, Performance Insights
+  - `infra/terraform/modules/elasticache/` — native AWS resources, automatic failover, encryption at rest/transit
+  - All three environments (dev/staging/prod) instantiate both modules with environment-specific sizing
+- Kubernetes wiring (YAML validated):
+  - `k8s/external-secrets/postgres-endpoint.yaml` — Vault-synced RDS endpoint + credentials
+  - `k8s/external-secrets/redis-endpoint.yaml` — Vault-synced ElastiCache endpoint + auth token
+  - `k8s/base/configmap-postgres.yaml` — Non-secret Postgres config
+  - `k8s/base/configmap-redis.yaml` — Non-secret Redis config
+- Validation scripts:
+  - `scripts/ci/validate-rds-backup.sh`
+  - `scripts/ci/validate-elasticache-failover.sh`
+- Neo4j hosting decision ADR: `docs/adr/neo4j-hosting-decision.md`
+  - Preferred: managed Neo4j Aura evaluation
+  - Fallback: official Neo4j Helm chart on EKS
+  - Raw cluster YAML avoided
+- **Next actions:**
+  1. Terraform plan + apply in staging
+  2. Run `validate-rds-backup.sh fabric-staging` and `validate-elasticache-failover.sh fabric-staging`
+  3. Apply K8s ExternalSecrets and test pod connectivity
+  4. Evaluate Neo4j Aura vs. Helm fallback
+
 ## Deferred Gates
 
 The remaining work is not repository-only work. It requires a proper live or staging environment with identity provider credentials, notification receivers, telemetry dashboards, billing provider configuration, and compliance owners. The next production loop should run the validator, configure external providers via secret managers, execute the live evidence drills, and attach redacted artifacts to the corresponding gates.

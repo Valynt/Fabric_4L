@@ -1,0 +1,19 @@
+# PostgreSQL non-secret configuration
+# Complements postgres-endpoint ExternalSecret with static settings
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: value-fabric
+  labels:
+    component: database
+    engine: postgresql
+data:
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "fabric"
+  POSTGRES_SSL_MODE: "require"
+  # Connection pool settings for PgBouncer / RDS Proxy if used
+  POSTGRES_POOL_SIZE: "20"
+  POSTGRES_MAX_OVERFLOW: "10"
+  POSTGRES_POOL_TIMEOUT: "30"
