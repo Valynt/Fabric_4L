@@ -54,6 +54,10 @@ The validator reported PASS for all P0, P1, and P2 foundations and printed the e
 Local/static verification evidence captured in `reports/p0-blockers-local-evidence-2026-05-31.md`.
 Staging and production evidence will be appended after runtime validation.
 
+**Operator setup runbook for GitHub/AWS prerequisites:** `docs/runbooks/p0-aws-github-environment-setup.md`
+- Complete this runbook before attempting staging/runtime validation.
+- Covers GitHub secrets/variables, AWS OIDC role, Terraform backend, workflow triggers, and staging runtime checklist.
+
 ## P0 Blocker Updates
 
 ### P0-007: OpenTelemetry Instrumentation
@@ -61,9 +65,9 @@ Staging and production evidence will be appended after runtime validation.
 | Stage | Status | Evidence |
 |-------|--------|----------|
 | Implementation complete | Done | `tests/contract/test_otel_instrumentation.py`, `tests/backend_integrated/test_otel_trace_receipt.py` |
-| CI/static verification passed | Done | 6/6 static tests pass; CI gate in `.github/workflows/pr-checks.yml` |
-| Runtime validation pending | Pending | Requires live Jaeger + services in staging |
-| Staging validation pending | Pending | Run `pytest tests/backend_integrated/test_otel_trace_receipt.py -m backend_integrated` |
+| Static verification passed | Done | 6/6 static tests pass; CI gate in `.github/workflows/pr-checks.yml` |
+| Runtime validation blocked | **Blocked** | Pending staging observability environment (Jaeger + live services) |
+| Staging validation blocked | **Blocked** | Requires OTel collector, Jaeger, billing/L2.5/L7 services deployed |
 | Production pass pending | Pending | After staging trace receipt confirmed |
 
 - Static contract tests: `tests/contract/test_otel_instrumentation.py`
@@ -72,16 +76,17 @@ Staging and production evidence will be appended after runtime validation.
   - Validates OpenTelemetry Collector YAML declares OTLP receivers on 4317/4318
   - Confirms OTel environment variables are referenced in manifests
 - CI gate added to `.github/workflows/pr-checks.yml`
-- **Next action:** Run `tests/backend_integrated/test_otel_trace_receipt.py` in staging with live Jaeger
+- **Status:** Implementation complete; static verification passed; runtime validation blocked pending staging observability environment.
+- **Next action:** Complete `docs/runbooks/p0-aws-github-environment-setup.md` Section 5 (staging runtime checklist); run `pytest tests/backend_integrated/test_otel_trace_receipt.py -m backend_integrated`
 
 ### P0-010: Terraform CI Integration
 
 | Stage | Status | Evidence |
 |-------|--------|----------|
 | Implementation complete | Done | `.github/workflows/terraform-cd.yml`, `infra/terraform/.tflint.hcl`, 3 policy scripts |
-| CI/static verification passed | Done | Custom policy checks pass (RDS backup, ElastiCache encryption, S3 encryption) |
-| Runtime validation pending | Pending | Requires Terraform CLI + AWS OIDC for `terraform plan` |
-| Staging validation pending | Pending | Run `terraform plan` for staging; review artifact |
+| Local policy verification passed | Done | RDS backup, ElastiCache encryption, S3 encryption checks all PASS |
+| CI plan validation blocked | **Blocked** | Pending AWS OIDC role/region configuration |
+| Staging validation blocked | **Blocked** | Requires `terraform plan` artifact from GitHub Actions |
 | Production pass pending | Pending | Staging apply validated; manual approval gates for prod |
 
 - Terraform CI workflow: `.github/workflows/terraform-cd.yml`
@@ -94,16 +99,17 @@ Staging and production evidence will be appended after runtime validation.
   - `scripts/ci/check_terraform_rds_backup_policy.py` — PASS
   - `scripts/ci/check_terraform_elasticache_encryption.py` — PASS
   - `scripts/ci/check_terraform_s3_encryption.py` — PASS
-- **Next action:** Run `terraform plan` in staging with AWS OIDC; save and review artifact
+- **Status:** Implementation complete; local policy verification passed; CI plan validation blocked pending AWS OIDC role/region configuration.
+- **Next action:** Complete `docs/runbooks/p0-aws-github-environment-setup.md` Sections 1–4 (GitHub secrets, AWS OIDC role, Terraform backend, workflow trigger); review staging plan artifact
 
 ### P0-002: AWS-Managed Database HA
 
 | Stage | Status | Evidence |
 |-------|--------|----------|
 | Implementation complete | Done | Terraform modules, K8s ExternalSecrets/ConfigMaps, validation scripts |
-| CI/static verification passed | Done | Module structure verified; policy checks pass; YAML manifests valid |
-| Runtime validation pending | Pending | Requires AWS account + Terraform apply |
-| Staging validation pending | Pending | RDS backup test, ElastiCache failover test, K8s connectivity test |
+| Static manifest/policy checks passed | Done | Module structure verified; policy checks pass; YAML manifests valid |
+| Staging HA validation blocked | **Blocked** | Pending AWS/staging environment (Terraform apply + running cluster) |
+| Runtime tests blocked | **Blocked** | Requires provisioned RDS + ElastiCache + EKS workloads |
 | Production pass pending | Pending | Staging validation complete; Neo4j decision made |
 
 - Terraform module discovery: RDS and ElastiCache modules are complete
@@ -122,11 +128,13 @@ Staging and production evidence will be appended after runtime validation.
   - Preferred: managed Neo4j Aura evaluation
   - Fallback: official Neo4j Helm chart on EKS
   - Raw cluster YAML avoided
+- **Status:** Implementation complete; static manifest/policy checks passed; staging HA validation blocked pending AWS/staging environment.
 - **Next actions:**
-  1. Terraform plan + apply in staging
-  2. Run `validate-rds-backup.sh fabric-staging` and `validate-elasticache-failover.sh fabric-staging`
-  3. Apply K8s ExternalSecrets and test pod connectivity
-  4. Evaluate Neo4j Aura vs. Helm fallback
+  1. Complete `docs/runbooks/p0-aws-github-environment-setup.md` Sections 1–4
+  2. Terraform plan + apply in staging (after P0-010 OIDC configured)
+  3. Run `validate-rds-backup.sh fabric-staging` and `validate-elasticache-failover.sh fabric-staging`
+  4. Apply K8s ExternalSecrets and test pod connectivity
+  5. Evaluate Neo4j Aura vs. Helm fallback
 
 ## Deferred Gates
 

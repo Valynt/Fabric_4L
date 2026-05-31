@@ -21,10 +21,26 @@ env:
   TF_IN_AUTOMATION: true
 
 jobs:
+  terraform-preflight:
+    name: Terraform Preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Check required AWS/GitHub configuration
+        run: python scripts/ci/check_terraform_preflight.py
+        env:
+          AWS_TERRAFORM_ROLE_ARN: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+          GITHUB_ENVIRONMENT: ${{ matrix.environment || 'all' }}
+
   terraform-fmt:
     name: Terraform Format
     runs-on: ubuntu-latest
     timeout-minutes: 5
+    needs: terraform-preflight
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
@@ -40,7 +56,7 @@ jobs:
     name: Terraform Validate
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: terraform-fmt
+    needs: [terraform-preflight, terraform-fmt]
     strategy:
       matrix:
         environment: [dev, staging, prod]
@@ -55,8 +71,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN || 'arn:aws:iam::123456789012:role/FabricTerraformRole' }}
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
@@ -90,7 +106,7 @@ jobs:
     name: Terraform Plan
     runs-on: ubuntu-latest
     timeout-minutes: 15
-    needs: [terraform-validate, terraform-lint]
+    needs: [terraform-preflight, terraform-validate, terraform-lint]
     if: github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch'
     strategy:
       matrix:
@@ -106,8 +122,8 @@ jobs:
       - name: Configure AWS credentials via OIDC
         uses: aws-actions/configure-aws-credentials@e3dd6a429df7310c206912c702224ff01c7c0eea # v4
         with:
-          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN || 'arn:aws:iam::123456789012:role/FabricTerraformRole' }}
-          aws-region: us-east-1
+          role-to-assume: ${{ secrets.AWS_TERRAFORM_ROLE_ARN }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Terraform init
         working-directory: infra/terraform/environments/${{ matrix.environment }}
@@ -127,7 +143,7 @@ jobs:
     name: Terraform Policy Check
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: terraform-fmt
+    needs: [terraform-preflight, terraform-fmt]
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
