@@ -199,17 +199,20 @@ def client(org_id, user_id, db):
 
 
 @pytest.fixture(scope="function")
-def make_target(db):
+def make_target(db, user_id):
     """Factory for creating ScrapingTarget rows."""
     create_scraping_target = _make_target_factory()
+    from layer1_ingestion.shared.models import TargetType
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", name: str = "Test Target"):
-        return create_scraping_target(
-            db,
+        t = create_scraping_target(
             tenant_id=tenant_id,
             name=name,
             url="https://example.com",
-            status=status,
+            target_type=TargetType.SINGLE_PAGE,
+            created_by=user_id,
         )
+        t.status = status
+        return t
 
     return _make

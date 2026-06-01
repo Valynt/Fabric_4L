@@ -8,6 +8,7 @@ Create Date: 2026-05-25
 from collections.abc import Sequence
 from typing import Union
 
+import sqlalchemy as sa
 from alembic import op
 
 revision: str = "015"
@@ -18,7 +19,7 @@ depends_on: Union[str, Sequence[str], None] = None
 
 def upgrade() -> None:
     """Add idempotency_key column and partial unique index."""
-    op.add_column("scraping_jobs", op.Column("idempotency_key", op.String(255), nullable=True))
+    op.add_column("scraping_jobs", sa.Column("idempotency_key", sa.String(255), nullable=True))
 
     # Partial unique index: only enforce uniqueness when idempotency_key is present
     op.execute("""

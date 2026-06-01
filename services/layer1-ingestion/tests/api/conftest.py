@@ -143,16 +143,19 @@ def client(db: Session, org_id: UUID, user_id: UUID):
 
 
 @pytest.fixture()
-def make_target(db: Session):
+def make_target(db: Session, user_id: UUID):
     """Factory: create a ScrapingTarget row in the test DB."""
     factory = _make_target_factory()
+    from layer1_ingestion.shared.models import TargetType, SourceCategory
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", **kwargs) -> object:
         t = factory(
             tenant_id=tenant_id,
             name=kwargs.get("name", "Test Target"),
             url=kwargs.get("url", "https://example.com"),
-            source_category=kwargs.get("source_category", "general"),
+            target_type=kwargs.get("target_type", TargetType.SINGLE_PAGE),
+            created_by=kwargs.get("created_by", user_id),
+            source_category=kwargs.get("source_category", SourceCategory.GENERAL),
             extraction_config=kwargs.get("extraction_config", {"method": "llm"}),
         )
         t.status = status
