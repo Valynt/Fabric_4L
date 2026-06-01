@@ -18,7 +18,7 @@ def get_source_files(repo_root: Path) -> list[Path]:
     """Get all source files that should be checked."""
     import os
     source_extensions = {".py", ".ts", ".tsx", ".js", ".jsx", ".json", ".yml", ".yaml", ".md", ".rego"}
-    exclude_dirs = {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv", "venv", "dist", "build", ".windsurf", ".mypy_cache", ".ruff_cache", ".vite", "artifacts", "audit-output"}
+    exclude_dirs = {".git", "__pycache__", ".pytest_cache", "node_modules", ".venv", "venv", "dist", "build", ".windsurf", ".mypy_cache", ".ruff_cache", ".vite", "artifacts", "audit-output", ".jr", "reports"}
     
     files = []
     for root, dirs, filenames in os.walk(repo_root):

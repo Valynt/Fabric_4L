@@ -232,7 +232,7 @@ class TestCacheKeyIsolation:
         mock_redis.get = mock_get
         mock_redis.set = mock_set
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Cache entity for tenant A
             await set_cached_entity(
                 tenant_id=tenant_a,
@@ -286,7 +286,7 @@ class TestCacheKeyIsolation:
         mock_redis.get = mock_get
         mock_redis.set = mock_set
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Cache query results for tenant A
             await set_cached_query(
                 tenant_id=tenant_a,
@@ -339,7 +339,7 @@ class TestCacheKeyIsolation:
         mock_redis.keys = mock_keys
         mock_redis.delete = mock_delete
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Invalidate tenant A's cache
             await invalidate_tenant_cache(tenant_id=tenant_a)
             
@@ -497,7 +497,7 @@ class TestDegradedModeIsolation:
         mock_redis = make_redis_mock()
         mock_redis.get = AsyncMock(return_value=None)  # Cache miss
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Cache miss for tenant A
             result = await get_cached_entity(tenant_id=tenant_a, entity_id=entity_id)
             
@@ -529,7 +529,7 @@ class TestDegradedModeIsolation:
         
         from src.api.cache import set_cached_entity
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Request 1: Tenant A
             await set_cached_entity(
                 tenant_id=tenant_a,
@@ -580,7 +580,7 @@ class TestCachePoisoningPrevention:
         
         mock_redis.set = mock_set
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Tenant A tries to write with tenant B's ID in key
             # This should be prevented by cache layer validation
             await set_cached_entity(
@@ -618,7 +618,7 @@ class TestCachePoisoningPrevention:
         
         mock_redis.set = mock_set
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             await set_cached_entity(
                 tenant_id=tenant_a,
                 entity_id=malicious_entity_id,
@@ -668,7 +668,7 @@ class TestCachePoisoningPrevention:
         mock_redis.keys = mock_keys
         mock_redis.delete = mock_delete
         
-        with patch("value_fabric.layer3.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
+        with patch("src.api.cache.get_redis_client", new=AsyncMock(return_value=mock_redis)):
             # Tenant A tries to invalidate with wildcard
             await invalidate_cache_pattern(
                 tenant_id=tenant_a,

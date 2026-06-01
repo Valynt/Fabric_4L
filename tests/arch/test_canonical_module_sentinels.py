@@ -74,12 +74,12 @@ SENTINELS: tuple[CanonicalModuleSentinel, ...] = (
     # in value_fabric/layer6/__init__.py; no per-module shim files remain.
     CanonicalModuleSentinel(
         name="layer6_api_main",
-        canonical_path="services/layer6-benchmarks/src/api/main.py",
+        canonical_path="services/layer6-benchmarks/src/layer6_benchmarks/api/main.py",
         compatibility_path="value_fabric/layer6/__init__.py",
     ),
     CanonicalModuleSentinel(
         name="layer6_settings",
-        canonical_path="services/layer6-benchmarks/src/settings.py",
+        canonical_path="services/layer6-benchmarks/src/layer6_benchmarks/settings.py",
         compatibility_path="value_fabric/layer6/__init__.py",
     ),
 )
@@ -223,7 +223,7 @@ def test_layer5_no_production_imports_via_value_fabric_namespace() -> None:
 
 def test_layer6_canonical_service_files_exist() -> None:
     """value_fabric.layer6 shim is neutralized; canonical L6 files must still exist."""
-    canonical = REPO_ROOT / "services" / "layer6-benchmarks" / "src"
+    canonical = REPO_ROOT / "services" / "layer6-benchmarks" / "src" / "layer6_benchmarks"
     assert (canonical / "api" / "main.py").exists(), (
         f"Layer 6 canonical api/main.py not found at {canonical}"
     )
@@ -280,6 +280,8 @@ def test_layer6_no_production_imports_via_value_fabric_namespace() -> None:
                 if "tests/security/test_tenant_repository_filter_presence.py" == rel_path:
                     continue
                 if rel_path.startswith("services/layer6-benchmarks/tests/"):
+                    continue
+                if "scripts/migrate_l6_test_imports_canonical.py" == rel_path:
                     continue
 
                 content = py_file.read_text(encoding="utf-8")

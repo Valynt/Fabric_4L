@@ -1,12 +1,4 @@
-"""Compatibility shim for the canonical Layer 4 module.
-
-The implementation lives in ``layer4_agents.workflows.base``. Keep this file as a thin
-re-export only so the packaged source of truth remains ``layer4_agents``.
-"""
-
-<<<<<<< ours
-from layer4_agents.workflows.base import *  # noqa: F401,F403
-=======
+"""Workflow base classes and builders for Layer 4 agentic orchestration."""
 
 import logging
 from abc import ABC, abstractmethod
@@ -619,4 +611,3 @@ class WorkflowBuilder:
             entry_point=self.entry_point,
             global_config=self.global_config,
         )
->>>>>>> theirs

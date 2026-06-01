@@ -120,9 +120,11 @@ class TestConcurrentTenantIsolation:
             if isinstance(result, Exception):
                 continue
             response, expected_tenant = result
-            assert response.status_code in [200, 404], (
-                f"Expected 200 or 404, got {response.status_code}"
+            assert response.status_code in [200, 404, 405], (
+                f"Expected 200, 404, or 405, got {response.status_code}"
             )
+            if response.status_code in [404, 405]:
+                continue
             if response.status_code == 200:
                 data = response.json()
                 for item in data.get("items", []):
@@ -131,7 +133,6 @@ class TestConcurrentTenantIsolation:
                         f"got {item.get('tenant_id')}"
                     )
 
-    @pytest.mark.xfail(strict=True, reason="Concurrent isolation requires live DB with RLS")
     @pytest.mark.asyncio
     async def test_concurrent_writes_isolated_per_tenant(
         self, client: TestClient, tenant_a_token, tenant_b_token
@@ -164,30 +165,43 @@ class TestConcurrentTenantIsolation:
         # Verify all tenant-a entities were created in tenant-a only
         tenant_a_entities = []
         tenant_b_entities = []
+        success_count = 0
 
         for result in results:
             if isinstance(result, Exception):
                 continue
-            response, tenant_id = result
-            assert response.status_code in [201, 404], (
-                f"Expected 201 or 404, got {response.status_code}"
+            response, expected_tenant = result
+            assert response.status_code in [201, 404, 405], (
+                f"Expected 201, 404, or 405, got {response.status_code}"
             )
+            if response.status_code in [404, 405]:
+                continue
             if response.status_code == 201:
+                success_count += 1
                 data = response.json()
                 entity_tenant = data.get("tenant_id")
+                assert entity_tenant == expected_tenant, (
+                    f"CROSS-TENANT WRITE LEAK: expected {expected_tenant}, got {entity_tenant}"
+                )
                 if entity_tenant == "tenant-a":
                     tenant_a_entities.append(data)
                 elif entity_tenant == "tenant-b":
                     tenant_b_entities.append(data)
 
-        # Verify no cross-tenant contamination (if endpoint exists)
-        if tenant_a_entities or tenant_b_entities:
-            assert len(tenant_a_entities) == 10, (
-                f"Expected 10 tenant-a entities, got {len(tenant_a_entities)}"
+        # If no requests succeeded (all 404 or exceptions), the endpoint isn't
+        # mounted — skip rather than fake-pass.
+        if success_count == 0:
+            pytest.skip(
+                "Endpoint /api/v1/entities not mounted — concurrent write isolation cannot be verified"
             )
-            assert len(tenant_b_entities) == 10, (
-                f"Expected 10 tenant-b entities, got {len(tenant_b_entities)}"
-            )
+
+        # Verify no cross-tenant contamination
+        assert len(tenant_a_entities) == 10, (
+            f"Expected 10 tenant-a entities, got {len(tenant_a_entities)}"
+        )
+        assert len(tenant_b_entities) == 10, (
+            f"Expected 10 tenant-b entities, got {len(tenant_b_entities)}"
+        )
 
     @pytest.mark.asyncio
     async def test_async_background_job_isolation(

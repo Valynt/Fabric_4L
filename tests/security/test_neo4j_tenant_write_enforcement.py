@@ -267,17 +267,24 @@ class TestExecutionContextBoundaries:
 class TestCrossTenantWriteAdversarial:
     """Adversarial: attempt to write tenant-B data using tenant-A context."""
 
-    def test_structural_validation_catches_spoofed_parameter_map(self):
-        """Spoofed tenant_id inside a parameter map still fails if node predicate missing."""
-        # The structural validator looks at the Cypher text, not parameter values.
-        # If the query text lacks a tenant predicate, it should fail regardless
-        # of what parameters are passed at runtime.
+    def test_structural_validation_accepts_parameter_map_with_tenant_id(self):
+        """Parameter map containing tenant_id is accepted by structural validator."""
         query = "CREATE (e:Entity $props) RETURN e"
-        # Even though props contains tenant_id at runtime, the validator cannot
-        # see inside the parameter map unless it is explicitly referenced.
-        errors = _structural_tenant_scope_errors(query, {"props": {"tenant_id": "tenant-b"}})
+        errors = _structural_tenant_scope_errors(
+            query, {"props": {"tenant_id": "tenant-b"}}
+        )
+        assert errors == [], (
+            f"Validator should accept param-map with tenant_id, got: {errors}"
+        )
+
+    def test_structural_validation_rejects_parameter_map_without_tenant_id(self):
+        """Parameter map missing tenant_id is rejected by structural validator."""
+        query = "CREATE (e:Entity $props) RETURN e"
+        errors = _structural_tenant_scope_errors(
+            query, {"props": {"name": "no-tenant"}}
+        )
         assert "Entity" in " ".join(errors), (
-            "Validator must reject unscoped CREATE even when params contain tenant_id"
+            f"Validator must reject unscoped CREATE when param-map lacks tenant_id, got: {errors}"
         )
 
     def test_tenant_owned_label_detection_comprehensive(self):

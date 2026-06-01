@@ -84,11 +84,14 @@ class TenantRateLimitMiddleware(BaseHTTPMiddleware):
         route_group = self._resolve_route_group(endpoint, request.method)
         
         # Validate and normalize tenant tier
+        # RequestContext may not have tenant_tier (it has isolation_tier instead);
+        # use getattr to avoid AttributeError and safely default to SHARED.
+        raw_tier = getattr(tenant_context, "tenant_tier", None)
         try:
-            tier = TenantTier(tenant_context.tenant_tier or "shared")
+            tier = TenantTier(raw_tier or "shared")
         except ValueError:
             logger.warning(
-                f"Invalid tenant tier '{tenant_context.tenant_tier}' for tenant {tenant_context.tenant_id}, "
+                f"Invalid tenant tier '{raw_tier}' for tenant {tenant_context.tenant_id}, "
                 f"defaulting to 'shared'"
             )
             tier = TenantTier.SHARED

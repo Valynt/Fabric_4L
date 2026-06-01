@@ -14,17 +14,17 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Models that are expected to remain tenant-scoped.
 TENANT_SCOPED_MODELS: dict[str, tuple[str, ...]] = {
-    "services/layer4-agents/src/tenants/models/api_key.py": ("APIKey",),
-    "services/layer4-agents/src/tenants/models/user.py": ("User",),
-    "services/layer4-agents/src/registry/models.py": ("ModelVersion",),
-    "services/layer4-agents/src/feature_flags/models.py": ("FeatureFlag",),
+    "services/layer4-agents/src/layer4_agents/tenants/models/api_key.py": ("APIKey",),
+    "services/layer4-agents/src/layer4_agents/tenants/models/user.py": ("User",),
+    "services/layer4-agents/src/layer4_agents/registry/models.py": ("ModelVersion",),
+    "services/layer4-agents/src/layer4_agents/feature_flags/models.py": ("FeatureFlag",),
 }
 
 # Service files where selects on tenant-scoped models must include tenant predicates.
 TENANT_QUERY_GUARD_FILES: dict[str, tuple[str, ...]] = {
-    "services/layer4-agents/src/tenants/service.py": ("User", "APIKey"),
-    "services/layer4-agents/src/registry/service.py": ("ModelVersion",),
-    "services/layer4-agents/src/feature_flags/service.py": ("FeatureFlag",),
+    "services/layer4-agents/src/layer4_agents/tenants/service.py": ("User", "APIKey"),
+    "services/layer4-agents/src/layer4_agents/registry/service.py": ("ModelVersion",),
+    "services/layer4-agents/src/layer4_agents/feature_flags/service.py": ("FeatureFlag",),
 }
 
 

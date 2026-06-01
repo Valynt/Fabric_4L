@@ -10,4 +10,4 @@
 #
 # Format: one repo-relative POSIX path per line. Comments start with '#'.
 
-services/layer1-ingestion/src/shared/database.py
+services/layer1-ingestion/src/layer1_ingestion/shared/database.py
