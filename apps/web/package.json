@@ -182,7 +182,7 @@
     "ajv-formats": "^3.0.1",
     "autoprefixer": "^10.4.20",
     "cypress": "^15.15.0",
-    "esbuild": "^0.25.0",
+    "esbuild": "^0.28.0",
     "eslint-plugin-fabric-contracts": "workspace:*",
     "jest-axe": "^10.0.0",
     "jsdom": "^29.0.2",
