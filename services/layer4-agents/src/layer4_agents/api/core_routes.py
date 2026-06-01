@@ -3,6 +3,7 @@ from __future__ import annotations
 """Core Layer 4 API endpoints registered by the app factory."""
 
 
+import logging
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -10,6 +11,8 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.responses import Response
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+logger = logging.getLogger(__name__)
 
 try:
     from value_fabric.shared.observability.metrics_access import verify_metrics_access
@@ -78,14 +81,21 @@ def register_core_routes(app: FastAPI) -> None:
 
     @app.get("/metrics")
     async def metrics_endpoint(request: Request):
-        if METRICS_ACCESS_AVAILABLE and verify_metrics_access:
-            is_authorized, error_message = verify_metrics_access(request)
-            if not is_authorized:
-                return Response(
-                    content=error_message or "Unauthorized",
-                    status_code=401,
-                    media_type="text/plain",
-                )
+        if not METRICS_ACCESS_AVAILABLE or verify_metrics_access is None:
+            logger.error("metrics_access_unavailable", extra={"path": request.url.path})
+            return Response(
+                content="Metrics access control is unavailable",
+                status_code=403,
+                media_type="text/plain",
+            )
+
+        is_authorized, error_message = verify_metrics_access(request)
+        if not is_authorized:
+            return Response(
+                content=error_message or "Unauthorized",
+                status_code=401,
+                media_type="text/plain",
+            )
 
         metrics = getattr(request.app.state, "metrics", None)
         if not metrics:
@@ -98,7 +108,8 @@ def register_core_routes(app: FastAPI) -> None:
                 media_type="text/plain; version=0.0.4; charset=utf-8",
             )
         except Exception as exc:
-            return Response(content=f"Error generating metrics: {exc}", status_code=500, media_type="text/plain")
+            logger.exception("metrics_generation_failed")
+            return Response(content="Error generating metrics", status_code=500, media_type="text/plain")
 
     @app.get("/")
     async def root():

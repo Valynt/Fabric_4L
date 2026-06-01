@@ -405,7 +405,7 @@ class BaseAgent(ABC):
 
         except Exception as e:
             self.state.status = AgentStatus.FAILED
-            self.state.errors.append(repr(e))
+            self.state.errors.append(f"{type(e).__name__}: agent_execution_failed")
             self.state.completed_at = self._clock.now()
 
             # Send failure event
@@ -416,7 +416,7 @@ class BaseAgent(ABC):
                     payload={"error": "Agent execution failed", "error_code": "AGENT_EXECUTION_ERROR"},
                 )
 
-            raise AgentExecutionError(f"Agent {self.agent_id} failed: {e}") from e
+            raise AgentExecutionError(f"Agent {self.agent_id} failed") from e
 
     async def pause(self) -> None:
         """Pause agent execution (if supported)."""

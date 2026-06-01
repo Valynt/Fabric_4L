@@ -265,7 +265,7 @@ to avoid impacting user-facing workflows.
                 )
                 integration.sync_status = "failed"
                 integration.last_sync_at = datetime.now(UTC)
-                integration.last_error_message = str(exc)[:1000]
+                integration.last_error_message = f"{type(exc).__name__}: sync_failed"
                 await db.commit()
                 raise
 

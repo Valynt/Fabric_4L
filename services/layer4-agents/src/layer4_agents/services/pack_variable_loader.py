@@ -142,7 +142,7 @@ class PackVariableLoader:
                         variables_loaded=0,
                         variables_skipped=0,
                         variables_failed=1,
-                        errors=[str(exc)],
+                        errors=[f"{type(exc).__name__}: pack_load_failed"],
                     )
                 )
         return results

@@ -473,10 +473,10 @@ class TaskScheduler:
 
             except Exception as e:
                 task.status = TaskStatus.FAILED
-                task.error = repr(e)
+                task.error = f"{type(e).__name__}: task_failed"
                 task.completed_at = datetime.now(UTC)
 
-                logger.error(f"Task {task_id} failed: {e}")
+                logger.exception("Task %s failed", task_id)
 
                 if self._on_task_fail:
                     await self._call_callback(self._on_task_fail, task, e)

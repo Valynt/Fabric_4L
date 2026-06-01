@@ -412,7 +412,11 @@ class NarrativeBuilderService:
             )
 
         except Exception as exc:
-            logger.warning("narrative_llm_failed", error=str(exc), account_id=request.account_id)
+            logger.warning(
+                "narrative_llm_failed",
+                error_type=type(exc).__name__,
+                account_id=request.account_id,
+            )
             # Degrade to template-based generation
             try:
                 fallback = await self.generate_narrative(

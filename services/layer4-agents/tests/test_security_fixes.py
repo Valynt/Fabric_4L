@@ -31,9 +31,9 @@ from layer4_agents.api.routes.health_badges import dismiss_badge, get_detailed_h
 from layer4_agents.config.settings import Settings  # noqa: E402
 from layer4_agents.metrics.prometheus_metrics import _derive_tenant_tier, _normalize_path  # noqa: E402
 
-CORE_ROUTES_SOURCE = LAYER4_SRC / "api" / "core_routes.py"
-HEALTH_BADGES_SOURCE = LAYER4_SRC / "api" / "routes" / "health_badges.py"
-TOOLS_SOURCE = LAYER4_SRC / "api" / "routes" / "tools.py"
+CORE_ROUTES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "core_routes.py"
+HEALTH_BADGES_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "health_badges.py"
+TOOLS_SOURCE = LAYER4_SRC / "layer4_agents" / "api" / "routes" / "tools.py"
 
 
 class PathNormalizationSecurityTests(unittest.TestCase):

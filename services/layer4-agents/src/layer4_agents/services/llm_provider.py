@@ -224,11 +224,12 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
     def _normalize_error(self, exc: Exception) -> AdapterError:
         msg = str(exc)
         lowered = msg.lower()
+        logger.error("llm_provider_error", exc_info=exc)
         if "timeout" in lowered:
-            return AdapterError(ErrorCategory.TIMEOUT, msg, retryable=True)
+            return AdapterError(ErrorCategory.TIMEOUT, "provider_timeout", retryable=True)
         if "rate" in lowered and "limit" in lowered:
-            return AdapterError(ErrorCategory.RATE_LIMIT, msg, retryable=True)
-        return AdapterError(ErrorCategory.PROVIDER, msg, retryable=False)
+            return AdapterError(ErrorCategory.RATE_LIMIT, "provider_rate_limited", retryable=True)
+        return AdapterError(ErrorCategory.PROVIDER, "provider_error", retryable=False)
 
 
 def get_openai_provider(config: dict[str, Any] | None = None) -> OpenAIProvider:

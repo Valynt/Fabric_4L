@@ -157,10 +157,11 @@ class CRMSyncJobRunner:
                 logger.exception("CRM sync job failed: tenant=%s provider=%s job_id=%s", tenant_id, provider.value, job_id)
                 job.status = CRMSyncJobStatus.FAILED
                 job.finished_at = datetime.now(UTC)
-                job.error_summary = str(exc)[:1000]
+                sanitized = f"{type(exc).__name__}: sync_job_failed"
+                job.error_summary = sanitized
                 integration.sync_status = IntegrationStatus.FAILED
                 integration.last_sync_at = datetime.now(UTC)
-                integration.last_error_message = job.error_summary
+                integration.last_error_message = sanitized
                 try:
                     await emit_audit_event(
                         action=AuditAction.UPDATE,
@@ -169,7 +170,7 @@ class CRMSyncJobRunner:
                         tenant_id=tenant_id,
                         user_id=job.requested_by,
                         outcome=AuditOutcome.FAILURE,
-                        details={"provider": provider.value, "error": job.error_summary},
+                        details={"provider": provider.value, "error_type": type(exc).__name__},
                     )
                 except Exception:
                     logger.exception("Failed to emit sync job failure audit event")
