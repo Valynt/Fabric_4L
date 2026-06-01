@@ -161,7 +161,7 @@ class Settings(BaseSettings):
         try:
             _validate_exact_cors_origins(self.cors_origins, production_like=self.is_production_like)
         except ValueError as exc:
-            errors.append(str(exc))
+            errors.append("cors_origin_invalid")
 
         if errors:
             raise ValueError("Unsafe production configuration: " + "; ".join(errors))
@@ -178,7 +178,7 @@ def get_settings() -> Settings:
         settings = Settings()
     except Exception as exc:
         if "Unsafe production configuration" in str(exc):
-            raise RuntimeError(str(exc)) from exc
+            raise RuntimeError("unsafe_production_configuration") from exc
         raise
 
     if settings.is_production_like:

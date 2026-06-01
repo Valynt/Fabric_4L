@@ -122,6 +122,29 @@
         "fieldConfig": {
           "defaults": {"unit": "s"}
         }
+      },
+      {
+        "title": "Metric Pipeline Dependency",
+        "type": "text",
+        "gridPos": {"h": 2, "w": 24, "x": 0, "y": 24},
+        "options": {
+          "mode": "markdown",
+          "content": "> **Metric pipeline dependency**: The `otel_web_*` histogram panels above require an OTLP metrics exporter in the frontend. The current instrumentation exports **traces only** via OTLP. To populate these panels, add `@opentelemetry/sdk-metrics` and an `OTLPMetricExporter` to `lib/opentelemetry.ts`."
+        }
+      },
+      {
+        "title": "Frontend Traces (Jaeger)",
+        "type": "traces",
+        "datasource": "Jaeger",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 26},
+        "targets": [
+          {
+            "query": "service.name=\"fabric-4l-frontend\"",
+            "refId": "A",
+            "queryType": "search",
+            "limit": 20
+          }
+        ]
       }
     ]
   }

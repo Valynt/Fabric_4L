@@ -146,11 +146,11 @@ def verify_envelope(
             },
         )
     except ExpiredSignatureError as exc:
-        raise EnvelopeExpiredError(log_detail=str(exc)) from exc
+        raise EnvelopeExpiredError(log_detail="signature_expired") from exc
     except (InvalidSignatureError, InvalidIssuerError, InvalidAudienceError) as exc:
-        raise EnvelopeInvalidError(log_detail=str(exc)) from exc
+        raise EnvelopeInvalidError(log_detail="signature_invalid") from exc
     except InvalidTokenError as exc:
-        raise EnvelopeInvalidError(log_detail=str(exc)) from exc
+        raise EnvelopeInvalidError(log_detail="token_invalid") from exc
 
     try:
         auth = AuthContext.from_jwt_claims(dict(claims), kid=kid)

@@ -4,8 +4,9 @@ kind: Kustomization
 namespace: argocd
 
 resources:
-  - argocd-applications.yaml
-  - rollouts/ # Argo Rollouts for progressive delivery
+  - argocd-install.yaml      # Bootstrap docs + fabric-4l-base Application (manual sync)
+  - argocd-applications.yaml # Environment-specific Applications (dev/staging/prod overlays)
+  - rollouts/                # Argo Rollouts for progressive delivery
 
 commonLabels:
   app.kubernetes.io/part-of: value-fabric

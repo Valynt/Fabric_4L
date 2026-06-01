@@ -9,6 +9,7 @@ import { XMLHttpRequestInstrumentation } from '@opentelemetry/instrumentation-xm
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { Resource } from '@opentelemetry/resources';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
+import { trace } from '@opentelemetry/api';
 
 const JAEGER_ENDPOINT = import.meta.env.VITE_JAEGER_ENDPOINT || 'http://localhost:4318/v1/traces';
 const SERVICE_NAME = 'fabric-4l-frontend';
@@ -65,6 +66,10 @@ if (shouldEnable) {
   console.debug('[OTel Web] Real User Monitoring initialized');
 } else {
   console.debug('[OTel Web] RUM disabled for environment:', ENVIRONMENT);
+}
+
+export function getTracer() {
+  return trace.getTracer(SERVICE_NAME, SERVICE_VERSION);
 }
 
 export default {};

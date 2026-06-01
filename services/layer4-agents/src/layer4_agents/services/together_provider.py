@@ -67,7 +67,7 @@ def _is_400_error(exc: Exception) -> bool:
         if status == 400:
             return True
     # Safe text fallback for wrappers that don't expose status_code
-    return "400" in str(exc)
+    return "400" in str(exc)  # ban-str-e-allow: error-classification
 
 
 class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
@@ -263,7 +263,7 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
     # _parse_json_response removed — use parse_llm_json (services.llm_output_parser) per §2.5
 
     def _normalize_error(self, exc: Exception) -> AdapterError:
-        msg = str(exc)
+        msg = str(exc)  # ban-str-e-allow: error-classification
         lowered = msg.lower()
         if "timeout" in lowered:
             return AdapterError(ErrorCategory.TIMEOUT, "provider_timeout", retryable=True)

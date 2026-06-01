@@ -281,7 +281,7 @@ def _layer3_error_response(request: Request, exc: Layer3ClientError) -> JSONResp
         content={
             "error": {
                 "code": exc.error_code,
-                "message": str(exc),
+                "message": "layer3_dependency_error",
                 "request_id": safe_request_id,
                 "details": {
                     "service": "layer3-knowledge",

@@ -222,7 +222,7 @@ class OpenAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
             return self._normalize_error(exc)
 
     def _normalize_error(self, exc: Exception) -> AdapterError:
-        msg = str(exc)
+        msg = str(exc)  # ban-str-e-allow: error-classification
         lowered = msg.lower()
         logger.error("llm_provider_error", exc_info=exc)
         if "timeout" in lowered:

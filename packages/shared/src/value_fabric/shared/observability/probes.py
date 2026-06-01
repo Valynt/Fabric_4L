@@ -46,7 +46,7 @@ def configure_observability(
                         "path": request.url.path,
                         "method": request.method,
                         LOG_FIELD_CORRELATION_ID: correlation_id,
-                        "error": str(exc),
+                        "error": str(exc),  # ban-str-e-allow: structured-log
                         "exception_type": type(exc).__name__,
                     }
                 )

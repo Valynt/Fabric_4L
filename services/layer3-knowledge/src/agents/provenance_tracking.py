@@ -294,7 +294,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                         status="failed",
                         output={},
                         execution_time_ms=int((time.time() - start_time) * 1000),
-                        errors=[repr(e)],
+                        errors=["agent_execution_failed"],
                     )
                 result = await self._record_entity(
                     entity_type=context.get("entity_type", "DOCUMENT"),
@@ -320,7 +320,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                         status="failed",
                         output={},
                         execution_time_ms=int((time.time() - start_time) * 1000),
-                        errors=[repr(e)],
+                        errors=["agent_execution_failed"],
                     )
                 result = await self._record_derivation(
                     derived_entity_id=derived_id,
@@ -346,7 +346,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                         status="failed",
                         output={},
                         execution_time_ms=int((time.time() - start_time) * 1000),
-                        errors=[repr(e)],
+                        errors=["agent_execution_failed"],
                     )
                 result = await self._query_lineage(
                     entity_id=entity_id,
@@ -372,7 +372,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                 status="failed",
                 output={},
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                errors=[repr(e)],
+                errors=["agent_execution_failed"],
             )
 
     async def _record_entity(

@@ -97,7 +97,7 @@ def _unwrap_tool_error(tool_result: Any) -> str | None:
     """Return a human-readable error message if the tool result failed."""
     if hasattr(tool_result, "is_error") and tool_result.is_error():
         error = getattr(tool_result, "error", None) or {}
-        return error.get("message", "Unknown tool error") if isinstance(error, dict) else str(error)
+        return error.get("message", "Unknown tool error") if isinstance(error, dict) else str(error)  # ban-str-e-allow: error-unwrap
     return None
 
 

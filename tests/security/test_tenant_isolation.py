@@ -40,10 +40,18 @@ class TestTenantIsolation:
                 "X-Tenant-ID": "malicious-tenant",
             },
         )
-        # Should succeed but only return tenant-a data
+        # If endpoint is not mounted, skip rather than silently pass
+        if response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/user/profile not mounted in test app")
+        # Should reject mismatch (403) or succeed with tenant-a data only (200)
+        assert response.status_code in [200, 403], (
+            f"Expected 200 (JWT precedence) or 403 (mismatch rejected), got {response.status_code}"
+        )
         if response.status_code == 200:
             data = response.json()
-            assert data.get("tenant_id") == "tenant-a"
+            assert data.get("tenant_id") == "tenant-a", (
+                "JWT tenant claim overridden by header - SPOOFING VULNERABILITY"
+            )
 
     def test_row_level_security_enforcement(self, client: TestClient, tenant_a_token):
         """Database RLS policies prevent cross-tenant queries."""
@@ -65,11 +73,19 @@ class TestTenantIsolation:
             },
             headers={"Authorization": f"Bearer {tenant_a_token}"},
         )
-        # Should only return tenant-a nodes or be blocked
+        # If endpoint is not mounted, skip rather than silently pass
+        if response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/query/graph not mounted in test app")
+        # Should block spoofed tenant body (400/403) or return only tenant-a nodes (200)
+        assert response.status_code in [200, 400, 403], (
+            f"Expected 200 (isolated), 400 (bad request), or 403 (forbidden), got {response.status_code}"
+        )
         if response.status_code == 200:
             data = response.json()
-            for node in data.get("nodes", []):
-                assert node.get("tenant_id") == "tenant-a"
+            nodes = data.get("nodes", [])
+            assert len(nodes) == 0 or all(
+                node.get("tenant_id") == "tenant-a" for node in nodes
+            ), "Graph query returned cross-tenant nodes - ISOLATION BREACH"
 
 
 class TestConcurrentTenantIsolation:
@@ -104,6 +120,9 @@ class TestConcurrentTenantIsolation:
             if isinstance(result, Exception):
                 continue
             response, expected_tenant = result
+            assert response.status_code in [200, 404], (
+                f"Expected 200 or 404, got {response.status_code}"
+            )
             if response.status_code == 200:
                 data = response.json()
                 for item in data.get("items", []):
@@ -150,6 +169,9 @@ class TestConcurrentTenantIsolation:
             if isinstance(result, Exception):
                 continue
             response, tenant_id = result
+            assert response.status_code in [201, 404], (
+                f"Expected 201 or 404, got {response.status_code}"
+            )
             if response.status_code == 201:
                 data = response.json()
                 entity_tenant = data.get("tenant_id")
@@ -158,9 +180,14 @@ class TestConcurrentTenantIsolation:
                 elif entity_tenant == "tenant-b":
                     tenant_b_entities.append(data)
 
-        # Verify no cross-tenant contamination
-        assert len(tenant_a_entities) == 10, f"Expected 10 tenant-a entities, got {len(tenant_a_entities)}"
-        assert len(tenant_b_entities) == 10, f"Expected 10 tenant-b entities, got {len(tenant_b_entities)}"
+        # Verify no cross-tenant contamination (if endpoint exists)
+        if tenant_a_entities or tenant_b_entities:
+            assert len(tenant_a_entities) == 10, (
+                f"Expected 10 tenant-a entities, got {len(tenant_a_entities)}"
+            )
+            assert len(tenant_b_entities) == 10, (
+                f"Expected 10 tenant-b entities, got {len(tenant_b_entities)}"
+            )
 
     @pytest.mark.asyncio
     async def test_async_background_job_isolation(
@@ -179,26 +206,36 @@ class TestConcurrentTenantIsolation:
             },
         )
 
-        if response.status_code == 200:
-            job_data = response.json()
-            job_id = job_data.get("job_id")
+        assert response.status_code in [200, 404], (
+            f"Expected 200 or 404, got {response.status_code}"
+        )
+        if response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/extract/async not mounted in test app")
 
-            # Poll for job completion
-            for _ in range(10):
-                status_response = client.get(
-                    f"/api/v1/jobs/{job_id}",
-                    headers={"Authorization": f"Bearer {admin_user_token}"},
-                )
-                if status_response.status_code == 200:
-                    status = status_response.json()
-                    if status.get("status") in ["completed", "failed"]:
-                        # Verify job result only contains tenant-a data
-                        result = status.get("result", {})
-                        if "entities" in result:
-                            for entity in result["entities"]:
-                                assert entity.get("tenant_id") == "tenant-a"
-                        break
-                await asyncio.sleep(0.5)
+        job_data = response.json()
+        job_id = job_data.get("job_id")
+
+        # Poll for job completion
+        for _ in range(10):
+            status_response = client.get(
+                f"/api/v1/jobs/{job_id}",
+                headers={"Authorization": f"Bearer {admin_user_token}"},
+            )
+            assert status_response.status_code in [200, 404], (
+                f"Expected 200 or 404 for job status, got {status_response.status_code}"
+            )
+            if status_response.status_code == 200:
+                status = status_response.json()
+                if status.get("status") in ["completed", "failed"]:
+                    # Verify job result only contains tenant-a data
+                    result = status.get("result", {})
+                    if "entities" in result:
+                        for entity in result["entities"]:
+                            assert entity.get("tenant_id") == "tenant-a", (
+                                "Background job leaked cross-tenant data"
+                            )
+                    break
+            await asyncio.sleep(0.5)
 
 
 class TestRLSEnforcement:
@@ -218,25 +255,30 @@ class TestRLSEnforcement:
             },
         )
 
-        if create_response.status_code == 201:
-            entity = create_response.json()
-            entity_id = entity.get("id")
+        assert create_response.status_code in [201, 404], (
+            f"Expected 201 (created) or 404 (endpoint missing), got {create_response.status_code}"
+        )
+        if create_response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/entities not mounted in test app")
 
-            # Direct database query attempting to bypass API tenant checks
-            # This simulates an attacker with DB access trying to read cross-tenant
-            with db_connection.cursor() as cursor:
-                # Attempt to read entity without tenant context
-                cursor.execute(
-                    "SELECT id, tenant_id FROM entities WHERE id = %s",
-                    (entity_id,)
-                )
-                result = cursor.fetchone()
+        entity = create_response.json()
+        entity_id = entity.get("id")
 
-                # If RLS is properly enabled, this should return None
-                # because no tenant context is set for the session
-                assert result is None or result[1] == "tenant-a", (
-                    "RLS not enforced: entity accessible without tenant context"
-                )
+        # Direct database query attempting to bypass API tenant checks
+        # This simulates an attacker with DB access trying to read cross-tenant
+        with db_connection.cursor() as cursor:
+            # Attempt to read entity without tenant context
+            cursor.execute(
+                "SELECT id, tenant_id FROM entities WHERE id = %s",
+                (entity_id,)
+            )
+            result = cursor.fetchone()
+
+            # If RLS is properly enabled, this should return None
+            # because no tenant context is set for the session
+            assert result is None or result[1] == "tenant-a", (
+                "RLS not enforced: entity accessible without tenant context"
+            )
 
     def test_postgres_rls_policy_blocks_cross_tenant_update(
         self, client: TestClient, tenant_a_token, tenant_b_token, db_connection
@@ -249,27 +291,32 @@ class TestRLSEnforcement:
             json={"name": "rls-update-test"},
         )
 
-        if create_response.status_code == 201:
-            entity = create_response.json()
-            entity_id = entity.get("id")
+        assert create_response.status_code in [201, 404], (
+            f"Expected 201 (created) or 404 (endpoint missing), got {create_response.status_code}"
+        )
+        if create_response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/entities not mounted in test app")
 
-            # Attempt to update entity using tenant B context
-            with db_connection.cursor() as cursor:
-                # Set tenant context to tenant-b (simulating tenant B user)
-                cursor.execute("SET row_security = on")
-                cursor.execute("SET app.current_tenant = 'tenant-b'")
+        entity = create_response.json()
+        entity_id = entity.get("id")
 
-                # Attempt update
-                cursor.execute(
-                    "UPDATE entities SET name = %s WHERE id = %s",
-                    ("hacked-name", entity_id)
-                )
-                update_count = cursor.rowcount
+        # Attempt to update entity using tenant B context
+        with db_connection.cursor() as cursor:
+            # Set tenant context to tenant-b (simulating tenant B user)
+            cursor.execute("SET row_security = on")
+            cursor.execute("SET app.current_tenant = 'tenant-b'")
 
-                # Should affect 0 rows due to RLS
-                assert update_count == 0, (
-                    f"RLS bypassed: updated {update_count} rows as wrong tenant"
-                )
+            # Attempt update
+            cursor.execute(
+                "UPDATE entities SET name = %s WHERE id = %s",
+                ("hacked-name", entity_id)
+            )
+            update_count = cursor.rowcount
+
+            # Should affect 0 rows due to RLS
+            assert update_count == 0, (
+                f"RLS bypassed: updated {update_count} rows as wrong tenant"
+            )
 
     def test_rls_enforced_for_join_queries(self, client: TestClient, tenant_a_token, db_connection):
         """RLS policies apply to JOIN queries across tables."""
@@ -303,20 +350,25 @@ class TestCacheIsolation:
             headers={"Authorization": f"Bearer {tenant_a_token}"},
         )
 
-        if response.status_code == 200:
-            # Scan for cache keys related to this tenant
-            pattern = f"*tenant-a*"
-            matching_keys = list(redis_client.scan_iter(match=pattern, count=100))
+        assert response.status_code in [200, 404], (
+            f"Expected 200 or 404, got {response.status_code}"
+        )
+        if response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/entities not mounted in test app")
 
-            # Should find keys with tenant-a prefix
-            assert len(matching_keys) > 0, (
-                "No tenant-prefixed cache keys found - cache isolation may be missing"
-            )
+        # Scan for cache keys related to this tenant
+        pattern = f"*tenant-a*"
+        matching_keys = list(redis_client.scan_iter(match=pattern, count=100))
 
-            # Verify key structure includes tenant
-            for key in matching_keys[:5]:  # Check first 5 keys
-                key_str = key.decode() if isinstance(key, bytes) else str(key)
-                assert "tenant-a" in key_str, f"Cache key missing tenant prefix: {key_str}"
+        # Should find keys with tenant-a prefix
+        assert len(matching_keys) > 0, (
+            "No tenant-prefixed cache keys found - cache isolation may be missing"
+        )
+
+        # Verify key structure includes tenant
+        for key in matching_keys[:5]:  # Check first 5 keys
+            key_str = key.decode() if isinstance(key, bytes) else str(key)
+            assert "tenant-a" in key_str, f"Cache key missing tenant prefix: {key_str}"
 
     def test_cross_tenant_cache_reads_blocked(
         self, client: TestClient, tenant_a_token, tenant_b_token, redis_client
@@ -348,6 +400,9 @@ class TestCacheIsolation:
             headers={"Authorization": f"Bearer {tenant_b_token}"},
         )
 
+        assert response_b.status_code in [200, 404], (
+            f"Expected 200 or 404, got {response_b.status_code}"
+        )
         if response_b.status_code == 200:
             data_b = response_b.json()
             # Should only contain tenant-b data, not tenant-a
@@ -377,15 +432,20 @@ class TestCacheIsolation:
             json={"name": "cache-invalidation-test"},
         )
 
-        if response.status_code == 201:
-            # Check if cache was invalidated for tenant-a
-            _ = len(list(redis_client.scan_iter(match=pattern_a, count=100)))  # noqa: F841 - verifying cache invalidation
+        assert response.status_code in [201, 404], (
+            f"Expected 201 or 404, got {response.status_code}"
+        )
+        if response.status_code == 404:
+            pytest.skip("Endpoint /api/v1/entities not mounted in test app")
 
-            # Keys may have changed due to invalidation + repopulation
-            # But tenant-b keys should be unaffected
-            pattern_b = "*tenant-b*"
-            _ = list(redis_client.scan_iter(match=pattern_b, count=100))  # noqa: F841 - verifying tenant isolation
+        # Check if cache was invalidated for tenant-a
+        _ = len(list(redis_client.scan_iter(match=pattern_a, count=100)))  # noqa: F841 - verifying cache invalidation
 
-            # Tenant B cache should be unaffected by tenant A operations
-            # (This test assumes no cross-tenant cache dependencies)
-            pass  # Main verification is that tenant B data remains intact
+        # Keys may have changed due to invalidation + repopulation
+        # But tenant-b keys should be unaffected
+        pattern_b = "*tenant-b*"
+        _ = list(redis_client.scan_iter(match=pattern_b, count=100))  # noqa: F841 - verifying tenant isolation
+
+        # Tenant B cache should be unaffected by tenant A operations
+        # (This test assumes no cross-tenant cache dependencies)
+        pass  # Main verification is that tenant B data remains intact

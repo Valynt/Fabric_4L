@@ -12,18 +12,24 @@ class TestCheckFile:
     """Validate that check_file catches unsafe str(e) but allows safe identifiers."""
 
     @pytest.mark.parametrize("code", [
-        'logger.error(str(e))',
         'detail = str(err)',
         'msg = str(exc)',
         'error = str(error)',
         'text = str(exception)',
-        'logger.error(str(E))',
         'detail = str(ERR)',
         'msg = str(Exc)',
         'error = str(Error)',
         'text = str(Exception)',
+        'detail = repr(err)',
+        'msg = repr(exc)',
+        'error = repr(error)',
+        'text = repr(exception)',
+        'detail = repr(ERR)',
+        'msg = repr(Exc)',
+        'error = repr(Error)',
+        'text = repr(Exception)',
     ])
-    def test_detects_exception_variable_str(self, tmp_path, code):
+    def test_detects_exception_variable_str_and_repr(self, tmp_path, code):
         f = tmp_path / "sample.py"
         f.write_text(code)
         issues = check_file(f)
@@ -39,9 +45,18 @@ class TestCheckFile:
         'result = str(error_message)',
         'value = str(42)',
         'value = str("hello")',
-        'value = repr(e)',
+        'value = repr(extract)',
+        'value = repr(execute)',
         'value = getattr(e, "name", str(e))',
+        'value = getattr(e, "name", repr(e))',
         '# str(e) in comment is okay',
+        '# repr(e) in comment is okay',
+        'logger.error(str(e))',
+        'logger.error(repr(e))',
+        'error = str(exc)  # ban-str-e-allow: structured-log',
+        'error = repr(exc)  # ban-str-e-allow: structured-log',
+        'extra={"error": str(exc)}',
+        'extra={"error": repr(exc)}',
     ])
     def test_allows_safe_identifiers(self, tmp_path, code):
         f = tmp_path / "sample.py"

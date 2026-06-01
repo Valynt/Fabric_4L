@@ -1,5 +1,28 @@
-# P1-009: ArgoCD Installation and Configuration
-# Installs ArgoCD into the value-fabric cluster and configures GitOps sync
+# P1-009: ArgoCD Bootstrap Plan
+#
+# This file does NOT contain a hand-rolled ArgoCD controller install.
+# The previous skeletal Deployment/SA/CRB has been removed because it lacked
+# required components (application-controller, repo-server, dex, Redis, CRDs).
+#
+# ------------------------------------------------------------------------------
+# Install ArgoCD using the official upstream stable manifest
+# ------------------------------------------------------------------------------
+# kubectl create namespace argocd
+# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+#
+# Alternative: Helm install (preferred for production customisation)
+# ------------------------------------------------------------------------------
+# helm repo add argo https://argoproj.github.io/argo-helm
+# helm install argocd argo/argo-cd --namespace argocd --create-namespace \
+#   --values k8s/gitops/argocd-helm-values.yaml
+#
+# PREREQUISITES before the Application below can sync successfully:
+#   1. ArgoCD CRDs (argoproj.io/v1alpha1) must be present.
+#   2. External Secrets Operator and Vault/Infisical credentials must be in place
+#      for: postgres-secret, neo4j-credentials, api-key-cache-secret, jwt-keys-secret.
+#   3. Namespace 'value-fabric' must exist or CreateNamespace=true must be enabled.
+# ------------------------------------------------------------------------------
+
 apiVersion: v1
 kind: Namespace
 metadata:
@@ -7,130 +30,41 @@ metadata:
   labels:
     app.kubernetes.io/part-of: fabric4l-gitops
 ---
-# ArgoCD core components (simplified - full install via official manifests)
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: argocd-server
-  namespace: argocd
-  labels:
-    app.kubernetes.io/name: argocd-server
-spec:
-  replicas: 1
-  selector:
-    matchLabels:
-      app.kubernetes.io/name: argocd-server
-  template:
-    metadata:
-      labels:
-        app.kubernetes.io/name: argocd-server
-    spec:
-      serviceAccountName: argocd-server
-      containers:
-        - name: argocd-server
-          image: quay.io/argoproj/argocd:v2.10.0
-          ports:
-            - containerPort: 8080
-              name: server
-            - containerPort: 8083
-              name: grpc
-          env:
-            - name: ARGOCD_SERVER_INSECURE
-              value: "false"
-            - name: ARGOCD_SERVER_LOG_LEVEL
-              value: "info"
-            - name: ARGOCD_API_SERVER_REPLICAS
-              value: "1"
-          resources:
-            requests:
-              memory: "128Mi"
-              cpu: "100m"
-            limits:
-              memory: "256Mi"
-              cpu: "500m"
-          livenessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 30
-            periodSeconds: 10
-          readinessProbe:
-            httpGet:
-              path: /healthz
-              port: 8080
-            initialDelaySeconds: 10
-            periodSeconds: 5
-          securityContext:
-            allowPrivilegeEscalation: false
-            readOnlyRootFilesystem: true
-            capabilities:
-              drop:
-                - ALL
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: argocd-server
-  namespace: argocd
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRole
-metadata:
-  name: argocd-server
-rules:
-  - apiGroups: ["*"]
-    resources: ["*"]
-    verbs: ["get", "list", "watch"]
-  - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["create", "list"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: ClusterRoleBinding
-metadata:
-  name: argocd-server
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: ClusterRole
-  name: argocd-server
-subjects:
-  - kind: ServiceAccount
-    name: argocd-server
-    namespace: argocd
----
-# ArgoCD Application for Fabric_4L
+# ArgoCD Application for the Fabric_4L base platform manifests.
+# Targets k8s/base kustomization (single source of truth for platform resources).
+# Sync is MANUAL by default. Enable automated prune/selfHeal only after staging
+# validation and secret backend readiness.
 apiVersion: argoproj.io/v1alpha1
 kind: Application
 metadata:
-  name: fabric-4l-platform
+  name: fabric-4l-base
   namespace: argocd
   labels:
     app.kubernetes.io/part-of: fabric4l
+    environment: base
+    tier: platform
 spec:
-  project: default
+  project: value-fabric
   source:
     repoURL: https://github.com/bmsull560/Fabric_4L.git
-    targetRevision: HEAD
-    path: k8s/overlays/production
-    kustomize:
-      commonAnnotations:
-        deployed-by: argocd
+    targetRevision: main
+    path: k8s/base
   destination:
     server: https://kubernetes.default.svc
     namespace: value-fabric
   syncPolicy:
-    automated:
-      prune: true
-      selfHeal: true
-      allowEmpty: false
+    # Manual sync for safety; automated features are intentionally disabled.
+    # To enable after staging validation, uncomment automated and syncOptions below.
+    # automated:
+    #   prune: false
+    #   selfHeal: false
+    #   allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-      - PrunePropagationPolicy=foreground
-      - PruneLast=true
-    retry:
-      limit: 3
-      backoff:
-        duration: 30s
-        factor: 2
-        maxDuration: 5m
+  retry:
+    limit: 3
+    backoff:
+      duration: 30s
+      factor: 2
+      maxDuration: 5m
   revisionHistoryLimit: 10

@@ -221,6 +221,13 @@ repos:
         files: \.py$
         pass_filenames: false
         always_run: true
+      - id: ban-str-e
+        name: Ban str(e)/repr(e) exception leaks
+        entry: python scripts/ci/ban_str_e.py
+        language: system
+        files: \.py$
+        pass_filenames: false
+        always_run: true
       - id: root-binary-blob-policy
         name: Block unapproved root-level binary blobs
         entry: python scripts/ci/repo_hygiene.py --repo-root .

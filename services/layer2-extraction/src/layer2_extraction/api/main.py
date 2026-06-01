@@ -1345,7 +1345,7 @@ async def run_extract_and_ingest(
             source_url=source_url,
             source_hash=hashlib.sha256(content.encode()).hexdigest(),
             payload=artifacts.model_dump_json(),
-            errors=[str(exc)],
+            errors=["extraction_failed"],
             model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
             schema_version=str(config.get("schema_version") or ""),
             reason="persistence_validation_failed",

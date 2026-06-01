@@ -68,6 +68,9 @@ jobs:
       - name: Run legacy path guard
         run: python scripts/ci/legacy_path_guard.py --repo-root .
 
+      - name: Ban str(e)/repr(e) exception leaks
+        run: python scripts/ci/ban_str_e.py
+
       - name: Check stale namespace directories
         run: python scripts/ci/check_stale_namespace_dirs.py
 

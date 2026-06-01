@@ -221,7 +221,7 @@ def validate_for_persistence(artifacts: Any) -> None:
         try:
             validate_extraction_result(result)
         except ArtifactValidationError as exc:
-            errors.append(str(exc))
+            errors.append("validation_failed")
 
         if not getattr(result, "tenant_id", None):
             errors.append("Missing tenant_id on extraction result")

@@ -270,11 +270,11 @@ class AgentPermissionService:
             passed, message = await evaluator(db=db, tenant_id=tenant_id, entity_id=entity_id)
             outcome = "passed" if passed else ("warning" if not policy.is_mandatory else "failed")
         except PolicyEvaluationError as exc:
-            message = str(exc)
+            message = "policy_evaluation_failed"
             outcome = "warning" if not policy.is_mandatory else "failed"
         except Exception as exc:
             logger.exception("Unexpected policy evaluation error for policy %s", policy.id)
-            message = f"Policy evaluation error: {exc}"
+            message = "policy_evaluation_error"
             outcome = "failed"
 
         result = {

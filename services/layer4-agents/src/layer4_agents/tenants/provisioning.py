@@ -446,7 +446,7 @@ class TenantProvisioningService:
             TimeoutError,
             ConnectionError,
         )
-        return isinstance(error, retryable_std_types) or "timeout" in str(error).lower()
+        return isinstance(error, retryable_std_types) or "timeout" in str(error).lower()  # ban-str-e-allow: error-classification
 
     def _get_duration_ms(self, state: ProvisioningState) -> int:
         """Calculate provisioning duration in milliseconds."""

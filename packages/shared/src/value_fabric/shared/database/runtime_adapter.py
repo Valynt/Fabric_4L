@@ -78,7 +78,7 @@ class RuntimeDatabaseAdapter:
                 await conn.execute(text("SELECT 1"))
             return {"status": "healthy", "service": self.config.service_name}
         except Exception as exc:  # noqa: BLE001
-            return {"status": "unhealthy", "service": self.config.service_name, "error": str(exc)}
+            return {"status": "unhealthy", "service": self.config.service_name, "error": type(exc).__name__}
 
     async def close(self) -> None:
         await self._engine.dispose()

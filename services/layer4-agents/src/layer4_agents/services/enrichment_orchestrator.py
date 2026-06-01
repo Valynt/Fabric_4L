@@ -526,7 +526,7 @@ class EnrichmentOrchestrator:
                 "ssrf_blocked_web_crawl",
                 account_id=str(account.id),
                 url=url,
-                reason=repr(e),
+                reason=repr(e),  # ban-str-e-allow: structured-log
             )
             return EnrichmentOrchestrator__enrich_from_web_crawlResult.model_validate({"success": False, "error": f"URL blocked by security policy: {e.reason}"})
 

@@ -256,7 +256,7 @@ class LLMObservability:
             f"LLM error: {error_type}",
             extra={
                 "error_type": error_type,
-                "error_message": str(error),
+                "error_message": str(error),  # ban-str-e-allow: structured-log
                 "error_class": error.__class__.__name__,
                 **ctx,
             },

@@ -241,13 +241,13 @@ class QueryValidator:
         except ValueError as exc:
             finding = ValidationFinding(
                 severity=ValidationSeverity.ERROR,
-                message=str(exc),
+                message="unscoped_query",
                 line_number=None,
                 pattern=None,
                 suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
             )
             if self.fail_closed:
-                raise UnscopedQueryError(str(exc)) from exc
+                raise UnscopedQueryError("unscoped_query") from exc
             return [finding]
     
     def _check_entity_tenant_scoping(self, query: str, query_name: str) -> None:
@@ -263,7 +263,7 @@ class QueryValidator:
         except ValueError as exc:
             self._findings.append(ValidationFinding(
                 severity=ValidationSeverity.ERROR,
-                message=str(exc),
+                message="unscoped_query",
                 line_number=None,
                 pattern=None,
                 suggestion="Add {tenant_id: $tenant_id} or WHERE alias.tenant_id = $tenant_id",
@@ -432,7 +432,7 @@ class ValidatedNeo4jSession:
                 context=context,
             )
         except TenantQueryValidationError as exc:
-            raise UnscopedQueryError(str(exc)) from exc
+            raise UnscopedQueryError("tenant_query_validation_failed") from exc
     
     async def close(self) -> None:
         """Close underlying session."""

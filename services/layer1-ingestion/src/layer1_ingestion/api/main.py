@@ -286,7 +286,7 @@ async def _l1_db_probe() -> ProbeResult:
             lambda: engine.connect().execute(text("SELECT 1")).close()
         )
     except Exception as exc:
-        return ProbeResult(name="postgres", healthy=False, detail=str(exc))
+        return ProbeResult(name="postgres", healthy=False, detail="probe_failed")
     return ProbeResult(name="postgres", healthy=True)
 
 

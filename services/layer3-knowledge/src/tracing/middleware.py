@@ -106,11 +106,11 @@ class TracingMiddleware(BaseHTTPMiddleware):
             span.set_attributes(
                 {
                     "error.type": type(exc).__name__,
-                    "error.message": str(exc),
+                    "error.message": "request_failed",
                     "error_code": type(exc).__name__,
                 }
             )
-            span.set_status(Status(StatusCode.ERROR, str(exc)))
+            span.set_status(Status(StatusCode.ERROR, "request_failed"))
 
             # Re-raise the exception
             raise

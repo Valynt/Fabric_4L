@@ -129,7 +129,7 @@ class AuditWorker:
                 return
             except Exception as exc:
                 payload["attempts"] = attempt + 1
-                payload["last_error"] = str(exc)
+                payload["last_error"] = f"{type(exc).__name__}: audit_persist_failed"
                 logger.warning(
                     "Audit event %s DB write failed (attempt %d/%d): %s",
                     event.id,

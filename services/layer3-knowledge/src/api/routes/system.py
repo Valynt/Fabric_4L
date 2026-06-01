@@ -107,7 +107,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                 name="neo4j",
                 status="unhealthy",
                 response_time_ms=None,
-                error=str(exc),
+                error="dependency_unhealthy",
                 details={"uri": settings.neo4j_uri},
             )
         )
@@ -131,7 +131,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     name="pinecone",
                     status="unhealthy",
                     response_time_ms=None,
-                    error=str(exc),
+                    error="dependency_unhealthy",
                 )
             )
 

@@ -189,7 +189,7 @@ class WhitespaceAnalysisAgent(BaseAgent):
                 status="failed",
                 output={},
                 execution_time_ms=int((time.time() - start_time) * 1000),
-                errors=[repr(e)],
+                errors=["agent_execution_failed"],
             )
 
     async def _identify_gaps(

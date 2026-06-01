@@ -230,7 +230,7 @@ def validate_envelope(
             violations=[
                 ContractViolation(
                     code="semantic_contract_validation_error",
-                    message=str(exc),
+                    message="contract_validation_error",
                     severity=ContractViolationSeverity.ERROR,
                 )
             ],

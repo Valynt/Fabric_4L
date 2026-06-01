@@ -220,7 +220,7 @@ class TenantSecretsService:
                     env,
                 )
             except Exception as exc:
-                outcome = {"success": False, "error": str(exc)}
+                outcome = {"success": False, "error": f"{type(exc).__name__}: secret_deletion_failed"}
                 logger.error(
                     "Failed to list/delete secrets for tenant %s in %s: %s",
                     tenant_id,

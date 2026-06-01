@@ -154,7 +154,7 @@ class Layer3KnowledgeClient:
             return IngestionResponse(
                 success=False,
                 ingestion_id=extraction_job_id,
-                error=str(exc),
+                error="layer3_client_error",
             )
 
     async def batch_ingest_rdf_data(
@@ -192,7 +192,7 @@ class Layer3KnowledgeClient:
                 IngestionResponse(
                     success=False,
                     ingestion_id=item.get("extraction_job_id", ""),
-                    error=str(exc),
+                    error="layer3_client_error",
                 )
                 for item in items
             ]
@@ -209,7 +209,7 @@ class Layer3KnowledgeClient:
             return IngestionStatus(
                 ingestion_id=ingestion_id,
                 status="error",
-                error_message=str(exc),
+                error_message="layer3_client_error",
             )
 
     async def close(self) -> None:

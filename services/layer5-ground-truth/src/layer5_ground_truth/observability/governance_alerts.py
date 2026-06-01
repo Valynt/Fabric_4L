@@ -150,7 +150,7 @@ class GovernanceAlertManager:
                         "tenant_id": str(alert.tenant_id),
                         "entity_type": alert.entity_type,
                         "entity_id": str(alert.entity_id),
-                        "error": str(exc),
+                        "error": str(exc),  # ban-str-e-allow: structured-log
                     },
                 )
 

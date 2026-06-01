@@ -15,6 +15,7 @@ import {
 import { useUserTierStore } from "@/stores/userTierStore";
 import type { AgentChatMode } from "@/types/layout";
 import type { UserTier } from "@/navigation/navigationService";
+import { RouteTelemetry } from "@/lib/route-telemetry";
 
 interface WorkflowIndicatorState {
   activeStepId: string;
@@ -166,6 +167,7 @@ export function GlobalLayout() {
           : "grid-cols-[auto_minmax(0,1fr)]",
       ].join(" ")}
     >
+      <RouteTelemetry />
       <SkipLink targetId="main-content" />
 
       <LeftNavigation

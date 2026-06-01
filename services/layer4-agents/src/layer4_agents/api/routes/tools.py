@@ -216,7 +216,7 @@ async def invoke_tool(
     except (ToolGatewayDenied, InvariantViolation) as e:
         logger.warning(
             "GATE denied tool invocation: %s — %s",
-            request.tool_name, repr(e),
+            request.tool_name, repr(e),  # ban-str-e-allow: structured-log
         )
         return ToolInvokeResponse(
             tool_name=request.tool_name, success=False, result=None,

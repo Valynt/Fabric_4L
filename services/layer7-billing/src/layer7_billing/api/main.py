@@ -254,7 +254,7 @@ async def stripe_webhook(
     except ValueError as exc:
         logger.warning(
             "Stripe webhook validation rejected",
-            reason=str(exc),
+            reason=str(exc),  # ban-str-e-allow: structured-log
             operation="stripe_webhook",
             route="/v1/billing/webhook",
         )

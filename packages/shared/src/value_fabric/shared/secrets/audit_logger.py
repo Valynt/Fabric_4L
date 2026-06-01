@@ -339,7 +339,7 @@ class SecretAuditLogger:
             action=SecretAction.ROTATE,
             actor=attempted_by,
             success=False,
-            error_message=str(error),
+            error_message=f"{type(error).__name__}: rotation_failed",
             correlation_id=correlation_id
         )
     

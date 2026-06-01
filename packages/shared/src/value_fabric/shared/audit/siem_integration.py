@@ -113,7 +113,7 @@ class SIEMAuditSink:
                     return True
                 last_error = f"http_{response.status_code}"
             except Exception as exc:  # noqa: BLE001
-                last_error = str(exc)
+                last_error = f"{type(exc).__name__}: delivery_failed"
 
             if attempt < self._config.max_retries:
                 await self._sleeper(self._config.backoff_seconds * (2**attempt))

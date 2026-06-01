@@ -37,11 +37,15 @@ spec:
       backoffLimit: 3
       template:
         spec:
-          automountServiceAccountToken: false
+          serviceAccountName: wal-g-backup
+          # SECURITY: automountServiceAccountToken is true because WAL-G S3 backup
+          # requires IRSA token injection by the EKS webhook. The previous pg_dump-only
+          # CronJob had this set to false since it had no cloud dependencies.
+          automountServiceAccountToken: true
           restartPolicy: OnFailure
           containers:
             - name: postgres-backup
-              image: postgres:15-alpine
+              image: ghcr.io/zalando/spilo-16:3.2-p1
               command:
                 - sh
                 - -c
@@ -70,11 +74,36 @@ spec:
                     fi
                   done
 
-                  # Remove backups older than 7 days
+                  # Remove pg_dump backups older than 7 days
                   find $$BACKUP_DIR -name 'backup_*.dump' -mtime +7 -delete
+
+                  # WAL-G physical base backup (gated; requires IRSA or AWS credentials)
+                  if [ "$${ENABLE_WALG_BACKUP:-false}" = "true" ]; then
+                    echo "WAL-G: starting physical base backup..."
+                    TMP_PGDATA="/tmp/pgdata_walg_$${TIMESTAMP}"
+                    mkdir -p "$$TMP_PGDATA"
+                    # Stream base backup from postgres leader via replication protocol
+                    if PGPASSWORD=$${POSTGRES_PASSWORD} pg_basebackup -h postgres -U $${POSTGRES_USER} -D "$$TMP_PGDATA" -Fp -Xs -P -v; then
+                      if wal-g backup-push "$$TMP_PGDATA"; then
+                        echo "WAL-G: base backup pushed successfully"
+                      else
+                        echo "ERROR: wal-g backup-push failed" >&2
+                        FAILED=1
+                      fi
+                      rm -rf "$$TMP_PGDATA"
+                    else
+                      echo "ERROR: pg_basebackup failed" >&2
+                      FAILED=1
+                    fi
+                    # Enforce S3 retention count
+                    wal-g delete retain $${WALG_RETAIN_COUNT:-30} --confirm || true
+                  fi
 
                   echo "Backup run completed: $$TIMESTAMP"
                   exit $$FAILED
+              envFrom:
+                - configMapRef:
+                    name: wal-g-config
               env:
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
@@ -85,6 +114,8 @@ spec:
                     secretKeyRef:
                       name: postgres-secret
                       key: password
+                - name: ENABLE_WALG_BACKUP
+                  value: "false"
               volumeMounts:
                 - name: postgres-backups
                   mountPath: /backups

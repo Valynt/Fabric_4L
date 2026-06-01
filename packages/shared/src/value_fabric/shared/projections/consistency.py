@@ -141,7 +141,7 @@ class InMemoryProjectionOutbox:
         self, attempt: ProjectionAttempt, error: Exception, *, max_attempts: int
     ) -> None:
         attempt.attempts += 1
-        attempt.last_error = str(error)[:500]
+        attempt.last_error = f"{type(error).__name__}: projection_failed"
         attempt.status = (
             ProjectionStatus.DEAD_LETTER
             if attempt.attempts >= max_attempts
