@@ -1,4 +1,11 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
 
 Spec-compliant REST API with multi-tenancy support.
@@ -25,7 +32,6 @@ from zoneinfo import available_timezones
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.exceptions import RequestValidationError
-
 from fastapi.responses import JSONResponse, Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -143,7 +149,7 @@ def _load_deprecation_register() -> dict:
                 data = json.load(f)
                 DEPRECATION_REGISTER_LOADED = True
                 return data
-    except Exception as e:
+    except Exception:
         logger.warning(
             "deprecation_register_load_failed",
             error_code="DEPRECATION_LOAD_ERROR",
@@ -363,7 +369,7 @@ try:
     if redis_client is not None:
         redis_rate_limiter = RedisRateLimiter(redis_client)
         RATE_LIMITING_AVAILABLE = True
-except Exception as e:
+except Exception:
     logger.error(
         "redis_init_failed",
         error_code="REDIS_INIT_ERROR",
@@ -752,7 +758,7 @@ class ValidateTargetRequest(BaseModel):
     test_browser_connection: bool = False
 
 
-class ValidationError(BaseModel):
+class ValidationErrorDetail(BaseModel):
     """Validation error detail."""
 
     field: str
@@ -771,7 +777,7 @@ class ValidateTargetResponse(BaseModel):
     """Response from target validation."""
 
     valid: bool
-    errors: list[ValidationError]
+    errors: list[ValidationErrorDetail]
     warnings: list[ValidationWarning]
     robots_txt_check: dict[str, Any] | None = None
     schema_validation: dict[str, Any] | None = None
@@ -2365,7 +2371,7 @@ async def batch_operation(
                 ))
                 succeeded += 1
                 
-            except Exception as e:
+            except Exception:
                 logger.error("batch_execute_failed", target_id=str(target_id), error_code="BATCH_EXECUTE_ERROR")
                 results.append(BatchOperationItemResult(
                     id=target_id, status="failed", job_id=None, error="BATCH_EXECUTE_ERROR"
@@ -2412,7 +2418,7 @@ async def batch_operation(
                 ))
                 succeeded += 1
                 
-            except Exception as e:
+            except Exception:
                 logger.error("batch_cancel_failed", job_id=str(job_id), error_code="BATCH_CANCEL_ERROR")
                 results.append(BatchOperationItemResult(
                     id=job_id, status="failed", job_id=job_id, error="BATCH_CANCEL_ERROR"
@@ -2475,7 +2481,7 @@ async def batch_operation(
                 ))
                 succeeded += 1
                 
-            except Exception as e:
+            except Exception:
                 logger.error("batch_retry_failed", job_id=str(job_id), error_code="BATCH_RETRY_ERROR")
                 results.append(BatchOperationItemResult(
                     id=job_id, status="failed", job_id=job_id, error="BATCH_RETRY_ERROR"
@@ -2808,7 +2814,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
         from sqlalchemy import text
         db.execute(text("SELECT 1"))
         components["database"] = ComponentHealth(status="healthy", latency_ms=0)
-    except Exception as e:
+    except Exception:
         logger.error("health_check_database_failed", error_code="DB_HEALTH_ERROR")
         components["database"] = ComponentHealth(status="unhealthy", message="Database connection failed")
         _metrics = get_metrics()
@@ -2821,7 +2827,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
 
         redis_client.ping()
         components["queue"] = ComponentHealth(status="healthy", latency_ms=0)
-    except Exception as e:
+    except Exception:
         logger.warning("health_check_redis_failed", error_code="REDIS_HEALTH_ERROR")
         components["queue"] = ComponentHealth(status="degraded", message="Redis not available")
         _metrics = get_metrics()
@@ -3024,7 +3030,7 @@ async def legacy_health_check():
         from sqlalchemy import text
         db.execute(text("SELECT 1"))
         dependencies.append({"name": "database", "status": "healthy", "error": None})
-    except Exception as e:
+    except Exception:
         dependencies.append({"name": "database", "status": "unhealthy", "error": "DB_CONNECTION_ERROR"})
         overall_status = "degraded"
     finally:
@@ -3040,7 +3046,7 @@ async def legacy_health_check():
         else:
             redis_client.ping()
             dependencies.append({"name": "redis", "status": "healthy", "error": None})
-    except Exception as e:
+    except Exception:
         dependencies.append({"name": "redis", "status": "degraded", "error": "REDIS_CONNECTION_ERROR"})
         overall_status = "degraded"
 

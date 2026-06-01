@@ -6,9 +6,10 @@ Supports HTTPX, Playwright, and Redis clients with configurable thresholds.
 
 import asyncio
 import time
-from dataclasses import dataclass, field
+from collections.abc import Callable
+from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable
+from typing import Any
 
 import structlog
 
@@ -113,7 +114,7 @@ class AsyncCircuitBreaker:
                 
                 return result
 
-            except self.config.expected_exception as e:
+            except self.config.expected_exception:
                 self._state.failure_count += 1
                 self._state.last_failure_time = time.time()
 

@@ -68,7 +68,7 @@ class AdapterRegistry:
             adapter = adapter_class()
             self._instances[adapter_type] = adapter
             return adapter
-        except Exception as e:
+        except Exception:
             self.logger.error(
                 "Failed to create adapter instance", adapter_type=adapter_type.value, error_code="ADAPTER_CREATE_ERROR"
             )

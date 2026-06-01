@@ -29,7 +29,7 @@ from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -279,13 +279,14 @@ async def lifespan(app: FastAPI):
 async def _l1_db_probe() -> ProbeResult:
     """Readiness probe for Layer 1 PostgreSQL (sync engine)."""
     import asyncio
+
     from sqlalchemy import text
 
     try:
         await asyncio.to_thread(
             lambda: engine.connect().execute(text("SELECT 1")).close()
         )
-    except Exception as exc:
+    except Exception:
         return ProbeResult(name="postgres", healthy=False, detail="probe_failed")
     return ProbeResult(name="postgres", healthy=True)
 
@@ -705,7 +706,7 @@ class ValidateTargetRequest(BaseModel):
     test_browser_connection: bool = False
 
 
-class ValidationError(BaseModel):
+class ValidationErrorDetail(BaseModel):
     """Validation error detail."""
 
     field: str
@@ -724,7 +725,7 @@ class ValidateTargetResponse(BaseModel):
     """Response from target validation."""
 
     valid: bool
-    errors: list[ValidationError]
+    errors: list[ValidationErrorDetail]
     warnings: list[ValidationWarning]
     robots_txt_check: dict[str, Any] | None = None
     schema_validation: dict[str, Any] | None = None

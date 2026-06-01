@@ -94,7 +94,7 @@ class PDFAdapter(DataSourceAdapter):
                 _ = pytesseract.get_tesseract_version()
 
             return True
-        except Exception as e:
+        except Exception:
             self.logger.error("Health check failed", error_code="PDF_HEALTH_ERROR")
             return False
 
@@ -143,7 +143,7 @@ class PDFAdapter(DataSourceAdapter):
 
         try:
             return await self._process_pdf(local_path, url or str(local_path), **kwargs)
-        except Exception as e:
+        except Exception:
             self.logger.error("PDF processing failed", path=str(local_path), error_code="PDF_PROCESS_ERROR")
             return None
 
@@ -187,7 +187,7 @@ class PDFAdapter(DataSourceAdapter):
                     attempt=attempt + 1,
                     status_code=e.response.status_code,
                 )
-            except Exception as e:
+            except Exception:
                 # Clean up temp file on any other error
                 if temp_file:
                     temp_file.close()
@@ -308,7 +308,7 @@ class PDFAdapter(DataSourceAdapter):
 
             return full_text, avg_confidence
 
-        except Exception as e:
+        except Exception:
             self.logger.error("OCR extraction failed", error_code="OCR_ERROR")
             return "", None
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError
+
 """Extraction results API routes.
 
 Any user-supplied text forwarded to LLM extraction pipelines must be wrapped
@@ -17,7 +18,7 @@ system instructions.  All extraction callers must enforce this contract.
 from typing import Any
 from unittest.mock import Mock
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 from pydantic import BaseModel, ConfigDict, Field
 
 from layer2_extraction.integration.job_store import build_job_store

@@ -1,11 +1,16 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, ConflictError, NotFoundError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    ConflictError,
+    NotFoundError,
+)
+
 """Signal lifecycle API routes."""
 
 import logging
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Request
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ConfigDict

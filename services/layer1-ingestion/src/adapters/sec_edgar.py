@@ -123,7 +123,7 @@ class SECEdgarAdapter(DataSourceAdapter):
                 response.raise_for_status()
                 return response
 
-            except httpx.HTTPStatusError as e:
+            except httpx.HTTPStatusError:
                 if attempt < self.config.max_retries - 1:
                     wait = 2**attempt  # Exponential backoff
                     self.logger.warning(
@@ -147,7 +147,7 @@ class SECEdgarAdapter(DataSourceAdapter):
                 "GET", f"{self.BASE_URL}/files/company_tickers.json"
             )
             return response.status_code == 200
-        except Exception as e:
+        except Exception:
             self.logger.error("Health check failed", error_code="HEALTH_CHECK_ERROR")
             return False
 
@@ -177,7 +177,7 @@ class SECEdgarAdapter(DataSourceAdapter):
             self.logger.warning("Ticker not found", ticker=ticker)
             return None
 
-        except Exception as e:
+        except Exception:
             self.logger.error("Failed to get CIK", ticker=ticker, error_code="CIK_LOOKUP_ERROR")
             return None
 
@@ -283,7 +283,7 @@ class SECEdgarAdapter(DataSourceAdapter):
 
             return results
 
-        except Exception as e:
+        except Exception:
             self.logger.error("SEC search failed", ticker=ticker, error_code="SEC_SEARCH_ERROR")
             return []
 
@@ -383,7 +383,7 @@ class SECEdgarAdapter(DataSourceAdapter):
                 },
             )
 
-        except Exception as e:
+        except Exception:
             self.logger.error("Failed to fetch document", document_id=document_id, error_code="DOC_FETCH_ERROR")
             return None
 
@@ -416,7 +416,7 @@ class SECEdgarAdapter(DataSourceAdapter):
             })
 
 
-        except Exception as e:
+        except Exception:
             self.logger.debug("XBRL not available", cik=cik, error_code="XBRL_UNAVAILABLE")
             return None
 
@@ -447,7 +447,7 @@ class SECEdgarAdapter(DataSourceAdapter):
 
             return header + text
 
-        except Exception as e:
+        except Exception:
             self.logger.error("HTML to Markdown conversion failed", error_code="HTML_TO_MD_ERROR")
             return f"# SEC Filing: {document_id}\n\n[HTML content conversion failed]"
 

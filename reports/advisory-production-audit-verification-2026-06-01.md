@@ -359,3 +359,101 @@ $ make verify
 **PROD-P0-001 is now resolved.** The canonical readiness gate (`make verify`) is still failing due to pre-existing unresolved merge conflict markers in `.jr/tickets/L3-FACADE-WRAPPER-MIGRATION.md` and `reports/value-fabric-facade-inventory.md`. These are unrelated to the advisory P0 items.
 
 **Do not change `docs/readiness/current.md` to BLOCKED.** The SSRF P0 is fixed, but the canonical gate remains blocked by pre-existing repo-hygiene issues. Once merge conflict markers are resolved and `make verify` passes, readiness can be declared final-pass.
+
+---
+
+## V14.1 Hotfix + V14.2 Medium-Priority Patch Verification
+
+**Scope:** Verify application of V14.1 (4 HIGH-priority issues) and V14.2 (2 MEDIUM-priority issues + bonus) against current working tree.
+
+### H1: tracing-config.yaml — mTLS for OTLP + Jaeger
+
+**Status:** complete
+
+- `packages/shared/src/value_fabric/shared/tracing/tracing-config.yaml`
+- OTLP endpoint changed from `http://` to `https://`
+- Jaeger endpoint changed from `http://` to `https://`
+- `insecure: true` removed
+- `ca_file`, `cert_file`, `key_file` added for mTLS
+- `scripts/ci/ban_str_e.py` includes a runtime check that fails if `insecure: true` is present
+
+### H2: middleware.py — remove `/metrics` from `DEFAULT_PUBLIC_PATHS`
+
+**Status:** complete
+
+- `packages/shared/src/value_fabric/shared/identity/fabric_auth/middleware.py`
+- `DEFAULT_PUBLIC_PATHS` no longer includes `/metrics`
+- `/metrics` now requires auth envelope verification
+
+### H3: `enforce_tenant_context=False` → `True` in 5 services
+
+**Status:** complete
+
+Verified in all 5 services:
+
+| Service | File | Line |
+|---|---|---|
+| layer1-ingestion | `services/layer1-ingestion/src/layer1_ingestion/api/main.py` | 309 |
+| layer2-5-signal-refinery | `services/layer2-5-signal-refinery/src/layer2_5_signal_refinery/api/main.py` | 149 |
+| layer5-ground-truth | `services/layer5-ground-truth/src/layer5_ground_truth/api/main.py` | 487 |
+| layer6-benchmarks | `services/layer6-benchmarks/src/layer6_benchmarks/api/main.py` | 233 |
+| layer7-billing | `services/layer7-billing/src/layer7_billing/api/main.py` | 89 |
+
+### H4: postgres-backup-cronjob.yaml — hostname fix + WAL-G staging
+
+**Status:** partially complete by design
+
+- **Hostname fix:** `pg_dump` now uses `postgres-patroni` instead of `postgres` (line 66). Complete.
+- **WAL-G infrastructure:** Present (service account `wal-g-backup`, ConfigMap `wal-g-config`, `wal-g backup-push` logic, retention enforcement). Complete.
+- **`ENABLE_WALG_BACKUP`:** Intentionally `"false"`. WAL-G MUST NOT be enabled until backup-push and restore validation both pass and restore evidence is captured.
+- **Documentation:** CronJob header now documents the active pg_dump path, the staged WAL-G path, and a 6-item enablement checklist (service account/IRSA, ConfigMap, S3 reachability, backup-push success, restore drill, evidence capture).
+
+**Rationale for keeping WAL-G disabled:**
+- The hostname fix to `postgres-patroni` is safe and should remain.
+- WAL-G infrastructure being present is good, but enabling it changes the active backup path.
+- We should not replace or activate a physical/WAL backup path until restore validation exists.
+- The existing `pg_dump` backup path should remain the baseline logical backup path until WAL-G backup and restore are both proven.
+
+**WAL-G is NOT production-ready.** Do not enable until restore evidence exists.
+
+### M3: index.html — add OTel endpoint to CSP connect-src
+
+**Status:** complete
+
+- `apps/web/index.html`
+- CSP `connect-src` now includes:
+  - `https://*.fabric4l.io`
+  - `https://otel-collector.monitoring.svc.cluster.local`
+
+### M4: index.html — add PWA manifest link
+
+**Status:** complete
+
+- `apps/web/index.html`
+- `<link rel="manifest" href="/manifest.json" />` added in `<head>`
+
+### Bonus: ban_str_e.py — add tracing-config.yaml insecure check
+
+**Status:** complete
+
+- `scripts/ci/ban_str_e.py`
+- After the main str(e)/repr(e) scan, the script now reads `packages/shared/src/value_fabric/shared/tracing/tracing-config.yaml`
+- If `insecure: true` is found, it prints an ERROR and exits 1
+- This provides a CI-level guard against regression of H1
+
+---
+
+## V14 Patch Verification Summary
+
+| Patch | Issue | Status |
+|---|---|---|
+| V14.1 H1 | tracing-config mTLS | **complete** |
+| V14.1 H2 | `/metrics` removed from public paths | **complete** |
+| V14.1 H3 | `enforce_tenant_context=True` in 5 services | **complete** |
+| V14.1 H4 | postgres-patroni hostname fix | **complete** |
+| V14.1 H4 | WAL-G staged, disabled pending restore validation | **intentionally held** |
+| V14.2 M3 | CSP connect-src OTel endpoints | **complete** |
+| V14.2 M4 | PWA manifest link | **complete** |
+| V14.2 Bonus | ban_str_e.py tracing-config insecure guard | **complete** |
+
+**Readiness impact:** None of the above items block readiness. H1–H3 and M3–M4 are fully applied. H4 WAL-G remains a future release-gate item contingent on restore validation evidence.

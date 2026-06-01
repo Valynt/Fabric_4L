@@ -122,6 +122,7 @@ ignore = [
     "N801",   # Auto-generated TypedDictModel result classes use snake_case names
     "UP042",  # Use `StrEnum` instead of `(str, enum.Enum)` – pre-existing pattern
     "UP007",  # Use `X | Y` for union types
+    "TID252", # Prefer absolute imports over relative parent imports – 220 pre-existing occurrences; requires dedicated migration pass
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]

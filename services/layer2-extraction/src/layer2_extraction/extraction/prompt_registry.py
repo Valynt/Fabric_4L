@@ -7,7 +7,6 @@ ensuring prompt/template version lineage is first-class persisted extraction met
 from __future__ import annotations
 
 import hashlib
-import json
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from typing import Any

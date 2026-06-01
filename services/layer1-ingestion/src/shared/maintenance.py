@@ -23,20 +23,20 @@ Usage:
 
 
 import os
+import uuid
+from collections.abc import Generator
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Generator
+from typing import Any
 
 import structlog
 from value_fabric.shared.error_handling import sanitize_log_error
 
 from .exceptions import (
     SystemMaintenanceAuthorizationError,
-    TenantContextError,
 )
-import uuid
 
 logger = structlog.get_logger()
 

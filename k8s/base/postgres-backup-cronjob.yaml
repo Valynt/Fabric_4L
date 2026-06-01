@@ -2,7 +2,27 @@
 # Runs daily at 2 AM UTC
 # Backs up all application databases (ingestion, extraction, signal_refinery,
 # layer4_agents, ground_truth, benchmarks, layer7_billing)
-# Retains backups for 7 days
+#
+# BACKUP STRATEGY (as of V14.1 hotfix):
+#   ACTIVE PATH: pg_dump logical backups to PVC (retained 7 days).
+#   pg_dump uses the postgres-patroni hostname for consistency with the
+#   Patroni-managed Postgres service.
+#
+#   STAGED PATH: WAL-G physical base backup to S3 (DISABLED).
+#   WAL-G infrastructure is present (service account, config map, image) but
+#   ENABLE_WALG_BACKUP is intentionally "false". WAL-G MUST NOT be enabled
+#   until backup-push and restore validation both pass and restore evidence
+#   is captured.
+#
+# WAL-G ENABLEMENT CHECKLIST (complete all before setting ENABLE_WALG_BACKUP="true"):
+#   [ ] service account / IRSA confirmed (wal-g-backup SA + IAM role)
+#   [ ] WAL-G config map mounted (wal-g-config ConfigMap with S3 bucket, region, etc.)
+#   [ ] S3 destination reachable from cluster (network policy + IAM permissions)
+#   [ ] wal-g backup-push succeeds in a manual / canary run
+#   [ ] restore drill succeeds (restore to a test instance, verify data integrity)
+#   [ ] restore evidence captured (logs, checksums, sign-off in runbook)
+#
+# Retains pg_dump backups for 7 days
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

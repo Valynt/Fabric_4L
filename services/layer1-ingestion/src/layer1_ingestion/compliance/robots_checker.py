@@ -14,18 +14,17 @@ import structlog
 from protego import Protego
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..shared.circuit_breaker import get_circuit_breaker_manager
 from ..shared.config import settings
 from ..shared.database import get_db_session
-from ..shared.models import RobotsTxtCache
 from ..shared.exceptions import (
-    RobotsCheckerError,
+    InvalidTenantContextError,
     RobotsCacheError,
     RobotsFetchError,
     RobotsParseError,
     TenantContextError,
-    InvalidTenantContextError,
 )
-from ..shared.circuit_breaker import get_circuit_breaker_manager
+from ..shared.models import RobotsTxtCache
 
 
 class RobotsChecker__get_robots_txtResult(TypedDictModel):
@@ -192,7 +191,7 @@ class RobotsChecker:
 
             return True, None, rules
 
-        except Exception as e:
+        except Exception:
             self.logger.error(
                 "robots compliance decision",
                 domain=domain,
@@ -341,7 +340,7 @@ class RobotsChecker:
         if self.tenant_id:
             try:
                 tenant_uuid = UUID(self.tenant_id)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 raise InvalidTenantContextError(
                     f"Invalid tenant_id format: {self.tenant_id}",
                     tenant_id=self.tenant_id
@@ -358,7 +357,7 @@ class RobotsChecker:
                     .filter(
                         RobotsTxtCache.domain == domain,
                         RobotsTxtCache.expires_at > datetime.now(UTC),
-                        RobotsTxtCache.is_valid == True,
+                        RobotsTxtCache.is_valid.is_(True),
                     )
                 )
                 
@@ -419,7 +418,7 @@ class RobotsChecker:
         if self.tenant_id:
             try:
                 tenant_uuid = UUID(self.tenant_id)
-            except (ValueError, TypeError) as e:
+            except (ValueError, TypeError):
                 raise InvalidTenantContextError(
                     f"Invalid tenant_id format: {self.tenant_id}",
                     tenant_id=self.tenant_id

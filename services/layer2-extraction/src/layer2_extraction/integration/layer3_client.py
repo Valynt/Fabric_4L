@@ -149,7 +149,7 @@ class Layer3KnowledgeClient:
             data = response.json()
             self._circuit.record_success()
             return IngestionResponse(**data)
-        except Exception as exc:
+        except Exception:
             self._circuit.record_failure()
             return IngestionResponse(
                 success=False,
@@ -186,7 +186,7 @@ class Layer3KnowledgeClient:
             data = response.json()
             self._circuit.record_success()
             return [IngestionResponse(**r) for r in data.get("results", [])]
-        except Exception as exc:
+        except Exception:
             self._circuit.record_failure()
             return [
                 IngestionResponse(
@@ -205,7 +205,7 @@ class Layer3KnowledgeClient:
             )
             data = response.json()
             return IngestionStatus(**data)
-        except Exception as exc:
+        except Exception:
             return IngestionStatus(
                 ingestion_id=ingestion_id,
                 status="error",

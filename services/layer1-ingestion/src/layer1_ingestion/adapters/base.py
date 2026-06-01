@@ -178,7 +178,7 @@ class DataSourceAdapter(ABC):
                 if self.config.rate_limit_per_second > 0:
                     await asyncio.sleep(1.0 / self.config.rate_limit_per_second)
 
-            except Exception as e:
+            except Exception:
                 self.logger.error("Failed to fetch document", document_id=doc_id, error_code="DOC_FETCH_ERROR")
                 continue
 

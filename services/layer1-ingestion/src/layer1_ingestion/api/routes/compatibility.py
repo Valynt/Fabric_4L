@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Compatibility and shared security probe routes for Layer 1."""
 
 
@@ -9,7 +15,7 @@ from hashlib import sha256
 from typing import Any
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi import APIRouter, Depends, Request, Response
 from value_fabric.shared.identity import RequestContext, Role, require_authenticated, require_role
 from value_fabric.shared.observability.logging import get_logger
 

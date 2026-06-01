@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import hashlib
 import re
-from uuid import NAMESPACE_URL, uuid5
 from typing import Any
+from uuid import NAMESPACE_URL, uuid5
 
 
 def _normalize_text(text: str | None) -> str:

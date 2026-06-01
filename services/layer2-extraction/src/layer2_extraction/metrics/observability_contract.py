@@ -9,7 +9,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-
 # Required structured log fields for all extraction operations
 _REQUIRED_LOG_FIELDS = {
     "tenant_id",

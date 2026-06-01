@@ -10,7 +10,8 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
-from jsonschema import ValidationError as JsonSchemaValidationError, validate as jsonschema_validate
+from jsonschema import ValidationError as JsonSchemaValidationError
+from jsonschema import validate as jsonschema_validate
 from pydantic import BaseModel, ValidationError
 
 
@@ -220,7 +221,7 @@ def validate_for_persistence(artifacts: Any) -> None:
     else:
         try:
             validate_extraction_result(result)
-        except ArtifactValidationError as exc:
+        except ArtifactValidationError:
             errors.append("validation_failed")
 
         if not getattr(result, "tenant_id", None):

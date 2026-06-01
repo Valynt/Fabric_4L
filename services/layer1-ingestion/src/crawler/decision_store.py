@@ -235,7 +235,7 @@ class CrawlDecisionRepository:
                 job_id=record.job_id,
                 final_path=record.final_path,
             )
-        except Exception as e:
+        except Exception:
             self.logger.error(
                 "Failed to save decision record",
                 decision_id=record.decision_id,

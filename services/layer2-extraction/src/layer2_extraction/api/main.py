@@ -1,4 +1,9 @@
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
+
 """FastAPI application for Layer 2: Extraction Pipeline.
 
 Provides REST API endpoints for:
@@ -13,14 +18,15 @@ P1-29: OpenTelemetry tracing integration for observability.
 import asyncio
 import hashlib
 import json
-import logging
 import os
-import structlog
 import time
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass
 from datetime import UTC, datetime
-from typing import Any, AsyncGenerator
+from typing import Any
 from uuid import uuid4
+
+import structlog
 
 # Third-party imports for health check
 try:
@@ -63,15 +69,33 @@ except Exception as exc:
     if is_production_like_environment(_secret_env):
         raise RuntimeError("Failed to load Infisical secrets in production-like Layer 2 runtime")
 
+from value_fabric.shared.fastapi_framework import (
+    EnforcementControlConfig,
+    EnforcementMode,
+    EnforcementRolloutConfig,
+    HealthChecksConfig,
+)
+from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
+
 from layer2_extraction.alignment import SemanticAligner
+from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
 from layer2_extraction.api.websocket import PipelineStage, get_pipeline_ws_manager
 from layer2_extraction.extraction.chunker import chunk_markdown
 from layer2_extraction.extraction.deduplicator import deduplicate_entities
-from layer2_extraction.extraction.llm_extractor import EntityExtractor, LLMExtractionError, RelationshipExtractor
+from layer2_extraction.extraction.llm_extractor import (
+    EntityExtractor,
+    LLMExtractionError,
+    RelationshipExtractor,
+)
 from layer2_extraction.extraction.prompt_loader import (
     ENTITY_PROMPT_TEMPLATE_VERSION,
     RELATIONSHIP_PROMPT_TEMPLATE_VERSION,
 )
+
+# Module-level prompt template metadata (referenced throughout extraction pipeline)
+prompt_template_version = f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}"
+prompt_template_hash: str | None = None
+
 from layer2_extraction.integration.job_store import JobStore, PipelineJob, build_job_store
 from layer2_extraction.integration.layer3_client import Layer3KnowledgeClient
 from layer2_extraction.integration.pending_ingestion_store import (
@@ -91,22 +115,17 @@ from layer2_extraction.output.provenance import (
     get_provenance_tracker,
 )
 from layer2_extraction.output.rdf_generator import generate_rdf
+from layer2_extraction.shared_bootstrap import (
+    create_fabric_app,
+    register_health_endpoint,
+    verify_metrics_access,
+)
 from layer2_extraction.validation import EntailmentValidator, ValidationSeverity
 from layer2_extraction.validation.artifact_validator import (
     ArtifactValidationError,
-    validate_for_persistence,
     validate_extraction_result,
+    validate_for_persistence,
     validate_relationship_for_persistence,
-)
-
-from layer2_extraction.shared_bootstrap import verify_metrics_access, create_fabric_app, register_health_endpoint
-from layer2_extraction.api.routes.signal_lifecycle import router as signal_lifecycle_router
-from value_fabric.shared.fastapi_framework.health import RedisHealthProbe
-from value_fabric.shared.fastapi_framework import (
-    EnforcementControlConfig,
-    EnforcementMode,
-    EnforcementRolloutConfig,
-    HealthChecksConfig,
 )
 
 
@@ -1338,7 +1357,7 @@ async def run_extract_and_ingest(
 
     try:
         validate_for_persistence(artifacts)
-    except ArtifactValidationError as exc:
+    except ArtifactValidationError:
         await _quarantine_validation_failure(
             tenant_id=str(config.get("tenant_id", "")),
             job_id=job_id,
@@ -1452,7 +1471,7 @@ async def health_check():
 
             if not l3_healthy:
                 overall_status = "degraded"
-        except Exception as e:
+        except Exception:
             dependencies.append(
                 {
                     "name": "layer3_knowledge",
@@ -1950,8 +1969,3 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(app, host="0.0.0.0", port=8000)
-    prompt_template_version = config.get(
-        "prompt_template_version",
-        f"{ENTITY_PROMPT_TEMPLATE_VERSION}+{RELATIONSHIP_PROMPT_TEMPLATE_VERSION}",
-    )
-    prompt_template_hash = config.get("prompt_template_hash")

@@ -173,7 +173,7 @@ class PIIScanner:
 
             self.logger.info("PII scanner initialized with Presidio")
 
-        except Exception as e:
+        except Exception:
             self.logger.error("Failed to initialize Presidio engines", error_code="PRESIDIO_INIT_ERROR")
             self._analyzer = None
             self._anonymizer = None
@@ -229,7 +229,7 @@ class PIIScanner:
 
             return scan_result
 
-        except Exception as e:
+        except Exception:
             self.logger.error("PII scan failed", error_code="PII_SCAN_ERROR")
             return PIIScanResult(
                 text_hash=self._hash_text(text), has_pii=False, scan_timestamp=datetime.now(UTC)
@@ -304,7 +304,7 @@ class PIIScanner:
 
             return anonymized.text
 
-        except Exception as e:
+        except Exception:
             self.logger.error("Anonymization failed", error_code="ANONYMIZATION_ERROR")
             return text
 

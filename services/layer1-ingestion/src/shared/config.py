@@ -216,7 +216,7 @@ class Settings(BaseSettings):
 
         try:
             validate_exact_cors_origins(self.cors_origins, production_like=production_like)
-        except ValueError as exc:
+        except ValueError:
             errors.append("config_validation_failed")
 
         if errors:

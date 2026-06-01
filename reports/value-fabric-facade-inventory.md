@@ -103,7 +103,6 @@ The `value_fabric/` directory is **not merely a legacy compatibility shim**. It 
 |-------|------|-----------------|
 | 1 | 2 | `"""Migrate L1 test imports from value_fabric.layer1.* to layer1_ingestion.*."""` |
 
-<<<<<<< HEAD
 ### `scripts\migrate_l4_test_imports_canonical.py` (ci_script)
 
 **Total imports**: 1
@@ -111,9 +110,6 @@ The `value_fabric/` directory is **not merely a legacy compatibility shim**. It 
 | Layer | Line | Import Statement |
 |-------|------|-----------------|
 | 4 | 2 | `"""Migrate L4 test imports from value_fabric.layer4.* to layer4_agents.*."""` |
-
-=======
->>>>>>> f43ab27b (```)
 ### `scripts\migrate_l6_test_imports_canonical.py` (ci_script)
 
 **Total imports**: 1

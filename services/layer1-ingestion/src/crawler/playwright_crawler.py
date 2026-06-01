@@ -21,9 +21,9 @@ from urllib.parse import urljoin, urlparse
 import structlog
 from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
+from ..compliance.url_safety import validate_url_safety
 from .browser_pool import BrowserPool, get_browser_pool
 from .crawler_config import CrawlerConfig, load_config
-from ..compliance.url_safety import validate_url_safety
 from .telemetry import (
     CrawlMetrics,
     get_tracer,
@@ -250,7 +250,7 @@ class PlaywrightCrawler:
                             await page.wait_for_selector(
                                 wait_for_selector, timeout=wait_for_timeout
                             )
-                        except Exception as e:
+                        except Exception:
                             logger.warning(
                                 "Wait selector timeout",
                                 url=url,
@@ -305,7 +305,7 @@ class PlaywrightCrawler:
                         scroll_triggered=scroll_triggered,
                     )
 
-                except Exception as e:
+                except Exception:
                     duration_ms = int((time.time() - start_time) * 1000)
 
                     # Record failure metrics
@@ -450,7 +450,7 @@ class PlaywrightCrawler:
             # Delay after scrolling from config
             await asyncio.sleep(self.config.scroll_delay_after_ms / 1000)
             return True
-        except Exception as e:
+        except Exception:
             logger.warning("Page scroll failed", error_code="SCROLL_ERROR")
             return False
 

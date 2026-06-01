@@ -12,8 +12,8 @@ from typing import Any, TypeVar
 
 from pydantic import BaseModel, ValidationError
 
-from layer2_extraction.metrics import get_metrics
 from layer2_extraction.extraction.entity_id import compute_deterministic_id, compute_source_hash
+from layer2_extraction.metrics import get_metrics
 from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 # Type variable for generic extraction

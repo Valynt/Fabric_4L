@@ -172,10 +172,10 @@ class XBRLParser:
 
             return result
 
-        except ET.ParseError as e:
+        except ET.ParseError:
             self.logger.error("XBRL XML parse error", error_code="XBRL_PARSE_ERROR")
             return ParsedXBRL()
-        except Exception as e:
+        except Exception:
             self.logger.error("XBRL parsing failed", error_code="XBRL_PARSING_ERROR")
             return ParsedXBRL()
 

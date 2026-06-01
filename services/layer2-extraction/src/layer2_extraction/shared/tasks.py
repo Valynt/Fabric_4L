@@ -132,8 +132,8 @@ async def extract_entities_task(self, job_id: str, content: str, config: dict):
 
     try:
         # Import here to avoid circular dependencies
-        from layer2_extraction.extraction.llm_extractor import EntityExtractor
         from layer2_extraction.extraction.chunker import chunk_markdown
+        from layer2_extraction.extraction.llm_extractor import EntityExtractor
 
         # Chunk content
         chunks = chunk_markdown(content, source_url=config.get("source_url", ""), chunk_size=2000, chunk_overlap=200)

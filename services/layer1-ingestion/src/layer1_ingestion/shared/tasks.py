@@ -4,7 +4,6 @@ Spec-compliant pipeline stage tasks with multi-tenancy support.
 Manages ScrapingJob lifecycle through 11 PipelineStages.
 """
 
-import asyncio
 import hashlib
 import time
 from datetime import UTC, datetime, timedelta
@@ -39,14 +38,13 @@ from ..crawler.smart_router import RouteType, SmartRouter
 
 if TYPE_CHECKING:
     from ..crawler.httpx_crawler import FastPathResult
-from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.error_handling import sanitize_log_error
+from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from ..shared.config import settings
 from ..metrics.prometheus_metrics import get_metrics
+from ..shared.config import settings
 from ..shared.database import get_db_session
 from ..shared.maintenance import authorize_maintenance_operation, maintenance_audit_log
-from sqlalchemy import text
 from ..shared.models import (
     AccountIntelligencePacket,
     ComplianceEventType,
@@ -1994,7 +1992,7 @@ def _enumerate_authorized_tenants_for_cleanup() -> list[UUID]:
             tenant_ids = [
                 row[0]
                 for row in session.query(TenantRegistry.tenant_id)
-                .filter(TenantRegistry.is_active == True)
+                .filter(TenantRegistry.is_active.is_(True))
                 .all()
             ]
         record.rows_affected = len(tenant_ids)
@@ -2033,7 +2031,7 @@ def cleanup_old_content(days: int = 30, tenant_id: str = None):
     if tenant_id:
         try:
             tenant_uuid = UUID(tenant_id)
-        except (ValueError, TypeError) as e:
+        except (ValueError, TypeError):
             raise InvalidTenantContextError(
                 f"Invalid tenant_id format: {tenant_id}",
                 tenant_id=tenant_id

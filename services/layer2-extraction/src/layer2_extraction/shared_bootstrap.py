@@ -1,8 +1,10 @@
 from __future__ import annotations
+
 import sys
+from collections.abc import Callable
 from importlib import import_module
 from pathlib import Path
-from typing import Any, Callable, cast
+from typing import Any, cast
 
 
 def _resolve_shared_src() -> Path | None:

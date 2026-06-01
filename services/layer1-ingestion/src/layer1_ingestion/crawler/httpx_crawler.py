@@ -305,7 +305,7 @@ class HttpxCrawler:
                     retry_count=retry_count,
                 )
 
-            except httpx.TimeoutException as e:
+            except httpx.TimeoutException:
                 fetch_time = int((time.monotonic() - start_time) * 1000)
                 if attempt < max_attempts - 1:
                     retry_count += 1
@@ -554,7 +554,7 @@ class HttpxCrawler:
 
             return unique_links
 
-        except Exception as e:
+        except Exception:
             self.logger.warning("Link extraction failed", error_code="LINK_EXTRACTION_ERROR")
             return []
 
