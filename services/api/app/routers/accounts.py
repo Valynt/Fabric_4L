@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 import hashlib
+import logging
 import secrets
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
@@ -31,6 +32,7 @@ from value_fabric.shared.idempotency import (
 from app.core.redis_client import get_redis_client
 
 router = APIRouter(prefix="/accounts", tags=["Accounts"])
+logger = logging.getLogger(__name__)
 
 _redis = get_redis_client()
 if _redis is not None:
@@ -74,7 +76,8 @@ async def create_account(account: Account, request: Request, tenant_id: str = De
         try:
             replay = _idempotency_service.check_replay(replay_request)
         except IdempotencyConflictError as exc:
-            raise ConflictError(message=str(exc))
+            logger.warning("idempotency_conflict", exc_info=True, extra={"endpoint": "POST:/v1/accounts", "tenant_id": tenant_id})
+            raise ConflictError(message="Idempotency conflict detected")
         if replay:
             headers = dict(replay.headers)
             headers["X-Idempotent-Replay"] = "true"
@@ -125,7 +128,8 @@ async def update_account(
         try:
             replay = _idempotency_service.check_replay(replay_request)
         except IdempotencyConflictError as exc:
-            raise ConflictError(message=str(exc))
+            logger.warning("idempotency_conflict", exc_info=True, extra={"endpoint": "PATCH:/v1/accounts/{account_id}", "tenant_id": tenant_id})
+            raise ConflictError(message="Idempotency conflict detected")
         if replay:
             headers = dict(replay.headers)
             headers["X-Idempotent-Replay"] = "true"

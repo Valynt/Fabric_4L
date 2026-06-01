@@ -21,6 +21,6 @@ async def persist_workflow_failure(*, state_manager: Any, workflow_id: str, init
     failed.completed_at = datetime.now(UTC)
     # Server-side: log full repr for diagnostics; persistence gets sanitized/truncated entry
     logger.error("workflow_failure_persisted", exc_info=exc)
-    sanitized = f"{type(exc).__name__}: {str(exc)[:200]}"
+    sanitized = f"{type(exc).__name__}: workflow_failure"
     failed.errors.append(sanitized)
     await state_manager.save_state(workflow_id, failed)

@@ -614,7 +614,7 @@ class OrchestrationController:
                 validate_reasoning_trace(result.reasoning_trace, strict=True)
             except ValueError as exc:
                 result.status = WorkflowStatus.FAILED
-                result.errors.append(f"{type(exc).__name__}: {str(exc)[:200]}")
+                result.errors.append(f"{type(exc).__name__}: reasoning_trace_invalid")
                 lifecycle_logger.emit(
                     stage="reasoning_trace_invalid",
                     context=self._lifecycle_context(workflow_id),

@@ -493,7 +493,7 @@ class ROICalculatorWorkflow(BaseWorkflow):
                         None,
                         {},
                         CONFIDENCE_NONE,
-                        [f"{type(exc).__name__}: {str(exc)[:200]}"],
+                        [f"{type(exc).__name__}: formula_evaluation_failed"],
                     )
                 )
 
