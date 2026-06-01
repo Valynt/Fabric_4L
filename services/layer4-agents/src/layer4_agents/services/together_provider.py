@@ -56,6 +56,20 @@ _JSON_MODE_SUPPORTED_MODELS: frozenset[str] = frozenset({
 })
 
 
+def _is_400_error(exc: Exception) -> bool:
+    """Detect 400/BadRequest across different exception wrappers."""
+    status = getattr(exc, "status_code", None)
+    if status == 400:
+        return True
+    response = getattr(exc, "response", None)
+    if response is not None:
+        status = getattr(response, "status_code", None)
+        if status == 400:
+            return True
+    # Safe text fallback for wrappers that don't expose status_code
+    return "400" in str(exc)
+
+
 class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
     """Together.ai-backed provider using the OpenAI-compatible API."""
 
@@ -193,7 +207,7 @@ class TogetherAIProvider(StructuredOutputAdapter, ToolCallingAdapter):
             return parse_llm_json(content, call_site="together_provider.extract_structured")
         except Exception as exc:
             # If json_object mode caused a 400, retry without it
-            if use_json_mode and ("400" in str(exc) or "bad request" in str(exc).lower()):
+            if use_json_mode and _is_400_error(exc):
                 logger.warning(
                     "json_object mode rejected for model %s, retrying without it",
                     request.model,

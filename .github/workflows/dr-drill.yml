@@ -68,9 +68,17 @@ jobs:
       - name: Check backup integrity (checksum)
         run: |
           echo "Verifying backup checksums..."
-          # Verify pg_dump custom format header
-          aws s3 cp s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/latest/backup.dump - --range bytes=0-19 | \
-            od -A x -t x1z | head -1
+          # Verify pg_dump custom format header (magic bytes: PGDMP)
+          HEADER=$(aws s3 cp s3://${{ secrets.DR_BACKUP_BUCKET }}/postgres/latest/backup.dump - --range bytes=0-19 | head -c 5)
+          if [ -z "$HEADER" ]; then
+            echo "ERROR: Could not read backup header"
+            exit 1
+          fi
+          if ! echo "$HEADER" | grep -q "^PGDMP"; then
+            echo "ERROR: Invalid backup header: '$HEADER' (expected PGDMP)"
+            exit 1
+          fi
+          echo "Backup header verified: $HEADER"
 
       - name: Validate RTO/RPO targets
         run: |
@@ -138,7 +146,7 @@ jobs:
           echo "Running consistency checks on restored data..."
           kubectl run dr-consistency-check -n dr-pitr-test --rm -i --restart=Never \
             --image=postgres:16 \
-            -- psql postgres://... -c "SELECT COUNT(*) FROM tenants;"
+            -- psql "${DATABASE_URL}?sslmode=require" -c "SELECT COUNT(*) FROM tenants;"
 
       - name: Cleanup recovery environment
         if: always()
@@ -177,7 +185,7 @@ jobs:
       - name: Verify application connectivity
         run: |
           kubectl run dr-connectivity-test -n value-fabric --rm -i --restart=Never \
-            --image=busybox -- wget -qO- http://api-gateway.value-fabric.svc.cluster.local/health
+            --image=curlimages/curl -- curl -sf http://api-gateway.value-fabric.svc.cluster.local/health || exit 1
 
       - name: Failback to primary
         run: |

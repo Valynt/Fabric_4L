@@ -235,7 +235,7 @@ async def create_account(
             account_id=request.id,
         )
     except ValueError as exc:
-        logger.warning("account_create_conflict", extra={"error": str(exc)})
+        logger.warning("account_create_conflict", extra={"error_type": type(exc).__name__})
         raise ConflictError(message="Account creation conflict") from exc
     except IntegrityError as exc:
         raise ConflictError(message="Account already exists") from exc

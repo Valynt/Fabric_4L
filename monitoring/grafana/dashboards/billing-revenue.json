@@ -1,0 +1,83 @@
+{
+  "dashboard": {
+    "title": "Billing & Revenue",
+    "tags": ["billing", "revenue", "business"],
+    "timezone": "UTC",
+    "schemaVersion": 36,
+    "refresh": "1m",
+    "panels": [
+      {
+        "title": "Monthly Recurring Revenue (MRR)",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 0, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(billing_mrr_usd{tenant_id!=\"\"})",
+            "legendFormat": "MRR"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "currencyUSD"}
+        }
+      },
+      {
+        "title": "Active Subscriptions",
+        "type": "stat",
+        "gridPos": {"h": 4, "w": 6, "x": 6, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(billing_active_subscriptions_total)",
+            "legendFormat": "Active"
+          }
+        ]
+      },
+      {
+        "title": "API Usage (Metered)",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "targets": [
+          {
+            "expr": "sum(rate(billing_api_calls_total[5m])) by (tier)",
+            "legendFormat": "{{tier}}"
+          }
+        ]
+      },
+      {
+        "title": "Payment Failures",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 4},
+        "targets": [
+          {
+            "expr": "sum(rate(billing_payment_failure_total[5m])) by (reason)",
+            "legendFormat": "{{reason}}"
+          }
+        ]
+      },
+      {
+        "title": "Revenue by Plan",
+        "type": "piechart",
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "targets": [
+          {
+            "expr": "sum(billing_mrr_usd) by (plan)",
+            "legendFormat": "{{plan}}"
+          }
+        ]
+      },
+      {
+        "title": "Stripe Webhook Latency",
+        "type": "timeseries",
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 16},
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, sum(rate(billing_stripe_webhook_duration_bucket[5m])) by (le))",
+            "legendFormat": "p95"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {"unit": "s"}
+        }
+      }
+    ]
+  }
+}

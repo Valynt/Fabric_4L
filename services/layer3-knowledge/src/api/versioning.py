@@ -367,13 +367,8 @@ class VersionCompatibility:
             try:
                 handler_result = handler(result)
                 if inspect.isawaitable(handler_result):
-                    try:
-                        loop = asyncio.get_running_loop()
-                        # Already in async context - schedule as task
-                        result = await handler_result
-                    except RuntimeError:
-                        # No running loop - use asyncio.run for sync contexts
-                        result = asyncio.run(handler_result)
+                    # Always await in async context (FastAPI handler)
+                    result = await handler_result
                 else:
                     result = handler_result
             except Exception as e:

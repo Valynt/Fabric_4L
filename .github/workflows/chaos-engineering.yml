@@ -12,6 +12,8 @@ on:
         options: [pod-delete, network-partition, pod-cpu-hog, pod-memory-hog]
 env:
   NAMESPACE: value-fabric
+  PROM_NS: value-fabric
+  PROM_LABEL: app.kubernetes.io/name=prometheus
 jobs:
   pod-delete:
     runs-on: ubuntu-latest
@@ -22,7 +24,39 @@ jobs:
         run: |
           kubectl apply -f k8s/chaos/litmus-experiments/pod-delete.yaml
           kubectl wait --for=condition=complete job/chaos-pod-delete -n ${{ env.NAMESPACE }} --timeout=300s
-      - name: Validate SLO
+      - name: Validate SLO after chaos
         run: |
+          echo "=== Waiting for chaos to settle ==="
           sleep 60
-          echo "SLO validation complete"
+          echo "=== Discovering Prometheus pod ==="
+          PROM_POD=$(kubectl get pod -n ${{ env.PROM_NS }} -l ${{ env.PROM_LABEL }} -o jsonpath='{.items[0].metadata.name}')
+          if [ -z "$PROM_POD" ]; then
+            echo "ERROR: Prometheus pod not found with label ${{ env.PROM_LABEL }} in ns ${{ env.PROM_NS }}"
+            exit 1
+          fi
+          echo "Using Prometheus pod: $PROM_POD"
+          echo "=== Querying Prometheus for SLO metrics ==="
+          ERROR_RATE=$(kubectl exec -n ${{ env.PROM_NS }} pod/$PROM_POD -- wget -qO- "http://localhost:9090/api/v1/query?query=sum(rate(http_requests_total{status=~\"5..\"}[5m]))/sum(rate(http_requests_total[5m]))" | jq -r ".data.result[0].value[1] // 0")
+          P95_LATENCY=$(kubectl exec -n ${{ env.PROM_NS }} pod/$PROM_POD -- wget -qO- "http://localhost:9090/api/v1/query?query=histogram_quantile(0.95,sum(rate(http_request_duration_seconds_bucket[5m]))by(le))" | jq -r ".data.result[0].value[1] // 0")
+          AVAILABILITY=$(kubectl exec -n ${{ env.PROM_NS }} pod/$PROM_POD -- wget -qO- "http://localhost:9090/api/v1/query?query=sum(rate(http_requests_total{status!~\"5..\"}[5m]))/sum(rate(http_requests_total[5m]))" | jq -r ".data.result[0].value[1] // 0")
+          export ERROR_RATE P95_LATENCY AVAILABILITY
+          echo "error_rate=$ERROR_RATE p95=$P95_LATENCY availability=$AVAILABILITY"
+          python3 - <<'PY'
+          import sys, os
+          er = float(os.environ.get('ERROR_RATE', '0'))
+          p95 = float(os.environ.get('P95_LATENCY', '0'))
+          avail = float(os.environ.get('AVAILABILITY', '0'))
+          failed = False
+          if er > 0.01:
+            print(f"SLO VIOLATION: Error rate {er} > 1%")
+            failed = True
+          if p95 > 1.0:
+            print(f"SLO VIOLATION: p95 latency {p95}s > 1s")
+            failed = True
+          if avail < 0.999:
+            print(f"SLO VIOLATION: Availability {avail} < 99.9%")
+            failed = True
+          if failed:
+            sys.exit(1)
+          print("All SLO checks passed")
+          PY

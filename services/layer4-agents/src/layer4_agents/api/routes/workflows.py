@@ -671,7 +671,7 @@ async def resume_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            logger.warning("workflow_resume_value_error", extra={"error": str(exc)})
+            logger.warning("workflow_resume_value_error", extra={"error_type": type(exc).__name__})
             raise NotFoundError(message = "Workflow not found")
         if isinstance(exc, CheckpointConflictError):
             raise_normalized_with_log(
@@ -764,7 +764,7 @@ async def pause_workflow(
         )
     except Exception as exc:
         if isinstance(exc, ValueError):
-            logger.warning("workflow_pause_value_error", extra={"error": str(exc)})
+            logger.warning("workflow_pause_value_error", extra={"error_type": type(exc).__name__})
             raise NotFoundError(message = "Workflow not found")
         raise_normalized_with_log(
             exc,

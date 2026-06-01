@@ -635,7 +635,7 @@ def _handle_webhook_error(
     if event_count:
         extra["event_count"] = event_count
 
-    logger.error(f"Failed to process {provider} webhook: {type(error).__name__}: {str(error)}", extra=extra)
+    logger.error(f"Failed to process {provider} webhook: {type(error).__name__}", extra={**extra, "error_type": type(error).__name__})
 
     # Build resource_id based on provider and available context
     resource_id = record_id or f"{provider}_{event_count}_events"

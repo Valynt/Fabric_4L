@@ -467,7 +467,7 @@ def validate_tenant_id(tenant_id: UUID | str | None) -> str:
             _tenant_validation_metrics["validation_failures"] += 1
             # Re-raise as local TenantContextError for a stable exception contract.
             if not isinstance(exc, TenantContextError):
-                raise TenantContextError(str(exc)) from exc
+                raise TenantContextError(f"{type(exc).__name__}: tenant_context_failed") from exc
             raise
 
     # Fallback to local implementation

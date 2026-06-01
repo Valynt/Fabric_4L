@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
+import logging
 from typing import Any
 
 from ..models.agent_state import WorkflowStatus
+
+logger = logging.getLogger(__name__)
 
 
 async def mark_workflow_running(*, state_manager: Any, workflow_id: str, initial_state: Any) -> None:
@@ -16,5 +19,8 @@ async def persist_workflow_failure(*, state_manager: Any, workflow_id: str, init
     failed = await state_manager.load_state(workflow_id) or initial_state
     failed.status = WorkflowStatus.FAILED
     failed.completed_at = datetime.now(UTC)
-    failed.errors.append(str(exc))
+    # Server-side: log full repr for diagnostics; persistence gets sanitized/truncated entry
+    logger.error("workflow_failure_persisted", exc_info=exc)
+    sanitized = f"{type(exc).__name__}: {str(exc)[:200]}"
+    failed.errors.append(sanitized)
     await state_manager.save_state(workflow_id, failed)

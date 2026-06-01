@@ -16,8 +16,11 @@ def check_file(filepath):
     for lineno, line in enumerate(content.splitlines(), 1):
         # Skip comments
         code = line.split("#")[0]
-        # Match str(e) or str(err) etc. but not getattr(e, "name", str(e))
-        if re.search(r"(?<!getattr\([^,]+,\s*)str\([eE]rr?\)", code):
+        # Match str(e), str(err), str(exc), str(error), str(exception) etc.
+        # but not getattr(e, "name", str(e)) or safe identifiers like str(extract).
+        if "getattr(" in code:
+            continue  # heuristic: skip lines with getattr to avoid false positives
+        if re.search(r"str\((e|err|exc|error|exception)\b\)", code, re.IGNORECASE):
             # Skip if it's already repr(e)
             if "repr(e)" not in code:
                 issues.append((lineno, line.strip()))
@@ -38,7 +41,7 @@ def main():
             print(f"  {line}")
             exit_code = 1
     if exit_code:
-        print("\nstr(e) leaks potentially sensitive exception data to logs/responses.")
+        print("\nstr(exc)/str(error)/str(e) leaks potentially sensitive exception data to logs/responses.")
         print("Use repr(e) instead, which shows the exception type and message safely.")
     return exit_code
 

@@ -619,7 +619,7 @@ async def complete_salesforce_oauth(
         destination = _append_query_params(
             decoded_state.get("return_to", "/context/integrations?provider=salesforce") if "decoded_state" in locals() else "/context/integrations?provider=salesforce",
             oauth_status="error",
-            error=str(exc),
+            error_type=type(exc).__name__,
         )
         return RedirectResponse(destination, status_code=status.HTTP_303_SEE_OTHER)
 

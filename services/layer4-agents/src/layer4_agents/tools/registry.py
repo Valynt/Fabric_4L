@@ -568,9 +568,14 @@ class ToolRegistry:
                 authorize_action(tool_action, request_context, target_tenant_id=str(tenant_id) if tenant_id else None)
             except Exception as exc:
                 status_code = getattr(exc, "status_code", 403)
-                detail = getattr(exc, "detail", {"message": str(exc)})
+                detail = getattr(exc, "detail", None)
                 code = "AUTHENTICATION_REQUIRED" if status_code == 401 else "INSUFFICIENT_SCOPE"
-                message = detail.get("message", str(detail)) if isinstance(detail, dict) else str(detail)
+                if isinstance(detail, dict):
+                    message = detail.get("message", type(exc).__name__)
+                elif detail is not None:
+                    message = str(detail)
+                else:
+                    message = type(exc).__name__
                 # Hardening: emit tool auth failure metric
                 try:
                     from ..metrics.prometheus_metrics import get_metrics

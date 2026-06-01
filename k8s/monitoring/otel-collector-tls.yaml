@@ -1,0 +1,82 @@
+# Sprint 3: TLS-secured OpenTelemetry Collector → Jaeger
+# Replaces insecure: true with proper certificate validation
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: otel-collector-config-tls
+  namespace: value-fabric
+data:
+  otel-collector.yaml: |
+    receivers:
+      otlp:
+        protocols:
+          grpc:
+            endpoint: 0.0.0.0:4317
+            tls:
+              cert_file: /etc/otel/certs/tls.crt
+              key_file: /etc/otel/certs/tls.key
+          http:
+            endpoint: 0.0.0.0:4318
+            tls:
+              cert_file: /etc/otel/certs/tls.crt
+              key_file: /etc/otel/certs/tls.key
+    processors:
+      batch:
+        timeout: 1s
+        send_batch_size: 1024
+      tail_sampling:
+        decision_wait: 10s
+        num_traces: 100000
+        expected_new_traces_per_sec: 1000
+        policies:
+          - name: errors
+            type: status_code
+            status_code: {status_codes: [ERROR, UNSET]}
+          - name: latency
+            type: latency
+            latency: {threshold_ms: 1000}
+          - name: probabilistic
+            type: probabilistic
+            probabilistic: {sampling_percentage: 10}
+    exporters:
+      otlp/jaeger:
+        endpoint: jaeger-collector.value-fabric.svc.cluster.local:4317
+        tls:
+          ca_file: /etc/otel/certs/ca.crt
+          cert_file: /etc/otel/certs/tls.crt
+          key_file: /etc/otel/certs/tls.key
+          insecure_skip_verify: false
+      prometheus:
+        endpoint: 0.0.0.0:8889
+        namespace: fabric4l
+    service:
+      pipelines:
+        traces:
+          receivers: [otlp]
+          processors: [tail_sampling, batch]
+          exporters: [otlp/jaeger]
+        metrics:
+          receivers: [otlp]
+          processors: [batch]
+          exporters: [prometheus]
+---
+# Certificate for OTel Collector TLS
+apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: otel-collector-tls
+  namespace: value-fabric
+spec:
+  secretName: otel-collector-tls-secret
+  issuerRef:
+    name: fabric4l-ca-issuer
+    kind: ClusterIssuer
+  dnsNames:
+    - otel-collector.value-fabric.svc.cluster.local
+    - otel-collector.value-fabric.svc
+  usages:
+    - server auth
+    - client auth
+  privateKey:
+    algorithm: ECDSA
+    size: 256

@@ -192,7 +192,7 @@ async def promote_signal(
             capability_name=body.capability_name,
         )
     except ValueError as exc:
-        logger.warning("signal_promotion_value_error", extra={"error": str(exc)})
+        logger.warning("signal_promotion_value_error", extra={"error_type": type(exc).__name__})
         raise NotFoundError(message = "Signal not found") from exc
 
     return PromoteSignalResponse.model_validate({

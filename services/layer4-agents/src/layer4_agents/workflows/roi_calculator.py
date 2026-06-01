@@ -493,7 +493,7 @@ class ROICalculatorWorkflow(BaseWorkflow):
                         None,
                         {},
                         CONFIDENCE_NONE,
-                        [str(exc)],
+                        [f"{type(exc).__name__}: {str(exc)[:200]}"],
                     )
                 )
 

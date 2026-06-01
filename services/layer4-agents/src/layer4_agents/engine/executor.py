@@ -488,7 +488,7 @@ class OrchestrationController:
                 gate=gate,
             )
         except (ValueError, PolicyViolationError) as exc:
-            raise WorkflowExecutionError(str(exc)) from exc
+            raise WorkflowExecutionError(f"{type(exc).__name__}: workflow_execution_failed") from exc
 
         if self.checkpoint_saver is None:
             import os
@@ -614,7 +614,7 @@ class OrchestrationController:
                 validate_reasoning_trace(result.reasoning_trace, strict=True)
             except ValueError as exc:
                 result.status = WorkflowStatus.FAILED
-                result.errors.append(str(exc))
+                result.errors.append(f"{type(exc).__name__}: {str(exc)[:200]}")
                 lifecycle_logger.emit(
                     stage="reasoning_trace_invalid",
                     context=self._lifecycle_context(workflow_id),
