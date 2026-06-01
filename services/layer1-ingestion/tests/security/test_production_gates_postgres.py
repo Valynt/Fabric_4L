@@ -190,7 +190,7 @@ class TestProductionGateOperationAllowlist:
             "grant_admin",
             "modify_rls",
             "",
-            "cleanup_old_content'"; drop table users; --",
+            "cleanup_old_content\'; drop table users; --",
         ]
         
         for op in bad_operations:

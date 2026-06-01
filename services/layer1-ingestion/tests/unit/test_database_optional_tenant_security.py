@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import sys
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -9,11 +8,7 @@ import pytest
 from fastapi import HTTPException
 from starlette.requests import Request
 
-SERVICE_ROOT = Path(__file__).resolve().parents[2]
-if str(SERVICE_ROOT) not in sys.path:
-    sys.path.insert(0, str(SERVICE_ROOT))
-
-import src.shared.database as database
+import layer1_ingestion.shared.database as database
 
 
 def _make_request(reason: str | None = None) -> Request:
