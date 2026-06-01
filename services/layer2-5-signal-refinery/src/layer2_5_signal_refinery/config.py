@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-"""Configuration for the L2.5 Signal Refinery service."""
-
 from functools import lru_cache
 
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+"""Configuration for the L2.5 Signal Refinery service."""
 
 PRODUCTION_LIKE_ENVIRONMENTS = {"production", "prod", "staging", "stage"}
 

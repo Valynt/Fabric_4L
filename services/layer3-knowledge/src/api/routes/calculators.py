@@ -1,18 +1,10 @@
 from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError
 from value_fabric.shared.identity.dependencies import require_tenant_context
-"""Allowed service-local exception for Layer 3 service wrapper.
-
-Owner: layer3-knowledge
-Removal/migration target: 2026-09-30
-Reason: Calculator API routes for Layer 3 Knowledge Graph.
-
-Provides endpoints for value lever configuration and value case persistence.
-"""
 
 import logging
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, Field

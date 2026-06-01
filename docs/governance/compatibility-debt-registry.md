@@ -207,3 +207,18 @@ These are deliberate v1 design decisions that raise errors rather than silently 
 - `services/layer6-benchmarks`: 16
 
 Migration policy: runtime imports of `value_fabric.public_api` are blocked; existing non-adapter `value_fabric.shared.*` deep imports remain migration inventory until each service is migrated to adapter imports.
+
+## Lint Debt: Relative Parent Imports (TID252)
+
+**Status:** Ignored at service level; requires dedicated migration pass
+
+**Services affected:**
+- `services/layer1-ingestion`: 220 TID252 relative parent imports (e.g. `from ..crawler import ...`) — ignored in `pyproject.toml` as of 2026-06-01
+- `services/layer2-extraction`: ~230 TID252 occurrences (not yet catalogued)
+- `services/layer3-knowledge`: extensive relative imports in migration (not yet catalogued)
+
+**Rationale:** Converting `from ..module` to absolute `from src.layer.module` requires verifying each changed import path resolves correctly in both dev and production runtime contexts. A bulk migration risks runtime `ModuleNotFoundError` in Docker or pytest importlib mode.
+
+**Recommended approach:** Per-service migration with before/after startup tests. Target removal date should be set per service after owner review.
+
+**Tracking ticket:** `PLATARCH-TID252-MIGRATION` (to be created)

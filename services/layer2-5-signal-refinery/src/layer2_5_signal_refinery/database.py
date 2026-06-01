@@ -1,23 +1,11 @@
 from __future__ import annotations
 
-"""Async SQLAlchemy engine and session management for L2.5 Signal Refinery.
-
-Follows the same pattern as Layer 5's database.py:
-- asyncpg for production, aiosqlite for tests
-- RLS via SET LOCAL app.tenant_id
-- get_db_from_context() as the canonical FastAPI dependency
-"""
-
-from value_fabric.shared.error_handling.exceptions import ValidationError
-
 import logging
 import uuid
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import TYPE_CHECKING
 
-from fastapi import Depends, status
-from sqlalchemy import event, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
     AsyncSession,
@@ -29,11 +17,17 @@ from value_fabric.shared.database import (
     RuntimeDatabaseAdapter,
     is_production_mode_from_env,
 )
+from value_fabric.shared.error_handling.exceptions import ValidationError
 
 from .config import get_settings
 
-if TYPE_CHECKING:
-    pass
+"""Async SQLAlchemy engine and session management for L2.5 Signal Refinery.
+
+Follows the same pattern as Layer 5's database.py:
+- asyncpg for production, aiosqlite for tests
+- RLS via SET LOCAL app.tenant_id
+- get_db_from_context() as the canonical FastAPI dependency
+"""
 
 logger = logging.getLogger(__name__)
 

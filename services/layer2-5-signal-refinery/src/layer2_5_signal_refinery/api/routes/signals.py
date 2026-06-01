@@ -1,5 +1,21 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+import uuid
+from datetime import UTC, datetime
+from typing import Any
+
+from fastapi import APIRouter, Depends, Query, Request, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+
+from ...clients.l3_graph_client import get_l3_client
+from ...database import get_db_from_context
+from ...repositories.signal_repository import SignalRepository
+from ...services.signal_refinery import refine_batch
+from ..auth import get_tenant_id_from_context
+
 """Signal API routes for L2.5 Signal Refinery.
 
 All endpoints enforce tenant_id from authenticated context.
@@ -17,38 +33,19 @@ Routes:
   POST   /api/v1/signals/refine                 Trigger L2.5 refinement batch
 """
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
-
-import asyncio
-import logging
-import uuid
-from datetime import UTC, datetime
-from typing import Any
-
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from ...clients.l3_graph_client import get_l3_client
-from ...database import get_db_from_context
-from ...repositories.signal_repository import SignalRepository
-from ...services.signal_refinery import refine_batch, refine_signal
-from ..auth import get_tenant_id_from_context
-
-try:
-    from value_fabric.shared.models.value_signal import (
+try:  # noqa: E402
+    from value_fabric.shared.models.value_signal import (  # noqa: E402
         SignalPromoteRequest,
         SignalRefineRequest,
         SignalReviewRequest,
-        ValueSignal,
         ValueSignalCreate,
-        ValueSignalLifecycleState,
         ValueSignalListResponse,
         ValueSignalUpdate,
     )
 except ImportError:
     # Fallback: use local Pydantic models when shared package unavailable
-    from pydantic import BaseModel
-    from typing import Optional
+    from pydantic import BaseModel  # noqa: E402
+    from typing import Optional  # noqa: E402
 
     class ValueSignalCreate(BaseModel):  # type: ignore[no-redef]
         account_id: str

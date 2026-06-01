@@ -1,21 +1,10 @@
 from __future__ import annotations
 
-"""Layer 2.5 Signal Refinery — FastAPI application.
-
-Run with:
-  uvicorn layer2_5_signal_refinery.api.main:app --host 0.0.0.0 --port 8007 --reload
-
-Port: 8007
-"""
-
-import logging
 import structlog
-import sys
 from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import FastAPI
-from fastapi.responses import JSONResponse
 from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult
 from value_fabric.shared.fastapi_framework.middleware import resolve_cors_policy
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
@@ -25,6 +14,14 @@ from ..config import get_settings
 from ..database import close_db, init_db
 from ..logging_config import configure_structured_logging
 from .routes.signals import router as signals_router
+
+"""Layer 2.5 Signal Refinery — FastAPI application.
+
+Run with:
+  uvicorn layer2_5_signal_refinery.api.main:app --host 0.0.0.0 --port 8007 --reload
+
+Port: 8007
+"""
 
 # Configure structured logging
 configure_structured_logging()
