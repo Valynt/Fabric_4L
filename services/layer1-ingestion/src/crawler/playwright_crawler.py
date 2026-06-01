@@ -23,6 +23,7 @@ from playwright.async_api import Browser, BrowserContext, Page, async_playwright
 
 from .browser_pool import BrowserPool, get_browser_pool
 from .crawler_config import CrawlerConfig, load_config
+from ..compliance.url_safety import validate_url_safety
 from .telemetry import (
     CrawlMetrics,
     get_tracer,
@@ -198,6 +199,9 @@ class PlaywrightCrawler:
         Returns:
             CrawlResult with HTML content and metadata
         """
+        # SECURITY: Defense-in-depth URL safety validation at crawler boundary
+        validate_url_safety(url)
+
         start_time = time.time()
         blocked_resources = 0
         scroll_triggered = False

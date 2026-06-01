@@ -1,6 +1,6 @@
 # Launch Blocker Board
 
-_Last updated: 2026-06-01_
+_Last updated: 2026-06-01 (PROD-P0-001 SSRF fix applied)_
 _Canonical readiness source: [`docs/readiness/current.md`](current.md) — 97%_
 
 **Launch Readiness:** **CONDITIONALLY UNBLOCKED — service-backed skipped-test evidence pending**
@@ -25,6 +25,7 @@ Primary evidence source: `reports/current-readiness-p0-remediation-2026-06-01.md
 | P0-2 | Architecture | ~~Architecture conformance suite has 5 failures — blocks `gate-arch` (blocking gate per `.fabric/prod-gates.policy.yaml`)~~ | — | ✅ **RESOLVED** | `pytest tests/arch/ -q --no-mandatory-dep-check` passes 35/35 as of 2026-06-01. Root causes: merge conflict markers in 2 files, stale Layer 6 sentinel paths, stale L4 shim paths in tenant architecture test config, stale sync-engine baseline path, dead `database.py` duplicate. |
 | P0-3 | Security / Cache | ~~Redis cache tenant isolation gate is false-green — all 14 tests in `test_redis_tenant_isolation.py` fail with `TypeError: '>=' not supported between instances of 'AsyncMock' and 'int'`; invariant is untested in practice~~ | — | ✅ **RESOLVED** | `pytest tests/cache/test_redis_tenant_isolation.py -q --no-mandatory-dep-check` passes 16/16 as of 2026-06-01. Root cause was stale patch path `value_fabric.layer3.api.cache` → fixed to `src.api.cache`. |
 | P0-4 | Infra / K8s | ~~Staging `kustomization.yaml` still contains placeholder image digests (`sha256:1111...7777`) — digest guard now blocks staging promotion CI~~ | — | ✅ **RESOLVED** | `scripts/ci/test_placeholder_digest_detection.sh` passes 9/9 and `scripts/ci/check-k8s-image-digests.sh` passes as of 2026-06-01. Both staging overlays contain real immutable SHA256 digests. |
+| PROD-P0-001 | Security / SSRF | ~~Layer 1 browser/fallback crawler path (`_execute_browser_path`) bypassed URL safety validation — unsafe URLs could reach internal endpoints via Playwright~~ | — | ✅ **RESOLVED** | `pytest services/layer1-ingestion/tests/security/test_layer1_browser_ssrf_guard.py -v` passes 9/9 as of 2026-06-01. Validation added at three trust boundaries: `crawl_url_with_routing`, `_execute_browser_path`, and `PlaywrightCrawler.crawl_url`. |
 
 ### P0 Follow-up: Service-Backed Validation Required
 

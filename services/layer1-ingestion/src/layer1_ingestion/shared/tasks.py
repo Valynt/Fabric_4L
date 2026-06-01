@@ -1703,6 +1703,10 @@ async def crawl_url_with_routing(self, job_id: str, url: str, tenant_id: str, ta
         parsed_url = urlparse(url)
         domain = parsed_url.netloc
 
+        # SECURITY: Validate URL safety before any routing decision
+        safety_result = validate_url_safety(url)
+        enforce_rebinding_protection(safety_result.normalized_url, safety_result.resolved_ips)
+
         # 1. ROUTING DECISION
         route_type = RouteType(effective_mode)
         routing_decision = router.decide(url, route_type)
@@ -1900,6 +1904,10 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
     """
     start_time = time.monotonic()
 
+    # SECURITY: Validate URL safety before browser crawl
+    safety_result = validate_url_safety(url)
+    enforce_rebinding_protection(safety_result.normalized_url, safety_result.resolved_ips)
+
     # Actual Playwright integration
     browser_config = config or {}
     wait_for_selector = browser_config.get("wait_for_selector")
@@ -1909,7 +1917,7 @@ async def _execute_browser_path(url: str, config: dict | None) -> dict:
     crawler_cfg = CrawlerConfig(headless=browser_config.get("headless", True))
     async with PlaywrightCrawler(config=crawler_cfg) as crawler:
         result = await crawler.crawl_url(
-            url=url,
+            url=safety_result.normalized_url,
             wait_for_selector=wait_for_selector,
             wait_for_timeout=wait_timeout,
             scroll_page=True,
