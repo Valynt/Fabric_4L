@@ -337,9 +337,9 @@ def build_export_provenance_manifest(
             "export_id": export_id,
             "generated_at": datetime.now(UTC).isoformat(),
             "model_versions": {
-                "openai_model": settings.openai_model,
-                "anthropic_model": settings.anthropic_model,
-                "layer4_app_version": settings.app_version,
+                "openai_model": get_settings().openai_model,
+                "anthropic_model": get_settings().anthropic_model,
+                "layer4_app_version": get_settings().app_version,
             },
             "tool_versions": {
                 "export_document": "1.1.0",

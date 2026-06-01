@@ -9,8 +9,8 @@ Phase 2: Generic approval workflow for governance artifacts
 Issue A: Missing generalized approval workflow for high-impact assumptions/formulas/benchmarks
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers

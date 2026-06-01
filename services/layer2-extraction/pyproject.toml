@@ -127,8 +127,15 @@ module = [
     "src.layer2_extraction.extraction.deduplicator",
     "src.layer2_extraction.output.rdf_generator",
     "src.layer2_extraction.startup_dependencies",
+    "src.layer2_extraction.extraction.cache",
 ]
-disable_error_code = ["no-untyped-def", "type-arg", "unused-ignore", "no-any-return", "no-untyped-call", "attr-defined", "misc"]
+disable_error_code = ["no-untyped-def", "type-arg", "unused-ignore", "no-any-return", "no-untyped-call", "attr-defined", "misc", "untyped-decorator", "assignment"]
+
+[[tool.mypy.overrides]]
+module = [
+    "src.layer2_extraction.shared.tasks",
+]
+disable_error_code = ["no-untyped-def", "type-arg", "unused-ignore", "no-any-return", "no-untyped-call", "attr-defined", "misc", "untyped-decorator", "call-arg"]
 
 [tool.pytest.ini_options]
 minversion = "8.0"

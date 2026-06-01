@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """API key management routes (tenant_admin only).
 
 POST   /v1/api-keys              — create an API key (with tier limit check)

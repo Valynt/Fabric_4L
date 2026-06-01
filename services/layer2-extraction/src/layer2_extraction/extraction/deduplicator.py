@@ -284,7 +284,6 @@ async def deduplicate_entities(
     """
     deduplicator = EntityDeduplicator(
         similarity_threshold=similarity_threshold,
-        api_key=api_key,
     )
     result: dict[str, list[Any]] = {}
     for entity_type, entity_list in entities.items():

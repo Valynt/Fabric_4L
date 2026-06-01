@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Agents domain router — value-tree, whitespace, ROI, narrative, provenance, workflow.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).

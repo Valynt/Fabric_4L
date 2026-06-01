@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+
 """Health Badges API for graceful degradation visibility.
 
 Provides endpoints for:

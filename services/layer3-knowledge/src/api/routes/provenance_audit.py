@@ -1,4 +1,10 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Provenance and audit read-only route group."""
 
 import logging

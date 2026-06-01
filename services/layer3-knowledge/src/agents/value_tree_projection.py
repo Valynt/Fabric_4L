@@ -200,7 +200,7 @@ class ValueTreeProjectionAgent(BaseAgent):
             # SECURITY: Validate node_id format
             try:
                 validated_node_id = self._validate_node_id(start_node_id)
-            except ValueError as e:
+            except ValueError:
                 return self._create_result(
                     status="failed",
                     output={},

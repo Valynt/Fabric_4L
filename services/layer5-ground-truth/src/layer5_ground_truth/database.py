@@ -4,7 +4,10 @@ Uses asyncpg for production and aiosqlite for tests (via DATABASE_URL override).
 Follows the same pattern as Layer 1's database.py but with async support.
 """
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    ValidationError,
+)
 
 INTENTIONAL_DB_ADAPTER_BYPASS = True
 
@@ -396,7 +399,7 @@ async def close_db() -> None:
 
 from uuid import UUID
 
-from fastapi import Depends, Request, status
+from fastapi import Depends, Request
 from sqlalchemy import text
 
 try:

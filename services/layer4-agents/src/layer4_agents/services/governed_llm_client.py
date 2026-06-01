@@ -32,6 +32,7 @@ from .llm_output_parser import parse_llm_json
 if TYPE_CHECKING:
     from harness.models import HarnessRun
     from harness.telemetry import TelemetryEmitter
+
     from .llm_provider import LLMProvider
 
 logger = logging.getLogger(__name__)

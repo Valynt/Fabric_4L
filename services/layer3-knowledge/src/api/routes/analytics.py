@@ -30,8 +30,6 @@ from ...api.dependencies import (
     get_neo4j_driver,
     get_similarity_analyzer,
 )
-from ...db.audited_mutation import AuditedGraphMutation
-from ...db.query_execution import run_validated_query
 from ...api.models import (
     BatchAnalyticsRequest,
     BatchAnalyticsResponse,
@@ -50,6 +48,8 @@ from ...api.models import (
     SimilarityRequest,
     SimilarityResponse,
 )
+from ...db.audited_mutation import AuditedGraphMutation
+from ...db.query_execution import run_validated_query
 
 logger = logging.getLogger(__name__)
 

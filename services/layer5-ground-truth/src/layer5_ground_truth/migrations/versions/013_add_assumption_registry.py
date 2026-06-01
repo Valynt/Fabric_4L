@@ -9,8 +9,8 @@ Phase 4: Create Assumption registry with evidence linkage
 Issue: Explicit assumption governance + evidence linkage + reviewability
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers

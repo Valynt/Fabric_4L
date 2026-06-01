@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Workflow API routes - OpenAPI spec compliant.
 
 Implements the workflow API as specified in value_fabric_backend_logic_specifications.md:
@@ -17,14 +23,18 @@ import logging
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 from value_fabric.shared.audit import AuditAction
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 
-from ...engine.executor import CheckpointConflictError, OrchestrationController, WorkflowExecutionError
+from ...engine.executor import (
+    CheckpointConflictError,
+    OrchestrationController,
+    WorkflowExecutionError,
+)
 from ...engine.scheduler import TaskPriority
 from ...workflows import list_workflow_types
 from ..common.audit import emit_route_audit

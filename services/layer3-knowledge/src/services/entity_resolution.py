@@ -551,9 +551,7 @@ class EntityResolutionService:
             return MatchConfidence.HIGH
         elif score >= _CONFIDENCE_MEDIUM_THRESHOLD:
             return MatchConfidence.MEDIUM
-        elif score >= _CONFIDENCE_LOW_THRESHOLD:
-            return MatchConfidence.LOW
-        elif score >= min_confidence:
+        elif score >= _CONFIDENCE_LOW_THRESHOLD or score >= min_confidence:
             return MatchConfidence.LOW
         else:
             return MatchConfidence.NONE

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import ValidationError
+
 """Agent Stream route for RightRail conversational assistant (ValuePilot).
 
 Wires the frontend RightRail chat to the ConversationService, which
@@ -21,7 +22,7 @@ import os
 import uuid
 from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, Request, status
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
 from opentelemetry import trace
 from pydantic import BaseModel, ConfigDict, Field

@@ -43,12 +43,12 @@ class CheckpointConflictError(WorkflowExecutionError):
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..agents.base import BaseAgent
+from ..harness.models import GateStatus, GateType, HumanGate
+from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..messaging.bus import InMemoryMessageBus, MessageBus
 from ..messaging.router import MessageRouter
 from ..messaging.types import MessageType
 from ..observability import Layer4EventContext, Layer4LifecycleLogger
-from ..harness.models import GateStatus, GateType, HumanGate
-from ..harness.policies import PolicyViolationError, enforce_action_approval
 from ..registry.service import FALLBACK_LLM_MODEL, resolve_llm_model
 from ..tools.registry import ToolRegistry
 from ..workflows import WORKFLOW_TYPES, create_workflow
@@ -538,7 +538,6 @@ class OrchestrationController:
             workflow_type=workflow_type,
         )
         # Resolve tenant-aware timeout and store metadata with timeout tracking
-        from ..config.settings import get_settings
         resolved_timeout_seconds, timeout_source = await self._resolve_workflow_timeout_seconds(tenant_id)
 
         initial_state.run_envelope = envelope
@@ -736,6 +735,7 @@ class OrchestrationController:
 
         # Generate canonical run envelope for scheduled workflows
         from uuid import uuid4
+
         from ..models.run_envelope import RunEnvelope
 
         run_id = str(uuid4())
@@ -1458,7 +1458,7 @@ class OrchestrationController:
                         recipient_id=message.sender_id,
                         correlation_id=message.correlation_id,
                     )
-                except (ValueError, RuntimeError, TimeoutError) as e:
+                except (ValueError, RuntimeError, TimeoutError):
                     # Send error
                     await self.message_bus.publish(
                         agent_id=agent.agent_id,
@@ -1653,6 +1653,7 @@ class OrchestrationController:
         if tenant_id:
             try:
                 from value_fabric.shared.identity.context import RequestContext
+
                 from ..database import db_session_for_context
                 from ..tenants.service import get_tenant_settings
 

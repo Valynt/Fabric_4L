@@ -308,8 +308,8 @@ class DocumentExportTool(BaseTool):
                     filename="error.pdf",
                 )
 
-        except Exception as e:
-            logger.error(f"PDF generation failed: PDF_GENERATION_ERROR")
+        except Exception:
+            logger.error("PDF generation failed: PDF_GENERATION_ERROR")
             return ExportDocumentOutput(
                 success=False,
                 error="PDF_GENERATION_ERROR",

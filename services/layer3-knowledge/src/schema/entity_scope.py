@@ -7,7 +7,6 @@ Defines entity scope classification for authorization:
 """
 
 from enum import Enum
-from typing import Set
 
 
 class EntityScope(str, Enum):
@@ -103,7 +102,7 @@ def is_global(entity_type: str) -> bool:
     return get_entity_scope(entity_type) == EntityScope.GLOBAL
 
 
-def get_account_scoped_entity_types() -> Set[str]:
+def get_account_scoped_entity_types() -> set[str]:
     """Get all account-scoped entity types.
 
     Returns:
@@ -116,7 +115,7 @@ def get_account_scoped_entity_types() -> Set[str]:
     }
 
 
-def get_tenant_wide_entity_types() -> Set[str]:
+def get_tenant_wide_entity_types() -> set[str]:
     """Get all tenant-wide entity types.
 
     Returns:
@@ -129,7 +128,7 @@ def get_tenant_wide_entity_types() -> Set[str]:
     }
 
 
-def get_global_entity_types() -> Set[str]:
+def get_global_entity_types() -> set[str]:
     """Get all global entity types.
 
     Returns:

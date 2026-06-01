@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
+
 """Canonical governance workflow objects/endpoints for L4/L5 traceability.
 
 All read routes require authentication (require_authenticated).
@@ -15,7 +20,7 @@ from hashlib import sha256
 from typing import Annotated, Any, Literal
 from uuid import uuid4
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from pydantic import BaseModel, Field, model_validator
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import (

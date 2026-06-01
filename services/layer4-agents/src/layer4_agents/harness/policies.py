@@ -12,6 +12,7 @@ Rules:
 """
 
 
+from ..policies import approval_actions
 from .models import (
     ActionClass,
     ClaimValidationResult,
@@ -24,7 +25,6 @@ from .models import (
     ValidationState,
     ValidationSummary,
 )
-from ..policies import approval_actions
 
 
 class ApprovalRequiredError(PermissionError):

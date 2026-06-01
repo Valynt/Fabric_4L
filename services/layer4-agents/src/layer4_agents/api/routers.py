@@ -108,8 +108,8 @@ def register_routers(app: FastAPI) -> None:
         request: Request, exc: StripeNotConfiguredError
     ) -> JSONResponse:
         # Use canonical error envelope format
-        from value_fabric.shared.error_handling.models import ErrorEnvelope, ErrorDetail
         from value_fabric.shared.error_handling.handlers import get_request_trace_id
+        from value_fabric.shared.error_handling.models import ErrorDetail, ErrorEnvelope
 
         request_id = get_request_trace_id(request)
         error_envelope = ErrorEnvelope(

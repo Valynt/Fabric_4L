@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -37,10 +38,11 @@ except ImportError:  # pragma: no cover - exercised only in minimal test envs
     psutil = _PsutilFallback()
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import Response
-from config import get_settings
 from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
+
+from config import get_settings
 
 from ...api.dependencies import get_schema_initializer
 from ...api.models import (
@@ -101,7 +103,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     },
                 )
             )
-    except (ConnectionError, OSError, RuntimeError, TimeoutError) as exc:
+    except (ConnectionError, OSError, RuntimeError, TimeoutError):
         dependencies.append(
             DependencyStatus(
                 name="neo4j",
@@ -125,7 +127,7 @@ async def check_dependencies(schema_initializer: Any | None = None) -> list[Depe
                     details={"index": settings.pinecone_index},
                 )
             )
-        except (ConnectionError, OSError, RuntimeError, TimeoutError) as exc:
+        except (ConnectionError, OSError, RuntimeError, TimeoutError):
             dependencies.append(
                 DependencyStatus(
                     name="pinecone",

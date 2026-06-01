@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """Company Knowledge Onboarding API routes.
 
 Endpoints for managing company knowledge profiles, sources, extractions,

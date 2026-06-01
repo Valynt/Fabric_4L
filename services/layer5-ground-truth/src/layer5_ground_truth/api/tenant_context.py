@@ -1,9 +1,8 @@
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-
 import json
 from uuid import UUID
 
-from fastapi import Request, status
+from fastapi import Request
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from ..observability.structured_logging import get_logger
 

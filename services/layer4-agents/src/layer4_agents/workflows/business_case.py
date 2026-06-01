@@ -262,7 +262,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         prospect_id = state.case_input.custom_inputs.get("provider_record_id", account_id)
         try:
             value_driver_ids = await self._resolve_value_driver_ids(state, account_id)
-        except ValueError as exc:
+        except ValueError:
             return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({
                 "status": "failed",
                 "error": "ROI subworkflow failed",
@@ -291,7 +291,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
             })
 
 
-        except Exception as e:
+        except Exception:
             return BusinessCaseGeneratorWorkflow__execute_roi_subworkflowResult.model_validate({"status": "failed", "error": "ROI_SUBWORKFLOW_ERROR", "roi_results": {}})
 
     async def _resolve_value_driver_ids(
@@ -498,7 +498,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 section = BusinessCaseSection(title=title, content=content, charts=charts, tables=[])
                 sections_generated.append(section)
 
-            except Exception as e:
+            except Exception:
                 section = BusinessCaseSection(
                     title=title, content="Error generating section: SECTION_GENERATION_ERROR", charts=[], tables=[]
                 )
@@ -768,7 +768,7 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
                 "file_size_bytes": tool_data.get("file_size_bytes", 0),
                 "format": state.case_input.output_format,
             }
-        except Exception as e:
+        except Exception:
             assemble_result = {
                 "error": "DOCUMENT_ASSEMBLE_ERROR",
                 "document_bytes": None,
@@ -910,7 +910,6 @@ class BusinessCaseGeneratorWorkflow(BaseWorkflow):
         truth_object_ids: list[str] = []
         claim_traceability: list[dict[str, Any]] = []
         threshold_decisions: list[dict[str, Any]] = []
-        actor = "layer4-business-case-workflow"
 
         try:
             for candidate in candidates:

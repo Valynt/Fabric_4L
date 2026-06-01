@@ -13,7 +13,6 @@ from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.value_realization_ledger import (
-    UpdateReason,
     ValueRealizationEntry,
     ValueRealizationUpdate,
 )

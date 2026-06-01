@@ -15,8 +15,8 @@ from enum import Enum
 from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
 
@@ -37,7 +37,6 @@ from ..models.billing import (
 )
 from .plan_version_service import PlanVersionService
 from .stripe_client import StripeError, StripeNotConfiguredError, get_price_id, get_stripe
-
 
 # Constants for webhook processing
 MAX_WEBHOOK_RETRY_ATTEMPTS = 5

@@ -14,9 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..models.benchmark_governance import (
     BenchmarkDataset,
-    BenchmarkScope,
     BenchmarkStatus,
-    BenchmarkType,
     BenchmarkVersion,
 )
 

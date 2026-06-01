@@ -35,7 +35,6 @@ from sqlalchemy.types import JSON
 # Import from truth_object to share the same Base and UUID type
 from .truth_object import UUID, Base
 
-
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
@@ -63,7 +62,7 @@ class BenchmarkType(str, PyEnum):
     """Third-party research benchmarks"""
 
 
-class BenchmarkScope(str, PyEnum):
+class BenchmarkScopeEnum(str, PyEnum):
     """Scope of benchmark applicability."""
 
     GLOBAL = "global"

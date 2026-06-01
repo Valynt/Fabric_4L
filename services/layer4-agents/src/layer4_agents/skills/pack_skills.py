@@ -160,7 +160,7 @@ class PackSkills:
                     "workspace_id": pack.workspace_id,
                 },
             )
-        except Exception as e:
+        except Exception:
             return PackLoadOutput(
                 success=False,
                 pack=None,
@@ -212,7 +212,7 @@ class PackSkills:
                 success=True,
                 new_pack_id=pack.pack_id,
             )
-        except Exception as e:
+        except Exception:
             return PackCustomizeOutput(
                 success=False,
                 new_pack_id=None,

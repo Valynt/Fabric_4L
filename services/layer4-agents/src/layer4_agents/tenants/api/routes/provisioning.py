@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Tenant provisioning status and webhook endpoints.
 
 Webhook security uses HMAC-SHA256 signature verification with idempotency
@@ -16,7 +23,7 @@ import os
 import time
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import APIRouter, Depends, Header, Request, status
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event

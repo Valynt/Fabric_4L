@@ -4,8 +4,8 @@ Revision ID: 014_add_approval_level_quorum_metadata
 Revises: 013_add_assumption_registry
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 revision = "014_add_approval_level_quorum_metadata"

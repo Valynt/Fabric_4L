@@ -3,8 +3,6 @@ from datetime import UTC, datetime
 from enum import Enum as PyEnum
 
 from sqlalchemy import Boolean, Column, DateTime, Float, ForeignKey, Index, String, Text
-from sqlalchemy.orm import relationship
-from sqlalchemy.types import JSON
 
 from .truth_object import UUID, Base
 

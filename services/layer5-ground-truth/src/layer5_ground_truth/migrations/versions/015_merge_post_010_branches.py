@@ -5,7 +5,6 @@ Revises: 010b, 014_add_value_realization_ledger, 014_add_approval_level_quorum_m
 Create Date: 2026-05-27
 """
 
-from alembic import op
 
 revision = "015"
 down_revision = ("010b", "014_add_value_realization_ledger", "014_add_approval_level_quorum_metadata")

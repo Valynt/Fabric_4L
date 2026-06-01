@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Billing API routes for Stripe integration.
 
 Provides endpoints for subscription management, customer portal,
@@ -15,7 +20,7 @@ import re
 from datetime import datetime
 from typing import Any, cast
 
-from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
@@ -25,10 +30,12 @@ CUSTOMER_ID_PATTERN = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 from ...services.billing_security import (
     STRIPE_WEBHOOK_SKIP_IP_CHECK,
-    get_client_ip as _get_client_ip,
-    is_stripe_webhook_ip as _is_stripe_webhook_ip,
     validate_webhook_request_security,
 )
+from ...services.billing_security import (
+    get_client_ip as _get_client_ip,
+)
+
 
 def validate_customer_id(customer_id: str) -> str:
     """Validate customer_id format to prevent injection attacks.

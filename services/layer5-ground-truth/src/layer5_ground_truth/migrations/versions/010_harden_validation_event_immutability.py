@@ -9,8 +9,6 @@ Issue B: Audit log tamper resistance is not proven
 """
 
 from alembic import op
-import sqlalchemy as sa
-from sqlalchemy.dialects import postgresql
 
 # revision identifiers
 revision = "010_harden_validation_event_immutability"

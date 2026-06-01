@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError, ValidationError
+
 """Signal API routes for operational pain signal management.
 
 Provides REST API endpoints for:
@@ -16,18 +17,18 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel, Field
 from sqlalchemy import or_, select
 from value_fabric.shared.audit import AuditAction, AuditEmitter, AuditOutcome
+from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.jwt import decode_jwt
-from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.observability.trace_context import resolve_trace_context
 
 from ...agents.signal_detection import SignalDetectionAgent
-from ...database import db_session
+from ...database import db_session_for_context
 from ...integration.layer3_client import Layer3Client
 from ...models.account import Account
 
@@ -47,7 +48,8 @@ async def _tenant_owns_prospect(*, prospect_id: str, tenant_id: str) -> bool:
     except ValueError:
         pass
 
-    async with db_session_for_context(tenant_id=tenant_id) as session:
+    context = RequestContext(tenant_id=tenant_id)
+    async with db_session_for_context(context) as session:
         query = select(Account.id).where(or_(*filters)).limit(1)
         result = await session.execute(query)
         return result.scalar_one_or_none() is not None

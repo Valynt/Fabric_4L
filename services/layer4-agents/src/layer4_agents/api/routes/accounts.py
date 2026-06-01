@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """
 Accounts API routes for CRM account management.
 
@@ -15,7 +20,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext

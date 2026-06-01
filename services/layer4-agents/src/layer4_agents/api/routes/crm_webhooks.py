@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
+
 """
 CRM Webhook handlers for real-time updates from Salesforce and HubSpot.
 

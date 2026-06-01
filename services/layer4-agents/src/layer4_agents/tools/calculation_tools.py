@@ -164,7 +164,7 @@ class EvaluateFormulaTool(BaseTool):
                 error=None if not missing else f"Missing variables: {missing}",
             )
 
-        except Exception as e:
+        except Exception:
             return EvaluateFormulaOutput(
                 result=None, substituted_formula=input_data.formula, success=False, error="FORMULA_EVALUATION_ERROR"
             )

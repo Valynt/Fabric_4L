@@ -12,18 +12,16 @@ from typing import Any
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.formula_governance import (
-    Formula,
-    FormulaParameter,
-    FormulaStatus,
-    FormulaType,
-    FormulaVersion,
-    ParameterType,
-)
 from ..models.approval_workflow import (
     ApprovalRequest,
     ApprovalStatus,
     EntityType,
+)
+from ..models.formula_governance import (
+    Formula,
+    FormulaParameter,
+    FormulaStatus,
+    FormulaVersion,
 )
 from ..services.approval_state_machine import ApprovalStateMachine
 

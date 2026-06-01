@@ -8,7 +8,7 @@ Reason: Compatibility alias endpoints delegating to canonical route implementati
 """
 
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity import RequestContext, require_authenticated
 

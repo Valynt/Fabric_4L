@@ -242,7 +242,7 @@ _S2S_EXPECTED_AUD = "layer2-extraction"
 
 
 @app.middleware("http")
-async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg]
+async def _s2s_auth_guard(request: Request, call_next):  # type: ignore[type-arg,untyped-decorator]
     """Enforce inbound S2S JWT on internal extraction routes.
 
     In strict environments, the check is mandatory and fails closed.
@@ -1367,6 +1367,7 @@ async def run_extract_and_ingest(
             errors=["extraction_failed"],
             model_version=str(config.get("model_version") or os.getenv("EXTRACTION_MODEL") or ""),
             schema_version=str(config.get("schema_version") or ""),
+            prompt_template_version=str(config.get("prompt_template_version") or ""),
             reason="persistence_validation_failed",
         )
         return

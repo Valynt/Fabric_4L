@@ -10,8 +10,6 @@ Agents MUST NOT invent signals without creating evidence/provenance records.
 Use create_signal() to emit new signals with traceable provenance.
 """
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError
-
 import logging
 import os
 import uuid
@@ -19,8 +17,8 @@ from datetime import UTC, datetime
 from typing import Any
 
 import httpx
-from fastapi import status
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 from value_fabric.shared.identity.context import RequestContext, get_request_context
 from value_fabric.shared.identity.policy_registry import authorize_action
 

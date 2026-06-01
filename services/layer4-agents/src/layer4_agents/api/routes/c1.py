@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
+
 """C1 streaming proxy route.
 
 Proxies requests to the Thesys C1 API so the API key never leaves the

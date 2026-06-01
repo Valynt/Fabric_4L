@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    ServiceUnavailableError,
+)
+
 """Prospect API routes — Composite context and analysis workflow initiation.
 
 Provides endpoints for:
@@ -568,7 +572,7 @@ async def start_prospect_analysis(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         # Emit failure audit
         await emit_audit_event(
             action=AuditAction.CREATE,

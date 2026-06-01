@@ -652,7 +652,7 @@ async def evaluate_formula(
 
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         raise ServiceUnavailableError(message="FORMULA_EVALUATION_ERROR")
 
 

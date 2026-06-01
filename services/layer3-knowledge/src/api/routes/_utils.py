@@ -1,4 +1,5 @@
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -9,7 +10,6 @@ Common helpers for validation, parsing, and formatting.
 """
 
 import re
-
 
 from ...auth.api_keys import APIKey
 

@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Frontend compatibility aliases for path mismatches.
 
 These routes provide backward-compatible paths that the frontend expects,
@@ -31,7 +37,7 @@ NOTES
 
 from uuid import UUID
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException
+from fastapi import APIRouter, Cookie, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext

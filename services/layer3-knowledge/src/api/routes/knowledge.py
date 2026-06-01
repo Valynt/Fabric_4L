@@ -23,9 +23,9 @@ All queries are tenant-scoped via ``create_neo4j_tenant_session``.
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query
-from value_fabric.shared.error_handling.exceptions import ValidationError
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
+from value_fabric.shared.error_handling.exceptions import ValidationError
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context
 

@@ -1,4 +1,9 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ValueFabricException
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ValueFabricException,
+)
+
 """
 Authentication and tenant-context dependency for Layer 5 Ground Truth API.
 

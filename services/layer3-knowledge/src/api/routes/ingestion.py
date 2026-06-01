@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Ingestion domain router — RDF ingest, sync status, and source deletion.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -12,7 +17,7 @@ exclusively from authenticated request context (never from X-Tenant-ID).
 import logging
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 
 from ...api.dependencies import get_sync_manager
 from ...api.models import IngestRequest, IngestResponse, SyncStatusResponse

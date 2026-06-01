@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge

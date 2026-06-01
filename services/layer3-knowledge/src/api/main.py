@@ -22,8 +22,6 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.exceptions import RequestValidationError
-from config import get_settings
-from logging_config import get_logger, setup_logging
 from value_fabric.shared.fastapi_framework import (
     RouterMount,
     add_governance_middleware,
@@ -37,6 +35,9 @@ from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeRes
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.security import validate_production_safety
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
+
+from config import get_settings
+from logging_config import get_logger, setup_logging
 
 from ..api.dependencies import close_app_state, init_app_state
 from ..api.exceptions import (
@@ -339,7 +340,9 @@ _probe_app.append(app)
 
 # Phase 1 Clerk integration: verify the Fabric4L internal AuthContext envelope.
 # No-op when FABRIC_AUTH_PUBLIC_KEYS is unset.
-from value_fabric.shared.identity.fabric_auth import register_fabric_auth_from_env  # noqa: E402
+from value_fabric.shared.identity.fabric_auth import (
+    register_fabric_auth_from_env,  # noqa: E402
+)
 
 register_fabric_auth_from_env(app, service_name="layer3-knowledge")
 

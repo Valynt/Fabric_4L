@@ -215,7 +215,7 @@ Migration policy: runtime imports of `value_fabric.public_api` are blocked; exis
 **Services affected:**
 - `services/layer1-ingestion`: 220 TID252 relative parent imports (e.g. `from ..crawler import ...`) — ignored in `pyproject.toml` as of 2026-06-01
 - `services/layer2-extraction`: ~230 TID252 occurrences (not yet catalogued)
-- `services/layer3-knowledge`: extensive relative imports in migration (not yet catalogued)
+- `services/layer3-knowledge`: 479 TID252 relative parent imports — ignored in `pyproject.toml` as of 2026-06-01
 
 **Rationale:** Converting `from ..module` to absolute `from src.layer.module` requires verifying each changed import path resolves correctly in both dev and production runtime contexts. A bulk migration risks runtime `ModuleNotFoundError` in Docker or pytest importlib mode.
 

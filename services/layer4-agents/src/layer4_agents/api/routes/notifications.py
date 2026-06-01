@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError
+
 """Tenant-scoped notification feed routes."""
 
 

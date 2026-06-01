@@ -1,4 +1,8 @@
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+)
+
 """FastAPI authentication middleware and dependencies."""
 
 from collections.abc import Callable

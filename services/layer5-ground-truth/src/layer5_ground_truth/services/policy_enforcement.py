@@ -4,9 +4,9 @@ from dataclasses import dataclass
 from enum import Enum
 from uuid import UUID
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
 from value_fabric.shared.audit.emitter import emit_audit_event
 from value_fabric.shared.audit.models import AuditAction, AuditOutcome
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 
 class ArtifactStatus(str, Enum):

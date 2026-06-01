@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Graph visualisation domain router — full graph, entity subgraph, query subgraph.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -31,7 +36,11 @@ from ...api.models import (
     GraphStats,
     SubgraphResponse,
 )
-from ...db.query_execution import MAX_QUERY_DEPTH, QUERY_TIMEOUT_SECONDS, CypherDepthLimitExceeded
+from ...db.query_execution import (
+    MAX_QUERY_DEPTH,
+    QUERY_TIMEOUT_SECONDS,
+    CypherDepthLimitExceeded,
+)
 from ...graph.query_guards import sanitize_query_depth, sanitize_query_timeout_seconds
 
 try:

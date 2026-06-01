@@ -29,8 +29,9 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
-from utils.cypher_security import TENANT_OWNED_LABELS
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
+
+from utils.cypher_security import TENANT_OWNED_LABELS
 
 from ..graph.query_guards import (
     DEFAULT_MAX_QUERY_DEPTH,
@@ -176,7 +177,7 @@ class TenantQueryExecutor:
             result = await asyncio.wait_for(
                 coro, timeout=sanitize_query_timeout_seconds(QUERY_TIMEOUT_SECONDS)
             )
-        except asyncio.TimeoutError:
+        except TimeoutError:
             metrics = get_metrics() if get_metrics else None
             if metrics:
                 metrics.increment_graph_query_failure(

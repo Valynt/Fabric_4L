@@ -1,4 +1,9 @@
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
+
 """
 FastAPI router for Model Registry API.
 
@@ -22,7 +27,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query, status
 from sqlalchemy import and_, desc, func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 

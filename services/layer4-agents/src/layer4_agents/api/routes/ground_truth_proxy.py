@@ -20,7 +20,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 from value_fabric.shared.identity.context import RequestContext

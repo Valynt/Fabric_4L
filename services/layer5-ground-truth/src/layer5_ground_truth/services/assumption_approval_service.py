@@ -15,15 +15,15 @@ from uuid import UUID
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.assumption_registry import (
-    Assumption,
-    AssumptionImpact,
-    AssumptionStatus,
-)
 from ..models.approval_workflow import (
     ApprovalRequest,
     ApprovalStatus,
     EntityType,
+)
+from ..models.assumption_registry import (
+    Assumption,
+    AssumptionImpact,
+    AssumptionStatus,
 )
 from ..services.approval_state_machine import ApprovalStateMachine
 

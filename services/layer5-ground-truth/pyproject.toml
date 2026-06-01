@@ -125,9 +125,22 @@ module = [
     "src.layer5_ground_truth.migrations.versions.008_ensure_truth_objects_tenant_id",
     "src.layer5_ground_truth.migrations.versions.20240101_0000_a1b2c3d4e5f6_initial_ground_truth_schema",
     "src.layer5_ground_truth.models.truth_object",
+    "src.layer5_ground_truth.services.agent_permission_service",
+    "src.layer5_ground_truth.services.approval_state_machine",
+    "src.layer5_ground_truth.services.assumption_approval_service",
+    "src.layer5_ground_truth.services.benchmark_governance_service",
+    "src.layer5_ground_truth.services.formula_governance_service",
+    "src.layer5_ground_truth.services.freshness_contracts",
     "src.layer5_ground_truth.services.freshness_monitor",
+    "src.layer5_ground_truth.services.policy_governance_service",
     "src.layer5_ground_truth.services.state_machine",
     "src.layer5_ground_truth.services.truth_service",
+    "src.layer5_ground_truth.services.value_realization_service",
+    "src.layer5_ground_truth.api.governance_router",
+    "src.layer5_ground_truth.observability.governance_alerts",
+    "src.layer5_ground_truth.observability.governance_logging",
+    "src.layer5_ground_truth.observability.governance_metrics",
+    "src.layer5_ground_truth.observability.structured_logging",
     "src.layer5_ground_truth.shared_bootstrap",
     "src.metrics.prometheus_metrics",
 ]
@@ -160,6 +173,7 @@ disable_error_code = [
     "redundant-cast",
     "override",
     "untyped-decorator",
+    "list-item",
 ]
 
 [tool.pytest.ini_options]

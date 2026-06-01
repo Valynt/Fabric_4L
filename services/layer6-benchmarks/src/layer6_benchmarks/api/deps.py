@@ -1,9 +1,10 @@
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
+
 """Shared dependencies for Layer 6 API."""
 
 from typing import TYPE_CHECKING
 
-from fastapi import Query, Request, status
+from fastapi import Query, Request
 
 if TYPE_CHECKING:
     from value_fabric.shared.identity.context import RequestContext

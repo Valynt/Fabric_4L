@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
+
 """FastAPI routes for the Fabric Harness.
 
 Exposes the SqlHarnessRegistry as a REST API under /v1/harness/*.
@@ -18,7 +23,7 @@ import logging
 import os
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.error_handling import sanitize_log_error
 from value_fabric.shared.identity.context import RequestContext

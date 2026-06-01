@@ -16,9 +16,7 @@ from ..models.policy_governance import (
     Policy,
     PolicyApplication,
     PolicyRule,
-    PolicySeverity,
     PolicyStatus,
-    PolicyType,
     PolicyVersion,
 )
 

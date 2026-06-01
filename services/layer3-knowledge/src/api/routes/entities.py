@@ -1,4 +1,5 @@
 from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -259,8 +260,6 @@ async def get_entity_detail(
             updated_at=entity_node.get("updated_at"),
         )
 
-    except:
-        raise
     except (ValidationError, DatabaseError) as exc:
         context = {"tenant": getattr(_ctx, "tenant_id", "unknown"), "endpoint": f"/entities/{entity_id}", "operation": "get_entity_detail"}
         logger.warning("Entity detail mapped exception", extra={"context": context}, exc_info=True)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import AuthorizationError
+
 """Tier enforcement for tenant resource limits.
 
 Provides FastAPI dependency functions that check tenant tier limits
@@ -20,7 +21,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import status
+from fastapi import HTTPException, status
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.models.typed_dict import TypedDictModel

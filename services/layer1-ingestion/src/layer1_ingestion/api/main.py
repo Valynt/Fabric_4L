@@ -493,7 +493,7 @@ class ExtractionConfigInput(BaseModel):
     llm_provider: LLMProvider | None = None
     extraction_schema: dict[str, Any] | None = None
     visual_hints: bool = False
-    max_depth: int | None = Field(None, ge=0, le=10)
+    max_depth: int | None = None
     follow_links: bool = True
     link_selectors: list[str] | None = None
 

@@ -15,8 +15,8 @@ from uuid import UUID
 from sqlalchemy import and_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from ..models.formula_governance import Formula, FormulaStatus
 from ..models.benchmark_governance import BenchmarkDataset, BenchmarkStatus
+from ..models.formula_governance import Formula, FormulaStatus
 from ..models.policy_governance import Policy, PolicyApplication
 
 logger = logging.getLogger(__name__)
@@ -269,10 +269,10 @@ class AgentPermissionService:
             evaluator = self._policy_evaluator(policy.policy_type)
             passed, message = await evaluator(db=db, tenant_id=tenant_id, entity_id=entity_id)
             outcome = "passed" if passed else ("warning" if not policy.is_mandatory else "failed")
-        except PolicyEvaluationError as exc:
+        except PolicyEvaluationError:
             message = "policy_evaluation_failed"
             outcome = "warning" if not policy.is_mandatory else "failed"
-        except Exception as exc:
+        except Exception:
             logger.exception("Unexpected policy evaluation error for policy %s", policy.id)
             message = "policy_evaluation_error"
             outcome = "failed"

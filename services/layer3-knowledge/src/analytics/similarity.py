@@ -4,10 +4,11 @@ import logging
 from typing import Any
 
 from neo4j import AsyncDriver, AsyncGraphDatabase
-from config import Settings, get_settings
 from value_fabric.shared.identity.context import require_context
 from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCypher
 from value_fabric.shared.models.typed_dict import TypedDictModel
+
+from config import Settings, get_settings
 
 from ..db.query_execution import run_validated_query
 from ..retrieval.vector_store import VectorStore

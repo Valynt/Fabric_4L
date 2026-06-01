@@ -12,8 +12,7 @@ Defines the contract for entity resolution operations with:
 
 from datetime import UTC, datetime
 from enum import Enum
-from typing import Any, Literal
-from uuid import UUID, uuid4
+from typing import Any
 
 from pydantic import BaseModel, Field, field_validator
 

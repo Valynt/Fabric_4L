@@ -4,9 +4,8 @@ Governance Metrics Module.
 Prometheus metrics for Layer 5 governance operations with safe labels.
 """
 
-from prometheus_client import Counter, Histogram, Gauge
+from prometheus_client import Counter, Gauge, Histogram
 from prometheus_client.registry import CollectorRegistry
-
 
 # Use a custom registry to avoid conflicts with other layers
 GOVERNANCE_REGISTRY = CollectorRegistry()

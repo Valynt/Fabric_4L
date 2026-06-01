@@ -48,14 +48,14 @@ def _build_entity_signature(entity_type: str, entity: Any) -> str:
     # Persona: role_type + title + department
     elif entity_type == "persona":
         role = getattr(entity, "role_type", None)
-        parts.append(str(role.value if hasattr(role, "value") else role))
+        parts.append(str(getattr(role, "value", role)))
         parts.append(_normalize_text(getattr(entity, "title", None)))
         parts.append(_normalize_text(getattr(entity, "department", None)))
 
     # ValueDriver: category + name + description + unit
     elif entity_type == "valuedriver":
         category = getattr(entity, "category", None)
-        parts.append(str(category.value if hasattr(category, "value") else category))
+        parts.append(str(getattr(category, "value", category)))
         parts.append(_normalize_text(getattr(entity, "name", None)))
         parts.append(_normalize_text(getattr(entity, "description", None)))
         parts.append(_normalize_text(getattr(entity, "unit", None)))
@@ -71,7 +71,7 @@ def _build_entity_signature(entity_type: str, entity: Any) -> str:
         parts.append(_normalize_text(getattr(entity, "description", None)))
         parts.append(_normalize_text(getattr(entity, "unit", None)))
         direction = getattr(entity, "direction", None)
-        parts.append(str(direction.value if hasattr(direction, "value") else direction))
+        parts.append(str(getattr(direction, "value", direction)))
 
     else:
         # Fallback: use name + description if available

@@ -1,5 +1,7 @@
 """Workflow base classes and builders for Layer 4 agentic orchestration."""
 
+from __future__ import annotations
+
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -254,7 +256,7 @@ class BaseWorkflow(ABC):
                 # Native LangGraph HITL interrupts must bubble up so the
                 # checkpointer can persist state and the caller can handle it.
                 raise
-            except Exception as e:
+            except Exception:
                 # Handle error
                 error_msg = f"Node {node_config.id} failed: NODE_EXECUTION_ERROR"
                 updates["errors"] = state.errors + [error_msg]

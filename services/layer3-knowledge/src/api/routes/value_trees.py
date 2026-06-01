@@ -1,4 +1,9 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -20,7 +25,6 @@ from pydantic import BaseModel, Field
 
 from ...api.dependencies import AppState, _extract_tenant_id, get_app_state
 from ...db.query_execution import (
-    MAX_QUERY_DEPTH,
     QUERY_TIMEOUT_SECONDS,
     CypherDepthLimitExceeded,
 )

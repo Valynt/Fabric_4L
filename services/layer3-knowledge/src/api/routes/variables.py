@@ -1,4 +1,8 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -14,7 +18,7 @@ import os
 from datetime import UTC, datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_tenant_context

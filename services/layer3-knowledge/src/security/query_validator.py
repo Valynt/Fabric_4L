@@ -260,7 +260,7 @@ class QueryValidator:
             validate_tenant_scoped_cypher(
                 query, tenant_owned_labels=TENANT_OWNED_LABELS, query_name=query_name
             )
-        except ValueError as exc:
+        except ValueError:
             self._findings.append(ValidationFinding(
                 severity=ValidationSeverity.ERROR,
                 message="unscoped_query",

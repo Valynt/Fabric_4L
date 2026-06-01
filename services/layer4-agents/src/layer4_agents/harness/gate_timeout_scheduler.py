@@ -132,6 +132,7 @@ class GateTimeoutScheduler:
 
     async def _get_tenant_timeout_override(self, session, tenant_id: str) -> int | None:
         from sqlalchemy import select
+
         from tenants.models.tenant import Tenant
 
         result = await session.execute(select(Tenant.settings).where(Tenant.id == tenant_id))

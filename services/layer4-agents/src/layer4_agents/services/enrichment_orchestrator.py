@@ -260,7 +260,7 @@ class EnrichmentOrchestrator:
                 if source_result.get("success"):
                     sources_used.append(source.value)
                 results[source.value] = source_result
-            except Exception as e:
+            except Exception:
                 logger.error(
                     "enrichment_source_failed",
                     account_id=str(account_id),
@@ -344,7 +344,7 @@ class EnrichmentOrchestrator:
                     success_count += 1
                 else:
                     fail_count += 1
-            except Exception as e:
+            except Exception:
                 logger.error("batch_enrichment_error", account_id=str(account_id), error_code="BATCH_ENRICHMENT_ERROR")
                 fail_count += 1
                 batch_results.append({"account_id": str(account_id), "status": "error", "error": "BATCH_ENRICHMENT_ERROR"})

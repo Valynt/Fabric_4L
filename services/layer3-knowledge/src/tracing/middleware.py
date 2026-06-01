@@ -6,7 +6,7 @@ OTLP receivers) and correlates with L1/L4 spans in a standard OTel backend.
 """
 
 from collections.abc import Callable
-from typing import Any, Optional
+from typing import Any
 
 from fastapi import Request, Response
 from opentelemetry import propagate, trace
@@ -17,7 +17,10 @@ from opentelemetry.trace import Status, StatusCode, TraceFlags
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import StreamingResponse
 from value_fabric.shared.observability.trace_context import canonical_trace_headers
-from value_fabric.shared.observability.tracing_contract import build_trace_attributes, span_name
+from value_fabric.shared.observability.tracing_contract import (
+    build_trace_attributes,
+    span_name,
+)
 
 from logging_config import get_logger
 

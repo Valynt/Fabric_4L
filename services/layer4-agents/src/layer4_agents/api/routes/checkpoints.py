@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Checkpoint timeline API for workflow state history and rewind.
 
 Provides endpoints for:

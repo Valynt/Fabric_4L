@@ -91,15 +91,15 @@ ignore_missing_imports = true
 # Annotation-gap noise in strict mode — suppress per-module.
 [[tool.mypy.overrides]]
 module = [
-    "src.api.deps",
-    "src.api.main",
-    "src.api.routes.benchmarks",
-    "src.api.routes.system",
-    "src.api.schemas",
-    "src.metrics.prometheus_metrics",
-    "src.models.benchmark_dataset",
-    "src.repositories.benchmark_repository",
-    "src.settings",
+    "layer6_benchmarks.api.deps",
+    "layer6_benchmarks.api.main",
+    "layer6_benchmarks.api.routes.benchmarks",
+    "layer6_benchmarks.api.routes.system",
+    "layer6_benchmarks.api.schemas",
+    "layer6_benchmarks.metrics.prometheus_metrics",
+    "layer6_benchmarks.models.benchmark_dataset",
+    "layer6_benchmarks.repositories.benchmark_repository",
+    "layer6_benchmarks.settings",
 ]
 disable_error_code = [
     "no-untyped-def",

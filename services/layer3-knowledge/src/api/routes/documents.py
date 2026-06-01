@@ -1,6 +1,10 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Documents domain router — business case PDF export via Layer 4.
 
 Migrated from app_monolith.py as part of ARCH-L3-011 (Sprint 3 cutover).
@@ -14,7 +18,6 @@ from datetime import datetime, timedelta
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
-from value_fabric.shared.error_handling import build_error_detail
 
 from ...api.dependencies import AppState, get_app_state
 from ...api.models import DocumentExportRequest, DocumentExportResponse

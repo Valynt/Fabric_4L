@@ -1,19 +1,25 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Layer 6 Benchmark Service FastAPI application."""
 
 
 import logging
 import os
-import structlog
-import sys
 from contextlib import asynccontextmanager
 from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+import structlog
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import Response
 from value_fabric.shared.identity.context import RequestContext, get_request_context
@@ -37,9 +43,10 @@ except Exception as exc:
     if is_production_like_environment(_secret_env):
         raise RuntimeError("Failed to load Infisical secrets in production-like Layer 6 runtime")
 
+from layer6_benchmarks.logging_config import configure_structured_logging
+
 from ..database import close_driver, get_driver
 from ..database import health_check as neo4j_health_check
-from layer6_benchmarks.logging_config import configure_structured_logging
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
 from ..models.benchmark_dataset import (
     FINANCIAL_SERVICES_BENCHMARK_SEED,

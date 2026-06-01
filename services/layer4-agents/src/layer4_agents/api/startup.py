@@ -22,7 +22,7 @@ from value_fabric.shared.identity.vault_check import is_vault_healthy
 
 from ..config import configure_settings
 from ..config.checkpoint import CheckpointConfig
-from ..database import close_db, db_session, db_session_for_context, init_db
+from ..database import close_db, db_session_for_context, init_db
 from ..engine.executor import OrchestrationController
 from ..engine.state_manager import StateManager
 from ..feature_flags.service import FeatureFlagService
@@ -223,7 +223,7 @@ async def start_optional_integrations(app: FastAPI) -> None:
         )
 
     # Gate timeout scheduler — expires PENDING gates after deadline (WF-001)
-    from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
     from ..database import get_db_from_context
+    from ..harness.gate_timeout_scheduler import create_gate_timeout_scheduler
     runtime_state.gate_timeout_scheduler = create_gate_timeout_scheduler(get_db_from_context)
     await runtime_state.gate_timeout_scheduler.start()

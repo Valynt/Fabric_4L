@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, ConflictError, NotFoundError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Analysis API routes for quick ROI and whitespace calculations."""
 
 

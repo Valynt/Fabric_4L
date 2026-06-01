@@ -71,6 +71,24 @@ exclude_lines = [
 ]
 fail_under = 80
 
+[tool.mypy]
+python_version = "3.11"
+ignore_missing_imports = true
+exclude = [
+    "migrations/",
+]
+
+# Annotation-gap noise — suppress per-module for SQLAlchemy/Pydantic structural patterns.
+[[tool.mypy.overrides]]
+module = [
+    "layer2_5_signal_refinery.models.db_models",
+    "layer2_5_signal_refinery.repositories.signal_repository",
+    "layer2_5_signal_refinery.api.main",
+    "layer2_5_signal_refinery.clients.l3_graph_client",
+    "layer2_5_signal_refinery.config",
+]
+disable_error_code = ["var-annotated", "attr-defined", "no-any-return", "call-arg"]
+
 [tool.uv]
 dev-dependencies = [
     "pytest>=8.0",

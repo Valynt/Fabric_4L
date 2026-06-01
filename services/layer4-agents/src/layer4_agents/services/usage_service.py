@@ -598,14 +598,14 @@ class UsageService:
                     })
                     total_synced += count
 
-                except StripeMeterEventError as e:
+                except StripeMeterEventError:
                     sync_results.append({
                         "metric": metric,
                         "quantity": quantity,
                         "events": count,
                         "error": "STRIPE_METER_ERROR",
                     })
-                except StripeNotConfiguredError as e:
+                except StripeNotConfiguredError:
                     return UsageService_sync_to_stripeResult.model_validate({
                         "synced": 0,
                         "error": "Stripe not configured",

@@ -13,7 +13,6 @@ Implements the approval lifecycle:
 
 import logging
 from datetime import UTC, datetime
-from enum import Enum as PyEnum
 from uuid import UUID
 
 from sqlalchemy import and_, func, select, update
@@ -27,7 +26,6 @@ from ..models.approval_workflow import (
     ApprovalWorkflow,
     EntityType,
 )
-from ..models.truth_object import Base
 
 logger = logging.getLogger(__name__)
 

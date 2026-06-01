@@ -473,7 +473,7 @@ class IntegrationService:
             })
 
 
-        except httpx.NetworkError as e:
+        except httpx.NetworkError:
             return IntegrationService__test_salesforce_connectionResult.model_validate({
                 "success": False,
                 "message": "NETWORK_ERROR",
@@ -551,7 +551,7 @@ class IntegrationService:
             })
 
 
-        except httpx.NetworkError as e:
+        except httpx.NetworkError:
             return IntegrationService__test_hubspot_connectionResult.model_validate({
                 "success": False,
                 "message": "NETWORK_ERROR",

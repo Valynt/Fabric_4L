@@ -176,7 +176,7 @@ class CRMSyncService:
                         stats["updated"] += 1
                     else:
                         stats["synced"] += 1
-                except SyncTruncatedError as e:
+                except SyncTruncatedError:
                     has_truncation = True
                     stats["failed"] += 1
                     stats["errors"].append(f"{prospect_id}: SYNC_TRUNCATED_ERROR")
@@ -185,7 +185,7 @@ class CRMSyncService:
                         prospect_id, provider.value, sanitize_log_error("SYNC_TRUNCATED_ERROR"),
                         extra={"tenant_id": tenant_id, "provider": provider.value},
                     )
-                except Exception as e:
+                except Exception:
                     stats["failed"] += 1
                     stats["errors"].append(f"{prospect_id}: SYNC_ERROR")
                     logger.error(

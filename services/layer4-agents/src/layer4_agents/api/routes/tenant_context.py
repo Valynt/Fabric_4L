@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import AuthenticationError, NotFoundError
+
 """Canonical tenant context endpoint for authenticated frontend and API clients."""
 
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext

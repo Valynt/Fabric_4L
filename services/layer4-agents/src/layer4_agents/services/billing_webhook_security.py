@@ -6,8 +6,8 @@ Canonical implementations live in layer4_agents.services.billing_security.
 """
 
 from .billing_security import (
-    STRIPE_WEBHOOK_SKIP_IP_CHECK,
     STRIPE_WEBHOOK_IPS,
+    STRIPE_WEBHOOK_SKIP_IP_CHECK,
     ensure_timestamp_within_tolerance,
     get_client_ip,
     is_stripe_webhook_ip,

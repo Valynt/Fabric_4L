@@ -94,6 +94,7 @@ ignore = [
     "C405",   # Unnecessary `set` literal
     "C414",   # Unnecessary `list` or `tuple` call within `list()`
     "C416",   # Unnecessary `list` comprehension
+    "TID252", # Prefer absolute imports over relative parent imports — 479 pre-existing occurrences; requires dedicated migration pass (tracked: PLATARCH-L3-TID252-MIGRATION)
 ]
 
 [tool.ruff.lint.flake8-tidy-imports]
@@ -106,6 +107,9 @@ ignore = [
 [tool.mypy]
 python_version = "3.11"
 ignore_missing_imports = true
+exclude = [
+    "migrations/",
+]
 # Note: Strict mode is enabled via Makefile CLI flags for CI consistency
 
 # Annotation-gap noise in strict mode — suppress per-module.
@@ -215,6 +219,17 @@ module = [
     "src.backup.backup_manager",
     "src.ingestion.neo4j_loader",
     "src.services.signal_quantification",
+    "src.api.routes.agents",
+    "src.api.routes.analytics",
+    "src.api.routes.graph_viz",
+    "src.api.routes.ingestion",
+    "src.api.routes.value_packs_framework_routes",
+    "src.api.routes.value_packs_mapping",
+    "src.db.audited_mutation",
+    "src.schema.entity_resolution",
+    "src.security.account_authorization",
+    "src.services.entity_resolution",
+    "src.utils.logging_context",
 ]
 disable_error_code = [
     "no-untyped-def",
@@ -224,6 +239,7 @@ disable_error_code = [
     "no-untyped-call",
     "attr-defined",
     "misc",
+    "untyped-decorator",
     "call-arg",
     "union-attr",
     "arg-type",

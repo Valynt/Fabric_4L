@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import AuthenticationError
+
 """
 Knowledge graph tools with tenant isolation.
 
@@ -13,7 +14,6 @@ import os
 from typing import Any
 from uuid import UUID
 
-from fastapi import status
 from neo4j import AsyncGraphDatabase
 from value_fabric.shared.audit import AuditAction, AuditOutcome, emit_audit_event
 from value_fabric.shared.identity.context import RequestContext, get_request_context

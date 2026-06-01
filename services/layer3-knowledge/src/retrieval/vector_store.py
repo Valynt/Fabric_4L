@@ -412,7 +412,7 @@ class Neo4jVectorStore:
                     "online": online,
                 }
 
-        except (ClientError, ServiceUnavailable) as exc:
+        except (ClientError, ServiceUnavailable):
             metrics = get_metrics()
             if metrics:
                 metrics.increment_index_constraint_health_failure(

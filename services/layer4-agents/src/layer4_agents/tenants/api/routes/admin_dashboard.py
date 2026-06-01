@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
+
 """Tenant admin dashboard API routes.
 
 Provides tenant administrators with:
@@ -30,7 +35,7 @@ import logging
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession

@@ -236,7 +236,7 @@ class SignalQuantificationService:
             )
 
         except Exception as e:
-            logger.error("Signal quantification failed", exc_info=e, extra={"signal_id": signal_id})
+            logger.error("Signal quantification failed", exc_info=e, extra={"signal_name": signal_name})
             return QuantificationResult(
                 success=False,
                 errors=["Signal quantification failed due to internal error"],

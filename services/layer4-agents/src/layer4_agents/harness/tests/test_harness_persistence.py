@@ -62,8 +62,7 @@ from harness.models import (
     ToolRiskLevel,
     ToolSideEffectClass,
 )
-from harness.registry import RunNotFoundError
-from harness.registry import TransitionConflictError
+from harness.registry import RunNotFoundError, TransitionConflictError
 from harness.repositories import (
     CheckpointRepository,
     HarnessRunRepository,

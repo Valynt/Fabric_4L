@@ -289,7 +289,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                 # SECURITY: Validate entity_id
                 try:
                     entity_id = self._validate_entity_id(context.get("entity_id"))
-                except ValueError as e:
+                except ValueError:
                     return self._create_result(
                         status="failed",
                         output={},
@@ -315,7 +315,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                 try:
                     derived_id = self._validate_entity_id(context.get("derived_entity_id"))
                     source_id = self._validate_entity_id(context.get("source_entity_id"))
-                except ValueError as e:
+                except ValueError:
                     return self._create_result(
                         status="failed",
                         output={},
@@ -341,7 +341,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                 # SECURITY: Validate entity_id
                 try:
                     entity_id = self._validate_entity_id(context.get("entity_id"))
-                except ValueError as e:
+                except ValueError:
                     return self._create_result(
                         status="failed",
                         output={},

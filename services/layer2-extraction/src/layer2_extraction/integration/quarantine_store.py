@@ -4,6 +4,7 @@ import os
 import sqlite3
 from abc import ABC, abstractmethod
 from datetime import UTC, datetime
+from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -159,7 +160,7 @@ class SqliteQuarantineStore(QuarantineStore):
             rows = conn.execute("SELECT * FROM extraction_quarantine WHERE tenant_id=? ORDER BY created_at DESC", (tenant_id,)).fetchall()
         return [self._row_to_record(r) for r in rows]
 
-    def _row_to_record(self, row: tuple) -> QuarantineRecord:
+    def _row_to_record(self, row: tuple[Any, ...]) -> QuarantineRecord:
         import json
         return QuarantineRecord(
             quarantine_id=row[0], job_id=row[1], tenant_id=row[2], source_url=row[3], source_hash=row[4],

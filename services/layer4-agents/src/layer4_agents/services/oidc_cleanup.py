@@ -49,7 +49,7 @@ async def cleanup_expired_oidc_sessions(db: AsyncSession) -> int:
 
         return deleted_count
 
-    except Exception as e:
+    except Exception:
         logger.error(
             "oidc_cleanup_failed",
             error_code="OIDC_CLEANUP_ERROR",

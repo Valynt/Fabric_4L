@@ -1,13 +1,18 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """Public tenant registration endpoints."""
 
 
 import logging
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy.ext.asyncio import AsyncSession
 

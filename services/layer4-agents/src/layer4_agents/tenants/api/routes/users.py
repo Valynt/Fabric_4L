@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError
+
 """User management API routes (tenant_admin only).
 
 POST   /v1/users/invite          — invite a user to the caller's tenant

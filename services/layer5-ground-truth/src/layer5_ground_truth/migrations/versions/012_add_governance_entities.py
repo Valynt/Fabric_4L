@@ -9,8 +9,8 @@ Phase 3: Create Formula/Benchmark/Policy governance entities
 Issue: Formulas versioned/typed/schema-validated, Benchmark metadata completeness, Policy rules engine
 """
 
-from alembic import op
 import sqlalchemy as sa
+from alembic import op
 from sqlalchemy.dialects import postgresql
 
 # revision identifiers

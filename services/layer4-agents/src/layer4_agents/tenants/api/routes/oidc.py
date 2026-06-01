@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthenticationError, AuthorizationError, NotFoundError, RateLimitError, ServiceUnavailableError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    RateLimitError,
+    ServiceUnavailableError,
+    ValidationError,
+)
+
 """OIDC SSO routes for tenant authentication with PKCE support (P0-10).
 
 GET  /auth/oidc/{tenant_slug}/login    — initiate OIDC flow with PKCE
@@ -133,7 +141,7 @@ def _check_preauth_rate_limit(request: Request, endpoint: str, discriminator: st
 
     if count >= AUTH_PREAUTH_MAX_ATTEMPTS:
         retry_after = max(1, int(AUTH_PREAUTH_WINDOW_SECONDS - (now - window_start)))
-        raise RateLimitError(message = "Too many authentication attempts")
+        raise RateLimitError(message="Too many authentication attempts", retry_after=retry_after)
 
     _auth_preauth_buckets[key] = (window_start, count + 1)
 
@@ -560,7 +568,6 @@ async def auth_refresh(
 
     Returns 401 if the cookie is absent, expired, or invalid.
     """
-    from fastapi import HTTPException
     from value_fabric.shared.identity.jwt import decode_jwt, encode_jwt
 
     if not vf_session:

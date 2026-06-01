@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -19,7 +20,7 @@ Win/loss outcomes are validated against an enum (V-011).
 
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.security.dil_auth import (

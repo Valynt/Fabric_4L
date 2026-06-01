@@ -1,11 +1,10 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import AuthorizationError
-
 import hmac
 import secrets
 
 from fastapi import Cookie, Header
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 CSRF_COOKIE_NAME = "vf_csrf_token"
 SESSION_COOKIE_NAME = "vf_session"

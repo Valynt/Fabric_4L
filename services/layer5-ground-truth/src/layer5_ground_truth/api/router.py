@@ -1,4 +1,9 @@
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ValidationError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ValidationError,
+)
+
 """
 FastAPI router for Layer 5 Ground Truth API.
 
@@ -19,7 +24,7 @@ import logging
 from datetime import UTC, datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from ..cache import cached

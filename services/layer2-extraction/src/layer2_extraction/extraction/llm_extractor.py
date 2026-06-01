@@ -443,7 +443,7 @@ class EntityExtractor:
                         source_hash=source_hash,
                         entity_type=entity_type,
                         entity=entity,
-                        extraction_version=telemetry_context.get("extraction_version", "v1"),
+                        extraction_version=telemetry_context.get("extraction_version", "v1") if telemetry_context else "v1",
                     )
                     entity.id = deterministic_id
                     entity.deterministic_id = deterministic_id
@@ -678,7 +678,7 @@ class RelationshipExtractor:
                         source_url=source_url,
                         entity_type="relationship",
                         entity=rel,
-                        extraction_version=telemetry_context.get("extraction_version", "v1"),
+                        extraction_version=telemetry_context.get("extraction_version", "v1") if telemetry_context else "v1",
                     )
                     relationships.append(rel)
 

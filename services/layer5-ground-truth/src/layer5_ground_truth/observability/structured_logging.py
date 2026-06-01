@@ -7,7 +7,6 @@ import contextvars
 import logging
 import sys
 import uuid
-from collections.abc import Callable
 from typing import Any
 
 import structlog

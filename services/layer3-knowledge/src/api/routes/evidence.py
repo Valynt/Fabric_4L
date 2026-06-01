@@ -1,4 +1,8 @@
-from value_fabric.shared.error_handling.exceptions import NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge

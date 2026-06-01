@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import NotFoundError, ValidationError
+
 """Tenant management API endpoints.
 
 Task 3: Multi-Tenancy Hardening - Tenant Provisioning Automation

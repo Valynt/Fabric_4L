@@ -326,7 +326,7 @@ def maintenance_audit_log(operation: str, tenant_id: str | None = None) -> Gener
             operation=operation,
             tenant_id=tenant_id,
             rows_affected=record.rows_affected,
-            duration_seconds=(record.completed_at - record.started_at).total_seconds()
+            duration_seconds=(record.completed_at - record.started_at).total_seconds() if record.started_at else 0.0
         )
         
     except Exception as e:
@@ -339,7 +339,7 @@ def maintenance_audit_log(operation: str, tenant_id: str | None = None) -> Gener
             operation=operation,
             tenant_id=tenant_id,
             error=record.error_message,
-            duration_seconds=(record.completed_at - record.started_at).total_seconds()
+            duration_seconds=(record.completed_at - record.started_at).total_seconds() if record.started_at else 0.0
         )
         raise
     

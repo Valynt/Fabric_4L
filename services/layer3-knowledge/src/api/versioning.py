@@ -1,4 +1,5 @@
 from value_fabric.shared.error_handling.exceptions import ValidationError
+
 """Allowed service-local exception for Layer 3 service wrapper.
 
 Owner: layer3-knowledge
@@ -6,7 +7,6 @@ Removal/migration target: 2026-09-30
 Reason: API versioning and backward compatibility utilities.
 """
 
-import asyncio
 import inspect
 from collections.abc import Awaitable, Callable
 from datetime import datetime

@@ -546,7 +546,7 @@ class ToolRegistry:
         """
         try:
             tool = self.get(tool_name)
-        except ToolNotFoundError as e:
+        except ToolNotFoundError:
             logger.warning("tool_not_found", extra={"error_code": "TOOL_NOT_FOUND"})
             return ToolResult.failure(
                 code="TOOL_NOT_FOUND",

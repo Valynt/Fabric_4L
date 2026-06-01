@@ -1,6 +1,11 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoundError, ServiceUnavailableError
+from value_fabric.shared.error_handling.exceptions import (
+    ConflictError,
+    NotFoundError,
+    ServiceUnavailableError,
+)
+
 """Tenant management API routes (super_admin only).
 
 POST   /v1/tenants                          — create tenant
@@ -19,7 +24,7 @@ from uuid import UUID
 
 logger = logging.getLogger(__name__)
 
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Cookie, Depends, Query, status
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -224,7 +229,7 @@ async def api_suspend_tenant(
         updated = await update_tenant_status(
             db, tenant_id, "suspended", reason=reason, changed_by=changed_by,
         )
-    except ValueError as e:
+    except ValueError:
         logger.warning("tenant_suspend_conflict", extra={"error_code": "TENANT_SUSPEND_ERROR"})
         raise ConflictError(message="Invalid tenant status transition")
     if not updated:
@@ -247,7 +252,7 @@ async def api_activate_tenant(
         updated = await update_tenant_status(
             db, tenant_id, "active", reason=reason, changed_by=changed_by,
         )
-    except ValueError as e:
+    except ValueError:
         logger.warning("tenant_activate_conflict", extra={"error_code": "TENANT_ACTIVATE_ERROR"})
         raise ConflictError(message="Invalid tenant status transition")
     if not updated:
@@ -271,7 +276,7 @@ async def api_change_tenant_status(
         updated = await update_tenant_status(
             db, tenant_id, target_status, reason=reason, changed_by=changed_by,
         )
-    except ValueError as e:
+    except ValueError:
         logger.warning("tenant_status_change_conflict", extra={"error_code": "TENANT_STATUS_ERROR"})
         raise ConflictError(message="Invalid tenant status transition")
     if not updated:

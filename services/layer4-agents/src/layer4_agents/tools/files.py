@@ -81,7 +81,7 @@ def _validate_path(file_path: str, tenant_id: str) -> Path | None:
             return None
 
         return requested_path
-    except (OSError, ValueError) as e:
+    except (OSError, ValueError):
         logger.error(
             "Path resolution failed",
             extra={"file_path": file_path, "tenant_id": tenant_id, "error_code": "PATH_RESOLUTION_ERROR"}

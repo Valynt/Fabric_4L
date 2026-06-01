@@ -13,10 +13,10 @@ from .approval_actions import (
 )
 from .replay_conflict import (
     CollisionAction,
-    ReplayDecision,
     ReplayConflictError,
     ReplayConflictPolicy,
     ReplayConflictResolver,
+    ReplayDecision,
 )
 
 __all__ = [

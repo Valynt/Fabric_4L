@@ -14,8 +14,8 @@ from typing import Any
 
 from neo4j import AsyncDriver
 
-from ..db.query_execution import run_validated_query
 from ..config.embedding_dimension import validate_embedding_dimension
+from ..db.query_execution import run_validated_query
 from .embedding_errors import EmbeddingProviderUnavailableError
 
 logger = logging.getLogger(__name__)

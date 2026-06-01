@@ -49,6 +49,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..db.query_execution import run_validated_query
 from .cypher_scope_guard import validate_tenant_scoped_cypher
 
+
 class ROICalculatorService_compare_scenariosResult(TypedDictModel):
     discount_rate: Any
     scenarios: Any

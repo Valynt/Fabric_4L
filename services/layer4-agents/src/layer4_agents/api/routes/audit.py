@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError, ValidationError
+
 """Audit logs API routes backed by persisted audit events.
 
 This endpoint exposes tenant-scoped audit records from the ``audit_events``
@@ -14,7 +15,7 @@ import json
 from datetime import datetime
 from typing import Any, Literal
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession

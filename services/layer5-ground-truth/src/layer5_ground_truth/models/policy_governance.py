@@ -35,7 +35,6 @@ from sqlalchemy.types import JSON
 # Import from truth_object to share the same Base and UUID type
 from .truth_object import UUID, Base
 
-
 # ---------------------------------------------------------------------------
 # Enumerations
 # ---------------------------------------------------------------------------
