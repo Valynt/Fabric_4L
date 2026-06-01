@@ -79,6 +79,16 @@ def main():
     if exit_code:
         print("\nstr(exc)/repr(exc)/str(error)/repr(error) leak potentially sensitive exception data.")
         print("Use structured logging (error_type=type(exc).__name__) or sanitized messages instead.")
+    # Check tracing-config.yaml for insecure: true
+    tracing_config = repo_root / "packages" / "shared" / "src" / "value_fabric" / "shared" / "tracing" / "tracing-config.yaml"
+    if tracing_config.exists():
+        tc_content = tracing_config.read_text()
+        if "insecure: true" in tc_content:
+            for lineno, line in enumerate(tc_content.splitlines(), 1):
+                if "insecure: true" in line:
+                    print(f"ERROR: {tracing_config}:{lineno}: insecure: true found — must use mTLS")
+                    exit_code = 1
+
     return exit_code
 
 

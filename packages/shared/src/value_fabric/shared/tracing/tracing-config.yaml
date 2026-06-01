@@ -5,16 +5,20 @@
 exporter:
   otlp:
     # OTLP gRPC endpoint (OpenTelemetry Collector or Jaeger)
-    endpoint: "http://otel-collector.monitoring.svc.cluster.local:4317"
-    insecure: true
+    endpoint: "https://otel-collector.monitoring.svc.cluster.local:4317"
+    ca_file: "/etc/otel/certs/ca.crt"
+    cert_file: "/etc/otel/certs/tls.crt"
+    key_file: "/etc/otel/certs/tls.key"
     headers:
       x-environment: production
     timeout: 10s
     
   jaeger:
     # Alternative: Direct Jaeger endpoint
-    endpoint: "http://jaeger-collector.monitoring.svc.cluster.local:14250"
-    insecure: true
+    endpoint: "https://jaeger-collector.monitoring.svc.cluster.local:14250"
+    ca_file: "/etc/otel/certs/ca.crt"
+    cert_file: "/etc/otel/certs/tls.crt"
+    key_file: "/etc/otel/certs/tls.key"
 
 # Tracer Provider Settings
 provider:

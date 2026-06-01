@@ -63,7 +63,7 @@ spec:
                     # Check if the database exists before attempting backup
                     EXISTS=$$(PGPASSWORD=$${POSTGRES_PASSWORD} psql -h postgres -U $${POSTGRES_USER} -tAc "SELECT 1 FROM pg_database WHERE datname='$$DB'" 2>/dev/null || echo "")
                     if [ "$$EXISTS" = "1" ]; then
-                      if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
+                      if PGPASSWORD=$${POSTGRES_PASSWORD} pg_dump -h postgres-patroni -U $${POSTGRES_USER} -d $$DB -F c -f $$BACKUP_DIR/backup_$${DB}_$${TIMESTAMP}.dump; then
                         echo "OK: $$DB backed up to backup_$${DB}_$${TIMESTAMP}.dump"
                       else
                         echo "ERROR: pg_dump failed for $$DB" >&2

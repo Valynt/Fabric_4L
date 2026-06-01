@@ -484,7 +484,7 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
         telemetry_service_name="layer5-ground-truth",
         instrument_telemetry=True,
-        enforce_tenant_context=False,
+        enforce_tenant_context=True,
         contact={
             "name": "Value Fabric Engineering",
             "url": "https://github.com/bmsull560/Fabric_4L",

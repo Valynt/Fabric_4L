@@ -146,7 +146,7 @@ def create_app() -> FastAPI:
         ],
         readiness_path="/ready",
         health_readiness_augmentation_hook=_health_augmentation_hook,
-        enforce_tenant_context=False,
+        enforce_tenant_context=True,
         docs_url="/docs",
         redoc_url="/redoc",
         telemetry_service_name="layer2-5-signal-refinery",

@@ -230,7 +230,7 @@ app = create_fabric_app(
     cors_policy=resolve_cors_policy(),
     telemetry_service_name=SERVICE_NAME,
     instrument_telemetry=True,
-    enforce_tenant_context=False,
+    enforce_tenant_context=True,
 )
 
 if app.state.telemetry_provider is not None:

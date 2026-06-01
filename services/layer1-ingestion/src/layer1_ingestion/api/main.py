@@ -306,7 +306,7 @@ app = create_fabric_app(
         RedisHealthProbe(name="redis", _client=redis_client_async),
     ],
     readiness_path="/ready",
-    enforce_tenant_context=False,
+    enforce_tenant_context=True,
     enforcement_rollout=EnforcementRolloutConfig(
         tenant_enforcement=EnforcementControlConfig(mode=EnforcementMode.AUDIT),
         rate_limiting=EnforcementControlConfig(mode=EnforcementMode.ENFORCE),

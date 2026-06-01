@@ -45,7 +45,6 @@ DEFAULT_PUBLIC_PATHS: tuple[str, ...] = (
     "/readyz",
     "/live",
     "/livez",
-    "/metrics",
     "/openapi.json",
     "/docs",
     "/redoc",
