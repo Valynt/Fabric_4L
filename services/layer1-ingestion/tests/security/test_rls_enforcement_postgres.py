@@ -39,11 +39,11 @@ class TestRLSEnforcement:
         """Invalid tenant_id should cause TenantContextError."""
         from layer1_ingestion.shared.database import TenantContextError
         
-        # Use a non-existent UUID
-        fake_tenant_id = uuid4()
+        # Use an invalid tenant_id format (not a UUID)
+        invalid_tenant_id = "not-a-valid-uuid"
         
         with pytest.raises(TenantContextError):
-            with get_db_session(tenant_id=fake_tenant_id, require_tenant=True) as session:
+            with get_db_session(tenant_id=invalid_tenant_id, require_tenant=True) as session:
                 session.query(ScrapingJob).first()
 
     def test_cross_tenant_job_lookup_fails(self, postgres_db, org_id, other_org_id, make_job):

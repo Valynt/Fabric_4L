@@ -101,12 +101,10 @@ class TestCrossTenantAccessPrevention:
         # Try to access with tenant B
         tenant_b = str(uuid4())
         
-        with pytest.raises(Exception):  # Should fail due to RLS or no results
-            with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
-                retrieved = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
-                # RLS should prevent access or return None
-                if retrieved:
-                    assert retrieved.tenant_id == tenant_b  # This should never happen
+        with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
+            retrieved = session.query(ScrapingJob).filter(ScrapingJob.id == job.id).first()
+            # RLS should prevent access by returning None
+            assert retrieved is None, "RLS must prevent cross-tenant job access"
 
     def test_target_isolation_enforced(self, postgres_db, user_id):
         """Test that target isolation is properly enforced."""
@@ -138,14 +136,14 @@ class TestCrossTenantAccessPrevention:
         with get_db_session(tenant_id=tenant_a, require_tenant=True) as session:
             targets = session.query(ScrapingTarget).all()
             assert len(targets) == 1
-            assert targets[0].tenant_id == tenant_a
+            assert str(targets[0].tenant_id) == tenant_a
             assert targets[0].name == "Target A"
         
         # Tenant B should only see Target B
         with get_db_session(tenant_id=tenant_b, require_tenant=True) as session:
             targets = session.query(ScrapingTarget).all()
             assert len(targets) == 1
-            assert targets[0].tenant_id == tenant_b
+            assert str(targets[0].tenant_id) == tenant_b
             assert targets[0].name == "Target B"
 
     def test_raw_content_tenant_isolation(self, postgres_db, user_id, make_target):
@@ -204,7 +202,7 @@ class TestCrossTenantAccessPrevention:
         with get_db_session(tenant_id=tenant_a, require_tenant=True) as session:
             content = session.query(RawContent).all()
             assert len(content) == 1
-            assert content[0].tenant_id == tenant_a
+            assert str(content[0].tenant_id) == tenant_a
             assert content[0].source_domain == "example-a.com"
 
     def test_forged_tenant_id_in_task_dispatch(self):
