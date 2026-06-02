@@ -30,7 +30,7 @@ class TestComplianceCheckMaxRetries:
     """Test compliance check stage max retry behavior."""
 
     def test_compliance_check_max_retries_exhaustion_leads_to_failed(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """When compliance_check_stage exhausts max_retries, job should reach FAILED status."""
         from layer1_ingestion.shared.tasks import compliance_check_stage
@@ -43,6 +43,7 @@ class TestComplianceCheckMaxRetries:
             target_id=target.id,
             status=JobStatus.VALIDATING.value,
             configuration={"url": "https://example.com"},
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -72,7 +73,7 @@ class TestComplianceCheckMaxRetries:
         assert job.status == JobStatus.FAILED.value
 
     def test_compliance_check_stage_status_marked_failed_after_exhaustion(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """Compliance check stage should be marked FAILED after retry exhaustion."""
         target = make_target(org_id, status="ACTIVE")
@@ -82,6 +83,7 @@ class TestComplianceCheckMaxRetries:
             target_id=target.id,
             status=JobStatus.VALIDATING.value,
             configuration={"url": "https://example.com"},
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -116,7 +118,7 @@ class TestBrowserCrawlMaxRetries:
     """Test browser crawl stage max retry behavior."""
 
     def test_browser_crawl_max_retries_exhaustion_leads_to_failed(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """When browser_crawl_stage exhausts max_retries, job should reach FAILED status."""
         target = make_target(org_id, status="ACTIVE")
@@ -126,6 +128,7 @@ class TestBrowserCrawlMaxRetries:
             target_id=target.id,
             status=JobStatus.BROWSER_ACQUIRING.value,
             configuration={"url": "https://example.com"},
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -143,7 +146,7 @@ class TestBrowserCrawlMaxRetries:
         assert job.status == JobStatus.FAILED.value
 
     def test_browser_crawl_stages_marked_failed_after_exhaustion(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """All browser crawl stages should be marked FAILED after retry exhaustion."""
         target = make_target(org_id, status="ACTIVE")
@@ -153,6 +156,7 @@ class TestBrowserCrawlMaxRetries:
             target_id=target.id,
             status=JobStatus.BROWSER_ACQUIRING.value,
             configuration={"url": "https://example.com"},
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -198,7 +202,7 @@ class TestAIExtractionMaxRetries:
     """Test AI extraction stage max retry behavior."""
 
     def test_ai_extraction_max_retries_exhaustion_leads_to_failed(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """When ai_extraction_stage exhausts max_retries, job should reach FAILED status."""
         target = make_target(org_id, status="ACTIVE")
@@ -211,6 +215,7 @@ class TestAIExtractionMaxRetries:
                 "url": "https://example.com",
                 "extraction_config": {"method": "LLM"},
             },
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -232,7 +237,7 @@ class TestStageStatusConsistency:
     """Test stage status consistency after retry exhaustion."""
 
     def test_all_affected_stages_marked_failed_after_retry_exhaustion(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """When a stage exhausts retries, all affected stages should be marked FAILED."""
         target = make_target(org_id, status="ACTIVE")
@@ -242,6 +247,7 @@ class TestStageStatusConsistency:
             target_id=target.id,
             status=JobStatus.VALIDATING.value,
             configuration={"url": "https://example.com"},
+            created_by=user_id,
         )
         db.add(job)
         db.commit()
@@ -279,7 +285,7 @@ class TestNoOrphanedRunningStates:
     """Test that no jobs are stuck in non-terminal states after retry exhaustion."""
 
     def test_no_orphaned_running_states_after_retry_exhaustion(
-        self, db, org_id, make_target
+        self, db, org_id, user_id, make_target
     ):
         """After retry exhaustion, no jobs should be stuck in RUNNING state."""
         target = make_target(org_id, status="ACTIVE")
@@ -293,6 +299,7 @@ class TestNoOrphanedRunningStates:
                 target_id=target.id,
                 status=JobStatus.VALIDATING.value,
                 configuration={"url": f"https://example{i}.com"},
+                created_by=user_id,
             )
             db.add(job)
             jobs.append(job)

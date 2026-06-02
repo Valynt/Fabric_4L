@@ -89,10 +89,17 @@ def postgres_engine():
 def postgres_db(postgres_engine):
     """SQLAlchemy Session scoped to each test with PostgreSQL."""
     Base = _get_base()
-    
+
     # Create all tables
     Base.metadata.create_all(bind=postgres_engine)
-    
+
+    # Monkeypatch module-level database engine so get_db_session uses the test DB
+    import layer1_ingestion.shared.database as db_module
+    original_engine = db_module.engine
+    original_session_local = db_module.SessionLocal
+    db_module.engine = postgres_engine
+    db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=postgres_engine)
+
     # Enable RLS on all tables that support it
     with postgres_engine.connect() as conn:
         # This will be applied by migrations in production, but for tests
@@ -103,13 +110,16 @@ def postgres_db(postgres_engine):
         except Exception:
             # If this fails, it's okay - migrations should handle it
             pass
-    
+
     SessionLocal = sessionmaker(bind=postgres_engine)
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
+        # Restore original engine and SessionLocal
+        db_module.engine = original_engine
+        db_module.SessionLocal = original_session_local
         # Clean up: drop all tables
         Base.metadata.drop_all(bind=postgres_engine)
 
@@ -163,24 +173,30 @@ def postgres_client(org_id, user_id, postgres_db):
 
 
 @pytest.fixture(scope="function")
-def make_target(postgres_db):
+def make_target(postgres_db, user_id):
     """Factory for creating ScrapingTarget rows."""
     create_scraping_target = _make_target_factory()
+    from layer1_ingestion.shared.models import TargetType
 
     def _make(tenant_id: UUID, status: str = "ACTIVE", name: str = "Test Target"):
-        return create_scraping_target(
-            postgres_db,
+        t = create_scraping_target(
             tenant_id=tenant_id,
             name=name,
             url="https://example.com",
-            status=status,
+            target_type=TargetType.SINGLE_PAGE,
+            created_by=user_id,
         )
+        t.status = status
+        postgres_db.add(t)
+        postgres_db.flush()
+        postgres_db.refresh(t)
+        return t
 
     return _make
 
 
 @pytest.fixture(scope="function")
-def make_job(postgres_db):
+def make_job(postgres_db, user_id):
     """Factory for creating ScrapingJob rows."""
     from layer1_ingestion.shared.models import ScrapingJob, JobStatus
     from uuid import uuid4
@@ -194,6 +210,7 @@ def make_job(postgres_db):
             target_id=target_id,
             status=status,
             configuration={},
+            created_by=user_id,
         )
         postgres_db.add(job)
         postgres_db.commit()

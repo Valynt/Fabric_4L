@@ -171,7 +171,8 @@ class SystemMaintenanceIdentity:
             
             # Check token age (24 hours)
             now = int(datetime.now(UTC).timestamp())
-            if now - timestamp > 86400:  # 24 hours
+            # Reject tokens from the future and tokens at or past the expiry boundary
+            if timestamp > now or now - timestamp >= 86400:  # 24 hours
                 return False
                 
             return True

@@ -16,18 +16,14 @@ def test_layer1_entrypoint_modules_import() -> None:
         assert hasattr(module, "app")
 
 
-def test_crawler_modules_resolve_via_canonical_and_compatibility_paths() -> None:
+def test_crawler_modules_resolve_via_canonical_paths() -> None:
     canonical_httpx = importlib.import_module("layer1_ingestion.crawler.httpx_crawler")
     canonical_router = importlib.import_module("layer1_ingestion.crawler.smart_router")
     canonical_store = importlib.import_module("layer1_ingestion.crawler.decision_store")
-    compatibility_pkg = importlib.import_module("src.crawler")
 
     assert canonical_httpx.HttpxCrawler is not None
     assert canonical_router.SmartRouter is not None
     assert canonical_store.CrawlDecisionRepository is not None
-    assert compatibility_pkg.HttpxCrawler is canonical_httpx.HttpxCrawler
-    assert compatibility_pkg.SmartRouter is canonical_router.SmartRouter
-    assert compatibility_pkg.CrawlDecisionRepository is canonical_store.CrawlDecisionRepository
 
 
 def test_canonical_crawler_package_exports_not_empty() -> None:

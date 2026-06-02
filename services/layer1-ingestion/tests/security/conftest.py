@@ -14,6 +14,7 @@ from fastapi import Request
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session, sessionmaker
+from sqlalchemy.pool import NullPool
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.types import ASGIApp
 
@@ -99,7 +100,7 @@ def db(engine):
 def postgres_engine():
     """PostgreSQL engine for security tests."""
     url = _get_postgres_url()
-    engine = create_engine(url)
+    engine = create_engine(url, poolclass=NullPool)
     _ensure_postgresql(engine)
     yield engine
     engine.dispose()
@@ -109,10 +110,17 @@ def postgres_engine():
 def postgres_db(postgres_engine):
     """SQLAlchemy Session scoped to each test with PostgreSQL."""
     Base = _get_base()
-    
+
     # Create all tables
     Base.metadata.create_all(bind=postgres_engine)
-    
+
+    # Monkeypatch module-level database engine so get_db_session uses the test DB
+    import layer1_ingestion.shared.database as db_module
+    original_engine = db_module.engine
+    original_session_local = db_module.SessionLocal
+    db_module.engine = postgres_engine
+    db_module.SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=postgres_engine)
+
     # Enable RLS on all tables that support it
     with postgres_engine.connect() as conn:
         try:
@@ -120,14 +128,23 @@ def postgres_db(postgres_engine):
             conn.commit()
         except Exception:
             pass
-    
+
     SessionLocal = sessionmaker(bind=postgres_engine)
     session = SessionLocal()
     try:
         yield session
     finally:
         session.close()
-        Base.metadata.drop_all(bind=postgres_engine)
+        # Restore original engine and SessionLocal
+        db_module.engine = original_engine
+        db_module.SessionLocal = original_session_local
+        # Fast cleanup: drop and recreate public schema instead of slow drop_all
+        with postgres_engine.connect() as conn:
+            conn.execute(text("DROP SCHEMA IF EXISTS public CASCADE"))
+            conn.execute(text("CREATE SCHEMA public"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO postgres"))
+            conn.execute(text("GRANT ALL ON SCHEMA public TO public"))
+            conn.commit()
 
 
 @pytest.fixture(scope="function")
@@ -137,10 +154,23 @@ def make_job(postgres_db, user_id):
     from uuid import uuid4
 
     def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value, created_by: UUID = None):
-        if target_id is None:
-            target_id = uuid4()
         if created_by is None:
             created_by = user_id
+        if target_id is None:
+            # Create a dummy target to satisfy foreign key constraint
+            from layer1_ingestion.shared.models import ScrapingTarget
+            target = ScrapingTarget(
+                tenant_id=tenant_id,
+                name="Test Target",
+                url="https://example.com",
+                target_type="SINGLE_PAGE",
+                status="ACTIVE",
+                created_by=created_by,
+            )
+            postgres_db.add(target)
+            postgres_db.flush()
+            postgres_db.refresh(target)
+            target_id = target.id
         job = ScrapingJob(
             id=uuid4(),
             tenant_id=tenant_id,
@@ -217,7 +247,7 @@ def client(org_id, user_id, db):
 
 
 @pytest.fixture(scope="function")
-def make_target(db, user_id):
+def make_target(postgres_db, user_id):
     """Factory for creating ScrapingTarget rows."""
     create_scraping_target = _make_target_factory()
     from layer1_ingestion.shared.models import TargetType
@@ -231,9 +261,9 @@ def make_target(db, user_id):
             created_by=user_id,
         )
         t.status = status
-        db.add(t)
-        db.flush()
-        db.refresh(t)
+        postgres_db.add(t)
+        postgres_db.flush()
+        postgres_db.refresh(t)
         return t
 
     return _make

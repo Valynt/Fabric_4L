@@ -333,16 +333,17 @@ class TestCacheSecurityProperties:
         from layer1_ingestion.shared.database import get_db_session
         
         tenant_id = str(uuid4())
+        test_domain = f"tenant-{tenant_id[:8]}.com"
         
         # Attempt to store tenant-owned data should be prevented by design
         with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
             # RobotsTxtCache model doesn't have tenant-owned fields
             # Only public robots.txt response data can be stored
             cache_entry = RobotsTxtCache(
-                domain="tenant.com",
+                domain=test_domain,
                 tenant_id=None,  # Always system-owned for global cache
                 content="Public robots.txt only",  # No tenant-specific content
-                url="https://tenant.com/robots.txt",  # Only robots.txt URLs
+                url=f"https://{test_domain}/robots.txt",  # Only robots.txt URLs
                 rules={},  # Only parsed rules, not crawl decisions
                 fetched_at=datetime.now(timezone.utc),
                 expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
@@ -354,10 +355,11 @@ class TestCacheSecurityProperties:
             session.commit()
         
         # Verify no tenant-owned data is stored
-        retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == "tenant.com").first()
-        assert retrieved is not None
-        assert retrieved.tenant_id is None  # System-owned only
-        assert "tenant" not in retrieved.content.lower()  # No tenant-specific content
+        with get_db_session(tenant_id=tenant_id, require_tenant=True) as session:
+            retrieved = session.query(RobotsTxtCache).filter(RobotsTxtCache.domain == test_domain).first()
+            assert retrieved is not None
+            assert retrieved.tenant_id is None  # System-owned only
+            assert "tenant" not in retrieved.content.lower()  # No tenant-specific content
 
     def test_cache_rls_not_required(self, postgres_db):
         """Test that cache doesn't require RLS policies."""

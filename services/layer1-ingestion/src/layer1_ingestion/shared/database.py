@@ -3,6 +3,7 @@ from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ValidationError,
 )
+from layer1_ingestion.shared.exceptions import TenantContextError
 
 INTENTIONAL_DB_ADAPTER_BYPASS = True
 
@@ -115,11 +116,6 @@ try:
     import redis.asyncio as redis_async
     redis_client_async = redis_async.Redis.from_url(settings.redis_url, decode_responses=True)
 except Exception:
-    pass
-
-
-class TenantContextError(Exception):
-    """Raised when tenant context is missing or invalid in fail-safe mode."""
     pass
 
 

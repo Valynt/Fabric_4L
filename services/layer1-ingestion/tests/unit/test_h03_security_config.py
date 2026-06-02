@@ -18,7 +18,7 @@ def _load_config(monkeypatch, **env):
         monkeypatch.delenv(key, raising=False)
     for key, value in env.items():
         monkeypatch.setenv(key, value)
-    module = importlib.import_module("shared.config")
+    module = importlib.import_module("layer1_ingestion.shared.config")
     return importlib.reload(module)
 
 
