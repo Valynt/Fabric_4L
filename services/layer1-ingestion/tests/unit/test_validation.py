@@ -25,6 +25,7 @@ class TestValidateCronExpression:
     """Unit tests for the _validate_cron_expression helper."""
 
     def _fn(self, expr: str) -> str:
+        pytest.importorskip("croniter")
         from layer1_ingestion.api.main import _validate_cron_expression
         return _validate_cron_expression(expr)
 

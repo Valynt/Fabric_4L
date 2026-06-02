@@ -30,13 +30,14 @@ class TestTenantIdValidation:
     """Test tenant_id validation and forgery prevention."""
 
     def test_valid_uuid_tenant_id(self):
-        """Test that valid UUID tenant_ids are accepted."""
+        """Test that valid UUID tenant_ids are accepted and returned as string."""
         valid_tenant_id = str(uuid4())
         result = validate_tenant_id(valid_tenant_id)
-        assert result == UUID(valid_tenant_id)
+        assert result == valid_tenant_id
 
     def test_invalid_uuid_tenant_id_fails(self):
         """Test that invalid UUID tenant_ids are rejected."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         invalid_tenant_ids = [
             "not-a-uuid",
             "123-456-789",
@@ -47,28 +48,31 @@ class TestTenantIdValidation:
         ]
         
         for invalid_id in invalid_tenant_ids:
-            with pytest.raises(TenantContextError) as exc_info:
+            with pytest.raises(DBTenantContextError) as exc_info:
                 validate_tenant_id(invalid_id)
             
             assert "Invalid tenant_id format" in str(exc_info.value)
 
     def test_none_tenant_id_handling(self):
         """Test that None tenant_id is handled appropriately."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         # In fail-safe mode, None should raise an error unless explicitly allowed
-        with pytest.raises(TenantContextError) as exc_info:
+        with pytest.raises(DBTenantContextError) as exc_info:
             validate_tenant_id(None)
         
-        assert "tenant_id cannot be None" in str(exc_info.value).lower()
+        assert "tenant context is mandatory" in str(exc_info.value).lower()
 
     def test_empty_string_tenant_id_fails(self):
         """Test that empty string tenant_ids are rejected."""
-        with pytest.raises(TenantContextError) as exc_info:
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
+        with pytest.raises(DBTenantContextError) as exc_info:
             validate_tenant_id("")
         
-        assert "Invalid tenant_id format" in str(exc_info.value)
+        assert "empty tenant_id" in str(exc_info.value).lower()
 
     def test_uuid_injection_attempts(self):
         """Test that UUID injection attempts are caught."""
+        from layer1_ingestion.shared.database import TenantContextError as DBTenantContextError
         malicious_ids = [
             "00000000-0000-0000-0000-000000000000'; DROP TABLE scraping_jobs; --",
             "123e4567-e89b-12d3-a456-426614174000 OR 1=1",
@@ -77,7 +81,7 @@ class TestTenantIdValidation:
         ]
         
         for malicious_id in malicious_ids:
-            with pytest.raises(TenantContextError):
+            with pytest.raises(DBTenantContextError):
                 validate_tenant_id(malicious_id)
 
 

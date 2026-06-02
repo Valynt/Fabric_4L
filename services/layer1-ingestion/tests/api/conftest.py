@@ -29,7 +29,15 @@ from starlette.types import ASGIApp
 # ---------------------------------------------------------------------------
 
 def _get_app():
+    # Patch rate limiting before app import so tests don't get 429 from Redis
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    async def _mock_check_rate_limit(self, request, ctx):
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return _MockResult()
+    GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
     from layer1_ingestion.api.app_monolith import app
+    from value_fabric.shared.error_handling.handlers import register_exception_handlers
+    register_exception_handlers(app)
     return app
 
 
@@ -52,25 +60,35 @@ def _make_target_factory():
 # Fake governance context
 # ---------------------------------------------------------------------------
 
-class _FakeCtx:
-    """Minimal duck-type of GovernanceContext for tests."""
-
-    def __init__(self, tenant_id: UUID, user_id: UUID):
-        self.tenant_id = tenant_id
-        self.user_id = str(user_id)
-        self.roles: list[str] = ["admin"]
+def _make_request_context(tenant_id: UUID, user_id: UUID, roles: list[str] | None = None):
+    """Build a real RequestContext for tests."""
+    from value_fabric.shared.identity.context import RequestContext
+    return RequestContext(
+        tenant_id=tenant_id,
+        user_id=str(user_id),
+        roles=roles or ["admin"],
+        auth_source="jwt_claim",
+    )
 
 
 class _InjectGovernanceMiddleware(BaseHTTPMiddleware):
-    """Injects a fake governance_context onto request.state for every request."""
+    """Injects a real RequestContext onto request.state for every request."""
 
-    def __init__(self, app: ASGIApp, tenant_id: UUID, user_id: UUID):
+    def __init__(self, app: ASGIApp, tenant_id: UUID, user_id: UUID, roles: list[str] | None = None):
         super().__init__(app)
         self._tenant_id = tenant_id
         self._user_id = user_id
+        self._roles = roles or ["admin"]
 
     async def dispatch(self, request: Request, call_next):
-        request.state.governance_context = _FakeCtx(self._tenant_id, self._user_id)
+        request.state.governance_context = _make_request_context(
+            self._tenant_id, self._user_id, self._roles
+        )
+        # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
+        # skips its Redis rate-limit check (avoids 429 in tests).
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        request.state.rate_limit_result = _MockResult()
+        request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
         return await call_next(request)
 
 

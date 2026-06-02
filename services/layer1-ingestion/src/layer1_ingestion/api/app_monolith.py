@@ -1573,6 +1573,7 @@ async def update_target(
             target.authentication = None
 
     target.updated_at = datetime.now(UTC)
+    db.commit()
     db.refresh(target)
 
     logger.info("Updated scraping target", target_id=str(target.id))

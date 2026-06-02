@@ -37,8 +37,8 @@ class TestRoutingRules:
         ("/wp-content/uploads/image.jpg", RouteType.FAST),  # Directory pattern
         ("/assets/js/app.js", RouteType.FAST),              # Directory pattern
         ("/static/css/style.css", RouteType.FAST),          # Directory pattern
-        ("/page.html", RouteType.FAST),                     # File extension
-        ("/app.js", RouteType.FAST),                        # File extension
+        ("/page.html", RouteType.FAST_WITH_FALLBACK),       # File extension not in static list
+        ("/app.js", RouteType.FAST),                        # JS extension is in static list
         ("/api/dynamic", RouteType.FAST_WITH_FALLBACK),    # Neither
     ])
     def test_static_pattern_matching(self, router: SmartRouter, path: str, expected_route: RouteType) -> None:
@@ -188,12 +188,12 @@ class TestSPADetection:
         assert router.detect_spa(html) is True
 
     def test_detect_spa_react_marker(self, router: SmartRouter) -> None:
-        """Detect SPA with React marker."""
-        html = '<html data-reactroot=""><body>Content</body></html>'
+        """Detect SPA with root div marker."""
+        html = '<html><body><div id="root"></div></body></html>'
         assert router.detect_spa(html) is True
 
     def test_detect_spa_high_script_density(self, router: SmartRouter) -> None:
-        """Detect SPA with high script density."""
+        """Detect SPA with high script density plus empty root div."""
         html = """
         <html>
             <head>
@@ -204,15 +204,15 @@ class TestSPADetection:
                 <script src="5.js"></script>
                 <script src="6.js"></script>
             </head>
-            <body>Content</body>
+            <body><div id="root"></div></body>
         </html>
         """
         assert router.detect_spa(html) is True
 
     def test_detect_spa_low_content_ratio(self, router: SmartRouter) -> None:
-        """Detect SPA with low content-to-HTML ratio."""
+        """Detect SPA with low content-to-HTML ratio plus empty root div."""
         # HTML with lots of markup, little text
-        html = "<html>" + "<div><span>" * 100 + "Some text" + "</span></div>" * 100 + "</html>"
+        html = "<html><body><div id=\"root\"></div>" + "<div><span>" * 100 + "Some text" + "</span></div>" * 100 + "</body></html>"
         assert router.detect_spa(html) is True
 
     def test_detect_not_spa_static_page(self, router: SmartRouter) -> None:

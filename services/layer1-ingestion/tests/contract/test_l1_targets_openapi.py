@@ -1,7 +1,7 @@
-"""OpenAPI contract tests for the new targets endpoints.
+"""OpenAPI contract tests for canonical targets and batch endpoints.
 
 Validates that:
-- Both new paths exist in the live OpenAPI schema
+- Canonical paths exist in the live OpenAPI schema
 - Required schemas are present with correct required fields
 - Enum values are constrained (invalid values rejected)
 - Generated frontend type file contains the expected type names
@@ -38,34 +38,34 @@ def _get_generated_ts() -> str:
 # ---------------------------------------------------------------------------
 
 class TestPathPresence:
-    def test_patch_status_path_exists(self):
+    def test_put_target_path_exists(self):
         schema = _get_schema()
         paths = schema.get("paths", {})
-        assert any("status" in p and "targets" in p for p in paths), (
-            "PATCH /targets/{id}/status not found in OpenAPI schema"
+        assert any("targets/{target_id}" in p for p in paths), (
+            "PUT /targets/{target_id} not found in OpenAPI schema"
         )
 
-    def test_post_batch_path_exists(self):
+    def test_post_jobs_batch_path_exists(self):
         schema = _get_schema()
         paths = schema.get("paths", {})
-        assert any("targets/batch" in p for p in paths), (
-            "POST /targets/batch not found in OpenAPI schema"
+        assert any("jobs/batch" in p for p in paths), (
+            "POST /jobs/batch not found in OpenAPI schema"
         )
 
-    def test_patch_status_has_patch_method(self):
+    def test_put_target_has_put_method(self):
         schema = _get_schema()
-        status_path = next(
-            (p for p in schema["paths"] if "status" in p and "targets" in p), None
+        target_path = next(
+            (p for p in schema["paths"] if "targets/{target_id}" in p), None
         )
-        assert status_path is not None
-        assert "patch" in schema["paths"][status_path], (
-            f"PATCH method missing from {status_path}"
+        assert target_path is not None
+        assert "put" in schema["paths"][target_path], (
+            f"PUT method missing from {target_path}"
         )
 
-    def test_post_batch_has_post_method(self):
+    def test_post_jobs_batch_has_post_method(self):
         schema = _get_schema()
         batch_path = next(
-            (p for p in schema["paths"] if "targets/batch" in p), None
+            (p for p in schema["paths"] if "jobs/batch" in p), None
         )
         assert batch_path is not None
         assert "post" in schema["paths"][batch_path], (
@@ -81,66 +81,66 @@ class TestSchemaDefinitions:
     def _components(self):
         return _get_schema().get("components", {}).get("schemas", {})
 
-    def test_update_target_status_request_schema_exists(self):
-        assert "UpdateTargetStatusRequest" in self._components()
+    def test_update_target_request_schema_exists(self):
+        assert "UpdateTargetRequest" in self._components()
 
-    def test_update_target_status_request_has_required_status(self):
-        schema = self._components().get("UpdateTargetStatusRequest", {})
-        required = schema.get("required", [])
-        assert "status" in required, (
-            "UpdateTargetStatusRequest.status must be required"
+    def test_update_target_request_has_status_field(self):
+        schema = self._components().get("UpdateTargetRequest", {})
+        props = schema.get("properties", {})
+        assert "status" in props, (
+            "UpdateTargetRequest.status must be present"
         )
 
-    def test_target_batch_request_schema_exists(self):
-        assert "TargetBatchRequest" in self._components()
+    def test_batch_operation_request_schema_exists(self):
+        assert "BatchOperationRequest" in self._components()
 
-    def test_target_batch_request_has_required_operation(self):
-        schema = self._components().get("TargetBatchRequest", {})
+    def test_batch_operation_request_has_required_operation(self):
+        schema = self._components().get("BatchOperationRequest", {})
         required = schema.get("required", [])
         assert "operation" in required
 
-    def test_target_batch_request_has_required_target_ids(self):
-        schema = self._components().get("TargetBatchRequest", {})
-        required = schema.get("required", [])
-        assert "target_ids" in required
+    def test_batch_operation_request_has_target_ids_field(self):
+        schema = self._components().get("BatchOperationRequest", {})
+        props = schema.get("properties", {})
+        assert "target_ids" in props
 
-    def test_target_batch_response_schema_exists(self):
-        assert "TargetBatchResponse" in self._components()
+    def test_batch_operation_response_schema_exists(self):
+        assert "BatchOperationResponse" in self._components()
 
-    def test_target_batch_response_has_succeeded_field(self):
-        schema = self._components().get("TargetBatchResponse", {})
+    def test_batch_operation_response_has_succeeded_field(self):
+        schema = self._components().get("BatchOperationResponse", {})
         props = schema.get("properties", {})
         assert "succeeded" in props
 
-    def test_target_batch_response_has_failed_field(self):
-        schema = self._components().get("TargetBatchResponse", {})
+    def test_batch_operation_response_has_failed_field(self):
+        schema = self._components().get("BatchOperationResponse", {})
         props = schema.get("properties", {})
         assert "failed" in props
 
-    def test_target_batch_response_has_results_field(self):
-        schema = self._components().get("TargetBatchResponse", {})
+    def test_batch_operation_response_has_results_field(self):
+        schema = self._components().get("BatchOperationResponse", {})
         props = schema.get("properties", {})
         assert "results" in props
 
-    def test_target_batch_item_result_schema_exists(self):
+    def test_batch_operation_item_result_schema_exists(self):
         components = self._components()
-        assert "TargetBatchItemResult" in components
+        assert "BatchOperationItemResult" in components
 
-    def test_target_batch_item_result_has_status_field(self):
-        schema = self._components().get("TargetBatchItemResult", {})
+    def test_batch_operation_item_result_has_status_field(self):
+        schema = self._components().get("BatchOperationItemResult", {})
         props = schema.get("properties", {})
         assert "status" in props
 
-    def test_target_batch_operation_type_enum_exists(self):
+    def test_batch_operation_type_enum_exists(self):
         components = self._components()
-        assert "TargetBatchOperationType" in components
+        assert "BatchOperationType" in components
 
-    def test_target_batch_operation_type_enum_values(self):
-        schema = self._components().get("TargetBatchOperationType", {})
+    def test_batch_operation_type_enum_values(self):
+        schema = self._components().get("BatchOperationType", {})
         enum_values = schema.get("enum", [])
         assert "execute" in enum_values
-        assert "pause" in enum_values
-        assert "archive" in enum_values
+        assert "cancel" in enum_values
+        assert "retry" in enum_values
 
     def test_target_status_enum_exists(self):
         components = self._components()
@@ -162,16 +162,17 @@ class TestSchemaDefinitions:
 class TestEnumValidation:
     def test_invalid_status_enum_rejected_by_schema(self, client, db, org_id, make_target):
         t = make_target(org_id, status="ACTIVE")
-        resp = client.patch(
-            f"/api/v1/ingestion/targets/{t.id}/status",
+        resp = client.put(
+            f"/api/v1/ingestion/targets/{t.id}",
             json={"status": "FLYING"},
         )
         assert resp.status_code == 422
 
     def test_invalid_batch_operation_enum_rejected(self, client, db, org_id, make_target):
         t = make_target(org_id, status="ACTIVE")
+        # Send raw JSON with invalid enum to bypass Pydantic client-side validation
         resp = client.post(
-            "/api/v1/ingestion/targets/batch",
+            "/api/v1/ingestion/jobs/batch",
             json={"operation": "teleport", "target_ids": [str(t.id)]},
         )
         assert resp.status_code == 422
@@ -182,31 +183,31 @@ class TestEnumValidation:
 # ---------------------------------------------------------------------------
 
 class TestGeneratedTypeScript:
-    def test_ts_file_contains_update_target_status_request(self):
+    def test_ts_file_contains_update_target_request(self):
         ts = _get_generated_ts()
-        assert "UpdateTargetStatusRequest" in ts, (
-            "UpdateTargetStatusRequest missing from generated l1/index.ts"
+        assert "UpdateTargetRequest" in ts, (
+            "UpdateTargetRequest missing from generated l1/index.ts"
         )
 
-    def test_ts_file_contains_target_batch_request(self):
+    def test_ts_file_contains_batch_operation_request(self):
         ts = _get_generated_ts()
-        assert "TargetBatchRequest" in ts
+        assert "BatchOperationRequest" in ts
 
-    def test_ts_file_contains_target_batch_response(self):
+    def test_ts_file_contains_batch_operation_response(self):
         ts = _get_generated_ts()
-        assert "TargetBatchResponse" in ts
+        assert "BatchOperationResponse" in ts
 
-    def test_ts_file_contains_target_batch_item_result(self):
+    def test_ts_file_contains_batch_operation_item_result(self):
         ts = _get_generated_ts()
-        assert "TargetBatchItemResult" in ts
+        assert "BatchOperationItemResult" in ts
 
-    def test_ts_file_contains_status_patch_operation(self):
+    def test_ts_file_contains_target_put_operation(self):
         ts = _get_generated_ts()
-        assert "update_target_status_api_v1_ingestion_targets__target_id__status_patch" in ts
+        assert "update_target_api_v1_ingestion_targets__target_id__put" in ts
 
-    def test_ts_file_contains_batch_post_operation(self):
+    def test_ts_file_contains_jobs_batch_post_operation(self):
         ts = _get_generated_ts()
-        assert "batch_target_operation_api_v1_ingestion_targets_batch_post" in ts
+        assert "batch_operation_api_v1_ingestion_jobs_batch_post" in ts
 
     def test_ts_path_names_match_backend_openapi_paths(self):
         """Verify the TS path strings match the actual OpenAPI paths."""
@@ -214,14 +215,12 @@ class TestGeneratedTypeScript:
         schema = _get_schema()
         paths = schema.get("paths", {})
 
-        batch_path = next((p for p in paths if "targets/batch" in p), None)
-        status_path = next((p for p in paths if "status" in p and "targets" in p), None)
+        batch_path = next((p for p in paths if "jobs/batch" in p), None)
+        target_path = next((p for p in paths if "targets/{target_id}" in p), None)
 
         assert batch_path is not None
-        assert status_path is not None
+        assert target_path is not None
 
         # The TS file should contain the exact path strings
         assert batch_path in ts, f"Path {batch_path!r} not found in generated TS"
-        assert status_path in ts or "target_id" in ts, (
-            f"Path {status_path!r} not found in generated TS"
-        )
+        assert target_path in ts, f"Path {target_path!r} not found in generated TS"

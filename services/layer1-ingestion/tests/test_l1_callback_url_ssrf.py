@@ -110,7 +110,7 @@ def test_link_local_ip_rejected():
 
 
 def test_unspecified_ip_rejected():
-    with pytest.raises(ValidationError, match="private or reserved"):
+    with pytest.raises(ValidationError, match="localhost"):
         _make("https://0.0.0.0/internal")
 
 
@@ -141,7 +141,8 @@ def test_metadata_internal_hostname_rejected():
 def test_validator_uses_try_except_else_not_bare_pass():
     """The validator must use try/except/else, not the pattern that swallows raises."""
     service_root = Path(__file__).resolve().parents[1] / "src"
-    main_file = service_root / "api" / "main.py"
+    # Read from canonical module, not the compatibility shim
+    main_file = service_root / "layer1_ingestion" / "api" / "main.py"
     content = main_file.read_text(encoding="utf-8", errors="ignore")
     # The broken pattern raises ValueError inside the try block and catches it.
     # The fixed pattern uses else: after except ValueError.

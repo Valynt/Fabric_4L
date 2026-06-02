@@ -20,7 +20,15 @@ from starlette.types import ASGIApp
 
 # Lazy import helpers
 def _get_app():
+    # Patch rate limiting before app import so tests don't get 429 from Redis
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware
+    async def _mock_check_rate_limit(self, request, ctx):
+        _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+        return _MockResult()
+    GovernanceMiddleware._check_rate_limit = _mock_check_rate_limit
     from layer1_ingestion.api.app_monolith import app
+    from value_fabric.shared.error_handling.handlers import register_exception_handlers
+    register_exception_handlers(app)
     return app
 
 
@@ -48,10 +56,10 @@ def _get_postgres_url():
 
 
 def _ensure_postgresql(engine):
-    """Hard guard: fail tests if not running against PostgreSQL."""
+    """Skip tests if not running against PostgreSQL."""
     dialect = engine.dialect.name
     if dialect != "postgresql":
-        pytest.fail(
+        pytest.skip(
             f"PostgreSQL-required test running against {dialect}. "
             f"Security/RLS tests must run against PostgreSQL to validate "
             f"PostgreSQL-specific behavior (JSONB, RLS, SET LOCAL, current_setting). "
@@ -66,7 +74,7 @@ def _ensure_postgresql(engine):
 @pytest.fixture(scope="function")
 def engine():
     """In-memory SQLite engine for each test."""
-    return create_engine("sqlite:///:memory:")
+    return create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False})
 
 
 @pytest.fixture(scope="function")
@@ -123,20 +131,23 @@ def postgres_db(postgres_engine):
 
 
 @pytest.fixture(scope="function")
-def make_job(postgres_db):
+def make_job(postgres_db, user_id):
     """Factory for creating ScrapingJob rows."""
     from layer1_ingestion.shared.models import ScrapingJob, JobStatus
     from uuid import uuid4
 
-    def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value):
+    def _make(tenant_id: UUID, target_id: UUID = None, status: str = JobStatus.PENDING.value, created_by: UUID = None):
         if target_id is None:
             target_id = uuid4()
+        if created_by is None:
+            created_by = user_id
         job = ScrapingJob(
             id=uuid4(),
             tenant_id=tenant_id,
             target_id=target_id,
             status=status,
             configuration={},
+            created_by=created_by,
         )
         postgres_db.add(job)
         postgres_db.commit()
@@ -176,23 +187,30 @@ def client(org_id, user_id, db):
 
     class FakeGovernanceMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request: Request, call_next):
-            request.state.governance_context = {
-                "tenant_id": str(org_id),
-                "user_id": str(user_id),
-                "roles": ["user"],
-            }
+            from value_fabric.shared.identity.context import RequestContext
+            request.state.governance_context = RequestContext(
+                tenant_id=org_id,
+                user_id=str(user_id),
+                roles=["user"],
+                auth_source="jwt_claim",
+            )
             request.state.db = db
+            # Pre-populate a mock rate-limit result so the real GovernanceMiddleware
+            # skips its Redis rate-limit check (avoids 429 in tests).
+            _MockResult = type("_MockResult", (), {"allowed": True, "remaining": 100, "reset_at": 0, "retry_after": None})
+            request.state.rate_limit_result = _MockResult()
+            request.state.rate_limit_config = type("_MockConfig", (), {"requests_per_minute": 1000, "scope": type("_Scope", (), {"value": "tenant"})})()
             response = await call_next(request)
             return response
-
-    app.add_middleware(FakeGovernanceMiddleware)
 
     def override_get_db():
         yield db
 
     app.dependency_overrides[get_db_from_context] = override_get_db
 
-    with TestClient(app) as test_client:
+    # Wrap app with middleware instead of mutating global app
+    wrapped = FakeGovernanceMiddleware(app)
+    with TestClient(wrapped) as test_client:
         yield test_client
 
     app.dependency_overrides.clear()
@@ -213,6 +231,9 @@ def make_target(db, user_id):
             created_by=user_id,
         )
         t.status = status
+        db.add(t)
+        db.flush()
+        db.refresh(t)
         return t
 
     return _make

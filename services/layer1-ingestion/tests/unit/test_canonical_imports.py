@@ -44,39 +44,39 @@ def _load_from_canonical_path(dotted_name: str, rel_path: str) -> types.ModuleTy
 
 
 def test_crawler_httpx_crawler_at_canonical_path() -> None:
-    mod = _load_from_canonical_path("crawler.httpx_crawler", "crawler/httpx_crawler.py")
+    mod = _load_from_canonical_path("layer1_ingestion.crawler.httpx_crawler", "layer1_ingestion/crawler/httpx_crawler.py")
     assert SERVICE_SRC.resolve() in Path(mod.__file__).resolve().parents
 
 
 def test_crawler_playwright_crawler_at_canonical_path() -> None:
-    mod = _load_from_canonical_path("crawler.playwright_crawler", "crawler/playwright_crawler.py")
+    mod = _load_from_canonical_path("layer1_ingestion.crawler.playwright_crawler", "layer1_ingestion/crawler/playwright_crawler.py")
     assert SERVICE_SRC.resolve() in Path(mod.__file__).resolve().parents
 
 
 def test_crawler_smart_router_at_canonical_path() -> None:
-    mod = _load_from_canonical_path("crawler.smart_router", "crawler/smart_router.py")
+    mod = _load_from_canonical_path("layer1_ingestion.crawler.smart_router", "layer1_ingestion/crawler/smart_router.py")
     assert SERVICE_SRC.resolve() in Path(mod.__file__).resolve().parents
 
 
 def test_compliance_robots_checker_at_canonical_path() -> None:
     # Module uses cross-package relative imports (..shared) so we assert
     # file existence rather than executing it directly.
-    canonical = SERVICE_SRC / "compliance" / "robots_checker.py"
+    canonical = SERVICE_SRC / "layer1_ingestion" / "compliance" / "robots_checker.py"
     assert canonical.exists(), f"Canonical module missing: {canonical}"
 
 
 def test_compliance_pii_scanner_at_canonical_path() -> None:
-    canonical = SERVICE_SRC / "compliance" / "pii_scanner.py"
+    canonical = SERVICE_SRC / "layer1_ingestion" / "compliance" / "pii_scanner.py"
     assert canonical.exists(), f"Canonical module missing: {canonical}"
 
 
 def test_shared_models_at_canonical_path() -> None:
-    canonical = SERVICE_SRC / "shared" / "models.py"
+    canonical = SERVICE_SRC / "layer1_ingestion" / "shared" / "models.py"
     assert canonical.exists(), f"Canonical module missing: {canonical}"
 
 
 def test_skills_registry_at_canonical_path() -> None:
-    canonical = SERVICE_SRC / "skills" / "registry.py"
+    canonical = SERVICE_SRC / "layer1_ingestion" / "skills" / "registry.py"
     assert canonical.exists(), f"Canonical module missing: {canonical}"
 
 
@@ -84,7 +84,7 @@ def test_tasks_py_uses_relative_crawler_imports() -> None:
     """tasks.py must use relative ``..crawler`` imports for crawler modules."""
     import ast
 
-    tasks_file = SERVICE_SRC / "shared" / "tasks.py"
+    tasks_file = SERVICE_SRC / "layer1_ingestion" / "shared" / "tasks.py"
     tree = ast.parse(tasks_file.read_text(encoding="utf-8"), filename=str(tasks_file))
     found = any(
         isinstance(node, ast.ImportFrom)
@@ -101,7 +101,7 @@ def test_value_fabric_layer1_shim_resolves_to_canonical_path() -> None:
     """Backward-compat shim must still point to the canonical service tree."""
     import layer1_ingestion.crawler.httpx_crawler as shim_mod
 
-    canonical_file = (SERVICE_SRC / "crawler" / "httpx_crawler.py").resolve()
+    canonical_file = (SERVICE_SRC / "layer1_ingestion" / "crawler" / "httpx_crawler.py").resolve()
     shim_file = Path(shim_mod.__file__).resolve()
     assert shim_file == canonical_file, (
         f"Shim resolved to {shim_file}, expected {canonical_file}"

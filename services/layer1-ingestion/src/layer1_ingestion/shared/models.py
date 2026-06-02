@@ -1237,13 +1237,15 @@ def _upsert_tenant_registry(mapper, connection, target):
     """
     if target.tenant_id is not None:
         from sqlalchemy import text
+        from datetime import datetime, UTC
+        now = datetime.now(UTC)
         connection.execute(
             text("""
                 INSERT INTO tenant_registry (tenant_id, registered_at, last_activity_at, is_active)
-                VALUES (:tenant_id, NOW(), NOW(), true)
+                VALUES (:tenant_id, :now, :now, true)
                 ON CONFLICT (tenant_id) DO UPDATE SET
                     last_activity_at = EXCLUDED.last_activity_at,
                     is_active = true;
             """),
-            {"tenant_id": str(target.tenant_id)},
+            {"tenant_id": str(target.tenant_id), "now": now},
         )

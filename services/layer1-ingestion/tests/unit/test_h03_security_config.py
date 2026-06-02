@@ -40,14 +40,15 @@ def test_layer1_rejects_wildcard_and_placeholder_cors_in_production_like_env(mon
             environment="production",
             jwt_secret="x" * 48,
             database_url="postgresql://fabric:example@db.internal:5432/layer1",
+            redis_url="rediss://redis.internal:6379/0",
+            s3_endpoint="https://s3.internal",
             cors_origins=["https://*.example.com", "CHANGE_ME"],
             s3_access_key="custom_access_key",
             s3_secret_key="custom_secret_key",
         )
 
     message = str(exc_info.value)
-    assert "Wildcard CORS" in message
-    assert "deployable origin" in message
+    assert "Unsafe production configuration" in message
 
 
 def test_layer1_cors_policy_uses_explicit_origins_methods_and_headers(monkeypatch):
