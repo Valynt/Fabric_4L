@@ -6,6 +6,7 @@ cardinality controls and `/metrics` endpoint authorization.
 
 from .metrics_access import is_internal_ip, verify_metrics_access
 from .probes import configure_observability
+from .sentry_init import init_sentry
 from .path_normalization import PathNormalizer
 from .trace_context import (
     ALL_TRACE_HEADERS,
@@ -18,6 +19,7 @@ from .trace_context import (
 __all__ = [
     "PathNormalizer",
     "configure_observability",
+    "init_sentry",
     "is_internal_ip",
     "verify_metrics_access",
     "ALL_TRACE_HEADERS",
