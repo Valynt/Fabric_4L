@@ -38,6 +38,7 @@ from .shared_bootstrap import (
     validate_production_safety,
 )
 from value_fabric.shared.fastapi_framework.health import CallableProbe, ProbeResult, RedisHealthProbe
+from value_fabric.shared.observability.sentry_init import init_sentry
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
 # Configure structured logging
@@ -45,6 +46,9 @@ configure_structured_logging()
 logger = structlog.get_logger(__name__)
 
 settings = get_settings()
+
+# Initialise Sentry before any other component (fail-safe, no-op without DSN)
+init_sentry()
 
 
 def _assert_database_ready() -> None:
