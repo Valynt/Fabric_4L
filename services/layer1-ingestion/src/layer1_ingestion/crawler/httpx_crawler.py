@@ -23,6 +23,7 @@ import trafilatura
 from selectolax.lexbor import LexborHTMLParser
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..compliance.url_safety import URLSafetyError, validate_url_safety
 from ..shared.circuit_breaker import get_circuit_breaker_manager
 
 
@@ -40,6 +41,7 @@ logger = structlog.get_logger()
 MAX_STORAGE_HTML_LENGTH = 100_000  # Truncate stored HTML to prevent memory bloat
 CONTENT_HASH_PREFIX_LENGTH = 16  # First 16 chars of SHA256 for deduplication
 SPA_DETECTION_THRESHOLD = 2  # Minimum indicators needed for SPA detection
+MAX_REDIRECTS = 10  # Prevent infinite redirect loops
 
 
 @dataclass(frozen=True)
@@ -161,7 +163,7 @@ class HttpxCrawler:
                 "DNT": "1",
                 "Connection": "keep-alive",
             },
-            follow_redirects=True,
+            follow_redirects=False,
             http2=False,
         )
 
@@ -187,6 +189,9 @@ class HttpxCrawler:
         Retries are applied automatically for retriable status codes and
         transient network errors according to the crawler configuration.
 
+        SECURITY: Validates URL safety before any outbound network access.
+        Redirect targets are also validated before following.
+
         Args:
             url: URL to fetch
 
@@ -196,9 +201,20 @@ class HttpxCrawler:
         if not self._client:
             raise RuntimeError("Crawler not started. Use async context manager.")
 
+        # SECURITY: Defense-in-depth URL safety validation at crawler boundary
+        try:
+            validate_url_safety(url)
+        except URLSafetyError:
+            return self._create_error_result(
+                url=url,
+                status_code=400,
+                fetch_time_ms=0,
+                error_type="ssrf_blocked",
+            )
+
         return await self._fetch_with_retry(url)
 
-    async def _fetch_with_retry(self, url: str) -> FastPathResult:
+    async def _fetch_with_retry(self, url: str, redirect_depth: int = 0) -> FastPathResult:
         """Internal fetch implementation with exponential-backoff retry logic.
 
         Attempts the request up to ``config.max_retries + 1`` times.  Each
@@ -207,12 +223,24 @@ class HttpxCrawler:
         jittered) before the next attempt.  The ``Retry-After`` response
         header is respected when present on 429 responses.
 
+        Redirects are followed manually with URL safety validation at each hop.
+
         Args:
             url: URL to fetch
+            redirect_depth: Current redirect nesting depth (prevents loops)
 
         Returns:
             FastPathResult from the first successful (or final failed) attempt
         """
+        if redirect_depth > MAX_REDIRECTS:
+            return self._create_error_result(
+                url=url,
+                status_code=400,
+                fetch_time_ms=0,
+                error_type="too_many_redirects",
+                retry_count=0,
+            )
+
         max_attempts = self.config.max_retries + 1
         retry_count = 0
 
@@ -228,6 +256,26 @@ class HttpxCrawler:
                 response = await self._circuit_breaker.call(_make_http_request)
 
                 fetch_time = int((time.monotonic() - start_time) * 1000)
+
+                # SECURITY: Validate and follow redirects safely
+                if 300 <= response.status_code < 400:
+                    location = response.headers.get("location")
+                    if location:
+                        redirect_url = urljoin(url, location)
+                        try:
+                            validate_url_safety(redirect_url)
+                        except URLSafetyError:
+                            return self._create_error_result(
+                                url=redirect_url,
+                                status_code=400,
+                                fetch_time_ms=fetch_time,
+                                error_type="ssrf_blocked",
+                                retry_count=retry_count,
+                            )
+                        # Follow redirect without consuming a retry attempt
+                        return await self._fetch_with_retry(
+                            redirect_url, redirect_depth=redirect_depth + 1
+                        )
 
                 # Check if this status code is retriable
                 if (

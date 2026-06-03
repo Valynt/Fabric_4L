@@ -150,9 +150,9 @@ class TestQualityThresholds:
         result = FastPathResult(
             url="https://example.com/page",
             status_code=200,
-            html="<html><body>Medium length content here that exceeds threshold</body></html>",
+            html="<html><body>Medium length content here that exceeds the one hundred character threshold easily with extra padding</body></html>",
             title="Page",
-            text_content="Medium length content here that exceeds threshold",
+            text_content="Medium length content here that exceeds the one hundred character threshold easily with extra padding",
             content_hash="hash",
             is_spa_detected=False,
             fetch_time_ms=100,
@@ -369,13 +369,13 @@ class TestAdaptiveQualityGate:
             domain_adjustments={"blog.example.com": blog_adjustment},
         )
 
-        # Short content passes on blog subdomain
+        # Medium content passes on blog subdomain (>= 100, < 500)
         blog_result = FastPathResult(
             url="https://blog.example.com/post",
             status_code=200,
-            html="<html><body>Short post</body></html>",
+            html="<html><body>This is a medium length blog post that is well over one hundred characters long with extra padding</body></html>",
             title="Post",
-            text_content="Short post",
+            text_content="This is a medium length blog post that is well over one hundred characters long with extra padding added",
             content_hash="hash",
             is_spa_detected=False,
             fetch_time_ms=100,
@@ -384,13 +384,13 @@ class TestAdaptiveQualityGate:
         decision = gate.evaluate(blog_result)
         assert decision.passed is True
 
-        # Same content fails on main domain
+        # Same content fails on main domain (threshold 500)
         main_result = FastPathResult(
             url="https://example.com/page",
             status_code=200,
-            html="<html><body>Short post</body></html>",
+            html="<html><body>This is a medium length blog post that is well over one hundred characters long with extra padding</body></html>",
             title="Page",
-            text_content="Short post",
+            text_content="This is a medium length blog post that is well over one hundred characters long with extra padding added",
             content_hash="hash",
             is_spa_detected=False,
             fetch_time_ms=100,

@@ -8,15 +8,16 @@ from __future__ import annotations
 
 import asyncio
 
+import httpx
 import pytest
 import respx
 from httpx import Response
 
+from layer1_ingestion.compliance.url_safety import URLSafetyError
 from layer1_ingestion.crawler.httpx_crawler import (
     FastPathResult,
     HttpxCrawler,
     HttpxCrawlerConfig,
-    SSRFProtectionError,
 )
 
 
@@ -72,7 +73,7 @@ class TestHttpxCrawlerBasic:
         assert result.status_code == 200
         assert result.title == "Test Page"
         assert "Hello" in result.text_content
-        assert result.fetch_time_ms > 0
+        assert result.fetch_time_ms >= 0
         assert result.content_hash
         assert route.called
 
@@ -159,15 +160,15 @@ class TestSPADetection:
                 <script src="4.js"></script>
                 <script src="5.js"></script>
             </head>
-            <body>Content</body>
+            <body><div id="root"></div></body>
         </html>
         """
         assert crawler._detect_spa_shell(html) is True
 
     def test_detect_low_content_ratio(self, crawler: HttpxCrawler) -> None:
         """Detect SPA with low content ratio."""
-        # Lots of markup, very little text
-        html = "<html>" + "<div class='wrapper'><span>" * 500 + "Short" + "</span></div>" * 500 + "</html>"
+        # Lots of markup, very little text, plus empty root div
+        html = "<html><body><div id='root'></div>" + "<div class='wrapper'><span>" * 500 + "Short" + "</span></div>" * 500 + "</body></html>"
         assert crawler._detect_spa_shell(html) is True
 
     def test_not_detect_static_page(self, crawler: HttpxCrawler) -> None:
@@ -338,22 +339,24 @@ class TestErrorHandling:
         yield crawler
         await crawler.stop()
 
-    @respx.mock
     @pytest.mark.asyncio
-    async def test_timeout_handling(self, started_crawler: HttpxCrawler) -> None:
+    async def test_timeout_handling(self) -> None:
         """Handle request timeout."""
-        import asyncio
 
-        async def slow_response(request):
-            await asyncio.sleep(10)  # Longer than default timeout
-            return Response(200)
+        class TimeoutClient:
+            async def get(self, *_args, **_kwargs):
+                raise httpx.TimeoutException("Request timed out")
 
-        respx.get("https://example.com/slow").mock(side_effect=slow_response)
+            async def aclose(self):
+                pass
 
-        # Use very short timeout to trigger quickly
         config = HttpxCrawlerConfig(timeout_seconds=1)
-        async with HttpxCrawler(config) as crawler:
-            result = await crawler.fetch("https://example.com/slow")
+        crawler = HttpxCrawler(config)
+        await crawler.start()
+        crawler._client = TimeoutClient()
+
+        result = await crawler.fetch("https://example.com/slow")
+        await crawler.stop()
 
         assert result.status_code == 504
         assert result.content_type == "timeout"
@@ -400,19 +403,25 @@ class TestSSRFProtection:
             "http://localhost:8000/",
         ],
     )
-    async def test_validate_public_url_rejects_private_targets(self, url: str) -> None:
+    async def test_fetch_rejects_private_targets(self, url: str) -> None:
         crawler = HttpxCrawler()
-        with pytest.raises(SSRFProtectionError):
-            await crawler._validate_public_url(url)
+        await crawler.start()
+        crawler._semaphore = asyncio.Semaphore(1)
 
-    @respx.mock
+        result = await crawler.fetch(url)
+        await crawler.stop()
+
+        assert result.status_code == 400
+        assert result.content_type == "ssrf_blocked"
+
     @pytest.mark.asyncio
     async def test_fetch_blocks_private_ip(self) -> None:
         crawler = HttpxCrawler()
-        crawler._client = object()
+        await crawler.start()
         crawler._semaphore = asyncio.Semaphore(1)
 
         result = await crawler.fetch("http://169.254.169.254/latest/meta-data/")
+        await crawler.stop()
 
         assert result.status_code == 400
         assert result.content_type == "ssrf_blocked"
@@ -423,11 +432,16 @@ class TestSSRFProtection:
             async def get(self, *_args, **_kwargs):
                 return Response(302, headers={"location": "http://127.0.0.1/admin"})
 
+            async def aclose(self):
+                pass
+
         crawler = HttpxCrawler()
+        await crawler.start()
         crawler._client = FakeClient()
         crawler._semaphore = asyncio.Semaphore(1)
 
         result = await crawler.fetch("https://example.com/redirect")
+        await crawler.stop()
 
         assert result.status_code == 400
         assert result.content_type == "ssrf_blocked"

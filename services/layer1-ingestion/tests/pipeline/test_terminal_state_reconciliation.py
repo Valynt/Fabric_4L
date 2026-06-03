@@ -88,6 +88,17 @@ class TestComplianceCheckMaxRetries:
         db.add(job)
         db.commit()
 
+        # Create the stage detail row so _update_stage can update it
+        stage_detail = JobStageDetail(
+            id=uuid4(),
+            job_id=job.id,
+            tenant_id=org_id,
+            stage=PipelineStage.COMPLIANCE_CHECK.value,
+            status="RUNNING",
+        )
+        db.add(stage_detail)
+        db.commit()
+
         # Simulate stage failure
         from layer1_ingestion.shared.tasks import _update_stage
         with get_db_session(tenant_id=org_id, require_tenant=True) as session:
@@ -159,6 +170,22 @@ class TestBrowserCrawlMaxRetries:
             created_by=user_id,
         )
         db.add(job)
+        db.commit()
+
+        # Create stage detail rows so _update_stage can update them
+        for stage_name in (
+            PipelineStage.BROWSER_LAUNCH.value,
+            PipelineStage.NAVIGATION.value,
+            PipelineStage.CONTENT_CAPTURE.value,
+        ):
+            stage_detail = JobStageDetail(
+                id=uuid4(),
+                job_id=job.id,
+                tenant_id=org_id,
+                stage=stage_name,
+                status="RUNNING",
+            )
+            db.add(stage_detail)
         db.commit()
 
         # Mark all browser crawl stages as FAILED
@@ -252,6 +279,17 @@ class TestStageStatusConsistency:
         db.add(job)
         db.commit()
 
+        # Create the stage detail row so _update_stage can update it
+        stage_detail = JobStageDetail(
+            id=uuid4(),
+            job_id=job.id,
+            tenant_id=org_id,
+            stage=PipelineStage.COMPLIANCE_CHECK.value,
+            status="RUNNING",
+        )
+        db.add(stage_detail)
+        db.commit()
+
         # Simulate compliance check failure affecting subsequent stages
         from layer1_ingestion.shared.tasks import _update_stage
         from layer1_ingestion.shared.database import get_db_session
@@ -321,8 +359,8 @@ class TestNoOrphanedRunningStates:
             JobStatus.BROWSER_ACQUIRING.value,
             JobStatus.NAVIGATING.value,
             JobStatus.EXTRACTING.value,
-            JobStatus.POST_PROCESSING.value,
-            JobStatus.VALIDATING.value,
+            JobStatus.TRANSFORMING.value,
+            JobStatus.STORING.value,
         ]
 
         stuck_jobs = (

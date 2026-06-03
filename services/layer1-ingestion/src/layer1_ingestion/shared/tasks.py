@@ -1571,7 +1571,7 @@ def _update_stage(
 
 def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
     """Mark job as failed.
-    
+
     Args:
         job_id: The job UUID
         tenant_id: Trusted tenant_id from server-controlled dispatch envelope
@@ -1579,14 +1579,18 @@ def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
         stage: Pipeline stage that failed
     """
     tenant_uuid = UUID(tenant_id)
-    
+
     # Set tenant context BEFORE any database queries
     with get_db_session(tenant_id=tenant_uuid, require_tenant=True) as session:
         job = session.query(ScrapingJob).get(job_id)
+        # Capture needed values before any commit, since SET LOCAL app.tenant_id
+        # is transaction-scoped and expires objects after commit.
+        job_tenant_id = job.tenant_id if job else None
+        job_target_id = job.target_id if job else None
+
         if job:
             job.status = JobStatus.FAILED.value
             job.completed_at = datetime.now(UTC)
-            session.commit()
 
         # Update stage
         _update_stage(session, job_id, stage, "FAILED", error)
@@ -1594,25 +1598,29 @@ def _fail_job(job_id: UUID, tenant_id: str, error: str, stage: PipelineStage):
         # Create error record
         error_record = JobError(
             job_id=job_id,
-            tenant_id=job.tenant_id if job else None,
+            tenant_id=job_tenant_id,
             stage=stage.value,
             error_code="PIPELINE_ERROR",
             error_message=error,
             retryable=False,
         )
         session.add(error_record)
-        session.commit()
 
         # Update target error stats
         if job:
-            target = session.query(ScrapingTarget).get(job.target_id)
+            target = session.query(ScrapingTarget).get(job_target_id)
             if target:
                 try:
                     target.error_count += 1
                 except TypeError:
                     target.error_count = 1
                 target.last_error_at = datetime.now(UTC)
-                session.commit()
+
+        # Single commit at the end — get_db_session context manager also commits
+        # on successful exit, but an explicit commit here ensures persistence
+        # before the context manager's final commit (which is a no-op if already
+        # committed, and prevents stale-object issues with RLS).
+        session.commit()
 
 
 @celery_app.task
