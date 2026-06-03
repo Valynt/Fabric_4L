@@ -356,8 +356,7 @@ services:
       - LAYER2_5_BASE_URL=http://layer2-5:8007
       # Logging
       - LOG_LEVEL=debug
-      # layer4_agents package lives under /app/src; src.api shim re-exports it
-      - PYTHONPATH=/app:/app/src
+      - PYTHONPATH=/app
       # Disable Infisical in local dev
       - INFISICAL_CLIENT_ID=
       - INFISICAL_CLIENT_SECRET=
@@ -409,17 +408,9 @@ services:
       - VITE_ENABLE_QUERY_DEVTOOLS=true
       - VITE_API_LOG_LEVEL=debug
       - VITE_ENABLE_MOCK_AUTH=true
-      # Vite dev-server proxy targets must use Docker service names (not localhost,
-      # which inside this container resolves to the frontend itself).
-      - VITE_PROXY_L1_URL=http://layer1:8000
-      - VITE_PROXY_L2_URL=http://layer2:8000
-      - VITE_PROXY_L3_URL=http://layer3:8000
-      - VITE_PROXY_L4_URL=http://layer4:8000
-      - VITE_PROXY_L5_URL=http://layer5:8000
-      - VITE_PROXY_L6_URL=http://layer6:8000
     volumes:
-      - ./apps/web:/workspace/apps/web
-      - /workspace/apps/web/node_modules
+      - ./apps/web:/app
+      - /app/node_modules
     networks:
       - dev-network
     depends_on:

@@ -1,5 +1,5 @@
 import { Navigate, useLocation, useParams, useMatches } from "react-router-dom";
-import { useAuth as useClerkAuth } from "@clerk/react";
+import { useAuthContext } from "@/contexts/AuthContext";
 import { useTenantMembership } from "@/hooks/useTenantMembership";
 import { useAccountAccess } from "@/hooks/useAccountAccess";
 import { useUserPermissions } from "@/hooks/useUserPermissions";
@@ -21,10 +21,11 @@ export function UnifiedRouteGuard({ children }: UnifiedRouteGuardProps) {
   const params = useParams();
   const matches = useMatches();
 
-  // Clerk is now the only auth provider - derive auth state from Clerk's useAuth() hook
-  const { isLoaded: clerkLoaded, isSignedIn } = useClerkAuth();
-  const isAuthenticated = clerkLoaded && !!isSignedIn;
-  const isLoading = !clerkLoaded;
+  // Derive auth state from the app's AuthContext, which is the single source of
+  // truth for both Clerk and mock/dev mode (VITE_ENABLE_MOCK_AUTH). Calling Clerk's
+  // useAuth() directly here would hang on "Verifying access..." in mock mode because
+  // Clerk never finishes loading without a real publishable key/session.
+  const { isAuthenticated, isLoading } = useAuthContext();
   const loginPath = "/sign-in";
 
   // Walk up the match tree to find the most specific access policy

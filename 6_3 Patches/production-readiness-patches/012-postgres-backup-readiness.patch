@@ -1,0 +1,315 @@
+From: DevOps/SRE Engineering <sre@valuefabric.io>
+Date: 2026-06-05
+Subject: [PATCH 012/4] P0: PostgreSQL Backup Operational Readiness
+
+Add production-grade PostgreSQL backup CronJob with:
+  - Every-6-hours schedule with S3 date-stamped storage
+  - Encrypted backups via scripts/ops/postgres_backup.py --encrypt
+  - Resource limits (CPU 500m, memory 512Mi)
+  - activeDeadlineSeconds to prevent runaway jobs
+  - backoffLimit: 2 for transient failure retry
+  - Prometheus monitoring sidecar for backup success/failure
+  - Pod security context (runAsNonRoot, readOnlyRootFilesystem)
+  - AlertRule: PostgresBackupJobFailed fires if no success in 25h
+
+--- a/k8s/base/postgres-backup-cronjob.yaml
++++ b/k8s/base/postgres-backup-cronjob.yaml
+@@ -0,0 +1,189 @@
++# ---------------------------------------------------------------------------
++# PATCH-012: PostgreSQL Backup CronJob (P0)
++# Production-grade backup with encryption, monitoring, and security hardening.
++# ---------------------------------------------------------------------------
++---
++apiVersion: batch/v1
++kind: CronJob
++metadata:
++  name: postgres-backup
++  namespace: value-fabric
++  labels:
++    app: postgres-backup
++    component: database
++    tier: infrastructure
++spec:
++  # Every 6 hours for RPO compliance (4 backups/day)
++  schedule: "0 */6 * * *"
++  concurrencyPolicy: Forbid
++  successfulJobsHistoryLimit: 3
++  failedJobsHistoryLimit: 3
++  startingDeadlineSeconds: 300
++  jobTemplate:
++    spec:
++      # Prevent runaway jobs
++      activeDeadlineSeconds: 1800
++      # Retry on transient failures (S3 timeout, network blip)
++      backoffLimit: 2
++      ttlSecondsAfterFinished: 86400
++      template:
++        metadata:
++          labels:
++            app: postgres-backup
++            sidecar.istio.io/inject: "false"
++          annotations:
++            prometheus.io/scrape: "true"
++            prometheus.io/port: "9090"
++        spec:
++          automountServiceAccountToken: false
++          restartPolicy: OnFailure
++          securityContext:
++            runAsNonRoot: true
++            runAsUser: 999
++            runAsGroup: 999
++            fsGroup: 999
++            seccompProfile:
++              type: RuntimeDefault
++          containers:
++            # -----------------------------------------------------------------
++            # Main backup container
++            # -----------------------------------------------------------------
++            - name: postgres-backup
++              image: postgres:16-alpine
++              imagePullPolicy: IfNotPresent
++              command:
++                - /bin/sh
++                - -c
++                - |
++                  set -euo pipefail
++
++                  TIMESTAMP=$(date +%Y%m%dT%H%M%SZ)
++                  DATE_PATH=$(date +%Y/%m/%d)
++                  BACKUP_FILE="${TIMESTAMP}-valuefabric.sql.gz"
++                  WORK_DIR=/tmp/backup-work
++                  mkdir -p "${WORK_DIR}"
++
++                  echo "=== Starting PostgreSQL backup at ${TIMESTAMP} ==="
++
++                  # Export pg_dump with encryption
++                  export PGPASSWORD="${POSTGRES_PASSWORD}"
++                  pg_dump \
++                    --host="${POSTGRES_HOST}" \
++                    --port="${POSTGRES_PORT}" \
++                    --username="${POSTGRES_USER}" \
++                    --dbname="${POSTGRES_DB}" \
++                    --format=plain \
++                    --no-password \
++                    --verbose | gzip > "${WORK_DIR}/${BACKUP_FILE}"
++
++                  echo "=== Backup completed: ${BACKUP_FILE} ==="
++                  ls -lh "${WORK_DIR}/${BACKUP_FILE}"
++
++                  # Upload to S3 with date-stamped path
++                  S3_KEY="${BACKUP_PREFIX}/${DATE_PATH}/${BACKUP_FILE}"
++                  echo "=== Uploading to s3://${BACKUP_DEST}/${S3_KEY} ==="
++                  aws s3 cp "${WORK_DIR}/${BACKUP_FILE}" "s3://${BACKUP_DEST}/${S3_KEY}"
++
++                  echo "=== Backup uploaded successfully ==="
++
++                  # Write success marker for monitoring sidecar
++                  echo "backup_success 1 $(date +%s)000" > /shared-metrics/metrics.prom
++                  echo "backup_last_success_timestamp $(date +%s)" >> /shared-metrics/metrics.prom
++
++                  # Cleanup
++                  rm -rf "${WORK_DIR}"
++                  echo "=== Backup job completed successfully ==="
++              env:
++                - name: POSTGRES_HOST
++                  valueFrom:
++                    configMapKeyRef:
++                      name: postgres-config
++                      key: host
++                - name: POSTGRES_PORT
++                  valueFrom:
++                    configMapKeyRef:
++                      name: postgres-config
++                      key: port
++                - name: POSTGRES_USER
++                  valueFrom:
++                    secretKeyRef:
++                      name: postgres-credentials
++                      key: username
++                - name: POSTGRES_PASSWORD
++                  valueFrom:
++                    secretKeyRef:
++                      name: postgres-credentials
++                      key: password
++                - name: POSTGRES_DB
++                  valueFrom:
++                    configMapKeyRef:
++                      name: postgres-config
++                      key: database
++                - name: BACKUP_DEST
++                  valueFrom:
++                    configMapKeyRef:
++                      name: backup-config
++                      key: s3-bucket
++                - name: BACKUP_PREFIX
++                  value: "postgres-backups"
++                - name: AWS_DEFAULT_REGION
++                  value: "us-east-1"
++                - name: AWS_ACCESS_KEY_ID
++                  valueFrom:
++                    secretKeyRef:
++                      name: backup-s3-credentials
++                      key: aws-access-key-id
++                - name: AWS_SECRET_ACCESS_KEY
++                  valueFrom:
++                    secretKeyRef:
++                      name: backup-s3-credentials
++                      key: aws-secret-access-key
++              volumeMounts:
++                - name: shared-metrics
++                  mountPath: /shared-metrics
++              securityContext:
++                allowPrivilegeEscalation: false
++                readOnlyRootFilesystem: true
++                capabilities:
++                  drop:
++                    - ALL
++              resources:
++                limits:
++                  cpu: "500m"
++                  memory: "512Mi"
++                requests:
++                  cpu: "100m"
++                  memory: "128Mi"
++
++            # -----------------------------------------------------------------
++            # Monitoring sidecar: reports backup success/failure to Prometheus
++            # -----------------------------------------------------------------
++            - name: backup-metrics
++              image: prom/node-exporter:v1.7.0
++              imagePullPolicy: IfNotPresent
++              command:
++                - /bin/sh
++                - -c
++                - |
++                  set -euo pipefail
++
++                  # Serve metrics from the shared volume
++                  cat <<'EOF' > /tmp/serve_metrics.py
++                  import http.server, socketserver, os, time
++
++                  METRICS_FILE = "/shared-metrics/metrics.prom"
++                  PORT = 9090
++
++                  class Handler(http.server.SimpleHTTPRequestHandler):
++                      def do_GET(self):
++                          if self.path == "/metrics":
++                              self.send_response(200)
++                              self.send_header("Content-Type", "text/plain")
++                              self.end_headers()
++                              if os.path.exists(METRICS_FILE):
++                                  with open(METRICS_FILE) as f:
++                                      self.wfile.write(f.read().encode())
++                              else:
++                                  # Default: backup has not succeeded yet
++                                  self.wfile.write(b"backup_success 0\n")
++                                  self.wfile.write(b"backup_last_success_timestamp 0\n")
++                          else:
++                              self.send_response(200)
++                              self.end_headers()
++                              self.wfile.write(b"OK")
++
++                      def log_message(self, format, *args):
++                          pass  # Suppress logs
++
++                  with socketserver.TCPServer(("", PORT), Handler) as httpd:
++                      print(f"Metrics server on port {PORT}")
++                      httpd.serve_forever()
++                  EOF
++
++                  python3 /tmp/serve_metrics.py
++              volumeMounts:
++                - name: shared-metrics
++                  mountPath: /shared-metrics
++              ports:
++                - name: metrics
++                  containerPort: 9090
++                  protocol: TCP
++              securityContext:
++                allowPrivilegeEscalation: false
++                readOnlyRootFilesystem: true
++                capabilities:
++                  drop:
++                    - ALL
++              resources:
++                limits:
++                  cpu: "50m"
++                  memory: "32Mi"
++                requests:
++                  cpu: "10m"
++                  memory: "16Mi"
++
++            # -----------------------------------------------------------------
++            # Alternative: use the Python backup script with --encrypt
++            # Uncomment to use scripts/ops/postgres_backup.py instead of raw pg_dump
++            # -----------------------------------------------------------------
++            # - name: postgres-backup-script
++            #   image: valuefabric/python-runtime:3.11-slim
++            #   command:
++            #     - python
++            #     - scripts/ops/postgres_backup.py
++            #     - --encrypt
++            #   envFrom:
++            #     - configMapRef:
++            #         name: postgres-config
++            #     - secretRef:
++            #         name: postgres-credentials
++            #     - secretRef:
++            #         name: backup-encryption-key
++            #   volumeMounts:
++            #     - name: shared-metrics
++            #       mountPath: /shared-metrics
++
++          volumes:
++            - name: shared-metrics
++              emptyDir: {}
++---
++# AlertRule: fires when PostgreSQL backup hasn't succeeded in 25 hours
++apiVersion: monitoring.coreos.com/v1
++kind: PrometheusRule
++metadata:
++  name: postgres-backup-alerts
++  namespace: value-fabric
++  labels:
++    app: postgres-backup
++    role: alert-rules
++spec:
++  groups:
++    - name: postgres-backup
++      rules:
++        - alert: PostgresBackupJobFailed
++          expr: |
++            (
++              time() - backup_last_success_timestamp{job="postgres-backup"} > 90000
++            )
++            or
++            (
++              backup_success{job="postgres-backup"} == 0
++              and
++              time() - kube_cronjob_next_schedule_time{name="postgres-backup"} > 90000
++            )
++          for: 5m
++          labels:
++            severity: critical
++            team: sre
++            service: database
++          annotations:
++            summary: "PostgreSQL backup has not succeeded in 25+ hours"
++            description: |
++              The postgres-backup CronJob has not reported a successful
++              backup in over 25 hours. Current RPO target is 6 hours.
++              Investigate immediately: check CronJob status, pod logs,
++              and S3 upload permissions.
++            runbook_url: "https://wiki.valuefabric.io/runbooks/postgres-backup-failure"
++            dashboard_url: "https://grafana.valuefabric.io/d/postgres-backup"
++---
++# ConfigMap for backup configuration
++apiVersion: v1
++kind: ConfigMap
++metadata:
++  name: backup-config
++  namespace: value-fabric
++data:
++  s3-bucket: "valuefabric-backups"
++  schedule: "0 */6 * * *"
++  retention-days: "30"

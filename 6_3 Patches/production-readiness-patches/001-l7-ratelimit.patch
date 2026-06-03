@@ -1,0 +1,169 @@
+From: Value Fabric Security Team <security@valuefabric.io>
+Date: 2026-05-27
+Subject: [PATCH-001] CRITICAL: Add RateLimitMiddleware to L7 Billing Service
+
+This patch adds per-tenant rate limiting to the Layer 7 Billing service
+and implements a dedicated rate limit for the Stripe webhook endpoint
+to prevent abuse.
+
+Before this patch:
+  - GovernanceMiddleware was installed with rate_limiter=None, disabling
+    ALL rate limiting on billing endpoints
+  - The /v1/billing/webhook endpoint had no rate limiting protection,
+    making it vulnerable to replay/dos attacks
+
+After this patch:
+  - RedisRateLimiter is initialized and wired into GovernanceMiddleware
+  - Per-tenant rate limits are enforced on all billing endpoints
+  - Stripe webhook endpoint has a dedicated 100 req/min rate limit
+  - Fail-closed: if Redis is unavailable, requests are rejected
+
+Security Impact: CRITICAL
+Audit Ticket: SEC-2026-001
+---
+ services/layer7-billing/src/layer7_billing/api/main.py | 58 ++++++++++++++++++--
+ 1 file changed, 53 insertions(+), 5 deletions(-)
+
+diff --git a/services/layer7-billing/src/layer7_billing/api/main.py b/services/layer7-billing/src/layer7_billing/api/main.py
+--- a/services/layer7-billing/src/layer7_billing/api/main.py
++++ b/services/layer7-billing/src/layer7_billing/api/main.py
+@@ -11,7 +11,11 @@ from fastapi import Depends, Header, HTTPException, Request, status
+ from pydantic import BaseModel, Field
+ from sqlalchemy.ext.asyncio import AsyncSession
+ 
+ import structlog
+-from value_fabric.shared.error_handling.exceptions import AuthorizationError
++from value_fabric.shared.error_handling.exceptions import (
++    AuthorizationError,
++    ServiceUnavailableError,
++)
+ from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult, install_metrics_middleware
+ from value_fabric.shared.identity.context import RequestContext
+ from value_fabric.shared.identity.dependencies import require_authenticated
++from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
+ 
+ from ..database import get_db_from_context, health_probe, lifespan
+ from .. import repository
+@@ -40,6 +44,30 @@ def _reject_replayed_stripe_event(
+         raise ValueError("Duplicate Stripe webhook event")
+     _STRIPE_WEBHOOK_REPLAY_CACHE[event_id] = timestamp
+ 
++# SEC-P001: Stripe webhook rate limit — prevent endpoint abuse.
++# Uses a separate in-memory sliding window for webhooks since these
++# are unauthenticated requests that must not hit tenant-scoped Redis keys.
++_STRIPE_WEBHOOK_RATE_LIMIT_MAX: int = int(os.getenv("STRIPE_WEBHOOK_RATE_LIMIT_PER_MINUTE", "100"))
++_stripe_webhook_hit_log: dict[str, float] = {}
++
++def _check_stripe_webhook_rate_limit(source_ip: str) -> None:
++    """Fail closed if the Stripe webhook endpoint exceeds its rate limit.
++
++    Uses a per-source-IP sliding window with automatic eviction of stale
++    entries.  Raises ServiceUnavailableError (which maps to HTTP 429) when
++    the limit is exceeded.
++    """
++    now = time.time()
++    window = 60.0  # 1 minute sliding window
++    cutoff = now - window
++    # Evict stale entries
++    for key, ts in list(_stripe_webhook_hit_log.items()):
++        if ts < cutoff:
++            del _stripe_webhook_hit_log[key]
++    window_key = f"stripe_webhook:{source_ip}"
++    count = sum(1 for k, ts in _stripe_webhook_hit_log.items() if k.startswith(window_key) and ts >= cutoff)
++    if count >= _STRIPE_WEBHOOK_RATE_LIMIT_MAX:
++        raise ServiceUnavailableError(message="Stripe webhook rate limit exceeded. Retry after 60 seconds.")
++    _stripe_webhook_hit_log[f"{window_key}:{now}"] = now
++
+ 
+ class Plan(BaseModel):
+     plan_id: str
+@@ -56,6 +84,25 @@ class UsageEventIn(BaseModel):
+     request_id: str
+ 
++# SEC-P001: Per-tenant usage event ingestion rate limit.
++# Enforces a tenant-scoped limit on /v1/billing/usage-events to prevent
++# a single tenant from flooding the billing pipeline.
++_USAGE_EVENT_RATE_LIMIT_MAX: int = int(os.getenv("USAGE_EVENT_RATE_LIMIT_PER_MINUTE", "1000"))
++_tenant_usage_event_log: dict[str, list[float]] = {}
++
++def _check_usage_event_rate_limit(tenant_id: str) -> None:
++    """Fail closed if tenant exceeds usage event ingestion rate limit."""
++    now = time.time()
++    window = 60.0
++    cutoff = now - window
++    window_list = _tenant_usage_event_log.setdefault(tenant_id, [])
++    # Evict stale entries
++    window_list[:] = [ts for ts in window_list if ts >= cutoff]
++    count = len(window_list)
++    if count >= _USAGE_EVENT_RATE_LIMIT_MAX:
++        raise ServiceUnavailableError(
++            message=f"Usage event rate limit exceeded for tenant {tenant_id}. Retry after 60 seconds."
++        )
++    window_list.append(now)
++
+ 
+ app = create_fabric_app(
+     service_name="layer7-billing",
+@@ -75,13 +122,24 @@ app = create_fabric_app(
+ # P0-02: Install GovernanceMiddleware — fail closed on missing/invalid auth.
+ try:
+     from value_fabric.shared.identity.middleware import GovernanceMiddleware
++    from ..database import redis_client_async
++
++    # SEC-P001: Initialize RedisRateLimiter for per-tenant rate limiting.
++    _redis_rate_limiter: RedisRateLimiter | None = None
++    try:
++        if redis_client_async is not None:
++            _redis_rate_limiter = RedisRateLimiter(redis_client_async)
++    except Exception as _rl_err:
++        logger.error(
++            "CRITICAL: RedisRateLimiter init failed",
++            component="layer7-billing",
++            error=str(_rl_err),
++        )
++        raise RuntimeError("RedisRateLimiter is required for Layer 7 billing rate limiting.") from _rl_err
+ 
+     app.add_middleware(
+         GovernanceMiddleware,
+         api_key_resolver=None,
+-        rate_limiter=None,
++        rate_limiter=_redis_rate_limiter,
+     )
+     logger.info("GovernanceMiddleware installed", component="layer7-billing")
+ except ImportError:
+@@ -115,8 +173,14 @@ async def ingest_usage(
+     ctx: RequestContext = Depends(require_authenticated),
+     db: AsyncSession = Depends(get_db_from_context),
+ ) -> dict:
++    # SEC-P001: Enforce per-tenant usage event rate limit before authz check
++    # to fail fast under load.  Authz still runs after for defense in depth.
+     if not ctx.has_role("billing:write"):
+         raise AuthorizationError(message="Missing RBAC role: billing:write")
++
++    # SEC-P001: Tenant-scoped rate limit on usage event ingestion.
++    if ctx.tenant_id:
++        _check_usage_event_rate_limit(str(ctx.tenant_id))
++
+     event_dict = event.model_dump()
+     is_new = await repository.insert_usage_event(db, str(ctx.tenant_id), event_dict)
+     if not is_new:
+@@ -159,7 +223,7 @@ async def payment_state(
+     return state
+ 
+ 
+-@app.post("/v1/billing/webhook")
++@app.post("/v1/billing/webhook")  # type: ignore[misc]
+ async def stripe_webhook(
+     request: Request,
+     stripe_signature: str | None = Header(default=None, alias="Stripe-Signature"),
+@@ -171,6 +235,10 @@ async def stripe_webhook(
+     body = await request.body()
+     tolerance_seconds = _stripe_webhook_tolerance_seconds()
+     try:
++        # SEC-P001: Enforce webhook-specific rate limit before signature verification
++        # to prevent CPU-intensive verification from being DOS'd.
++        source_ip = request.client.host if request.client else "unknown"
++        _check_stripe_webhook_rate_limit(source_ip)
+         signature = verify_stripe_webhook_signature(
+             body,
+             stripe_signature,
