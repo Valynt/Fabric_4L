@@ -14,6 +14,8 @@ These documents define the required engineering governance path for platform cha
   required approvals for contract, tenant-isolation, and compatibility-shim changes
 - [`governance/pre-stabilization-intake.md`](governance/pre-stabilization-intake.md):
   operational branch, PR, freeze, and entry gate before stabilization begins
+- [`governance/pr-triage-policy.md`](governance/pr-triage-policy.md): stalled PR definitions,
+  disposition labels, owner/next-action requirements, and stale-branch stabilization rules
 - [`../.github/pull_request_template.md`](../.github/pull_request_template.md): PR confirmations
   required before review
 
