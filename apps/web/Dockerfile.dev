@@ -11,14 +11,16 @@ COPY packages/config/package.json ./packages/config/
 COPY scripts/enforce-package-manager.cjs ./scripts/
 
 # Install from workspace root
-RUN pnpm install --frozen-lockfile
+# --ignore-scripts: skip package prepare/build lifecycle scripts (e.g. eslint-plugin-fabric-contracts
+# runs `tsc`, whose source is not copied into this dev image). Vite dev does not need them.
+RUN pnpm install --frozen-lockfile --ignore-scripts
 
-# Copy frontend source to app directory
-WORKDIR /app
+# Copy frontend source into its workspace location. Staying at the workspace path keeps
+# pnpm's relative symlinks (../../node_modules/.pnpm/...) valid against /workspace/node_modules,
+# so no symlink/copy gymnastics are needed and the anonymous node_modules volume populates
+# correctly from the real symlink-farm directory.
+WORKDIR /workspace/apps/web
 COPY apps/web/ .
-
-# Link dependencies from workspace
-RUN rm -rf /app/node_modules && ln -s /workspace/node_modules /app/node_modules
 
 EXPOSE 3001
 CMD ["pnpm", "dev"]

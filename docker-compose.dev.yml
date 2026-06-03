@@ -409,8 +409,8 @@ services:
       - VITE_API_LOG_LEVEL=debug
       - VITE_ENABLE_MOCK_AUTH=true
     volumes:
-      - ./apps/web:/app
-      - /app/node_modules
+      - ./apps/web:/workspace/apps/web
+      - /workspace/apps/web/node_modules
     networks:
       - dev-network
     depends_on:
