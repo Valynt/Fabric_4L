@@ -618,3 +618,24 @@ Environment Actions:
       --secrets-file string   File to import secrets from
       --vars-file string      File to import variables from
 ```
+
+## 12. CPU Quota Budget & Lightweight Profile
+
+To attempt fitting multiple environments within a hard 8 CPU quota, a lightweight profile (`bunnyshell-pr.yaml`) has been created. Usage: `bns environments create --from-path ./bunnyshell-pr.yaml`.
+
+### CPU Budget Summary
+
+| Environment Type | CPU Allocation | Details |
+|------------------|----------------|---------|
+| Current Full Environment | 4.375 CPUs | 13 components @ 0.25, postgres @ 1.0, init jobs @ 0.125 |
+| Proposed Lightweight (PR) Environment | 2.25 CPUs | 13 components @ 0.125, postgres @ 0.5, init jobs @ 0.125 |
+| Estimated Kubernetes Overhead | ~3.25 CPUs | Control plane, system pods, and daemonsets |
+| **Total (1 Full + 1 PR + Overhead)** | **9.875 CPUs** | 4.375 + 2.25 + 3.25 |
+
+### Do two environments fit under 8 CPUs?
+
+**No.** The estimated total (9.875 CPUs) exceeds the 8 CPU quota.
+
+Because the constraints specify that the CPU footprint of the full environment must not be reduced, and the lightweight environment alone requires 2.25 CPUs, it is mathematically impossible to fit both alongside the ~3.25 CPU Kubernetes overhead. 
+
+To successfully provision a new PR environment, you must **stop** the primary environment to free up resources. Alternatively, use **Remote Development Mode** (`bns remote-development up`) to develop against the single running environment.
