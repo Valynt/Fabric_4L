@@ -27,6 +27,22 @@ DATABASE_URL = os.getenv("LAYER7_DATABASE_URL", "postgresql+asyncpg://postgres:p
 engine = create_postgresql_engine(DATABASE_URL)
 session_maker = create_session_maker(engine)
 
+# SEC-P001: Async Redis client backing RateLimitMiddleware for billing endpoints.
+# Imported by the API layer to wire RedisRateLimiter into GovernanceMiddleware.
+# Resolves to None when the redis package is unavailable or REDIS_URL is unset, so
+# the service still boots (rate limiting degrades to the limiter's local fallback).
+try:
+    import redis.asyncio as _redis_asyncio
+except ImportError:  # pragma: no cover - redis is an optional runtime dependency
+    _redis_asyncio = None  # type: ignore[assignment]
+
+REDIS_URL = os.getenv("REDIS_URL")
+redis_client_async = (
+    _redis_asyncio.from_url(REDIS_URL, decode_responses=True)
+    if (_redis_asyncio is not None and REDIS_URL)
+    else None
+)
+
 
 async def init_db() -> None:
     async with engine.begin() as conn:
