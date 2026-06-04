@@ -1,0 +1,89 @@
+name: CI Failure Backlog
+
+on:
+  schedule:
+    # Weekly Monday report after the default UTC morning CI wave has completed.
+    - cron: '0 13 * * 1'
+  workflow_dispatch:
+    inputs:
+      reporting_window_days:
+        description: Number of days of completed workflow runs to include.
+        required: false
+        default: '7'
+      branch:
+        description: Branch to report on, or "all" for all branches.
+        required: false
+        default: main
+      workflow_filter:
+        description: Optional substring filter for workflow name, path, or ID.
+        required: false
+        default: ''
+      include_cancelled:
+        description: Include cancelled workflow runs in the backlog.
+        required: false
+        default: false
+        type: boolean
+      publish_docs_artifact:
+        description: Also publish a docs-ready Markdown artifact copy.
+        required: false
+        default: true
+        type: boolean
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  generate-ci-failure-backlog:
+    name: Generate CI failure backlog
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout report generator
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Generate backlog reports
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_SERVER_URL: ${{ github.server_url }}
+          REPORTING_WINDOW_DAYS: ${{ github.event.inputs.reporting_window_days || '7' }}
+          REPORT_BRANCH: ${{ github.event.inputs.branch || 'main' }}
+          WORKFLOW_FILTER: ${{ github.event.inputs.workflow_filter || '' }}
+          INCLUDE_CANCELLED: ${{ github.event.inputs.include_cancelled || 'false' }}
+          PUBLISH_DOCS_ARTIFACT: ${{ github.event.inputs.publish_docs_artifact || 'true' }}
+        run: |
+          set -euo pipefail
+          mkdir -p artifacts/ci-failure-backlog
+
+          args=(
+            --repo "${GITHUB_REPOSITORY}"
+            --server-url "${GITHUB_SERVER_URL}"
+            --window-days "${REPORTING_WINDOW_DAYS}"
+            --branch "${REPORT_BRANCH}"
+            --workflow-filter "${WORKFLOW_FILTER}"
+            --json-output artifacts/ci-failure-backlog/ci-failure-backlog.json
+            --markdown-output artifacts/ci-failure-backlog/ci-failure-backlog.md
+          )
+          if [[ "${INCLUDE_CANCELLED}" == "true" ]]; then
+            args+=(--include-cancelled)
+          fi
+
+          python scripts/ci/generate_ci_failure_backlog.py "${args[@]}"
+
+          if [[ "${PUBLISH_DOCS_ARTIFACT}" == "true" ]]; then
+            mkdir -p artifacts/ci-failure-backlog/docs
+            cp artifacts/ci-failure-backlog/ci-failure-backlog.md \
+              artifacts/ci-failure-backlog/docs/current-ci-failure-backlog.md
+          fi
+
+      - name: Upload CI failure backlog artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-failure-backlog-${{ github.run_id }}
+          path: artifacts/ci-failure-backlog
+          if-no-files-found: error
