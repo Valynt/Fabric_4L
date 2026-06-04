@@ -1,0 +1,22 @@
+{
+  "jobs": [
+    {
+      "id": 503,
+      "name": "backend-tests (3.11, ubuntu-latest)",
+      "conclusion": "failure",
+      "started_at": "2026-05-21T10:02:00Z",
+      "completed_at": "2026-05-21T10:04:00Z",
+      "html_url": "https://github.com/acme/fabric/actions/runs/102/job/503",
+      "log_text": "Run pytest services/layer4-agents/tests/test_resume.py\nFAILED services/layer4-agents/tests/test_resume.py::test_resume_checkpoint - AssertionError: expected 3 got 2\nProcess completed with exit code 1.\n"
+    },
+    {
+      "id": 504,
+      "name": "typecheck",
+      "conclusion": "failure",
+      "started_at": "2026-05-21T10:02:00Z",
+      "completed_at": "2026-05-21T10:03:00Z",
+      "html_url": "https://github.com/acme/fabric/actions/runs/102/job/504",
+      "log_text": "Run mypy services/layer4-agents\nerror: Cannot find implementation or library stub for module named \"langgraph\"\nProcess completed with exit code 1.\n"
+    }
+  ]
+}
