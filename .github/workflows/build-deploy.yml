@@ -103,12 +103,17 @@ jobs:
       - name: Write build metadata artifact
         run: |
           mkdir -p /tmp/build-metadata
-          cat > /tmp/build-metadata/build-metadata-${{ matrix.layer }}.json <<'EOF'
+          source_version="$(python3 -c "import json; print(json.load(open('package.json', encoding='utf-8'))['version'])")"
+          build_timestamp="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          cat > /tmp/build-metadata/build-metadata-${{ matrix.layer }}.json <<EOF
           {
             "layer": "${{ matrix.layer }}",
             "image_digest": "${{ steps.build.outputs.digest }}",
             "published_tag": "sha-${{ steps.sha.outputs.short }}",
-            "source_commit_sha": "${{ github.sha }}"
+            "source_commit_sha": "${{ github.sha }}",
+            "source_version": "${source_version}",
+            "build_timestamp": "${build_timestamp}",
+            "environment": "build"
           }
           EOF
 

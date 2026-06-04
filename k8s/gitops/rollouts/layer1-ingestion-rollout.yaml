@@ -32,6 +32,8 @@ spec:
             templates:
               - templateName: ingestion-success-rate
               - templateName: ingestion-throughput
+              - templateName: ingestion-error-rate
+              - templateName: ingestion-latency
         - setWeight: 100
       
       autoRollbackEnabled: true
@@ -109,6 +111,55 @@ spec:
             sum(rate(http_requests_total{
               service="layer1-ingestion"
             }[1m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ingestion-error-rate
+  namespace: value-fabric-prod
+spec:
+  metrics:
+    - name: error-rate
+      interval: 30s
+      count: 5
+      successCondition: result[0] < 0.01
+      failureCondition: result[0] > 0.05
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            sum(rate(http_requests_total{
+              service="layer1-ingestion",
+              status=~"5.."
+            }[1m]))
+            /
+            sum(rate(http_requests_total{
+              service="layer1-ingestion"
+            }[1m]))
+---
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: ingestion-latency
+  namespace: value-fabric-prod
+spec:
+  metrics:
+    - name: p95-latency
+      interval: 1m
+      count: 3
+      successCondition: result[0] <= 500
+      failureCondition: result[0] > 1000
+      failureLimit: 2
+      provider:
+        prometheus:
+          address: http://prometheus.monitoring.svc.cluster.local:9090
+          query: |
+            histogram_quantile(0.95,
+              sum(rate(http_request_duration_seconds_bucket{
+                service="layer1-ingestion"
+              }[1m])) by (le)
+            ) * 1000
 ---
 apiVersion: argoproj.io/v1alpha1
 kind: AnalysisTemplate

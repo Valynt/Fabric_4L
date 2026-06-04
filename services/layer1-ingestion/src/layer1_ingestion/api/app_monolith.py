@@ -3,6 +3,7 @@ from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,
     ServiceUnavailableError,
+    ValueFabricException,
     ValidationError,
 )
 
@@ -41,6 +42,9 @@ from value_fabric.shared.error_handling.handlers import (
 )
 from value_fabric.shared.error_handling.handlers import (
     global_exception_handler as shared_global_exception_handler,
+)
+from value_fabric.shared.error_handling.handlers import (
+    value_fabric_exception_handler as shared_value_fabric_exception_handler,
 )
 from value_fabric.shared.error_handling.handlers import (
     validation_exception_handler as shared_validation_exception_handler,
@@ -340,6 +344,14 @@ async def layer1_validation_exception_handler(
 ) -> JSONResponse:
     """Route request validation failures through canonical shared envelope."""
     return await shared_validation_exception_handler(request, exc)
+
+
+@app.exception_handler(ValueFabricException)
+async def layer1_value_fabric_exception_handler(
+    request: Request, exc: ValueFabricException
+) -> JSONResponse:
+    """Route shared platform exceptions through canonical shared envelope."""
+    return await shared_value_fabric_exception_handler(request, exc)
 
 
 @app.exception_handler(Exception)

@@ -40,6 +40,7 @@ spec:
             templates:
               - templateName: success-rate
               - templateName: latency
+              - templateName: error-rate
         # Final step: 100% traffic
         - setWeight: 100
       

@@ -1,0 +1,34 @@
+name: Restore Verification
+
+on:
+  schedule:
+    - cron: "30 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  restore-verification:
+    name: Recovery Suite and Dry-Run Evidence
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare recovery artifact directory
+        run: mkdir -p artifacts/recovery/junit
+
+      - name: Run recovery validation suite
+        run: python -m pytest tests/recovery/ --junitxml=artifacts/recovery/junit/recovery.xml
+
+      - name: Emit restore dry-run evidence
+        run: |
+          corepack enable
+          pnpm ops:restore:dry-run
+
+      - name: Upload restore verification evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: restore-verification-${{ github.run_id }}
+          path: artifacts/recovery/**

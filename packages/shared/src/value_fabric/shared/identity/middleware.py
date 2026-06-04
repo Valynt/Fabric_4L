@@ -655,15 +655,14 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
             # P1-001: Try service-to-service JWT before rejecting
             try:
                 from .jwt import decode_service_jwt as _decode_service_jwt
-                import jwt
                 # Validate audience if S2S_AUDIENCE is configured
                 expected_audience = os.getenv("S2S_AUDIENCE", "").strip() or None
                 s2s_claims = await asyncio.to_thread(_decode_service_jwt, token_str, expected_audience=expected_audience)
-            except jwt.ExpiredSignatureError:
-                logger.debug("s2s_jwt_expired", extra={**_request_log_context(request)})
-                s2s_claims = None
             except Exception as exc:
-                logger.debug("s2s_jwt_decode_failed", extra={"error": str(exc), **_request_log_context(request)})
+                if jwt is not None and isinstance(exc, jwt.ExpiredSignatureError):
+                    logger.debug("s2s_jwt_expired", extra={**_request_log_context(request)})
+                else:
+                    logger.debug("s2s_jwt_decode_failed", extra={"error": str(exc), **_request_log_context(request)})
                 s2s_claims = None
             if s2s_claims is not None:
                 try:

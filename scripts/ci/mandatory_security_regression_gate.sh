@@ -72,6 +72,7 @@ CONTRACT_TESTS=(
 )
 
 K8S_TESTS=(
+  tests/k8s/test_security_policies.py
   tests/k8s
 )
 

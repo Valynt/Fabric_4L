@@ -63,4 +63,4 @@ def test_matrix_asserts_error_contract_and_observability() -> None:
     assert "request_id" in src and "error" in src and "code" in src
     for term in FORBIDDEN_LEAK_TERMS:
         assert term in src, f"Expected explicit no-leak assertion for term: {term}"
-    assert "denied_actions_observed" in src
+    assert "deniedactionsobserved" in src

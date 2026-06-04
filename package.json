@@ -10,8 +10,12 @@
     "check:contract-compliance": "python scripts/ci/contract_compliance_gate.py --mode full",
     "check:api-types": "pnpm run generate:api && git diff --exit-code apps/web/src/api/generated",
     "docs:check": "python -m pytest tests/docs/",
+    "ops:runbooks:lint": "python scripts/ci/check_incident_runbooks.py --mode runbooks-lint",
+    "ops:incident:check": "python scripts/ci/check_incident_runbooks.py --mode incident-check",
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
+    "test:observability": "python -m pytest tests/observability/ -v --tb=short",
+    "lint:logs": "python scripts/ci/check_observability_coverage.py",
     "test:agents": "python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py",
     "readiness:10": "python scripts/ci/readiness_10_gate.py",
     "test:security": "python scripts/ci/run_root_aggregate_checks.py security",
@@ -41,7 +45,11 @@
     "compose:dev": "pnpm env:dev && docker compose --env-file .env.generated up",
     "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py",
     "evidence:bundle": "python scripts/ci/generate_evidence_bundle.py",
-    "ci:workflow-registry": "python scripts/ci/verify_workflow_registry.py"
+    "release:dry-run": "python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate",
+    "release:rollback:verify": "python scripts/ci/verify_release_rollback.py",
+    "ci:workflow-registry": "python scripts/ci/verify_workflow_registry.py",
+    "ops:backup:verify": "python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py",
+    "ops:restore:dry-run": "python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery"
   },
   "engines": {
     "node": ">=22.12.0"

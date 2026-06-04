@@ -22,6 +22,8 @@ Every root `package.json` script is a stable public npm-script interface.
 | `check:contract-compliance` | `python scripts/ci/contract_compliance_gate.py --mode full` | Contract gate |
 | `check:api-types` | `pnpm run generate:api && git diff --exit-code apps/web/src/api/generated` | Generated type drift |
 | `docs:check` | `python -m pytest tests/docs/` | Documentation validation |
+| `ops:runbooks:lint` | `python scripts/ci/check_incident_runbooks.py --mode runbooks-lint` | Incident runbook validation |
+| `ops:incident:check` | `python scripts/ci/check_incident_runbooks.py --mode incident-check` | Incident workflow validation |
 | `lint` | `python scripts/ci/run_root_aggregate_checks.py lint` | Root aggregate CI runner |
 | `test` | `python scripts/ci/run_root_aggregate_checks.py test` | Root aggregate CI runner |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
@@ -53,6 +55,11 @@ Every root `package.json` script is a stable public npm-script interface.
 | `compose:dev` | `pnpm env:dev && docker compose --env-file .env.generated up` | Dev stack |
 | `contract:breaking` | `python scripts/ci/openapi_breaking_change_gate.py` | Contract compatibility |
 | `evidence:bundle` | `python scripts/ci/generate_evidence_bundle.py` | Evidence bundle generation |
+| `release:dry-run` | `python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate` | Release safety artifact |
+| `release:rollback:verify` | `python scripts/ci/verify_release_rollback.py` | Release rollback verification |
+| `ci:workflow-registry` | `python scripts/ci/verify_workflow_registry.py` | Workflow registry validation |
+| `ops:backup:verify` | `python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py` | Backup recovery validation |
+| `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
 
 ## Public Makefile Targets
 
@@ -84,6 +91,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `check-no-nul-bytes` | Fail on tracked NUL bytes. |
 | `check-readiness-consistency` | Check readiness percentage and archive consistency. |
 | `check-workflow-matrix` | Validate workflow traceability matrices. |
+| `check-workflow-registry` | Validate GitHub Actions workflow ownership and artifact registry. |
 | `check-keycloak-realm-seed-security` | Fail when Keycloak realm seeds embed secrets or default credentials. |
 | `check-manifest-secret-hygiene` | Enforce secret-only references and denylisted sensitive patterns in manifests. |
 | `check-path-env-hygiene` | Fail on suspicious path artifacts and unapproved tracked env files. |
@@ -312,6 +320,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 | Database readiness | `make gate-database` | Local static/read-only gate; live checks require explicit DB environment. |
 | Production readiness policy | `make gate-production` or `make production-readiness-gate` | Full release gate; slower than PR validation. |
 | Release evidence | `make release-evidence-packet` | Generates canonical release evidence. |
+| Incident response docs | `pnpm ops:runbooks:lint` and `pnpm ops:incident:check` | Validates `ops/incident/` runbooks, severity, escalation, communications, postmortem, and workflow links. |
 | Docs command-map validation | `pnpm docs:check` | Runs `python -m pytest tests/docs/`. |
 
 ## Related Documentation

@@ -916,6 +916,7 @@
         "artifacts/layer3-source-mirror.txt",
         "artifacts/legacy-debt-report.json",
         "artifacts/logs/",
+        "artifacts/observability/**",
         "artifacts/pytest-collection.txt",
         "artifacts/pytest-skip-governance.json",
         "artifacts/python-contract-lint.json",
@@ -1113,9 +1114,10 @@
       ],
       "produced_artifacts": [
         "artifacts/evidence/*.summary.json",
+        "artifacts/release/release-safety.json",
         "attestation-${{ matrix.service }}-${{ github.sha }}.json",
         "bandit-report.*",
-        "evidence-bundle.tar.gz",
+        "${{ steps.bundle.outputs.path }}",
         "prompt-injection-tests.xml",
         "report_*.html",
         "report_*.json",
@@ -1148,6 +1150,24 @@
       ],
       "runtime_budget_minutes": 5,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repo-hygiene.yml",
+      "deprecation_status": "active"
+    },
+    {
+      "path": ".github/workflows/restore-verification.yml",
+      "name": "Restore Verification",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "restore_verification governs Restore Verification via schedule, workflow_dispatch",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [
+        "artifacts/recovery/**"
+      ],
+      "runtime_budget_minutes": 20,
+      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob restore-verification.yml",
       "deprecation_status": "active"
     },
     {

@@ -17,6 +17,10 @@ from types import SimpleNamespace
 
 import pytest
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+)
 
 from src.api.auth_context import TenantBearerContext, extract_tenant_from_bearer
 from starlette.requests import Request as StarletteRequest
@@ -198,14 +202,14 @@ class TestModelFailClosed:
     def test_missing_auth_header_raises_401(self):
         """No Authorization header must raise HTTP 401."""
         req = _make_request(auth_header="")
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
             extract_tenant_from_bearer(req)
         assert exc_info.value.status_code == 401
 
     def test_missing_tenant_id_claim_raises_401(self):
         """JWT with no tenant_id claim must raise HTTP 401."""
         req = _make_request(auth_header=_bearer({"sub": "user-1"}))
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
             extract_tenant_from_bearer(req)
         assert exc_info.value.status_code == 401
 
@@ -215,7 +219,7 @@ class TestModelFailClosed:
             auth_header=_bearer({"tenant_id": "tenant-a"}),
             tenant_header="tenant-b",
         )
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises((HTTPException, AuthorizationError)) as exc_info:
             extract_tenant_from_bearer(req)
         assert exc_info.value.status_code == 403
 

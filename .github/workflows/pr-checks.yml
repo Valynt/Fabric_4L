@@ -267,6 +267,12 @@ jobs:
           pip install pytest pyyaml
           pytest tests/contract/test_otel_instrumentation.py -v --tb=short
 
+      - name: Run centralized observability contract suite
+        run: |
+          pip install pytest structlog prometheus-client
+          pnpm test:observability
+          pnpm lint:logs
+
       - name: Enforce HTTPException static gate with baseline allowlist
         run: |
           python scripts/ci/check_no_raw_httpexception_in_routers.py
@@ -312,6 +318,7 @@ jobs:
             artifacts/violation-diff-summary.json
             artifacts/violation-diff-summary.md
             artifacts/layer-quality-scorecard.md
+            artifacts/observability/**
             artifacts/route-tenant-propagation.json
             artifacts/route-tenant-propagation.md
             artifacts/webhook-security-matrix.md

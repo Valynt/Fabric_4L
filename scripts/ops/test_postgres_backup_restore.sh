@@ -87,7 +87,7 @@ exec docker run --rm --network __NETWORK__ -e PGPASSWORD="${PGPASSWORD:-}" postg
 WRAP
 cat > "$WRAPPER_DIR/psql" <<'WRAP'
 #!/usr/bin/env bash
-exec docker run --rm --network __NETWORK__ -e PGPASSWORD="${PGPASSWORD:-}" postgres:15-alpine psql "$@"
+exec docker run --rm -i --network __NETWORK__ -e PGPASSWORD="${PGPASSWORD:-}" postgres:15-alpine psql "$@"
 WRAP
 chmod +x "$WRAPPER_DIR/pg_dump" "$WRAPPER_DIR/psql"
 

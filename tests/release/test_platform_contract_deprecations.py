@@ -5,6 +5,7 @@ from datetime import date
 import fnmatch
 import json
 from pathlib import Path
+import subprocess
 
 import pytest
 
@@ -63,17 +64,23 @@ HIGH_RISK_RULES: tuple[DeprecationRule, ...] = (
 
 def _iter_target_files() -> list[Path]:
     files: list[Path] = []
-    for root_name in CANONICAL_ROOTS:
-        root = REPO_ROOT / root_name
-        if not root.exists():
+    result = subprocess.run(
+        ["git", "ls-files", *CANONICAL_ROOTS],
+        cwd=REPO_ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    if result.returncode != 0:
+        pytest.fail(f"Could not enumerate tracked runtime files: {result.stderr}")
+
+    for raw_path in result.stdout.splitlines():
+        path = REPO_ROOT / raw_path
+        if not path.is_file():
             continue
-        for path in root.rglob("*"):
-            if not path.is_file():
-                continue
-            parts = set(path.parts)
-            if parts.intersection(EXCLUDED_DIR_NAMES):
-                continue
-            files.append(path)
+        if set(path.parts).intersection(EXCLUDED_DIR_NAMES):
+            continue
+        files.append(path)
     return files
 
 

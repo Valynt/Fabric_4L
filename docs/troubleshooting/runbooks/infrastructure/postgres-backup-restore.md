@@ -225,10 +225,15 @@ without relying on provider control-plane operations.
 
 | Target | Value |
 |---|---|
-| RPO (max data loss) | 24 hours (daily backup) |
-| RTO (max restore time) | 4 hours |
+| Platform RPO target | 1 hour |
+| Platform RPO maximum | 4 hours |
+| Platform RTO target | 4 hours |
+| Platform RTO maximum | 8 hours |
+| Logical-backup-only RPO | 24 hours |
 
-To improve RPO, enable WAL archiving in addition to this logical backup. See
+Daily logical `pg_dump` backups alone do not satisfy the live-customer RPO.
+For production, use managed PostgreSQL point-in-time restore or equivalent WAL
+archiving in addition to this logical backup. See
 `docs/troubleshooting/runbooks/infrastructure/postgres-down.md` for recovery
 from a complete database failure.
 

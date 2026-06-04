@@ -85,6 +85,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 | `.github/workflows/regenerate-sdk.yml` | `@value-fabric/sre-leads` | yes | `push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob regenerate-sdk.yml` |
 | `.github/workflows/release-evidence-bundle.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob release-evidence-bundle.yml` |
 | `.github/workflows/repo-hygiene.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repo-hygiene.yml` |
+| `.github/workflows/restore-verification.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob restore-verification.yml` |
 | `.github/workflows/repro-seed-validation.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob repro-seed-validation.yml` |
 | `.github/workflows/runbook-validation.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob runbook-validation.yml` |
 | `.github/workflows/secret-guardrails.yml` | `@value-fabric/security-leads` | yes | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob secret-guardrails.yml` |

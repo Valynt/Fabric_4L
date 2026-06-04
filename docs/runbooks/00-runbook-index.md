@@ -2,6 +2,10 @@
 
 This is the canonical index for production procedures under `docs/runbooks/`. Existing alert-specific runbooks are preserved in their current locations and linked here so responders can distinguish broad production procedures from tactical alert responses.
 
+For the concise incident-response workflow, severity matrix, escalation policy,
+customer communications templates, postmortem template, and top failure-mode
+runbooks, start with [`ops/incident/README.md`](../../ops/incident/README.md).
+
 ## Canonical directory structure
 
 | Directory | Purpose |

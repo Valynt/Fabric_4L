@@ -283,7 +283,7 @@ def _psql_restore(
     with gzip.open(dump_path, "rb") as gz_fh:
         result = subprocess.run(
             cmd,
-            stdin=gz_fh,
+            input=gz_fh.read(),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             env=env,

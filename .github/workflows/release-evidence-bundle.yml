@@ -43,6 +43,14 @@ jobs:
       - name: Enforce Task 46/47 final readiness criteria
         run: |
           python -m pytest -q tests/release/test_observability_deployment_readiness.py --no-mandatory-dep-check
+      - name: Generate release safety artifact
+        run: python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate
+      - name: Upload release safety artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-safety
+          path: artifacts/release/release-safety.json
+          retention-days: 90
 
   build-and-scan:
     name: Build images & security scan

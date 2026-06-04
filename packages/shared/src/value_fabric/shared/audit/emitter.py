@@ -128,8 +128,15 @@ def validate_audit_config() -> _AuditConfigValidation:
 
 # Keys that must never appear in the structured log (scrubbed from ``details``).
 _SENSITIVE_KEYS: Set[str] = {
+    "authorization",
+    "card_number",
+    "checkout_session",
+    "client_secret",
     "password",
     "hashed_password",
+    "payment_details",
+    "payment_method",
+    "session_token",
     "secret",
     "token",
     "api_key",
@@ -137,8 +144,17 @@ _SENSITIVE_KEYS: Set[str] = {
     "access_token",
     "refresh_token",
     "private_key",
-    "client_secret",
+    "stripe_payment_intent",
+    "vf_session",
 }
+
+
+def _scrub_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        return _scrub_details(value)
+    if isinstance(value, list):
+        return [_scrub_value(item) for item in value]
+    return value
 
 
 def _scrub_details(details: Dict[str, Any]) -> Dict[str, Any]:
@@ -147,7 +163,7 @@ def _scrub_details(details: Dict[str, Any]) -> Dict[str, Any]:
     # TypedDictModel wrapper is useful for generated typing, but AuditEvent and
     # downstream DB serialization expect a concrete dict.
     return {
-        k: "[REDACTED]" if k.lower() in _SENSITIVE_KEYS else v
+        k: "[REDACTED]" if k.lower() in _SENSITIVE_KEYS else _scrub_value(v)
         for k, v in details.items()
     }
 

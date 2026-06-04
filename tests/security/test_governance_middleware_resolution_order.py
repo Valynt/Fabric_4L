@@ -197,17 +197,18 @@ class TestGovernanceMiddlewareFailureModes:
         assert exc_info.value.detail["error_code"] == "AUTH_CONTEXT_INVALID"
 
     @pytest.mark.asyncio
-    async def test_unexpected_exception_in_decode_jwt_is_not_masked_as_auth_failure(self):
-        """Programming errors must bubble up as 500, not be masked as 401 (P1-012)."""
+    async def test_unexpected_exception_in_decode_jwt_fails_closed_with_stable_code(self):
+        """JWT service failures fail closed with a stable auth error code."""
         middleware = GovernanceMiddleware(app=Mock(), api_key_resolver=None, rate_limiter=None)
         request = self._build_request({"Authorization": "Bearer service-down", "X-Correlation-ID": "corr-456"})
 
         with patch("value_fabric.shared.identity.middleware.decode_jwt") as mock_decode:
             mock_decode.side_effect = RuntimeError("auth service outage")
-            with pytest.raises(RuntimeError) as exc_info:
+            with pytest.raises(HTTPException) as exc_info:
                 await middleware._resolve_identity(request)
 
-        assert "auth service outage" in str(exc_info.value)
+        assert exc_info.value.status_code == 401
+        assert exc_info.value.detail["error_code"] == "AUTH_SERVICE_UNAVAILABLE"
 
 
 class TestGovernanceMiddlewareDispatch:

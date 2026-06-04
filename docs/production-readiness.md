@@ -25,6 +25,7 @@ The MVP uses mock persistence and is suitable for local development and demos.
 - [ ] Metrics (Prometheus)
 - [ ] Distributed tracing
 - [ ] Alerting (PagerDuty)
+- [ ] Incident response workflow: [`ops/incident/README.md`](../ops/incident/README.md)
 
 ### Data
 - [ ] Database migrations (Alembic)

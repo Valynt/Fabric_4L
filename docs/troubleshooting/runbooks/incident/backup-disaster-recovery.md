@@ -7,6 +7,10 @@
 | **RTO** (Recovery Time Objective) | 4 hours | 8 hours |
 | **RPO** (Recovery Point Objective) | 1 hour | 4 hours |
 
+These are platform DR targets for live customer data. Daily logical backups are
+the portable safety net, but production must also use managed PostgreSQL
+point-in-time recovery or equivalent WAL archiving to meet the 1-hour RPO target.
+
 ---
 
 ## Backup Strategy
@@ -92,17 +96,112 @@ python -m layer3_knowledge.backup.drill --full
 cat artifacts/backup-drill-$(date +%Y%m%d).json
 ```
 
+For the repository-maintained non-production restore drill:
+
+```bash
+python -m pytest tests/recovery/
+pnpm ops:backup:verify
+pnpm ops:restore:dry-run
+bash scripts/ops/test_postgres_backup_restore.sh
+```
+
+The `pnpm ops:restore:dry-run` command writes CI-safe evidence to
+`artifacts/recovery/restore-dry-run-evidence.json`. The shell drill starts
+isolated PostgreSQL source and restore containers and writes checksum evidence
+to `artifacts/postgres-backup-restore/`.
+
 **Drill checklist:**
 - [ ] Restore to isolated DR environment
 - [ ] Verify all backup storage backends accessible
 - [ ] Validate checksums on restored data
 - [ ] Confirm application can connect to restored data
+- [ ] Confirm database, object storage, secrets/config references, and background jobs are validated
 - [ ] Document any issues or delays
 - [ ] Update DR playbook with lessons learned
 
 ---
 
-### 4. Storage Backend Failover
+### 4. Partial Tenant Restore
+
+Use this path for bounded data loss affecting one tenant. Run it only in a
+non-production recovery environment first.
+
+1. Identify the affected `tenant_id` from authenticated tenant context and audit evidence.
+2. Restore the candidate backup into an isolated recovery database.
+3. Export only tenant-scoped rows and file metadata for the affected `tenant_id`.
+4. Validate source and restored row counts, per-tenant checksums, object-storage metadata references, and billing/audit references.
+5. Run hostile cross-tenant validation before promotion: Tenant A must not receive Tenant B rows, files, billing state, or audit events.
+6. Emit audit evidence for the restore decision, approver, restore timestamp, checksum comparison, and affected records.
+
+Do not trust request-body tenant IDs for restore scope. Tenant identity must be
+derived from authenticated tenant context or an approved incident commander
+system action with audit evidence.
+
+---
+
+### 5. Full Environment Restore
+
+Use this path for environment loss, regional loss, or unrecoverable corruption.
+
+1. Freeze non-essential writers and preserve incident evidence.
+2. Restore PostgreSQL through managed PITR or the latest validated logical backup.
+3. Restore Neo4j from the latest validated graph backup and rebuild vector indexes if required.
+4. Restore files and customer-uploaded assets from S3 or MinIO-compatible object storage.
+5. Rehydrate secrets/config references through Infisical or the target secrets manager; never copy plaintext secrets into evidence.
+6. Restart background jobs only after database, graph, object storage, and secrets references validate.
+7. Run release smoke, tenant isolation, billing, audit, and workflow recovery checks before traffic cutover.
+8. Record RTO/RPO calculations and attach restore-verification evidence.
+
+---
+
+### 6. Object Storage and File Asset Restore
+
+Files and customer-uploaded assets must be restored together with their database
+metadata references. Validate:
+
+- S3, GCS, or MinIO-compatible bucket availability.
+- Object keys referenced by restored database rows exist in object storage.
+- Restored files are scoped by tenant ownership and cannot be fetched cross-tenant.
+- Deleted or quarantined objects are not accidentally resurrected without incident approval.
+
+---
+
+### 7. Audit Log Restore
+
+Audit logs are recovery-critical. Validate that `audit_events` and any external
+audit sink exports are restored without weakening append-only behavior,
+tenant-scoped queries, hash-chain or canonical-hash checks, and trace
+correlation. Restores must preserve audit evidence for the restore operation
+itself.
+
+---
+
+### 8. Billing State Restore
+
+Billing state must restore with tenant scope and webhook idempotency intact.
+Validate billing plans, usage events, aggregates, invoices, payment state,
+customers, subscriptions, and webhook idempotency records before re-enabling
+billing jobs or accepting new billing webhooks.
+
+---
+
+### 9. CI / Scheduled Restore Verification Evidence
+
+Restore verification runs through the scheduled/manual GitHub workflow
+`.github/workflows/restore-verification.yml`. The workflow runs:
+
+```bash
+python -m pytest tests/recovery/ --junitxml artifacts/recovery/junit/recovery.xml
+pnpm ops:restore:dry-run
+```
+
+It uploads `artifacts/recovery/**` as restore-verification evidence. Live
+provider PITR and cloud object-storage restores remain environment-dependent and
+must run against staging or another approved non-production environment.
+
+---
+
+### 10. Storage Backend Failover
 
 If primary storage (S3) is unavailable:
 
