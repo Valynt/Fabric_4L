@@ -209,7 +209,7 @@ def pytest_addoption(parser) -> None:
 
 
 def pytest_collection_modifyitems(config, items) -> None:
-    """Automatically mark tests as mandatory based on their other markers.
+    """Automatically mark tests for mandatory and tenant-isolation profiles.
 
     Tests marked with: unit, contract, security, or tenant_boundary
     are automatically considered mandatory unless they also have:
@@ -225,6 +225,25 @@ def pytest_collection_modifyitems(config, items) -> None:
     This allows selecting mandatory tests with: pytest -m mandatory
     """
     mandatory_markers = {"unit", "contract", "security", "tenant_boundary"}
+    tenant_isolation_markers = {
+        "tenant_boundary",
+        "tenant_matrix",
+        "cross_tenant_write",
+    }
+    tenant_isolation_path_fragments = (
+        "tenant_isolation",
+        "tenant_boundary",
+        "cross_tenant",
+        "tenant_mismatch",
+        "tenant_context_contract",
+        "redis_tenant_isolation",
+        "tenant_rate_limits",
+        "rls_enforcement_postgres",
+        "celery_tenant_isolation_postgres",
+        "crawl_decisions_tenant_isolation_postgres",
+        "graph_tenant_hostile_regression",
+        "neo4j_tenant",
+    )
     exclusion_markers = {
         "slow", "requires_postgres", "requires_redis", "requires_neo4j",
         "requires_docker", "requires_openai", "e2e", "integration", "performance",
@@ -234,11 +253,22 @@ def pytest_collection_modifyitems(config, items) -> None:
     for item in items:
         item_markers = {m.name for m in item.iter_markers()}
 
-        # Skip if already has mandatory marker
+        item_path = item.nodeid.lower()
+        if (
+            "tenant_isolation" not in item_markers
+            and (
+                item_markers & tenant_isolation_markers
+                or any(fragment in item_path for fragment in tenant_isolation_path_fragments)
+            )
+        ):
+            item.add_marker("tenant_isolation")
+            item_markers.add("tenant_isolation")
+
+        # Skip mandatory synthesis if already has mandatory marker
         if "mandatory" in item_markers:
             continue
 
-        # Skip if has any exclusion marker
+        # Skip mandatory synthesis if has any exclusion marker
         if item_markers & exclusion_markers:
             continue
 

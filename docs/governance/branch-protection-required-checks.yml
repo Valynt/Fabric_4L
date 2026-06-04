@@ -3,6 +3,7 @@ validated_on: 2026-05-12
 required_status_checks:
   - mandatory-security-regression
   - contract-compliance
+  - Tenant Isolation Gate
   - p0-e2e-gate
   - prod-readiness
   - Layer 5 - Source Contract
