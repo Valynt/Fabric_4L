@@ -157,6 +157,23 @@ _MANDATORY_DEPS: dict[str, str] = {
 }
 
 
+def _is_central_security_aggregation_run(config) -> bool:
+    """Return True for the lightweight ``pytest tests/security/`` manifest run.
+
+    The centralized security directory intentionally contains manifest wrappers
+    that can validate coverage without importing every layer's heavy optional
+    dependency.  Explicit file selections (for example
+    ``pytest tests/security/test_rbac.py``) still use the normal mandatory
+    dependency gate.
+    """
+    args = [str(arg).rstrip("/") for arg in getattr(config, "args", ())]
+    if not args:
+        return False
+    security_dir = str(_REPO_ROOT / "tests" / "security")
+    relative_security_dir = "tests/security"
+    return all(arg in {relative_security_dir, security_dir} for arg in args)
+
+
 def pytest_configure(config) -> None:
     """Fail fast when mandatory test dependencies are missing.
 
@@ -171,6 +188,9 @@ def pytest_configure(config) -> None:
         return
 
     if getattr(config.option, "collectonly", False):
+        return
+
+    if _is_central_security_aggregation_run(config):
         return
 
     missing = [

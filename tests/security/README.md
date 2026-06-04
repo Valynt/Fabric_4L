@@ -2,9 +2,9 @@
 
 ## What This Suite Validates
 
-Centralized security validation for Fabric 4L. This directory is the canonical pytest entrypoint for security regression coverage across auth guards, tenant isolation, secret handling, security headers, dependency policy, and container policy.
+Centralized security validation for Fabric 4L. The directory-level command (`pytest tests/security/`) is the canonical aggregation entrypoint for security regression coverage across auth guards, tenant isolation, secret handling, security headers, dependency policy, and container policy.
 
-The category files in this directory are intentionally thin. They document the authoritative coverage for each security area and assert that the referenced tests still exist and remain pytest-discoverable. The detailed behavioral tests stay in their existing files to avoid duplicate execution and drift.
+The six category files in this directory are intentionally thin. They document the authoritative coverage for each security area and assert that the referenced tests still exist and remain pytest-discoverable. Detailed behavioral tests stay in their existing files and remain runnable by explicit path or category-specific CI gates to avoid duplicate execution and drift.
 
 ## Production Risks Covered
 
@@ -20,9 +20,9 @@ The category manifests aggregate the detailed security coverage listed in the ma
 ## Quick Start
 
 ```bash
-pytest tests/security/
-pnpm test:security
-pnpm test:isolation
+pytest tests/security/      # centralized aggregation manifests
+pnpm test:security          # delegates to pytest tests/security/
+pnpm test:isolation         # tenant-isolation focused gate
 ```
 
 ## Coverage Matrix
@@ -44,14 +44,14 @@ pnpm test:isolation
 ## How To Run
 
 ```bash
-pytest tests/security/
-pnpm test:security
-pnpm test:isolation
+pytest tests/security/      # centralized aggregation manifests
+pnpm test:security          # delegates to pytest tests/security/
+pnpm test:isolation         # tenant-isolation focused gate
 ```
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/security/junit.xml` and `artifacts/production-readiness/security/summary.md`. Existing full security runs also publish:
+CI publishes a security summary artifact from `.github/workflows/security-validation.yml` after running the centralized aggregation suite. The expected artifact directory is `artifacts/security/`, including:
 
 - `artifacts/security/security-suite-report.xml`
 - `artifacts/security/security-suite-summary.md`
