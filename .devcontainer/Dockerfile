@@ -2,20 +2,15 @@ FROM mcr.microsoft.com/devcontainers/base:bookworm
 
 # Install build tools not present in base image
 # (curl, wget, git, gnupg, ca-certificates, jq are already in devcontainers/base:bookworm)
-# python3-pip is needed here because the Python devcontainer feature runs after this Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     software-properties-common \
-    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Infisical CLI (secret management)
 RUN curl -1sLf 'https://dl.cloudsmith.io/public/infisical/infisical-cli/setup.deb.sh' | bash \
     && apt-get install -y infisical \
     && rm -rf /var/lib/apt/lists/*
-
-# Install pip-tools for lockfile management
-RUN pip3 install --no-cache-dir pip-tools
 
 # Install Docker Compose v2 plugin (pinned, arch-aware)
 ARG COMPOSE_VERSION=v2.35.1
