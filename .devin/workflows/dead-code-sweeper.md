@@ -65,10 +65,10 @@ Check every page file against App.tsx imports:
 
 ```bash
 # List all page files
-find frontend/client/src/pages -name "*.tsx" -not -name "*.test.*" | sort
+find apps/web/src/pages -name "*.tsx" -not -name "*.test.*" | sort
 
 # List all lazy imports in App.tsx
-grep "lazy.*import.*pages/" frontend/client/src/App.tsx | sort
+grep "lazy.*import.*pages/" apps/web/src/App.tsx | sort
 ```
 
 Any page file NOT imported in App.tsx is an orphan candidate.
@@ -79,10 +79,10 @@ Check for exports that have zero import references:
 
 ```bash
 # For each exported component/hook, check import count
-grep -rn "export.*function\|export.*const\|export default" frontend/client/src/hooks/*.ts | while read line; do
+grep -rn "export.*function\|export.*const\|export default" apps/web/src/hooks/*.ts | while read line; do
   export_name=$(echo "$line" | grep -oP "(?:function|const)\s+\K\w+")
   if [ -n "$export_name" ]; then
-    count=$(grep -rn "$export_name" frontend/client/src/ --include="*.ts" --include="*.tsx" | grep -v "export" | wc -l)
+    count=$(grep -rn "$export_name" apps/web/src/ --include="*.ts" --include="*.tsx" | grep -v "export" | wc -l)
     if [ "$count" -eq 0 ]; then
       echo "UNUSED: $export_name in $line"
     fi
@@ -93,7 +93,7 @@ done
 #### 2c. Mock Data Blocks
 
 ```bash
-grep -rn "MOCK_\|mockData\|mock_data\|PLACEHOLDER\|coming soon\|TODO.*remove" frontend/client/src/ --include="*.tsx" --include="*.ts"
+grep -rn "MOCK_\|mockData\|mock_data\|PLACEHOLDER\|coming soon\|TODO.*remove" apps/web/src/ --include="*.tsx" --include="*.ts"
 ```
 
 #### 2d. Duplicate Systems
@@ -102,10 +102,10 @@ Check for the old Value Studio stages vs new Intelligence/Studio tabs:
 
 ```bash
 # Old system (should be dead)
-find frontend/client/src/pages/value-studio -name "*.tsx" 2>/dev/null
+find apps/web/src/pages/value-studio -name "*.tsx" 2>/dev/null
 
 # Verify routes redirect
-grep "value-studio" frontend/client/src/App.tsx
+grep "value-studio" apps/web/src/App.tsx
 ```
 
 ### Step 3: Backend Dead Code Scan
@@ -150,7 +150,7 @@ For each dead code candidate, verify it is truly unreachable:
 
 1. **Import check:** `grep -rn "import.*{name}" . --include="*.py" --include="*.ts" --include="*.tsx"`
 2. **String reference check:** `grep -rn "{name}" . --include="*.py" --include="*.ts" --include="*.tsx"` (catches dynamic imports)
-3. **Test dependency check:** `grep -rn "{name}" tests/ frontend/client/src/**/*.test.*` (don't break tests)
+3. **Test dependency check:** `grep -rn "{name}" tests/ apps/web/src/**/*.test.*` (don't break tests)
 4. **Git blame check:** `git log --oneline -5 {file}` (recently modified files may be in-progress, not dead)
 
 **Confidence levels:**
@@ -215,3 +215,40 @@ Produce a summary:
 - **Related Workflows:**
   - `/facade-page-connector` — Rewire pages from mock data to real backend hooks before removing
   - `/deprecation-migrator` — Fix anti-patterns before removing code
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "dead-code-sweeper-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

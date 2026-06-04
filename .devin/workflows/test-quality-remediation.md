@@ -30,7 +30,7 @@ This workflow guides systematic test quality improvement across the Value Fabric
 ```bash
 # Check for monorepo structure
 ls -la services/
-ls -la frontend/
+ls -la apps/web/
 ```
 
 ### 1.2 Detect Test Frameworks
@@ -40,7 +40,7 @@ find value-fabric -name "pyproject.toml" -exec grep -l pytest {} \;
 find value-fabric -name "pytest.ini" -o -name "setup.cfg"
 
 # Frontend
-cat frontend/package.json | grep -A5 "devDependencies"
+cat apps/web/package.json | grep -A5 "devDependencies"
 ```
 
 ### 1.3 Locate Test Files
@@ -49,7 +49,7 @@ cat frontend/package.json | grep -A5 "devDependencies"
 find value-fabric -name "test_*.py" -o -name "*_test.py"
 
 # TypeScript tests
-find frontend -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts"
+find apps/web -name "*.test.ts" -o -name "*.test.tsx" -o -name "*.spec.ts"
 ```
 
 ### 1.4 Identify CI/Test Scripts
@@ -66,7 +66,7 @@ cat package.json | grep -A10 '"scripts"'
 ```bash
 # Check for coverage configuration
 grep -r "pytest-cov\|coverage" services/*/pyproject.toml
-grep -r "coverage\|istanbul" frontend/package.json
+grep -r "coverage\|istanbul" apps/web/package.json
 ```
 
 ### Discovery Output
@@ -519,3 +519,40 @@ pytest --cov=src --cov-report=term-missing --cov-report=html
 # TypeScript/Vitest
 pnpm test --coverage
 ```
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "test-quality-remediation-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

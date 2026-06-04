@@ -749,6 +749,8 @@ _SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
         "169.254.169.254",  # AWS / Azure / GCP instance metadata
         "169.254.170.2",    # AWS ECS Task metadata endpoint
         "100.100.100.200",  # Alibaba Cloud instance metadata
+        "192.0.0.254",  # Oracle Cloud instance metadata
+        "fd00:ec2::254",  # AWS EC2 IPv6 instance metadata
         "metadata.google.internal",  # GCP metadata domain
         "metadata.internal",  # GCP/internal alias
     }
@@ -773,6 +775,8 @@ def _validate_callback_url_no_ssrf(value: str | None) -> str | None:
     if hostname_lower in ("localhost", "127.0.0.1", "::1", "0.0.0.0"):
         raise ValueError("callback_url must not point to localhost")
     if hostname_lower in _SSRF_BLOCKED_HOSTNAMES:
+        raise ValueError("callback_url must not point to cloud metadata endpoints")
+    if hostname_lower.endswith(".metadata"):
         raise ValueError("callback_url must not point to cloud metadata endpoints")
     # For IP literals, block all non-public ranges.
     # Use try/except/else so only the ipaddress parse failure is caught;

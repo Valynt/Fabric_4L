@@ -30,6 +30,15 @@ PACKS_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "..", "packs")
 logger = structlog.get_logger(__name__)
 
 
+def _required_dev_seed_password(env_name: str) -> str:
+    password = os.getenv(env_name, "").strip()
+    if not password:
+        raise RuntimeError(
+            f"{env_name} must be set to seed demo users in non-production environments"
+        )
+    return password
+
+
 def load_json(path: str) -> Any:
     with open(path, encoding="utf-8") as f:
         return json.load(f)
@@ -56,11 +65,11 @@ def seed_tenants():
 
 
 def seed_users(tenant_ids: list[str]):
-    # Seed passwords are intentionally weak for demo/dev only.
-    # These accounts must never exist in production (F-02, F-14).
     settings = get_settings()
     if settings.is_production_like:
         raise RuntimeError("seed_users is disabled in production-like environments")
+    admin_password = _required_dev_seed_password("DEV_SEED_ADMIN_PASSWORD")
+    analyst_password = _required_dev_seed_password("DEV_SEED_ANALYST_PASSWORD")
     users = [
         User(
             id="user-1",
@@ -68,7 +77,7 @@ def seed_users(tenant_ids: list[str]):
             email="admin@alpha.com",
             name="Admin User",
             role="tenant_admin",
-            password_hash=hash_password("SeedAdmin!Dev2024"),
+            password_hash=hash_password(admin_password),
             status="active",
         ),
         User(
@@ -77,7 +86,7 @@ def seed_users(tenant_ids: list[str]):
             email="analyst@beta.com",
             name="Analyst User",
             role="analyst",
-            password_hash=hash_password("SeedAnalyst!Dev2024"),
+            password_hash=hash_password(analyst_password),
             status="active",
         ),
     ]

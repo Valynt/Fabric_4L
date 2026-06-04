@@ -129,6 +129,10 @@ JWT_SECRET=a3f5c7e9...
 | `DEBUG_MODE` | Extra logging | `true` |
 | `MOCK_LLM` | Use fake LLM | `true` |
 | `SKIP_RATE_LIMITS` | Disable limits | `true` |
+| `DEV_SEED_ADMIN_PASSWORD` | Local demo admin seed password | explicit local value |
+| `DEV_SEED_ANALYST_PASSWORD` | Local demo analyst seed password | explicit local value |
+
+Demo seed user passwords have no production-code defaults. Set `DEV_SEED_ADMIN_PASSWORD` and `DEV_SEED_ANALYST_PASSWORD` only when intentionally seeding local demo users in a non-production environment. Do not deploy these variables to production.
 
 ---
 

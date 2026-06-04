@@ -69,7 +69,7 @@ Read the full page component file and identify:
 
 Check if the target hook exists:
 ```bash
-ls frontend/client/src/hooks/use{TargetHook}.ts
+ls apps/web/src/hooks/use{TargetHook}.ts
 ```
 
 If the hook does NOT exist, use the `/dil-hook-scaffolder` workflow to create it first.
@@ -144,7 +144,7 @@ If the page has create/update/delete buttons:
 
 1. TypeScript compilation: `cd frontend && pnpm tsc --noEmit`
 2. Run page tests if they exist: `cd frontend && pnpm test --run -- {PageName}`
-3. Verify no mock data remains: `grep -n "MOCK_\|mockData\|hardcoded\|coming soon" frontend/client/src/pages/{PageFile}`
+3. Verify no mock data remains: `grep -n "MOCK_\|mockData\|hardcoded\|coming soon" apps/web/src/pages/{PageFile}`
 
 ## Edge Cases
 
@@ -153,3 +153,40 @@ If the page has create/update/delete buttons:
 - **Workspace persistence:** Don't remove `useWorkspaceTabQuery` if it's also used for saving workspace state (some tabs use it for both reading and writing)
 - **AccountContext:** Workspace tabs get `accountId` from route params via `useParams`. Ensure the parent route passes it.
 - **Stage pages:** The 6 Stage1-6 pages are dead code (all routes redirect to new system). Delete them rather than connecting them.
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "facade-page-connector-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

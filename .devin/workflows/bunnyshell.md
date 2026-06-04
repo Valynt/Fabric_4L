@@ -65,26 +65,26 @@ components:
     environment:
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=${REDIS_URL}
-  
+
   - name: layer2-extraction
     type: service
     source: ./services/layer2-extraction
     depends_on:
       - layer1-ingestion
-  
+
   - name: layer3-knowledge
     type: service
     source: ./services/layer3-knowledge
     depends_on:
       - layer2-extraction
-  
+
   - name: postgres
     type: database
     engine: postgres
     version: 15
     environment:
       - POSTGRES_DB=${POSTGRES_DB}
-  
+
   - name: redis
     type: cache
     engine: redis
@@ -742,3 +742,40 @@ bns environments cost-report --month 2026-05
 - **Docker Compose Dev:** `docker-compose.dev.yml`
 - **Related Workflows:**
   - `/production_only_delivery` — Ensure production-grade code in all environments
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "bunnyshell-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

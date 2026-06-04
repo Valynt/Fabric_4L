@@ -87,7 +87,12 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 **Description:** UX-focused agent for small interface improvements and accessibility enhancements
 **When to Use:** Adding micro-UX improvements, fixing accessibility issues, improving keyboard navigation, adding ARIA labels
 
+### fabric_ui_drift_agent.md
+**Description:** Fabric System Hardening + UI Consistency Deployment with autonomous multi-agent enforcement loop
+**When to Use:** Auditing or remediating UI governance drift across `apps/web/src/`
+
 ### react-component-design
+**File:** `react_component_design.md`
 **Description:** Three-phase React component design workflow with chain-of-thought rigor
 **When to Use:** Designing React components with agent skills
 
@@ -114,6 +119,10 @@ For workflow authoring specifications, see [WORKFLOW.md](./WORKFLOW.md).
 ### dependency-update
 **Description:** Systematic dependency update workflow for security patches, bug fixes, and feature updates with testing and rollback planning
 **When to Use:** Monthly dependency updates, security vulnerabilities, critical bug fixes
+
+### bunnyshell.md
+**Description:** Bunnyshell Environment Management for repeatable Value Fabric environments
+**When to Use:** Creating or managing development, staging, or production-like Bunnyshell environments
 
 ### performance-investigation
 **Description:** Systematic performance investigation workflow for identifying bottlenecks, analyzing metrics, and implementing optimizations

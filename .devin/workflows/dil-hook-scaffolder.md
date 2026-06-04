@@ -69,7 +69,7 @@ export interface Product {
 
 ### Step 3: Add Query Keys to queryKeys.ts
 
-Add a new namespace to the `QK` object in `frontend/client/src/hooks/queryKeys.ts`:
+Add a new namespace to the `QK` object in `apps/web/src/hooks/queryKeys.ts`:
 
 ```typescript
 // DIL — {ServiceName}
@@ -89,7 +89,7 @@ import type { {ServiceName}ListFilters } from "./use{ServiceName}";
 
 ### Step 4: Generate the Hook File
 
-Create `frontend/client/src/hooks/use{ServiceName}.ts` following this template:
+Create `apps/web/src/hooks/use{ServiceName}.ts` following this template:
 
 ```typescript
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -154,7 +154,7 @@ export function useCreate{Entity}() {
 
 ### Step 5: Export from Hook Index
 
-Add the new hook to `frontend/client/src/hooks/index.ts`:
+Add the new hook to `apps/web/src/hooks/index.ts`:
 ```typescript
 export * from './use{ServiceName}';
 ```
@@ -191,3 +191,40 @@ Follow these cross-service invalidation rules when generating mutations:
 - **Tenant context:** The API client injects tenant headers automatically — hooks should NOT pass `tenant_id`
 - **Existing partial hooks:** `useProducts.ts`, `useEvidence.ts`, `useCompetitiveIntel.ts`, `useROICalculator.ts`, `useHypotheses.ts`, `useNarratives.ts` may already exist with partial implementations — read them first and extend rather than recreate
 - **Filter types:** Export filter interfaces so `queryKeys.ts` can import them without circular dependencies
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "dil-hook-scaffolder-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

@@ -57,7 +57,7 @@ Flag:
 ### 3. Check Frontend API Hook Alignment
 
 Validate TypeScript hook expectations against OpenAPI:
-- Compare `frontend/client/src/hooks/*.ts` types to OpenAPI schemas
+- Compare `apps/web/src/hooks/*.ts` types to OpenAPI schemas
 - Flag mismatches in request/response shapes
 - Detect missing error handling for new error codes
 
@@ -144,3 +144,40 @@ drift-check:
     - run: python scripts/export_openapi.py
     - run: git diff --exit-code contracts/openapi/ || echo "::warning::OpenAPI drift detected"
 ```
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "drift-assessment-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

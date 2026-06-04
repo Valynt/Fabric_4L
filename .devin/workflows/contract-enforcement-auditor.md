@@ -47,14 +47,13 @@ Check if the ESLint plugin is actually installed and its rules are enabled:
 
 ```bash
 # Check plugin installation
-ls frontend/node_modules/eslint-plugin-fabric-contracts/ 2>/dev/null || echo "NOT INSTALLED"
+ls packages/eslint-plugin-fabric-contracts/ 2>/dev/null || echo "NOT INSTALLED"
 
 # Check which rules are enabled vs disabled
-grep -A2 "fabric-contracts" frontend/.eslintrc.js
-grep -A2 "fabric-contracts" frontend/.eslintrc.cjs
+grep -A2 "fabric-contracts" apps/web/.eslintrc.cjs
 ```
 
-Read `frontend/.eslintrc.js` (or `.cjs`) and verify each of these rules is set to `"error"`:
+Read `apps/web/.eslintrc.cjs` and verify each of these rules is set to `"error"`:
 - `fabric-contracts/no-tenant-id-parameter`
 - `fabric-contracts/no-req-tenant-access`
 - `fabric-contracts/no-raw-tenant-query`
@@ -142,8 +141,8 @@ grep -rn "json\.loads\|json\.parse\|JSON\.parse" services/layer4-agents/src/ --i
 
 **§2.6 — Imperative navigation / URL concat:**
 ```bash
-grep -rn "navigate\|useLocation\|router\.push" frontend/client/src/ --include="*.tsx" --include="*.ts"
-grep -rn '+ "/' frontend/client/src/ --include="*.tsx" --include="*.ts"
+grep -rn "navigate\|useLocation\|router\.push" apps/web/src/ --include="*.tsx" --include="*.ts"
+grep -rn '+ "/' apps/web/src/ --include="*.tsx" --include="*.ts"
 ```
 
 ### Step 4: Generate Report
@@ -198,3 +197,40 @@ For each enforcement gap found, create a concrete fix:
   - `/deprecation-migrator` — Fix anti-pattern instances identified during audit
   - `/tool-contract-sync` — Ensure tools, skills, and manifests stay in sync
 - `shared/identity/middleware.py` — Runtime auth middleware
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "contract-enforcement-auditor-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

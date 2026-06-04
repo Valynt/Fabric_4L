@@ -56,8 +56,8 @@ Autonomous Multi-Agent Enforcement Loop for achieving zero drift across all UI �
 
 ## AGENT 1: DISCOVERY AGENT
 
-**Purpose**: Map current state without judgment.  
-**Input**: `frontend/client/src/`  
+**Purpose**: Map current state without judgment.
+**Input**: `apps/web/src/`
 **Output**: Raw inventory of everything UI-related.
 
 ### Tasks
@@ -128,8 +128,8 @@ ls src/pages/*.tsx src/pages/**/*.tsx 2>/dev/null
 
 ## AGENT 2: ANALYZE AGENT
 
-**Purpose**: Compare discovery output against Fabric spec. Produce gap analysis.  
-**Input**: Discovery Agent output + Fabric spec  
+**Purpose**: Compare discovery output against Fabric spec. Produce gap analysis.
+**Input**: Discovery Agent output + Fabric spec
 **Output**: Prioritized gap report.
 
 ### Analysis Dimensions
@@ -243,25 +243,25 @@ These go through entityColors map, not ad-hoc Tailwind classes.
 GATE 1: TypeScript Compilation
   Command: npx tsc --noEmit
   Expected: 0 errors, 0 warnings
-  
+
 GATE 2: ESLint
   Command: npm run lint
   Expected: 0 errors
-  
+
 GATE 3: Build
   Command: npm run build
   Expected: successful completion, no warnings about CSS
-  
+
 GATE 4: Visual Structure (automated checks)
   - No <div> acting as page header without <PageHeader>
   - No bg-[#...] or bg-gray-... in page files
   - No style={{ in page files
   - No w-[...] or h-[...] magic values
-  
+
 GATE 5: Primitive Adoption
   - Every page imports at least 1 Fabric primitive
   - No page imports from WfPrimitives directly (post-migration)
-  
+
 GATE 6: Entity Color Centralization
   - No bg-violet-100 outside entity-colors.ts
   - No bg-cyan-100 outside entity-colors.ts
@@ -313,14 +313,14 @@ If FAIL → loop back to FIX AGENT.
 
 **Purpose**: Produce final deployment report.
 
-**Trigger**: When loop terminates (all gates pass, audit passes).  
+**Trigger**: When loop terminates (all gates pass, audit passes).
 **Output**: `frontend/FABRIC_DEPLOYMENT_REPORT.md`
 
 ```markdown
 # Workflow: Fabric UI System Enforcement
 
-**Start**: [timestamp]  
-**End**: [timestamp]  
+**Start**: [timestamp]
+**End**: [timestamp]
 **Iterations**: [N] complete loops
 
 ## Execution Summary
@@ -380,7 +380,7 @@ If FAIL → loop back to FIX AGENT.
 
 ## Sign-off
 
-Value Fabric Platform  
+Value Fabric Platform
 Fabric UI System Deployment Report
 ```
 
@@ -416,7 +416,7 @@ ANY of:
 Copy-paste this into Windsurf to execute:
 
 ```
-Execute the Fabric UI System Enforcement workflow across frontend/client/src/.
+Execute the Fabric UI System Enforcement workflow across apps/web/src/.
 
 Follow the strict 6-agent loop:
   1. DISCOVER: Scan all tokens, styles, primitives, entity colors, page structures
@@ -472,5 +472,42 @@ Loop until termination conditions met.
 
 ## BEGIN EXECUTION
 
-Paste the **Workflow Trigger Prompt** into Windsurf and execute.  
+Paste the **Workflow Trigger Prompt** into Windsurf and execute.
 Monitor iteration count. Expected: 2-4 complete loops for initial deployment.
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "fabric-ui-drift-agent-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.

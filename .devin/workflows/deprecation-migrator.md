@@ -54,8 +54,8 @@ AP-5: grep -rn "app\.use\|app\.add_middleware" services/layer*/src/api/ --includ
 AP-6: grep -rn "lambda.*tool\|tools.*=.*\[" services/layer4-agents/src/agents/ --include="*.py"
 AP-7: grep -rn "raise ToolError\|raise ValueError\|raise Exception" services/layer4-agents/src/tools/ --include="*.py"
 AP-8: grep -rn "json\.loads\|JSON\.parse" services/layer4-agents/src/ --include="*.py"
-AP-9: grep -rn "router\.push\|history\.push\|navigate(" frontend/client/src/ --include="*.tsx" --include="*.ts"
-AP-10: grep -rn '+ "/' frontend/client/src/ --include="*.tsx" --include="*.ts"
+AP-9: grep -rn "router\.push\|history\.push\|navigate(" apps/web/src/ --include="*.tsx" --include="*.ts"
+AP-10: grep -rn '+ "/' apps/web/src/ --include="*.tsx" --include="*.ts"
 ```
 
 ### Step 3: Apply Migration (One Instance at a Time)
@@ -125,3 +125,40 @@ python scripts/ci/check_deprecations.py --format markdown
 - **Related Workflows:**
   - `/contract-enforcement-auditor` — Identify anti-pattern violations before migration
   - `/dead-code-sweeper` — Remove code after successful migration
+## Required State JSON
+
+Every workflow MUST maintain and update an explicit state object. Agents read this state at the start of every turn.
+
+```json
+{
+  "stage": "inspection|analysis|execution|validation|reporting",
+  "agent_id": "deprecation-migrator-001",
+  "files_touched": [],
+  "tests_run": [],
+  "decisions_made": [],
+  "blocked_by": null,
+  "retry_count": 0,
+  "circuit_breaker": {
+    "tripped": false,
+    "reason": null,
+    "escalation_path": null
+  }
+}
+```
+
+## Circuit Breaker Configuration
+
+```yaml
+circuit_breaker:
+  max_tool_errors: 3
+  max_self_correction_loops: 2
+  action_on_trip: halt_and_escalate
+  escalation_path: "log_and_notify"
+```
+
+## Completion Checklist
+
+- [ ] State JSON updated with current stage, touched files, tests, and decisions.
+- [ ] Circuit breaker evaluated before retrying after tool errors or self-correction loops.
+- [ ] Relevant validation commands run and recorded in the workflow state.
+- [ ] No security, tenant-isolation, contract, governance, or frontend-design assertions weakened.
