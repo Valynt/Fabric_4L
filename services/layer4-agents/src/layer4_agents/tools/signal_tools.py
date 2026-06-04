@@ -234,7 +234,7 @@ async def create_signal(
         response = await _get_http_client().post(
             f"{_SIGNAL_REFINERY_BASE_URL}/api/v1/signals",
             json=payload,
-            headers=_signal_headers(tenant_id, request_id=req_id),
+            headers=_signal_headers(tenant_id, request_id=req_id, correlation_id=run_id),
         )
         if response.status_code in (200, 201):
             created = response.json()

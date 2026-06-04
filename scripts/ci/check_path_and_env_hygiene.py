@@ -20,7 +20,7 @@ ALLOWED_ENV_SUFFIXES = (
     ".env.template",
 )
 ALLOWED_ENV_PATHS = {
-    "apps/web/.env.local.mock-auth",
+    "apps/web/.env.local.mock-auth.example",
 }
 
 DRIVE_LETTER_PREFIX = re.compile(r"^[A-Za-z][:][\\/]")

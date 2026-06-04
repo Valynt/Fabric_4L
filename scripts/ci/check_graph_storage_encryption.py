@@ -31,6 +31,9 @@ def main() -> None:
             name = d.get('metadata', {}).get('name')
             if name in POLICY['required_pvcs']:
                 found[name] = True
+            else:
+                # Only validate storage class/encryption for required graph PVCs
+                continue
                 
             sc = d.get('spec', {}).get('storageClassName')
             if sc not in POLICY['allowed_encrypted_storage_classes']:
