@@ -1,0 +1,12 @@
+{
+  "jobs": [
+    {
+      "id": 505,
+      "name": "deploy",
+      "conclusion": "success",
+      "started_at": "2026-05-22T10:02:00Z",
+      "completed_at": "2026-05-22T10:04:00Z",
+      "html_url": "https://github.com/acme/fabric/actions/runs/103/job/505"
+    }
+  ]
+}

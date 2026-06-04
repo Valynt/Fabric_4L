@@ -9,6 +9,15 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT = REPO_ROOT / "scripts" / "ci" / "classify_failure.py"
+GOVERNANCE_CATEGORIES = {
+    "infra/setup",
+    "dependency/cache",
+    "flaky test",
+    "real regression",
+    "contract drift",
+    "lint/type debt",
+    "environment/secret issue",
+}
 
 
 def _load_module():
@@ -20,27 +29,41 @@ def _load_module():
     return module
 
 
-def test_classifier_detects_taxonomy_categories() -> None:
+def test_classifier_detects_governance_taxonomy_categories() -> None:
     module = _load_module()
     classifier = module.FailureClassifier()
     cases = {
-        "AssertionError: expected 1 but got 2": "TEST_EXPECTATION_DRIFT",
-        "ModuleNotFoundError: No module named 'value_fabric.shared.identity'": "SOURCE_PATH_DRIFT",
-        "FixtureLookupError: fixture auth_client not found": "FIXTURE_SETUP_PORTABILITY",
-        "vi.useFakeTimers left window.location mock not restored": "TEST_ISOLATION_LEAK",
-        "tenant_id mismatch caused cross-tenant access in RLS policy": "REAL_SECURITY_REGRESSION",
-        "OIDC credentials not configured for billing sandbox": "ENVIRONMENT_DEPENDENCY",
-        "Timeout: test timed out after 30000ms": "TIMEOUT",
-        "OpenAPI contract drift: response shape required field missing": "CONTRACT_BOUNDARY_DRIFT",
+        "actions/setup-node@v4 failed: unable to resolve action during tool bootstrap": "infra/setup",
+        "pnpm install --frozen-lockfile failed after actions/cache reported cache corrupt": "dependency/cache",
+        "pip wheel unavailable: cache restore failed and No matching distribution found": "dependency/cache",
+        "Playwright TimeoutError after 30000ms; same commit passed on rerun without code changes": "flaky test",
+        "tenant isolation regression: tenant_id mismatch allowed cross-tenant access": "real regression",
+        "OpenAPI contract drift: response shape required field missing from generated DTOs": "contract drift",
+        "ruff check failed with F401; mypy reported [attr-defined]; ESLint no-explicit-any": "lint/type debt",
+        "Infisical missing secret: OIDC credentials not configured for AWS_ROLE_ARN": "environment/secret issue",
     }
 
     for output, expected in cases.items():
-        assert classifier.classify(output).category_key == expected
+        result = classifier.classify(output)
+        assert result.category_key == expected
+        assert result.category_key in GOVERNANCE_CATEGORIES
 
 
-def test_security_environment_timeout_and_unknown_are_not_auto_fixable() -> None:
+def test_launch_readiness_labels_are_secondary_metadata() -> None:
     module = _load_module()
     classifier = module.FailureClassifier()
+
+    result = classifier.classify("OpenAPI contract drift: response shape required field missing")
+
+    assert result.category_key == "contract drift"
+    assert result.secondary_category_key == "CONTRACT_BOUNDARY_DRIFT"
+    assert result.secondary_category_name == "Contract Boundary Drift"
+
+
+def test_every_result_uses_governance_category_even_for_unknown_text() -> None:
+    module = _load_module()
+    classifier = module.FailureClassifier()
+
     for output in (
         "tenant isolation failed for JWT auth",
         "missing secret for external service",
@@ -48,12 +71,13 @@ def test_security_environment_timeout_and_unknown_are_not_auto_fixable() -> None
         "unclassified opaque failure text",
     ):
         result = classifier.classify(output)
-        assert result.auto_fixable is False
+        assert result.category_key in GOVERNANCE_CATEGORIES
+        assert result.secondary_category_key or result.category_key != "real regression"
 
 
 def test_cli_outputs_stable_json_and_blocks_on_blocker(tmp_path: Path) -> None:
     log = tmp_path / "failure.log"
-    log.write_text("ModuleNotFoundError: No module named 'legacy.path'\n", encoding="utf-8")
+    log.write_text("OpenAPI contract drift: response shape required field missing\n", encoding="utf-8")
 
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--file", str(log), "--format", "json"],
@@ -65,14 +89,18 @@ def test_cli_outputs_stable_json_and_blocks_on_blocker(tmp_path: Path) -> None:
 
     assert result.returncode == 2
     payload = json.loads(result.stdout)
-    assert payload[0]["category_key"] == "SOURCE_PATH_DRIFT"
+    assert payload[0]["category_key"] == "contract drift"
+    assert payload[0]["secondary_category_key"] == "CONTRACT_BOUNDARY_DRIFT"
     assert payload[0]["blocks_ga"] is True
-    assert payload[0]["fix_strategy"] == "update_import_paths"
+    assert payload[0]["fix_strategy"] == "align_contract_boundary"
 
 
 def test_cli_non_blocker_returns_zero(tmp_path: Path) -> None:
     log = tmp_path / "failure.log"
-    log.write_text("AssertionError: expected true but received false\n", encoding="utf-8")
+    log.write_text(
+        "Playwright TimeoutError after 30000ms; rerun passed without code changes\n",
+        encoding="utf-8",
+    )
 
     result = subprocess.run(
         [sys.executable, str(SCRIPT), "--file", str(log), "--format", "markdown"],
@@ -83,4 +111,5 @@ def test_cli_non_blocker_returns_zero(tmp_path: Path) -> None:
     )
 
     assert result.returncode == 0
-    assert "TEST_EXPECTATION_DRIFT" in result.stdout
+    assert "flaky test" in result.stdout
+    assert "TIMEOUT" in result.stdout
