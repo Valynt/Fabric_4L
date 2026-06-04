@@ -26,8 +26,17 @@ on:
       - 'services/**/src/**'
       - 'packages/platform-contract/**'
       - 'contracts/openapi/**'
+      - 'contracts/jsonschema/**'
+      - 'contracts/tool-manifests/**'
+      - 'contracts/frontend/**'
+      - 'contracts/auth/**'
+      - 'contracts/config-policy/**'
+      - 'contracts/observability/**'
+      - 'contracts/schema-index.json'
       - 'contracts/agent-registry/**'
       - 'tests/contract/**'
+      - 'scripts/verify-schema-indexes.sh'
+      - 'package.json'
       - 'scripts/ci/platform_contract_lint.py'
       - 'scripts/ci/check_agent_registry.py'
       - 'scripts/export_openapi.py'
@@ -46,8 +55,17 @@ on:
       - 'services/**/src/**'
       - 'packages/platform-contract/**'
       - 'contracts/openapi/**'
+      - 'contracts/jsonschema/**'
+      - 'contracts/tool-manifests/**'
+      - 'contracts/frontend/**'
+      - 'contracts/auth/**'
+      - 'contracts/config-policy/**'
+      - 'contracts/observability/**'
+      - 'contracts/schema-index.json'
       - 'contracts/agent-registry/**'
       - 'tests/contract/**'
+      - 'scripts/verify-schema-indexes.sh'
+      - 'package.json'
       - 'scripts/ci/platform_contract_lint.py'
       - 'scripts/ci/check_agent_registry.py'
       - 'scripts/export_openapi.py'
@@ -91,6 +109,9 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Verify schema index coverage
+        run: pnpm test:schema
 
       - name: Run contract freshness and compatibility gate
         run: |
