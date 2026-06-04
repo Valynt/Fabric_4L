@@ -218,7 +218,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: db-readiness-artifacts
-          path: artifacts/release/junit/
+          path: |
+            artifacts/release/junit/
+            artifacts/database/
 
   observability-readiness:
     if: needs.determine-profile.outputs.profile != 'pr-fast'

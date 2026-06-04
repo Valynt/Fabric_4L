@@ -20,8 +20,8 @@
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
-	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
+	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads db-migrate-status db-migrate-check \
+	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
 	check-path-env-hygiene \
@@ -133,10 +133,16 @@ check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and m
 check-migration-runtime-consistency: ## Static migration/runtime URL and revision consistency checks
 	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
 
+db-migrate-status: ## Read-only migration status report with Markdown/JSON artifacts
+	@$(PYTHON) scripts/db/migration_status.py --mode status
+
+db-migrate-check: ## Read-only migration drift gate; fails when database state drifts from migration files
+	@$(PYTHON) scripts/db/migration_status.py --mode check
+
 check-database-governance-docs: ## Static validation for database runtime compatibility and governance docs
 	@$(PYTHON) scripts/ci/check_database_governance_docs.py
 
-gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs ## Gate: static local database readiness checks (no live DB required)
+gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs db-migrate-check ## Gate: static local database readiness checks (no live DB required)
 	@echo "→ Gate: Database Readiness — static local checks"
 	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
 	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
@@ -147,8 +153,6 @@ gate-database: check-migration-heads check-migration-entrypoints check-migration
 	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-static.xml
 	@echo "✅  gate-database passed"
 
-db-production-readiness-gate: gate-database ## Alias for the static local database readiness gate
-	@echo "✅  db-production-readiness-gate alias passed"
 
 gate-database-live: check-migration-postgres-roundtrip ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
 	@echo "→ Gate: Database Readiness — live isolated checks"
@@ -755,13 +759,13 @@ gate-policy: ## Gate: validate policy schema, profile existence, and artifact di
 gates-validate-policy: gate-policy ## Compatibility alias for the canonical policy validation gate
 	@echo "✅  gates-validate-policy alias passed (canonical: gate-policy)"
 
-gate-migration-readiness: check-migration-entrypoints check-migration-heads check-migration-rollback-policy ## Gate: migration entrypoints, head uniqueness, rollback policy, and runtime safety
+gate-migration-readiness: check-migration-entrypoints check-migration-heads check-migration-rollback-policy db-migrate-check ## Gate: migration entrypoints, head uniqueness, rollback policy, and runtime safety
 	@echo "→ Gate: Migration Readiness"
 	@$(PYTHON) scripts/ci/check_migration_safety.py
 	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
 	@echo "✅  gate-migration-readiness passed"
 
-gate-database-readiness: ## Gate: database production readiness split checks and static invariants
+gate-database-readiness: db-migrate-check ## Gate: database production readiness split checks and static invariants
 	@echo "→ Gate: Database Readiness"
 	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
 	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
