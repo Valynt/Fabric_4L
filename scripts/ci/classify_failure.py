@@ -9,9 +9,18 @@ import re
 import shlex
 import subprocess
 import sys
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 from typing import Literal
+
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if str(_SCRIPT_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPT_DIR))
+
+from signature_normalization import (
+    attach_recurrence_counts,
+    normalize_ci_log_signature,
+)  # noqa: E402
 
 Severity = Literal["blocker", "warning", "info"]
 
@@ -31,7 +40,9 @@ class FailureCategory:
         snippets: list[str] = []
         score = 0
         for pattern in self.patterns:
-            match = re.search(pattern, text, flags=re.IGNORECASE | re.MULTILINE | re.DOTALL)
+            match = re.search(
+                pattern, text, flags=re.IGNORECASE | re.MULTILINE | re.DOTALL
+            )
             if match:
                 score += 1
                 snippets.append(match.group(0)[:160])
@@ -50,6 +61,13 @@ class ClassificationResult:
     blocks_paid_ga: bool
     matched_snippets: list[str]
     raw_summary: str
+    primary_category: str
+    normalized_signature_hash: str
+    signature_summary: str
+    normalized_signature: str
+    recurrence_count: int = 1
+    workflow: str = ""
+    job: str = ""
 
     def to_dict(self) -> dict[str, object]:
         return asdict(self)
@@ -231,8 +249,11 @@ class FailureClassifier:
         return [self.classify(chunk) for chunk in failures]
 
     @staticmethod
-    def _result(category: FailureCategory, score: int, snippets: list[str], text: str) -> ClassificationResult:
+    def _result(
+        category: FailureCategory, score: int, snippets: list[str], text: str
+    ) -> ClassificationResult:
         first_line = text.splitlines()[0] if text else ""
+        signature = normalize_ci_log_signature(text)
         return ClassificationResult(
             category_key=category.key,
             category_name=category.name,
@@ -244,18 +265,23 @@ class FailureClassifier:
             blocks_paid_ga=category.blocks_paid_ga,
             matched_snippets=snippets,
             raw_summary=first_line[:500],
+            primary_category=category.key,
+            normalized_signature_hash=signature.normalized_signature_hash,
+            signature_summary=signature.signature_summary,
+            normalized_signature=signature.normalized_text,
         )
 
     @staticmethod
     def markdown(results: list[ClassificationResult]) -> str:
         lines = [
-            "| Category | Severity | Auto-fixable | Blocks GA | Strategy | Summary |",
-            "|---|---|---:|---:|---|---|",
+            "| Category | Severity | Auto-fixable | Blocks GA | Strategy | Signature | Summary |",
+            "|---|---|---:|---:|---|---|---|",
         ]
         for result in results:
             lines.append(
                 f"| {result.category_key} | {result.severity} | {str(result.auto_fixable).lower()} | "
-                f"{str(result.blocks_ga).lower()} | {result.fix_strategy} | {result.raw_summary.replace('|', '/')[:120]} |"
+                f"{str(result.blocks_ga).lower()} | {result.fix_strategy} | "
+                f"{result.normalized_signature_hash[:12]} | {result.signature_summary.replace('|', '/')[:120]} |"
             )
         return "\n".join(lines)
 
@@ -263,14 +289,21 @@ class FailureClassifier:
     def human(results: list[ClassificationResult]) -> str:
         return "\n".join(
             f"{result.category_key}: severity={result.severity} auto_fix={result.auto_fixable} "
-            f"blocks_ga={result.blocks_ga} strategy={result.fix_strategy} summary={result.raw_summary}"
+            f"blocks_ga={result.blocks_ga} strategy={result.fix_strategy} "
+            f"signature={result.normalized_signature_hash[:12]} summary={result.signature_summary}"
             for result in results
         )
 
 
 def read_input(args: argparse.Namespace) -> str:
     if args.suite:
-        command = [sys.executable, "-m", "pytest", args.suite, *shlex.split(args.pytest_args)]
+        command = [
+            sys.executable,
+            "-m",
+            "pytest",
+            args.suite,
+            *shlex.split(args.pytest_args),
+        ]
         proc = subprocess.run(command, text=True, capture_output=True)
         return "\n".join(part for part in (proc.stdout, proc.stderr) if part)
     if args.file:
@@ -283,10 +316,28 @@ def read_input(args: argparse.Namespace) -> str:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--file", default="", help="Read test output from a file.")
-    parser.add_argument("--suite", default="", help="Run a pytest suite and classify its output.")
-    parser.add_argument("--pytest-args", default="", help="Additional pytest arguments for --suite.")
-    parser.add_argument("--format", choices=("json", "markdown", "human"), default="human")
-    parser.add_argument("--include-fixes", action="store_true", help="Accepted for CLI compatibility; fixes are included as strategy fields.")
+    parser.add_argument(
+        "--suite", default="", help="Run a pytest suite and classify its output."
+    )
+    parser.add_argument(
+        "--pytest-args", default="", help="Additional pytest arguments for --suite."
+    )
+    parser.add_argument(
+        "--format", choices=("json", "markdown", "human"), default="human"
+    )
+    parser.add_argument(
+        "--workflow",
+        default="",
+        help="Workflow name to include in recurrence grouping.",
+    )
+    parser.add_argument(
+        "--job", default="", help="Job name to include in recurrence grouping."
+    )
+    parser.add_argument(
+        "--include-fixes",
+        action="store_true",
+        help="Accepted for CLI compatibility; fixes are included as strategy fields.",
+    )
     return parser
 
 
@@ -301,8 +352,16 @@ def main(argv: list[str] | None = None) -> int:
             print("No failures detected.")
         return 0
 
+    if args.workflow or args.job:
+        results = [
+            replace(result, workflow=args.workflow, job=args.job) for result in results
+        ]
+
+    result_dicts = [result.to_dict() for result in results]
+    attach_recurrence_counts(result_dicts)
+
     if args.format == "json":
-        print(json.dumps([result.to_dict() for result in results], indent=2, sort_keys=True))
+        print(json.dumps(result_dicts, indent=2, sort_keys=True))
     elif args.format == "markdown":
         print(FailureClassifier.markdown(results))
     else:
