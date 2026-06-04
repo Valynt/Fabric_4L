@@ -11,7 +11,7 @@
     "check:api-types": "pnpm run generate:api && git diff --exit-code apps/web/src/api/generated",
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
-    "test:security": "make security-smoke",
+    "test:security": "mkdir -p artifacts/security && pytest tests/security/ --junitxml=artifacts/security/pytest-security.xml",
     "test:isolation": "make security-test-isolation",
     "test:schema": "make gate-migration-readiness",
     "test:crawler": "make test-layer1-crawler",

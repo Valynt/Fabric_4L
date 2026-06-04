@@ -206,6 +206,35 @@ jobs:
           
           echo "✓ Layer 1 database pooling is configurable via environment"
 
+      - name: Run centralized security aggregation suite
+        env:
+          TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test_value_fabric
+          REDIS_HOST: localhost
+          REDIS_PORT: 6379
+          # JWT_SECRET: No fallback - must be explicitly set in secrets
+          JWT_SECRET: ${{ secrets.TEST_JWT_SECRET }}
+          ENVIRONMENT: test
+        run: |
+          echo "Running centralized security aggregation suite..."
+          mkdir -p artifacts/security
+          pytest tests/security/ -v \
+            --tb=short \
+            --timeout=120 \
+            --junitxml=artifacts/security/pytest-security.xml
+          {
+            echo "# Security Test Summary"
+            echo
+            echo "Centralized suite: pytest tests/security/"
+            echo
+            echo "## Categories"
+            echo "- Auth guards"
+            echo "- Tenant isolation"
+            echo "- Secret handling"
+            echo "- Security headers"
+            echo "- Dependency policy"
+            echo "- Container policy"
+          } > artifacts/security/security-test-summary.md
+
       - name: Run smoke tests
         env:
           TEST_DATABASE_URL: postgresql://test:test@localhost:5432/test_value_fabric
@@ -220,6 +249,14 @@ jobs:
             --tb=short \
             -x \
             --timeout=120
+
+      - name: Upload centralized security summary
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: security-test-summary
+          path: artifacts/security/
+          retention-days: 30
 
       - name: Upload smoke test results
         uses: actions/upload-artifact@v4

@@ -57,6 +57,41 @@ DEFAULT_REDIS_DB = 0
 # This matches the pytest.ini intent (TESTING=true) when pytest-env is absent.
 os.environ.setdefault("TESTING", "true")
 
+
+def _is_directory_level_security_suite(config) -> bool:
+    security_dir = (_REPO_ROOT / "tests" / "security").resolve()
+    for arg in getattr(config, "args", ()):
+        candidate = Path(arg)
+        if not candidate.is_absolute():
+            candidate = (_REPO_ROOT / candidate).resolve()
+        else:
+            candidate = candidate.resolve()
+        if candidate == security_dir:
+            return True
+    return False
+
+
+def pytest_ignore_collect(collection_path, config):
+    """Keep ``pytest tests/security/`` focused on the central aggregation suite.
+
+    Layer-specific and deeper security regressions remain executable by passing
+    their explicit file paths (for example, the existing Makefile and CI P0
+    targets).  The directory-level suite is intentionally lightweight and
+    reference-based so it can serve as the stable centralized security entrypoint.
+    """
+    path = Path(collection_path)
+    if not _is_directory_level_security_suite(config):
+        return False
+    if path.parent != (_REPO_ROOT / "tests" / "security"):
+        return False
+    if not path.name.startswith("test_") or path.suffix != ".py":
+        return False
+
+    from tests.security.aggregation_manifest import CENTRAL_SECURITY_SUITE_FILES
+
+    return path.name not in CENTRAL_SECURITY_SUITE_FILES
+
+
 # SECURITY: Auth boundary tests verify role/access control, not rate limits.
 # Process-local rate limit state persists across tests and causes spurious 429s.
 # Patch the two rate-limit paths to always allow so tests don't contaminate each other.

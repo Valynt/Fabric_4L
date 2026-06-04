@@ -156,6 +156,24 @@ _MANDATORY_DEPS: dict[str, str] = {
 }
 
 
+def _is_central_security_suite_invocation(config) -> bool:
+    """Return True for the lightweight centralized ``pytest tests/security/`` suite.
+
+    Explicit security test files still use the mandatory dependency profile; the
+    directory-level invocation is an aggregation/documentation suite that must be
+    runnable from a clean checkout for production-readiness audits.
+    """
+    for arg in getattr(config, "args", ()):
+        candidate = Path(arg)
+        if not candidate.is_absolute():
+            candidate = (_REPO_ROOT / candidate).resolve()
+        else:
+            candidate = candidate.resolve()
+        if candidate == (_REPO_ROOT / "tests" / "security").resolve():
+            return True
+    return False
+
+
 def pytest_configure(config) -> None:
     """Fail fast when mandatory test dependencies are missing.
 
@@ -170,6 +188,9 @@ def pytest_configure(config) -> None:
         return
 
     if getattr(config.option, "collectonly", False):
+        return
+
+    if _is_central_security_suite_invocation(config):
         return
 
     missing = [
