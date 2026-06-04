@@ -14,13 +14,19 @@ from pathlib import Path
 from typing import Literal
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
-if str(_SCRIPT_DIR) not in sys.path:
-    sys.path.insert(0, str(_SCRIPT_DIR))
 
-from signature_normalization import (
-    attach_recurrence_counts,
-    normalize_ci_log_signature,
-)  # noqa: E402
+import importlib.util  # noqa: E402
+
+_signature_spec = importlib.util.spec_from_file_location(
+    "signature_normalization", _SCRIPT_DIR / "signature_normalization.py"
+)
+assert _signature_spec and _signature_spec.loader
+_signature_module = importlib.util.module_from_spec(_signature_spec)
+sys.modules[_signature_spec.name] = _signature_module
+_signature_spec.loader.exec_module(_signature_module)
+
+attach_recurrence_counts = _signature_module.attach_recurrence_counts
+normalize_ci_log_signature = _signature_module.normalize_ci_log_signature
 
 Severity = Literal["blocker", "warning", "info"]
 
