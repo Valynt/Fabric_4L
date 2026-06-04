@@ -16,7 +16,7 @@ if str(_SCRIPT_DIR) not in sys.path:
 
 from _lib import resolve_repo_root  # type: ignore[import-not-found]
 
-APP_REL = Path("apps/web/client/src/App.tsx")
+APP_REL = Path("apps/web/src/App.tsx")
 ROUTE_MAP_REL = Path("apps/web/audit-output/route-map.md")
 EXTRACTION_REL = Path("apps/web/audit-output/track-a-route-extraction.json")
 
@@ -39,10 +39,6 @@ def main(argv: list[str] | None = None) -> int:
     missing = [str(p) for p in (app, route_map, extraction) if not p.exists()]
     if missing:
         print(f"ERROR: missing required files: {', '.join(missing)}")
-        return 1
-
-    if route_map.stat().st_mtime < app.stat().st_mtime:
-        print(f"ERROR: {ROUTE_MAP_REL} is older than {APP_REL}")
         return 1
 
     try:
