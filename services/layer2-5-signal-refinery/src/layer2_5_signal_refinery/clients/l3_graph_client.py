@@ -52,6 +52,7 @@ class L3GraphClient:
         signal: dict[str, Any],
         tenant_id: str,
         request_id: str | None = None,
+        correlation_id: str | None = None,
     ) -> bool:
         """Push a ValueSignal to L3 as a graph node.
 
@@ -61,6 +62,9 @@ class L3GraphClient:
         headers = {"X-Tenant-ID": tenant_id}
         if request_id:
             headers["X-Request-ID"] = request_id
+        if correlation_id:
+            headers["X-Correlation-ID"] = correlation_id
+        elif request_id:
             headers["X-Correlation-ID"] = request_id
 
         try:

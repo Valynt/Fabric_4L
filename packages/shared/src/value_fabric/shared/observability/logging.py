@@ -27,6 +27,7 @@ def configure_structlog() -> None:
     structlog.configure(
         processors=[
             enrich_event_with_request_context,
+            enrich_event_with_logging_context,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
             structlog.processors.add_log_level,
             structlog.processors.JSONRenderer(),
