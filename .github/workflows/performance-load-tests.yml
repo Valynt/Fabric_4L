@@ -203,6 +203,7 @@ jobs:
           path: |
             artifacts/performance/k6-summary.json
             artifacts/performance/slo-evaluation.json
+            artifacts/performance/slo-window-history.json
             artifacts/performance/slo-report.md
           retention-days: 30
 

@@ -1,0 +1,53 @@
+{
+  "schema_version": "1.0",
+  "pipeline": "compliance-evidence-artifact-pipeline",
+  "default_output_dir": "artifacts/compliance/evidence",
+  "retention_years": 7,
+  "immutability": {
+    "published_marker": "PUBLISHED.json",
+    "overwrite_policy": "fail_if_bundle_directory_exists",
+    "hash_algorithm": "sha256"
+  },
+  "required_templates": [
+    "compliance/evidence/access_review_template.md",
+    "compliance/evidence/change_management_template.md",
+    "compliance/evidence/vendor_review_template.md"
+  ],
+  "required_evidence": [
+    {
+      "id": "EV-TEST-001",
+      "name": "Test summaries",
+      "control_ids": ["C-TI-01", "P0-OIDC", "P1-QUOTA"],
+      "summary_file": "test-summary.json",
+      "source_patterns": ["artifacts/**/*.xml", "artifacts/**/*test*", "apps/web/coverage/coverage-summary.json"]
+    },
+    {
+      "id": "EV-SEC-001",
+      "name": "Security scan summaries",
+      "control_ids": ["C-AC-01", "C-SEC-03", "P2-SOC2"],
+      "summary_file": "security-summary.json",
+      "source_patterns": ["artifacts/**/*.sarif", "artifacts/**/*security*", "artifacts/**/*vulnerab*", ".github/workflows/security-gates.yml"]
+    },
+    {
+      "id": "EV-SBOM-001",
+      "name": "Software bill of materials",
+      "control_ids": ["C-SEC-03", "P2-SOC2"],
+      "summary_file": "sbom-summary.json",
+      "source_patterns": ["artifacts/**/*sbom*", "artifacts/**/*.spdx.json", "artifacts/**/*.cdx.json", ".github/workflows/package-sign.yml"]
+    },
+    {
+      "id": "EV-BACKUP-001",
+      "name": "Backup verification",
+      "control_ids": ["C-RET-01", "P2-SOC2"],
+      "summary_file": "backup-verification-summary.json",
+      "source_patterns": ["artifacts/**/*backup*", "artifacts/**/*restore*", "docs/troubleshooting/runbooks/infrastructure/postgres-backup-restore.md"]
+    },
+    {
+      "id": "EV-REL-001",
+      "name": "Release metadata",
+      "control_ids": ["C-AU-01", "P1-FLAGS", "P2-SOC2"],
+      "summary_file": "release-metadata.json",
+      "source_patterns": ["package.json", "pnpm-lock.yaml", ".github/workflows/pr-checks.yml", ".github/workflows/deploy.yml"]
+    }
+  ]
+}

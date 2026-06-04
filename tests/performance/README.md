@@ -1,163 +1,69 @@
-# Performance Test Suite (k6)
+# Performance, Load, and Capacity Budget Suite
 
-This suite validates critical runtime paths across all layers with comprehensive load testing scenarios.
+This suite defines Value Fabric's safe operating envelope for CI and pre-production:
+API latency, expensive-query limits, queue throughput, file upload limits, report
+generation limits, and background-job backpressure.
 
-## Test Scenarios
+The Python tests are deterministic guardrails and do not require live services. The
+k6 profiles are the pre-production load tests and require a running stack plus
+authenticated performance-test credentials.
 
-| Scenario | Purpose | File | Duration |
-|----------|---------|------|----------|
-| **Critical Paths** | Baseline L2→L3→L4 throughput | `l2_l3_l4_critical_paths.js` | 2m |
-| **Stress Test** | Find breaking point | `stress-test.js` | 15m |
-| **Spike Test** | Sudden traffic handling | `spike-test.js` | 10m |
-| **Soak Test** | Memory leak detection | `soak-test.js` | 8h |
-| **Multi-Tenant** | Tenant isolation under load | `multi-tenant.js` | 5m |
-| **Formula Evaluation** | L3 formula performance | `formula-evaluation.js` | 5m |
-| **Workflow Execution** | L4 workflow lifecycle | `workflow-execution.js` | 10m |
-| **Cold Start** | First-request latency after idle/restart | `l2_l3_l4_critical_paths.js` (single-VU warm/cold runs) | ~2m x2 |
-| **Large Tenant** | High-cardinality tenant dataset behavior | `multi-tenant.js` (`TENANT_COUNT>=200`) | 10m |
-| **Circuit Breaker** | External dependency failure and fast-fail recovery | `tests/chaos/test_external_dependency_failure.py` | ~1m |
-| **Autoscaling Readiness** | Load profile to trigger HPA and verify scale behavior | `stress-test.js` + `tests/k8s/test_workload_validation.py` | 15m + 1m |
-
-## Covered Critical APIs
-
-- **L2**: `POST /v1/extract-and-ingest` - Entity extraction pipeline
-- **L3**: `POST /v1/search/hybrid` - Semantic + keyword search
-- **L3**: `POST /v1/formulas/evaluate` - Formula computation
-- **L4**: `GET /workflows/active` - Workflow monitoring
-- **L4**: `POST /v1/workflows/execute` - Workflow execution
-
-## Local Execution
-
-### Quick Test (2 minutes)
-```bash
-k6 run \
-  --summary-export artifacts/performance/k6-summary.json \
-  tests/performance/k6/l2_l3_l4_critical_paths.js
-```
-
-### Stress Test (15 minutes)
-```bash
-k6 run \
-  --summary-export artifacts/performance/stress-summary.json \
-  --env L2_URL=http://localhost:8002 \
-  --env L3_URL=http://localhost:8003 \
-  --env L4_URL=http://localhost:8004 \
-  tests/performance/k6/stress-test.js
-```
-
-### Spike Test (10 minutes)
-```bash
-k6 run \
-  --summary-export artifacts/performance/spike-summary.json \
-  --env L3_URL=http://localhost:8003 \
-  tests/performance/k6/spike-test.js
-```
-
-### Soak Test (8 hours - for stability validation)
-```bash
-k6 run \
-  --summary-export artifacts/performance/soak-summary.json \
-  --env PERF_DURATION=8h \
-  tests/performance/k6/soak-test.js
-```
-
-### Multi-Tenant Isolation Test
-```bash
-k6 run \
-  --summary-export artifacts/performance/tenant-summary.json \
-  --env TENANT_COUNT=50 \
-  --env PERF_DURATION=5m \
-  tests/performance/k6/multi-tenant.js
-```
-
-### Formula Evaluation Performance
-```bash
-k6 run \
-  --summary-export artifacts/performance/formula-summary.json \
-  --env L3_URL=http://localhost:8003 \
-  tests/performance/k6/formula-evaluation.js
-```
-
-### Workflow Execution Lifecycle
-```bash
-k6 run \
-  --summary-export artifacts/performance/workflow-summary.json \
-  --env L4_URL=http://localhost:8004 \
-  --env PERF_DURATION=10m \
-  tests/performance/k6/workflow-execution.js
-```
-
-## Environment Variables
-
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `L2_URL` | `http://localhost:8002` | Layer 2 (Extraction) endpoint |
-| `L3_URL` | `http://localhost:8003` | Layer 3 (Knowledge) endpoint |
-| `L4_URL` | `http://localhost:8004` | Layer 4 (Agents) endpoint |
-| `PERF_DURATION` | `2m` | Test duration |
-| `PERF_AUTH_BEARER` | - | JWT token for auth |
-| `PERF_TENANT_ID` | - | Tenant ID header |
-| `TENANT_COUNT` | `50` | Number of tenants (multi-tenant test) |
-| `WORKFLOW_TIMEOUT` | `120` | Workflow timeout in seconds |
-
-## SLO evaluation and regression gate
-
-After the k6 run, evaluate against versioned SLO targets:
+## Fast CI Budget Tests
 
 ```bash
-python3 scripts/perf/evaluate_slo.py \
-  --summary artifacts/performance/k6-summary.json \
-  --slo docs/slo/performance-slo.v1.json \
-  --report artifacts/performance/slo-report.md \
-  --output artifacts/performance/slo-evaluation.json
+pytest tests/performance/
+pnpm test:performance
 ```
 
-The script exits non-zero on:
+Covered files:
 
-- p95 latency breaches
-- error-rate breaches
-- regression over the configured threshold
+| File | Budget area |
+| --- | --- |
+| `test_api_latency_budget.py` | Critical endpoint p95/error budgets and k6 threshold alignment |
+| `test_expensive_queries.py` | Query shape and explicit limits for known expensive graph/formula operations |
+| `test_queue_throughput.py` | Queue throughput, backlog growth, and drain-time envelope |
+| `test_file_upload_limits.py` | Upload size, batch, extension, and parse-time limits |
+| `test_report_generation_limits.py` | Report section/page/export time budgets |
+| `test_background_job_backpressure.py` | Worker concurrency, retry, and queue-depth backpressure behavior |
 
-This behavior is used in CI to fail builds when reliability regresses.
+## Pre-Production Load Profiles
 
-## Targeted scenarios requested by platform validation
-
-### Cold-start check (before and after warmup)
 ```bash
-# Cold run (single VU, short duration)
-k6 run \
-  --summary-export artifacts/performance/cold-start-cold.json \
-  --vus 1 --duration 30s \
-  tests/performance/k6/l2_l3_l4_critical_paths.js
-
-# Warm run immediately after
-k6 run \
-  --summary-export artifacts/performance/cold-start-warm.json \
-  --vus 1 --duration 30s \
-  tests/performance/k6/l2_l3_l4_critical_paths.js
+pnpm loadtest:smoke
 ```
 
-### Large-tenant isolation/performance check
+The smoke profile runs `tests/performance/k6/l2_l3_l4_critical_paths.js` for 30s and
+writes `artifacts/performance/loadtest-smoke-summary.json`.
+
+Longer profiles:
+
 ```bash
-k6 run \
-  --summary-export artifacts/performance/large-tenant-summary.json \
-  --env TENANT_COUNT=200 \
-  --env PERF_DURATION=10m \
-  tests/performance/k6/multi-tenant.js
+k6 run --summary-export artifacts/performance/k6-summary.json tests/performance/k6/l2_l3_l4_critical_paths.js
+k6 run --summary-export artifacts/performance/stress-summary.json tests/performance/k6/stress-test.js
+k6 run --summary-export artifacts/performance/spike-summary.json tests/performance/k6/spike-test.js
+k6 run --summary-export artifacts/performance/soak-summary.json tests/performance/k6/soak-test.js
+k6 run --summary-export artifacts/performance/workflow-summary.json tests/performance/k6/workflow-execution.js
 ```
 
-### Circuit-breaker resilience check
-```bash
-pytest tests/chaos/test_external_dependency_failure.py -k circuit -q
-```
+Required k6 environment:
 
-### Autoscaling readiness check
-```bash
-# Generate scaling pressure profile
-k6 run \
-  --summary-export artifacts/performance/autoscaling-load-summary.json \
-  tests/performance/k6/stress-test.js
+| Variable | Purpose |
+| --- | --- |
+| `PERF_TENANT_ID` | Tenant used for load-test traffic |
+| `PERF_AUTH_BEARER` | User JWT for tenant-scoped API calls |
+| `PERF_S2S_BEARER` | Service JWT for service-to-service calls |
+| `L2_URL`, `L3_URL`, `L4_URL` | Layer endpoints, defaulting to localhost ports |
+| `PERF_DURATION` | Profile duration, default varies by script |
 
-# Validate workload scaling guardrails in manifests/policies
-pytest tests/k8s/test_workload_validation.py -q
-```
+## SLO and Trend Artifacts
+
+CI evaluates `artifacts/performance/k6-summary.json` against
+`docs/slo/performance-slo.v1.json` and publishes:
+
+- `artifacts/performance/k6-summary.json`
+- `artifacts/performance/slo-evaluation.json`
+- `artifacts/performance/slo-window-history.json`
+- `artifacts/performance/slo-report.md`
+
+The trend artifact is intentionally machine-readable so regression dashboards can
+compare p95 latency, error rate, and burn-rate windows over time.

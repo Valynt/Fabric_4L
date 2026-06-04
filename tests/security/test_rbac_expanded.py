@@ -119,12 +119,20 @@ class TestCRUDPermissionMatrix:
             "TENANT_ADMIN role alone must not grant ADMIN_TENANTS permission without explicit grant."
         )
 
-    def test_all_permission_grants_all(self):
-        """POSITIVE: 'all' permission grants every permission check."""
-        ctx = _ctx("all")
+    def test_resolved_all_permissions_grants_every_permission(self):
+        """POSITIVE: Resolved all-permission set grants every permission check."""
+        ctx = _ctx(*list(Permission))
         for perm in Permission:
             assert ctx.has_permission(perm), (
-                f"'all' permission must grant {perm.value}."
+                f"Resolved all-permission set must grant {perm.value}."
+            )
+
+    def test_raw_all_permission_string_does_not_grant_wildcard(self):
+        """NEGATIVE: Raw 'all' permission strings are not wildcard grants."""
+        ctx = _ctx("all")
+        for perm in Permission:
+            assert not ctx.has_permission(perm), (
+                f"Raw 'all' permission string must not grant {perm.value}."
             )
 
     def test_empty_permissions_denies_all(self):
@@ -214,11 +222,11 @@ class TestRequireAnyPermissionOrLogic:
             "Prefix-similar permission strings must not be confused."
         )
 
-    def test_any_permission_with_all_grant(self):
-        """POSITIVE: 'all' permission satisfies any has_any_permission check."""
-        ctx = _ctx("all")
+    def test_any_permission_with_resolved_all_permission_grant(self):
+        """POSITIVE: Resolved all-permission set satisfies has_any_permission."""
+        ctx = _ctx(*list(Permission))
         assert ctx.has_any_permission(Permission.ADMIN_SYSTEM, Permission.WRITE_EXTRACTION), (
-            "'all' permission must satisfy has_any_permission for any combination."
+            "Resolved all-permission set must satisfy has_any_permission for any combination."
         )
 
     def test_any_permission_string_and_enum_interchangeable(self):

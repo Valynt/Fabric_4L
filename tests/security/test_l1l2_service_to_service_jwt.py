@@ -122,8 +122,9 @@ class TestL2ProductionStartupGuard:
         source = open(
             "services/layer2-extraction/src/layer2_extraction/api/main.py"
         ).read()
-        assert 'SERVICE_AUTH_SECRET is required in production for Layer 2 S2S authentication (P1-001)' in source
-        assert "_is_production_like()" in source
+        assert "SERVICE_AUTH_SECRET" in source
+        assert "_is_strict_runtime()" in source
+        assert "s2s_misconfiguration" in source
 
 
 @pytest.mark.security
