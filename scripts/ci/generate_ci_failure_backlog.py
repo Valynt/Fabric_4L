@@ -298,6 +298,10 @@ def _api_get(url: str, token: str) -> tuple[dict[str, Any], str | None]:
         raise RuntimeError(
             f"GitHub API request failed with {exc.code}: {body}"
         ) from exc
+    except urllib.error.URLError as exc:
+        raise RuntimeError(
+            f"GitHub API network error: {exc.reason}"
+        ) from exc
 
 
 def _next_link(link_header: str | None) -> str | None:
