@@ -183,6 +183,20 @@ Historical or ad hoc outputs (quality reports, test dumps, diagnostics, temporar
 
 ---
 
+## Canonical pnpm gate commands
+
+Root-level pnpm scripts mirror the required CI/release gate command surface without duplicating implementation logic. They delegate to the canonical Makefile targets, pytest suites, or CI scripts:
+
+| Command | Canonical implementation | When to run |
+|---------|--------------------------|-------------|
+| `pnpm test:security` | `make security-smoke` | Security smoke gate before PRs and local release checks. |
+| `pnpm test:schema` | `scripts/verify-schema-indexes.sh` plus `make validate-openapi-contracts gate-api-contracts` | API/schema/tool-manifest contract changes or release-gate validation. |
+| `pnpm test:isolation` | `make gate-tenant-isolation` | Tenant-boundary, cross-tenant API, RLS/isolation-sensitive changes. |
+| `pnpm test:crawler` | `make test-layer1-crawler` | Layer 1 crawler and ingestion-crawl changes. |
+| `pnpm test:router` | `make test-layer1-router-cache` plus focused frontend routing Vitest specs | API router, route cache, frontend guard/prefetch/navigation changes. |
+| `pnpm db:migrate:status` | `make check-migration-heads` | Static migration entrypoint/head status checks; this must not mutate databases. |
+| `pnpm test` | `python scripts/ci/run_root_aggregate_checks.py test` | Fail-closed root package test aggregation. |
+
 ## Testing requirements
 
 Before submitting a PR:

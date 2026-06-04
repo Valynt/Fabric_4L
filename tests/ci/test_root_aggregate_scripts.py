@@ -42,6 +42,28 @@ def test_root_scripts_use_fail_closed_orchestrator():
     assert scripts["test"] == "python scripts/ci/run_root_aggregate_checks.py test"
 
 
+def test_root_gate_script_parity_delegates_to_canonical_commands():
+    root_package = load_json(REPO_ROOT / "package.json")
+    scripts = root_package["scripts"]
+
+    expected_scripts = {
+        "test:security": "make security-smoke",
+        "test:schema": "bash scripts/verify-schema-indexes.sh && make validate-openapi-contracts gate-api-contracts",
+        "test:isolation": "make gate-tenant-isolation",
+        "test:crawler": "make test-layer1-crawler",
+        "test:router": (
+            "make test-layer1-router-cache && pnpm --dir apps/web exec vitest run "
+            "src/components/routing/UnifiedRouteGuard.test.tsx "
+            "src/hooks/useRoutePrefetch.test.tsx "
+            "src/navigation/deliverableRoutes.test.ts"
+        ),
+        "db:migrate:status": "make check-migration-heads",
+    }
+
+    for script_name, command in expected_scripts.items():
+        assert scripts[script_name] == command
+
+
 def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
     runner = load_runner_module()
 

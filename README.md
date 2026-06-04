@@ -184,6 +184,20 @@ import-topology tests under [`tests/arch/`](tests/arch/) and
 | [Testing Strategy](docs/reference/testing-strategy.md) | Test pyramid and coverage requirements |
 | [DESIGN.md](DESIGN.md) | Frontend governance contract for apps/web/ |
 
+### Canonical npm gate scripts
+
+The root `package.json` exposes npm-script parity for the required release and scorecard gates while delegating to the canonical Makefile, pytest, and CI-script implementations. Use pnpm for these commands:
+
+| Command | Delegates to | Purpose |
+|---------|--------------|---------|
+| `pnpm test:security` | `make security-smoke` | Fast security smoke gate for PR and local release-readiness checks. |
+| `pnpm test:schema` | `scripts/verify-schema-indexes.sh`, `make validate-openapi-contracts`, and `make gate-api-contracts` | Validates schema indexes, OpenAPI contracts, platform contracts, and Layer 4 tool contracts. |
+| `pnpm test:isolation` | `make gate-tenant-isolation` | Runs the dedicated tenant-isolation readiness suite and produces tenant-isolation artifacts. |
+| `pnpm test:crawler` | `make test-layer1-crawler` | Runs focused Layer 1 crawler tests. |
+| `pnpm test:router` | `make test-layer1-router-cache` plus focused frontend routing Vitest specs | Runs API router/cache isolation coverage and frontend route-guard/prefetch/navigation tests. |
+| `pnpm db:migrate:status` | `make check-migration-heads` | Reports static migration entrypoint/head health without mutating a database. |
+| `pnpm test` | `scripts/ci/run_root_aggregate_checks.py test` | Runs the fail-closed root aggregate package test matrix. |
+
 ## API Reference
 
 | Document | Description |
