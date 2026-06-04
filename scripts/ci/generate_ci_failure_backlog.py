@@ -871,8 +871,8 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
     )
     parser.add_argument(
         "--branch",
-        default="main",
-        help="Branch to report, or 'all' for all branches.",
+    parser.add_argument(
+        "--branch", default="all", help="Branch to report, or 'all' for all branches."
     )
     parser.add_argument(
         "--workflow-filter",
