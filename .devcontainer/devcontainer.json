@@ -108,5 +108,11 @@
       "onAutoForward": "silent"
     }
   },
+  "containerEnv": {
+    "TMPDIR": "/var/tmp"
+  },
+  "mounts": [
+    "source=fabric4l-tmp,target=/var/tmp,type=volume"
+  ],
   "remoteUser": "vscode"
 }

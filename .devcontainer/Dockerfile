@@ -42,4 +42,7 @@ RUN ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/') && \
 # Set up Python path for workspace (all six layers + layer 2.5)
 ENV PYTHONPATH=/workspace/services/layer1-ingestion/src:/workspace/services/layer2-extraction/src:/workspace/services/layer2-5-signal-refinery/src:/workspace/services/layer3-knowledge/src:/workspace/services/layer4-agents/src:/workspace/services/layer5-ground-truth/src:/workspace/services/layer6-benchmarks/src
 
+# Ensure persistent temp directory exists for vscode user (fixes Windsurf server install race)
+RUN mkdir -p /var/tmp && chown vscode:vscode /var/tmp && chmod 1777 /var/tmp
+
 WORKDIR /workspace
