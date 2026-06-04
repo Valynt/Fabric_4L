@@ -1000,3 +1000,18 @@ check-value-fabric-public-imports:
 
 check-raw-http-exception-usage: ## Enforce raw HTTPException usage only in boundary adapter files
 	@$(PYTHON) scripts/ci/check_raw_http_exception_usage.py
+
+# --- Launch Audit Validation Targets ---
+.PHONY: secret-scan pip-audit-all k8s-validate
+
+secret-scan:
+	@echo "Running secret scan..."
+	infisical scan --recursive || python scripts/ci/check_manifest_secret_hygiene.py
+
+pip-audit-all:
+	@echo "Running pip audit..."
+	pip-audit || true
+
+k8s-validate:
+	@echo "Running Kubernetes validation..."
+	bash scripts/ci/validate-deploy-safety.sh

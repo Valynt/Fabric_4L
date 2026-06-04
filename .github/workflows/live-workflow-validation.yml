@@ -98,6 +98,12 @@ jobs:
       RELEASE_CANDIDATE_SHA: ${{ github.sha }}
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      REDIS_PASSWORD: password
+      NEO4J_PASSWORD: password
 
     steps:
       - name: Checkout repository
@@ -218,6 +224,12 @@ jobs:
       VITE_USE_MOCKS: "false"
       VITE_ENABLE_MOCK_FALLBACK: "false"
       HEALTH_TIMEOUT_SECONDS: "240"
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      REDIS_PASSWORD: password
+      NEO4J_PASSWORD: password
 
     steps:
       - name: Checkout repository

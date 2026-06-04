@@ -69,11 +69,7 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
         # Legacy alias used by some services/tests.
         setattr(request.state, "request_id", request_id)
 
-        tenant_id = (
-            getattr(request.state, "tenant_id", None)
-            or request.headers.get("X-Tenant-ID")
-            or request.headers.get("x-tenant-id")
-        )
+        tenant_id = getattr(request.state, "tenant_id", None)
         set_logging_context(
             LoggingContext(
                 request_id=request_id,
@@ -81,8 +77,6 @@ class RequestIDMiddleware(BaseHTTPMiddleware):
                 tenant_id=tenant_id,
                 route=request.url.path,
                 method=request.method,
-                status=0,
-                latency_ms=0.0,
             )
         )
         start = time.perf_counter()

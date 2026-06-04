@@ -144,7 +144,12 @@ async def create_signal(
     # Push to L3 asynchronously (best-effort, non-blocking)
     try:
         asyncio.create_task(
-            get_l3_client().push_signal(signal, tenant_id, request.headers.get("X-Request-ID"))
+            get_l3_client().push_signal(
+                signal, 
+                tenant_id, 
+                request.headers.get("X-Request-ID"),
+                request.headers.get("X-Correlation-ID")
+            )
         )
     except RuntimeError:
         # No running event loop in test environments — skip background push
@@ -430,7 +435,12 @@ async def refine_signals(
         created.append(signal)
         try:
             asyncio.create_task(
-                get_l3_client().push_signal(signal, tenant_id, request.headers.get("X-Request-ID"))
+                get_l3_client().push_signal(
+                    signal, 
+                    tenant_id, 
+                    request.headers.get("X-Request-ID"),
+                    request.headers.get("X-Correlation-ID")
+                )
             )
         except RuntimeError:
             pass

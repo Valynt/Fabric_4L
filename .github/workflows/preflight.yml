@@ -171,6 +171,9 @@ jobs:
             ! -path "./**/*.png" \
             ! -path "./**/*.jpg" \
             ! -path "./**/*.gif" \
+            ! -path "./contracts/openapi/layer4-agents.json" \
+            ! -path "./reports/repo-cleanup/repo_tree_before.txt" \
+            ! -path "./prototypes/ui-prototype/*.docx" \
             2>/dev/null)
 
           if [ -n "$large_files" ]; then
