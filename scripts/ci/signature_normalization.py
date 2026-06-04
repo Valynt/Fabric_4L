@@ -136,11 +136,9 @@ _PATTERNS: tuple[SignaturePattern, ...] = (
         r"\g<path>:<line>:<col>",
     ),
     SignaturePattern(
-        "line_column",
         re.compile(
-            r"(?P<file>\b[^\s:'\")\]]+\.(?:py|pyi|ts|tsx|js|jsx|mjs|cjs|rs|go|java|kt|rb|php|cs|cpp|c|h|hpp|yaml|yml|json|toml|md)):(?P<line>\d+)(?::(?P<col>\d+))?"
+            r"(?P<file>[^\s:'\")\]]+\.(?:py|pyi|ts|tsx|js|jsx|mjs|cjs|rs|go|java|kt|rb|php|cs|cpp|c|h|hpp|yaml|yml|json|toml|md)):(?P<line>\d+)(?::(?P<col>\d+))?"
         ),
-        r"\g<file>:<line>:<col>",
     ),
     SignaturePattern(
         "line_column",
