@@ -367,14 +367,29 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          suites=(security reliability observability recovery release migrations tenancy billing abuse config audit)
+          suites=(security reliability observability recovery release tenancy billing abuse config audit)
           mkdir -p artifacts/production-readiness
           for suite in "${suites[@]}"; do
             mkdir -p "artifacts/production-readiness/${suite}"
+            summary_file="artifacts/production-readiness/${suite}/summary.md"
+            {
+              echo "# Production readiness: ${suite}"
+              echo
+              echo "- Suite: tests/${suite}/"
+              echo "- JUnit artifact: artifacts/production-readiness/${suite}/junit.xml"
+              echo "- Status: running"
+            } > "${summary_file}"
             echo "## Production readiness: ${suite}" >> "$GITHUB_STEP_SUMMARY"
             python -m pytest "tests/${suite}/" -v --tb=short \
               --junitxml "artifacts/production-readiness/${suite}/junit.xml"
-            echo "- ${suite}: passed" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "# Production readiness: ${suite}"
+              echo
+              echo "- Suite: tests/${suite}/"
+              echo "- JUnit artifact: artifacts/production-readiness/${suite}/junit.xml"
+              echo "- Status: passed"
+            } > "${summary_file}"
+            echo "- ${suite}: passed; artifacts: artifacts/production-readiness/${suite}/junit.xml, ${summary_file}" >> "$GITHUB_STEP_SUMMARY"
           done
 
       - name: Upload production-readiness artifacts

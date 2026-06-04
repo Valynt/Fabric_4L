@@ -35,5 +35,5 @@ pnpm test:reliability
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/reliability/junit.xml`.
+CI should publish `artifacts/production-readiness/reliability/junit.xml` and `artifacts/production-readiness/reliability/summary.md`.
 

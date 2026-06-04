@@ -45,4 +45,4 @@ pnpm test:tenancy
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/tenancy/junit.xml`.
+CI should publish `artifacts/production-readiness/tenancy/junit.xml` and `artifacts/production-readiness/tenancy/summary.md`.
