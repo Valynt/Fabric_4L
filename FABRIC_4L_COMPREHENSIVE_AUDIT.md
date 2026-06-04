@@ -3688,12 +3688,13 @@ services:
 
 | # | Check | Evidence Required | Status |
 |---|-------|-------------------|--------|
-| 1 | Migration framework in use (Alembic/Flyway) | Directory listing + version table query | [ ] |
-| 2 | All migrations are backward-compatible | ADR: zero-downtime migration policy | [ ] |
-| 3 | Migration rollback tested | Staging test: migrate forward, rollback, verify | [ ] |
-| 4 | Seed data rejected in production | Test: `validate_production_safety()` blocks seed | [ ] |
-| 5 | Migration history documented | `migrations/README.md` with version log | [ ] |
-| 6 | Auto-migration on startup disabled | Config review: manual migration required | [ ] |
+| 1 | Alembic-managed services expose exactly one migration head | `make check-migration-heads` output showing all maintained Alembic services pass | [ ] |
+| 2 | Static database readiness gate passes | `make gate-database` output, including migration entrypoint, rollback-policy, runtime-consistency, governance-doc, bootstrap-conformance, and pytest `contract_static` checks | [ ] |
+| 3 | PostgreSQL migration round-trip tested in an isolated database | `DB_MIGRATION_DATABASE_URL=... make check-migration-postgres-roundtrip` output showing upgrade, downgrade `-1`, re-upgrade, and metadata drift checks pass | [ ] |
+| 4 | All migrations are backward-compatible | ADR: zero-downtime migration policy | [ ] |
+| 5 | Seed data rejected in production | Test: `validate_production_safety()` blocks seed | [ ] |
+| 6 | Migration history documented | `migrations/README.md` with version log | [ ] |
+| 7 | Auto-migration on startup disabled | Config review: manual migration required | [ ] |
 
 ### 9.5 Backups and Disaster Recovery
 
@@ -3744,6 +3745,7 @@ services:
 | 6 | Branch protection with required checks | GitHub settings screenshot | [ ] |
 | 7 | Rollback workflow tested in staging | Drill log: rollback executed <10 minutes | [ ] |
 | 8 | Deployment requires manual approval for prod | GitHub Environments: prod requires reviewer | [ ] |
+| 9 | OpenAPI JSON contracts validate from the canonical contract directory | `pnpm run check:contract-compliance` output showing JSON validation under `contracts/openapi/` and no generated contract drift | [ ] |
 
 ### 9.9 E2E Tests
 
@@ -3769,14 +3771,17 @@ services:
 | 7 | TLS 1.2+ enforced | SSL Labs scan: A+ rating | [ ] |
 | 8 | Security headers (HSTS, CSP, X-Frame-Options) | Header scan: all present | [ ] |
 
-### 9.11 Dependency Scanning
+### 9.11 Dependency and Environment Reproducibility
 
 | # | Check | Evidence Required | Status |
 |---|-------|-------------------|--------|
-| 1 | Python dependencies scanned | Snyk/Dependabot: zero critical | [ ] |
-| 2 | Node.js dependencies scanned | npm audit: zero critical | [ ] |
-| 3 | Container base images scanned | Trivy: zero critical OS CVEs | [ ] |
-| 4 | License compliance verified | FOSSA or manual review: no GPL conflicts | [ ] |
+| 1 | Root pnpm lockfile checksum captured | `sha256sum pnpm-lock.yaml` output stored with the release evidence bundle | [ ] |
+| 2 | pnpm workspace install is frozen and reproducible | `pnpm install --frozen-lockfile` output from a clean checkout | [ ] |
+| 3 | Python dependencies and pytest environment are captured through repo tooling | `make setup` output plus pytest collection/version evidence from the same pytest interpreter used by the Makefile | [ ] |
+| 4 | Python dependencies scanned | Snyk/Dependabot: zero critical | [ ] |
+| 5 | Node.js dependencies scanned through the pnpm workspace | Dependency scanner output tied to `pnpm-lock.yaml`: zero critical | [ ] |
+| 6 | Container base images scanned | Trivy: zero critical OS CVEs | [ ] |
+| 7 | License compliance verified | FOSSA or manual review: no GPL conflicts | [ ] |
 
 ### 9.12 Performance
 

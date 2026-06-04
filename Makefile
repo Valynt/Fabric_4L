@@ -1,7 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 \
+        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer2 test-layer2-5 test-layer3 test-layer4 \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
@@ -18,7 +18,7 @@
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
-	collect-95-plus-evidence collect-95-plus-evidence-focused \
+	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
 	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
@@ -424,6 +424,13 @@ setup: ## Install all service dev dependencies into the pytest pipx venv
 test-layer1: ## Run Layer 1 tests
 	cd services/layer1-ingestion && $(PYTEST) tests/
 
+test-layer1-crawler: ## Run focused Layer 1 crawler tests
+	cd services/layer1-ingestion && $(PYTEST) tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
+
+test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache isolation tests
+	cd services/layer1-ingestion && $(PYTEST) tests/crawler/test_smart_router.py tests/unit/test_smart_router.py tests/integration/test_router_edge_cases.py
+	$(PYTEST) tests/cache/test_redis_tenant_isolation.py tests/shared/identity/test_api_key_cache.py
+
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."
 	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) tests/security/test_rls_enforcement_postgres.py tests/security/test_celery_tenant_isolation_postgres.py tests/security/test_require_tenant_false_allowlist_postgres.py -m postgres -v
@@ -569,16 +576,11 @@ migrate-api: ## Run Alembic migrations for API gateway only
 contracts: ## Export OpenAPI specs from all layers
 	$(PYTHON) scripts/export_openapi.py
 
-contract-drift: contracts ## Detect OpenAPI contract drift (exports + validates layer consistency)
-	@echo "→ Checking for contract drift..."
-	@# Verify all expected contract files exist and are non-empty
-	@test -s contracts/openapi/layer1-ingestion.json || (echo "❌ Layer 1 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer2-extraction.json || (echo "❌ Layer 2 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer3-knowledge.json || (echo "❌ Layer 3 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer4-agents.json || (echo "❌ Layer 4 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer5-ground-truth.json || (echo "❌ Layer 5 OpenAPI spec missing or empty" && exit 1)
-	@test -s contracts/openapi/layer6-benchmarks.json || (echo "⚠️ Layer 6 OpenAPI spec missing ( Gap 6 - non-blocking)")
-	@echo "✅ All layer OpenAPI specs present"
+validate-openapi-contracts: ## Validate all tracked JSON OpenAPI specs in contracts/openapi
+	$(PYTHON) scripts/ci/contract_compliance_gate.py --validate-only
+
+contract-drift: contracts validate-openapi-contracts ## Detect OpenAPI contract drift (exports + validates tracked JSON specs)
+	@echo "✅ Tracked OpenAPI specs are present and valid"
 
 contract-freshness: ## Regenerate OpenAPI and frontend DTO types, then fail on deterministic generated drift
 	bash scripts/ci/check_contract_freshness.sh
@@ -726,11 +728,14 @@ db-production-readiness-gate: ## Gate: PostgreSQL-only database production readi
 	$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/db-production-readiness-gate.xml
 	@echo "✅  db-production-readiness-gate passed"
 
-collect-95-plus-evidence-focused: ## Collect focused 95+ evidence for P0, frontend, and mandatory gate recovery
-	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile focused
+release-evidence-packet: ## Generate the canonical release evidence packet
+	$(PYTHON) scripts/ci/generate_release_evidence_packet.py --allow-placeholder-sha
 
-collect-95-plus-evidence: ## Collect full 95+ production-readiness evidence pack
-	$(PYTHON) scripts/ci/collect_95_plus_evidence.py --profile full
+collect-95-plus-evidence-focused: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces focused 95+ evidence collection
+	@echo "✅  collect-95-plus-evidence-focused alias completed (canonical: release-evidence-packet)"
+
+collect-95-plus-evidence: release-evidence-packet ## Compatibility alias: canonical release evidence packet replaces full 95+ evidence collection
+	@echo "✅  collect-95-plus-evidence alias completed (canonical: release-evidence-packet)"
 
 # ─── Extended Gate Targets (referenced by prod-readiness.yml) ────────────────
 

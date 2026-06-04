@@ -73,9 +73,14 @@ Updated: 2026-05-05 (Sprint 1 Remediation - Layer-Specific Invariants Complete)
 - Layer 6: `tests/layer6/test_layer6_security_invariants.py` (NEW - 2026-05-05)
 
 #### 7. Frontend Test Coverage
+**Scope**: `apps/web/` is the governed frontend application root and is a React/Vite frontend, aligned with the repo AGENTS.md frontend governance language (React, Vite, TanStack Query, Tailwind, shadcn/ui).
+
 **Gap**: Only 1 unit test file (utils.test.ts), 19 E2E specs but no component/integration tests
 **Impact**: Frontend security boundaries untested, input validation gaps
 **Evidence**:
+- `apps/web/package.json` defines the frontend `dev` script as `vite --host`, confirming Vite is the dev server for `apps/web/`.
+- `apps/web/package.json` includes React (`react`, `react-dom`) and Vite (`vite`, `@vitejs/plugin-react`) dependencies/devDependencies.
+- Dependency check: `vite` is present in `devDependencies`, while the Next.js framework package (`next`) is absent from both `dependencies` and `devDependencies` (the unrelated `next-themes` package is present but does not make this a Next.js app).
 - `apps/web/src/utils.test.ts` - only unit test
 - No component-level auth testing
 - No frontend input validation testing

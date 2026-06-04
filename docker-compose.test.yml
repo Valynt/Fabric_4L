@@ -4,10 +4,16 @@
 # Update digests intentionally when upgrading infrastructure versions.
 #
 # Usage:
-#   docker compose -f docker-compose.test.yml up -d
-#   pytest -m "not slow"                          # mandatory profile
-#   pytest                                         # full profile
+#   docker compose -f docker-compose.test.yml up -d postgres redis neo4j keycloak
+#   pytest -m "mandatory" --strict-markers        # mandatory profile
+#   pytest --strict-markers                       # full profile
+#   make test-backend-integrated-validation        # backend-integrated gate
+#   # or: pytest tests/backend_integrated -m backend_integrated -v
 #   docker compose -f docker-compose.test.yml down -v
+#
+# This compose file intentionally provides shared test infrastructure only.
+# Integration execution remains host/CI-owned via the canonical Makefile or
+# pytest commands above rather than a compose integration-runner service.
 
 services:
   postgres:

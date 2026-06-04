@@ -6,7 +6,7 @@ This checklist is the sign-off package for entering final testing. It is deliber
 
 The release may enter final testing only when the repository-owned checks are passing, no unresolved **P0 Launch Blocker** remains, every **P1 Launch Blocker** has an owner and mitigation, and all live-only gates are explicitly scheduled with an evidence owner. The launch owner should treat missing evidence as a decision, not an assumption.
 
-Evidence authority rule: ship/no-ship decisions are authoritative only when reflected in `docs/launch/launch-blocker-register.md` and `docs/launch/environment-dependent-evidence-matrix.md`. `reports/` artifacts are supporting diagnostics only unless explicitly linked to a passing gate run with timestamp + commit SHA metadata.
+Evidence authority rule: ship/no-ship decisions are authoritative only when reflected in `docs/launch/launch-blocker-register.md` and `docs/launch/environment-dependent-evidence-matrix.md`. `reports/` artifacts are supporting diagnostics only unless explicitly linked to a passing gate run with timestamp + commit SHA metadata. The canonical repository-owned evidence-pack generator is `scripts/ci/generate_release_evidence_packet.py`; do not duplicate evidence-generation logic in other scripts. The canonical outputs are `artifacts/release/evidence-packet/release-evidence-packet.json` and `artifacts/release/evidence-packet/release-evidence-summary.md`. If an external consumer requires `./evidence_pack/`, copy these canonical outputs into that directory as an explicit wrapper/export step after generation.
 
 | Gate | Owner | Required Evidence | Status Before Final Testing | Blocker Rule |
 |---|---|---|---|---|

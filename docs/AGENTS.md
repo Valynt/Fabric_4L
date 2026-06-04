@@ -285,6 +285,15 @@ For launch decisions, treat the following as authoritative in this order:
 
 `reports/` documents can support context but do not override the launch docs above.
 
+### Canonical release evidence packet
+
+Use `scripts/ci/generate_release_evidence_packet.py` as the canonical repository-owned evidence-pack generator. Its canonical outputs are:
+
+- `artifacts/release/evidence-packet/release-evidence-packet.json`
+- `artifacts/release/evidence-packet/release-evidence-summary.md`
+
+Do not duplicate evidence-generation logic for alternate layouts. If an external consumer requires `./evidence_pack/`, add an explicit wrapper or documented copy step that copies the canonical outputs into `./evidence_pack/` after generation.
+
 ---
 
 ## QA audit reproducibility requirement (PR merge triage)
