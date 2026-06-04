@@ -7,13 +7,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "run_root_aggregate_checks.py"
 
 
 def load_runner_module():
-    spec = importlib.util.spec_from_file_location("run_root_aggregate_checks", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "run_root_aggregate_checks", SCRIPT_PATH
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -37,9 +38,30 @@ def test_root_scripts_use_fail_closed_orchestrator():
     root_package = load_json(REPO_ROOT / "package.json")
     scripts = root_package["scripts"]
 
-    assert scripts["typecheck"] == "python scripts/ci/run_root_aggregate_checks.py typecheck"
-    assert scripts["lint"] == "python scripts/ci/run_root_aggregate_checks.py lint"
-    assert scripts["test"] == "python scripts/ci/run_root_aggregate_checks.py test"
+    expected_routed_gates = (
+        "lint",
+        "test",
+        "typecheck",
+        "security",
+        "schema",
+        "isolation",
+        "crawler",
+        "router",
+        "db-migrate-status",
+    )
+    for gate in expected_routed_gates:
+        assert scripts[gate] == f"python scripts/ci/run_root_aggregate_checks.py {gate}"
+
+    assert (
+        scripts["checks:list"]
+        == "python scripts/ci/run_root_aggregate_checks.py --list"
+    )
+    assert (
+        scripts["checks:json"]
+        == "python scripts/ci/run_root_aggregate_checks.py --json"
+    )
+    assert scripts["checks:all"] == "python scripts/ci/run_root_aggregate_checks.py all"
+    assert scripts["all"] == "python scripts/ci/run_root_aggregate_checks.py all"
 
 
 def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
@@ -68,7 +90,27 @@ def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
     for target, expected_pairs in expected.items():
         checks = runner.EXPECTED_CHECKS[target]
         assert checks
-        assert {(check.package_path, check.script) for check in checks} == expected_pairs
+        assert {
+            (check.package_path, check.script) for check in checks
+        } == expected_pairs
+
+
+def test_supported_gates_include_named_maturity_gates():
+    runner = load_runner_module()
+
+    assert runner.SUPPORTED_GATES == (
+        "lint",
+        "test",
+        "security",
+        "schema",
+        "isolation",
+        "crawler",
+        "router",
+        "db-migrate-status",
+        "typecheck",
+    )
+
+    assert "all" in runner._supported_gate_names(include_all=True)
 
 
 def test_expected_package_scripts_exist_in_current_checkout():
@@ -77,6 +119,28 @@ def test_expected_package_scripts_exist_in_current_checkout():
     for target in runner.EXPECTED_CHECKS:
         checks = runner.validate_expected_checks(target, REPO_ROOT)
         assert checks
+
+
+def test_optional_gate_without_config_is_not_applicable():
+    runner = load_runner_module()
+
+    result = runner.run_gate("crawler", REPO_ROOT, quiet=True)
+
+    assert result.status == "not_applicable"
+    assert result.exit_code == 0
+    assert result.checks_planned == 0
+    assert "not_applicable" in result.message
+
+
+def test_json_inventory_marks_missing_optional_gates_not_applicable():
+    runner = load_runner_module()
+
+    inventory = runner.gate_inventory()
+    gates = {gate["name"]: gate for gate in inventory["gates"]}
+
+    assert gates["lint"]["status"] == "configured"
+    assert gates["crawler"]["status"] == "not_applicable"
+    assert gates["all"]["status"] == "configured"
 
 
 def test_missing_required_package_script_fails_before_running():
@@ -102,6 +166,12 @@ def test_zero_check_target_fails_closed(monkeypatch):
     runner = load_runner_module()
     tmp_path = repo_tmp_path("zero-check")
     monkeypatch.setitem(runner.EXPECTED_CHECKS, "empty", ())
+    monkeypatch.setitem(
+        runner.GATE_DEFINITIONS,
+        "empty",
+        runner.GateDefinition("empty", "Empty required gate", True),
+    )
+    monkeypatch.setattr(runner, "SUPPORTED_GATES", (*runner.SUPPORTED_GATES, "empty"))
 
     try:
         runner.validate_expected_checks("empty", tmp_path)
