@@ -32,6 +32,9 @@ on:
       - 'scripts/ci/check_agent_registry.py'
       - 'scripts/export_openapi.py'
       - 'scripts/ci/contract_compliance_gate.py'
+      - 'scripts/ci/openapi_breaking_gate.py'
+      - 'contracts/deprecations/**'
+      - 'contracts/rfcs/**'
       - '.github/workflows/contract-compliance.yml'
   push:
     branches:
@@ -52,6 +55,9 @@ on:
       - 'scripts/ci/check_agent_registry.py'
       - 'scripts/export_openapi.py'
       - 'scripts/ci/contract_compliance_gate.py'
+      - 'scripts/ci/openapi_breaking_gate.py'
+      - 'contracts/deprecations/**'
+      - 'contracts/rfcs/**'
       - '.github/workflows/contract-compliance.yml'
   schedule:
     # Run daily at 03:00 UTC (consolidated from 02:00 and 03:00)
@@ -99,6 +105,24 @@ jobs:
           else
             python scripts/ci/contract_compliance_gate.py --mode full
           fi
+
+      - name: Run OpenAPI breaking-change gate
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            pnpm contract:breaking -- --base-ref origin/${{ github.base_ref }}
+          else
+            pnpm contract:breaking
+          fi
+
+      - name: Upload OpenAPI breaking-change report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: openapi-breaking-change-report
+          path: |
+            reports/contracts/openapi-breaking-report.json
+            reports/contracts/openapi-breaking-report.md
+          if-no-files-found: warn
 
   # ==========================================================================
   # Build and Test ESLint Plugin

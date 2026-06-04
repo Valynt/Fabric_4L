@@ -46,3 +46,28 @@ A breaking change is defined as any modification that would cause an existing, c
 
 ## 5. Emergency Hotfixes
 In the event of a critical security vulnerability or a Sev-1 production incident, the RFC process may be bypassed to expedite a fix. The engineer must still document the contract change retroactively by filing an RFC within 24 hours of the hotfix deployment.
+
+## 6. OpenAPI Breaking-Change Gate
+
+This repository uses OpenAPI/REST contracts rather than Protobuf/gRPC, so `buf breaking` is intentionally **not applicable**. The replacement governance gate is the repository-owned OpenAPI breaking-change check:
+
+```bash
+pnpm contract:breaking
+```
+
+The command compares `contracts/openapi/*.json` on the current branch against the baseline branch (`OPENAPI_BREAKING_BASE_REF`, `GITHUB_BASE_REF`, `origin/main`, `main`, or `HEAD~1`, in that order) and fails on unapproved breaking changes. It detects:
+
+- Removed paths and methods.
+- Removed request and response fields.
+- Type narrowing, including stricter scalar constraints.
+- Enum value removals.
+- Auth/security requirement changes.
+- Required field additions.
+- Error response contract drift for 4xx/5xx responses.
+
+Every run emits both report artifacts:
+
+- `reports/contracts/openapi-breaking-report.json`
+- `reports/contracts/openapi-breaking-report.md`
+
+Breaking findings are allowed to pass only when they match an approved deprecation record in `contracts/deprecations/generated-contract-deprecations.json` or an approved Contract Council RFC in `contracts/rfcs/`. Otherwise CI fails in `.github/workflows/contract-compliance.yml`.

@@ -206,3 +206,7 @@ core
 services/layer4-agents/local_*.txt
 services/layer4-agents/module_list.txt
 services/layer4-agents/mypy_cleaned*.txt
+
+# Generated OpenAPI breaking-change gate reports
+reports/contracts/openapi-breaking-report.json
+reports/contracts/openapi-breaking-report.md
