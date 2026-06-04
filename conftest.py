@@ -209,22 +209,43 @@ def pytest_addoption(parser) -> None:
 
 
 def pytest_collection_modifyitems(config, items) -> None:
-    """Automatically mark tests as mandatory based on their other markers.
+    """Automatically apply repository-level security selection markers.
 
-    Tests marked with: unit, contract, security, or tenant_boundary
-    are automatically considered mandatory unless they also have:
-    - slow
-    - requires_postgres
-    - requires_redis
-    - requires_neo4j
-    - requires_openai
-    - e2e
-    - integration
-    - performance
+    Tenant isolation is a first-class gate (`pnpm test:isolation`) and a pytest
+    marker (`pytest -m tenant_isolation`). Existing tests historically used a
+    mix of `tenant_boundary`, `tenant_matrix`, `cross_tenant_write`, and
+    descriptive file names; this hook normalizes those signals into the
+    `tenant_isolation` marker without weakening the original, narrower markers.
 
-    This allows selecting mandatory tests with: pytest -m mandatory
+    Tests marked with: unit, contract, security, tenant_boundary, or
+    tenant_isolation are automatically considered mandatory unless they also
+    have infrastructure/slow-path exclusion markers. This allows selecting
+    mandatory tests with: pytest -m mandatory
     """
-    mandatory_markers = {"unit", "contract", "security", "tenant_boundary"}
+    mandatory_markers = {
+        "unit",
+        "contract",
+        "security",
+        "tenant_boundary",
+        "tenant_isolation",
+    }
+    tenant_isolation_markers = {
+        "tenant_isolation",
+        "tenant_boundary",
+        "tenant_matrix",
+        "cross_tenant_write",
+        "tenant_mismatch",
+        "tenant_lifecycle",
+    }
+    tenant_isolation_path_tokens = (
+        "tenant_isolation",
+        "tenant-isolation",
+        "cross_tenant",
+        "tenant_boundary",
+        "tenant_context",
+        "tenant_propagation",
+        "rls",
+    )
     exclusion_markers = {
         "slow", "requires_postgres", "requires_redis", "requires_neo4j",
         "requires_docker", "requires_openai", "e2e", "integration", "performance",
@@ -233,6 +254,17 @@ def pytest_collection_modifyitems(config, items) -> None:
 
     for item in items:
         item_markers = {m.name for m in item.iter_markers()}
+        nodeid = item.nodeid.lower()
+
+        if (
+            "tenant_isolation" not in item_markers
+            and (
+                item_markers & tenant_isolation_markers
+                or any(token in nodeid for token in tenant_isolation_path_tokens)
+            )
+        ):
+            item.add_marker("tenant_isolation")
+            item_markers.add("tenant_isolation")
 
         # Skip if already has mandatory marker
         if "mandatory" in item_markers:

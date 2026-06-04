@@ -478,9 +478,8 @@ security-test: ## Run full security test suite (~ 15 min, scheduled workflows)
 	$(PYTEST) tests/security/test_security_misconfiguration.py -v --tb=short
 	@echo "✅  Full security test suite complete"
 
-security-test-isolation: ## Run tenant isolation tests only
-	@echo "→ Running tenant isolation tests..."
-	$(PYTEST) tests/security/test_tenant_isolation.py -v --tb=short
+security-test-isolation: gate-tenant-isolation ## Compatibility alias for the first-class tenant isolation gate
+	@echo "✅  security-test-isolation alias passed (canonical: gate-tenant-isolation)"
 
 security-test-rbac: ## Run RBAC tests only
 	@echo "→ Running RBAC tests..."

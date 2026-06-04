@@ -2,6 +2,8 @@
 
 This document describes Fabric 4L's multi-tenant architecture, built on PostgreSQL Row-Level Security (RLS) with a future-ready isolation tier system.
 
+Tenant isolation is enforced as a first-class repository gate. Run `pnpm test:isolation` before changing tenant-owned queries, API routes, background jobs, graph operations, or cache keys. See [Tenant Isolation Gate](./tenant-isolation-gate.md) for the grouped gate, CI artifacts, and guidance for adding new isolation tests.
+
 ## Overview
 
 Fabric 4L uses a **shared schema with RLS** model for tenant isolation. Each tenant's data is logically separated at the database level using PostgreSQL's Row-Level Security policies, ensuring strong isolation guarantees without the operational complexity of schema-per-tenant or database-per-tenant approaches.

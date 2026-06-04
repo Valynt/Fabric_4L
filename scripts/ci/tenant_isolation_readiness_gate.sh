@@ -2,9 +2,12 @@
 set -euo pipefail
 
 # Dedicated launch-readiness gate for tenant isolation.
-# This intentionally overlaps the tenant-specific portions of the broader
-# mandatory security regression gate so release decisions have a visible,
-# blocking tenant-isolation signal and artifact.
+#
+# This is the first-class repository gate behind `pnpm test:isolation`. It
+# intentionally overlaps tenant-specific portions of the broader security suite
+# while grouping results by layer and boundary type so failures are immediately
+# actionable. Skips/xfails are rejected for every suite: tenant isolation must
+# fail closed, not silently degrade when dependencies or fixtures drift.
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "${ROOT_DIR}"
@@ -22,16 +25,47 @@ export TESTING="${TESTING:-true}"
 export ENVIRONMENT="${ENVIRONMENT:-testing}"
 export DEBUG="false"
 export LAYER4_LAYER5_API_URL="${LAYER4_LAYER5_API_URL:-http://localhost:8005}"
-export PYTHONPATH="${ROOT_DIR}/packages/shared/src:${ROOT_DIR}:${PYTHONPATH:-}"
+export PYTHONPATH="${ROOT_DIR}/packages/shared/src:${ROOT_DIR}/packages/platform-contract/src/python:${ROOT_DIR}:${PYTHONPATH:-}"
 export CROSS_LAYER_TENANT_MATRIX_ARTIFACT="${ROOT_DIR}/${MATRIX_ARTIFACT}"
 
 TENANT_ISOLATION_SUITES=(
+  # PostgreSQL RLS and background job tenant context (Layer 1)
+  services/layer1-ingestion/tests/security/test_rls_enforcement_postgres.py
+  services/layer1-ingestion/tests/security/test_celery_tenant_isolation_postgres.py
+  services/layer1-ingestion/tests/security/test_require_tenant_false_allowlist_postgres.py
+
+  # Cross-tenant read/write denial and fail-closed boundaries (cross-layer)
   tests/security/test_tenant_boundary_fails_closed.py
   tests/security/test_cross_tenant_api.py
+  tests/security/test_cross_tenant_write.py
   tests/security/test_tenant_mismatch.py
-  tests/security/test_cross_layer_tenant_isolation_matrix.py
+
+  # API tenant-context propagation (L1-L6)
   tests/context/test_tenant_context_contract.py
+  services/layer1-ingestion/tests/test_api_tenant_propagation.py
+  services/layer2-extraction/tests/test_api_tenant_propagation.py
+  services/layer3-knowledge/tests/test_api_tenant_propagation.py
+  services/layer4-agents/tests/test_api_tenant_propagation.py
+  services/layer5-ground-truth/tests/test_api_tenant_propagation.py
+  services/layer6-benchmarks/tests/test_api_tenant_propagation.py
+
+  # Knowledge graph tenant boundaries (Layer 3)
+  tests/security/test_cross_layer_tenant_isolation_matrix.py
+  services/layer3-knowledge/tests/test_tenant_isolation_static.py
+  services/layer3-knowledge/tests/test_tenant_read_isolation.py
+  services/layer3-knowledge/tests/test_vector_store_tenant_write_isolation.py
+
+  # Cache-key tenant isolation (shared cache + API key/session cache)
+  tests/cache/test_redis_tenant_isolation.py
+  tests/shared/identity/test_api_key_cache.py
+
+  # Layer-owned hostile-access regressions and rate limits
+  services/layer2-extraction/tests/test_cross_tenant_hostile.py
+  services/layer3-knowledge/tests/test_cross_tenant_hostile.py
+  services/layer4-agents/tests/test_cross_tenant_hostile.py
   services/layer4-agents/tests/test_tenant_rate_limits.py
+  services/layer5-ground-truth/tests/test_cross_tenant_hostile.py
+  services/layer6-benchmarks/tests/test_cross_tenant_hostile.py
 )
 
 write_summary() {
@@ -106,31 +140,68 @@ for suite in "${TENANT_ISOLATION_SUITES[@]}"; do
   write_summary "- ${suite}"
 done
 write_summary ""
+write_summary "## Boundary Coverage"
+write_summary ""
+write_summary "- PostgreSQL RLS tests"
+write_summary "- Cross-tenant read/write denial tests"
+write_summary "- API tenant-context propagation tests"
+write_summary "- Background job tenant-context tests"
+write_summary "- Knowledge graph tenant boundary tests"
+write_summary "- Cache-key tenant isolation tests"
+write_summary ""
 write_summary "## Execution"
 write_summary ""
 
 run_pytest_suite \
-  "Tenant boundary fail-closed, cross-tenant API, and mismatch regression tests" \
-  "${JUNIT_DIR}/tenant-boundary-api.xml" \
+  "Layer 1 — PostgreSQL RLS and background job tenant context" \
+  "${JUNIT_DIR}/layer1-postgres-rls-and-jobs.xml" \
+  services/layer1-ingestion/tests/security/test_rls_enforcement_postgres.py \
+  services/layer1-ingestion/tests/security/test_celery_tenant_isolation_postgres.py \
+  services/layer1-ingestion/tests/security/test_require_tenant_false_allowlist_postgres.py
+
+run_pytest_suite \
+  "Cross-layer — read/write denial, fail-closed, and mismatch regressions" \
+  "${JUNIT_DIR}/cross-layer-read-write-denial.xml" \
   tests/security/test_tenant_boundary_fails_closed.py \
   tests/security/test_cross_tenant_api.py \
+  tests/security/test_cross_tenant_write.py \
   tests/security/test_tenant_mismatch.py
 
 run_pytest_suite \
-  "Tenant context contract tests" \
-  "${JUNIT_DIR}/tenant-context-contract.xml" \
-  tests/context/test_tenant_context_contract.py
+  "L1-L6 — API tenant-context propagation" \
+  "${JUNIT_DIR}/api-tenant-context-propagation.xml" \
+  tests/context/test_tenant_context_contract.py \
+  services/layer1-ingestion/tests/test_api_tenant_propagation.py \
+  services/layer2-extraction/tests/test_api_tenant_propagation.py \
+  services/layer3-knowledge/tests/test_api_tenant_propagation.py \
+  services/layer4-agents/tests/test_api_tenant_propagation.py \
+  services/layer5-ground-truth/tests/test_api_tenant_propagation.py \
+  services/layer6-benchmarks/tests/test_api_tenant_propagation.py
 
 run_pytest_suite \
-  "Layer 4 tenant rate-limit isolation tests" \
-  "${JUNIT_DIR}/layer4-tenant-rate-limits.xml" \
-  services/layer4-agents/tests/test_tenant_rate_limits.py
-
-run_pytest_suite \
-  "Cross-layer tenant isolation matrix tests" \
-  "${JUNIT_DIR}/cross-layer-tenant-isolation-matrix.xml" \
-  tests/security/test_cross_layer_tenant_isolation_matrix.py
+  "Layer 3 — knowledge graph tenant boundaries" \
+  "${JUNIT_DIR}/layer3-knowledge-graph-boundaries.xml" \
+  tests/security/test_cross_layer_tenant_isolation_matrix.py \
+  services/layer3-knowledge/tests/test_tenant_isolation_static.py \
+  services/layer3-knowledge/tests/test_tenant_read_isolation.py \
+  services/layer3-knowledge/tests/test_vector_store_tenant_write_isolation.py
 
 "${PYTHON_BIN}" scripts/ci/validate_cross_layer_tenant_matrix.py "${MATRIX_ARTIFACT}"
 write_summary "✅ Cross-layer tenant isolation matrix artifact validated"
 write_summary "  - Matrix: ${MATRIX_ARTIFACT}"
+
+run_pytest_suite \
+  "Shared/cache — cache-key tenant isolation" \
+  "${JUNIT_DIR}/shared-cache-key-isolation.xml" \
+  tests/cache/test_redis_tenant_isolation.py \
+  tests/shared/identity/test_api_key_cache.py
+
+run_pytest_suite \
+  "Layer-owned hostile-access regressions and tenant rate limits" \
+  "${JUNIT_DIR}/layer-owned-hostile-access.xml" \
+  services/layer2-extraction/tests/test_cross_tenant_hostile.py \
+  services/layer3-knowledge/tests/test_cross_tenant_hostile.py \
+  services/layer4-agents/tests/test_cross_tenant_hostile.py \
+  services/layer4-agents/tests/test_tenant_rate_limits.py \
+  services/layer5-ground-truth/tests/test_cross_tenant_hostile.py \
+  services/layer6-benchmarks/tests/test_cross_tenant_hostile.py

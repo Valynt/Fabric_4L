@@ -12,7 +12,7 @@
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
     "test:security": "make security-smoke",
-    "test:isolation": "make security-test-isolation",
+    "test:isolation": "make gate-tenant-isolation",
     "test:schema": "make gate-migration-readiness",
     "test:crawler": "make test-layer1-crawler",
     "test:router": "make test-layer1-router-cache",
