@@ -39,7 +39,7 @@ pnpm release:rollback:verify
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/release/junit.xml`. Related release evidence remains:
+CI should publish `artifacts/production-readiness/release/junit.xml` and `artifacts/production-readiness/release/summary.md`. Related release evidence remains:
 
 - `artifacts/release/release-safety.json`
 - `artifacts/release/gate-result.json`

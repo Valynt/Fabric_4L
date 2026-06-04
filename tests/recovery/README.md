@@ -38,7 +38,7 @@ pnpm ops:restore:dry-run
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/recovery/junit.xml`. The dry-run command writes:
+CI should publish `artifacts/production-readiness/recovery/junit.xml` and `artifacts/production-readiness/recovery/summary.md`. The dry-run command writes:
 
 ```text
 artifacts/recovery/restore-dry-run-evidence.json

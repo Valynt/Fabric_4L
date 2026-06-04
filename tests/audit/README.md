@@ -35,5 +35,5 @@ pnpm test:audit
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/audit/junit.xml`.
+CI should publish `artifacts/production-readiness/audit/junit.xml` and `artifacts/production-readiness/audit/summary.md`.
 
