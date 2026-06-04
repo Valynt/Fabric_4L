@@ -39,6 +39,8 @@ class TestSecretPolicy:
 
         violations = []
         for file in tracked_files:
+            if not Path(file).exists():
+                continue
             file_lower = file.lower()
             # Check if it's an env file
             if any(file_lower.endswith(pat) or f"{pat}." in file_lower for pat in forbidden_patterns):

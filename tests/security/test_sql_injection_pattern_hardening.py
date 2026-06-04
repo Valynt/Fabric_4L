@@ -43,7 +43,7 @@ HOSTILE_IDENTIFIERS = [
 
 class TestLayer4TenantEntityAllowlist:
     def test_allowlist_is_a_frozen_set_of_known_tables(self) -> None:
-        from api.tenants import _TENANT_ENTITY_TABLES
+        from layer4_agents.api.tenants import _TENANT_ENTITY_TABLES
 
         assert isinstance(_TENANT_ENTITY_TABLES, frozenset)
         assert _TENANT_ENTITY_TABLES == frozenset({
@@ -56,7 +56,7 @@ class TestLayer4TenantEntityAllowlist:
 
     @pytest.mark.parametrize("payload", HOSTILE_IDENTIFIERS)
     def test_hostile_identifier_is_not_in_allowlist(self, payload: str) -> None:
-        from api.tenants import _TENANT_ENTITY_TABLES
+        from layer4_agents.api.tenants import _TENANT_ENTITY_TABLES
 
         assert payload not in _TENANT_ENTITY_TABLES
 
@@ -96,5 +96,5 @@ class TestAuditRouteClauseAllowlistShape:
         # in the guarded clause-composition block.
         import importlib
 
-        mod = importlib.import_module("api.routes.audit")
+        mod = importlib.import_module("layer4_agents.api.routes.audit")
         assert hasattr(mod, "list_audit_logs")

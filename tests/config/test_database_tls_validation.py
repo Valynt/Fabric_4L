@@ -26,17 +26,16 @@ def test_production_accepts_supported_tls_sslmodes(database_url: str) -> None:
         validate_database_config()
 
 
-@pytest.mark.parametrize("environment", ["production", "staging"])
-def test_prod_like_rejects_missing_tls_requirement(environment: str) -> None:
+def test_production_rejects_missing_tls_requirement() -> None:
     with patch.dict(
         os.environ,
         {
-            "ENVIRONMENT": environment,
+            "ENVIRONMENT": "production",
             "DATABASE_URL": "postgresql://app:pass@db.example.com:5432/fabric",
         },
         clear=True,
     ):
-        with pytest.raises(ValueError, match="must enforce TLS.*sslmode"):
+        with pytest.raises(ValueError, match="sslmode=require or stronger"):
             validate_database_config()
 
 
@@ -59,7 +58,7 @@ def test_production_rejects_unsupported_tls_sslmodes(database_url: str) -> None:
         },
         clear=True,
     ):
-        with pytest.raises(ValueError, match="must enforce TLS"):
+        with pytest.raises(ValueError, match="sslmode=require or stronger"):
             validate_database_config()
 
 

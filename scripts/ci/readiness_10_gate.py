@@ -22,7 +22,7 @@ REQUIRED_ROOT_SCRIPTS: dict[str, str] = {
     "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",
     "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py",
     "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
-    "test:security": "python scripts/ci/run_root_aggregate_checks.py security",
+    "test:security": "python -m pytest tests/security/ -v --tb=short",
     "test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation",
     "test:router": "python scripts/ci/run_root_aggregate_checks.py router",
 }

@@ -1,29 +1,28 @@
 # Security Test Suite
 
-Centralized security validation for Fabric 4L. This directory is the canonical
-pytest entrypoint for security regression coverage across auth guards, tenant
-isolation, secret handling, security headers, dependency policy, and container
-policy.
+## What This Suite Validates
 
-The category files in this directory are intentionally thin. They document the
-authoritative coverage for each security area and assert that the referenced
-tests still exist and remain pytest-discoverable. The detailed behavioral tests
-stay in their existing files to avoid duplicate execution and drift.
+Centralized security validation for Fabric 4L. This directory is the canonical pytest entrypoint for security regression coverage across auth guards, tenant isolation, secret handling, security headers, dependency policy, and container policy.
+
+The category files in this directory are intentionally thin. They document the authoritative coverage for each security area and assert that the referenced tests still exist and remain pytest-discoverable. The detailed behavioral tests stay in their existing files to avoid duplicate execution and drift.
+
+## Production Risks Covered
+
+- Missing authentication or authorization guards.
+- Cross-tenant reads, writes, cache access, graph access, or worker leakage.
+- Secrets, dev bypass flags, or provider credentials exposed in unsafe contexts.
+- Missing security headers, container hardening, or dependency policy enforcement.
+
+## Existing Coverage Aggregated
+
+The category manifests aggregate the detailed security coverage listed in the matrix below while preserving the original behavioral tests in their existing files.
 
 ## Quick Start
 
 ```bash
-# Run the centralized suite
 pytest tests/security/
-
-# Run through the root package script
 pnpm test:security
-
-# Run the first-class tenant isolation gate
 pnpm test:isolation
-
-# Run the fast PR smoke gate
-make security-smoke
 ```
 
 ## Coverage Matrix
@@ -37,6 +36,26 @@ make security-smoke
 | Dependency policy | `test_dependency_policy.py` | Supply chain policy, frozen lockfile enforcement, provider billing posture, deprecated dependency boundaries, frontend coverage thresholds |
 | Container policy | `test_container_policy.py` | Dockerfile lockfile policy, supply-chain image/SBOM policy, Kubernetes security policies, Bunnyshell deployment contract |
 
+## Known Gaps
+
+- LIVE_PENETRATION_TESTING: external penetration tests and dynamic scans remain scheduled/manual workflow responsibilities.
+- LIVE_TENANT_INFRA_RLS: live RLS validation requires provisioned PostgreSQL/Neo4j infrastructure and is covered by integrated gates.
+
+## How To Run
+
+```bash
+pytest tests/security/
+pnpm test:security
+pnpm test:isolation
+```
+
+## CI Artifact
+
+CI should publish `artifacts/production-readiness/security/junit.xml`. Existing full security runs also publish:
+
+- `artifacts/security/security-suite-report.xml`
+- `artifacts/security/security-suite-summary.md`
+
 ## Environment Variables
 
 | Variable | Required | Default | Description |
@@ -47,29 +66,3 @@ make security-smoke
 | `REDIS_PORT` | No | `6379` | Redis port |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j Bolt URI |
 
-## CI Configuration
-
-`.github/workflows/security-validation.yml` runs the fast smoke suite for
-security-sensitive pull requests and the full centralized suite on scheduled or
-manual full runs. Full runs publish:
-
-- `artifacts/security/security-suite-report.xml`
-- `artifacts/security/security-suite-summary.md`
-
-## Troubleshooting
-
-### JWT secret failures
-
-Set a test secret with at least 32 characters:
-
-```bash
-set JWT_SECRET=test-jwt-secret-must-be-at-least-32-characters-long
-```
-
-### Database or Redis connection failures
-
-Start the local infrastructure stack before running DB/cache-backed tests:
-
-```bash
-docker compose -f docker-compose.dev.yml up postgres redis neo4j -d
-```

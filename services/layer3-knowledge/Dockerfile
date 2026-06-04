@@ -1,5 +1,5 @@
 # syntax=docker/dockerfile:1
-FROM python:3.11-slim-bookworm AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 WORKDIR /app
 ENV UV_TORCH_BACKEND=cpu
 RUN pip install --no-cache-dir uv==0.11.6

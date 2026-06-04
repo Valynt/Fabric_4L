@@ -39,7 +39,17 @@ def test_root_scripts_use_fail_closed_orchestrator():
         "typecheck": "python scripts/ci/run_root_aggregate_checks.py typecheck",
         "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
         "test": "python scripts/ci/run_root_aggregate_checks.py test",
-        "test:security": "python scripts/ci/run_root_aggregate_checks.py security",
+        "test:security": "python -m pytest tests/security/ -v --tb=short",
+        "test:observability": "python -m pytest tests/observability/ -v --tb=short",
+        "test:reliability": "python -m pytest tests/reliability/ -v --tb=short",
+        "test:recovery": "python -m pytest tests/recovery/ -v --tb=short",
+        "test:release": "python -m pytest tests/release/ -v --tb=short",
+        "test:tenancy": "python -m pytest tests/tenancy/ -v --tb=short",
+        "test:billing": "python -m pytest tests/billing/ -v --tb=short",
+        "test:abuse": "python -m pytest tests/abuse/ -v --tb=short",
+        "test:config": "python -m pytest tests/config/ -v --tb=short",
+        "test:audit": "python -m pytest tests/audit/ -v --tb=short",
+        "test:production-readiness": "python -m pytest tests/security/ tests/reliability/ tests/observability/ tests/recovery/ tests/release/ tests/tenancy/ tests/billing/ tests/abuse/ tests/config/ tests/audit/ -v --tb=short",
         "test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation",
         "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",
         "test:crawler": "python scripts/ci/run_root_aggregate_checks.py crawler",
@@ -47,6 +57,7 @@ def test_root_scripts_use_fail_closed_orchestrator():
         "db:extensions:check": "python scripts/ci/run_root_aggregate_checks.py db-extensions-check",
         "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
         "readiness:10": "python scripts/ci/readiness_10_gate.py",
+        "ops:quota:check": "python scripts/ci/check_quota_policy.py",
     }
     for script, command in expected.items():
         assert scripts[script] == command

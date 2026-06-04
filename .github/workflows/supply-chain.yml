@@ -288,20 +288,49 @@ jobs:
 
       - name: Check Python licenses
         run: |
+          set -euo pipefail
+          mkdir -p license-reports
           echo "Using pip-licenses from pinned CI tools image"
           for dir in services/*/; do
             if [ -f "$dir/requirements.txt" ]; then
               echo "Checking licenses in $dir"
-              (cd "$dir" && pip-licenses --format=json --output-file=licenses.json) || true
+              service_name="$(basename "$dir")"
+              (cd "$dir" && pip-licenses --format=json --output-file="$GITHUB_WORKSPACE/license-reports/${service_name}-licenses.json")
             fi
           done
 
       - name: Check for forbidden licenses
         run: |
-          # Fail on GPL/AGPL in production dependencies
-          FORBIDDEN="GPL-3.0 AGPL-3.0"
-          echo "Checking for forbidden licenses: $FORBIDDEN"
-          # This is a placeholder - integrate with FOSSA for production
+          set -euo pipefail
+          python - << 'PY'
+          import json
+          from pathlib import Path
+
+          forbidden = {"GPL-3.0", "AGPL-3.0", "LGPL-3.0", "SSPL-1.0"}
+          violations = []
+          for report in Path("license-reports").glob("*-licenses.json"):
+              for package in json.loads(report.read_text(encoding="utf-8") or "[]"):
+                  license_name = str(package.get("License") or package.get("license") or "")
+                  if any(blocked in license_name for blocked in forbidden):
+                      violations.append(
+                          f"{report.name}: {package.get('Name') or package.get('name')} => {license_name}"
+                      )
+
+          if violations:
+              print("Forbidden production dependency licenses detected:")
+              print("\n".join(violations))
+              raise SystemExit(1)
+
+          print("No forbidden production dependency licenses detected.")
+          PY
+
+      - name: Upload license report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        with:
+          name: license-report-${{ github.sha }}
+          path: license-reports/
+          retention-days: 30
 
   # ============================================
   # Summary Report

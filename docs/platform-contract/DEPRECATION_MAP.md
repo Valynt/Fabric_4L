@@ -6,18 +6,18 @@
 |---|---|---|---|
 | request.state.context | request.state.governance_context | 2026-05-15 | Layer 3 still uses old name | complete | `rg` scan across canonical runtime paths (no hits) |
 | TenantContext (L4) | shared.identity.RequestContext | 2026-05-15 | services/layer4-agents/src/layer4_agents/tenant/context.py | waived-with-exception | DEP-EXC-2026-05-15-L4-TENANTCONTEXT |
-| get_db() | get_db_from_context() | 2026-06-01 | Health checks excepted | in-progress | Pending migration/validation |
-| get_db_with_tenant() | get_db_from_context() | 2026-06-01 | Header-based session creation | in-progress | Pending migration/validation |
-| db_session() context manager | db_session_for_context() | 2026-06-01 | Background tasks | in-progress | Pending migration/validation |
+| get_db() | get_db_from_context() | 2026-06-01 | Health checks excepted | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
+| get_db_with_tenant() | get_db_from_context() | 2026-06-01 | Header-based session creation | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
+| db_session() context manager | db_session_for_context() | 2026-06-01 | Background tasks | waived-with-exception | DEP-EXC-2026-06-04-DB-CONTEXT |
 | get_tiered_db_session() | get_db_from_context() | 2026-06-15 | Tier routing not yet implemented | in-progress | Pending migration/validation |
 | get_db_with_optional_tenant() | get_db_from_context() + require_super_admin() | 2026-06-15 | Admin routes only | in-progress | Pending migration/validation |
 | Layer 3 AuthenticationMiddleware | shared.identity.GovernanceMiddleware | 2026-05-15 | Remove duplicate middleware | waived-with-exception | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE |
 | Raw dict agent returns | AgentResultEnvelope | 2026-06-30 | Gradual migration | in-progress | Pending migration/validation |
 | ToolRegistry.execute() direct call | ToolGateway.execute() | 2026-07-15 | Agents must use ctx['tool_gateway'] | in-progress | Pending migration/validation |
 | GraphRAGEngine.query() direct call | MemoryGateway.query() | 2026-07-15 | Agents must use ctx['memory_gateway'] | in-progress | Pending migration/validation |
-| datetime.utcnow() | datetime.now(timezone.utc) | 2026-06-01 | Deprecated in Python 3.12 | in-progress | Pending migration/validation |
-| asyncio.get_event_loop().time() | asyncio.get_running_loop().time() | 2026-06-01 | Deprecated in Python 3.10 | in-progress | Pending migration/validation |
-| useWorkflowStore + usePilotStore | useValuePilotStore (merged) | 2026-05-30 | Consolidate to one 7-step store | in-progress | Pending migration/validation |
+| datetime.utcnow() | datetime.now(timezone.utc) | 2026-06-01 | Deprecated in Python 3.12 | waived-with-exception | DEP-EXC-2026-06-04-UTCNOW |
+| asyncio.get_event_loop().time() | asyncio.get_running_loop().time() | 2026-06-01 | Deprecated in Python 3.10 | waived-with-exception | DEP-EXC-2026-06-04-LOOP-TIME |
+| useWorkflowStore + usePilotStore | useValuePilotStore (merged) | 2026-05-30 | Consolidate to one 7-step store | waived-with-exception | DEP-EXC-2026-06-04-VALUE-PILOT-STORE |
 | window.location.href | useLocation from wouter | 2026-05-15 | Immediate | waived-with-exception | DEP-EXC-2026-05-15-WEB-HREF |
 | React Context for server state | TanStack Query hooks | 2026-06-15 | Billing/Auth contexts excepted | in-progress | Pending migration/validation |
 | `{"detail": ...}` error-only HTTP payloads | Canonical error envelope: `{"message","code","trace_id"}` | 2026-06-15 | Layer 1 keeps temporary `error=authentication_required` compatibility field for legacy clients | in-progress | Pending migration/validation |
@@ -45,6 +45,10 @@ Reference validation scope required by release policy:
 | DEP-EXC-2026-05-15-L4-TENANTCONTEXT | `TenantContext (L4)` | TE | layer4-agents@valuefabric.ai | Medium: non-request-scoped naming compatibility can obscure contract intent | 2026-05-29 | PR: this change set + targeted release tests |
 | DEP-EXC-2026-05-15-L3-AUTHMIDDLEWARE | `Layer 3 AuthenticationMiddleware` | TE | layer3-knowledge@valuefabric.ai | Medium: duplicate middleware surface can hide governance-context regressions | 2026-05-29 | PR: this change set + targeted release tests |
 | DEP-EXC-2026-05-15-WEB-HREF | `window.location.href` | TE | web-platform@valuefabric.ai | Low: external redirect/telemetry usage only; navigation bypass risk constrained by scope | 2026-05-29 | PR: this change set + targeted release tests |
+| DEP-EXC-2026-06-04-DB-CONTEXT | `get_db()`, `get_db_with_tenant()`, `db_session()` | TE | platform-engineering@valuefabric.ai | High: legacy DB dependency surfaces can obscure tenant-context ownership | 2026-06-30 | `docs/governance/deprecations.json` + release suite |
+| DEP-EXC-2026-06-04-UTCNOW | `datetime.utcnow()` | TE | layer3-knowledge@valuefabric.ai | Medium: naive timestamp migration may affect persisted/API timestamp shape | 2026-06-30 | `docs/governance/deprecations.json` + release suite |
+| DEP-EXC-2026-06-04-LOOP-TIME | `asyncio.get_event_loop().time()` | TE | platform-engineering@valuefabric.ai | Low: runtime loop API migration remains mechanical but overdue | 2026-06-30 | release suite |
+| DEP-EXC-2026-06-04-VALUE-PILOT-STORE | `useWorkflowStore + usePilotStore` | TE | frontend-platform@valuefabric.ai | Medium: store consolidation touches user workflow state and needs frontend owner validation | 2026-06-30 | release suite |
 
 ## Layer 3 API Alias Deprecation Governance (Contract Council Tracked)
 

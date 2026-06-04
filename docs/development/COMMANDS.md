@@ -27,7 +27,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `lint` | `python scripts/ci/run_root_aggregate_checks.py lint` | Root aggregate CI runner |
 | `test` | `python scripts/ci/run_root_aggregate_checks.py test` | Root aggregate CI runner |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
-| `test:security` | `python scripts/ci/run_root_aggregate_checks.py security` | Security smoke alias |
+| `test:security` | `python -m pytest tests/security/ -v --tb=short` | Centralized security readiness suite |
 | `test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Tenant isolation alias |
 | `test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` | Schema/index alias |
 | `test:queues` | `python -m pytest tests/integration/test_celery_queue_topology.py -m celery` | Queue topology tests |

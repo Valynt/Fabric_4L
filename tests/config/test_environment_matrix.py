@@ -19,6 +19,7 @@ import pytest
 from value_fabric.shared.security.config import (
     ProductionSafetyValidator,
     is_production_like_environment,
+    is_strict_environment,
     validate_production_safety,
 )
 
@@ -30,26 +31,32 @@ from value_fabric.shared.security.config import (
 @pytest.mark.unit
 class TestEnvironmentClassificationMatrix:
     @pytest.mark.parametrize(
-        ("env_value", "expected_production_like"),
+        ("env_value", "expected_production_like", "expected_strict"),
         [
-            ("production", True),
-            ("prod", True),
-            ("staging", True),
-            ("stage", True),
-            ("development", False),
-            ("dev", False),
-            ("local", False),
-            ("test", False),
-            ("testing", False),
-            ("ci", False),
-            ("unknown", True),
-            ("custom-env", True),
-            ("UAT", True),
-            ("preprod", True),
+            ("production", True, True),
+            ("prod", False, True),
+            ("staging", False, True),
+            ("stage", False, True),
+            ("development", False, False),
+            ("dev", False, False),
+            ("local", False, False),
+            ("test", False, False),
+            ("testing", False, False),
+            ("ci", False, False),
+            ("unknown", False, True),
+            ("custom-env", False, True),
+            ("UAT", False, True),
+            ("preprod", False, True),
         ],
     )
-    def test_environment_classification(self, env_value: str, expected_production_like: bool) -> None:
+    def test_environment_classification(
+        self,
+        env_value: str,
+        expected_production_like: bool,
+        expected_strict: bool,
+    ) -> None:
         assert is_production_like_environment(env_value) is expected_production_like
+        assert is_strict_environment(env_value) is expected_strict
 
 
 # ---------------------------------------------------------------------------

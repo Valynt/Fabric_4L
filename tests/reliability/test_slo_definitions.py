@@ -24,7 +24,6 @@ def test_slo_policy_and_dashboards_exist() -> None:
 def test_slo_policy_declares_enforcement_scope() -> None:
     assert_contains_all(
         "config/production-readiness/slo_sla_policy.json",
-        ("slo", "sla", "production", "evidence"),
+        ("SLO", "SLA", "error-budget", "production", "Evidence"),
         label="SLO/SLA readiness policy",
     )
-

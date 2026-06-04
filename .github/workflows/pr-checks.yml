@@ -344,6 +344,48 @@ jobs:
           python scripts/ci/check_pr_overlap_guard.py --lookback 20 --threshold 0.45
 
 
+  production-readiness-suites:
+    name: Production Readiness Suites
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install production-readiness test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r tests/requirements-test.txt
+
+      - name: Run centralized production-readiness suites
+        shell: bash
+        run: |
+          set -euo pipefail
+          suites=(security reliability observability recovery release migrations tenancy billing abuse config audit)
+          mkdir -p artifacts/production-readiness
+          for suite in "${suites[@]}"; do
+            mkdir -p "artifacts/production-readiness/${suite}"
+            echo "## Production readiness: ${suite}" >> "$GITHUB_STEP_SUMMARY"
+            python -m pytest "tests/${suite}/" -v --tb=short \
+              --junitxml "artifacts/production-readiness/${suite}/junit.xml"
+            echo "- ${suite}: passed" >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload production-readiness artifacts
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: production-readiness-suite-results
+          path: artifacts/production-readiness/**
+          retention-days: 14
+
+
   governance-docs-check:
     name: Governance Docs Guard
     runs-on: ubuntu-latest
@@ -1975,6 +2017,7 @@ jobs:
       - docker-build-check
       - route-auth-gate
       - tenant-isolation-gate
+      - production-readiness-suites
     steps:
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
         run: |
@@ -1991,6 +2034,7 @@ jobs:
             ["docker-build-check"]="${{ needs.docker-build-check.result }}"
             ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
             ["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"
+            ["production-readiness-suites"]="${{ needs.production-readiness-suites.result }}"
           )
 
           failed=0

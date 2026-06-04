@@ -18,6 +18,7 @@ This suite centralizes abuse-resistance coverage for rate limits, login throttli
 - `tests/shared/identity/test_rate_limit_contract.py`
 - `tests/unit/l3/test_rate_limiter_algorithms.py`
 - `services/layer4-agents/tests/test_tenant_rate_limits.py`
+- `services/layer4-agents/src/layer4_agents/services/llm_budget_guardrails.py`
 - `tests/unit/l7/test_webhook_security.py`
 - `config/production-readiness/tenant_quota_policy.json`
 
@@ -31,9 +32,9 @@ This suite centralizes abuse-resistance coverage for rate limits, login throttli
 ```bash
 pytest tests/abuse/
 pnpm test:abuse
+pnpm ops:quota:check
 ```
 
 ## CI Artifact
 
 CI should publish `artifacts/production-readiness/abuse/junit.xml`.
-

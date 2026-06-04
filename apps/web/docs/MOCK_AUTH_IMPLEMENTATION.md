@@ -89,7 +89,7 @@ Created `apps/web/e2e/mock-auth.spec.ts` with tests for:
 
 ### 7. Quick Start Template
 
-Created `apps/web/.env.local.mock-auth` template for easy setup:
+Created `apps/web/.env.local.mock-auth.example` template for easy setup:
 
 ```bash
 # Copy this file to .env.local to enable mock auth
@@ -102,7 +102,7 @@ VITE_ENABLE_MOCK_AUTH=true
 
 1. Copy the template:
    ```bash
-   cp apps/web/.env.local.mock-auth apps/web/.env.local
+   cp apps/web/.env.local.mock-auth.example apps/web/.env.local
    ```
 
 2. Start the dev server:
@@ -146,7 +146,7 @@ Or add to your test configuration.
 
 **Phase 2:** Re-run visual audit with screenshots using mock auth enabled.
 
-1. Enable mock auth: `cp apps/web/.env.local.mock-auth apps/web/.env.local`
+1. Enable mock auth: `cp apps/web/.env.local.mock-auth.example apps/web/.env.local`
 2. Start dev server: `pnpm dev`
 3. Navigate to all required routes and capture screenshots
 4. Update `apps/web/docs/UI_UX_AUDIT.md` with findings

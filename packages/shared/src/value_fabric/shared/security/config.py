@@ -657,6 +657,18 @@ def validate_jwt_config() -> None:
                 "JWT_SECRET is required in production-like environments. "
                 "Authentication cannot operate without a signing secret."
             )
+        normalized_secret = jwt_secret.strip().lower()
+        if normalized_secret in _WEAK_SECRET_DENYLIST:
+            raise ValueError(
+                "JWT_SECRET is a known default/test value. "
+                "Generate a strong secret for production-like environments."
+            )
+        if len(jwt_secret) < _MIN_JWT_SECRET_LENGTH:
+            raise ValueError(
+                f"JWT_SECRET is too short ({len(jwt_secret)} chars). "
+                f"Production-like environments require at least {_MIN_JWT_SECRET_LENGTH} characters "
+                f"(256 bits) to resist brute-force attacks."
+            )
 
         jwt_issuer = os.getenv("JWT_ISSUER", "")
         if not jwt_issuer:
@@ -673,7 +685,7 @@ def validate_jwt_config() -> None:
             )
 
     # Check secret strength
-    validate_jwt_secret_strength()
+        validate_jwt_secret_strength()
 
     # Check algorithm safety
     algorithm = os.getenv("JWT_ALGORITHM", "HS256")
@@ -716,6 +728,31 @@ def validate_database_superuser() -> None:
             raise ValueError(msg)
         else:
             logger.warning(msg)
+
+
+def validate_rls_prerequisites() -> None:
+    """Validate database prerequisites required for Row-Level Security.
+
+    Tenant isolation depends on PostgreSQL RLS in production. Non-PostgreSQL
+    backends and PostgreSQL superuser connections fail closed because they
+    cannot enforce tenant boundaries reliably.
+    """
+    database_url = os.getenv("DATABASE_URL", "")
+    if not database_url:
+        raise ValueError("DATABASE_URL is required to validate RLS prerequisites.")
+
+    parsed = urlparse(database_url)
+    if parsed.scheme not in {"postgresql", "postgresql+asyncpg", "postgres"}:
+        raise ValueError(
+            "Production DATABASE_URL must use PostgreSQL to support Row-Level Security."
+        )
+
+    username = (parsed.username or "").lower()
+    if username in _SUPERUSER_NAMES:
+        raise ValueError(
+            f"DATABASE_URL connects as PostgreSQL superuser '{username}'. "
+            "Superusers bypass Row-Level Security and cannot be used in production."
+        )
 
 
 def validate_environment_config() -> None:
@@ -771,6 +808,7 @@ def get_startup_summary() -> dict[str, Any]:
         "cors_mode": "restricted" if cors_origins != "*" else "permissive",
         "jwt_validation": "strict" if is_production() else "relaxed",
         "rls_status": _get_rls_status(database_url),
+        "rls_enforcement": _get_rls_enforcement(database_url),
         "warnings": [],
         "degraded_controls": [],
     }
@@ -809,6 +847,11 @@ def get_startup_summary() -> dict[str, Any]:
     if summary["warnings"]:
         summary["warnings"].insert(0, "WARNING: Some security controls are degraded")
         summary["warnings"].insert(0, "WARNING")
+
+    summary["degraded_control_status"] = {
+        "is_degraded": bool(summary["degraded_controls"]),
+        "controls": list(summary["degraded_controls"]),
+    }
     
     return summary
 
@@ -832,3 +875,42 @@ def _get_rls_status(database_url: str) -> str:
         return "superuser_bypass"
 
     return "active"
+
+
+def _get_rls_enforcement(database_url: str) -> dict[str, Any]:
+    """Return structured RLS enforcement status for startup reporting."""
+    if not database_url:
+        return {
+            "supported_backend": False,
+            "superuser_connection": False,
+            "enforced": False,
+            "status": "missing_database_url",
+        }
+
+    try:
+        parsed = urlparse(database_url)
+    except Exception:
+        return {
+            "supported_backend": False,
+            "superuser_connection": False,
+            "enforced": False,
+            "status": "malformed_database_url",
+        }
+
+    supported_backend = parsed.scheme in {"postgresql", "postgresql+asyncpg", "postgres"}
+    username = (parsed.username or "").lower()
+    superuser_connection = username in _SUPERUSER_NAMES
+    enforced = supported_backend and not superuser_connection
+    if enforced:
+        status = "enforced"
+    elif superuser_connection:
+        status = "superuser_bypass"
+    else:
+        status = "unsupported_backend"
+
+    return {
+        "supported_backend": supported_backend,
+        "superuser_connection": superuser_connection,
+        "enforced": enforced,
+        "status": status,
+    }

@@ -1,29 +1,47 @@
 # Release Safety Tests
 
-This suite verifies static release controls for Value Fabric production readiness.
-It does not deploy, migrate, roll out Kubernetes resources, or call live services.
+## What This Suite Validates
 
-## Invariants
+This suite verifies static release controls for Value Fabric production readiness. It does not deploy, migrate, roll out Kubernetes resources, or call live services.
 
-- Release evidence includes version, commit SHA, build timestamp, environment, and profile metadata.
-- Rollback procedures are documented for failed deployments, production release rollback, and database migrations.
-- Canary promotion is blocked by health, error-rate, and latency gates.
-- Feature flag defaults fail closed for unknown flags and missing tenant or environment context.
-- Release artifacts use immutable image references and validated build metadata.
+## Production Risks Covered
 
-## Evidence Locations
+- Release candidates without immutable identity metadata.
+- Missing or untested rollback procedures.
+- Canary promotion without health, error-rate, and latency gates.
+- Feature flags defaulting open for unknown tenants or environments.
+- Release artifacts using mutable image references or placeholder build metadata.
+
+## Existing Coverage Aggregated
+
+- `tests/release/test_release_metadata.py`
+- `tests/release/test_database_migration_rollback.py`
+- `tests/release/test_feature_flag_defaults.py`
+- `tests/release/test_canary_health_gates.py`
+- `tests/release/test_rollback_procedure.py`
+- `tests/release/test_release_artifact_integrity.py`
+- `.github/workflows/release-evidence-bundle.yml`
+- `.github/workflows/environment-promotion.yml`
+
+## Known Gaps
+
+- LIVE_CANARY_PROMOTION: live promotion remains workflow/environment-specific.
+- LIVE_DATABASE_ROLLBACK: this suite validates rollback policy and dry-run evidence, not a production database rollback.
+
+## How To Run
+
+```bash
+pytest tests/release/
+pnpm test:release
+pnpm release:dry-run
+pnpm release:rollback:verify
+```
+
+## CI Artifact
+
+CI should publish `artifacts/production-readiness/release/junit.xml`. Related release evidence remains:
 
 - `artifacts/release/release-safety.json`
 - `artifacts/release/gate-result.json`
 - `artifacts/release/summary.md`
-- `.github/workflows/release-evidence-bundle.yml`
-- `.github/workflows/build-deploy.yml`
-- `.github/workflows/environment-promotion.yml`
 
-## Validation
-
-```bash
-pytest tests/release/
-pnpm release:dry-run
-pnpm release:rollback:verify
-```

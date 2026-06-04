@@ -1,6 +1,6 @@
 {
   "version": "2026-04-28",
-  "lastUpdated": "2026-05-12T00:00:00Z",
+  "lastUpdated": "2026-06-04T00:00:00Z",
   "schema": "1.0",
   "description": "Fabric 4L Contract Deprecation Register. Tracks anti-patterns and their migration to canonical contracts per CONTRACT.md.",
   "items": [
@@ -38,7 +38,7 @@
       "severity": "critical",
       "owner": "platform-engineering",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-05-23",
+      "targetRemoval": "2026-06-30",
       "instanceCount": 23,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -89,7 +89,7 @@
       "severity": "high",
       "owner": "platform-engineering",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-05-23",
+      "targetRemoval": "2026-06-30",
       "instanceCount": 31,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -166,7 +166,7 @@
       "severity": "critical",
       "owner": "agent-team",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-05-23",
+      "targetRemoval": "2026-06-30",
       "instanceCount": 19,
       "migratedCount": 8,
       "lastMigration": "2026-04-28T08:35:00Z",
@@ -242,7 +242,7 @@
       "severity": "medium",
       "owner": "frontend-team",
       "introduced": "2026-04-28",
-      "targetRemoval": "2026-05-23",
+      "targetRemoval": "2026-06-30",
       "instanceCount": 34,
       "source": "DEPRECATIONS.md",
       "blockedPaths": [
@@ -339,13 +339,83 @@
       "mitigation": "Scope limited to auth middleware and test fixtures; no new request.state.context usage allowed. Weekly scan enforces expiry.",
       "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-request-context-2026-05-23",
       "appliesTo": ["PCD-001"]
+    },
+    {
+      "id": "DEP-EXC-2026-06-04-DB-CONTEXT",
+      "contract": "2.2-db-session",
+      "pattern": "get_db(), get_db_with_tenant(), db_session()",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-06-04",
+      "expirationDate": "2026-06-30",
+      "justification": "Legacy Layer 1 and Layer 4 database dependencies remain in canonical runtime paths while migration to context-derived sessions is completed.",
+      "mitigation": "Scope limited to existing tracked dependencies; no new request body tenant sourcing is allowed. Production-readiness release suite keeps this waiver visible until removal.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-db-context-2026-06-04",
+      "appliesTo": ["PCD-002", "DEP-EXPLICIT-DB-004"]
+    },
+    {
+      "id": "DEP-EXC-2026-06-04-UTCNOW",
+      "contract": "runtime-time-semantics",
+      "pattern": "datetime.utcnow()",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-06-04",
+      "expirationDate": "2026-06-30",
+      "justification": "Layer 3 runtime modules still contain naive UTC timestamp calls; replacing them requires owner review because serialized timestamp shape may affect API and persistence contracts.",
+      "mitigation": "No new utcnow usage is allowed; production-readiness release suite exposes the waiver until migration to datetime.now(timezone.utc) is complete.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-utcnow-2026-06-04",
+      "appliesTo": ["PCD-003"]
+    },
+    {
+      "id": "DEP-EXC-2026-06-04-TOOL-ERRORS",
+      "contract": "2.4-tool-boundary",
+      "pattern": "tools-throwing-exceptions",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-06-04",
+      "expirationDate": "2026-06-30",
+      "justification": "Remaining tool exception paths require agent workflow owner review before conversion to structured ToolResult failures.",
+      "mitigation": "Existing security and release tests continue to guard tool gateway normalization while the remaining call sites are migrated.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-tool-errors-2026-06-04",
+      "appliesTo": ["DEP-THROW-IN-TOOLS-007"]
+    },
+    {
+      "id": "DEP-EXC-2026-06-04-URL-CONCAT",
+      "contract": "2.6-ui-state",
+      "pattern": "url-string-concatenation",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-06-04",
+      "expirationDate": "2026-06-30",
+      "justification": "Remaining URL construction debt is tracked separately from production-readiness suite wiring and must be completed by the frontend platform owner.",
+      "mitigation": "Frontend navigation and package-manager gates remain active; no new URL construction bypass should be accepted while this waiver is active.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-url-concat-2026-06-04",
+      "appliesTo": ["DEP-URL-CONCAT-010"]
+    },
+    {
+      "id": "DEP-EXC-2026-06-04-HEADER-ACCESS",
+      "contract": "2.1-tenant-context",
+      "pattern": "direct-header-tenant-access",
+      "status": "active",
+      "exceptionType": "TE",
+      "approvedBy": "architecture-review@valuefabric.ai",
+      "approvedDate": "2026-06-04",
+      "expirationDate": "2026-06-30",
+      "justification": "Remaining direct tenant header access is tracked as compatibility debt while middleware migration completes.",
+      "mitigation": "Only auth middleware may validate incoming tenant headers; downstream code must continue using request context.",
+      "ticket": "https://github.com/value-fabric/Fabric_4L/issues/dep-exc-header-access-2026-06-04",
+      "appliesTo": ["DEP-HEADER-ACCESS-002"]
     }
   ],
   "compliance": {
     "lastAudit": "2026-04-28",
     "overallScore": 58,
     "targetScore": 85,
-    "targetDate": "2026-05-23",
+    "targetDate": "2026-06-30",
     "byContract": {
       "2.1-tenant-context": {
         "score": 60,
