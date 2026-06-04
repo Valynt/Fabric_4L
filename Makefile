@@ -133,10 +133,16 @@ check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and m
 check-migration-runtime-consistency: ## Static migration/runtime URL and revision consistency checks
 	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
 
+db-migrate-status: ## Read-only Alembic migration status report with Markdown/JSON artifacts
+	@$(PYTHON) scripts/ci/db_migration_status.py --mode status
+
+db-migrate-check: ## Fail when database Alembic state drifts from repository migration heads
+	@$(PYTHON) scripts/ci/db_migration_status.py --mode check
+
 check-database-governance-docs: ## Static validation for database runtime compatibility and governance docs
 	@$(PYTHON) scripts/ci/check_database_governance_docs.py
 
-gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs ## Gate: static local database readiness checks (no live DB required)
+gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency db-migrate-status check-database-governance-docs ## Gate: static local database readiness checks (no live DB required)
 	@echo "→ Gate: Database Readiness — static local checks"
 	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
 	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
@@ -150,7 +156,7 @@ gate-database: check-migration-heads check-migration-entrypoints check-migration
 db-production-readiness-gate: gate-database ## Alias for the static local database readiness gate
 	@echo "✅  db-production-readiness-gate alias passed"
 
-gate-database-live: check-migration-postgres-roundtrip ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
+gate-database-live: check-migration-postgres-roundtrip db-migrate-check ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
 	@echo "→ Gate: Database Readiness — live isolated checks"
 	@bash scripts/ci/run_db_production_readiness_gate.sh
 	@bash scripts/ops/test_postgres_backup_restore.sh

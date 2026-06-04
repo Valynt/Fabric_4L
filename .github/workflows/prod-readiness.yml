@@ -215,10 +215,15 @@ jobs:
       - uses: actions/checkout@v4
       - name: Run DB production readiness gate
         run: make gate-database PROFILE=${{ needs.determine-profile.outputs.profile }} POLICY_FILE=${POLICY_FILE}
+      - name: Run migration status artifact capture
+        if: always()
+        run: pnpm db:migrate:status || true
       - uses: actions/upload-artifact@v4
         with:
           name: db-readiness-artifacts
-          path: artifacts/release/junit/
+          path: |
+            artifacts/release/junit/
+            artifacts/db-migrate/
 
   observability-readiness:
     if: needs.determine-profile.outputs.profile != 'pr-fast'
