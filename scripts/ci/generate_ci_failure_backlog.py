@@ -436,7 +436,7 @@ def build_run_summary(runs: Sequence[Mapping[str, Any]], config: BacklogConfig) 
     backlog_runs = [
         normalize_run(run)
         for run in filter_backlog_runs(
-            runs,
+            (r for r in runs if config.branch is None or r.get("head_branch") == config.branch),
             workflow_filter=config.workflow_filter,
             include_cancelled=config.include_cancelled,
             window_start=config.window_start,
