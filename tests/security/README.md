@@ -51,7 +51,7 @@ pnpm test:isolation
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/security/junit.xml`. Existing full security runs also publish:
+CI should publish `artifacts/production-readiness/security/junit.xml` and `artifacts/production-readiness/security/summary.md`. Existing full security runs also publish:
 
 - `artifacts/security/security-suite-report.xml`
 - `artifacts/security/security-suite-summary.md`

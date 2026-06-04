@@ -37,7 +37,7 @@ pnpm lint:logs
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/observability/junit.xml`. `pnpm lint:logs` also writes:
+CI should publish `artifacts/production-readiness/observability/junit.xml` and `artifacts/production-readiness/observability/summary.md`. `pnpm lint:logs` also writes:
 
 ```text
 artifacts/observability/coverage.json

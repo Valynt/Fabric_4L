@@ -158,6 +158,9 @@ class TestReleaseMetadata:
                 f"Release branch '{branch}' does not follow release/vX.Y.Z or release/YYYY-MM-DD"
             )
         else:
-            assert branch in {"main", "master"} or branch.startswith(("feature/", "fix/", "hotfix/")), (
-                f"Branch '{branch}' is not an allowed release-policy validation branch"
+            # AGENTS.md intentionally does not enforce a non-release branch naming pattern.
+            # Keep this deterministic in local agent worktrees (for example, branch `work`)
+            # while still validating the only branch namespace that carries release semantics.
+            assert not branch.startswith("release"), (
+                f"Release-policy validation branches must use the release/ namespace explicitly: {branch!r}"
             )

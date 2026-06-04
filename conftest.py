@@ -151,6 +151,7 @@ _MANDATORY_DEPS: dict[str, str] = {
     # Layer 4 — pydantic email validation
     "email_validator": "pip install 'email-validator>=2.1'  (layer4-agents[dev])",
     # Shared identity — JWT library (already a production dep in layer4)
+    "langgraph": "pip install 'langgraph>=0.2'  (layer4-agents dependency)",
     "jose": "pip install 'python-jose[cryptography]>=3.3'  (layer4-agents dependency)",
     "jsonschema": "pip install 'jsonschema>=4.23'  (tests/requirements-test.txt)",
 }

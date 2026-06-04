@@ -51,4 +51,4 @@ pnpm billing:webhooks:replay-test
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/billing/junit.xml`.
+CI should publish `artifacts/production-readiness/billing/junit.xml` and `artifacts/production-readiness/billing/summary.md`.

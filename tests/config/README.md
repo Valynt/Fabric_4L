@@ -36,5 +36,5 @@ pnpm test:config
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/config/junit.xml`.
+CI should publish `artifacts/production-readiness/config/junit.xml` and `artifacts/production-readiness/config/summary.md`.
 

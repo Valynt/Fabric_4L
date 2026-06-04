@@ -37,4 +37,4 @@ pnpm ops:quota:check
 
 ## CI Artifact
 
-CI should publish `artifacts/production-readiness/abuse/junit.xml`.
+CI should publish `artifacts/production-readiness/abuse/junit.xml` and `artifacts/production-readiness/abuse/summary.md`.
