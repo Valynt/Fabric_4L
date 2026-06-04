@@ -13,30 +13,46 @@ MANIFESTS = [ROOT / 'k8s/neo4j.yml', ROOT / 'k8s/base/neo4j.yml']
 def docs(manifest: Path):
     return [x for x in yaml.safe_load_all(manifest.read_text()) if isinstance(x, dict)]
 
-errors = []
-for manifest in MANIFESTS:
-    found = {}
-    for d in docs(manifest):
-        if d.get('kind') != 'PersistentVolumeClaim':
-            continue
-        name = d.get('metadata', {}).get('name')
-        if name not in POLICY['required_pvcs']:
-            continue
-        found[name] = True
-        sc = d.get('spec', {}).get('storageClassName')
-        if sc not in POLICY['allowed_encrypted_storage_classes']:
-            errors.append(f"{manifest}: PVC {name} storageClassName={sc!r} is not an approved encrypted class")
-        ann = d.get('metadata', {}).get('annotations', {})
-        if ann.get(POLICY['required_annotation_key']) != POLICY['required_annotation_value']:
-            errors.append(f"{manifest}: PVC {name} missing required encryption annotation")
-    for req in POLICY['required_pvcs']:
-        if req not in found:
-            errors.append(f"{manifest}: missing required PVC {req}")
+def main() -> None:
+    errors = []
+    for manifest in MANIFESTS:
+        found = {}
+        for d in docs(manifest):
+            if d.get('kind') == 'Deployment':
+                volumes = d.get('spec', {}).get('template', {}).get('spec', {}).get('volumes', [])
+                for vol in volumes:
+                    if 'persistentVolumeClaim' in vol:
+                        claim_name = vol['persistentVolumeClaim'].get('claimName')
+                        if claim_name and claim_name not in POLICY['required_pvcs']:
+                            errors.append(f"{manifest}: Deployment mounts unauthorized PVC {claim_name}")
 
-if errors:
-    print('Graph storage encryption check failed:')
-    for err in errors:
-        print(' -', err)
-    sys.exit(1)
+            if d.get('kind') != 'PersistentVolumeClaim':
+                continue
+            name = d.get('metadata', {}).get('name')
+            if name in POLICY['required_pvcs']:
+                found[name] = True
+                
+            sc = d.get('spec', {}).get('storageClassName')
+            if sc not in POLICY['allowed_encrypted_storage_classes']:
+                errors.append(f"{manifest}: PVC {name} storageClassName={sc!r} is not an approved encrypted class")
+            ann = d.get('metadata', {}).get('annotations', {})
+            if ann.get(POLICY['required_annotation_key']) != POLICY['required_annotation_value']:
+                errors.append(f"{manifest}: PVC {name} missing required encryption annotation")
+            kms_key = 'security.valuefabric.io/kms-provider'
+            if ann.get(kms_key) != 'external':
+                errors.append(f"{manifest}: PVC {name} missing required annotation {kms_key}=external")
+                
+        for req in POLICY['required_pvcs']:
+            if req not in found:
+                errors.append(f"{manifest}: missing required PVC {req}")
 
-print('Graph storage encryption check passed')
+    if errors:
+        print('Graph storage encryption check failed:')
+        for err in errors:
+            print(' -', err)
+        sys.exit(1)
+
+    print('Graph storage encryption check passed')
+
+if __name__ == '__main__':
+    main()

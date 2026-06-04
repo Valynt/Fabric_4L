@@ -125,7 +125,6 @@ jobs:
 
       - name: Enforce graph storage encryption policy
         run: |
-          pip install pyyaml
           python scripts/ci/check_graph_storage_encryption.py
 
       - name: Check for dev auth bypass in production compose files
@@ -1335,6 +1334,17 @@ jobs:
           tar -xzf kustomize.tar.gz
           sudo mv kustomize /usr/local/bin/kustomize
           kustomize version
+
+      - name: Create required StorageClasses for dry-run
+        run: |
+          cat <<EOF | kubectl apply -f -
+          apiVersion: storage.k8s.io/v1
+          kind: StorageClass
+          metadata:
+            name: encrypted-rwo
+          provisioner: csi.aws.com # Dummy provisioner for dry-run
+          volumeBindingMode: WaitForFirstConsumer
+          EOF
 
       - name: Server-side dry-run (dev-nginx deployment)
         run: |
