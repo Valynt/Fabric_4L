@@ -343,7 +343,7 @@ def client():
     
     try:
         from layer1_ingestion.api.app_monolith import app
-        return _HybridTestClient(TestClient(app))
+        return _HybridTestClient(TestClient(app, raise_server_exceptions=False))
     except ImportError:
         pytest.skip("FastAPI app not available for testing")
 

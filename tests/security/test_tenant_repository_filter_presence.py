@@ -32,8 +32,8 @@ def test_l3_product_service_list_read_tenant_filters_present() -> None:
 
 
 def test_l6_benchmark_repository_list_read_tenant_filters_present() -> None:
-    source = _read("services/layer6-benchmarks/src/repositories/benchmark_repository.py")
+    source = _read("services/layer6-benchmarks/src/layer6_benchmarks/repositories/benchmark_repository.py")
     assert "def _tx_get_dataset(" in source
-    assert "tenant_id: $tenant_id" in source
+    assert "d.tenant_id = $tenant_id" in source
     assert "def _tx_list_datasets(" in source
     assert "d.tenant_id = $tenant_id" in source

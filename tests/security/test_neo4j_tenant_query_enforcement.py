@@ -93,7 +93,7 @@ class TestNeo4jTenantQueryEnforcement:
             atomic=False,
         )
         mock_driver, mock_session, mock_result = mock_neo4j_driver
-        mock_result.single.return_value = {"entity_id": entity_id}
+        mock_result.single.return_value = {"props": {"id": entity_id, "name": "Original Name"}}
 
         response = await batch_entity_operations(
             request=batch_request,

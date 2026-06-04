@@ -12,7 +12,7 @@ import pytest
 from value_fabric.shared.identity.jwt import decode_jwt
 
 
-TEST_SECRET = "jwt-validation-test-secret"
+TEST_SECRET = "jwt-validation-test-secret-32-bytes-min"
 TEST_AUDIENCE = "value-fabric-services"
 TEST_ISSUER = "value-fabric-internal"
 TEST_TENANT_ID = "11111111-1111-1111-1111-111111111111"

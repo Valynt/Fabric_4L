@@ -9,11 +9,7 @@
     "generate:api": "pnpm --filter ./apps/web run generate:types",
     "check:contract-compliance": "python scripts/ci/contract_compliance_gate.py --mode full",
     "check:api-types": "pnpm run generate:api && git diff --exit-code apps/web/src/api/generated",
-<<<<<<< ours
     "docs:check": "python -m pytest tests/docs/",
-=======
-    "evidence:bundle": "python scripts/ci/generate_evidence_bundle.py",
->>>>>>> theirs
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
     "test:agents": "python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py",

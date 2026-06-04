@@ -1,33 +1,20 @@
 #!/usr/bin/env python3
-<<<<<<< ours
 """Assemble a local audit/release evidence bundle.
 
 The default mode is intentionally lightweight: it generates read-only summaries,
 copies already-produced CI evidence when present, and records missing
 environment-dependent artifacts as manifest gaps instead of running heavy gates.
-=======
-"""Generate a consolidated audit/release evidence bundle.
-
-The bundle intentionally combines freshly generated local command output with
-references to heavyweight CI artifacts (container scans, SBOM attestations, live
-release smoke evidence) so auditors can review one immutable tarball while the
-same command remains runnable on developer workstations.
->>>>>>> theirs
 """
 
 from __future__ import annotations
 
 import argparse
-<<<<<<< ours
 import gzip
-=======
->>>>>>> theirs
 import hashlib
 import json
 import os
 import shutil
 import subprocess
-<<<<<<< ours
 import sys
 import tarfile
 import tempfile
@@ -45,8 +32,10 @@ MAX_INCLUDED_FILE_BYTES = 20 * 1024 * 1024
 HEAVY_EVIDENCE_EXPECTATIONS = (
     ("test summaries", "artifacts/**/*.xml"),
     ("security scan summaries", "artifacts/**/*security*"),
+    ("contract drift reports", "artifacts/**/*contract*drift*"),
     ("container SBOM references", "artifacts/**/*sbom*"),
     ("K8s validation report", "artifacts/**/*k8s*"),
+    ("observability dashboard/rule validation", "artifacts/**/*observability*"),
     ("release smoke results", "artifacts/release_smoke/**"),
 )
 
@@ -75,6 +64,7 @@ SECTION_PATTERNS: dict[str, tuple[str, ...]] = {
         "artifacts/contract-breaking/**",
         "artifacts/testing/*contract*",
         "artifacts/**/*contract*drift*",
+        "artifacts/**/*openapi*",
     ),
     "migrations": (
         "artifacts/database/**",
@@ -129,19 +119,24 @@ def _display_path(path: Path, repo_root: Path) -> str:
         return path.as_posix()
 
 
-def _git_sha(repo_root: Path) -> str:
-    for env_name in ("RELEASE_SHA", "GITHUB_SHA", "CI_COMMIT_SHA"):
-        value = os.environ.get(env_name)
-        if value:
-            return value
+def _git_value(repo_root: Path, args: list[str], default: str = "unknown") -> str:
     result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
+        ["git", *args],
         cwd=repo_root,
         text=True,
         capture_output=True,
         check=False,
     )
-    return result.stdout.strip() if result.returncode == 0 and result.stdout.strip() else "unknown"
+    value = result.stdout.strip()
+    return value if result.returncode == 0 and value else default
+
+
+def _git_sha(repo_root: Path) -> str:
+    for env_name in ("RELEASE_SHA", "GITHUB_SHA", "CI_COMMIT_SHA"):
+        value = os.environ.get(env_name)
+        if value:
+            return value
+    return _git_value(repo_root, ["rev-parse", "HEAD"])
 
 
 def _short_sha(sha: str) -> str:
@@ -167,26 +162,55 @@ def _run_command(
     command: list[str],
     repo_root: Path,
     gaps: list[dict[str, Any]],
+    staging_root: Path | None = None,
 ) -> dict[str, Any]:
-    result = subprocess.run(command, cwd=repo_root, text=True, capture_output=True, check=False)
-    stdout = result.stdout.strip()
-    stderr = result.stderr.strip()
+    stdout = ""
+    stderr = ""
+    status = "pass"
+    try:
+        result = subprocess.run(command, cwd=repo_root, text=True, capture_output=True, check=False, timeout=180)
+        stdout = result.stdout
+        stderr = result.stderr
+        returncode = result.returncode
+    except subprocess.TimeoutExpired as exc:
+        stdout = exc.stdout or ""
+        stderr = (exc.stderr or "") + "\nTimed out after 180s\n"
+        returncode = 124
+        status = "timeout"
+    except FileNotFoundError as exc:
+        stderr = str(exc) + "\n"
+        returncode = 127
+        status = "missing-tool"
+
+    if status == "pass" and returncode != 0:
+        status = "finding" if returncode in {1, 2} else "fail"
+
     record = {
         "name": name,
         "command": command,
-        "returncode": result.returncode,
-        "stdout_tail": stdout[-2000:],
-        "stderr_tail": stderr[-2000:],
+        "returncode": returncode,
+        "status": status,
+        "stdout_tail": stdout.strip()[-2000:],
+        "stderr_tail": stderr.strip()[-2000:],
     }
-    if result.returncode != 0:
+    if staging_root is not None:
+        output_dir = staging_root / "command-output" / name
+        output_dir.mkdir(parents=True, exist_ok=True)
+        (output_dir / "stdout.txt").write_text(stdout, encoding="utf-8")
+        (output_dir / "stderr.txt").write_text(stderr, encoding="utf-8")
+        record["stdout_path"] = f"command-output/{name}/stdout.txt"
+        record["stderr_path"] = f"command-output/{name}/stderr.txt"
+
+    if returncode != 0:
         gaps.append(
             {
                 "category": name,
                 "severity": "warning",
                 "reason": "summary_command_failed",
                 "command": " ".join(command),
-                "returncode": result.returncode,
-                "detail": (stderr or stdout)[-500:],
+                "returncode": returncode,
+                "status": status,
+                "detail": (stderr.strip() or stdout.strip())[-500:],
             }
         )
     return record
@@ -194,6 +218,20 @@ def _run_command(
 
 def _safe_copy(source: Path, destination: Path, *, repo_root: Path, gaps: list[dict[str, Any]]) -> bool:
     if not source.is_file():
+        return False
+    resolved_repo = repo_root.resolve()
+    resolved_source = source.resolve(strict=False)
+    try:
+        resolved_source.relative_to(resolved_repo)
+    except ValueError:
+        gaps.append(
+            {
+                "category": "file-copy",
+                "severity": "warning",
+                "reason": "source_outside_repo",
+                "source_path": source.as_posix(),
+            }
+        )
         return False
     size = source.stat().st_size
     if size > MAX_INCLUDED_FILE_BYTES:
@@ -304,18 +342,61 @@ def _generate_release_packet(repo_root: Path, staging_root: Path, release_sha: s
         release_sha,
         "--allow-placeholder-sha",
     ]
-    record = _run_command(name="release_evidence_packet", command=command, repo_root=repo_root, gaps=gaps)
+    record = _run_command(
+        name="release_evidence_packet",
+        command=command,
+        repo_root=repo_root,
+        gaps=gaps,
+        staging_root=staging_root,
+    )
     if output_dir.exists():
         record["output"] = "maturity/release-evidence-packet"
     return record
 
 
-def _generate_contract_reports(repo_root: Path, gaps: list[dict[str, Any]]) -> dict[str, Any]:
+def _write_openapi_inventory(repo_root: Path, staging_root: Path) -> dict[str, Any]:
+    specs = []
+    for path in sorted((repo_root / "contracts" / "openapi").glob("*.json")):
+        try:
+            payload = json.loads(path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            payload = {}
+        raw = path.read_bytes()
+        specs.append(
+            {
+                "path": _display_path(path, repo_root),
+                "title": payload.get("info", {}).get("title") if isinstance(payload, dict) else None,
+                "version": payload.get("info", {}).get("version") if isinstance(payload, dict) else None,
+                "paths": len(payload.get("paths", {})) if isinstance(payload, dict) else 0,
+                "schemas": len(payload.get("components", {}).get("schemas", {})) if isinstance(payload, dict) else 0,
+                "sha256": hashlib.sha256(raw).hexdigest(),
+            }
+        )
+    report = {
+        "generated_at_utc": _utc_now(),
+        "report_type": "openapi-breaking-change-inventory",
+        "baseline_note": (
+            "Local evidence records current OpenAPI checksums and command output. "
+            "Release-candidate CI should compare this inventory to the prior release baseline."
+        ),
+        "specs": specs,
+    }
+    _write_json(staging_root / "contracts" / "openapi-breaking-change-report.json", report)
+    return {"name": "openapi_inventory", "output": "contracts/openapi-breaking-change-report.json", "spec_count": len(specs)}
+
+
+def _generate_contract_reports(repo_root: Path, gaps: list[dict[str, Any]], staging_root: Path | None = None) -> dict[str, Any]:
     command = [sys.executable, "scripts/ci/openapi_breaking_change_gate.py"]
-    return _run_command(name="openapi_breaking_change_report", command=command, repo_root=repo_root, gaps=gaps)
+    return _run_command(
+        name="openapi_breaking_change_report",
+        command=command,
+        repo_root=repo_root,
+        gaps=gaps,
+        staging_root=staging_root,
+    )
 
 
-def _generate_migration_status(repo_root: Path, gaps: list[dict[str, Any]]) -> dict[str, Any]:
+def _generate_migration_status(repo_root: Path, gaps: list[dict[str, Any]], staging_root: Path | None = None) -> dict[str, Any]:
     command = [
         sys.executable,
         "scripts/ci/migration_status_report.py",
@@ -323,7 +404,24 @@ def _generate_migration_status(repo_root: Path, gaps: list[dict[str, Any]]) -> d
         "status",
         "--allow-database-unavailable",
     ]
-    return _run_command(name="migration_status", command=command, repo_root=repo_root, gaps=gaps)
+    return _run_command(
+        name="migration_status",
+        command=command,
+        repo_root=repo_root,
+        gaps=gaps,
+        staging_root=staging_root,
+    )
+
+
+def _write_migration_inventory(repo_root: Path, staging_root: Path) -> dict[str, Any]:
+    managed = []
+    for path in sorted(repo_root.glob("services/*/migrations/alembic.ini")):
+        managed.append({"service": path.parts[-3], "alembic_ini": _display_path(path, repo_root)})
+    for path in sorted(repo_root.glob("services/*/alembic.ini")):
+        managed.append({"service": path.parts[-2], "alembic_ini": _display_path(path, repo_root)})
+    payload = {"generated_at_utc": _utc_now(), "managed_services": managed}
+    _write_json(staging_root / "migrations" / "migration-status.json", payload)
+    return {"name": "migration_inventory", "output": "migrations/migration-status.json", "service_count": len(managed)}
 
 
 def _workflow_event_names(on_value: Any) -> list[str]:
@@ -357,7 +455,6 @@ def _load_workflow(path: Path) -> dict[str, Any]:
                 "parser": "pyyaml",
             }
 
-    # Fallback is intentionally simple; it still gives auditors a registry.
     jobs = []
     for line in text.splitlines():
         if line.startswith("  ") and not line.startswith("    ") and line.rstrip().endswith(":"):
@@ -470,6 +567,46 @@ def _generate_k8s_inventory(repo_root: Path, staging_root: Path, gaps: list[dict
     }
 
 
+def _write_test_summary(staging_root: Path, section_sources: list[dict[str, Any]]) -> dict[str, Any]:
+    copied = sum(source.get("files_copied", 0) for source in section_sources if source.get("section") == "tests")
+    payload = {
+        "generated_at_utc": _utc_now(),
+        "referenced_test_artifact_count": copied,
+        "note": "The bundle copies existing JUnit, pytest, Playwright, and test report artifacts when present.",
+    }
+    _write_json(staging_root / "tests" / "test-summaries.json", payload)
+    return {"name": "test_summary", "output": "tests/test-summaries.json", "artifact_count": copied}
+
+
+def _write_security_summary(staging_root: Path, section_sources: list[dict[str, Any]]) -> dict[str, Any]:
+    security_count = sum(source.get("files_copied", 0) for source in section_sources if source.get("section") == "security")
+    sbom_count = sum(source.get("files_copied", 0) for source in section_sources if source.get("section") == "supply-chain")
+    payload = {
+        "generated_at_utc": _utc_now(),
+        "referenced_security_artifact_count": security_count,
+        "referenced_sbom_artifact_count": sbom_count,
+        "note": "Security scans and SBOMs are copied from existing CI/local artifacts; the generator does not build images or run container scans.",
+    }
+    _write_json(staging_root / "security" / "security-scan-summaries.json", payload)
+    _write_json(staging_root / "supply-chain" / "container-sbom-references.json", payload)
+    return {"name": "security_summary", "output": "security/security-scan-summaries.json", "security_count": security_count, "sbom_count": sbom_count}
+
+
+def _write_release_smoke_summary(staging_root: Path, section_sources: list[dict[str, Any]]) -> dict[str, Any]:
+    copied = sum(source.get("files_copied", 0) for source in section_sources if source.get("section") == "release-smoke")
+    payload = {
+        "generated_at_utc": _utc_now(),
+        "command": "make test-backend-integrated-release-smoke",
+        "artifact_count": copied,
+        "note": (
+            "The evidence bundle records existing release-smoke artifacts when present. "
+            "Run make test-backend-integrated-release-smoke before pnpm evidence:bundle to include fresh live L1-L6 smoke results."
+        ),
+    }
+    _write_json(staging_root / "release-smoke" / "release-smoke-results.json", payload)
+    return {"name": "release_smoke_summary", "output": "release-smoke/release-smoke-results.json", "artifact_count": copied}
+
+
 def _write_readme(staging_root: Path, bundle_name: str) -> None:
     content = f"""# Value Fabric Evidence Bundle
 
@@ -522,389 +659,10 @@ def _collect_manifest_files(staging_root: Path, repo_root: Path) -> list[BundleF
                 size_bytes=path.stat().st_size,
                 sha256=_sha256(path),
             )
-=======
-import tarfile
-from dataclasses import dataclass
-from datetime import UTC, datetime
-from pathlib import Path
-from typing import Any
-
-ROOT = Path(__file__).resolve().parents[2]
-DEFAULT_OUTPUT_ROOT = ROOT / "artifacts" / "evidence"
-DEFAULT_WORK_ROOT = ROOT / "artifacts" / "evidence" / "work"
-
-EVIDENCE_COMMANDS: tuple[tuple[str, str, list[str]], ...] = (
-    (
-        "maturity-scorecard",
-        "Maturity scorecard / contract compliance posture",
-        [
-            "python",
-            "scripts/ci/contract_scorecard.py",
-            "--output",
-            "{bundle}/maturity/contract-scorecard.json",
-        ],
-    ),
-    (
-        "contract-drift",
-        "Contract drift and compliance gate",
-        ["python", "scripts/ci/platform_contract_lint.py"],
-    ),
-    (
-        "openapi-drift",
-        "OpenAPI endpoint-family and breaking-change guard coverage",
-        ["python", "scripts/ci/check_contract_endpoint_family_coverage.py"],
-    ),
-    (
-        "migration-status",
-        "Alembic migration entrypoint/head status",
-        ["python", "scripts/ci/check_migration_entrypoints.py"],
-    ),
-    (
-        "security-config",
-        "Security configuration and bypass policy",
-        ["python", "scripts/ci/check_config_policy.py"],
-    ),
-    (
-        "k8s-validation",
-        "Kubernetes manifest consistency validation",
-        ["python", "scripts/ci/check_k8s_manifest_consistency.py"],
-    ),
-    (
-        "observability-validation",
-        "Observability alert/dashboard production metadata validation",
-        ["python", "scripts/ci/check_production_alert_metadata.py"],
-    ),
-    (
-        "ci-workflow-registry",
-        "CI workflow target and artifact registry validation",
-        ["python", "scripts/ci/check_workflow_targets_and_artifacts.py"],
-    ),
-)
-
-REFERENCE_GLOBS: dict[str, tuple[str, ...]] = {
-    "test-summaries": (
-        "artifacts/**/pytest*.xml",
-        "artifacts/**/*junit*.xml",
-        "artifacts/**/test*.json",
-        "reports/**/*test*.json",
-    ),
-    "security-scan-summaries": (
-        "artifacts/**/trivy*",
-        "artifacts/**/bandit*",
-        "artifacts/**/zap*",
-        "artifacts/**/security*.xml",
-        "reports/**/*security*",
-    ),
-    "contract-drift-reports": (
-        "artifacts/**/*contract*",
-        "reports/**/*contract*",
-    ),
-    "container-sbom-references": (
-        "artifacts/**/sbom*.json",
-        "artifacts/**/*.cdx.json",
-        "artifacts/**/*.spdx.json",
-    ),
-    "k8s-validation": ("artifacts/k8s-validation/**/*",),
-    "observability-validation": (
-        "artifacts/**/*observability*",
-        "artifacts/**/*alert*",
-        "reports/**/*observability*",
-    ),
-    "release-smoke-results": (
-        "artifacts/release_smoke/**/*",
-        "artifacts/**/*release*smoke*",
-    ),
-}
-
-WORKFLOW_HINTS: dict[str, tuple[str, ...]] = {
-    "tests": ("test", "pytest", "vitest", "playwright"),
-    "security": ("security", "trivy", "bandit", "zap", "codeql", "supply-chain"),
-    "contracts": ("contract", "openapi", "api"),
-    "migrations": ("migration", "database", "alembic"),
-    "k8s": ("k8s", "kubernetes", "deploy"),
-    "observability": ("observability", "alert", "slo", "monitoring"),
-    "release": ("release", "smoke", "readiness", "evidence"),
-}
-
-
-@dataclass(frozen=True)
-class CommandResult:
-    key: str
-    description: str
-    command: list[str]
-    exit_code: int
-    stdout_path: str
-    stderr_path: str
-    status: str
-
-
-def utc_now() -> str:
-    return datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
-
-
-def git_value(args: list[str], default: str) -> str:
-    try:
-        return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return default
-
-
-def display_path(path: Path) -> str:
-    try:
-        return str(path.relative_to(ROOT))
-    except ValueError:
-        return str(path)
-
-
-def safe_copy(src: Path, dest: Path) -> None:
-    dest.parent.mkdir(parents=True, exist_ok=True)
-    if src.is_symlink():
-        target = src.resolve(strict=False)
-        if not str(target).startswith(str(ROOT)):
-            return
-    shutil.copy2(src, dest)
-
-
-def classify_status(exit_code: int) -> str:
-    # Evidence generation should be reproducible even when a gate records a
-    # release-readiness finding. The manifest preserves the raw exit code while
-    # distinguishing collected findings from generator/runtime failures.
-    if exit_code == 0:
-        return "pass"
-    if exit_code in {1, 2}:
-        return "finding"
-    return "fail"
-
-
-def write_json(path: Path, payload: Any) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(
-        json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8"
-    )
-
-
-def run_command(
-    key: str, description: str, command: list[str], bundle_dir: Path, timeout: int
-) -> CommandResult:
-    rendered = [part.replace("{bundle}", str(bundle_dir)) for part in command]
-    output_dir = bundle_dir / "command-output" / key
-    output_dir.mkdir(parents=True, exist_ok=True)
-    stdout_path = output_dir / "stdout.txt"
-    stderr_path = output_dir / "stderr.txt"
-    try:
-        proc = subprocess.run(
-            rendered,
-            cwd=ROOT,
-            text=True,
-            capture_output=True,
-            timeout=timeout,
-        )
-        stdout_path.write_text(proc.stdout, encoding="utf-8")
-        stderr_path.write_text(proc.stderr, encoding="utf-8")
-        exit_code = proc.returncode
-        status = classify_status(proc.returncode)
-    except subprocess.TimeoutExpired as exc:
-        stdout_path.write_text(exc.stdout or "", encoding="utf-8")
-        stderr_path.write_text(
-            (exc.stderr or "") + f"\nTimed out after {timeout}s\n", encoding="utf-8"
-        )
-        exit_code = 124
-        status = "timeout"
-    except FileNotFoundError as exc:
-        stdout_path.write_text("", encoding="utf-8")
-        stderr_path.write_text(str(exc) + "\n", encoding="utf-8")
-        exit_code = 127
-        status = "missing-tool"
-    return CommandResult(
-        key,
-        description,
-        rendered,
-        exit_code,
-        display_path(stdout_path),
-        display_path(stderr_path),
-        status,
-    )
-
-
-def collect_reference_artifacts(bundle_dir: Path) -> dict[str, list[dict[str, str]]]:
-    collected: dict[str, list[dict[str, str]]] = {}
-    bundle_resolved = bundle_dir.resolve()
-    for category, patterns in REFERENCE_GLOBS.items():
-        items: list[dict[str, str]] = []
-        seen: set[Path] = set()
-        for pattern in patterns:
-            for src in sorted(ROOT.glob(pattern)):
-                if not src.is_file() or src in seen:
-                    continue
-                if bundle_resolved in src.resolve().parents:
-                    continue
-                seen.add(src)
-                rel = src.relative_to(ROOT)
-                dest = bundle_dir / "referenced-artifacts" / category / rel
-                safe_copy(src, dest)
-                items.append({"source": str(rel), "bundled_as": display_path(dest)})
-        collected[category] = items
-    return collected
-
-
-def summarize_openapi(bundle_dir: Path) -> dict[str, Any]:
-    specs = []
-    for path in sorted((ROOT / "contracts" / "openapi").glob("*.json")):
-        data = json.loads(path.read_text(encoding="utf-8"))
-        raw = path.read_bytes()
-        specs.append(
-            {
-                "path": display_path(path),
-                "title": data.get("info", {}).get("title"),
-                "version": data.get("info", {}).get("version"),
-                "paths": len(data.get("paths", {})),
-                "schemas": len(data.get("components", {}).get("schemas", {})),
-                "sha256": hashlib.sha256(raw).hexdigest(),
-            }
-        )
-    report = {
-        "generated_at": utc_now(),
-        "report_type": "openapi-breaking-change-inventory",
-        "baseline_note": (
-            "This local bundle records current OpenAPI contract checksums and command output from "
-            "scripts/ci/check_contract_freshness.sh. CI release-candidate runs should compare this "
-            "inventory to the previous release baseline before approving breaking API changes."
-        ),
-        "specs": specs,
-    }
-    write_json(bundle_dir / "openapi" / "breaking-change-report.json", report)
-    return report
-
-
-def workflow_registry(bundle_dir: Path) -> dict[str, Any]:
-    workflows = []
-    for path in sorted((ROOT / ".github" / "workflows").glob("*.yml")) + sorted(
-        (ROOT / ".github" / "workflows").glob("*.yaml")
-    ):
-        text = path.read_text(encoding="utf-8", errors="ignore").lower()
-        categories = sorted(
-            category
-            for category, hints in WORKFLOW_HINTS.items()
-            if any(hint in text or hint in path.name for hint in hints)
-        )
-        workflows.append({"path": display_path(path), "categories": categories})
-    registry = {
-        "generated_at": utc_now(),
-        "workflow_count": len(workflows),
-        "workflows": workflows,
-    }
-    write_json(bundle_dir / "ci" / "workflow-registry.json", registry)
-    return registry
-
-
-def test_summary(
-    bundle_dir: Path, referenced: dict[str, list[dict[str, str]]]
-) -> dict[str, Any]:
-    tests = referenced.get("test-summaries", [])
-    payload = {
-        "generated_at": utc_now(),
-        "summary": {
-            "referenced_test_artifact_count": len(tests),
-            "pytest_targets_documented": (
-                "pytest.ini" if (ROOT / "pytest.ini").exists() else None
-            ),
-            "frontend_test_package": (
-                "apps/web/package.json"
-                if (ROOT / "apps/web/package.json").exists()
-                else None
-            ),
-        },
-        "artifacts": tests,
-    }
-    write_json(bundle_dir / "tests" / "test-summaries.json", payload)
-    return payload
-
-
-def security_summary(
-    bundle_dir: Path, referenced: dict[str, list[dict[str, str]]]
-) -> dict[str, Any]:
-    payload = {
-        "generated_at": utc_now(),
-        "referenced_security_artifact_count": len(
-            referenced.get("security-scan-summaries", [])
-        ),
-        "referenced_sbom_artifact_count": len(
-            referenced.get("container-sbom-references", [])
-        ),
-        "security_workflows": [
-            display_path(p)
-            for p in sorted((ROOT / ".github" / "workflows").glob("*security*.yml"))
-        ],
-        "supply_chain_workflows": [
-            display_path(p)
-            for p in sorted((ROOT / ".github" / "workflows").glob("*supply*.yml"))
-        ],
-        "artifacts": {
-            "security_scan_summaries": referenced.get("security-scan-summaries", []),
-            "container_sbom_references": referenced.get(
-                "container-sbom-references", []
-            ),
-        },
-    }
-    write_json(bundle_dir / "security" / "security-scan-summaries.json", payload)
-    return payload
-
-
-def migration_status(bundle_dir: Path) -> dict[str, Any]:
-    managed = []
-    for path in sorted(ROOT.glob("services/*/migrations/alembic.ini")):
-        managed.append({"service": path.parts[-3], "alembic_ini": display_path(path)})
-    for path in sorted(ROOT.glob("services/*/alembic.ini")):
-        managed.append({"service": path.parts[-2], "alembic_ini": display_path(path)})
-    payload = {"generated_at": utc_now(), "managed_services": managed}
-    write_json(bundle_dir / "migrations" / "migration-status.json", payload)
-    return payload
-
-
-def release_smoke_summary(
-    bundle_dir: Path, referenced: dict[str, list[dict[str, str]]]
-) -> dict[str, Any]:
-    artifacts = referenced.get("release-smoke-results", [])
-    payload = {
-        "generated_at": utc_now(),
-        "command": "make test-backend-integrated-release-smoke",
-        "underlying_script": "scripts/ci/run_release_smoke.sh",
-        "artifact_count": len(artifacts),
-        "artifacts": artifacts,
-        "local_note": (
-            "The evidence bundle records existing release-smoke artifacts when present. "
-            "Run make test-backend-integrated-release-smoke before pnpm evidence:bundle to include fresh live L1-L6 smoke results."
-        ),
-    }
-    write_json(bundle_dir / "release" / "release-smoke-results.json", payload)
-    return payload
-
-
-def file_sha256(path: Path) -> str:
-    h = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
-            h.update(chunk)
-    return h.hexdigest()
-
-
-def manifest_files(bundle_dir: Path) -> list[dict[str, Any]]:
-    files = []
-    for path in sorted(p for p in bundle_dir.rglob("*") if p.is_file()):
-        if path.name == "manifest.json":
-            continue
-        files.append(
-            {
-                "path": str(path.relative_to(bundle_dir)),
-                "size_bytes": path.stat().st_size,
-                "sha256": file_sha256(path),
-            }
->>>>>>> theirs
         )
     return files
 
 
-<<<<<<< ours
 def _write_manifest(
     *,
     staging_root: Path,
@@ -922,8 +680,22 @@ def _write_manifest(
         "generator_version": GENERATOR_VERSION,
         "generated_at_utc": _utc_now(),
         "git_sha": release_sha,
+        "git_branch": _git_value(repo_root, ["rev-parse", "--abbrev-ref", "HEAD"]),
         "bundle_id": bundle_id,
         "bundle_name": bundle_name,
+        "bundle_contents": [
+            "maturity scorecard",
+            "test summaries",
+            "security scan summaries",
+            "contract drift reports",
+            "OpenAPI breaking-change report",
+            "migration status",
+            "container SBOM references",
+            "K8s validation report",
+            "observability dashboard/rule validation",
+            "CI workflow registry",
+            "release smoke results",
+        ],
         "input_sources": input_sources,
         "evidence_gaps": evidence_gaps,
         "manifest_integrity": {
@@ -941,7 +713,7 @@ def _reset_tarinfo(tarinfo: tarfile.TarInfo) -> tarfile.TarInfo:
     tarinfo.gid = 0
     tarinfo.uname = ""
     tarinfo.gname = ""
-    tarinfo.mtime = 0
+    tarinfo.mtime = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
     return tarinfo
 
 
@@ -974,28 +746,39 @@ def generate_evidence_bundle(
     gaps: list[dict[str, Any]] = []
     input_sources: list[dict[str, Any]] = []
 
+    for stale_archive in sorted(output_dir.glob("*.tar.gz")):
+        if stale_archive != archive_path:
+            stale_archive.unlink()
+
     with tempfile.TemporaryDirectory(prefix="evidence-bundle-", dir=output_dir) as temp_dir:
         staging_root = Path(temp_dir) / bundle_id
         staging_root.mkdir(parents=True, exist_ok=True)
 
         input_sources.append(_generate_launch_scorecard(repo_root, staging_root, gaps))
         input_sources.append(_generate_release_packet(repo_root, staging_root, resolved_sha, gaps))
-        input_sources.append(_generate_contract_reports(repo_root, gaps))
-        input_sources.append(_generate_migration_status(repo_root, gaps))
+        input_sources.append(_write_openapi_inventory(repo_root, staging_root))
+        input_sources.append(_generate_contract_reports(repo_root, gaps, staging_root))
+        input_sources.append(_write_migration_inventory(repo_root, staging_root))
+        input_sources.append(_generate_migration_status(repo_root, gaps, staging_root))
         input_sources.append(_generate_workflow_registry(repo_root, staging_root))
         input_sources.append(_generate_observability_inventory(repo_root, staging_root, gaps))
         input_sources.append(_generate_k8s_inventory(repo_root, staging_root, gaps))
 
+        section_sources = []
         for section, patterns in SECTION_PATTERNS.items():
-            input_sources.append(
-                _copy_section_artifacts(
-                    section=section,
-                    patterns=patterns,
-                    repo_root=repo_root,
-                    staging_root=staging_root,
-                    gaps=gaps,
-                )
+            section_source = _copy_section_artifacts(
+                section=section,
+                patterns=patterns,
+                repo_root=repo_root,
+                staging_root=staging_root,
+                gaps=gaps,
             )
+            section_sources.append(section_source)
+            input_sources.append(section_source)
+
+        input_sources.append(_write_test_summary(staging_root, section_sources))
+        input_sources.append(_write_security_summary(staging_root, section_sources))
+        input_sources.append(_write_release_smoke_summary(staging_root, section_sources))
 
         for label, pattern in HEAVY_EVIDENCE_EXPECTATIONS:
             if not _iter_candidate_files(repo_root, (pattern,)):
@@ -1028,13 +811,14 @@ def generate_evidence_bundle(
         "evidence_gap_count": len(gaps),
     }
     _write_json(output_dir / f"{bundle_id}.summary.json", summary)
+    (output_dir / "LATEST").write_text(bundle_name + "\n", encoding="utf-8")
     return summary
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--repo-root", type=Path, default=REPO_ROOT)
-    parser.add_argument("--output-dir", type=Path, default=DEFAULT_OUTPUT_DIR)
+    parser.add_argument("--output-dir", "--output-root", type=Path, default=DEFAULT_OUTPUT_DIR)
     parser.add_argument("--release-sha", default=None)
     return parser.parse_args(argv)
 
@@ -1047,112 +831,6 @@ def main(argv: list[str] | None = None) -> int:
         release_sha=args.release_sha,
     )
     print(json.dumps(summary, indent=2, sort_keys=True))
-=======
-def create_tarball(bundle_dir: Path, tar_path: Path) -> None:
-    tar_path.parent.mkdir(parents=True, exist_ok=True)
-    with tarfile.open(tar_path, "w:gz") as tar:
-        for path in sorted(p for p in bundle_dir.rglob("*") if p.is_file()):
-            arcname = Path("evidence-bundle") / path.relative_to(bundle_dir)
-            info = tar.gettarinfo(str(path), arcname=str(arcname))
-            info.uid = info.gid = 0
-            info.uname = info.gname = "root"
-            info.mtime = int(os.environ.get("SOURCE_DATE_EPOCH", "0"))
-            with path.open("rb") as handle:
-                tar.addfile(info, handle)
-
-
-def build_bundle(output_root: Path, work_root: Path, timeout: int) -> Path:
-    sha = git_value(["rev-parse", "--short=12", "HEAD"], "unknown")
-    timestamp = utc_now().replace(":", "").replace("-", "")
-    bundle_dir = work_root / f"evidence-bundle-{sha}-{timestamp}"
-    if bundle_dir.exists():
-        shutil.rmtree(bundle_dir)
-    bundle_dir.mkdir(parents=True)
-    for category in (
-        "maturity",
-        "tests",
-        "security",
-        "openapi",
-        "migrations",
-        "release",
-        "ci",
-    ):
-        (bundle_dir / category).mkdir(parents=True, exist_ok=True)
-
-    command_results = [
-        run_command(key, description, command, bundle_dir, timeout)
-        for key, description, command in EVIDENCE_COMMANDS
-    ]
-    referenced = collect_reference_artifacts(bundle_dir)
-    summaries = {
-        "openapi_breaking_change_report": summarize_openapi(bundle_dir),
-        "ci_workflow_registry": workflow_registry(bundle_dir),
-        "test_summaries": test_summary(bundle_dir, referenced),
-        "security_summaries": security_summary(bundle_dir, referenced),
-        "migration_status": migration_status(bundle_dir),
-        "release_smoke_results": release_smoke_summary(bundle_dir, referenced),
-    }
-
-    manifest = {
-        "schema_version": "1.0",
-        "generated_at": utc_now(),
-        "git": {
-            "sha": git_value(["rev-parse", "HEAD"], "unknown"),
-            "branch": git_value(["rev-parse", "--abbrev-ref", "HEAD"], "unknown"),
-        },
-        "bundle_contents": [
-            "maturity scorecard",
-            "test summaries",
-            "security scan summaries",
-            "contract drift reports",
-            "OpenAPI breaking-change report",
-            "migration status",
-            "container SBOM references",
-            "K8s validation report",
-            "observability dashboard/rule validation",
-            "CI workflow registry",
-            "release smoke results",
-        ],
-        "commands": [result.__dict__ for result in command_results],
-        "referenced_artifacts": referenced,
-        "summaries": {
-            key: (
-                display_path(bundle_dir / value_path)
-                if isinstance(value_path, Path)
-                else "embedded"
-            )
-            for key, value_path in summaries.items()
-        },
-        "files": manifest_files(bundle_dir),
-    }
-    write_json(bundle_dir / "manifest.json", manifest)
-
-    output_root.mkdir(parents=True, exist_ok=True)
-    for stale_bundle in output_root.glob("evidence-bundle-*.tar.gz"):
-        stale_bundle.unlink()
-    tar_path = output_root / f"evidence-bundle-{sha}-{timestamp}.tar.gz"
-    create_tarball(bundle_dir, tar_path)
-    latest = output_root / "LATEST"
-    latest.write_text(tar_path.name + "\n", encoding="utf-8")
-    print(display_path(tar_path))
-    return tar_path
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Generate consolidated audit/release evidence bundle"
-    )
-    parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
-    parser.add_argument("--work-root", type=Path, default=DEFAULT_WORK_ROOT)
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=120,
-        help="timeout per evidence command in seconds",
-    )
-    args = parser.parse_args()
-    build_bundle(args.output_root, args.work_root, args.timeout)
->>>>>>> theirs
     return 0
 
 

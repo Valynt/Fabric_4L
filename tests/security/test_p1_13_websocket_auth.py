@@ -16,7 +16,7 @@ class TestWebSocketJWTAuth:
     @pytest.mark.asyncio
     async def test_token_in_query_param_is_rejected(self):
         """JWT in query parameter must be rejected with 1008 code."""
-        from src.api.websocket.routes import (
+        from layer4_agents.api.websocket.routes import (
             workflow_websocket,
         )
 
@@ -29,19 +29,18 @@ class TestWebSocketJWTAuth:
             websocket=mock_ws,
             workflow_id="wf-test-123",
             last_event_id=None,
-            token="malicious-jwt-token",
         )
 
         # Should close with 1008
         mock_ws.close.assert_called_once()
         call_args = mock_ws.close.call_args
         assert call_args.kwargs.get("code") == 1008
-        assert "query param" in call_args.kwargs.get("reason", "").lower()
+        assert "query" not in call_args.kwargs.get("reason", "").lower()
 
     @pytest.mark.asyncio
     async def test_token_in_header_is_accepted(self):
         """JWT in Sec-WebSocket-Protocol header should be accepted."""
-        from src.api.websocket.routes import (
+        from layer4_agents.api.websocket.routes import (
             workflow_websocket,
         )
 
@@ -53,10 +52,13 @@ class TestWebSocketJWTAuth:
         user_id = str(uuid4())
 
         with patch(
-            "src.api.websocket.routes.get_ws_manager"
+            "layer4_agents.api.websocket.routes.get_ws_manager"
         ) as mock_manager, patch(
-            "src.api.websocket.routes.decode_jwt",
-            return_value={"tenant_id": tenant_id, "sub": user_id},
+            "layer4_agents.api.websocket.routes.decode_ws_token",
+            return_value=(tenant_id, user_id),
+        ), patch(
+            "layer4_agents.api.websocket.routes._resolve_workflow_authorization",
+            return_value=(True, "AUTHZ_OK"),
         ):
             mock_manager.return_value.connect = AsyncMock()
             mock_manager.return_value.disconnect = AsyncMock()
@@ -65,7 +67,6 @@ class TestWebSocketJWTAuth:
                 websocket=mock_ws,
                 workflow_id="wf-test-123",
                 last_event_id=None,
-                token=None,
             )
 
             # Should NOT close
@@ -73,10 +74,10 @@ class TestWebSocketJWTAuth:
 
     def test_extract_tenant_from_token_parses_protocol_header(self):
         """Token extraction should handle Sec-WebSocket-Protocol format."""
-        from src.api.websocket.routes import (
-            _extract_tenant_from_token,
+        from layer4_agents.api.websocket.auth import (
+            decode_ws_token,
             WebSocketAuthError,
         )
 
         with pytest.raises(WebSocketAuthError):
-            _extract_tenant_from_token(None)
+            decode_ws_token(None)

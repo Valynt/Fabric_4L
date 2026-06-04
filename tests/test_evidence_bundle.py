@@ -37,8 +37,16 @@ def _stub_generators(module, monkeypatch):
 
     monkeypatch.setattr(module, "_generate_launch_scorecard", launch_scorecard)
     monkeypatch.setattr(module, "_generate_release_packet", release_packet)
-    monkeypatch.setattr(module, "_generate_contract_reports", lambda _repo_root, _gaps: command_record("contracts"))
-    monkeypatch.setattr(module, "_generate_migration_status", lambda _repo_root, _gaps: command_record("migrations"))
+    monkeypatch.setattr(
+        module,
+        "_generate_contract_reports",
+        lambda _repo_root, _gaps, _staging_root=None: command_record("contracts"),
+    )
+    monkeypatch.setattr(
+        module,
+        "_generate_migration_status",
+        lambda _repo_root, _gaps, _staging_root=None: command_record("migrations"),
+    )
 
 
 def _write_minimal_repo(repo_root: Path) -> None:
@@ -78,6 +86,7 @@ def test_generate_evidence_bundle_creates_archive_and_manifest(tmp_path, monkeyp
 
     archive = tmp_path / summary["archive_path"]
     assert archive.exists()
+    assert (tmp_path / "artifacts" / "evidence" / "LATEST").read_text(encoding="utf-8").strip() == archive.name
 
     with tarfile.open(archive, "r:gz") as tar:
         names = tar.getnames()
