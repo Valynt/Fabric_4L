@@ -50,6 +50,9 @@ jobs:
       - name: Enforce package manager policy (root + apps/web)
         run: pnpm run check:package-manager-policy
 
+      - name: Verify schema index coverage
+        run: pnpm test:schema
+
       - name: Enforce Vault dev-mode boundaries (compose + release manifests)
         run: python scripts/ci/check_vault_dev_mode_boundaries.py
 
