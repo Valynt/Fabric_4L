@@ -2,9 +2,11 @@ FROM mcr.microsoft.com/devcontainers/base:bookworm
 
 # Install build tools not present in base image
 # (curl, wget, git, gnupg, ca-certificates, jq are already in devcontainers/base:bookworm)
+# python3-pip is needed here because the Python devcontainer feature runs after this Dockerfile
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     software-properties-common \
+    python3-pip \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Infisical CLI (secret management)
