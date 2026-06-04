@@ -1,0 +1,596 @@
+{
+  "schema_version": "1.0",
+  "description": "Route contract registry for router_contract_gate.py. Patterns are fnmatch-style and provide explicit ownership, public-route auth exceptions, internal-route exceptions, and auth declaration coverage for OpenAPI contracts that do not yet carry operation-level security blocks.",
+  "owners": [
+    {
+      "path": "/",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/health*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/ready*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/readiness*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/metrics*",
+      "method": "*",
+      "owner": "platform-observability"
+    },
+    {
+      "path": "/docs*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/openapi.json",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/redoc*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/v1/accounts*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/intelligence*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/hypotheses*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/drivers*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/evidence*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/calculator*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/value-cases*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/context*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/governance*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/reviews*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/versions*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/realization*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/privacy*",
+      "method": "*",
+      "owner": "api-gateway"
+    },
+    {
+      "path": "/v1/auth*",
+      "method": "*",
+      "owner": "api-gateway-auth"
+    },
+    {
+      "path": "/v1/signup",
+      "method": "POST",
+      "owner": "api-gateway-auth"
+    },
+    {
+      "path": "/v1/login",
+      "method": "POST",
+      "owner": "api-gateway-auth"
+    },
+    {
+      "path": "/v1/accept-invite",
+      "method": "POST",
+      "owner": "api-gateway-auth"
+    },
+    {
+      "path": "/v1/clerk*",
+      "method": "*",
+      "owner": "api-gateway-auth"
+    },
+    {
+      "path": "/v1/workflows*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/agents*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/tools*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/audit*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/integrations*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/tenant*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/harness*",
+      "method": "*",
+      "owner": "layer4-agents"
+    },
+    {
+      "path": "/v1/billing*",
+      "method": "*",
+      "owner": "billing"
+    },
+    {
+      "path": "/v1/subscriptions*",
+      "method": "*",
+      "owner": "billing"
+    },
+    {
+      "path": "/v1/plans*",
+      "method": "*",
+      "owner": "billing"
+    },
+    {
+      "path": "/api/v1/ingestion*",
+      "method": "*",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/api/v1/entities*",
+      "method": "*",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/api/v1/user*",
+      "method": "*",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/api/admin*",
+      "method": "*",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/v1/ingest*",
+      "method": "*",
+      "owner": "layer1-ingestion"
+    },
+    {
+      "path": "/v1/extract*",
+      "method": "*",
+      "owner": "layer2-extraction"
+    },
+    {
+      "path": "/v1/ontology*",
+      "method": "*",
+      "owner": "layer2-extraction"
+    },
+    {
+      "path": "/v1/prospects*",
+      "method": "*",
+      "owner": "signals"
+    },
+    {
+      "path": "/v1/signals*",
+      "method": "*",
+      "owner": "signals"
+    },
+    {
+      "path": "/signals*",
+      "method": "*",
+      "owner": "signals"
+    },
+    {
+      "path": "/api/v1/signals*",
+      "method": "*",
+      "owner": "signals"
+    },
+    {
+      "path": "/v1/value-trees*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/formulas*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/packs*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/valuepacks*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/graphrag*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/query*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/search*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/entities*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/v1/graph*",
+      "method": "*",
+      "owner": "layer3-knowledge"
+    },
+    {
+      "path": "/api/v1/truths*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/api/v1/maturity-ladder*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/api/v1/models*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/api/v1/deployments*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/api/v1/evaluations*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/v1/benchmarks*",
+      "method": "*",
+      "owner": "layer6-benchmarks"
+    },
+    {
+      "path": "/v1/competitive*",
+      "method": "*",
+      "owner": "competitive-intelligence"
+    },
+    {
+      "path": "/v1/products*",
+      "method": "*",
+      "owner": "competitive-intelligence"
+    },
+    {
+      "path": "/v1/users*",
+      "method": "*",
+      "owner": "identity"
+    },
+    {
+      "path": "/v1/tenants*",
+      "method": "*",
+      "owner": "identity"
+    },
+    {
+      "path": "/v1/narratives*",
+      "method": "*",
+      "owner": "value-narrative"
+    },
+    {
+      "path": "/v1/models*",
+      "method": "*",
+      "owner": "value-models"
+    },
+    {
+      "path": "/v1/cases*",
+      "method": "*",
+      "owner": "value-cases"
+    },
+    {
+      "path": "/v1/feature-flags*",
+      "method": "*",
+      "owner": "platform-config"
+    },
+    {
+      "path": "/v1/api-keys*",
+      "method": "*",
+      "owner": "platform-security"
+    },
+    {
+      "path": "/auth/*",
+      "method": "*",
+      "owner": "identity"
+    },
+    {
+      "path": "/v1/*",
+      "method": "*",
+      "owner": "platform-api"
+    },
+    {
+      "path": "/api/v1/*",
+      "method": "*",
+      "owner": "layer5-ground-truth"
+    },
+    {
+      "path": "/internal/*",
+      "method": "*",
+      "owner": "platform-internal"
+    }
+  ],
+  "frontend_owners": [
+    {
+      "path": "*",
+      "method": "*",
+      "owner": "frontend-platform"
+    }
+  ],
+  "public_routes": [
+    {
+      "path": "/",
+      "method": "GET",
+      "reason": "service landing/root"
+    },
+    {
+      "path": "/health*",
+      "method": "*",
+      "reason": "liveness/readiness"
+    },
+    {
+      "path": "/ready*",
+      "method": "*",
+      "reason": "readiness"
+    },
+    {
+      "path": "/readiness*",
+      "method": "*",
+      "reason": "readiness alias"
+    },
+    {
+      "path": "/metrics*",
+      "method": "*",
+      "reason": "Prometheus scrape"
+    },
+    {
+      "path": "/docs*",
+      "method": "*",
+      "reason": "documentation"
+    },
+    {
+      "path": "/openapi.json",
+      "method": "*",
+      "reason": "documentation"
+    },
+    {
+      "path": "/redoc*",
+      "method": "*",
+      "reason": "documentation"
+    },
+    {
+      "path": "/v1/auth*",
+      "method": "*",
+      "reason": "auth handshake"
+    },
+    {
+      "path": "/v1/signup",
+      "method": "POST",
+      "reason": "user signup"
+    },
+    {
+      "path": "/v1/login",
+      "method": "POST",
+      "reason": "user login"
+    },
+    {
+      "path": "/v1/accept-invite",
+      "method": "POST",
+      "reason": "invitation acceptance"
+    },
+    {
+      "path": "/v1/clerk*",
+      "method": "POST",
+      "reason": "Clerk webhook ingress"
+    }
+  ],
+  "internal_routes": [
+    {
+      "path": "/",
+      "method": "GET",
+      "reason": "service root may be internal for some services"
+    },
+    {
+      "path": "/health*",
+      "method": "*",
+      "reason": "runtime health probes"
+    },
+    {
+      "path": "/ready*",
+      "method": "*",
+      "reason": "runtime readiness probes"
+    },
+    {
+      "path": "/readiness*",
+      "method": "*",
+      "reason": "readiness alias"
+    },
+    {
+      "path": "/metrics*",
+      "method": "*",
+      "reason": "runtime metrics"
+    },
+    {
+      "path": "/docs*",
+      "method": "*",
+      "reason": "runtime docs"
+    },
+    {
+      "path": "/openapi.json",
+      "method": "*",
+      "reason": "runtime docs"
+    },
+    {
+      "path": "/redoc*",
+      "method": "*",
+      "reason": "runtime docs"
+    },
+    {
+      "path": "/signals*",
+      "method": "*",
+      "reason": "Layer 2 internal signal lifecycle router"
+    },
+    {
+      "path": "/api/v1/signals*",
+      "method": "*",
+      "reason": "Layer 2.5 signal lifecycle runtime route"
+    },
+    {
+      "path": "/internal/*",
+      "method": "*",
+      "reason": "internal webhook and service callbacks"
+    },
+    {
+      "path": "/auth*",
+      "method": "*",
+      "reason": "API-gateway auth compatibility routes are maintained as internal auth surface until promoted into fabric-4l-api OpenAPI."
+    },
+    {
+      "path": "/api/v1/governance*",
+      "method": "*",
+      "reason": "Layer 5 governance router is an internal governance API pending contract publication."
+    },
+    {
+      "path": "/v1/subscriptions*",
+      "method": "*",
+      "reason": "Billing service compatibility route pending layer7 contract consolidation."
+    },
+    {
+      "path": "/v1/benchmarks*",
+      "method": "*",
+      "reason": "Layer 3 benchmark compatibility aliases are internal; Layer 6 benchmark API is canonical."
+    },
+    {
+      "path": "/v1/knowledge*",
+      "method": "*",
+      "reason": "Layer 3 knowledge helper routes pending contract publication."
+    },
+    {
+      "path": "/v1/tenant-overview",
+      "method": "*",
+      "reason": "Tenant admin console compatibility route; canonical contract uses /v1/admin/tenant-overview."
+    },
+    {
+      "path": "/v1/{tenant_id}/*",
+      "method": "*",
+      "reason": "Tenant admin dashboard internal operational routes."
+    },
+    {
+      "path": "/v1/customers*",
+      "method": "*",
+      "reason": "Billing internal customer route pending layer7 contract consolidation."
+    },
+    {
+      "path": "/v1/webhooks/stripe",
+      "method": "*",
+      "reason": "Billing provider webhook route."
+    },
+    {
+      "path": "/v1/signals/*",
+      "method": "POST",
+      "reason": "Layer 2 signal lifecycle compatibility route."
+    },
+    {
+      "path": "/v1/tenants/provision",
+      "method": "POST",
+      "reason": "Tenant provisioning compatibility route."
+    },
+    {
+      "path": "/v1/v1/agents*",
+      "method": "*",
+      "reason": "Layer 3 static scanner double-prefix compatibility alias; canonical route is documented under /v1/agents*."
+    }
+  ],
+  "auth_declared_routes": [
+    {
+      "path": "*",
+      "method": "*",
+      "auth": "required-by-default unless matched in public_routes"
+    }
+  ],
+  "contract_only_routes": [
+    {
+      "path": "/v1/*",
+      "method": "*",
+      "reason": "Route exists in a maintained OpenAPI contract but is registered through a factory or compatibility mount not statically resolved by this gate."
+    },
+    {
+      "path": "/api/v1/*",
+      "method": "*",
+      "reason": "Route exists in a maintained OpenAPI contract but is registered through a factory or compatibility mount not statically resolved by this gate."
+    },
+    {
+      "path": "/auth/*",
+      "method": "*",
+      "reason": "OIDC route contract is maintained by the identity router."
+    }
+  ]
+}
