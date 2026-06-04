@@ -47,23 +47,23 @@ This document catalogs every external service, API, database, and infrastructure
 
 ## Vector / Embedding Providers
 
-### Pinecone
+### Neo4j Native Vector Indexes
 
 | Property | Value |
 |----------|-------|
 | **Used by** | Layer 3 (Knowledge Graph) |
-| **Purpose** | Vector index for semantic entity search and retrieval |
-| **Vector dimensions** | 1,536 (OpenAI `text-embedding-3-large`) |
-| **Status** | Planned (integrated in schema; requires Pinecone account) |
+| **Purpose** | Native Neo4j `VECTOR` indexes for semantic entity search and retrieval |
+| **Vector dimensions** | Configured by `EMBEDDING_DIMENSION` |
+| **Status** | Active |
 
 ### pgvector (PostgreSQL Extension)
 
 | Property | Value |
 |----------|-------|
-| **Used by** | Layer 3 (Knowledge Graph) |
-| **Purpose** | In-database vector search as alternative to Pinecone |
-| **Vector dimensions** | 768 (sentence-transformers) |
-| **Status** | Active |
+| **Used by** | Not used by current Layer 3 retrieval paths |
+| **Purpose** | Reserved future PostgreSQL vector backend option |
+| **Vector dimensions** | Not provisioned |
+| **Status** | Inactive |
 
 ### sentence-transformers
 
@@ -110,7 +110,7 @@ This document catalogs every external service, API, database, and infrastructure
 |----------|-------|
 | **Used by** | Layer 1 (Ingestion), Layer 4 (Agents — checkpoint/resume) |
 | **Purpose** | Crawl job state, audit logs, agent workflow checkpoints, semantic layer metadata |
-| **Extensions** | `pgvector` (vector search fallback) |
+| **Extensions** | None required for current Layer 3 vector search |
 | **ORM** | SQLAlchemy (async) |
 
 ---
@@ -393,7 +393,7 @@ This document catalogs every external service, API, database, and infrastructure
 | OpenAI | L2 | `OPENAI_API_KEY`, `L2_OPENAI_MODEL`, `L2_LLM_PROVIDER` |
 | Anthropic | L2 | `ANTHROPIC_API_KEY`, `L2_ANTHROPIC_MODEL`, `L2_LLM_PROVIDER` |
 | Neo4j | L3 | `NEO4J_URI`, `NEO4J_USER`, `NEO4J_PASSWORD`, `NEO4J_DATABASE`, `NEO4J_MAX_POOL_SIZE` |
-| Pinecone | L3 | `PINECONE_API_KEY`, `PINECONE_ENVIRONMENT` |
+| Legacy vector provider config | L3 compatibility only | `PINECONE_API_KEY`, `PINECONE_ENVIRONMENT` |
 | sentence-transformers | L3 | `EMBEDDING_MODEL`, `EMBEDDING_BATCH_SIZE` |
 | Redis | L1, L2, L4 | `REDIS_URL` |
 | PostgreSQL | L1, L4 | `DATABASE_URL` |

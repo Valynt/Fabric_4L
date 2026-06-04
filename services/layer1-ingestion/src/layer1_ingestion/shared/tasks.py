@@ -178,6 +178,14 @@ celery_app.conf.update(
             "exchange": "default",
             "routing_key": "default",
         },
+        "ingestion": {
+            "exchange": "ingestion",
+            "routing_key": "ingestion",
+        },
+        "processing": {
+            "exchange": "processing",
+            "routing_key": "processing",
+        },
         "layer1_dlq": {
             "exchange": "layer1_dlq",
             "routing_key": "layer1_dlq",

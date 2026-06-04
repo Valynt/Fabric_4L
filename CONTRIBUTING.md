@@ -32,23 +32,27 @@ pyenv local 3.11
 #    Or select any concrete installed 3.11.x patch if your pyenv does not support series aliases.
 #    Use `make PYTHON=/path/to/python3.11 ...` if your shim path is non-standard.
 
-# 4. Start infrastructure
-make up
-# Or directly: docker compose -f docker-compose.dev.yml up -d
+# 4. Enable the repo-pinned pnpm version
+corepack enable
+corepack prepare pnpm@10.18.1 --activate
 
-# 5. Install all service dev dependencies (installs into the pytest pipx venv)
+# 5. Install JavaScript/TypeScript workspace dependencies
+pnpm install --frozen-lockfile
+
+# 6. Install all service dev dependencies (installs into the pytest pipx venv)
 make setup
 
-# 6. Install frontend dependencies
-pnpm --dir apps/web install
-
-# 7. Run migrations
+# 7. Run migrations after infrastructure is available
 make migrate
 
 # 8. Verify everything passes
-make setup && make test-layer1 test-layer2 test-layer3 test-layer4 test-layer5 test-layer6
 make verify
 ```
+
+The Makefile is the canonical build, test, migration, contract, and release gate interface.
+Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases. Use
+[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for command hierarchy and
+[`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
 
 ---
 
@@ -138,17 +142,10 @@ This sanity check fails if CI would pick up excluded directories through default
 
 ### Root gate command surface
 
-Use these root `pnpm` aliases when CI or release automation expects npm-script parity. They
-delegate to the existing Makefile or Python gates and do not introduce separate implementations.
-
-| Command | Canonical implementation |
-|---|---|
-| `pnpm test:security` | `python scripts/ci/run_root_aggregate_checks.py security` |
-| `pnpm test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` |
-| `pnpm test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` |
-| `pnpm test:crawler` | `python scripts/ci/run_root_aggregate_checks.py crawler` |
-| `pnpm test:router` | `python scripts/ci/run_root_aggregate_checks.py router` |
-| `pnpm db:migrate:status` | `python scripts/ci/run_root_aggregate_checks.py db-migrate-status` |
+The complete root script inventory, public Makefile target list, and CI-to-local command mapping
+live in [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md). The build-system policy
+and rules for when to use `make`, `pnpm`, or direct Python CI runners live in
+[`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md).
 
 ### Lockfile expectations by directory class
 

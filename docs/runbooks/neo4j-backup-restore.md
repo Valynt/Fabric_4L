@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Create, validate, and restore Neo4j backups for the knowledge graph using snapshots or Neo4j dump artifacts.
+Create, validate, and restore Neo4j backups for the knowledge graph using snapshots or Neo4j dump artifacts. Layer 3 semantic retrieval stores embeddings as Neo4j node properties and uses Neo4j-native `VECTOR` indexes, so graph backup/restore validation must include vector index state.
 
 ## Trigger
 
@@ -63,7 +63,7 @@ Backup destination, snapshot class or dump tooling, encryption/checksum metadata
 
 ## Related Gates
 
-Backup/restore readiness gates: snapshot/dump completion, checksum verification, restore drill evidence, Layer 3 readiness checks, migration readiness checks for schema compatibility, and deployment gates before cutover.
+Backup/restore readiness gates: snapshot/dump completion, checksum verification, restore drill evidence, `pnpm db:extensions:check`, Layer 3 readiness checks, migration readiness checks for schema compatibility, and deployment gates before cutover.
 
 ## Related Runbooks
 

@@ -64,6 +64,9 @@ jobs:
       - name: Validate workflow target/artifact references
         run: python scripts/ci/check_workflow_targets_and_artifacts.py
 
+      - name: Validate workflow ownership registry
+        run: python scripts/ci/verify_workflow_registry.py
+
       - name: Enforce ADR numbering policy
         run: python scripts/ci/check_adr_numbering.py
 
@@ -1710,6 +1713,34 @@ jobs:
           path: artifacts/docker-compose-config/**
           retention-days: 14
 
+  queue-topology-checks:
+    name: Queue Topology
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: '24'
+
+      - name: Enable pnpm
+        run: corepack enable && corepack prepare pnpm@10.18.1 --activate
+
+      - name: Install queue topology test dependencies
+        run: python -m pip install pytest pyyaml
+
+      - name: Run queue topology checks
+        run: pnpm test:queues
+
   docker-build-check:
     name: Docker Image Build Verification
     runs-on: ubuntu-latest
@@ -1933,6 +1964,7 @@ jobs:
       - integration-checks
       - k8s-dry-run
       - docker-compose-config-contract
+      - queue-topology-checks
       - docker-build-check
       - route-auth-gate
       - tenant-isolation-gate
@@ -1948,6 +1980,7 @@ jobs:
             ["integration-checks"]="${{ needs.integration-checks.result }}"
             ["k8s-dry-run"]="${{ needs.k8s-dry-run.result }}"
             ["docker-compose-config-contract"]="${{ needs.docker-compose-config-contract.result }}"
+            ["queue-topology-checks"]="${{ needs.queue-topology-checks.result }}"
             ["docker-build-check"]="${{ needs.docker-build-check.result }}"
             ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
             ["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"

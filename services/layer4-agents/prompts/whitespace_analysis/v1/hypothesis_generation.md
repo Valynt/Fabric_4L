@@ -12,7 +12,9 @@ max_tokens: 4000
 Generate value hypotheses for account "{{ account_name }}" based on the following gap analysis:
 
 ## Gap Analysis
+<<<USER_GAP_ANALYSIS>>>
 {{ gap_analysis_json }}
+<<</USER_GAP_ANALYSIS>>>
 
 ## Opportunity Score
 {{ opportunity_score }}

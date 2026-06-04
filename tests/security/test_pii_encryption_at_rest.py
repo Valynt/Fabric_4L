@@ -54,31 +54,31 @@ class TestModelFieldsUseEncryptedString:
         return False
 
     def test_account_owner_email_is_encrypted(self) -> None:
-        src = self._model_source("services/layer4-agents/src/models/account.py")
+        src = self._model_source("services/layer4-agents/src/layer4_agents/models/account.py")
         assert self._has_encrypted_column(src, "owner_email"), (
             "Account.owner_email must use EncryptedString"
         )
 
     def test_account_headquarters_is_encrypted(self) -> None:
-        src = self._model_source("services/layer4-agents/src/models/account.py")
+        src = self._model_source("services/layer4-agents/src/layer4_agents/models/account.py")
         assert self._has_encrypted_column(src, "headquarters"), (
             "Account.headquarters must use EncryptedString"
         )
 
     def test_billing_customer_email_is_encrypted(self) -> None:
-        src = self._model_source("services/layer4-agents/src/models/billing.py")
+        src = self._model_source("services/layer4-agents/src/layer4_agents/models/billing.py")
         assert self._has_encrypted_column(src, "email"), (
             "BillingCustomer.email must use EncryptedString"
         )
 
     def test_billing_customer_name_is_encrypted(self) -> None:
-        src = self._model_source("services/layer4-agents/src/models/billing.py")
+        src = self._model_source("services/layer4-agents/src/layer4_agents/models/billing.py")
         assert self._has_encrypted_column(src, "name"), (
             "BillingCustomer.name must use EncryptedString"
         )
 
     def test_user_email_is_encrypted(self) -> None:
-        src = self._model_source("services/layer4-agents/src/tenants/models/user.py")
+        src = self._model_source("services/layer4-agents/src/layer4_agents/tenants/models/user.py")
         assert self._has_encrypted_column(src, "email"), (
             "User.email must use EncryptedString"
         )
@@ -88,13 +88,13 @@ class TestSearchablePiiHasBlindIndex:
     """Searchable PII fields must have a companion blind-index column."""
 
     def test_user_has_email_hash_column(self) -> None:
-        src = Path("services/layer4-agents/src/tenants/models/user.py").read_text(
+        src = Path("services/layer4-agents/src/layer4_agents/tenants/models/user.py").read_text(
             encoding="utf-8"
         )
         assert "email_hash" in src, "User model must define email_hash for blind-index lookups"
 
     def test_user_unique_constraint_uses_email_hash(self) -> None:
-        src = Path("services/layer4-agents/src/tenants/models/user.py").read_text(
+        src = Path("services/layer4-agents/src/layer4_agents/tenants/models/user.py").read_text(
             encoding="utf-8"
         )
         assert 'UniqueConstraint("tenant_id", "email_hash"' in src, (
@@ -102,7 +102,7 @@ class TestSearchablePiiHasBlindIndex:
         )
 
     def test_oidc_query_uses_email_hash(self) -> None:
-        src = Path("services/layer4-agents/src/tenants/api/routes/oidc.py").read_text(
+        src = Path("services/layer4-agents/src/layer4_agents/tenants/api/routes/oidc.py").read_text(
             encoding="utf-8"
         )
         assert "email_hash" in src, (

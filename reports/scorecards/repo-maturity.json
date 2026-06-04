@@ -1,0 +1,1121 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-06-04T06:10:59.808191+00:00",
+  "status": "fail",
+  "overall_score": 9.0,
+  "max_score": 10.0,
+  "dimensions": [
+    {
+      "id": "directory_organization",
+      "name": "Directory organization",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "apps/web",
+          "description": "Frontend is isolated under apps/web.",
+          "check": "frontend_root"
+        },
+        {
+          "path": "services/layer1-ingestion",
+          "description": "Deployable service roots are present.",
+          "check": "service_roots"
+        },
+        {
+          "path": "contracts",
+          "description": "Contract source of truth exists.",
+          "check": "contract_root"
+        },
+        {
+          "path": "docs/reference/layer-runtime-path-governance.md",
+          "description": "Canonical runtime path governance is documented.",
+          "check": "runtime_path_governance",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "ci_cd_coverage",
+      "name": "CI/CD coverage",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": ".github/workflows/pr-checks.yml",
+          "description": "Primary PR checks workflow exists.",
+          "check": "pr_checks",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/pr-checks.yml",
+          "description": "Structural preflight is enforced in PR checks.",
+          "check": "structural_preflight",
+          "line": 27
+        },
+        {
+          "path": ".github/workflows/contract-compliance.yml",
+          "description": "Contract compliance workflow exists.",
+          "check": "contract_compliance",
+          "line": 751
+        },
+        {
+          "path": ".github/workflows/prod-readiness.yml",
+          "description": "Production readiness workflow exists.",
+          "check": "prod_readiness",
+          "line": 327
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "docker_containerization",
+      "name": "Docker/containerization",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "docker-compose.dev.yml",
+          "description": "Development compose stack exists.",
+          "check": "dev_compose",
+          "line": 1
+        },
+        {
+          "path": "docker-compose.full.yml",
+          "description": "Full-stack compose definition exists.",
+          "check": "full_compose",
+          "line": 1
+        },
+        {
+          "path": "services/api/Dockerfile",
+          "description": "Service Dockerfiles are present.",
+          "check": "service_dockerfiles",
+          "line": 1
+        },
+        {
+          "path": "k8s",
+          "description": "Kubernetes manifests are present.",
+          "check": "k8s_manifests"
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "testing_infrastructure",
+      "name": "Testing infrastructure",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "pytest.ini",
+          "description": "Pytest configuration defines shared markers.",
+          "check": "pytest_config",
+          "line": 1
+        },
+        {
+          "path": "tests/security",
+          "description": "Security test suite exists.",
+          "check": "security_tests"
+        },
+        {
+          "path": "tests/contract",
+          "description": "Contract test suite exists.",
+          "check": "contract_tests"
+        },
+        {
+          "path": "apps/web/package.json",
+          "description": "Frontend package exposes test scripts.",
+          "check": "frontend_tests",
+          "line": 13
+        },
+        {
+          "path": "tests/backend_integrated",
+          "description": "Backend-integrated test suite exists.",
+          "check": "backend_integrated_tests"
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "configuration_management",
+      "name": "Configuration management",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": ".env.example",
+          "description": "Safe environment template exists.",
+          "check": "env_example",
+          "line": 1
+        },
+        {
+          "path": ".fabric/prod-gates.policy.yaml",
+          "description": "Production gate policy exists.",
+          "check": "prod_gate_policy",
+          "line": 1
+        },
+        {
+          "path": "config/ci",
+          "description": "CI policy config directory exists.",
+          "check": "ci_config"
+        },
+        {
+          "path": "k8s/base/externalsecrets/externalsecret-layer1.yaml",
+          "description": "ExternalSecret manifests are present.",
+          "check": "external_secrets",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "observability",
+      "name": "Observability",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "monitoring",
+          "description": "Monitoring assets exist.",
+          "check": "monitoring_root"
+        },
+        {
+          "path": "docs/slo/performance-slo.v1.json",
+          "description": "SLO contract is documented.",
+          "check": "slo_contract",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/prod-readiness.yml",
+          "description": "Production readiness workflow includes observability gate.",
+          "check": "obs_gate",
+          "line": 235
+        },
+        {
+          "path": "docs/readiness/observability-deployment-readiness.md",
+          "description": "Observability deployment readiness evidence exists.",
+          "check": "observability_evidence",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "script_availability",
+      "name": "Script availability",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "Makefile",
+          "description": "Makefile exposes verify target.",
+          "check": "make_verify",
+          "line": 64
+        },
+        {
+          "path": "scripts/ops/release-gate.sh",
+          "description": "Release gate script exists.",
+          "check": "release_gate_script",
+          "line": 1
+        },
+        {
+          "path": "scripts/security/zero_trust_checks.sh",
+          "description": "Zero-trust validation script exists.",
+          "check": "zero_trust_script",
+          "line": 1
+        },
+        {
+          "path": "scripts/ci/run_root_aggregate_checks.py",
+          "description": "Root aggregate check runner exists.",
+          "check": "aggregate_checks",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "documentation",
+      "name": "Documentation",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "docs/README.md",
+          "description": "Documentation index exists.",
+          "check": "docs_index",
+          "line": 1
+        },
+        {
+          "path": "DESIGN.md",
+          "description": "Frontend governance contract exists.",
+          "check": "frontend_governance",
+          "line": 1
+        },
+        {
+          "path": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+          "description": "Production readiness checklist exists.",
+          "check": "production_checklist",
+          "line": 1
+        },
+        {
+          "path": "docs/runbooks/00-runbook-index.md",
+          "description": "Runbook index exists.",
+          "check": "runbook_index",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "security_posture",
+      "name": "Security posture",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "SECURITY.md",
+          "description": "Security policy documentation exists.",
+          "check": "security_doc",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/critical-gates.yml",
+          "description": "Critical security gates workflow exists.",
+          "check": "critical_gates",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/security-validation.yml",
+          "description": "Security validation workflow exists.",
+          "check": "security_workflow",
+          "line": 1
+        },
+        {
+          "path": "tests/security",
+          "description": "Tenant isolation tests exist.",
+          "check": "tenant_security_tests"
+        },
+        {
+          "path": "scripts/security/zero_trust_checks.sh",
+          "description": "Zero-trust validation script exists.",
+          "check": "zero_trust_validation",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "contract_governance",
+      "name": "Contract governance",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": "contracts",
+          "description": "Contracts directory exists.",
+          "check": "contracts_root"
+        },
+        {
+          "path": "contracts/GOVERNANCE.md",
+          "description": "Contract governance documentation exists.",
+          "check": "contract_governance_doc",
+          "line": 1
+        },
+        {
+          "path": "contracts/openapi",
+          "description": "OpenAPI contracts exist.",
+          "check": "openapi_contracts"
+        },
+        {
+          "path": ".github/workflows/contract-compliance.yml",
+          "description": "Contract scorecard runs in CI.",
+          "check": "contract_scorecard_ci",
+          "line": 751
+        },
+        {
+          "path": "tests/contract",
+          "description": "Contract tests exist.",
+          "check": "contract_tests"
+        }
+      ],
+      "missing_required_evidence": []
+    },
+    {
+      "id": "release_readiness",
+      "name": "Release readiness",
+      "score": 10.0,
+      "max_score": 10.0,
+      "status": "pass",
+      "weight": 1.0,
+      "evidence": [
+        {
+          "path": ".github/workflows/prod-readiness.yml",
+          "description": "Production readiness workflow exists.",
+          "check": "prod_readiness_workflow",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/prod-readiness.yml",
+          "description": "Production readiness workflow invokes release policy gate.",
+          "check": "release_gate",
+          "line": 327
+        },
+        {
+          "path": "docs/LAUNCH_RUNBOOK.md",
+          "description": "Launch runbook exists.",
+          "check": "launch_runbook",
+          "line": 1
+        },
+        {
+          "path": ".github/workflows/release-evidence-bundle.yml",
+          "description": "Release evidence bundle workflow exists.",
+          "check": "release_evidence_bundle",
+          "line": 1
+        },
+        {
+          "path": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+          "description": "Production readiness checklist exists.",
+          "check": "readiness_checklist",
+          "line": 1
+        }
+      ],
+      "missing_required_evidence": []
+    }
+  ],
+  "p0_gates": [
+    {
+      "id": "S1",
+      "name": "Artifact signatures verified",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 25,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`cosign verify` passes for all images with correct OIDC identity"
+    },
+    {
+      "id": "S2",
+      "name": "SLSA provenance verified",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 26,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`cosign verify-attestation --type slsaprovenance` passes for all images"
+    },
+    {
+      "id": "S3",
+      "name": "No HIGH/CRITICAL CVEs",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 27,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Trivy container scan shows 0 unfixed HIGH/CRITICAL vulnerabilities"
+    },
+    {
+      "id": "S4",
+      "name": "No secrets in source",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 28,
+      "status": "pass",
+      "priority": "P0",
+      "description": "gitleaks scan passes with 0 findings on full git history"
+    },
+    {
+      "id": "S5",
+      "name": "SAST clean",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 29,
+      "status": "pass",
+      "priority": "P0",
+      "description": "CodeQL + bandit report 0 MEDIUM+ findings"
+    },
+    {
+      "id": "S6",
+      "name": "Dependency audit clean",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 30,
+      "status": "pass",
+      "priority": "P0",
+      "description": "pip-audit (HIGH+) and pnpm audit (CRITICAL) pass"
+    },
+    {
+      "id": "S7",
+      "name": "Non-root containers",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 31,
+      "status": "pass",
+      "priority": "P0",
+      "description": "All 7 images run as non-root user (verified by CI)"
+    },
+    {
+      "id": "S8",
+      "name": "Network policies active",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 32,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Deny-all default + per-layer allowlists applied"
+    },
+    {
+      "id": "S11",
+      "name": "Secrets via Vault/Infisical",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 35,
+      "status": "pass",
+      "priority": "P0",
+      "description": "No secrets in K8s manifests; all injected via ExternalSecret"
+    },
+    {
+      "id": "S14",
+      "name": "RBAC middleware active",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 38,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`shared/identity/` middleware applied to all API routes"
+    },
+    {
+      "id": "S15",
+      "name": "Audit logging active",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 39,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Append-only audit log operational with trigger protection"
+    },
+    {
+      "id": "S16",
+      "name": "Zero-trust validation",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 40,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`scripts/security/zero_trust_checks.sh` passes all 9 checks"
+    },
+    {
+      "id": "R1",
+      "name": "Health checks configured",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 50,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Every Dockerfile has HEALTHCHECK; K8s has liveness + readiness probes"
+    },
+    {
+      "id": "R2",
+      "name": "Pod Disruption Budgets",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 51,
+      "status": "pass",
+      "priority": "P0",
+      "description": "PDB configured for L2, L3, L4, frontend (`minAvailable \u2265 1`)"
+    },
+    {
+      "id": "R3",
+      "name": "Rolling update strategy",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 52,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`maxUnavailable: 0` ensures zero-downtime deploys"
+    },
+    {
+      "id": "R4",
+      "name": "Rollback runbook",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 53,
+      "status": "partial",
+      "priority": "P0",
+      "description": "`docs/troubleshooting/runbooks/infrastructure/deployment-rollback.md` exists; covers K8s rollback via `kubectl rollout undo`. ArgoCD-based rollback steps are documented but ArgoCD is not operationally installed \u2014 those steps cannot be executed until ArgoCD is wired in. DB schema rollback is not covered."
+    },
+    {
+      "id": "R5",
+      "name": "DR policy documented",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 54,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`docs/reliability/dr-policy.md` exists with RTO/RPO targets"
+    },
+    {
+      "id": "R8",
+      "name": "SLO defined",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 57,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`docs/slo/performance-slo.v1.json` with latency + error rate targets"
+    },
+    {
+      "id": "R9",
+      "name": "Alerting configured",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 58,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Prometheus rules + AlertManager \u2192 Slack for all critical alerts"
+    },
+    {
+      "id": "R10",
+      "name": "Incident runbooks",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 59,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Runbooks exist for all critical alert types (10+ runbooks)"
+    },
+    {
+      "id": "R12",
+      "name": "Smoke tests post-deploy",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 61,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`smoke-gate.yml` validates core functionality after deployment"
+    },
+    {
+      "id": "SC1",
+      "name": "HPA configured",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 69,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Horizontal Pod Autoscaler for L2, L4, frontend"
+    },
+    {
+      "id": "SC2",
+      "name": "Resource limits set",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 70,
+      "status": "pass",
+      "priority": "P0",
+      "description": "CPU and memory limits defined for all K8s deployments"
+    },
+    {
+      "id": "SC8",
+      "name": "Rate limiting",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 76,
+      "status": "pass",
+      "priority": "P0",
+      "description": "API rate limits configured (1,000 req/min global)"
+    },
+    {
+      "id": "C1",
+      "name": "Control matrix current",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 84,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`docs/compliance/control-matrix.md` updated, CI-enforced"
+    },
+    {
+      "id": "C2",
+      "name": "Audit log retention",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 85,
+      "status": "pass",
+      "priority": "P0",
+      "description": "7-year retention policy for API access logs"
+    },
+    {
+      "id": "C4",
+      "name": "Security evidence bundle",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 87,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`release-security-evidence-<sha>` artifact generated per release"
+    },
+    {
+      "id": "C5",
+      "name": "Vulnerability disclosure",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 88,
+      "status": "pass",
+      "priority": "P0",
+      "description": "`docs/trust/coordinated-vulnerability-disclosure.md` published"
+    },
+    {
+      "id": "C8",
+      "name": "NIST SSDF alignment",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 91,
+      "status": "pass",
+      "priority": "P0",
+      "description": "All PO/PS/PW/RV practices mapped to controls"
+    },
+    {
+      "id": "C9",
+      "name": "SLSA Level 3",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 92,
+      "status": "partial",
+      "priority": "P0",
+      "description": "Provenance attestation workflow exists (`provenance` job in `supply-chain.yml`) but only triggers on `workflow_call`/`workflow_dispatch` \u2014 not on every PR build. SLSA Level 3 requires hermetic, non-falsifiable provenance on every build; the current setup does not meet that bar for PR builds."
+    },
+    {
+      "id": "T1",
+      "name": "P0 security gates pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 101,
+      "status": "pass",
+      "priority": "P0",
+      "description": "All 5 P0 test files pass in `critical-gates.yml` on every PR (`p0-auth-boundaries`, `p0-jwt-config`, `p0-cross-tenant-write`, `p0-auth-source`, `p0-rate-limit-safety`)"
+    },
+    {
+      "id": "make_verify",
+      "name": "Makefile exposes the canonical verify target.",
+      "source": "Makefile",
+      "line": 64,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Makefile exposes the canonical verify target."
+    },
+    {
+      "id": "prod_readiness_workflow",
+      "name": "Production readiness workflow exists.",
+      "source": ".github/workflows/prod-readiness.yml",
+      "line": 1,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Production readiness workflow exists."
+    },
+    {
+      "id": "critical_security_workflow",
+      "name": "Critical P0 security workflow exists.",
+      "source": ".github/workflows/critical-gates.yml",
+      "line": 1,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Critical P0 security workflow exists."
+    },
+    {
+      "id": "contract_scorecard_ci",
+      "name": "Contract scorecard automation is present in CI.",
+      "source": ".github/workflows/contract-compliance.yml",
+      "line": 751,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Contract scorecard automation is present in CI."
+    },
+    {
+      "id": "tenant_isolation_gate",
+      "name": "Tenant isolation gate participates in PR readiness.",
+      "source": ".github/workflows/pr-checks.yml",
+      "line": 1873,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Tenant isolation gate participates in PR readiness."
+    },
+    {
+      "id": "release_gate_script",
+      "name": "Canonical release gate script exists.",
+      "source": "scripts/ops/release-gate.sh",
+      "line": 1,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Canonical release gate script exists."
+    },
+    {
+      "id": "release_policy_gate",
+      "name": "Production readiness workflow invokes the release policy gate.",
+      "source": ".github/workflows/prod-readiness.yml",
+      "line": 327,
+      "status": "pass",
+      "priority": "P0",
+      "description": "Production readiness workflow invokes the release policy gate."
+    }
+  ],
+  "required_checks": [
+    {
+      "id": "S1",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 25,
+      "description": "`cosign verify` passes for all images with correct OIDC identity"
+    },
+    {
+      "id": "S2",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 26,
+      "description": "`cosign verify-attestation --type slsaprovenance` passes for all images"
+    },
+    {
+      "id": "S3",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 27,
+      "description": "Trivy container scan shows 0 unfixed HIGH/CRITICAL vulnerabilities"
+    },
+    {
+      "id": "S4",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 28,
+      "description": "gitleaks scan passes with 0 findings on full git history"
+    },
+    {
+      "id": "S5",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 29,
+      "description": "CodeQL + bandit report 0 MEDIUM+ findings"
+    },
+    {
+      "id": "S6",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 30,
+      "description": "pip-audit (HIGH+) and pnpm audit (CRITICAL) pass"
+    },
+    {
+      "id": "S7",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 31,
+      "description": "All 7 images run as non-root user (verified by CI)"
+    },
+    {
+      "id": "S8",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 32,
+      "description": "Deny-all default + per-layer allowlists applied"
+    },
+    {
+      "id": "S11",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 35,
+      "description": "No secrets in K8s manifests; all injected via ExternalSecret"
+    },
+    {
+      "id": "S14",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 38,
+      "description": "`shared/identity/` middleware applied to all API routes"
+    },
+    {
+      "id": "S15",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 39,
+      "description": "Append-only audit log operational with trigger protection"
+    },
+    {
+      "id": "S16",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 40,
+      "description": "`scripts/security/zero_trust_checks.sh` passes all 9 checks"
+    },
+    {
+      "id": "R1",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 50,
+      "description": "Every Dockerfile has HEALTHCHECK; K8s has liveness + readiness probes"
+    },
+    {
+      "id": "R2",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 51,
+      "description": "PDB configured for L2, L3, L4, frontend (`minAvailable \u2265 1`)"
+    },
+    {
+      "id": "R3",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 52,
+      "description": "`maxUnavailable: 0` ensures zero-downtime deploys"
+    },
+    {
+      "id": "R4",
+      "status": "fail",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 53,
+      "description": "`docs/troubleshooting/runbooks/infrastructure/deployment-rollback.md` exists; covers K8s rollback via `kubectl rollout undo`. ArgoCD-based rollback steps are documented but ArgoCD is not operationally installed \u2014 those steps cannot be executed until ArgoCD is wired in. DB schema rollback is not covered."
+    },
+    {
+      "id": "R5",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 54,
+      "description": "`docs/reliability/dr-policy.md` exists with RTO/RPO targets"
+    },
+    {
+      "id": "R8",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 57,
+      "description": "`docs/slo/performance-slo.v1.json` with latency + error rate targets"
+    },
+    {
+      "id": "R9",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 58,
+      "description": "Prometheus rules + AlertManager \u2192 Slack for all critical alerts"
+    },
+    {
+      "id": "R10",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 59,
+      "description": "Runbooks exist for all critical alert types (10+ runbooks)"
+    },
+    {
+      "id": "R12",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 61,
+      "description": "`smoke-gate.yml` validates core functionality after deployment"
+    },
+    {
+      "id": "SC1",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 69,
+      "description": "Horizontal Pod Autoscaler for L2, L4, frontend"
+    },
+    {
+      "id": "SC2",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 70,
+      "description": "CPU and memory limits defined for all K8s deployments"
+    },
+    {
+      "id": "SC8",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 76,
+      "description": "API rate limits configured (1,000 req/min global)"
+    },
+    {
+      "id": "C1",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 84,
+      "description": "`docs/compliance/control-matrix.md` updated, CI-enforced"
+    },
+    {
+      "id": "C2",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 85,
+      "description": "7-year retention policy for API access logs"
+    },
+    {
+      "id": "C4",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 87,
+      "description": "`release-security-evidence-<sha>` artifact generated per release"
+    },
+    {
+      "id": "C5",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 88,
+      "description": "`docs/trust/coordinated-vulnerability-disclosure.md` published"
+    },
+    {
+      "id": "C8",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 91,
+      "description": "All PO/PS/PW/RV practices mapped to controls"
+    },
+    {
+      "id": "C9",
+      "status": "fail",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 92,
+      "description": "Provenance attestation workflow exists (`provenance` job in `supply-chain.yml`) but only triggers on `workflow_call`/`workflow_dispatch` \u2014 not on every PR build. SLSA Level 3 requires hermetic, non-falsifiable provenance on every build; the current setup does not meet that bar for PR builds."
+    },
+    {
+      "id": "T1",
+      "status": "pass",
+      "source": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "line": 101,
+      "description": "All 5 P0 test files pass in `critical-gates.yml` on every PR (`p0-auth-boundaries`, `p0-jwt-config`, `p0-cross-tenant-write`, `p0-auth-source`, `p0-rate-limit-safety`)"
+    },
+    {
+      "id": "make_verify",
+      "status": "pass",
+      "source": "Makefile",
+      "line": 64,
+      "description": "Makefile exposes the canonical verify target."
+    },
+    {
+      "id": "prod_readiness_workflow",
+      "status": "pass",
+      "source": ".github/workflows/prod-readiness.yml",
+      "line": 1,
+      "description": "Production readiness workflow exists."
+    },
+    {
+      "id": "critical_security_workflow",
+      "status": "pass",
+      "source": ".github/workflows/critical-gates.yml",
+      "line": 1,
+      "description": "Critical P0 security workflow exists."
+    },
+    {
+      "id": "contract_scorecard_ci",
+      "status": "pass",
+      "source": ".github/workflows/contract-compliance.yml",
+      "line": 751,
+      "description": "Contract scorecard automation is present in CI."
+    },
+    {
+      "id": "tenant_isolation_gate",
+      "status": "pass",
+      "source": ".github/workflows/pr-checks.yml",
+      "line": 1873,
+      "description": "Tenant isolation gate participates in PR readiness."
+    },
+    {
+      "id": "release_gate_script",
+      "status": "pass",
+      "source": "scripts/ops/release-gate.sh",
+      "line": 1,
+      "description": "Canonical release gate script exists."
+    },
+    {
+      "id": "release_policy_gate",
+      "status": "pass",
+      "source": ".github/workflows/prod-readiness.yml",
+      "line": 327,
+      "description": "Production readiness workflow invokes the release policy gate."
+    },
+    {
+      "id": "dimension:directory_organization",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Directory organization required evidence complete."
+    },
+    {
+      "id": "dimension:ci_cd_coverage",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "CI/CD coverage required evidence complete."
+    },
+    {
+      "id": "dimension:docker_containerization",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Docker/containerization required evidence complete."
+    },
+    {
+      "id": "dimension:testing_infrastructure",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Testing infrastructure required evidence complete."
+    },
+    {
+      "id": "dimension:configuration_management",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Configuration management required evidence complete."
+    },
+    {
+      "id": "dimension:observability",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Observability required evidence complete."
+    },
+    {
+      "id": "dimension:script_availability",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Script availability required evidence complete."
+    },
+    {
+      "id": "dimension:documentation",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Documentation required evidence complete."
+    },
+    {
+      "id": "dimension:security_posture",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Security posture required evidence complete."
+    },
+    {
+      "id": "dimension:contract_governance",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Contract governance required evidence complete."
+    },
+    {
+      "id": "dimension:release_readiness",
+      "status": "pass",
+      "source": "reports/scorecards/repo-maturity.json",
+      "line": null,
+      "description": "Release readiness required evidence complete."
+    }
+  ],
+  "source_reports": [
+    {
+      "path": "docs/PRODUCTION_READINESS_CHECKLIST.md",
+      "present": true,
+      "line": 1
+    },
+    {
+      "path": "docs/governance/production-readiness-p0-foundations.md",
+      "present": true,
+      "line": 1
+    },
+    {
+      "path": "docs/readiness/observability-deployment-readiness.md",
+      "present": true,
+      "line": 1
+    },
+    {
+      "path": "docs/audit/production-readiness-2026-05-27.md",
+      "present": true,
+      "line": 1
+    },
+    {
+      "path": "reports/production-launch-readiness-audit.md",
+      "present": true,
+      "line": 1
+    }
+  ]
+}

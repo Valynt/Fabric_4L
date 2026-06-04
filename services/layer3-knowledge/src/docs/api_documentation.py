@@ -110,8 +110,7 @@ API_DOCUMENTATION = {
         ## Architecture
         
         The Layer 3 API is built on:
-        - **Neo4j**: Graph database for knowledge storage
-        - **Pinecone**: Vector database for semantic search
+        - **Neo4j**: Graph database for knowledge storage and native vector indexes for semantic search
         - **FastAPI**: Modern Python web framework
         - **Redis**: Caching and session management
         - **Prometheus**: Metrics collection

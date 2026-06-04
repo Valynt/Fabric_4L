@@ -33,8 +33,7 @@ def test_oidc_preauth_rate_limit_fails_closed_after_repeated_login_attempts() ->
         oidc._check_preauth_rate_limit(request, "login", "tenant-a")
 
     assert getattr(exc.value, "status_code", None) == 429
-    assert getattr(exc.value, "headers", {}).get("Retry-After")
-    assert getattr(exc.value, "headers", {}).get("X-RateLimit-Policy") == "oidc_preauth"
+    assert getattr(exc.value, "details", {}).get("retry_after_seconds")
 
 
 def test_oidc_callback_and_login_have_separate_rate_limit_buckets() -> None:

@@ -1,0 +1,212 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://valuefabric.local/schemas/repo-maturity.schema.json",
+  "title": "Value Fabric Repository Maturity Scorecard",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "generated_at",
+    "status",
+    "overall_score",
+    "max_score",
+    "dimensions",
+    "p0_gates",
+    "required_checks",
+    "source_reports"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string"
+    },
+    "generated_at": {
+      "type": "string"
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pass", "fail"]
+    },
+    "overall_score": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 10
+    },
+    "max_score": {
+      "type": "number",
+      "const": 10
+    },
+    "dimensions": {
+      "type": "array",
+      "minItems": 11,
+      "items": {
+        "$ref": "#/$defs/dimension"
+      }
+    },
+    "p0_gates": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/gate"
+      }
+    },
+    "required_checks": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/required_check"
+      }
+    },
+    "source_reports": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/source_report"
+      }
+    }
+  },
+  "$defs": {
+    "dimension": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "score",
+        "max_score",
+        "status",
+        "weight",
+        "evidence",
+        "missing_required_evidence"
+      ],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "score": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 10
+        },
+        "max_score": {
+          "type": "number",
+          "const": 10
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "partial", "fail"]
+        },
+        "weight": {
+          "type": "number",
+          "exclusiveMinimum": 0
+        },
+        "evidence": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/evidence"
+          }
+        },
+        "missing_required_evidence": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "description", "check"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "check": {
+          "type": "string"
+        }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "source", "line", "status", "priority", "description"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "source": {
+          "type": "string"
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "partial", "fail", "missing", "unknown"]
+        },
+        "priority": {
+          "type": "string",
+          "const": "P0"
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "required_check": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "status", "source", "line", "description"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string",
+          "enum": ["pass", "fail"]
+        },
+        "source": {
+          "type": "string"
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        },
+        "description": {
+          "type": "string"
+        }
+      }
+    },
+    "source_report": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "present", "line"],
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "present": {
+          "type": "boolean"
+        },
+        "line": {
+          "type": ["integer", "null"],
+          "minimum": 1
+        }
+      }
+    }
+  }
+}

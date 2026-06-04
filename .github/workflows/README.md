@@ -4,6 +4,12 @@
 
 This directory currently contains **69** GitHub Actions workflow files.
 
+The authoritative ownership, trigger, secret, artifact, runtime, local-command,
+and deprecation inventory lives in:
+
+- `workflow-registry.json`
+- `WORKFLOW_REGISTRY.md`
+
 ## Workflow Tiers
 
 ### Required (PR merge gates)
@@ -48,16 +54,19 @@ These are primary PR gate workflows (blocking when configured in branch protecti
 | `runbook-validation.yml` | Runbook reference and format validation | `pull_request`/`push` (runbook paths) |
 | `security-validation.yml` | Extended security validation | `workflow_dispatch` |
 | `audit-evidence.yml` | Audit evidence collection | `schedule`, `workflow_dispatch` |
+| `release-evidence-bundle.yml` | Release-candidate evidence bundle via `pnpm evidence:bundle` | `pull_request`, `push`, `workflow_dispatch` |
 
 ## Drift Guard
 
-To prevent README/workflow filename drift, CI now validates every workflow filename referenced in this README exists in `.github/workflows/`.
+To prevent README/workflow filename drift and missing ownership metadata, CI validates
+the workflow registry against every workflow file in `.github/workflows/`.
 
-- Guard script: `.github/scripts/check-workflow-readme-links.py`
+- Guard script: `scripts/ci/verify_workflow_registry.py`
 - Guard workflow: `.github/workflows/workflow-readme-sync-check.yml`
 
 ## Maintenance
 
-- When adding/removing/renaming workflow files, update this README in the same PR.
+- When adding/removing/renaming workflow files, update `workflow-registry.json`
+  and `WORKFLOW_REGISTRY.md` in the same PR.
 - Keep trigger descriptions aligned with each workflow's `on:` section.
 - Keep PR-gate workflows aligned with branch protection rules.

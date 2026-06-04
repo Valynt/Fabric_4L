@@ -1,6 +1,6 @@
 # PostgreSQL Backup and Restore Runbook
 
-This runbook is PostgreSQL-specific and separate from the Neo4j/Layer 3 graph backup procedures.
+This runbook is PostgreSQL-specific and separate from the Neo4j/Layer 3 graph backup procedures. Layer 3 vector objects are not PostgreSQL pgvector objects; embeddings and vector indexes are owned by Neo4j and validated through the Neo4j backup/restore and vector-index rebuild runbooks.
 
 **Scope:** Value Fabric production PostgreSQL — logical backups via `pg_dump`  
 **Owner:** Platform Engineering  

@@ -63,6 +63,32 @@ src/layer4_agents/
 └── api/             # FastAPI REST endpoints
 ```
 
+## Agent Runtime
+
+Layer 4 uses LangGraph as the workflow runtime. The dependency is declared in
+`services/layer4-agents/pyproject.toml` through `langgraph` and
+`langgraph-checkpoint-postgres`; runtime code uses the canonical
+`services/layer4-agents/src/layer4_agents/` package.
+
+Startup flows through `layer4_agents.api.startup.build_lifespan()`, which
+creates `CheckpointConfig.create_saver()`, `StateManager`, and
+`OrchestrationController`. Workflow execution enters
+`OrchestrationController.execute_workflow()`, resolves workflow classes through
+`create_workflow()`, then executes `BaseWorkflow.run(...)`.
+
+`BaseWorkflow._build_graph()` builds a LangGraph `StateGraph`,
+`BaseWorkflow.compile()` injects checkpoint and interrupt configuration, and
+`BaseWorkflow.run()` executes the compiled graph with `compiled.ainvoke(...)`.
+`CHECKPOINT_DATABASE_URL` backs the production `AsyncPostgresSaver`; tests use
+LangGraph `InMemorySaver` for real graph execution without Postgres.
+
+Observability is carried by `Layer4LifecycleLogger`, `Layer4EventContext`,
+workflow Prometheus metrics, stuck-workflow detection, and checkpoint
+corruption/replay metrics using `workflow_id`, `run_id`, `trace_id`, and
+`tenant_id`. See
+[`docs/architecture/agent-runtime.md`](../../docs/architecture/agent-runtime.md)
+for the complete runtime path.
+
 ## API Endpoints
 
 | Endpoint | Description |

@@ -24,6 +24,7 @@ import pytest
 
 try:
     import fastapi  # noqa: F401
+    from passlib.context import CryptContext  # noqa: F401
     _SERVICE_DEPS_AVAILABLE = True
 except ImportError:
     _SERVICE_DEPS_AVAILABLE = False
@@ -490,7 +491,7 @@ class TestF13SuperAdminMethodCall:
     def test_getattr_pattern_removed(self) -> None:
         from pathlib import Path
         source = (Path(__file__).parents[2] /
-                  "services/layer4-agents/src/tenants/api/routes/admin.py").read_text()
+                  "services/layer4-agents/src/layer4_agents/tenants/api/routes/admin.py").read_text()
         assert 'getattr(context, "is_super_admin"' not in source, (
             "getattr(context, 'is_super_admin', False) bypasses the check — use context.is_super_admin()"
         )
@@ -498,7 +499,7 @@ class TestF13SuperAdminMethodCall:
     def test_method_call_pattern_present(self) -> None:
         from pathlib import Path
         source = (Path(__file__).parents[2] /
-                  "services/layer4-agents/src/tenants/api/routes/admin.py").read_text()
+                  "services/layer4-agents/src/layer4_agents/tenants/api/routes/admin.py").read_text()
         assert "context.is_super_admin()" in source, (
             "is_super_admin must be called as a method"
         )

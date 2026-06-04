@@ -13,7 +13,7 @@ SCRIPT_TOKEN_RE = re.compile(r'(?:^|\s)(?:python3?|bash|sh|node)\s+([^\s\\]+)')
 
 def load_make_targets() -> set[str]:
     out=set()
-    for line in MAKEFILE.read_text().splitlines():
+    for line in MAKEFILE.read_text(encoding='utf-8', errors='ignore').splitlines():
         if line.startswith(('\t',' ')) or ':' not in line: continue
         head=line.split(':',1)[0].strip()
         if not head or head.startswith('.') or '=' in head: continue
@@ -47,7 +47,7 @@ def main()->int:
     make_targets=load_make_targets()
     errors=[]
     for wf in workflows:
-        try:data=yaml.safe_load(wf.read_text()) or {}
+        try:data=yaml.safe_load(wf.read_text(encoding='utf-8', errors='ignore')) or {}
         except YAMLError as exc:
             print(f'warning: skipping non-parseable workflow file {wf}: {exc}')
             continue

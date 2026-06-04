@@ -53,6 +53,7 @@ pytestmark = [
         reason="testcontainers not installed - run: pip install testcontainers[neo4j]"
     ),
     pytest.mark.integration,
+    pytest.mark.vector,
 ]
 
 
@@ -677,4 +678,3 @@ class TestVectorCleanup:
             )
             record = await result.single()
             assert record is None, "Entity should be deleted"
-

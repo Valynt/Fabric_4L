@@ -138,6 +138,7 @@ services:
       LAYER1_ENVIRONMENT: development
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5432/ingestion
       LAYER1_REDIS_URL: redis://host.docker.internal:6379/0
+      REDIS_URL: redis://host.docker.internal:6379/0
       LAYER1_S3_ENDPOINT: http://host.docker.internal:9000
       LAYER1_S3_ACCESS_KEY: minioadmin
       LAYER1_S3_SECRET_KEY: minioadmin
@@ -181,6 +182,7 @@ services:
       LAYER1_ENVIRONMENT: development
       LAYER1_DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5432/ingestion
       LAYER1_REDIS_URL: redis://host.docker.internal:6379/0
+      REDIS_URL: redis://host.docker.internal:6379/0
       LAYER1_S3_ENDPOINT: http://host.docker.internal:9000
       LAYER1_S3_ACCESS_KEY: minioadmin
       LAYER1_S3_SECRET_KEY: minioadmin

@@ -11,7 +11,7 @@ related: ["api-overview", "layer2-extraction-api", "layer4-agents-api", "layer5-
 
 > **Base URL:** `http://localhost:8003` (local) / `https://l3.valuefabric.io` (production)  
 > **Base Path:** `/v1`  
-> **Service:** Knowledge graph backed by Neo4j + pgvector hybrid search
+> **Service:** Knowledge graph backed by Neo4j graph traversal and Neo4j-native vector indexes
 
 ---
 
@@ -30,7 +30,7 @@ related: ["api-overview", "layer2-extraction-api", "layer4-agents-api", "layer5-
 graph TB
     subgraph "Query Layer"
         HYBRID[Hybrid Retriever]
-        VEC[Vector Search<br/>pgvector]
+        VEC[Vector Search<br/>Neo4j native vector indexes]
         GRAPH[Graph Traversal<br/>Neo4j]
     end
     

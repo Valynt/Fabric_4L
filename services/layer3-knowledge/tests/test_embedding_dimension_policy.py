@@ -5,6 +5,8 @@ import pytest
 from src.config.embedding_dimension import EmbeddingDimensionMismatchError, validate_embedding_dimension
 from src.retrieval.vector_store import Neo4jVectorStore, VectorStoreError
 
+pytestmark = pytest.mark.vector
+
 
 class _FakeModel:
     def __init__(self, dim: int):

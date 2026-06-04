@@ -238,6 +238,37 @@ jobs:
           name: obs-artifacts
           path: artifacts/obs/
 
+  repo-maturity-scorecard:
+    runs-on: ubuntu-latest
+    needs: [setup]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Generate repo maturity scorecard
+        id: scorecard
+        shell: bash
+        run: |
+          set +e
+          python scripts/reports/generate_repo_maturity_scorecard.py
+          exit_code=$?
+          echo "exit_code=${exit_code}" >> "$GITHUB_OUTPUT"
+          exit 0
+      - name: Upload repo maturity scorecard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: repo-maturity-scorecard
+          path: |
+            reports/scorecards/repo-maturity.json
+            reports/scorecards/repo-maturity.schema.json
+      - name: Publish repo maturity summary
+        if: always()
+        shell: bash
+        run: |
+          python -c "import json; d=json.load(open('reports/scorecards/repo-maturity.json', encoding='utf-8')); print(f\"Repo maturity: {d['overall_score']}/{d['max_score']} ({d['status']})\")" >> "$GITHUB_STEP_SUMMARY"
+      - name: Enforce repo maturity scorecard
+        if: always()
+        run: exit ${{ steps.scorecard.outputs.exit_code }}
+
   release-policy:
     runs-on: ubuntu-latest
     needs:
@@ -250,6 +281,7 @@ jobs:
       - dependency-chaos
       - cross-domain-smoke
       - observability-readiness
+      - repo-maturity-scorecard
     if: always()
     steps:
       - uses: actions/checkout@v4
@@ -319,7 +351,7 @@ jobs:
     name: prod-readiness
     runs-on: ubuntu-latest
     if: always()
-    needs: [release-policy]
+    needs: [release-policy, repo-maturity-scorecard]
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
       - uses: actions/download-artifact@v4

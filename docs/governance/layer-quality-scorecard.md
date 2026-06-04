@@ -15,6 +15,8 @@ This scorecard is a machine-readable governance artifact for release gating.
 4. `security_negative_paths`
 5. `docs_contract_freshness`
 
+Rust/Cargo checks are not part of this scorecard because Rust is not currently used in tracked production code. If Rust is introduced, the maturity evidence must add a root or workspace `Cargo.lock` plus CI coverage for `cargo clippy --all-targets --all-features` and `cargo audit`.
+
 ## Regression threshold policy
 
 The release gate fails when either condition is violated:

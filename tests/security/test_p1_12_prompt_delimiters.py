@@ -5,8 +5,8 @@ to prevent prompt injection attacks.
 """
 
 import pytest
-import inspect
 from pathlib import Path
+import inspect
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -16,16 +16,20 @@ class TestPromptInjectionDelimiters:
     """Test that prompts use delimiters for user content."""
 
     def test_whitespace_workflow_has_delimiters(self):
-        """Whitespace workflow must wrap needs_text in delimiters."""
-        from layer4_agents.workflows import whitespace
+        """Whitespace prompt templates must wrap user-controlled fields in delimiters."""
+        prompt_dir = (
+            REPO_ROOT
+            / "services"
+            / "layer4-agents"
+            / "prompts"
+            / "whitespace_analysis"
+            / "v1"
+        )
+        source = "\n".join(path.read_text(encoding="utf-8") for path in prompt_dir.glob("*.md"))
 
-        source = inspect.getsource(whitespace)
-
-        # Should have user content delimiters
-        assert "<<<USER_CONTENT>>>" in source or "<<<" in source, \
-            "Must use delimiters for user content"
-        assert "<<</USER_CONTENT>>>" in source or "<<</" in source, \
-            "Must close delimiters for user content"
+        assert "<<<USER_CONTENT>>>" in source, "Must use delimiters for user content"
+        assert "<<</USER_CONTENT>>>" in source, "Must close delimiters for user content"
+        assert "<<<USER_GAP_ANALYSIS>>>" in source, "Must delimit generated gap-analysis context"
 
     def test_generation_tools_has_delimiters(self):
         """Generation tools must wrap context in delimiters."""

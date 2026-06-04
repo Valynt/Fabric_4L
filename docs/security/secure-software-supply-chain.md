@@ -62,6 +62,7 @@ value-fabric/
 - **Node/TypeScript:** `pnpm` with `pnpm-lock.yaml` committed; `--frozen-lockfile` in CI.
 - **Container bases:** digest-pinned images only (`FROM cgr.dev/chainguard/python@sha256:...`).
 - **Terraform providers/modules:** version pinned + checksums via lock file.
+- **Rust/Cargo:** not part of the current production toolchain; the repository has no tracked `Cargo.toml`, `Cargo.lock`, or Rust source files, so `cargo clippy` and `cargo audit` are intentionally not required checks.
 - **No untrusted registries:** allowlist package registries via network egress policy.
 
 ### 1.4 Versioning strategy
@@ -103,8 +104,9 @@ Example `.devcontainer/devcontainer.json`:
 
 ### 2.2 Dependency pinning
 
-- Every language ecosystem has a committed lockfile.
+- Every active language ecosystem has a committed lockfile.
 - CI enforces lockfile freshness (`git diff --exit-code` after install).
+- Rust/Cargo is excluded from this rule until tracked Rust code is introduced. Future Rust adoption must add a root or workspace `Cargo.lock` and CI coverage for `cargo clippy --all-targets --all-features` and `cargo audit`.
 - `SOURCE_DATE_EPOCH` set from commit timestamp for deterministic archives.
 - Build timestamps in binaries/artifacts normalized or omitted.
 

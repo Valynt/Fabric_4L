@@ -57,7 +57,13 @@ def _candidate_bash_paths() -> list[str]:
         ]
     )
     seen: set[str] = set()
-    return [path for path in candidates if path and not (path in seen or seen.add(path))]
+    return [
+        path
+        for path in candidates
+        if path
+        and "windows\\system32\\bash" not in path.lower()
+        and not (path in seen or seen.add(path))
+    ]
 
 
 def _working_bash() -> str | None:

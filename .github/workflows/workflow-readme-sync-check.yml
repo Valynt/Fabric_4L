@@ -5,11 +5,13 @@ on:
     paths:
       - '.github/workflows/**'
       - '.github/scripts/check-workflow-readme-links.py'
+      - 'scripts/ci/verify_workflow_registry.py'
   push:
     branches: [main]
     paths:
       - '.github/workflows/**'
       - '.github/scripts/check-workflow-readme-links.py'
+      - 'scripts/ci/verify_workflow_registry.py'
 
 permissions:
   contents: read
@@ -30,3 +32,7 @@ jobs:
       - name: Validate workflow filenames referenced in README
         run: |
           python .github/scripts/check-workflow-readme-links.py
+
+      - name: Validate workflow ownership registry
+        run: |
+          python scripts/ci/verify_workflow_registry.py

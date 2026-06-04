@@ -113,6 +113,7 @@ Fabric_4L/
 | Node.js (frontend) | pnpm | `pnpm-lock.yaml` | `--frozen-lockfile` enforced |
 | GitHub Actions | version pins | N/A | SHA-pinned (`actions/checkout@v4` = specific SHA) |
 | Container base images | Docker | N/A | Tag-pinned (`python:3.11-slim`, `node:20-alpine`) |
+| Rust/Cargo | Not used | N/A | Not required; no tracked `Cargo.toml`, `Cargo.lock`, or `.rs` files |
 
 ### Versioning Strategy
 
@@ -426,6 +427,7 @@ cosign verify-attestation \
 | Base images (python, node) | High — Docker Official | Tag-pinned, Trivy-scanned |
 | Python packages (PyPI) | Medium | pip-audit, bandit, hash-verified |
 | Node packages (npm) | Medium | pnpm audit, lockfile frozen |
+| Rust crates (crates.io) | N/A | Not part of current production toolchain; `cargo clippy` and `cargo audit` are deferred until Rust code is added |
 | GitHub Actions | High — first-party or verified | Version-pinned, OIDC |
 | Internal shared libraries | High — owned | Contract tests, architecture tests |
 

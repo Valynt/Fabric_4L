@@ -44,7 +44,9 @@ def test_root_scripts_use_fail_closed_orchestrator():
         "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",
         "test:crawler": "python scripts/ci/run_root_aggregate_checks.py crawler",
         "test:router": "python scripts/ci/run_root_aggregate_checks.py router",
+        "db:extensions:check": "python scripts/ci/run_root_aggregate_checks.py db-extensions-check",
         "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
+        "readiness:10": "python scripts/ci/readiness_10_gate.py",
     }
     for script, command in expected.items():
         assert scripts[script] == command
@@ -91,6 +93,7 @@ def test_named_gate_registry_exposes_maturity_gates():
         "isolation",
         "crawler",
         "router",
+        "db-extensions-check",
         "db-migrate-status",
     }
     assert runner.ALL_GATE_NAMES == (
@@ -101,6 +104,7 @@ def test_named_gate_registry_exposes_maturity_gates():
         "isolation",
         "crawler",
         "router",
+        "db-extensions-check",
         "db-migrate-status",
     )
 
@@ -124,6 +128,7 @@ def test_list_outputs_every_supported_gate():
         "isolation",
         "crawler",
         "router",
+        "db-extensions-check",
         "db-migrate-status",
         "all",
     ]
@@ -142,6 +147,7 @@ def test_json_outputs_machine_readable_gate_metadata():
     payload = json.loads(result.stdout)
     gate_names = [gate["name"] for gate in payload["gates"]]
     assert "security" in gate_names
+    assert "db-extensions-check" in gate_names
     assert "db-migrate-status" in gate_names
     assert payload["aggregate_targets"]["all"] == list(load_runner_module().ALL_GATE_NAMES)
     assert payload["exit_codes"] == {

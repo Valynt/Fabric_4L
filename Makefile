@@ -7,7 +7,7 @@
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
 	test-backend-integrated-validation test-backend-integrated-release-smoke \
-	check-workflow-matrix \
+	check-workflow-matrix check-workflow-registry \
 	gate-mandatory-security-regression gate-security gate-security-broad gate-state gate-arch gate-config gate-local gate-local-production-subset \
 	gate-chaos gate-smoke gate-agent gate-obs gate-release-policy \
 	gate-policy gate-lint gate-sign-manifest gate-summary \
@@ -102,6 +102,9 @@ check-workflow-matrix: ## Ensure the master workflow traceability matrix keeps i
 	@$(PYTHON) scripts/ci/assert_backend_workflow_traceability.py
 	@$(PYTHON) scripts/ci/assert_backend_platform_validation_ownership.py
 	@$(PYTHON) -m pytest tests/ci/test_product_workflow_validation_matrix.py -n 0 -q -o cache_dir=.tmp/pytest-cache
+
+check-workflow-registry: ## Validate GitHub Actions workflow ownership and artifact registry
+	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
 	@bash scripts/ci/check_conflict_markers.sh
@@ -759,6 +762,7 @@ gate-policy: ## Gate: validate policy schema, profile existence, and artifact di
 	@echo "→ Gate: Validate Policy"
 	@test -s $(POLICY_FILE) || (echo "❌ Policy file $(POLICY_FILE) not found" && exit 1)
 	@$(PYTHON) -c "import yaml; yaml.safe_load(open('$(POLICY_FILE)'))" || (echo "❌ Policy file is not valid YAML" && exit 1)
+	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 	@mkdir -p artifacts/{arch,security,chaos,smoke,agent,state,obs,release,junit}
 	@echo "✅  gate-policy passed"
 

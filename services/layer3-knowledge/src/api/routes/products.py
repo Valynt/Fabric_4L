@@ -132,7 +132,7 @@ class CapabilityCoverageItem(BaseModel):
 
 async def get_product_service(driver=Depends(get_neo4j_driver)):
     """Dependency injection for ProductService."""
-    from services.product_service import ProductService
+    from ...services.product_service import ProductService
 
     return ProductService(driver)
 
@@ -148,7 +148,7 @@ async def create_product(
     service=Depends(get_product_service),
 ):
     """Create a new product in the knowledge graph."""
-    from services.product_service import ProductCreate
+    from ...services.product_service import ProductCreate
 
     product = ProductCreate(
         name=body.name,
@@ -233,7 +233,7 @@ async def add_feature(
     service=Depends(get_product_service),
 ):
     """Add a feature to a product."""
-    from services.product_service import FeatureCreate
+    from ...services.product_service import FeatureCreate
 
     feature = FeatureCreate(
         name=body.name,

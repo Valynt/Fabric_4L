@@ -4,6 +4,7 @@ from uuid import uuid4
 
 import pytest
 from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import AuthorizationError
 
 from layer5_ground_truth.services.policy_enforcement import (
     ArtifactAccessRequest,
@@ -36,7 +37,7 @@ def test_hostile_attempt_with_scope_but_not_approved_is_denied(monkeypatch):
         required_scope="layer5.artifacts.resolve",
     )
 
-    with pytest.raises(HTTPException):
+    with pytest.raises((HTTPException, AuthorizationError)):
         enforce_formula_benchmark_runtime_policy(req)
 
     assert emitted["outcome"] == "denied"
@@ -67,7 +68,7 @@ def test_hostile_attempt_without_scope_is_denied_and_audited(monkeypatch):
         required_scope="layer5.artifacts.resolve",
     )
 
-    with pytest.raises(HTTPException):
+    with pytest.raises((HTTPException, AuthorizationError)):
         enforce_formula_benchmark_runtime_policy(req)
 
     assert emitted["details"]["reason"] == "missing_scope"

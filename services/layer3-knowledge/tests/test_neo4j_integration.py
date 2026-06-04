@@ -38,6 +38,7 @@ except ImportError:
 
 pytestmark = [
     pytest.mark.integration,
+    pytest.mark.vector,
     pytest.mark.skipif(not HAS_TESTCONTAINERS, reason="testcontainers not installed"),
 ]
 
@@ -327,4 +328,3 @@ async def test_graph_rag_null_driver_raises_503(settings):
 
     # Should raise something meaningful, not a bare AttributeError on None
     assert exc_info.type is not AttributeError or "driver" in str(exc_info.value).lower()
-

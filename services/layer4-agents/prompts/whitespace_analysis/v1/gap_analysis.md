@@ -12,13 +12,19 @@ max_tokens: 4000
 Synthesize the following gap analysis for account "{{ account_name }}":
 
 ## Identified Needs
+<<<USER_NEEDS>>>
 {{ needs_json }}
+<<</USER_NEEDS>>>
 
 ## Semantic Search Results
+<<<USER_SEARCH_RESULTS>>>
 {{ search_results_json }}
+<<</USER_SEARCH_RESULTS>>>
 
 ## Existing Coverage
+<<<USER_EXISTING_COVERAGE>>>
 {{ existing_coverage_json }}
+<<</USER_EXISTING_COVERAGE>>>
 
 Produce a ranked gap analysis. Return JSON matching this schema exactly:
 

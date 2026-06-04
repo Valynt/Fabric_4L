@@ -456,7 +456,7 @@ services:
       args: *build-args
     container_name: value-fabric-layer1-celery-worker
     <<: *app-hardening
-    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=4 -Q celery,ingestion,processing
+    command: celery -A layer1_ingestion.shared.tasks worker --loglevel=info --concurrency=4 -Q default,celery,ingestion,processing
     environment:
       - DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion
       - LAYER1_DATABASE_URL=postgresql://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/ingestion

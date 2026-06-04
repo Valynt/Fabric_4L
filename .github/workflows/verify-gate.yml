@@ -26,6 +26,9 @@ jobs:
       - name: Validate workflow target/artifact references
         run: python scripts/ci/check_workflow_targets_and_artifacts.py
 
+      - name: Validate workflow ownership registry
+        run: python scripts/ci/verify_workflow_registry.py
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:

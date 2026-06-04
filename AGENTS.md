@@ -18,6 +18,8 @@
 
 ### First-time setup
 
+Use the same canonical command map as human contributors: [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) defines when to use `make`, `pnpm`, or direct Python CI runners, and [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) lists every public root script and Makefile target.
+
 ```bash
 # 1. Clone and install tooling
 #    Install the Infisical CLI: https://infisical.com/docs/cli/overview

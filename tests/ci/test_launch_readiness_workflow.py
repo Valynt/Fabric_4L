@@ -24,11 +24,13 @@ def test_launch_readiness_workflow_is_stage_gated() -> None:
     assert "stage-2-journey-smoke" in jobs
     assert "stage-3-contract-security" in jobs
     assert "stage-4-evidence-archive" in jobs
+    assert "stage-4-readiness-10" in jobs
     assert "stage-5-staging-evidence" in jobs
     assert jobs["stage-2-frontend-tests"]["needs"] == "stage-1-baseline"
     assert set(jobs["stage-3-contract-security"]["needs"]) == {"stage-2-frontend-tests", "stage-2-journey-smoke"}
     assert jobs["stage-4-evidence-archive"]["needs"] == "stage-3-contract-security"
-    assert jobs["stage-5-staging-evidence"]["needs"] == "stage-4-evidence-archive"
+    assert jobs["stage-4-readiness-10"]["needs"] == "stage-4-evidence-archive"
+    assert jobs["stage-5-staging-evidence"]["needs"] == "stage-4-readiness-10"
 
 
 def test_launch_readiness_workflow_is_artifact_only_no_ci_push() -> None:
@@ -41,6 +43,17 @@ def test_launch_readiness_workflow_is_artifact_only_no_ci_push() -> None:
     assert "git commit" not in content
     assert "upload-artifact" in content
     assert "generate_launch_evidence_bundle.py" in content
+
+
+def test_launch_readiness_workflow_runs_blocking_readiness_10_gate() -> None:
+    content = WORKFLOW.read_text(encoding="utf-8")
+    workflow = _workflow()
+    job = workflow["jobs"]["stage-4-readiness-10"]
+
+    assert job["needs"] == "stage-4-evidence-archive"
+    assert "pnpm readiness:10" in content
+    assert "pnpm readiness:10 || true" not in content
+    assert "artifacts/readiness-10/**" in content
 
 
 def test_launch_readiness_workflow_uses_expected_stage_inputs() -> None:

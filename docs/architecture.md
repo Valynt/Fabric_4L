@@ -12,7 +12,7 @@ last-reviewed: "2026-05-22"
 >
 > Earlier content here described an MVP-era mock-runtime model. The platform
 > has since moved to a production six-layer microservices topology backed by
-> PostgreSQL, Neo4j, pgvector, Redis, and S3 — see the canonical doc for the
+> PostgreSQL, Neo4j native vector indexes, Redis, and S3 — see the canonical doc for the
 > current view, including C4 diagrams, container topology, and data flow.
 
 ## Quick reference
@@ -21,7 +21,7 @@ last-reviewed: "2026-05-22"
 | ----- | ------- | ---- | ------- |
 | 1 | layer1-ingestion    | 8001 | Playwright crawling, document parsing, ingestion jobs |
 | 2 | layer2-extraction   | 8002 | Pydantic v2 + LLM-guided ontology extraction, RDF/OWL |
-| 3 | layer3-knowledge    | 8003 | Neo4j + pgvector, GraphRAG, hybrid retrieval |
+| 3 | layer3-knowledge    | 8003 | Neo4j graph + native vector indexes, GraphRAG, hybrid retrieval |
 | 4 | layer4-agents       | 8004 | LangGraph workflows, ROI / whitespace / business case |
 | 5 | layer5-ground-truth | 8005 | TruthObject validation, maturity ladder |
 | 6 | layer6-benchmarks   | 8006 | Datasets, peer comparison, statistical validation |

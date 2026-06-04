@@ -5,6 +5,7 @@ from pathlib import Path
 
 from src.agents.roi_calculation import ROICalculationAgent
 from src.analytics.similarity import SimilarityAnalyzer
+from value_fabric.shared.identity.context import set_request_context
 
 # Canonical source root for Layer 3 (via the value_fabric.layer3 shim).
 _L3_SRC = Path(__file__).resolve().parents[2] / "services" / "layer3-knowledge" / "src"
@@ -15,6 +16,7 @@ _L3_SRC = Path(__file__).resolve().parents[2] / "services" / "layer3-knowledge" 
 def test_similarity_methods_fail_closed_when_tenant_missing() -> None:
     """SimilarityAnalyzer._resolve_tenant_id must raise when tenant_id is absent."""
     analyzer = SimilarityAnalyzer()
+    set_request_context(None)
     # Production code raises RuntimeError (missing context — programming error).
     with pytest.raises((RuntimeError, ValueError)):
         analyzer._resolve_tenant_id(None)

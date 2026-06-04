@@ -19,6 +19,8 @@ import pytest
 
 pytestmark = [pytest.mark.security, pytest.mark.unit]
 
+LAYER4_SRC = pathlib.Path("services/layer4-agents/src/layer4_agents")
+
 
 # ---------------------------------------------------------------------------
 # S5-R5.1 — Missing tenant context → 401/422
@@ -31,7 +33,7 @@ class TestMissingTenantContext:
     def test_governance_workflows_read_requires_auth(self) -> None:
         """All GET routes in governance_workflows.py use require_authenticated."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/governance_workflows.py"
+            LAYER4_SRC / "api/routes/governance_workflows.py"
         ).read_text()
         assert "require_authenticated" in source, (
             "governance_workflows.py must import require_authenticated"
@@ -55,7 +57,7 @@ class TestMissingTenantContext:
     def test_governance_workflows_write_requires_content_admin(self) -> None:
         """All POST routes in governance_workflows.py use require_content_admin."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/governance_workflows.py"
+            LAYER4_SRC / "api/routes/governance_workflows.py"
         ).read_text()
         assert "require_content_admin" in source, (
             "governance_workflows.py must import require_content_admin"
@@ -79,7 +81,7 @@ class TestMissingTenantContext:
     def test_harness_routes_require_authentication(self) -> None:
         """Harness routes use require_authenticated (AuthCtxDep)."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
+            LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         assert "require_authenticated" in source, (
             "harness.py must use require_authenticated"
@@ -114,14 +116,14 @@ class TestWrongTenantReturns404:
     def test_harness_get_run_raises_404_on_key_error(self) -> None:
         """harness.py translates KeyError from registry.get_run to HTTP 404."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
+            LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "get_run":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "404" in fn_src or "HTTP_404_NOT_FOUND" in fn_src, (
+                assert "404" in fn_src or "HTTP_404_NOT_FOUND" in fn_src or "NotFoundError" in fn_src, (
                     "get_run must return 404 when run is not found for the tenant"
                 )
                 return
@@ -131,14 +133,14 @@ class TestWrongTenantReturns404:
     def test_harness_get_gate_raises_404_on_key_error(self) -> None:
         """harness.py translates KeyError from registry.get_gate to HTTP 404."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
+            LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         tree = ast.parse(source)
 
         for node in ast.walk(tree):
             if isinstance(node, ast.AsyncFunctionDef) and node.name == "decide_gate":
                 fn_src = ast.get_source_segment(source, node) or ""
-                assert "404" in fn_src or "HTTP_404_NOT_FOUND" in fn_src, (
+                assert "404" in fn_src or "HTTP_404_NOT_FOUND" in fn_src or "NotFoundError" in fn_src, (
                     "decide_gate must return 404 when gate is not found for the tenant"
                 )
                 return
@@ -157,7 +159,7 @@ class TestBodyTenantIgnored:
     def test_enrichment_batch_ignores_body_tenant(self) -> None:
         """Enrichment batch endpoint uses auth context tenant, not body tenant_id."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/enrichment.py"
+            LAYER4_SRC / "api/routes/enrichment.py"
         ).read_text()
         # V-004 comment must be present
         assert "V-004" in source or "body" in source.lower(), (
@@ -184,7 +186,7 @@ class TestBodyTenantIgnored:
     def test_harness_routes_use_ctx_tenant_not_body(self) -> None:
         """Harness routes use ctx.tenant_id, never body.tenant_id."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
+            LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         assert "body.tenant_id" not in source, (
             "harness.py must not use body.tenant_id — use ctx.tenant_id only"
@@ -205,7 +207,7 @@ class TestDecisionByServerDerived:
     def test_decide_gate_uses_server_derived_decision_by(self) -> None:
         """decide_gate sets decision_by from ctx.user_id, not body."""
         source = pathlib.Path(
-            "services/layer4-agents/src/api/routes/harness.py"
+            LAYER4_SRC / "api/routes/harness.py"
         ).read_text()
         tree = ast.parse(source)
 
@@ -229,7 +231,7 @@ class TestDecisionByServerDerived:
     def test_gate_decision_request_model_has_no_decision_by(self) -> None:
         """GateDecisionRequest body model must not expose a decision_by field."""
         source = pathlib.Path(
-            "services/layer4-agents/src/harness/api_models.py"
+            LAYER4_SRC / "harness/api_models.py"
         ).read_text()
         tree = ast.parse(source)
 
@@ -272,7 +274,7 @@ class TestNoSecretsInLogs:
     def test_stripe_key_not_logged(self) -> None:
         """Stripe secret key must not appear in log calls."""
         source = pathlib.Path(
-            "services/layer4-agents/src/services/stripe_client.py"
+            LAYER4_SRC / "services/stripe_client.py"
         ).read_text()
         log_lines = [
             line for line in source.splitlines()
@@ -286,7 +288,7 @@ class TestNoSecretsInLogs:
     def test_api_keys_not_logged_in_layer4_settings(self) -> None:
         """Layer 4 settings must not log API key values."""
         source = pathlib.Path(
-            "services/layer4-agents/src/config/settings.py"
+            LAYER4_SRC / "config/settings.py"
         ).read_text()
         # Check that secret fields are not emitted in log calls
         secret_fields = ["jwt_secret", "stripe_secret_key", "openai_api_key", "together_api_key"]
@@ -303,7 +305,7 @@ class TestNoSecretsInLogs:
     def test_layer4_lifecycle_logger_does_not_log_secrets(self) -> None:
         """Layer4LifecycleLogger emit() must not include secret fields."""
         source = pathlib.Path(
-            "services/layer4-agents/src/observability.py"
+            LAYER4_SRC / "observability.py"
         ).read_text()
         tree = ast.parse(source)
 

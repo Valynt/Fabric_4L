@@ -217,6 +217,19 @@ GATES: dict[str, Gate] = {
             ),
         ),
     ),
+    "db-extensions-check": Gate(
+        name="db-extensions-check",
+        description="Read-only vector store extension/index architecture check.",
+        kind="command",
+        checks=(
+            CommandCheck(
+                (sys.executable, "scripts/ci/check_vector_store_health.py"),
+                "Layer 3 vector store health check",
+                required_paths=(Path("scripts/ci/check_vector_store_health.py"),),
+                optional=True,
+            ),
+        ),
+    ),
     "db-migrate-status": Gate(
         name="db-migrate-status",
         description="Read-only database migration status report.",
@@ -240,6 +253,7 @@ ALL_GATE_NAMES = (
     "isolation",
     "crawler",
     "router",
+    "db-extensions-check",
     "db-migrate-status",
 )
 ALL_GATES = ALL_GATE_NAMES
