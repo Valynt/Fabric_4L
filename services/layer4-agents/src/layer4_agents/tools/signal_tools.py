@@ -55,10 +55,17 @@ def _require_tool_context(context: RequestContext | None = None) -> RequestConte
     return ctx
 
 
-def _signal_headers(tenant_id: str, request_id: str | None = None) -> dict[str, str]:
+def _signal_headers(
+    tenant_id: str,
+    request_id: str | None = None,
+    correlation_id: str | None = None,
+) -> dict[str, str]:
     headers = {"X-Tenant-ID": tenant_id}
     if request_id:
         headers["X-Request-ID"] = request_id
+    if correlation_id:
+        headers["X-Correlation-ID"] = correlation_id
+    elif request_id:
         headers["X-Correlation-ID"] = request_id
     return headers
 
@@ -108,10 +115,11 @@ async def get_account_signals(
     reason = "error"
 
     try:
+        req_id = getattr(ctx, "request_id", None) or getattr(ctx, "trace_id", None)
         response = await _get_http_client().get(
             f"{_SIGNAL_REFINERY_BASE_URL}/api/v1/signals",
             params=params,
-            headers=_signal_headers(tenant_id),
+            headers=_signal_headers(tenant_id, request_id=req_id),
         )
         if response.status_code == 200:
             data = response.json()
@@ -222,10 +230,11 @@ async def create_signal(
     signal_id = None
 
     try:
+        req_id = getattr(ctx, "request_id", None) or getattr(ctx, "trace_id", None)
         response = await _get_http_client().post(
             f"{_SIGNAL_REFINERY_BASE_URL}/api/v1/signals",
             json=payload,
-            headers=_signal_headers(tenant_id, run_id),
+            headers=_signal_headers(tenant_id, request_id=req_id),
         )
         if response.status_code in (200, 201):
             created = response.json()

@@ -11,8 +11,8 @@ class LoggingContext:
     tenant_id: str | None
     route: str
     method: str
-    status: int
-    latency_ms: float
+    status: int | None = None
+    latency_ms: float | None = None
 
 
 _logging_context: ContextVar[LoggingContext | None] = ContextVar("logging_context", default=None)
@@ -32,4 +32,6 @@ def clear_logging_context() -> None:
 
 def logging_context_dict() -> dict[str, object]:
     context = get_logging_context()
-    return asdict(context) if context is not None else {}
+    if context is None:
+        return {}
+    return {k: v for k, v in asdict(context).items() if v is not None}
