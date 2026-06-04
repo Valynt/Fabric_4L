@@ -1,0 +1,31 @@
+{
+  "capability": "crawler",
+  "status": "active",
+  "decision_date": "2026-06-04",
+  "owner": "Layer 1 Ingestion",
+  "crawler_roots": [
+    "services/layer1-ingestion/src/layer1_ingestion/crawler",
+    "services/layer1-ingestion/src/layer1_ingestion/compliance",
+    "services/layer1-ingestion/tests/crawler"
+  ],
+  "scorecard_resolution": "resolved_by_active_gate",
+  "gate_command": "pnpm test:crawler",
+  "json_gate_command": "python scripts/ci/run_root_aggregate_checks.py crawler --json",
+  "required_gate_categories": [
+    "crawler_unit_tests",
+    "crawler_robots_allowlist_policy_tests",
+    "crawler_rate_limit_tests",
+    "crawler_extraction_boundary_tests",
+    "crawler_tenant_safe_ingestion_tests"
+  ],
+  "non_applicability_contract": {
+    "allowed_status": "not_applicable",
+    "required_fields": [
+      "reason",
+      "owner",
+      "review_by",
+      "scorecard_resolution"
+    ],
+    "runner_behavior": "Exit 0 with status=not_applicable only when crawler functionality is intentionally out of scope and this file records the exception."
+  }
+}

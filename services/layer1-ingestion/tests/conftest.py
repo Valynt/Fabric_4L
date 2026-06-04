@@ -55,6 +55,13 @@ if not hasattr(_otel_sdk, "trace"):
     _otel_sdk.trace = _make_pkg("opentelemetry.sdk.trace")
 _otel_sdk.trace.TracerProvider = getattr(_otel_sdk.trace, "TracerProvider", type("TracerProvider", (), {}))
 
+_otel_sdk_trace_sampling = sys.modules.get("opentelemetry.sdk.trace.sampling") or _make_pkg("opentelemetry.sdk.trace.sampling")
+_otel_sdk_trace_sampling.ParentBasedTraceIdRatio = getattr(
+    _otel_sdk_trace_sampling,
+    "ParentBasedTraceIdRatio",
+    type("ParentBasedTraceIdRatio", (), {}),
+)
+
 _otel_sdk_trace_exp = sys.modules.get("opentelemetry.sdk.trace.export") or _make_pkg("opentelemetry.sdk.trace.export")
 _otel_sdk_trace_exp.BatchSpanProcessor = getattr(_otel_sdk_trace_exp, "BatchSpanProcessor", type("BatchSpanProcessor", (), {}))
 _otel_sdk_trace_exp.ConsoleSpanExporter = getattr(_otel_sdk_trace_exp, "ConsoleSpanExporter", type("ConsoleSpanExporter", (), {}))

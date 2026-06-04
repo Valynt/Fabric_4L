@@ -40,6 +40,7 @@ def test_root_scripts_use_fail_closed_orchestrator():
     assert scripts["typecheck"] == "python scripts/ci/run_root_aggregate_checks.py typecheck"
     assert scripts["lint"] == "python scripts/ci/run_root_aggregate_checks.py lint"
     assert scripts["test"] == "python scripts/ci/run_root_aggregate_checks.py test"
+    assert scripts["test:crawler"] == "python scripts/ci/run_root_aggregate_checks.py crawler"
 
 
 def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
@@ -71,11 +72,26 @@ def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
         assert {(check.package_path, check.script) for check in checks} == expected_pairs
 
 
+def test_crawler_gate_matrix_is_active_and_covers_required_categories():
+    runner = load_runner_module()
+
+    decision = runner.validate_crawler_decision(REPO_ROOT)
+    assert decision["status"] == "active"
+    assert decision["scorecard_resolution"] == "resolved_by_active_gate"
+
+    checks = runner.validate_command_checks("crawler", REPO_ROOT)
+    assert {check.key for check in checks} == set(decision["required_gate_categories"])
+
+
 def test_expected_package_scripts_exist_in_current_checkout():
     runner = load_runner_module()
 
     for target in runner.EXPECTED_CHECKS:
         checks = runner.validate_expected_checks(target, REPO_ROOT)
+        assert checks
+
+    for target in runner.EXPECTED_COMMAND_CHECKS:
+        checks = runner.validate_command_checks(target, REPO_ROOT)
         assert checks
 
 
@@ -133,3 +149,36 @@ def test_runner_invokes_explicit_pnpm_dir_commands(monkeypatch):
 
     assert runner.run_aggregate_check("test", tmp_path, fake_runner) == 0
     assert calls == [(["pnpm", "--dir", "apps/web", "run", "test"], tmp_path)]
+
+
+def test_crawler_gate_json_report_is_machine_readable(monkeypatch, capsys):
+    runner = load_runner_module()
+    calls: list[tuple[list[str], Path]] = []
+
+    def fake_runner(command, cwd):
+        calls.append((list(command), cwd))
+        return subprocess.CompletedProcess(command, 0, stdout="ok\n", stderr="")
+
+    assert runner.run_aggregate_check("crawler", REPO_ROOT, fake_runner, emit_json=True) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["target"] == "crawler"
+    assert report["status"] == "pass"
+    assert report["planned_checks"] == len(runner.EXPECTED_COMMAND_CHECKS["crawler"])
+    assert report["failed_checks"] == 0
+    assert calls
+
+
+def test_crawler_non_applicability_contract_requires_explanation(monkeypatch):
+    runner = load_runner_module()
+    tmp_path = repo_tmp_path("crawler-na")
+    decision_path = tmp_path / runner.CRAWLER_DECISION_PATH
+    decision_path.parent.mkdir(parents=True)
+    decision_path.write_text(json.dumps({"status": "not_applicable"}), encoding="utf-8")
+
+    try:
+        runner.validate_crawler_decision(tmp_path)
+    except runner.AggregateCheckError as exc:
+        assert "missing required keys" in str(exc)
+        assert "reason" in str(exc)
+    else:
+        raise AssertionError("incomplete non-applicability contract did not fail")
