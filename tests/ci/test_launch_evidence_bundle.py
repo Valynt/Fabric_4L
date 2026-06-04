@@ -114,3 +114,88 @@ def test_artifacts_only_summary_includes_launch_readiness_scores(tmp_path: Path)
     assert scores["launch_readiness"] == 14.3
     assert scores["core_ga"] == 16.7
     assert scores["paid_ga"] == 16.7
+
+
+def test_ci_backlog_json_adds_failure_health_without_running_history_collection(tmp_path: Path) -> None:
+    module = _load_module()
+    backlog_path = tmp_path / "docs" / "launch" / "evidence" / "ci-failure-backlog.json"
+    backlog_path.parent.mkdir(parents=True, exist_ok=True)
+    backlog_path.write_text(
+        json.dumps(
+            {
+                "summary": {"total_runs": 10, "failed_runs": 4},
+                "failures": [
+                    {
+                        "workflow_name": "PR Checks",
+                        "job_name": "contract-checks",
+                        "failure_category": "contract drift",
+                        "failure_signature": "openapi drift",
+                        "count": 3,
+                        "first_seen_date": "2026-05-27",
+                        "owner": "Architecture",
+                        "blocking_status": "merge-blocking",
+                        "remediation_link": "https://example.test/issue/1",
+                    },
+                    {
+                        "workflow_name": "PR Checks",
+                        "job_name": "frontend-e2e",
+                        "failure_category": "flaky test",
+                        "failure_signature": "journey timeout",
+                        "rerun_conclusion": "success",
+                    },
+                    {
+                        "workflow_name": "PR Checks",
+                        "job_name": "frontend-e2e",
+                        "failure_category": "flaky test",
+                        "failure_signature": "journey timeout",
+                        "rerun_conclusion": "failure",
+                    },
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    results = module.LaunchEvidenceCollector(tmp_path, artifacts_only=True).collect_all("evidence_archive")
+    health = module.CIFailureHealthCollector(tmp_path).collect(
+        Path("docs/launch/evidence/ci-failure-backlog.json"),
+        top_limit=2,
+    )
+
+    summary = module.EvidenceDocs(tmp_path).write_all(
+        results,
+        dry_run=False,
+        json_summary=Path(".tmp/summary.json"),
+        ci_failure_health=health,
+    )
+
+    dashboard = (tmp_path / "docs" / "launch" / "readiness-dashboard.md").read_text(encoding="utf-8")
+    payload = json.loads((tmp_path / ".tmp" / "summary.json").read_text(encoding="utf-8"))
+    assert "## CI Failure Health" in dashboard
+    assert "Failure rate: **40.0%**" in dashboard
+    assert "Flaky rerun recovery: **1/2 (50.0%)**" in dashboard
+    assert "PR Checks / contract-checks" in dashboard
+    assert summary["summary"]["ci_failure_health"]["failed_runs"] == 4
+    assert payload["summary"]["ci_failure_health"]["top_recurring_signatures"][0]["count"] == 3
+
+
+def test_cli_does_not_include_ci_failure_health_unless_backlog_is_requested(tmp_path: Path) -> None:
+    result = subprocess.run(
+        [
+            sys.executable,
+            str(SCRIPT),
+            "--dry-run",
+            "--artifacts-only",
+            "--up-to-stage",
+            "evidence_archive",
+            "--repo-root",
+            str(tmp_path),
+        ],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert "ci_failure_health" not in payload["summary"]
