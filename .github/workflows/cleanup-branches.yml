@@ -9,13 +9,13 @@ on:
 
 permissions:
   contents: write
-  pull-requests: read
+  pull-requests: write
 
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
-      - name: Delete stale branches
+      - name: Delete stale branches and close PRs
         uses: actions/github-script@v6
         with:
           script: |
@@ -47,7 +47,23 @@ jobs:
                   state: 'open'
                 });
                 
-                if (pulls.data.length === 0) {
+                const failedPRs = [];
+                for (const pr of pulls.data) {
+                  console.log(`Closing stale PR: ${pr.number}`);
+                  try {
+                    await github.rest.pulls.update({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      pull_number: pr.number,
+                      state: 'closed'
+                    });
+                  } catch (e) {
+                    console.error(`Failed to close PR ${pr.number}: ${e.message}`);
+                    failedPRs.push(pr.number);
+                  }
+                }
+                
+                if (failedPRs.length === 0) {
                   console.log(`Deleting stale branch: ${branch.name}`);
                   try {
                     await github.rest.git.deleteRef({
@@ -58,6 +74,8 @@ jobs:
                   } catch (e) {
                     console.error(`Failed to delete ${branch.name}: ${e.message}`);
                   }
+                } else {
+                  console.error(`Skipping deletion of branch ${branch.name}. Failed to close the following PRs: ${failedPRs.join(', ')}`);
                 }
               }
             }
