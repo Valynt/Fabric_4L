@@ -204,6 +204,20 @@ Use full mode before merge or release preparation:
 pnpm run check:contract-compliance
 ```
 
+
+### Root npm parity scripts
+
+The root `package.json` includes pnpm aliases for required scorecard and release gates. Use these commands when a workflow or CI job expects an npm command surface; they intentionally delegate to the existing Makefile, pytest, and Python CI implementations.
+
+| Command | Canonical implementation | When to run |
+|---|---|---|
+| `pnpm test:security` | `make security-test` | Security regression and launch-readiness changes. |
+| `pnpm test:schema` | `python scripts/ci/validate_schema_contract_surface.py` | OpenAPI, JSON Schema, or tool-manifest changes. |
+| `pnpm test:isolation` | `make gate-tenant-isolation` | Tenant context, RLS, authorization, or hostile cross-tenant changes. |
+| `pnpm test:crawler` | Layer 1 crawler pytest suites | Layer 1 crawling, router selection, retry, quality-gate, or crawler telemetry changes. |
+| `pnpm test:router` | `scripts/ci/validate_router_contract_surface.py` plus frontend Vitest routing tests | Backend route contract changes or frontend navigation/route changes. |
+| `pnpm db:migrate:status` | `make check-migration-heads` | Migration review; this is a non-mutating status/head check, not an upgrade. |
+
 For agent or skill changes, also run:
 
 ```bash

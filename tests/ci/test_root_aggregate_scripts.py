@@ -7,13 +7,14 @@ import subprocess
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "run_root_aggregate_checks.py"
 
 
 def load_runner_module():
-    spec = importlib.util.spec_from_file_location("run_root_aggregate_checks", SCRIPT_PATH)
+    spec = importlib.util.spec_from_file_location(
+        "run_root_aggregate_checks", SCRIPT_PATH
+    )
     assert spec and spec.loader
     module = importlib.util.module_from_spec(spec)
     sys.modules[spec.name] = module
@@ -37,9 +38,29 @@ def test_root_scripts_use_fail_closed_orchestrator():
     root_package = load_json(REPO_ROOT / "package.json")
     scripts = root_package["scripts"]
 
-    assert scripts["typecheck"] == "python scripts/ci/run_root_aggregate_checks.py typecheck"
+    assert (
+        scripts["typecheck"]
+        == "python scripts/ci/run_root_aggregate_checks.py typecheck"
+    )
     assert scripts["lint"] == "python scripts/ci/run_root_aggregate_checks.py lint"
     assert scripts["test"] == "python scripts/ci/run_root_aggregate_checks.py test"
+
+
+def test_required_root_gate_parity_scripts_delegate_to_canonical_commands():
+    root_package = load_json(REPO_ROOT / "package.json")
+    scripts = root_package["scripts"]
+
+    expected_scripts = {
+        "test:security": "make security-test",
+        "test:schema": "python scripts/ci/validate_schema_contract_surface.py",
+        "test:isolation": "make gate-tenant-isolation",
+        "test:crawler": "python -m pytest services/layer1-ingestion/tests/crawler services/layer1-ingestion/tests/unit/test_playwright_crawler.py services/layer1-ingestion/tests/unit/test_crawler_config.py services/layer1-ingestion/tests/unit/test_crawler_telemetry.py -v --tb=short",
+        "test:router": "python scripts/ci/validate_router_contract_surface.py && pnpm --dir apps/web exec vitest run src/navigation src/routes",
+        "db:migrate:status": "make check-migration-heads",
+    }
+
+    for script_name, command in expected_scripts.items():
+        assert scripts[script_name] == command
 
 
 def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
@@ -68,7 +89,9 @@ def test_expected_check_matrix_is_non_empty_and_references_canonical_packages():
     for target, expected_pairs in expected.items():
         checks = runner.EXPECTED_CHECKS[target]
         assert checks
-        assert {(check.package_path, check.script) for check in checks} == expected_pairs
+        assert {
+            (check.package_path, check.script) for check in checks
+        } == expected_pairs
 
 
 def test_expected_package_scripts_exist_in_current_checkout():

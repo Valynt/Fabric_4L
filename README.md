@@ -220,6 +220,20 @@ import-topology tests under [`tests/arch/`](tests/arch/) and
 | [SECURITY.md](SECURITY.md) | Security policy and vulnerability reporting |
 | [Security Documentation](docs/security/) | Multi-tenancy, secrets management, threat model |
 
+## Canonical root command surface
+
+The root `package.json` exposes the release-gate command surface expected by local development and CI. These npm scripts delegate to the canonical Makefile targets, pytest suites, or Python CI runners rather than reimplementing gate logic.
+
+| Command | Delegates to | Purpose |
+|---|---|---|
+| `pnpm test:security` | `make security-test` | Runs the full security test suite. |
+| `pnpm test:schema` | `python scripts/ci/validate_schema_contract_surface.py` | Validates committed OpenAPI, JSON Schema, and tool-manifest contracts. |
+| `pnpm test:isolation` | `make gate-tenant-isolation` | Runs dedicated tenant-isolation readiness and cross-tenant boundary suites. |
+| `pnpm test:crawler` | Layer 1 crawler pytest suites | Runs crawler-specific unit and crawler contract tests. |
+| `pnpm test:router` | `scripts/ci/validate_router_contract_surface.py` plus frontend Vitest routing suites | Runs static API route contract checks and frontend navigation/routing tests. |
+| `pnpm db:migrate:status` | `make check-migration-heads` | Reports static migration entrypoint/head state without applying migrations. |
+| `pnpm test` | `scripts/ci/run_root_aggregate_checks.py test` | Runs the root fail-closed package test aggregate. |
+
 ## Documentation
 
 📚 **[Complete Documentation →](docs/README.md)**
