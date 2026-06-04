@@ -1,6 +1,10 @@
-from __future__ import annotations
+"""Phase 1 forwarding stub — canonical implementation now in layer7-billing.
 
-"""Stripe webhook billing routes."""
+Layer 4 retains this shim for backward compatibility. All calls are
+forwarded to the Layer 7 Billing Service via HTTP client stubs.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter, status
 

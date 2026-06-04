@@ -25,6 +25,25 @@
         }
       }
     },
+    "/health/live": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Health Check",
+        "operationId": "health_check_health_live_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/ready": {
       "get": {
         "tags": [
@@ -43,6 +62,27 @@
             }
           }
         }
+      }
+    },
+    "/readiness": {
+      "get": {
+        "tags": [
+          "system"
+        ],
+        "summary": "Readiness Alias",
+        "description": "Temporary alias for /ready; prefer /ready (deprecated alias).",
+        "operationId": "readiness_alias_readiness_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        },
+        "deprecated": true
       }
     },
     "/v1/benchmarks/datasets": {
@@ -116,6 +156,45 @@
             }
           }
         }
+      },
+      "post": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Upsert Dataset",
+        "operationId": "upsert_dataset_v1_benchmarks_datasets_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetUpsertPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetUpsertResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
       }
     },
     "/v1/benchmarks/datasets/{dataset_id}": {
@@ -143,6 +222,56 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/DatasetDetail"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "benchmarks"
+        ],
+        "summary": "Update Dataset",
+        "operationId": "update_dataset_v1_benchmarks_datasets__dataset_id__put",
+        "parameters": [
+          {
+            "name": "dataset_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Dataset Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DatasetUpsertPayload"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DatasetUpsertResponse"
                 }
               }
             }
@@ -254,7 +383,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/IndustriesResponse"
+                }
               }
             }
           }
@@ -516,6 +647,110 @@
         "title": "DatasetSummary",
         "description": "Summary of benchmark dataset."
       },
+      "DatasetUpsertPayload": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "type": "string",
+            "title": "Description"
+          },
+          "industry": {
+            "type": "string",
+            "title": "Industry"
+          },
+          "segment": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment"
+          },
+          "geography": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Geography"
+          },
+          "metrics": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Metrics"
+          },
+          "version": {
+            "type": "string",
+            "title": "Version",
+            "default": "1.0.0"
+          },
+          "data_source": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Data Source"
+          },
+          "is_public": {
+            "type": "boolean",
+            "title": "Is Public",
+            "default": false
+          },
+          "ownership_mode": {
+            "type": "string",
+            "title": "Ownership Mode",
+            "default": "tenant"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "name",
+          "description",
+          "industry",
+          "metrics"
+        ],
+        "title": "DatasetUpsertPayload"
+      },
+      "DatasetUpsertResponse": {
+        "properties": {
+          "dataset_id": {
+            "type": "string",
+            "title": "Dataset Id"
+          },
+          "ownership_mode": {
+            "type": "string",
+            "title": "Ownership Mode"
+          }
+        },
+        "type": "object",
+        "required": [
+          "dataset_id",
+          "ownership_mode"
+        ],
+        "title": "DatasetUpsertResponse",
+        "description": "Response from dataset upsert operation."
+      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -562,6 +797,23 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
+      },
+      "IndustriesResponse": {
+        "properties": {
+          "industries": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Industries"
+          }
+        },
+        "type": "object",
+        "required": [
+          "industries"
+        ],
+        "title": "IndustriesResponse",
+        "description": "Response listing available industries."
       },
       "ValidationError": {
         "properties": {

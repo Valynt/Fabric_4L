@@ -93,6 +93,11 @@ def upgrade() -> None:
     billing_usage_events). Company-knowledge and CRM tables already have
     admin_bypass_policy from migrations 028 and 032 respectively.
     """
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     # Tables that need admin_bypass_policy created — not covered by 028 or 032.
     _NEEDS_ADMIN_BYPASS = {
         "billing_charges",
@@ -102,9 +107,11 @@ def upgrade() -> None:
     }
 
     for table in ALL_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes existing tenant isolation
         op.execute(
             f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
         )
+        # MIGRATION_REVIEW_REQUIRED: FORCE ROW LEVEL SECURITY affects all access paths
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
         op.execute(f"""
             CREATE POLICY tenant_isolation_policy ON {table}
@@ -140,6 +147,11 @@ def downgrade() -> None:
     Tables owned by 032 (billing_customers, billing_subscriptions,
     billing_webhook_events, crm_sync_jobs) are not touched.
     """
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
+
     _033_ONLY_TABLES = [
         t for t in ALL_TABLES
         if t not in {
@@ -156,6 +168,7 @@ def downgrade() -> None:
         "billing_usage_events",
     }
     for table in _033_ONLY_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes tenant isolation enforcement
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         if table in _NEEDS_ADMIN_BYPASS:
             op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")

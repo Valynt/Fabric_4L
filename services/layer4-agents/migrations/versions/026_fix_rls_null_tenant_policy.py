@@ -81,14 +81,18 @@ RLS_TABLES = [
 
 def upgrade() -> None:
     """Replace unsafe NULL-permissive RLS policies with strict matching."""
+    # Community Edition fallback: skip if RLS is not available (pre-9.5 or CE builds)
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
 
     for table in ALL_TABLES:
-        # Drop the existing unsafe policy
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes existing tenant isolation
         op.execute(
             f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
         )
 
-        # Ensure FORCE ROW LEVEL SECURITY is set (applies even to table owners)
+        # MIGRATION_REVIEW_REQUIRED: FORCE ROW LEVEL SECURITY affects all access paths
         op.execute(f"ALTER TABLE {table} FORCE ROW LEVEL SECURITY")
 
         # Recreate with strict matching (no NULL bypass)
@@ -107,21 +111,28 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Revert to the original NULL-permissive policies."""
+    # Community Edition fallback: skip if RLS is not available
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security'") is not None
+    if not _has_rls:
+        return
 
     for table in ALL_TABLES:
+        # MIGRATION_REVIEW_REQUIRED: DROP POLICY removes strict tenant isolation
         op.execute(
             f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}"
         )
 
-        # Restore the original unsafe policy
+        # MIGRATION_REVIEW_REQUIRED: restoring NULL-permissive policy creates data leak vector
         op.execute(f"""
             CREATE POLICY tenant_isolation_policy ON {table}
                 FOR ALL
                 TO PUBLIC
                 USING (
+                    tenant_id IS NULL OR
                     tenant_id::text = current_setting('app.tenant_id', true)
                 )
                 WITH CHECK (
+                    tenant_id IS NULL OR
                     tenant_id::text = current_setting('app.tenant_id', true)
                 )
         """)

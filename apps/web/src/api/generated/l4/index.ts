@@ -5296,7 +5296,7 @@ export interface components {
              * Query
              * @description Search across name, domain, owner
              */
-            query?: string | null;
+            query: string | null;
             provider?: components["schemas"]["CRMProvider"] | null;
             /** Stage */
             stage?: string | null;
@@ -6313,7 +6313,7 @@ export interface components {
          */
         CompanyKnowledgeProfileUpdateRequest: {
             /** Company Name */
-            company_name?: string | null;
+            company_name: string | null;
             /** Website */
             website?: string | null;
             /** Identity */
@@ -6693,7 +6693,7 @@ export interface components {
         /** CurrentTenantSettingsUpdate */
         CurrentTenantSettingsUpdate: {
             /** Settings */
-            settings?: {
+            settings: {
                 [key: string]: unknown;
             } | null;
         };
@@ -6827,7 +6827,7 @@ export interface components {
              * Sources
              * @description Specific sources to use: sec_edgar, web_crawl, domain_lookup, news_scan
              */
-            sources?: string[] | null;
+            sources: string[] | null;
             /**
              * Force
              * @description Re-enrich even if already enriched
@@ -7371,9 +7371,9 @@ export interface components {
          */
         ICPProfileUpdateRequest: {
             /** Industries */
-            industries?: string[] | null;
+            industries: string[] | null;
             /** Company Size */
-            company_size?: string[] | null;
+            company_size: string[] | null;
             /** Buyer Personas */
             buyer_personas?: {
                 [key: string]: unknown;
@@ -8378,7 +8378,7 @@ export interface components {
              * Prospect Id
              * @description Prospect identifier
              */
-            prospect_id?: string | null;
+            prospect_id: string | null;
             /**
              * Value Driver Ids
              * @description Value drivers to calculate
@@ -9151,7 +9151,7 @@ export interface components {
              * Reason
              * @description Human-readable reason for the status change
              */
-            reason?: string | null;
+            reason: string | null;
             /**
              * Changed By
              * @description User ID or service name initiating the change
@@ -9193,7 +9193,7 @@ export interface components {
          */
         SyncAccountsRequest: {
             /** @description Specific provider to sync, or null for all */
-            provider?: components["schemas"]["CRMProvider"] | null;
+            provider: components["schemas"]["CRMProvider"] | null;
             /**
              * Account Ids
              * @description Specific account IDs to sync, or null for all
@@ -9464,8 +9464,8 @@ export interface components {
          */
         TenantUpdateRequest: {
             /** Name */
-            name?: string | null;
-            status?: components["schemas"]["TenantStatus"] | null;
+            name: string | null;
+            status: components["schemas"]["TenantStatus"] | null;
             /** Settings */
             settings?: {
                 [key: string]: unknown;
@@ -9686,7 +9686,7 @@ export interface components {
         };
         /** UpdateTaskRequest */
         UpdateTaskRequest: {
-            status?: components["schemas"]["TaskStatus"] | null;
+            status: components["schemas"]["TaskStatus"] | null;
             /** Assignee */
             assignee?: string | null;
             /** Due Date */
@@ -9894,8 +9894,8 @@ export interface components {
          */
         UserUpdateRequest: {
             /** Display Name */
-            display_name?: string | null;
-            role?: components["schemas"]["Role"] | null;
+            display_name: string | null;
+            role: components["schemas"]["Role"] | null;
             status?: components["schemas"]["UserStatus"] | null;
         };
         /**
@@ -9978,7 +9978,7 @@ export interface components {
          */
         ValidationAuthContextSeedRequest: {
             /** Tenant Id */
-            tenant_id?: string | null;
+            tenant_id: string | null;
             /**
              * Tenant Slug
              * @default tenant-validation
@@ -10796,7 +10796,7 @@ export interface components {
         /** WorkspaceEvidenceResponse */
         WorkspaceEvidenceResponse: {
             /** Evidence */
-            evidence?: components["schemas"]["WorkspaceEvidenceItem"][];
+            evidence: components["schemas"]["WorkspaceEvidenceItem"][];
         };
         /** add_invoice_itemResult */
         add_invoice_itemResult: {
@@ -13396,6 +13396,15 @@ export interface operations {
                     };
                 };
             };
+            /** @description Invalid webhook credentials, tenant binding, or signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13434,6 +13443,15 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Invalid webhook credentials, tenant binding, or signature */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
             /** @description Validation Error */
@@ -15233,8 +15251,35 @@ export interface operations {
                     "application/json": components["schemas"]["WebhookProvisioningResponse"];
                 };
             };
+            /** @description Invalid signature or expired timestamp */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Tenant not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
             /** @description Validation Error */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Webhook provisioning not configured */
+            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -17567,8 +17612,44 @@ export interface operations {
                     "application/json": components["schemas"]["stripe_webhookResult"];
                 };
             };
+            /** @description Invalid webhook payload/signature/timestamp */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Invalid origin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
             /** @description Validation Error */
             422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Webhook processing not configured or failed */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+            /** @description Stripe processing failed */
+            502: {
                 headers: {
                     [name: string]: unknown;
                 };

@@ -144,14 +144,18 @@ def mock_tenant_context():
 try:
     import neo4j  # noqa: F401
 except ImportError:
+    from importlib.machinery import ModuleSpec
     import types as _types
     _neo4j = _types.ModuleType("neo4j")
+    _neo4j.__spec__ = ModuleSpec("neo4j", loader=None, is_package=True)
     _neo4j.__path__ = []  # type: ignore[attr-defined]
     _neo4j.AsyncDriver = MagicMock()
     _neo4j.AsyncSession = MagicMock()
     _neo4j.AsyncGraphDatabase = MagicMock()
     _neo4j_exc = _types.ModuleType("neo4j.exceptions")
+    _neo4j_exc.__spec__ = ModuleSpec("neo4j.exceptions", loader=None)
     _neo4j_graph = _types.ModuleType("neo4j.graph")
+    _neo4j_graph.__spec__ = ModuleSpec("neo4j.graph", loader=None)
     sys.modules["neo4j"] = _neo4j
     sys.modules["neo4j.exceptions"] = _neo4j_exc
     sys.modules["neo4j.graph"] = _neo4j_graph

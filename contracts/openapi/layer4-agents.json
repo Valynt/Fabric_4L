@@ -13704,7 +13704,10 @@
         },
         "type": "object",
         "title": "AccountSearchRequest",
-        "description": "Account search request body."
+        "description": "Account search request body.",
+        "required": [
+          "query"
+        ]
       },
       "ActivityItemSchema": {
         "properties": {
@@ -15455,7 +15458,10 @@
           }
         },
         "type": "object",
-        "title": "CancelSubscriptionRequest"
+        "title": "CancelSubscriptionRequest",
+        "required": [
+          "cancel_immediately"
+        ]
       },
       "CancelSubscriptionResponse": {
         "properties": {
@@ -16289,7 +16295,10 @@
         },
         "type": "object",
         "title": "CompanyKnowledgeProfileUpdateRequest",
-        "description": "Request to update profile sections."
+        "description": "Request to update profile sections.",
+        "required": [
+          "company_name"
+        ]
       },
       "ComponentHealthInfo": {
         "properties": {
@@ -17188,7 +17197,10 @@
           }
         },
         "type": "object",
-        "title": "CurrentTenantSettingsUpdate"
+        "title": "CurrentTenantSettingsUpdate",
+        "required": [
+          "settings"
+        ]
       },
       "CurrentTenantSettingsUpdateResponse": {
         "properties": {
@@ -17492,7 +17504,10 @@
           }
         },
         "type": "object",
-        "title": "EnrichAccountRequest"
+        "title": "EnrichAccountRequest",
+        "required": [
+          "sources"
+        ]
       },
       "EnrichmentStatus": {
         "type": "string",
@@ -18962,7 +18977,11 @@
         },
         "type": "object",
         "title": "ICPProfileUpdateRequest",
-        "description": "Request to update an ICP profile."
+        "description": "Request to update an ICP profile.",
+        "required": [
+          "industries",
+          "company_size"
+        ]
       },
       "ICPSourceType": {
         "type": "string",
@@ -19055,7 +19074,10 @@
         },
         "type": "object",
         "title": "IntegrationCreateRequest",
-        "description": "Request to create/update an integration.\n\nSECURITY: Never accept access_token, refresh_token, or auth_code\nfrom frontend requests. Tokens are obtained via OAuth callback\nor internal service mechanisms only."
+        "description": "Request to create/update an integration.\n\nSECURITY: Never accept access_token, refresh_token, or auth_code\nfrom frontend requests. Tokens are obtained via OAuth callback\nor internal service mechanisms only.",
+        "required": [
+          "enabled"
+        ]
       },
       "IntegrationListResponse": {
         "properties": {
@@ -21168,7 +21190,10 @@
         },
         "type": "object",
         "title": "ROIAnalysisRequest",
-        "description": "Quick ROI analysis request."
+        "description": "Quick ROI analysis request.",
+        "required": [
+          "prospect_id"
+        ]
       },
       "ROIAnalysisResponse": {
         "properties": {
@@ -22005,7 +22030,10 @@
         },
         "type": "object",
         "title": "SalesforceOAuthAuthorizeRequest",
-        "description": "Request to start Salesforce OAuth."
+        "description": "Request to start Salesforce OAuth.",
+        "required": [
+          "return_to"
+        ]
       },
       "SalesforceOAuthAuthorizeResponse": {
         "properties": {
@@ -22702,7 +22730,10 @@
         },
         "type": "object",
         "title": "StatusChangeRequest",
-        "description": "Request body for tenant status change endpoints."
+        "description": "Request body for tenant status change endpoints.",
+        "required": [
+          "reason"
+        ]
       },
       "StatusUpdateRequest": {
         "properties": {
@@ -22816,7 +22847,10 @@
         },
         "type": "object",
         "title": "SyncAccountsRequest",
-        "description": "Manual sync trigger request."
+        "description": "Manual sync trigger request.",
+        "required": [
+          "provider"
+        ]
       },
       "SyncAccountsResponse": {
         "properties": {
@@ -23404,7 +23438,11 @@
         },
         "type": "object",
         "title": "TenantUpdateRequest",
-        "description": "Payload to update tenant metadata."
+        "description": "Payload to update tenant metadata.",
+        "required": [
+          "name",
+          "status"
+        ]
       },
       "TenantUserInfo": {
         "properties": {
@@ -23902,7 +23940,10 @@
           }
         },
         "type": "object",
-        "title": "UpdateTaskRequest"
+        "title": "UpdateTaskRequest",
+        "required": [
+          "status"
+        ]
       },
       "UsageBatchRequest": {
         "properties": {
@@ -24342,7 +24383,11 @@
         },
         "type": "object",
         "title": "UserUpdateRequest",
-        "description": "Update a user's role or status."
+        "description": "Update a user's role or status.",
+        "required": [
+          "display_name",
+          "role"
+        ]
       },
       "ValidateClaimsRequest": {
         "properties": {
@@ -24563,7 +24608,10 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ValidationAuthContextSeedRequest",
-        "description": "Non-production deterministic auth-context seed payload.\n\nThe payload intentionally accepts only non-secret metadata and optional\npre-hashed API key material. Raw secrets are rejected by ``extra=forbid``."
+        "description": "Non-production deterministic auth-context seed payload.\n\nThe payload intentionally accepts only non-secret metadata and optional\npre-hashed API key material. Raw secrets are rejected by ``extra=forbid``.",
+        "required": [
+          "tenant_id"
+        ]
       },
       "ValidationError": {
         "properties": {
@@ -24760,7 +24808,11 @@
         },
         "type": "object",
         "title": "ValidationSessionRequest",
-        "description": "Non-production browser session payload for backend-integrated Playwright validation."
+        "description": "Non-production browser session payload for backend-integrated Playwright validation.",
+        "required": [
+          "user_id",
+          "email"
+        ]
       },
       "ValidationState": {
         "type": "string",
@@ -26299,7 +26351,10 @@
           }
         },
         "type": "object",
-        "title": "WorkspaceEvidenceResponse"
+        "title": "WorkspaceEvidenceResponse",
+        "required": [
+          "evidence"
+        ]
       },
       "add_invoice_itemResult": {
         "properties": {

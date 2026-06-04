@@ -75,16 +75,20 @@ def upgrade() -> None:
 
 def downgrade() -> None:
     """Remove RLS policies and disable RLS."""
-    # Revoke bypass privilege from admin roles first
+    # MIGRATION_REVIEW_REQUIRED: REVOKE is destructive — removes all privileges from admin/system roles
+    # Community Edition fallback: skip if running on PostgreSQL CE (pre-9.5 or RLS unavailable)
+    _has_rls = op.execute("SELECT 1 FROM pg_settings WHERE name = 'row_security' AND setting = 'on'") is not None
+    if not _has_rls:
+        return  # CE fallback: RLS not available, skip policy operations
     for table in RLS_TABLES:
         op.execute(f"REVOKE ALL ON {table} FROM admin_role, system_role")
-    
-    # Drop policies
+
+    # MIGRATION_REVIEW_REQUIRED: DROP POLICY permanently removes tenant isolation enforcement
     for table in RLS_TABLES:
         op.execute(f"DROP POLICY IF EXISTS tenant_isolation_policy ON {table}")
         op.execute(f"DROP POLICY IF EXISTS admin_bypass_policy ON {table}")
 
-    # Disable RLS
+    # MIGRATION_REVIEW_REQUIRED: DISABLE ROW LEVEL SECURITY removes all tenant isolation
     for table in RLS_TABLES:
         op.execute(f"ALTER TABLE {table} NO FORCE ROW LEVEL SECURITY")
         op.execute(f"ALTER TABLE {table} DISABLE ROW LEVEL SECURITY")

@@ -4,6 +4,7 @@ Service code should import shared/runtime symbols via this module to avoid
 accidental deep imports from non-public ``value_fabric`` paths.
 """
 
+from value_fabric.shared.error_handling import register_exception_handlers
 from value_fabric.shared.error_handling.exceptions import ValueFabricException
 
 
@@ -33,3 +34,10 @@ def map_exception_to_unhandled_contract() -> dict[str, dict[str, object | None]]
             "details": None,
         }
     }
+
+
+__all__ = [
+    "map_exception_to_http_contract",
+    "map_exception_to_unhandled_contract",
+    "register_exception_handlers",
+]

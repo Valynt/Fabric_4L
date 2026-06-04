@@ -26,7 +26,9 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
+import sentry_sdk
 import structlog
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 # Third-party imports for health check
 try:
@@ -60,6 +62,14 @@ except Exception:
 logger = structlog.get_logger(__name__)
 
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
+
+# Initialize Sentry error tracking (no-op when SENTRY_DSN is unset)
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[FastApiIntegration()],
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+)
 
 try:
     load_infisical_secrets()
@@ -929,6 +939,16 @@ async def run_extraction(
     prompt_version = config.get("prompt_version")
     if not prompt_version:
         raise ValidationError(message = "prompt_version is required in extraction_config")
+
+    # S2-8: Validate prompt_version against PromptRegistry on startup
+    from layer2_extraction.extraction.prompt_registry import get_prompt_registry
+    registry = get_prompt_registry()
+    registered = registry.get_version(str(prompt_version))
+    if registered is None:
+        logger.warning(
+            "prompt_version %s not found in PromptRegistry — proceeding with unvalidated version",
+            prompt_version,
+        )
     
     telemetry_context = {
         "tenant_id": tenant_id,

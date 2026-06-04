@@ -1,0 +1,68 @@
+# Reviewed structural-preflight allowlist.
+#
+# This file is intentionally scoped to filename/topology findings in
+# scripts/ci/structural_preflight.py. It does not disable gitleaks,
+# audit_infra_secrets.py, or check_manifest_secret_hygiene.py.
+
+# Audited safe: examples/templates, ExternalSecret/SecretStore CRDs, Vault
+# policy references, placeholder manifests, and inventory docs with no
+# literal production secret material.
+secret_file_risk_allow:
+  - .env.dev.example
+  - .env.example
+  - .env.production-compose.template
+  - apps/web/.env.example
+  - apps/web/.env.local.mock-auth.example
+  - docs/archive/frontend-root-2026-05-02/source-snapshot/.env.example
+  - docs/archive/legacy-value-fabric/.env.example
+  - infra/helm/fabric-chart/templates/secrets.yaml
+  - k8s/base/alertmanager-secrets.yml
+  - k8s/base/api-key-cache-secret.yaml
+  - k8s/base/external-secrets-operator.yml
+  - k8s/base/externalsecrets/DEPRECATED.md
+  - k8s/base/externalsecrets/clustersecretstore.yaml
+  - k8s/base/externalsecrets/externalsecret-layer1.yaml
+  - k8s/base/jwt-keys-secret.yaml
+  - k8s/envs/dev/secrets.yml
+  - k8s/external-secrets/SECRET_INVENTORY.md
+  - k8s/external-secrets/alertmanager-secrets.yaml
+  - k8s/external-secrets/cluster-secret-store.yaml
+  - k8s/external-secrets/keycloak-secrets.yaml
+  - k8s/external-secrets/layer1-secrets.yaml
+  - k8s/external-secrets/layer2-5-secrets.yaml
+  - k8s/external-secrets/layer2-secrets.yaml
+  - k8s/external-secrets/layer3-secrets.yaml
+  - k8s/external-secrets/layer4-secrets.yaml
+  - k8s/external-secrets/layer5-secrets.yaml
+  - k8s/external-secrets/layer6-secrets.yaml
+  - k8s/external-secrets/neo4j-secrets.yaml
+  - k8s/external-secrets/oauth2-proxy-secrets.yaml
+  - k8s/external-secrets/pgbouncer-secrets.yaml
+  - k8s/external-secrets/postgres-endpoint.yaml
+  - k8s/external-secrets/redis-endpoint.yaml
+  - k8s/external-secrets/redis-secrets.yaml
+  - k8s/external-secrets/vault-database-dynamic.yml
+  - k8s/external-secrets/vault-integration.yml
+  - k8s/external-secrets/vault-postgres-roles.yml
+  - k8s/infisical/infisical-secret-complete.yml
+  - k8s/infisical/infisical-secret.yml
+  - k8s/monitoring/alertmanager-secrets-example.yaml
+  - k8s/monitoring/placeholder-secret-scanner-cronjob.yaml
+  - k8s/policy/kyverno-secret-placeholder-guardrails.yaml
+  - k8s/secrets.yml.template
+  - k8s/vault/policies/external-secrets.hcl
+  - services/layer1-ingestion/.env.example
+  - services/layer2-5-signal-refinery/.env.example
+  - services/layer2-extraction/.env.example
+  - services/layer3-knowledge/.env.example
+  - services/layer4-agents/.env.example
+  - services/layer5-ground-truth/.env.example
+  - services/layer6-benchmarks/.env.example
+  - tests/security/.env.example
+
+# Audited safe: local loopback/readiness credentials and negative security
+# fixtures used to prove literal secret scanners fail closed.
+hardcoded_db_credentials_allow:
+  - scripts/ci/mandatory_security_regression_gate.sh
+  - scripts/ci/run_db_production_readiness_gate.sh
+  - scripts/ci/tests/fixtures/manifest_secret_hygiene/fail-postgres-inline.yml

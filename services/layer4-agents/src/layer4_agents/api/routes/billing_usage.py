@@ -1,6 +1,10 @@
-from __future__ import annotations
+"""Phase 1 forwarding stub — canonical implementation now in layer7-billing.
 
-"""Usage ingestion and query billing routes."""
+Layer 4 retains this shim for backward compatibility. All calls are
+forwarded to the Layer 7 Billing Service via HTTP client stubs.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter
 
@@ -24,17 +28,14 @@ router.add_api_route(
     "/usage/{customer_id}/summary",
     billing.get_usage_summary,
     methods=["GET"],
-    response_model=billing.UsageSummaryResponse,
 )
 router.add_api_route(
     "/usage/{customer_id}/events",
     billing.list_usage_events,
     methods=["GET"],
-    response_model=list[billing.UsageEventResponse],
 )
 router.add_api_route(
     "/usage/{customer_id}/sync",
     billing.sync_usage_to_stripe,
     methods=["POST"],
-    response_model=billing.UsageSyncResponse,
 )

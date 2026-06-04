@@ -659,6 +659,8 @@ export interface paths {
         /**
          * Trigger Cleanup
          * @description Trigger content cleanup for old data.
+         *
+         *     SECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.
          */
         post: operations["trigger_cleanup_api_v1_ingestion_admin_cleanup_post"];
         delete?: never;
@@ -1077,6 +1079,8 @@ export interface components {
             callback_url?: string | null;
             /** Webhook Events */
             webhook_events?: string[] | null;
+            /** Idempotency Key */
+            idempotency_key?: string | null;
         };
         /**
          * ExecuteTargetResponse
@@ -1947,7 +1951,7 @@ export interface components {
             /** Valid */
             valid: boolean;
             /** Errors */
-            errors: components["schemas"]["ValidationError"][];
+            errors: components["schemas"]["ValidationErrorDetail"][];
             /** Warnings */
             warnings: components["schemas"]["ValidationWarning"][];
             /** Robots Txt Check */
@@ -1975,6 +1979,21 @@ export interface components {
             input?: unknown;
             /** Context */
             ctx?: Record<string, never>;
+        };
+        /**
+         * ValidationErrorDetail
+         * @description Validation error detail.
+         */
+        ValidationErrorDetail: {
+            /** Field */
+            field: string;
+            /** Message */
+            message: string;
+            /**
+             * Severity
+             * @default error
+             */
+            severity: string;
         };
         /**
          * ValidationWarning

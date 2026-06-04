@@ -11,7 +11,7 @@ import { logWarn } from "@/lib/telemetry";
 export class SessionService {
   redirectTo(url: string): void {
     if (typeof window !== 'undefined') {
-      window.location.href = url;
+      window.location.href = url; // navigation-guardrail: ignore external Clerk redirect target
     }
   }
 

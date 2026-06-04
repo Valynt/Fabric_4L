@@ -18,6 +18,9 @@ No business logic lives here. All endpoint implementations are in
 
 import os
 from contextlib import asynccontextmanager
+
+import sentry_sdk
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Request
@@ -77,6 +80,14 @@ from ..api.routes import (
 from ..api.versioning import VersionMiddleware, get_version_compatibility
 
 logger = get_logger(__name__)
+
+# Initialize Sentry error tracking (no-op when SENTRY_DSN is unset)
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[FastApiIntegration()],
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+)
 
 _probe_app: list[FastAPI] = []
 _security_config_l3: Any = None

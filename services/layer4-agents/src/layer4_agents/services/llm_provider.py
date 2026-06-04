@@ -243,9 +243,15 @@ def get_openai_provider(config: dict[str, Any] | None = None) -> OpenAIProvider:
     return OpenAIProvider(api_key=api_key)
 
 
-def get_provider_adapters(config: dict[str, Any] | None = None) -> dict[str, OpenAIProvider]:
+def get_provider_adapters(config: dict[str, Any] | None = None) -> dict[str, Any]:
     """Registry of configured provider adapters for conformance tests and orchestration wiring."""
-    return {"openai": get_openai_provider(config)}
+    adapters: dict[str, Any] = {"openai": get_openai_provider(config)}
+    try:
+        from .anthropic_provider import get_anthropic_provider
+        adapters["anthropic"] = get_anthropic_provider(config)
+    except Exception:
+        pass  # anthropic optional
+    return adapters
 
 
 def get_llm_provider(config: dict[str, Any] | None = None) -> Any:
@@ -256,7 +262,7 @@ def get_llm_provider(config: dict[str, Any] | None = None) -> Any:
     2. ``config["llm_provider"]`` if present
     3. Default: ``"together"``
 
-    Supported values: ``"together"``, ``"openai"``
+    Supported values: ``"together"``, ``"openai"``, ``"anthropic"``
 
     Returns an instance implementing the ``LLMProvider`` protocol.
     """
@@ -287,7 +293,9 @@ def get_llm_provider(config: dict[str, Any] | None = None) -> Any:
         return get_openai_provider(config)
 
     if provider_name == "anthropic":
-        raise ProviderNotImplementedError("anthropic")
+        from .anthropic_provider import get_anthropic_provider
+
+        return get_anthropic_provider(config)
 
     logger.warning(
         "Unknown LLM provider %r — falling back to Together.ai. "

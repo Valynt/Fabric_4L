@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 import pytest
 
@@ -13,17 +13,22 @@ pytestmark = pytest.mark.contract_static_no_service
 CONTRACT_ROOT = Path(__file__).resolve().parents[2] / "contracts" / "openapi"
 
 
+def _as_dict(value: object, label: str) -> dict[str, Any]:
+    assert isinstance(value, dict), f"{label} must be an object"
+    return cast(dict[str, Any], value)
+
+
 def _spec(name: str) -> dict[str, Any]:
-    return json.loads((CONTRACT_ROOT / name).read_text(encoding="utf-8"))
+    return _as_dict(json.loads((CONTRACT_ROOT / name).read_text(encoding="utf-8")), name)
 
 
 def _schema(spec: dict[str, Any], name: str) -> dict[str, Any]:
-    return spec["components"]["schemas"][name]
+    return _as_dict(spec["components"]["schemas"][name], name)
 
 
 def _response_schema(spec: dict[str, Any], path: str, method: str = "get") -> dict[str, Any]:
     response = spec["paths"][path][method]["responses"]["200"]
-    return response["content"]["application/json"]["schema"]
+    return _as_dict(response["content"]["application/json"]["schema"], f"{method.upper()} {path}")
 
 
 def test_layer4_workflow_routes_publish_concrete_response_models() -> None:
@@ -42,8 +47,14 @@ def test_layer4_workflow_routes_publish_concrete_response_models() -> None:
     workflow_result = _schema(spec, "WorkflowResultResponse")
     assert {"workflow_id", "status"}.issubset(set(workflow_result["required"]))
     output_schema = workflow_result["properties"]["output"]["anyOf"][0]
-    assert output_schema["type"] == "object"
-    assert "additionalProperties" in output_schema
+    if "$ref" in output_schema:
+        ref_name = output_schema["$ref"].split("/")[-1]
+        resolved = _schema(spec, ref_name)
+        assert resolved["type"] == "object"
+        assert "additionalProperties" in resolved
+    else:
+        assert output_schema["type"] == "object"
+        assert "additionalProperties" in output_schema
 
 
 def test_layer5_freshness_and_sync_routes_publish_concrete_response_models() -> None:
@@ -80,6 +91,6 @@ def test_layer5_freshness_and_sync_routes_publish_concrete_response_models() -> 
 def test_error_envelope_shape_is_canonical_for_layer4_and_layer5() -> None:
     for spec_name in ("layer4-agents.json", "layer5-ground-truth.json"):
         error_schema = _schema(_spec(spec_name), "ErrorResponse")
-        assert error_schema["required"] == ["message", "code", "trace_id"]
+        assert error_schema["required"] == ["error"]
         assert error_schema["additionalProperties"] is False
-        assert set(error_schema["properties"]) == {"message", "code", "trace_id", "details"}
+        assert set(error_schema["properties"]) == {"error"}

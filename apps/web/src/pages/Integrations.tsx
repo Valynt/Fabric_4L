@@ -148,7 +148,7 @@ function Integrations() {
       },
       {
         onSuccess: (result) => {
-          window.location.assign(result.authorization_url || result.authorize_url);
+          window.location.assign(result.authorization_url || result.authorize_url); // navigation-guardrail: ignore external Salesforce OAuth target
         },
         onError: (startError) => {
           toast.error(`Failed to start Salesforce OAuth: ${startError.message}`);

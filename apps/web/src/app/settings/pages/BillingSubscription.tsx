@@ -20,7 +20,7 @@ export function BillingSubscription() {
             </div>
             <button
               type="button"
-              onClick={() => safeAsync(openCustomerPortal(window.location.href), "billing.openPortal")}
+              onClick={() => safeAsync(openCustomerPortal(window.location.href), "billing.openPortal")} // navigation-guardrail: ignore current URL passed as hosted portal return target
               disabled={isOpeningPortal || !customerId}
               className="inline-flex h-8 items-center rounded-md border px-3 text-xs font-medium hover:bg-accent disabled:opacity-50"
             >

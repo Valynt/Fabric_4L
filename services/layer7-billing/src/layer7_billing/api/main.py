@@ -27,6 +27,10 @@ from ..webhook_security import (
     DEFAULT_STRIPE_WEBHOOK_TOLERANCE_SECONDS,
     verify_stripe_webhook_signature,
 )
+from .routes.billing import router as billing_router
+from .routes.billing_overages import router as billing_overages_router
+from .routes.billing_usage import router as billing_usage_router
+from .routes.billing_webhooks import router as billing_webhooks_router
 
 # Configure structured logging
 configure_structured_logging()
@@ -347,3 +351,12 @@ async def stripe_webhook(
         route="/v1/billing/webhook",
     )
     return {"received": True, "event_id": event_id}
+
+
+# S3-1: Phase 1 billing route extraction — mount extracted L4 billing routers
+# under the canonical /v1/billing prefix.  These replace the L4-local
+# billing routes which now forward via HTTP client stubs.
+app.include_router(billing_router, prefix="/v1")
+app.include_router(billing_overages_router, prefix="/v1/billing")
+app.include_router(billing_usage_router, prefix="/v1/billing")
+app.include_router(billing_webhooks_router, prefix="/v1/billing")

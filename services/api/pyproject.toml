@@ -24,6 +24,7 @@ dev = [
     "pytest-asyncio>=0.23.0",
     "ruff>=0.4.0",
     "mypy>=1.10.0",
+    "types-passlib>=1.7.7",
     "coverage>=7.5.0",
 ]
 
@@ -51,7 +52,7 @@ python_version = "3.11"
 strict = true
 warn_return_any = true
 warn_unused_configs = true
-mypy_path = "../../packages/shared/src"
+mypy_path = "$MYPY_CONFIG_FILE_DIR:$MYPY_CONFIG_FILE_DIR/../../packages/shared/src"
 
 [tool.ruff]
 line-length = 100

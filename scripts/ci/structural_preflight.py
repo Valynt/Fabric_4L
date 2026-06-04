@@ -53,9 +53,71 @@ def run_command(cmd: list[str], cwd: Path | None = None) -> tuple[int, str, str]
         return 2, "", f"Command not found: {cmd[0]}"
 
 
-def check_secret_file_risk(repo_root: Path, include_ignored: bool) -> list[Finding]:
+def _load_preflight_allowlist(repo_root: Path) -> dict[str, set[str]]:
+    """Load reviewed structural-preflight false positives.
+
+    The allowlist uses a constrained YAML subset so this gate has no PyYAML
+    runtime dependency: top-level section names with ``- path`` string entries.
+    """
+    allowlist_path = repo_root / "config" / "ci" / "structural_preflight_allowlist.yaml"
+    allowlist: dict[str, set[str]] = {
+        "secret_file_risk_allow": set(),
+        "hardcoded_db_credentials_allow": set(),
+    }
+    if not allowlist_path.exists():
+        return allowlist
+
+    current_section: str | None = None
+    for raw_line in allowlist_path.read_text(encoding="utf-8", errors="ignore").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if not raw_line.startswith((" ", "\t")) and line.endswith(":"):
+            section = line[:-1].strip()
+            current_section = section if section in allowlist else None
+            continue
+        if current_section is None or not line.startswith("- "):
+            continue
+        value = line[2:].split(" #", 1)[0].strip().strip("\"'")
+        if value:
+            allowlist[current_section].add(value.replace("\\", "/"))
+    return allowlist
+
+
+def _is_allowlisted_path(path: str, allowlist: set[str]) -> bool:
+    normalized = path.replace("\\", "/")
+    if normalized in allowlist:
+        return True
+    file_path = normalized.rsplit(":", 1)[0] if ":" in normalized else normalized
+    return file_path in allowlist
+
+
+def _is_external_secret_manifest(repo_root: Path, file_path: str) -> bool:
+    """Return true when a YAML file contains only ESO/SecretStore resources."""
+    if not file_path.endswith((".yaml", ".yml")):
+        return False
+    try:
+        content = (repo_root / file_path).read_text(encoding="utf-8", errors="ignore")
+    except OSError:
+        return False
+
+    safe_kinds = {"ExternalSecret", "SecretStore", "ClusterSecretStore", "PushSecret"}
+    kinds: set[str] = set()
+    for line in content.splitlines():
+        match = re.match(r"^\s*kind:\s*['\"]?([^'\"\s{}]+)['\"]?\s*$", line)
+        if match:
+            kinds.add(match.group(1))
+    return bool(kinds) and kinds <= safe_kinds
+
+
+def check_secret_file_risk(
+    repo_root: Path,
+    include_ignored: bool,
+    allowlist: set[str] | None = None,
+) -> list[Finding]:
     """Detect secret-risk filenames and git tracking state."""
     findings = []
+    allowlist = allowlist or set()
     risky_patterns = [
         (r"\.env$", ".env file"),
         (r"\.env\.", ".env.* file"),
@@ -83,6 +145,10 @@ def check_secret_file_risk(repo_root: Path, include_ignored: bool) -> list[Findi
     for pattern, description in risky_patterns:
         for file_path in tracked_files:
             if re.search(pattern, file_path, re.IGNORECASE):
+                if _is_allowlisted_path(file_path, allowlist):
+                    continue
+                if _is_external_secret_manifest(repo_root, file_path):
+                    continue
                 findings.append(Finding(
                     check_id="secret_file_risk",
                     severity="critical",
@@ -364,7 +430,10 @@ def check_ci_wiring(repo_root: Path) -> list[Finding]:
     return findings
 
 
-def check_hardcoded_db_credentials(repo_root: Path) -> list[Finding]:
+def check_hardcoded_db_credentials(
+    repo_root: Path,
+    allowlist: set[str] | None = None,
+) -> list[Finding]:
     """Detect hardcoded postgres:postgres credentials in K8s manifests and configs.
 
     Hardcoded credentials in K8s manifests are exposed to anyone with read access to
@@ -372,6 +441,7 @@ def check_hardcoded_db_credentials(repo_root: Path) -> list[Finding]:
     injected via secretKeyRef.
     """
     findings: list[Finding] = []
+    allowlist = allowlist or set()
     # Pattern: literal postgres:postgres in a URL string (catches the most common form)
     credential_pattern = re.compile(
         r"postgres:postgres@|:[Pp]assword@|postgresql://\w+:\w+@"
@@ -396,10 +466,13 @@ def check_hardcoded_db_credentials(repo_root: Path) -> list[Finding]:
                 continue
             for i, line in enumerate(content.splitlines(), start=1):
                 if credential_pattern.search(line):
+                    finding_path = f"{file.relative_to(repo_root)}:{i}"
+                    if _is_allowlisted_path(finding_path, allowlist):
+                        continue
                     findings.append(Finding(
                         check_id="hardcoded_db_credentials",
                         severity="critical",
-                        path=f"{file.relative_to(repo_root)}:{i}",
+                        path=finding_path,
                         finding_type="hardcoded_credentials",
                         message=(
                             f"Hardcoded database credentials detected at line {i}. "
@@ -414,7 +487,7 @@ def check_hardcoded_db_credentials(repo_root: Path) -> list[Finding]:
     return findings
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(
         description="Structural preflight scanner for Fabric_4L"
     )
@@ -427,19 +500,33 @@ def main():
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
+    allowlist = _load_preflight_allowlist(repo_root)
 
     # Run all checks
-    all_findings = []
-    all_findings.extend(check_secret_file_risk(repo_root, args.include_ignored))
+    all_findings: list[Finding] = []
+    all_findings.extend(
+        check_secret_file_risk(
+            repo_root,
+            args.include_ignored,
+            allowlist["secret_file_risk_allow"],
+        )
+    )
     all_findings.extend(check_import_namespace_mismatch(repo_root))
     all_findings.extend(check_namespace_shadowing(repo_root))
     all_findings.extend(check_pytest_config(repo_root))
     all_findings.extend(check_tool_manifest_alignment(repo_root))
     all_findings.extend(check_ci_wiring(repo_root))
-    all_findings.extend(check_hardcoded_db_credentials(repo_root))
+    all_findings.extend(
+        check_hardcoded_db_credentials(
+            repo_root,
+            allowlist["hardcoded_db_credentials_allow"],
+        )
+    )
 
     # Determine strict failures
-    strict_failures = [f for f in all_findings if f.severity in ("critical", "high")]
+    strict_failures: list[Finding] = [
+        f for f in all_findings if f.severity in ("critical", "high")
+    ]
 
     report = PreflightReport(
         repo_root=str(repo_root),

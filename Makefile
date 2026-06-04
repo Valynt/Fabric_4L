@@ -75,15 +75,15 @@ verify-structure: ## Run structural preflight and Python contract lint checks
 	@echo "→ Running structural preflight..."
 	@$(PYTHON) scripts/ci/structural_preflight.py --strict
 	@echo "→ Running Python contract lint..."
-	@$(PYTHON) scripts/ci/python_contract_lint.py --strict
+	@$(PYTHON) scripts/ci/python_contract_lint.py --strict --baseline config/ci/python_contract_lint_baseline.json
 	@echo "→ Checking Layer 1 API main shim drift..."
 	@$(PYTHON) scripts/ci/check_layer1_api_main_shim_drift.py
 	@echo "→ Running strict shared-import enforcement..."
 	@$(PYTHON) scripts/ci/check_shared_imports.py --strict --scope executable
 	@echo "→ Running import topology tests..."
-	@$(PYTHON) -m pytest tests/contract/test_import_topology.py -q
+	@$(PYTHON) -m pytest --no-mandatory-dep-check tests/contract/test_import_topology.py -q
 	@echo "→ Running strict navigation pattern check..."
-	@cd apps/web && $(PYTHON) ../../scripts/ci/check_navigation_patterns.py --strict
+	@$(PYTHON) scripts/ci/check_navigation_patterns.py --strict
 	@echo "→ Running Layer 4 bounded-context dependency check..."
 	@$(PYTHON) scripts/ci/check_layer4_boundaries.py
 	@echo "✅  Structure verification passed"

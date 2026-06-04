@@ -198,7 +198,7 @@ Every document must link to 2-3 related documents:
 
 - [Prerequisites](./prerequisites.md) — Required setup before this guide
 - [Architecture Overview](../core-concepts/architecture.md) — Understanding the system
-- [API Reference](../reference/api-reference.md) — Endpoint details
+- [API Reference](../../API_REFERENCE.md) — Endpoint details
 ```
 
 ### Diagram Standards

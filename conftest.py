@@ -11,6 +11,12 @@ silently skipping tests.
 
 import importlib.util
 import os
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    from _pytest.config import Config, Parser
+    from _pytest.nodes import Item
+
 os.environ["ENVIRONMENT"] = "development"
 os.environ["LAYER1_API_URL"] = "http://layer1:8001"
 os.environ["LAYER2_API_URL"] = "http://layer2:8002"
@@ -156,7 +162,7 @@ _MANDATORY_DEPS: dict[str, str] = {
 }
 
 
-def _is_central_security_aggregation_run(config) -> bool:
+def _is_central_security_aggregation_run(config: "Config") -> bool:
     """Return True for the lightweight ``pytest tests/security/`` manifest run.
 
     The centralized security directory intentionally contains manifest wrappers
@@ -173,7 +179,7 @@ def _is_central_security_aggregation_run(config) -> bool:
     return all(arg in {relative_security_dir, security_dir} for arg in args)
 
 
-def pytest_configure(config) -> None:
+def pytest_configure(config: "Config") -> None:
     """Fail fast when mandatory test dependencies are missing.
 
     Runs before collection so the error is immediate and unambiguous,
@@ -217,7 +223,7 @@ def pytest_configure(config) -> None:
     raise SystemExit("\n".join(lines))
 
 
-def pytest_addoption(parser) -> None:
+def pytest_addoption(parser: "Parser") -> None:
     """Add --no-mandatory-dep-check flag for lightweight collection runs."""
     parser.addoption(
         "--no-mandatory-dep-check",
@@ -228,7 +234,7 @@ def pytest_addoption(parser) -> None:
     )
 
 
-def pytest_collection_modifyitems(config, items) -> None:
+def pytest_collection_modifyitems(config: "Config", items: list["Item"]) -> None:
     """Automatically mark tests as mandatory based on their other markers.
 
     Tests marked with: unit, contract, security, tenant_boundary, or tenant_isolation
@@ -326,7 +332,6 @@ def pytest_collection_modifyitems(config, items) -> None:
 # so collection is deterministic while those imports are normalized over time.
 # ---------------------------------------------------------------------------
 
-from typing import Any
 from unittest.mock import AsyncMock
 
 

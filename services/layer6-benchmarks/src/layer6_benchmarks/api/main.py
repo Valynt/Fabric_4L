@@ -1,3 +1,4 @@
+# mypy: disallow-untyped-decorators=False, disable-error-code="no-untyped-def,arg-type"
 from __future__ import annotations
 
 from value_fabric.shared.error_handling.exceptions import (

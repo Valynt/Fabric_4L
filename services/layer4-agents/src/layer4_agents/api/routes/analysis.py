@@ -1863,7 +1863,9 @@ async def generate_workspace_intelligence(
     if not record:
         raise NotFoundError(message = str(f"Case {case_id} not found"))
 
-    tenant_id = str(context.tenant_id) if context.tenant_id else "default"
+    if not context.tenant_id:
+        raise AuthorizationError(message="Tenant context is required for workspace intelligence generation")
+    tenant_id = str(context.tenant_id)
     account_id = str(record.account_id)
 
     driver = _get_neo4j_driver(request)

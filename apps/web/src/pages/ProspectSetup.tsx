@@ -41,7 +41,7 @@ export default function ProspectSetupPage({ ...props }: ProspectPromptBuilderPro
   )
 
   const handleFallbackNavigation = React.useCallback(() => {
-    navigateTo("/home")
+    navigateTo("home")
   }, [navigateTo])
 
   return (

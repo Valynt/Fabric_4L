@@ -474,10 +474,10 @@ curl -X POST http://localhost:8002/api/v1/extraction/extract \
 
 ## Next Steps
 
-- [Author Value Pack](../how-to-guides/author-value-pack.md) — Create custom ontologies
+- [Author Value Pack](../../packs/) — Create custom ontologies
 - [Layer 2 Extraction API](../reference/layer2-extraction-api.md) — API reference
-- [Why Knowledge Graph](../explanations/why-knowledge-graph.md) — Design rationale
-- [Extraction Quality](../troubleshooting/extraction-quality.md) — Debug issues
+- [Why Knowledge Graph](../explanations/adr/ADR-003-neo4j-pgvector-hybrid-graph-database.md) — Design rationale
+- [Extraction Quality](#) — Debug issues (documentation pending)
 
 ---
 

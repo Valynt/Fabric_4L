@@ -2,15 +2,14 @@
 title: "Value Fabric Quickstart Guide"
 category: "getting-started"
 audience: "beginner"
-last-reviewed: "2026-05-04"
+last-reviewed: "2026-06-04"
 freshness: "current"
 related: ["environment", "../core-concepts/architecture", "../how-to-guides/setup-local-dev", "../troubleshooting/index", "../core-concepts/security-model"]
 ---
 
-# Value Fabric Quickstart Guide
-
 > **In this guide, you will:**
-> - Set up a local Value Fabric instance in 15 minutes
+>
+> - Set up a local Fabric_4L instance in 15 minutes
 > - Ingest your first document
 > - Query the knowledge graph
 > - Run your first agent workflow
@@ -22,11 +21,13 @@ related: ["environment", "../core-concepts/architecture", "../how-to-guides/setu
 Before starting, ensure you have:
 
 | Requirement | Version | Verify Command |
-|-------------|---------|----------------|
+| ----------- | ------- | -------------- |
 | Docker Desktop | 4.25+ | `docker --version` |
 | Docker Compose | 2.23+ | `docker compose version` |
 | Git | 2.40+ | `git --version` |
 | Make | 3.81+ | `make --version` |
+| uv | 0.4+ | `uv --version` |
+| pnpm | 9+ | `pnpm --version` |
 | OpenAI API Key | — | [Get one here](https://platform.openai.com/api-keys) |
 
 **Estimated Time:** 15 minutes
@@ -39,18 +40,21 @@ Before starting, ensure you have:
 ```mermaid
 graph TB
     subgraph "Your Machine"
-        A[Docker Compose] --> B[Layer 1: Ingestion<br/>Port 8001]
-        A --> C[Layer 2: Extraction<br/>Port 8002]
-        A --> D[Layer 3: Knowledge Graph<br/>Port 8003]
+        A[Docker Compose] --> B[Layer 1: Ingestion<br/>Port 8000]
+        A --> C[Layer 2: Extraction<br/>Port 8000]
+        A --> L2_5[Layer 2.5: Signal Refinery<br/>Port 8007]
+        A --> D[Layer 3: Knowledge Graph<br/>Port 8001]
         A --> E[Layer 4: Agents<br/>Port 8004]
         A --> M[Layer 5: Ground Truth<br/>Port 8005]
         A --> N[Layer 6: Benchmarks<br/>Port 8006]
-        A --> F[Frontend UI<br/>Port 5173]
+        A --> L7[Layer 7: Billing<br/>Port 8008]
         A --> G[(PostgreSQL)]
         A --> H[(Neo4j)]
         A --> I[(Redis)]
+        A --> F[Frontend UI<br/>Port 5173]
     end
-    J[OpenAI API] -.-> C
+    J[LLM APIs] -.-> C
+    J -.-> L2_5
     J -.-> E
 
     style A fill:#4a90d9,color:white
@@ -58,26 +62,41 @@ graph TB
     style J fill:#95a5a6,color:white
 ```
 
-**Data Flow:** Documents → L1 (Ingest) → L2 (Extract) → L3 (Store) → L4 (Agent Analysis) → L5 (Ground Truth) → L6 (Benchmarks)
+**Data Flow:** Documents → L1 (Ingest) → L2 (Extract) → L2.5 (Signal Refinery) → L3 (Store) → L4 (Agent Analysis) → L5 (Ground Truth) → L6 (Benchmarks)
+
+**All 9 services** (run from repo root via `docker compose -f docker-compose.full.yml`):
+
+| # | Service | Path | Port | Role |
+| - | ------- | ---- | ---- | ---- |
+| 0 | API Gateway | `services/api/` | 8000 | Request routing, auth |
+| 1 | Layer 1 Ingestion | `services/layer1-ingestion/` | 8000 | Document ingestion |
+| 2 | Layer 2 Extraction | `services/layer2-extraction/` | 8000 | LLM-based extraction |
+| 2.5 | Layer 2.5 Signal Refinery | `services/layer2-5-signal-refinery/` | 8007 | Signal normalization & trust scoring |
+| 3 | Layer 3 Knowledge Graph | `services/layer3-knowledge/` | 8001 | Neo4j graph storage |
+| 4 | Layer 4 Agents | `services/layer4-agents/` | 8004 | Agent orchestration |
+| 5 | Layer 5 Ground Truth | `services/layer5-ground-truth/` | 8005 | Validation & ground truth |
+| 6 | Layer 6 Benchmarks | `services/layer6-benchmarks/` | 8006 | Benchmark evaluation |
+| 7 | Layer 7 Billing | `services/layer7-billing/` | 8008 | Usage metering & entitlements |
 
 ## Runtime path placement (contributors)
 
-When you add or change Layer 6 runtime logic, place it in the canonical path:
+Per **ADR-021**, all implementation logic lives in `services/` trees. The `value_fabric/` namespace is a **backward-compatibility shim only** — no new code should be added there.
 
-- `value_fabric/layer6/`
+When you add or change service code, place it under the canonical service path:
 
-Treat `services/layer6-benchmarks/` as the deployable service root (packaging, tests, Docker, migrations). If wrapper files exist under `services/layer6-benchmarks/src/`, keep them thin re-export shims only.
+- `services/layer6-benchmarks/src/` — canonical source for Layer 6
 
 Authoritative policy references:
 
 - `docs/reference/layer-runtime-path-governance.md`
-- `docs/reference/layer3-layer6-wrapper-policy.md`
+- `docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md`
 
-Required guardrails when adding a new Layer 6 module:
+Required guardrails when adding a new layer module:
 
-- implement it under `value_fabric/layer6/`
-- add the corresponding compatibility wrapper entry in `scripts/mirrored_files.json`
-- keep `services/layer6-benchmarks/src/` files to the generated re-export template only
+- Implement it under the service's `src/<package>/` tree
+- Do **not** add implementation files to `value_fabric/layerX/` (shim-only)
+- Keep `value_fabric/layerX/__init__.py` to path-appender shims only
+- Run contract tests after changes: `pytest tests/arch/test_canonical_module_sentinels.py`
 
 ---
 
@@ -96,8 +115,8 @@ For team development, prefer secret injection so credentials never live in a
 checked-in manifest or shared `.env`:
 
 ```bash
-infisical run --env=dev --path=/fabric-4l/value-fabric/dev -- \
-  docker compose up -d
+infisical run --env=dev --path=/fabric-4l/Fabric_4L/dev -- \
+  docker compose -f docker-compose.full.yml up -d
 ```
 
 For solo local work, edit `.env` and add your credentials. Do not
@@ -112,31 +131,40 @@ OPENAI_API_KEY=sk-your-key-here
 JWT_SECRET=your-generated-secret-here
 
 # Optional: Change ports if conflicts exist
-L1_PORT=8001
-L2_PORT=8002
-L3_PORT=8003
-L4_PORT=8004
+LAYER1_PORT=8000
+LAYER2_PORT=8000
+LAYER3_PORT=8001
+LAYER4_PORT=8004
+LAYER5_PORT=8005
+LAYER6_PORT=8006
+LAYER7_PORT=8008
 ```
 
 ---
 
 ## Step 2: Start Services
 
-```bash
-cd value-fabric
+All commands run from the **repository root** (there is no `value-fabric/` subdirectory):
 
-# Start all services in detached mode
+```bash
+# Start the full stack (recommended)
+docker compose -f docker-compose.full.yml up -d
+
+# Or start the minimal live stack
 docker compose up -d
 
 # Expected output:
-# [+] Running 9/9
-#  ✔ Container fabric-l1   Started
-#  ✔ Container fabric-l2   Started
-#  ✔ Container fabric-l3   Started
-#  ✔ Container fabric-l4   Started
-#  ✔ Container fabric-db   Started
-#  ✔ Container fabric-neo4j Started
-#  ✔ Container fabric-redis Started
+# [+] Running 10/10
+#  ✔ Container vf-live-postgres  Started
+#  ✔ Container vf-live-redis     Started
+#  ✔ Container vf-live-neo4j     Started
+#  ✔ Container vf-live-layer1    Started
+#  ✔ Container vf-live-layer2    Started
+#  ✔ Container vf-live-layer3    Started
+#  ✔ Container vf-live-layer4    Started
+#  ✔ Container vf-live-layer5    Started
+#  ✔ Container vf-live-layer6    Started
+#  ✔ Container vf-live-layer7    Started
 ```
 
 **Verification:**
@@ -159,7 +187,7 @@ BASE_IMAGE=python:3.11.11-slim-bookworm
 Then rebuild with the override:
 
 ```bash
-docker compose up --build -d
+docker compose -f docker-compose.full.yml up --build -d
 ```
 
 This is already pre-configured in the provided `.env` and `.env.example` files.
@@ -169,8 +197,18 @@ This is already pre-configured in the provided `.env` and `.env.example` files.
 ## Step 3: Run Database Migrations
 
 ```bash
-# From the value-fabric directory
+# From the repository root
 make migrate
+
+# Or run per-service migrations:
+# Layer 1
+uv run --package layer1-ingestion alembic upgrade head
+# Layer 4
+uv run --package layer4-agents alembic upgrade head
+# Layer 5
+uv run --package layer5-ground-truth alembic upgrade head
+# Layer 7
+uv run --package layer7-billing alembic upgrade head
 
 # Expected output:
 # INFO  [alembic.runtime.migration] Context impl PostgresqlImpl
@@ -186,10 +224,14 @@ make migrate
 make verify
 
 # Expected output:
-# ✓ Layer 1: Healthy
-# ✓ Layer 2: Healthy
-# ✓ Layer 3: Healthy
-# ✓ Layer 4: Healthy
+# ✓ Layer 1: Healthy (port 8000)
+# ✓ Layer 2: Healthy (port 8000)
+# ✓ Layer 2.5: Healthy (port 8007)
+# ✓ Layer 3: Healthy (port 8001)
+# ✓ Layer 4: Healthy (port 8004)
+# ✓ Layer 5: Healthy (port 8005)
+# ✓ Layer 6: Healthy (port 8006)
+# ✓ Layer 7: Healthy (port 8008)
 # ✓ Database: Connected
 # ✓ All tests passed
 ```
@@ -200,7 +242,7 @@ make verify
 
 ```bash
 # Create a test ingestion job
-curl -X POST http://localhost:8001/api/v1/ingestion/jobs \
+curl -X POST http://localhost:8000/api/v1/ingestion/jobs \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer test-token" \
   -H "X-Tenant-ID: test-tenant" \
@@ -231,7 +273,7 @@ open http://localhost:5173
 
 You'll see the **Command Center** dashboard:
 
-```
+```text
 ┌────────────────────────────────────────────────────────────┐
 │  🏠 Command Center                    [User: admin]        │
 ├────────────────────────────────────────────────────────────┤
@@ -246,7 +288,7 @@ You'll see the **Command Center** dashboard:
 │                                                            │
 │  📈 Recent Activity                                        │
 │  • Ingestion job completed (2 min ago)                     │
-│  • 3 entities extracted                                      │
+│  • 3 entities extracted                                    │
 └────────────────────────────────────────────────────────────┘
 ```
 
@@ -256,7 +298,7 @@ You'll see the **Command Center** dashboard:
 
 ```bash
 # Search for extracted entities
-curl "http://localhost:8003/api/v1/entities?query=sample" \
+curl "http://localhost:8001/api/v1/entities?query=sample" \
   -H "Authorization: Bearer test-token" \
   -H "X-Tenant-ID: test-tenant"
 
@@ -268,11 +310,11 @@ curl "http://localhost:8003/api/v1/entities?query=sample" \
 ## Next Steps
 
 | Goal | Next Document |
-|------|---------------|
+| ---- | ------------- |
 | Learn the architecture in depth | [Architecture Overview](../core-concepts/architecture.md) |
-| Explore the API | [API Reference](../reference/api-reference.md) |
+| Explore the API | [API Reference](../API_REFERENCE.md) |
 | Set up for development | [Local Development Setup](../how-to-guides/setup-local-dev.md) |
-| Deploy to production | [Kubernetes Deployment](../how-to-guides/deploy-to-k8s.md) |
+| Deploy to production | [Kubernetes Deployment](../../k8s/README.md) |
 
 ---
 
@@ -280,9 +322,10 @@ curl "http://localhost:8003/api/v1/entities?query=sample" \
 
 ### Issue: "Connection refused" on startup
 
-**Symptoms:** `curl: (7) Failed to connect to localhost port 8001`
+**Symptoms:** `curl: (7) Failed to connect to localhost port 8000`
 
 **Solution:**
+
 ```bash
 # Check service status
 docker compose ps
@@ -291,7 +334,7 @@ docker compose ps
 sleep 30
 
 # If unhealthy, view logs
-docker compose logs l1
+docker compose logs layer1
 ```
 
 ### Issue: "Migration failed"
@@ -299,11 +342,12 @@ docker compose logs l1
 **Symptoms:** `alembic.util.exc.CommandError`
 
 **Solution:**
+
 ```bash
 # Reset and recreate databases
 docker compose down -v
-docker compose up -d
-docker compose run --rm l1 alembic upgrade head
+docker compose -f docker-compose.full.yml up -d
+docker compose run --rm layer1-ingestion alembic upgrade head
 ```
 
 ### Issue: "OpenAI API errors"
@@ -311,9 +355,10 @@ docker compose run --rm l1 alembic upgrade head
 **Symptoms:** Extraction jobs fail with 401/429 errors
 
 **Solution:** Verify your `OPENAI_API_KEY` in `.env` and restart:
+
 ```bash
 docker compose down
-docker compose up -d
+docker compose -f docker-compose.full.yml up -d
 ```
 
 See [Troubleshooting Index](../troubleshooting/index.md) for more solutions.
@@ -322,10 +367,11 @@ See [Troubleshooting Index](../troubleshooting/index.md) for more solutions.
 
 ## Common Pitfalls
 
-1. **Port Conflicts:** If ports 5173, 8001-8004 are in use, edit `.env` to change them
+1. **Port Conflicts:** If ports 5173, 8000-8008 are in use, edit `.env` to change them
 2. **Memory Limits:** Docker Desktop needs 8GB+ RAM allocated for all services
 3. **Firewall Issues:** Ensure Docker has network access to pull images
 4. **API Key Format:** Include the full `sk-` prefix in your OpenAI key
+5. **No `value-fabric/` directory:** All commands run from the repo root. The `value-fabric/` path was removed per ADR-021.
 
 ---
 
@@ -333,12 +379,13 @@ See [Troubleshooting Index](../troubleshooting/index.md) for more solutions.
 
 - [Prerequisites](./prerequisites.md) — Detailed requirement checklist
 - [Installation](./installation.md) — Full installation with all options
-- [Architecture Overview](../core-concepts/architecture.md) — Understanding the 6-layer system
-- [API Reference](../reference/api-reference.md) — Complete endpoint documentation
+- [Architecture Overview](../core-concepts/architecture.md) — Understanding the 9-service system
+- [API Reference](../API_REFERENCE.md) — Complete endpoint documentation
+- [ADR-021: Canonical Runtime Path](../explanations/adr/ADR-021-layer-3-canonical-runtime-path.md) — Service-first path policy
 
 ---
 
-*Last updated: 2026-05-04 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/getting-started/quickstart.md)*
+*Last updated: 2026-06-04 | [Edit this page](https://github.com/bmsull560/Fabric_4L/edit/main/docs/getting-started/quickstart.md)*
 
 ## Contributor Pathing Reference
 

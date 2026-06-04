@@ -229,7 +229,7 @@ graph TB
 
 - [Agent Framework](../../core-concepts/agent-framework.md) — How agents work
 - [Layer 4 API](../../reference/layer4-agents-api.md) — Workflow management endpoints
-- [Why LangGraph](../why-langgraph.md) — Deeper rationale
+- [ADR-006: LangGraph for Agent Orchestration](./ADR-006-langgraph-for-agent-orchestration.md) — Deeper rationale
 
 ---
 

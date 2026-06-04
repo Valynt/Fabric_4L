@@ -531,7 +531,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 |------|---------------|
 | Understand security model | [Security Model](./security-model.md) |
 | Learn about ontology | [Ontology System](./ontology-system.md) |
-| Deploy to production | [Kubernetes Deployment](../how-to-guides/deploy-to-k8s.md) |
+| Deploy to production | [Kubernetes Deployment](../../k8s/README.md) |
 | Read design decisions | [ADR Index](../explanations/adr/) |
 
 ---
@@ -539,7 +539,7 @@ See [Architecture Decision Records](../explanations/adr/) for detailed rationale
 ## Related Documentation
 
 - [Quickstart Guide](../getting-started/quickstart.md) — Get running in 15 minutes
-- [API Reference](../reference/api-reference.md) — Endpoint documentation
+- [API Reference](../../API_REFERENCE.md) — Endpoint documentation
 - [Troubleshooting Index](../troubleshooting/index.md) — Common issues
 - [Security Model](./security-model.md) — Authentication and authorization
 - [Ontology System](./ontology-system.md) — Entity and relationship types

@@ -43,6 +43,7 @@ export type RouteState =
   // Home
   | "root"
   | "home"
+  | "workspaces"
   | "command-center"
   // Accounts
   | "accounts"
@@ -171,6 +172,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   // Home
   root: { path: "/", analyticsRouteId: "home.root" },
   home: { path: "/home", analyticsRouteId: "home.dashboard" },
+  workspaces: { path: "/workspaces", analyticsRouteId: "auth.workspaces" },
   "command-center": { path: "/command-center", analyticsRouteId: "home.command-center" },
 
   // Accounts

@@ -5,13 +5,13 @@
  * workspace selection. A future iteration should implement the full onboarding
  * flow (team invites, value pack selection, first account creation, etc.).
  */
-import { useNavigate } from "react-router-dom";
 import { useUser } from "@clerk/react";
 import { Button } from "@/components/ui/button";
+import { useNavigation } from "@/hooks/useNavigation";
 
 export default function OnboardingPage() {
   const { user } = useUser();
-  const navigate = useNavigate();
+  const { navigateTo } = useNavigation();
 
   return (
     <div className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-8 p-6">
@@ -45,7 +45,7 @@ export default function OnboardingPage() {
         </ul>
 
         <div className="mt-6 flex justify-end">
-          <Button onClick={() => navigate("/workspaces")}>
+          <Button onClick={() => navigateTo("workspaces")}>
             Choose a workspace
           </Button>
         </div>

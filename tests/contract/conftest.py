@@ -13,6 +13,7 @@ Note:
 """
 
 import importlib.util
+from importlib.machinery import ModuleSpec
 import os
 import sys
 import types
@@ -34,6 +35,8 @@ def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item
     """
     for item in items:
         item.add_marker(pytest.mark.no_parallel)
+        if item.path.name == "test_import_topology.py":
+            item.add_marker(pytest.mark.contract_static_no_service)
         if "runtime_contract" in item.keywords:
             item.add_marker(pytest.mark.service_required)
         else:
@@ -51,10 +54,12 @@ def _install_neo4j_import_shim() -> None:
         return
 
     module = types.ModuleType("neo4j")
+    module.__spec__ = ModuleSpec("neo4j", loader=None, is_package=True)
     module.AsyncDriver = object
     module.AsyncGraphDatabase = object
     module.GraphDatabase = object
     exceptions_module = types.ModuleType("neo4j.exceptions")
+    exceptions_module.__spec__ = ModuleSpec("neo4j.exceptions", loader=None)
     for exc_name in (
         "ConfigurationError",
         "Neo4jError",
@@ -70,6 +75,7 @@ def _install_neo4j_import_shim() -> None:
         return exc
     exceptions_module.__getattr__ = _missing_exc  # type: ignore[attr-defined]
     time_module = types.ModuleType("neo4j.time")
+    time_module.__spec__ = ModuleSpec("neo4j.time", loader=None)
     time_module.Date = object
     time_module.DateTime = object
     module.exceptions = exceptions_module

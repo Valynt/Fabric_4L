@@ -157,7 +157,7 @@ docker compose exec postgres psql -U fabric -c "\dt"
 **Solutions:**
 - [Database Connection Issues](./database-connection.md)
 - [Stale Ground Truth](./stale-ground-truth.md) — Data freshness problems
-- [Extraction Quality](./extraction-quality.md) — LLM extraction issues
+- [Extraction Quality](#) — LLM extraction issues (documentation pending)
 
 ---
 
@@ -394,7 +394,7 @@ flowchart LR
 
 - [Runbooks](../operations/runbooks/) — Step-by-step operational procedures
 - [Operational Commands](../operations/COMMAND_REFERENCE.md) — Common CLI commands
-- [API Reference](../reference/api-reference.md) — Endpoint details and examples
+- [API Reference](../../API_REFERENCE.md) — Endpoint details and examples
 - [Architecture Overview](../core-concepts/architecture.md) — System understanding
 
 ---

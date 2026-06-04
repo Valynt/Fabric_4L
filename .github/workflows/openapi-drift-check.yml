@@ -29,6 +29,7 @@ jobs:
         layer:
           - { name: "Layer 1", dir: "layer1-ingestion", file: "layer1-ingestion.json" }
           - { name: "Layer 2", dir: "layer2-extraction", file: "layer2-extraction.json" }
+          - { name: "Layer 2.5 Signal Refinery", dir: "layer2-5-signal-refinery", file: "layer2-5-signal-refinery.json" }
           - { name: "Layer 3", dir: "layer3-knowledge", file: "layer3-knowledge.json" }
           - { name: "Layer 4", dir: "layer4-agents", file: "layer4-agents.json" }
           - { name: "Layer 5", dir: "layer5-ground-truth", file: "layer5-ground-truth.json" }

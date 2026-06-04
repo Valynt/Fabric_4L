@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiClient } from '@/api/client';
+import { apiPost } from '@/api/typedClient';
 import { QK } from '@/hooks/queryKeys';
 
 interface PauseAllResponse {
@@ -13,7 +13,7 @@ export function usePauseAllExtractions() {
 
   return useMutation<PauseAllResponse, Error>({
     mutationFn: async () => {
-      const response = await apiClient.post<PauseAllResponse>('l2', '/v1/extract/pause-all', {});
+      const response = await apiPost<PauseAllResponse>('l2', '/v1/extract/pause-all', {});
       return response.data;
     },
     onSuccess: () => {

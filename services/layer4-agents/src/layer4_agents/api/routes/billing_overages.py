@@ -1,6 +1,10 @@
-from __future__ import annotations
+"""Phase 1 forwarding stub — canonical implementation now in layer7-billing.
 
-"""Usage limit and overage billing routes."""
+Layer 4 retains this shim for backward compatibility. All calls are
+forwarded to the Layer 7 Billing Service via HTTP client stubs.
+"""
+
+from __future__ import annotations
 
 from fastapi import APIRouter
 
@@ -18,7 +22,6 @@ router.add_api_route(
     "/limits/{customer_id}/check",
     billing.check_request_allowed,
     methods=["POST"],
-    response_model=billing.LimitsCheckResponse,
 )
 router.add_api_route(
     "/plans/{plan_id}/limits",

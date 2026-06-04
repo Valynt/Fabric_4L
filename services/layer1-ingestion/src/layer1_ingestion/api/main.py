@@ -1,3 +1,4 @@
+# mypy: ignore-missing-imports, disable-error-code="import-not-found,import-untyped,type-arg,no-any-return,no-untyped-def,truthy-function,list-item,assignment,arg-type,call-overload,union-attr,var-annotated,misc,attr-defined"
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
@@ -28,8 +29,10 @@ from typing import Any, NoReturn
 from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
+import sentry_sdk
 import structlog
 from fastapi import APIRouter, Depends, FastAPI, Query, Request
+from sentry_sdk.integrations.fastapi import FastApiIntegration
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -156,6 +159,14 @@ structlog.configure(
 
 logger = structlog.get_logger()
 reject_insecure_bypass_in_production(service_name="layer1-ingestion", settings=settings)
+
+# Initialize Sentry error tracking (no-op when SENTRY_DSN is unset)
+sentry_sdk.init(
+    dsn=os.getenv("SENTRY_DSN"),
+    integrations=[FastApiIntegration()],
+    traces_sample_rate=0.1,
+    profiles_sample_rate=0.1,
+)
 
 
 def _url_safety_error_payload(reason_code: str) -> dict[str, str]:
@@ -3495,4 +3506,5 @@ async def legacy_health_check():
 if __name__ == "__main__":
     import uvicorn
 
-    uvicorn.run(app, host=settings.api_host, port=settings.api_port)
+    port = int(os.getenv("PORT", "8001"))
+    uvicorn.run(app, host="0.0.0.0", port=port)

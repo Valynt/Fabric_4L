@@ -24,6 +24,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/health/live": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Health Check */
+        get: operations["health_check_health_live_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/ready": {
         parameters: {
             query?: never;
@@ -44,6 +61,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/readiness": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Readiness Alias
+         * @deprecated
+         * @description Temporary alias for /ready; prefer /ready (deprecated alias).
+         */
+        get: operations["readiness_alias_readiness_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/benchmarks/datasets": {
         parameters: {
             query?: never;
@@ -54,7 +92,8 @@ export interface paths {
         /** List Datasets */
         get: operations["list_datasets_v1_benchmarks_datasets_get"];
         put?: never;
-        post?: never;
+        /** Upsert Dataset */
+        post: operations["upsert_dataset_v1_benchmarks_datasets_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -70,7 +109,8 @@ export interface paths {
         };
         /** Get Dataset */
         get: operations["get_dataset_v1_benchmarks_datasets__dataset_id__get"];
-        put?: never;
+        /** Update Dataset */
+        put: operations["update_dataset_v1_benchmarks_datasets__dataset_id__put"];
         post?: never;
         delete?: never;
         options?: never;
@@ -227,6 +267,54 @@ export interface components {
             /** Data Source */
             data_source: string | null;
         };
+        /** DatasetUpsertPayload */
+        DatasetUpsertPayload: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Name */
+            name: string;
+            /** Description */
+            description: string;
+            /** Industry */
+            industry: string;
+            /** Segment */
+            segment?: string | null;
+            /** Geography */
+            geography?: string | null;
+            /** Metrics */
+            metrics: {
+                [key: string]: {
+                    [key: string]: unknown;
+                };
+            };
+            /**
+             * Version
+             * @default 1.0.0
+             */
+            version: string;
+            /** Data Source */
+            data_source?: string | null;
+            /**
+             * Is Public
+             * @default false
+             */
+            is_public: boolean;
+            /**
+             * Ownership Mode
+             * @default tenant
+             */
+            ownership_mode: string;
+        };
+        /**
+         * DatasetUpsertResponse
+         * @description Response from dataset upsert operation.
+         */
+        DatasetUpsertResponse: {
+            /** Dataset Id */
+            dataset_id: string;
+            /** Ownership Mode */
+            ownership_mode: string;
+        };
         /**
          * HTTPValidationError
          * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
@@ -244,6 +332,14 @@ export interface components {
                     [key: string]: unknown;
                 } | null;
             };
+        };
+        /**
+         * IndustriesResponse
+         * @description Response listing available industries.
+         */
+        IndustriesResponse: {
+            /** Industries */
+            industries: string[];
         };
         /** ValidationError */
         ValidationError: {
@@ -361,7 +457,47 @@ export interface operations {
             };
         };
     };
+    health_check_health_live_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     readiness_check_ready_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
+    readiness_alias_readiness_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -415,6 +551,39 @@ export interface operations {
             };
         };
     };
+    upsert_dataset_v1_benchmarks_datasets_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetUpsertPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetUpsertResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     get_dataset_v1_benchmarks_datasets__dataset_id__get: {
         parameters: {
             query?: never;
@@ -433,6 +602,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["DatasetDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_dataset_v1_benchmarks_datasets__dataset_id__put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                dataset_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DatasetUpsertPayload"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DatasetUpsertResponse"];
                 };
             };
             /** @description Validation Error */
@@ -527,7 +731,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["IndustriesResponse"];
                 };
             };
         };

@@ -232,14 +232,35 @@ subjects:
     name: postgres-patroni
     namespace: value-fabric
 ---
-# Patroni credentials secret template
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-patroni-credentials
-  namespace: value-fabric
-type: Opaque
-stringData:
-  superuser-username: "postgres"
-  superuser-password: "REPLACE_IN_PRODUCTION"
-  replication-password: "REPLACE_IN_PRODUCTION"
+# S5-5: Patroni credentials secret — managed by External Secrets Operator.
+# Do NOT commit real credentials. The base overlay references a secret that is
+# populated from Vault/Infisical via an ExternalSecret resource in the
+# environment-specific overlay (e.g. k8s/overlays/<env>/externalsecrets.yaml).
+#
+# ExternalSecret template (add to environment overlay):
+#   apiVersion: external-secrets.io/v1beta1
+#   kind: ExternalSecret
+#   metadata:
+#     name: postgres-patroni-credentials
+#     namespace: value-fabric
+#   spec:
+#     refreshInterval: 1h
+#     secretStoreRef:
+#       kind: ClusterSecretStore
+#       name: vault-backend
+#     target:
+#       name: postgres-patroni-credentials
+#       creationPolicy: Owner
+#     data:
+#       - secretKey: superuser-username
+#         remoteRef:
+#           key: postgres/superuser
+#           property: username
+#       - secretKey: superuser-password
+#         remoteRef:
+#           key: postgres/superuser
+#           property: password
+#       - secretKey: replication-password
+#         remoteRef:
+#           key: postgres/replication
+#           property: password

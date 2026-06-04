@@ -7,8 +7,9 @@ import json
 import os
 import sys
 from collections.abc import AsyncGenerator, Iterator
+from importlib import import_module
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable, cast
 from unittest.mock import AsyncMock, MagicMock
 
 # Stub optional heavy deps before any imports that transitively require them
@@ -20,7 +21,7 @@ except ImportError:
     sys.modules["redis.asyncio"] = _redis_mock.asyncio
 
 try:
-    import psutil  # noqa: F401
+    import psutil  # type: ignore[import-untyped]  # noqa: F401
 except ImportError:
     sys.modules["psutil"] = MagicMock()
 
@@ -50,60 +51,16 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-from api.dependencies import AppState
-from config import Settings, get_settings
-from value_fabric.shared.models.typed_dict import TypedDictModel
+from api.dependencies import AppState  # type: ignore[import-untyped]
+
+_config_module = import_module("config")
+get_settings = cast(Callable[[], Any], getattr(_config_module, "get_settings"))
 
 
-class sample_search_requestResult(TypedDictModel):
-    entity_type: str
-    query: str
-    search_type: str
-    top_k: int
-
-class sample_graphrag_queryResult(TypedDictModel):
-    confidence_threshold: float
-    max_hops: int
-    max_results: int
-    query: str
-
-class sample_search_resultsResult(TypedDictModel):
-    processing_time_ms: float
-    query: str
-    results: list[Any]
-    search_type: str
-    total_results: int
-
-class sample_graphrag_responseResult(TypedDictModel):
-    answer: str
-    confidence_score: float
-    context_graph: dict[str, Any]
-    entities: list[Any]
-    processing_time_ms: float
-    query: str
-    relationships: list[Any]
-    sources: list[Any]
-
-class sample_ingestion_requestResult(TypedDictModel):
-    content_hash: str
-    extraction_job_id: str
-    rdf_data: str
-    source_id: str
-
-class sample_ingestion_responseResult(TypedDictModel):
-    duration_seconds: float
-    entities_loaded: int
-    relationships_loaded: int
-    source_id: str
-    status: str
-    triples_processed: int
-    warnings: list[Any]
-
-
-class TestSettings(Settings):
+class TestSettings:
     """Test settings with safe defaults."""
     
-    def __init__(self, **kwargs):
+    def __init__(self, **kwargs: Any) -> None:
         # Override with test-safe defaults
         test_defaults = {
             "neo4j_uri": "bolt://localhost:7687",
@@ -119,7 +76,8 @@ class TestSettings(Settings):
             "rate_limit_enabled": False,  # Disable rate limiting for tests
         }
         test_defaults.update(kwargs)
-        super().__init__(**test_defaults)
+        for key, value in test_defaults.items():
+            setattr(self, key, value)
 
 
 @pytest.fixture
@@ -175,13 +133,13 @@ def test_client(
     mock_app_state: AppState,
 ) -> Iterator[TestClient]:
     """Create test client with mocked dependencies."""
-    from api.main import app
+    from api.main import app  # type: ignore[import-untyped, attr-defined]
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from api.dependencies import (
+    from api.dependencies import (  # type: ignore[import-untyped]
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,
@@ -211,13 +169,13 @@ def test_client(
 @pytest_asyncio.fixture
 async def async_client(test_settings: TestSettings, mock_app_state: AppState) -> AsyncGenerator[AsyncClient, None]:
     """Create async test client with mocked dependencies."""
-    from api.main import app
+    from api.main import app  # type: ignore[import-untyped, attr-defined]
 
     # Override settings
     app.dependency_overrides[get_settings] = lambda: test_settings
     
     # Override app state dependencies
-    from api.dependencies import (
+    from api.dependencies import (  # type: ignore[import-untyped]
         get_app_state,
         get_centrality_analyzer,
         get_community_detector,
@@ -288,7 +246,7 @@ def sample_graphrag_query() -> dict[str, Any]:
 @pytest.fixture
 def sample_search_results() -> dict[str, Any]:
     """Sample search results for testing."""
-    return sample_search_resultsResult.model_validate({
+    return {
         "query": "automated invoice processing",
         "results": [
             {
@@ -306,13 +264,13 @@ def sample_search_results() -> dict[str, Any]:
         "total_results": 1,
         "search_type": "hybrid",
         "processing_time_ms": 150.5
-    })
+    }
 
 
 @pytest.fixture
 def sample_graphrag_response() -> dict[str, Any]:
     """Sample GraphRAG response for testing."""
-    return sample_graphrag_responseResult.model_validate({
+    return {
         "query": "What capabilities enable automated invoice processing?",
         "entities": [
             {
@@ -338,7 +296,7 @@ def sample_graphrag_response() -> dict[str, Any]:
         "sources": ["capability1", "usecase1"],
         "processing_time_ms": 250.0,
         "answer": "The Automated Invoice Processing capability enables automated invoice processing."
-    })
+    }
 
 
 @pytest.fixture
@@ -362,7 +320,7 @@ def sample_ingestion_request() -> dict[str, Any]:
 @pytest.fixture
 def sample_ingestion_response() -> dict[str, Any]:
     """Sample ingestion response for testing."""
-    return sample_ingestion_responseResult.model_validate({
+    return {
         "status": "success",
         "source_id": "test_doc_123",
         "entities_loaded": 5,
@@ -370,7 +328,7 @@ def sample_ingestion_response() -> dict[str, Any]:
         "triples_processed": 13,
         "duration_seconds": 2.5,
         "warnings": []
-    })
+    }
 
 
 # Mock response helpers
@@ -501,7 +459,6 @@ class TestUtils:
 
 
 @pytest.fixture
-def test_utils():
+def test_utils() -> type[TestUtils]:
     """Provide test utilities."""
     return TestUtils
-

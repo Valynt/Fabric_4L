@@ -1,22 +1,15 @@
-# P1-009: ArgoCD Bootstrap Plan
-#
-# This file does NOT contain a hand-rolled ArgoCD controller install.
-# The previous skeletal Deployment/SA/CRB has been removed because it lacked
-# required components (application-controller, repo-server, dex, Redis, CRDs).
-#
+# P1-009: ArgoCD Bootstrap — production-ready installation
 # ------------------------------------------------------------------------------
-# Install ArgoCD using the official upstream stable manifest
-# ------------------------------------------------------------------------------
-# kubectl create namespace argocd
-# kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+# Install ArgoCD using the official upstream stable manifest:
+#   kubectl create namespace argocd
+#   kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
 #
-# Alternative: Helm install (preferred for production customisation)
+# Or via Helm (preferred for production):
+#   helm repo add argo https://argoproj.github.io/argo-helm
+#   helm install argocd argo/argo-cd --namespace argocd --create-namespace \
+#     --values k8s/gitops/argocd-helm-values.yaml
 # ------------------------------------------------------------------------------
-# helm repo add argo https://argoproj.github.io/argo-helm
-# helm install argocd argo/argo-cd --namespace argocd --create-namespace \
-#   --values k8s/gitops/argocd-helm-values.yaml
-#
-# PREREQUISITES before the Application below can sync successfully:
+# PREREQUISITES:
 #   1. ArgoCD CRDs (argoproj.io/v1alpha1) must be present.
 #   2. External Secrets Operator and Vault/Infisical credentials must be in place
 #      for: postgres-secret, neo4j-credentials, api-key-cache-secret, jwt-keys-secret.
@@ -29,6 +22,9 @@ metadata:
   name: argocd
   labels:
     app.kubernetes.io/part-of: fabric4l-gitops
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
 ---
 # ArgoCD Application for the Fabric_4L base platform manifests.
 # Targets k8s/base kustomization (single source of truth for platform resources).
@@ -53,18 +49,22 @@ spec:
     server: https://kubernetes.default.svc
     namespace: value-fabric
   syncPolicy:
-    # Manual sync for safety; automated features are intentionally disabled.
-    # To enable after staging validation, uncomment automated and syncOptions below.
-    # automated:
-    #   prune: false
-    #   selfHeal: false
-    #   allowEmpty: false
+    automated:
+      prune: false
+      selfHeal: false
+      allowEmpty: false
     syncOptions:
       - CreateNamespace=true
-  retry:
-    limit: 3
-    backoff:
-      duration: 30s
-      factor: 2
-      maxDuration: 5m
+      - PrunePropagationPolicy=foreground
+      - PruneLast=true
+    managedNamespaceMetadata:
+      labels:
+        app.kubernetes.io/part-of: fabric4l
+        pod-security.kubernetes.io/enforce: restricted
+    retry:
+      limit: 3
+      backoff:
+        duration: 30s
+        factor: 2
+        maxDuration: 5m
   revisionHistoryLimit: 10

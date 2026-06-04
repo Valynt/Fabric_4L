@@ -242,7 +242,7 @@ extraction_function = {
 
 - [Ontology System](../../core-concepts/ontology-system.md) — Entity taxonomy details
 - [Layer 2 Extraction API](../../reference/layer2-extraction-api.md) — API reference
-- [Author Value Pack](../../how-to-guides/author-value-pack.md) — Custom ontology creation
+- [Value Packs](../../../packs/) — Custom ontology creation
 
 ---
 

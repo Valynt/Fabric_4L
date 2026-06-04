@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# mypy: ignore-missing-imports, disable-error-code="import-not-found,no-untyped-def,no-untyped-call"
 """
 Quick security implementation verification script.
 Tests the core security features without requiring PostgreSQL.
@@ -7,17 +8,30 @@ Tests the core security features without requiring PostgreSQL.
 import os
 import sys
 import time
+from collections.abc import Callable
+from pathlib import Path
 from uuid import uuid4
 
-# Add src to path
-sys.path.insert(0, 'src')
+# Add service and shared packages to path for standalone execution.
+repo_root = Path(__file__).resolve().parents[2]
+for import_path in (
+    Path(__file__).resolve().parent / "src",
+    repo_root / "packages" / "shared" / "src",
+):
+    sys.path.insert(0, str(import_path))
 
-def test_exception_hierarchy():
+os.environ["ENVIRONMENT"] = "test"
+os.environ["APP_ENV"] = "test"
+os.environ["DEBUG"] = "false"
+os.environ.setdefault("JWT_SECRET", "test_jwt_secret_for_security_script_32_chars")
+
+
+def test_exception_hierarchy() -> bool:
     """Test that the exception hierarchy works correctly."""
     print("Testing exception hierarchy...")
     
     try:
-        from shared.exceptions import (
+        from layer1_ingestion.shared.exceptions import (
             SecurityError,
             TenantContextError,
             InvalidTenantContextError,
@@ -52,12 +66,15 @@ def test_exception_hierarchy():
     
     return True
 
-def test_maintenance_identity():
+def test_maintenance_identity() -> bool:
     """Test system maintenance identity validation."""
     print("Testing maintenance identity...")
     
     try:
-        from shared.maintenance import SystemMaintenanceIdentity, MaintenanceOperation
+        from layer1_ingestion.shared.maintenance import (
+            MaintenanceOperation,
+            SystemMaintenanceIdentity,
+        )
         
         # Test invalid tokens
         invalid_tokens = [
@@ -89,13 +106,13 @@ def test_maintenance_identity():
     
     return True
 
-def test_robots_checker_exceptions():
+def test_robots_checker_exceptions() -> bool:
     """Test RobotsChecker exception handling."""
     print("Testing RobotsChecker exceptions...")
     
     try:
-        from compliance.robots_checker import RobotsChecker
-        from shared.exceptions import (
+        from layer1_ingestion.compliance.robots_checker import RobotsChecker
+        from layer1_ingestion.shared.exceptions import (
             RobotsCacheError,
             RobotsFetchError,
             RobotsParseError,
@@ -105,8 +122,7 @@ def test_robots_checker_exceptions():
         # Test invalid tenant_id
         try:
             checker = RobotsChecker(tenant_id="invalid-uuid")
-            import asyncio
-            asyncio.run(checker._get_cached_robots_txt("example.com"))
+            checker._get_cached_robots_txt("example.com")
             assert False, "Should have raised InvalidTenantContextError"
         except InvalidTenantContextError:
             pass  # Expected
@@ -115,8 +131,7 @@ def test_robots_checker_exceptions():
         # Test valid tenant_id (will fail due to no database, but should validate tenant)
         try:
             checker = RobotsChecker(tenant_id=str(uuid4()))
-            import asyncio
-            asyncio.run(checker._get_cached_robots_txt("example.com"))
+            checker._get_cached_robots_txt("example.com")
         except (RobotsCacheError, Exception):
             pass  # Expected - database connection will fail
         print("[OK] Valid tenant_id accepted (database error expected)")
@@ -127,13 +142,13 @@ def test_robots_checker_exceptions():
     
     return True
 
-def test_tenant_id_validation():
+def test_tenant_id_validation() -> bool:
     """Test tenant_id validation."""
     print("Testing tenant_id validation...")
     
     try:
-        from shared.database import validate_tenant_id
-        from shared.exceptions import TenantContextError
+        from layer1_ingestion.shared.database import validate_tenant_id
+        from layer1_ingestion.shared.exceptions import TenantContextError
         
         # Test valid UUIDs
         valid_uuids = [str(uuid4()) for _ in range(5)]
@@ -166,13 +181,13 @@ def test_tenant_id_validation():
     
     return True
 
-def test_security_hardening():
+def test_security_hardening() -> bool:
     """Test overall security hardening."""
     print("Testing security hardening...")
     
     try:
         # Test that security exceptions are not caught by generic handlers
-        from shared.exceptions import (
+        from layer1_ingestion.shared.exceptions import (
             InvalidTenantContextError,
             SystemMaintenanceAuthorizationError,
         )
@@ -203,11 +218,11 @@ def test_security_hardening():
     
     return True
 
-def main():
+def main() -> int:
     """Run all security tests."""
     print("=== Security Implementation Verification ===\n")
     
-    tests = [
+    tests: list[Callable[[], bool]] = [
         test_exception_hierarchy,
         test_maintenance_identity,
         test_robots_checker_exceptions,

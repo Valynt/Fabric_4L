@@ -126,8 +126,9 @@ class BenchmarkRepository:
     async def _tx_list_datasets(
         tx, industry: str | None, segment: str | None, tenant_id: str
     ) -> list[BenchmarkDataset]:
+        # S2-9: tenant_id filter applied to MATCH pattern for tenant isolation
         query = """
-            MATCH (d:BenchmarkDataset)
+            MATCH (d:BenchmarkDataset {tenant_id: $tenant_id})
             OPTIONAL MATCH (d)-[:HAS_METRIC]->(m:BenchmarkMetric)
             RETURN d, collect(m) AS metrics
         """
@@ -138,8 +139,8 @@ class BenchmarkRepository:
             conditions.append("d.segment = $segment")
         if conditions:
             query = query.replace(
-                "MATCH (d:BenchmarkDataset)",
-                "MATCH (d:BenchmarkDataset) WHERE " + " AND ".join(conditions),
+                "MATCH (d:BenchmarkDataset {tenant_id: $tenant_id})",
+                "MATCH (d:BenchmarkDataset {tenant_id: $tenant_id}) WHERE " + " AND ".join(conditions),
             )
 
         records = await tx.run(query, industry=industry, segment=segment, tenant_id=tenant_id)

@@ -436,12 +436,19 @@ def load_baseline(baseline_path: Path) -> set[str]:
         return set()
 
 
-def filter_with_baseline(findings: list[ContractFinding], baseline: set[str]) -> list[ContractFinding]:
+def filter_with_baseline(
+    findings: list[ContractFinding], baseline: set[str], repo_root: Path
+) -> list[ContractFinding]:
     """Filter out baseline findings."""
     filtered = []
     for finding in findings:
-        key = f"{finding.path}:{finding.line}:{finding.contract_id}"
-        if key not in baseline:
+        absolute_key = f"{finding.path}:{finding.line}:{finding.contract_id}"
+        try:
+            relative_path = Path(finding.path).resolve().relative_to(repo_root).as_posix()
+        except ValueError:
+            relative_path = finding.path
+        relative_key = f"{relative_path}:{finding.line}:{finding.contract_id}"
+        if absolute_key not in baseline and relative_key not in baseline:
             filtered.append(finding)
     return filtered
 
@@ -466,7 +473,7 @@ def main() -> int:
     # Apply baseline if provided
     if args.baseline:
         baseline = load_baseline(Path(args.baseline))
-        report.findings = filter_with_baseline(report.findings, baseline)
+        report.findings = filter_with_baseline(report.findings, baseline, repo_root)
 
     # Determine exit code
     severity_counts = {

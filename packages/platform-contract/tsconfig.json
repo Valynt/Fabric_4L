@@ -3,7 +3,6 @@
     "target": "ES2022",
     "module": "NodeNext",
     "moduleResolution": "NodeNext",
-    "baseUrl": ".",
     "paths": {
       "@fabric/platform-contract": ["./src/typescript/index.ts"],
       "@fabric/platform-contract/agent-result": ["./src/typescript/agent-result.ts"],

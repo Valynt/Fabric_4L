@@ -150,7 +150,7 @@ sequenceDiagram
 
 - [Ontology System](../../core-concepts/ontology-system.md) — How entities map to both stores
 - [Layer 3 API](../../reference/layer3-knowledge-api.md) — Hybrid query endpoints
-- [Why Knowledge Graph](../why-knowledge-graph.md) — Problem we're solving
+- [ADR-003: Neo4j for Knowledge Graph](./ADR-003-neo4j-pgvector-hybrid-graph-database.md) — Problem we're solving
 
 ---
 

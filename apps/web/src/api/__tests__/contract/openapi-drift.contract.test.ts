@@ -67,7 +67,8 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
       'layer3-knowledge.json': ['/v1', '/health', '/ready', '/metrics', '/graph', '/entities'],
       'layer4-agents.json': ['/v1', '/', '/health', '/ready', '/metrics', '/auth'],
       'layer5-ground-truth.json': ['/api/v1', '/health', '/ready', '/metrics'],
-      'layer6-benchmarks.json': ['/v1', '/health', '/ready', '/metrics'],
+      // Layer 6 keeps a temporary deprecated readiness alias for backward compatibility.
+      'layer6-benchmarks.json': ['/v1', '/health', '/ready', '/readiness', '/metrics'],
     };
 
     for (const [specFile, allowedPrefixes] of Object.entries(expectedPrefixes)) {

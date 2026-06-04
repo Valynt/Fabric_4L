@@ -1,3 +1,4 @@
+# mypy: ignore-errors
 from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,

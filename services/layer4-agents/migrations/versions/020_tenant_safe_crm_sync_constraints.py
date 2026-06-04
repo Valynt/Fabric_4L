@@ -33,7 +33,8 @@ def upgrade() -> None:
         unique=False,
     )
 
-    # Drop legacy unique provider constraint/index if it exists
+    # MIGRATION_REVIEW_REQUIRED: DROP CONSTRAINT is destructive — removes unique enforcement
+    # Community Edition fallback: IF EXISTS prevents failure on CE where constraint may not exist
     op.execute(
         "ALTER TABLE account_sync_status "
         "DROP CONSTRAINT IF EXISTS account_sync_status_provider_key"
@@ -43,7 +44,7 @@ def upgrade() -> None:
         "ADD CONSTRAINT uix_sync_status_tenant_provider UNIQUE (tenant_id, provider)"
     )
 
-    # accounts: replace provider+record unique with tenant+provider+record unique
+    # MIGRATION_REVIEW_REQUIRED: DROP CONSTRAINT removes legacy unique index
     op.execute(
         "ALTER TABLE accounts "
         "DROP CONSTRAINT IF EXISTS uix_account_provider_record"
@@ -55,6 +56,8 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
+    # MIGRATION_REVIEW_REQUIRED: DROP CONSTRAINT is destructive — removes tenant-scoped uniqueness
+    # Community Edition fallback: IF EXISTS prevents failure on CE
     op.execute(
         "ALTER TABLE accounts "
         "DROP CONSTRAINT IF EXISTS uix_account_tenant_provider_record"

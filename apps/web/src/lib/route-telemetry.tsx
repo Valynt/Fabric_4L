@@ -26,7 +26,7 @@ export function RouteTelemetry() {
 
     span.setAttribute("route.id", routeId);
     span.setAttribute("route.path", routePath);
-    span.setAttribute("http.url", typeof window !== "undefined" ? window.location.href : location.pathname);
+    span.setAttribute("http.url", typeof window !== "undefined" ? window.location.href : location.pathname); // navigation-guardrail: ignore current URL telemetry attribute
 
     span.end();
   }, [location.pathname, matches]);

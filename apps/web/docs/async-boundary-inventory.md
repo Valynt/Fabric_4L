@@ -1,9 +1,12 @@
 # Async Boundary Inventory
 
-Generated: 2026-05-22T22:12:25.382Z
+Generated: 2026-06-04T17:48:50.600Z
 
 ## src/api/auth.ts
 - L26 [async-boundary] `async function registerWithEmailPassword`
+
+## src/api/billing.ts
+- L11 [async-boundary] `async function getEntitlementDecision`
 
 ## src/api/packs.ts
 - L74 [async-boundary] `async function listValuePackSummaries`
@@ -13,6 +16,9 @@ Generated: 2026-05-22T22:12:25.382Z
 ## src/api/protocol/extraction.ts
 - L72 [async-boundary] `async function fetchExtractionStatus`
 - L88 [async-boundary] `async function fetchExtractedEntities`
+
+## src/api/search.ts
+- L21 [async-boundary] `async function search`
 
 ## src/api/thesysClient.ts
 - L170 [async-boundary] `async function evaluateWhatIf`
@@ -43,18 +49,21 @@ Generated: 2026-05-22T22:12:25.382Z
 ## src/app/settings/pages/BillingWorkspace.tsx
 - L30 [async-boundary] `const handleSave = async (`
 
+## src/auth/clerkSession.ts
+- L62 [async-boundary] `async function getClerkSessionToken`
+
 ## src/components/ErrorBoundary.tsx
 - L33 [async-boundary] `const handleCopy = async (`
 
 ## src/components/ExportMenu.tsx
-- L15 [async-boundary] `const handleExport = async (`
+- L16 [async-boundary] `const handleExport = async (`
 
 ## src/components/billing/InvoiceDetailDrawer.tsx
 - L47 [async-boundary] `const handleDownloadPDF = async (`
 
 ## src/components/login-form.tsx
 - L146 [async-boundary] `const handleSubmit = async (`
-- L374 [async-boundary] `const handleSubmit = async (`
+- L375 [async-boundary] `const handleSubmit = async (`
 
 ## src/components/skill-outputs/SkillJobLauncher.tsx
 - L59 [async-boundary] `async function handleSubmit`
@@ -63,10 +72,19 @@ Generated: 2026-05-22T22:12:25.382Z
 - L170 [async-boundary] `const handleSubmit = async (`
 
 ## src/components/workspace/ProspectPromptBuilder.tsx
-- L1310 [async-boundary] `const handleAttach = async (`
+- L1286 [async-boundary] `const handleAttach = async (`
+
+## src/contexts/AuthContext.tsx
+- L120 [async-boundary] `const initiateLogin = async (`
+- L126 [async-boundary] `const handleCallback = async (`
+- L131 [async-boundary] `const logout = async (`
+- L147 [async-boundary] `const refreshToken = async (`
 
 ## src/features/intelligence-workspace/hooks/useWorkspaceTabQuery.ts
 - L25 [async-boundary] `queryFn: async (`
+
+## src/hooks/useAccountAccess.ts
+- L17 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useAccounts.ts
 - L133 [async-boundary] `async function fetchAccounts`
@@ -114,8 +132,8 @@ Generated: 2026-05-22T22:12:25.382Z
 - L157 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useComments.ts
-- L47 [async-boundary] `queryFn: async (`
-- L57 [async-boundary] `mutationFn: async (`
+- L50 [async-boundary] `queryFn: async (`
+- L60 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useCompetitiveIntel.ts
 - L132 [async-boundary] `async function fetchCompetitors`
@@ -134,10 +152,10 @@ Generated: 2026-05-22T22:12:25.382Z
 - L39 [async-boundary] `async function fetchComplianceStatus`
 
 ## src/hooks/useDocuments.ts
-- L73 [async-boundary] `mutationFn: async (`
-- L99 [async-boundary] `mutationFn: async (`
-- L122 [async-boundary] `queryFn: async (`
-- L134 [async-boundary] `mutationFn: async (`
+- L76 [async-boundary] `mutationFn: async (`
+- L105 [async-boundary] `mutationFn: async (`
+- L131 [async-boundary] `queryFn: async (`
+- L143 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useEnrichment.ts
 - L93 [async-boundary] `async function fetchEnrichmentStatus`
@@ -153,14 +171,17 @@ Generated: 2026-05-22T22:12:25.382Z
 - L304 [async-boundary] `queryFn: async (`
 - L333 [async-boundary] `mutationFn: async (`
 
+## src/hooks/useEntitlements.ts
+- L25 [async-boundary] `queryFn: async (`
+
 ## src/hooks/useEvidence.ts
-- L159 [async-boundary] `async function fetchCaseStudies`
-- L169 [async-boundary] `async function fetchCaseStudy`
-- L174 [async-boundary] `async function fetchIndustryStats`
-- L179 [async-boundary] `async function fetchProductStats`
-- L199 [async-boundary] `queryFn: async (`
-- L260 [async-boundary] `mutationFn: async (`
-- L397 [async-boundary] `queryFn: async (`
+- L162 [async-boundary] `async function fetchCaseStudies`
+- L172 [async-boundary] `async function fetchCaseStudy`
+- L177 [async-boundary] `async function fetchIndustryStats`
+- L182 [async-boundary] `async function fetchProductStats`
+- L202 [async-boundary] `queryFn: async (`
+- L266 [async-boundary] `mutationFn: async (`
+- L421 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useExtraction.ts
 - L76 [async-boundary] `queryFn: async (`
@@ -245,16 +266,16 @@ Generated: 2026-05-22T22:12:25.382Z
 - L338 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useIngestion.ts
-- L170 [async-boundary] `queryFn: async (`
-- L182 [async-boundary] `queryFn: async (`
-- L214 [async-boundary] `queryFn: async (`
-- L244 [async-boundary] `mutationFn: async (`
-- L285 [async-boundary] `queryFn: async (`
-- L325 [async-boundary] `queryFn: async (`
-- L397 [async-boundary] `queryFn: async (`
-- L422 [async-boundary] `mutationFn: async (`
-- L437 [async-boundary] `mutationFn: async (`
-- L477 [async-boundary] `mutationFn: async (`
+- L173 [async-boundary] `queryFn: async (`
+- L185 [async-boundary] `queryFn: async (`
+- L217 [async-boundary] `queryFn: async (`
+- L247 [async-boundary] `mutationFn: async (`
+- L291 [async-boundary] `queryFn: async (`
+- L331 [async-boundary] `queryFn: async (`
+- L403 [async-boundary] `queryFn: async (`
+- L428 [async-boundary] `mutationFn: async (`
+- L446 [async-boundary] `mutationFn: async (`
+- L489 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useIntegrations.ts
 - L66 [async-boundary] `async function fetchIntegrations`
@@ -296,9 +317,9 @@ Generated: 2026-05-22T22:12:25.382Z
 - L162 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useNotifications.ts
-- L50 [async-boundary] `queryFn: async (`
-- L60 [async-boundary] `mutationFn: async (`
-- L73 [async-boundary] `mutationFn: async (`
+- L53 [async-boundary] `queryFn: async (`
+- L63 [async-boundary] `mutationFn: async (`
+- L79 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useOntology.ts
 - L171 [async-boundary] `queryFn: async (`
@@ -325,8 +346,8 @@ Generated: 2026-05-22T22:12:25.382Z
 - L15 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/usePlatformSettings.ts
-- L173 [async-boundary] `async function fetchPlatformSettings`
-- L178 [async-boundary] `async function updatePlatformSettings`
+- L176 [async-boundary] `async function fetchPlatformSettings`
+- L181 [async-boundary] `async function updatePlatformSettings`
 
 ## src/hooks/useProducts.ts
 - L105 [async-boundary] `async function fetchProducts`
@@ -344,9 +365,9 @@ Generated: 2026-05-22T22:12:25.382Z
 - L273 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useProvenance.ts
-- L37 [async-boundary] `queryFn: async (`
-- L58 [async-boundary] `queryFn: async (`
-- L82 [async-boundary] `mutationFn: async (`
+- L40 [async-boundary] `queryFn: async (`
+- L61 [async-boundary] `queryFn: async (`
+- L85 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useROICalculator.ts
 - L161 [async-boundary] `async function fetchTemplates`
@@ -390,6 +411,9 @@ Generated: 2026-05-22T22:12:25.382Z
 - L574 [async-boundary] `mutationFn: async (`
 - L602 [async-boundary] `mutationFn: async (`
 
+## src/hooks/useSuperAdminOverview.ts
+- L33 [async-boundary] `async function fetchTenantOverview`
+
 ## src/hooks/useTargets.ts
 - L280 [async-boundary] `queryFn: async (`
 - L316 [async-boundary] `queryFn: async (`
@@ -404,15 +428,15 @@ Generated: 2026-05-22T22:12:25.382Z
 - L580 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useTasks.ts
-- L57 [async-boundary] `queryFn: async (`
-- L67 [async-boundary] `mutationFn: async (`
-- L80 [async-boundary] `mutationFn: async (`
+- L60 [async-boundary] `queryFn: async (`
+- L70 [async-boundary] `mutationFn: async (`
+- L86 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useUsage.ts
-- L67 [async-boundary] `queryFn: async (`
-- L86 [async-boundary] `queryFn: async (`
-- L105 [async-boundary] `queryFn: async (`
-- L125 [async-boundary] `mutationFn: async (`
+- L70 [async-boundary] `queryFn: async (`
+- L89 [async-boundary] `queryFn: async (`
+- L108 [async-boundary] `queryFn: async (`
+- L128 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useValueCaseArtifacts.ts
 - L58 [async-boundary] `queryFn: async (`
@@ -436,7 +460,7 @@ Generated: 2026-05-22T22:12:25.382Z
 - L148 [async-boundary] `async function fetchVariableStats`
 - L170 [async-boundary] `async function fetchSourceBindings`
 - L196 [async-boundary] `mutationFn: async (`
-- L209 [async-boundary] `mutationFn: async (`
+- L212 [async-boundary] `mutationFn: async (`
 
 ## src/hooks/useVersioning.ts
 - L38 [async-boundary] `queryFn: async (`
@@ -447,38 +471,38 @@ Generated: 2026-05-22T22:12:25.382Z
 - L251 [async-boundary] `queryFn: async (`
 - L277 [async-boundary] `queryFn: async (`
 - L299 [async-boundary] `mutationFn: async (`
-- L333 [async-boundary] `mutationFn: async (`
-- L436 [async-boundary] `mutationFn: async (`
-- L452 [async-boundary] `mutationFn: async (`
-- L468 [async-boundary] `queryFn: async (`
-- L487 [async-boundary] `queryFn: async (`
+- L340 [async-boundary] `mutationFn: async (`
+- L450 [async-boundary] `mutationFn: async (`
+- L471 [async-boundary] `mutationFn: async (`
+- L492 [async-boundary] `queryFn: async (`
+- L511 [async-boundary] `queryFn: async (`
 
 ## src/hooks/useWorkspaceCase.ts
 - L24 [async-boundary] `queryFn: async (`
-- L55 [async-boundary] `queryFn: async (`
-- L75 [async-boundary] `mutationFn: async (`
-- L102 [async-boundary] `mutationFn: async (`
-- L119 [async-boundary] `mutationFn: async (`
-- L139 [async-boundary] `mutationFn: async (`
-- L173 [async-boundary] `mutationFn: async (`
-- L207 [async-boundary] `mutationFn: async (`
-- L250 [async-boundary] `mutationFn: async (`
+- L57 [async-boundary] `queryFn: async (`
+- L77 [async-boundary] `mutationFn: async (`
+- L104 [async-boundary] `mutationFn: async (`
+- L121 [async-boundary] `mutationFn: async (`
+- L151 [async-boundary] `mutationFn: async (`
+- L185 [async-boundary] `mutationFn: async (`
+- L219 [async-boundary] `mutationFn: async (`
+- L262 [async-boundary] `mutationFn: async (`
+- L316 [async-boundary] `async function getOrCreateCanonicalCaseId`
+- L345 [async-boundary] `async function persistWorkspaceTab`
 
 ## src/pages/CollaborationCommentsPage.tsx
 - L28 [async-boundary] `const handleSubmit = async (`
 
 ## src/pages/DecisionTrace.tsx
-- L65 [async-boundary] `const handleExportProvO = async (`
+- L66 [async-boundary] `const handleExportProvO = async (`
 
 ## src/pages/ExtractionEngine.tsx
 - L112 [async-boundary] `const handleRunExtraction = async (`
 - L131 [async-boundary] `const handlePauseAll = async (`
 
-## src/pages/Login.tsx
-- L79 [async-boundary] `const handleCallbackFlow = async (`
-
 ## src/pages/NotificationsPage.tsx
-- L22 [async-boundary] `const handleSubmit = async (`
+- L23 [async-boundary] `const handleSubmit = async (`
+- L141 [async-boundary] `onClick={async (`
 
 ## src/pages/OntologyEditor.tsx
 - L436 [async-boundary] `onClick={async (`
@@ -490,7 +514,8 @@ Generated: 2026-05-22T22:12:25.382Z
 - L162 [async-boundary] `const onSubmit = async (`
 
 ## src/pages/TasksPage.tsx
-- L28 [async-boundary] `const handleSubmit = async (`
+- L29 [async-boundary] `const handleSubmit = async (`
+- L128 [async-boundary] `onClick={async (`
 
 ## src/pages/ValueTreeExplorer.tsx
 - L299 [async-boundary] `const handleCreateTree = async (`
@@ -522,6 +547,6 @@ Generated: 2026-05-22T22:12:25.382Z
 - L159 [async-boundary] `const handleReview = async (`
 - L169 [async-boundary] `const handlePromote = async (`
 
-## src/value-pilot/pages/ProspectSetup.tsx
-- L100 [async-boundary] `mutationFn: async (`
+## src/test/utils/withAuthProvider.ts
+- L28 [async-boundary] `async function withAuthProvider`
 

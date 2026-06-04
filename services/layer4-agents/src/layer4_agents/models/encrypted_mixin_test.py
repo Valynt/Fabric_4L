@@ -9,19 +9,22 @@ from __future__ import annotations
 
 import os
 import uuid
-from typing import Any, ClassVar
+from collections.abc import Iterator
+from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
-from sqlalchemy import String, create_engine
+from sqlalchemy import String, create_engine as _sync_engine, text
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
-from sqlalchemy.orm import Session, declarative_base, mapped_column, sessionmaker
+from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 # Ensure a deterministic master key for tests
 os.environ["CREDENTIALS_MASTER_KEY"] = "test-master-key-" + "A" * 32
 
 from .encrypted_mixin import DEFAULT_PII_FIELDS, PIIMixin
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class _TestPIIModel(Base, PIIMixin):
@@ -36,15 +39,30 @@ class _TestPIIModel(Base, PIIMixin):
         "bank_account": {"searchable": False},
     }
 
-    id = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = mapped_column(String(255), nullable=False)
+    id: Mapped[uuid.UUID] = mapped_column(
+        PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+    name: Mapped[str] = mapped_column(String(255), nullable=False)
+
+    if TYPE_CHECKING:
+        email: ClassVar[Any]
+        phone: ClassVar[Any]
+        ssn: ClassVar[Any]
+        address_line1: ClassVar[Any]
+        bank_account: ClassVar[Any]
+        email_hash: ClassVar[Any]
+        phone_hash: ClassVar[Any]
+        ssn_hash: ClassVar[Any]
+        address_line1_hash: ClassVar[Any]
+        bank_account_hash: ClassVar[Any]
+        pii_key_version: ClassVar[Any]
 
 
 # ---------- Fixtures ----------
 
 @pytest.fixture(scope="module")
-def db_session() -> Session:
-    engine = create_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/test_db")
+def db_session() -> Iterator[Session]:
+    engine = _sync_engine("postgresql+psycopg2://postgres:postgres@localhost:5432/test_db")
     Base.metadata.create_all(engine)
     session_local = sessionmaker(bind=engine)
     session = session_local()
@@ -70,21 +88,25 @@ class TestPIIConfiguration:
 
             class BadModel(Base, PIIMixin):
                 __tablename__ = "bad_model"
-                __pii_config__ = {"unknown_field": {}}
-                id = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+                __pii_config__: ClassVar[dict[str, dict[str, Any]]] = {"unknown_field": {}}
+                id: Mapped[uuid.UUID] = mapped_column(
+                    PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+                )
 
     def test_known_fields_accepted(self) -> None:
         # Should not raise
         class GoodModel(Base, PIIMixin):
             __tablename__ = "good_model"
-            __pii_config__ = {
+            __pii_config__: ClassVar[dict[str, dict[str, Any]]] = {
                 "email": {"searchable": True},
                 "phone": {"searchable": True},
                 "ssn": {"searchable": False},
                 "address_line1": {"searchable": False},
                 "bank_account": {"searchable": False},
             }
-            id = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+            id: Mapped[uuid.UUID] = mapped_column(
+                PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+            )
 
     def test_default_fields_list(self) -> None:
         assert set(DEFAULT_PII_FIELDS.keys()) == {
@@ -99,7 +121,9 @@ class TestPIIConfiguration:
         class EmptyModel(Base, PIIMixin):
             __tablename__ = "empty_model"
             __pii_config__: ClassVar[dict[str, dict[str, Any]]] = {}
-            id = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+            id: Mapped[uuid.UUID] = mapped_column(
+                PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+            )
 
         assert EmptyModel.__pii_config__ == {}
         assert EmptyModel.pii_fields() == []
@@ -244,6 +268,7 @@ class TestKeyRotation:
 
         # Fetch, bump version, rotate
         fetched = fresh_session.query(_TestPIIModel).first()
+        assert fetched is not None
         os.environ["ENCRYPTION_KEY_VERSION"] = "2"
         fetched.rotate_pii_encryption()
         fresh_session.commit()
@@ -267,7 +292,7 @@ class TestFailClosed:
 
         # Query the raw encrypted column directly (bypass hybrid property)
         raw = fresh_session.execute(
-            "SELECT email_encrypted FROM test_pii_contacts LIMIT 1"
+            text("SELECT email_encrypted FROM test_pii_contacts LIMIT 1")
         ).scalar()
 
         assert raw is not None
@@ -284,7 +309,11 @@ class TestFailClosed:
             # Trigger the validation by forcing mapper initialization
             class EnforcedModel(Base, PIIMixin):
                 __tablename__ = "enforced_model"
-                __pii_config__ = {"email": {"searchable": True}}
-                id = mapped_column(PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+                __pii_config__: ClassVar[dict[str, dict[str, Any]]] = {
+                    "email": {"searchable": True}
+                }
+                id: Mapped[uuid.UUID] = mapped_column(
+                    PGUUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+                )
             # Accessing the table forces mapper init which triggers __declare_last__
             _ = EnforcedModel.__table__

@@ -14,7 +14,7 @@
  */
 import { Building2, FileStack } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { StatusBadgeBlock, type Status } from '@/components/blocks/StatusBadge';
+import { StatusBadgeBlock, type BlockStatus as Status } from '@/components/ui/fabric/StatusBadge';
 import type { SourceCorpusSummary } from '@/hooks/useSkillJobs';
 
 function extractionStatusToStatus(s: string): Status {

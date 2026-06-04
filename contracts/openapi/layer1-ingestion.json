@@ -3226,7 +3226,7 @@
     "/api/v1/ingestion/admin/cleanup": {
       "post": {
         "summary": "Trigger Cleanup",
-        "description": "Trigger content cleanup for old data.",
+        "description": "Trigger content cleanup for old data.\n\nSECURITY: Tenant-scoped cleanup - only deletes content for the requesting tenant.",
         "operationId": "trigger_cleanup_api_v1_ingestion_admin_cleanup_post",
         "parameters": [
           {
@@ -4094,6 +4094,18 @@
               }
             ],
             "title": "Webhook Events"
+          },
+          "idempotency_key": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Idempotency Key"
           }
         },
         "type": "object",
@@ -6137,7 +6149,7 @@
           },
           "errors": {
             "items": {
-              "$ref": "#/components/schemas/ValidationError"
+              "$ref": "#/components/schemas/ValidationErrorDetail"
             },
             "type": "array",
             "title": "Errors"
@@ -6234,6 +6246,30 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "ValidationErrorDetail": {
+        "properties": {
+          "field": {
+            "type": "string",
+            "title": "Field"
+          },
+          "message": {
+            "type": "string",
+            "title": "Message"
+          },
+          "severity": {
+            "type": "string",
+            "title": "Severity",
+            "default": "error"
+          }
+        },
+        "type": "object",
+        "required": [
+          "field",
+          "message"
+        ],
+        "title": "ValidationErrorDetail",
+        "description": "Validation error detail."
       },
       "ValidationWarning": {
         "properties": {

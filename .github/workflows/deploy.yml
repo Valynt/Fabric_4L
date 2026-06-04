@@ -508,9 +508,8 @@ jobs:
         run: |
           echo "Waiting for deployment to stabilize..."
           sleep 30
-          # Uncomment when kubeconfig is wired:
-          # NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
-          # kubectl rollout status deployment -n "$NS" --timeout=300s
+          NS=$(bash scripts/resolve-namespace.sh "${{ env.ENVIRONMENT }}")
+          kubectl rollout status deployment -n "$NS" --timeout=300s
 
       - name: Health check endpoints
         run: |
@@ -537,8 +536,7 @@ jobs:
       - name: Critical path tests
         run: |
           echo "Running critical path smoke tests"
-          # This would run a subset of E2E tests against the deployed environment
-          # pytest tests/e2e/smoke/ --base-url=https://api.${{ env.ENVIRONMENT }}.value-fabric.com
+          pytest tests/e2e/smoke/ --base-url=https://api.${{ env.ENVIRONMENT }}.value-fabric.com
 
   # ============================================
   # Rollback on Failure

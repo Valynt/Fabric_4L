@@ -28,7 +28,7 @@ if (sentryDsn) {
       attachStacktrace: true,
     });
   } catch (error) {
-    console.error("Failed to initialize Sentry:", error);
+    logError("Failed to initialize Sentry", { error: error instanceof Error ? error.message : String(error) });
   }
 }
 import {
@@ -88,7 +88,7 @@ const AppRoot = (
     <I18nProvider>
       <App />
       {import.meta.env.DEV && ReactQueryDevtools && (
-        <Suspense fallback={null}>
+        <Suspense fallback={<div className="h-8 w-32 animate-pulse rounded-md bg-accent" />}>
           <ReactQueryDevtools initialIsOpen={false} />
         </Suspense>
       )}
@@ -118,6 +118,6 @@ if ("serviceWorker" in navigator && import.meta.env.PROD) {
   window.addEventListener("load", () => {
     navigator.serviceWorker
       .register("/sw.js")
-      .catch((err) => console.error("Service worker registration failed:", err));
+      .catch((err) => logError("Service worker registration failed", { error: err instanceof Error ? err.message : String(err) }));
   });
 }

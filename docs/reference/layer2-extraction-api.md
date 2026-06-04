@@ -330,7 +330,7 @@ for entity in results.entities:
 
 - [Layer 3: Knowledge Graph API](./layer3-knowledge-api.md) — Query extracted entities
 - [Ontology System](../core-concepts/ontology-system.md) — Understand entity types
-- [Author Value Pack](../how-to-guides/author-value-pack.md) — Create custom ontologies
+- [Value Packs](../../packs/) — Create custom ontologies
 
 ---
 

@@ -70,6 +70,85 @@ groups:
         annotations:
           summary: "Journey non-empty response guarantee violated"
           description: "One or more required journey responses became empty."
+  - name: error_rate_alerts
+    interval: 30s
+    rules:
+      - alert: HighErrorRateLayer1
+        expr: |
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer1-ingestion",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer1-ingestion"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform-sre
+          layer: layer1
+        annotations:
+          summary: "Layer 1 error rate elevated"
+          description: "Layer 1 ingestion service error rate is above 5% for 5 minutes."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer1#error-rate"
+
+      - alert: HighErrorRateLayer2
+        expr: |
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer2-extraction",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer2-extraction"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform-sre
+          layer: layer2
+        annotations:
+          summary: "Layer 2 error rate elevated"
+          description: "Layer 2 extraction service error rate is above 5% for 5 minutes."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer2#error-rate"
+
+      - alert: HighErrorRateLayer3
+        expr: |
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer3-knowledge",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer3-knowledge"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform-sre
+          layer: layer3
+        annotations:
+          summary: "Layer 3 error rate elevated"
+          description: "Layer 3 knowledge graph service error rate is above 5% for 5 minutes."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer3#error-rate"
+
+      - alert: HighErrorRateLayer4
+        expr: |
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer4-agents",status=~"5.."}[5m]))
+          /
+          sum(rate(http_requests_total{namespace=~"value-fabric.*",service="layer4-agents"}[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          owner: platform-sre
+          layer: layer4
+        annotations:
+          summary: "Layer 4 error rate elevated"
+          description: "Layer 4 agents service error rate is above 5% for 5 minutes."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer4#error-rate"
+
+      - alert: HighErrorRateCritical
+        expr: |
+          (
+            sum(rate(http_requests_total{namespace=~"value-fabric.*",status=~"5.."}[5m]))
+            /
+            sum(rate(http_requests_total{namespace=~"value-fabric.*"}[5m]))
+          ) > 0.10
+        for: 2m
+        labels:
+          severity: critical
+          owner: platform-sre
+        annotations:
+          summary: "Critical: platform-wide error rate above 10%"
+          description: "Aggregate 5xx rate across all Fabric_4L services exceeds 10% for 2 minutes."
+          runbook_url: "https://docs.valuefabric.internal/runbooks/platform/critical-error-rate"
+
   - name: db_pool_alerts
     interval: 30s
     rules:

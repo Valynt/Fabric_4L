@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, useParams } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth as useClerkAuth } from "@clerk/react";
 import { useAuthContext } from "@/contexts/AuthContext";
 import { useAccountContextStore } from "@/stores/accountContextStore";
@@ -236,7 +237,7 @@ export const router = createBrowserRouter([
         path: "/accounts/new",
         element: (
           <UnifiedRouteGuard>
-            <Suspense fallback={<div className="flex h-full min-h-[200px] items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
+            <Suspense fallback={<div className="flex h-full min-h-[200px] items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
               <ProspectSetupPage />
             </Suspense>
           </UnifiedRouteGuard>
@@ -286,7 +287,7 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/accounts/:accountId/intelligence/:tabId",
         element: (
           <UnifiedRouteGuard>
-            <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
+            <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
               <IntelligenceWorkspace />
             </Suspense>
           </UnifiedRouteGuard>
@@ -310,7 +311,7 @@ export const router = createBrowserRouter([
         path: "/t/:tenantSlug/accounts/:accountId/studio/:tabId",
         element: (
           <UnifiedRouteGuard>
-            <Suspense fallback={<div className="flex h-full items-center justify-center"><div className="h-6 w-6 animate-spin rounded-full border-2 border-border border-t-primary" /></div>}>
+            <Suspense fallback={<div className="flex h-full items-center justify-center gap-2"><Skeleton className="h-8 w-48" /></div>}>
               <StudioShell />
             </Suspense>
           </UnifiedRouteGuard>

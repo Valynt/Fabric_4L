@@ -131,7 +131,7 @@ See [Architecture Overview](../../core-concepts/architecture.md) for detailed di
 
 - [Architecture Overview](../../core-concepts/architecture.md) — C4 model diagrams
 - [Layer 1 API](../../reference/layer1-ingestion-api.md) — Ingestion service contract
-- [Why Knowledge Graph](../why-knowledge-graph.md) — Rationale for L3 design
+- [ADR-003: Neo4j for Knowledge Graph](./ADR-003-neo4j-pgvector-hybrid-graph-database.md) — Rationale for L3 design
 
 ---
 

@@ -58,13 +58,13 @@ const log = createFeatureLogger('auth-context');
 
 function safeNavigate(path: string) {
   if (typeof window !== 'undefined') {
-    window.location.href = path;
+    window.location.href = path; // navigation-guardrail: ignore auth provider redirect fallback
   }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Check if mock auth mode is enabled
-  const mockAuthEnabled = import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+  // Check if mock auth mode is enabled (DEV-only guard)
+  const mockAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
 
   // Clerk hooks (only used when mock auth is disabled)
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();

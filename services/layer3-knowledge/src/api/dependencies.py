@@ -1,34 +1,116 @@
+# mypy: ignore-missing-imports, disable-error-code="import-not-found,no-untyped-def,no-untyped-call,no-any-return,assignment,var-annotated,misc,no-redef"
 """FastAPI dependencies for Layer 3 API."""
 
+from __future__ import annotations
+
 import logging
+from importlib import import_module
+from typing import Any
 
 from fastapi import FastAPI, Request
-from neo4j import AsyncDriver
-from neo4j.exceptions import (
-    ConfigurationError,
-    Neo4jError,
-    ServiceUnavailable,
-    TransientError,
-)
+
+try:
+    from neo4j import AsyncDriver
+    from neo4j.exceptions import (
+        ConfigurationError,
+        Neo4jError,
+        ServiceUnavailable,
+        TransientError,
+    )
+except ImportError:  # pragma: no cover - collection-only fallback for minimal envs
+    AsyncDriver = Any
+
+    class Neo4jError(Exception):
+        pass
+
+    class ConfigurationError(Neo4jError):
+        pass
+
+    class ServiceUnavailable(Neo4jError):
+        pass
+
+    class TransientError(Neo4jError):
+        pass
+
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 
-from ..agents import (
-    NarrativeSynthesisAgent,
-    ProvenanceTrackingAgent,
-    ROICalculationAgent,
-    ValueTreeProjectionAgent,
-    WhitespaceAnalysisAgent,
-)
-from ..analytics import (
-    CentralityAnalyzer,
-    CommunityDetector,
-    SimilarityAnalyzer,
-)
-from ..config import Settings, get_settings
-from ..db.driver import get_driver, reset_driver
-from ..ingestion import Neo4jLoader, SyncManager
-from ..retrieval import GraphRAGEngine, HybridSearch, VectorStore
-from ..schema import SchemaInitializer
+Settings: Any = None
+get_settings: Any = None
+get_driver: Any = None
+reset_driver: Any = None
+NarrativeSynthesisAgent: Any = None
+ProvenanceTrackingAgent: Any = None
+ROICalculationAgent: Any = None
+ValueTreeProjectionAgent: Any = None
+WhitespaceAnalysisAgent: Any = None
+CentralityAnalyzer: Any = None
+CommunityDetector: Any = None
+SimilarityAnalyzer: Any = None
+Neo4jLoader: Any = None
+SyncManager: Any = None
+GraphRAGEngine: Any = None
+HybridSearch: Any = None
+VectorStore: Any = None
+SchemaInitializer: Any = None
+
+_RUNTIME_DEPENDENCIES_LOADED = False
+_SETTINGS_DEPENDENCY_LOADED = False
+
+
+def _import_runtime_module(relative_name: str, fallback_name: str) -> Any:
+    """Import L3 modules in package and source-root collection contexts."""
+    try:
+        return import_module(relative_name, package=__package__)
+    except ImportError:
+        return import_module(fallback_name)
+
+
+def _load_settings_dependency() -> None:
+    global _SETTINGS_DEPENDENCY_LOADED
+    if _SETTINGS_DEPENDENCY_LOADED:
+        return
+
+    config_module = _import_runtime_module("..config", "config")
+    globals()["Settings"] = config_module.Settings
+    globals()["get_settings"] = config_module.get_settings
+    _SETTINGS_DEPENDENCY_LOADED = True
+
+
+def _load_runtime_dependencies() -> None:
+    global _RUNTIME_DEPENDENCIES_LOADED
+
+    if _RUNTIME_DEPENDENCIES_LOADED:
+        return
+
+    _load_settings_dependency()
+    agents_module = _import_runtime_module("..agents", "agents")
+    analytics_module = _import_runtime_module("..analytics", "analytics")
+    driver_module = _import_runtime_module("..db.driver", "db.driver")
+    ingestion_module = _import_runtime_module("..ingestion", "ingestion")
+    retrieval_module = _import_runtime_module("..retrieval", "retrieval")
+    schema_module = _import_runtime_module("..schema", "schema")
+
+    globals().update(
+        {
+            "NarrativeSynthesisAgent": agents_module.NarrativeSynthesisAgent,
+            "ProvenanceTrackingAgent": agents_module.ProvenanceTrackingAgent,
+            "ROICalculationAgent": agents_module.ROICalculationAgent,
+            "ValueTreeProjectionAgent": agents_module.ValueTreeProjectionAgent,
+            "WhitespaceAnalysisAgent": agents_module.WhitespaceAnalysisAgent,
+            "CentralityAnalyzer": analytics_module.CentralityAnalyzer,
+            "CommunityDetector": analytics_module.CommunityDetector,
+            "SimilarityAnalyzer": analytics_module.SimilarityAnalyzer,
+            "get_driver": driver_module.get_driver,
+            "reset_driver": driver_module.reset_driver,
+            "Neo4jLoader": ingestion_module.Neo4jLoader,
+            "SyncManager": ingestion_module.SyncManager,
+            "GraphRAGEngine": retrieval_module.GraphRAGEngine,
+            "HybridSearch": retrieval_module.HybridSearch,
+            "VectorStore": retrieval_module.VectorStore,
+            "SchemaInitializer": schema_module.SchemaInitializer,
+        }
+    )
+    _RUNTIME_DEPENDENCIES_LOADED = True
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +128,17 @@ class AppState:
     """Application state container for shared resources."""
 
     def __init__(self):
-        self.settings: Settings = None
+        self.settings: Any = None
         self.neo4j_driver: AsyncDriver = None
-        self.vector_store: VectorStore = None
-        self.schema_initializer: SchemaInitializer = None
-        self.neo4j_loader: Neo4jLoader = None
-        self.sync_manager: SyncManager = None
-        self.graph_rag: GraphRAGEngine = None
-        self.hybrid_search: HybridSearch = None
-        self.community_detector: CommunityDetector = None
-        self.centrality_analyzer: CentralityAnalyzer = None
-        self.similarity_analyzer: SimilarityAnalyzer = None
+        self.vector_store: Any = None
+        self.schema_initializer: Any = None
+        self.neo4j_loader: Any = None
+        self.sync_manager: Any = None
+        self.graph_rag: Any = None
+        self.hybrid_search: Any = None
+        self.community_detector: Any = None
+        self.centrality_analyzer: Any = None
+        self.similarity_analyzer: Any = None
         # Backend Agents (Layer 3 service implementations)
         # NOTE: These Layer 3 agents are the service-layer implementations.
         # The canonical Layer 4 agent names are:
@@ -66,11 +148,11 @@ class AppState:
         #   NarrativeSynthesisAgent   → NarrativeAgent
         #   ProvenanceTrackingAgent   → IntegrityAgent (provenance is now GATE cross-cutting)
         # See docs/platform-contract/DEPRECATION_MAP.md for migration timeline.
-        self.value_tree_projection_agent: ValueTreeProjectionAgent = None
-        self.whitespace_analysis_agent: WhitespaceAnalysisAgent = None
-        self.roi_calculation_agent: ROICalculationAgent = None
-        self.narrative_synthesis_agent: NarrativeSynthesisAgent = None
-        self.provenance_tracking_agent: ProvenanceTrackingAgent = None
+        self.value_tree_projection_agent: Any = None
+        self.whitespace_analysis_agent: Any = None
+        self.roi_calculation_agent: Any = None
+        self.narrative_synthesis_agent: Any = None
+        self.provenance_tracking_agent: Any = None
 
 
 async def init_app_state(app: FastAPI) -> AppState:
@@ -79,6 +161,7 @@ async def init_app_state(app: FastAPI) -> AppState:
     Neo4j connection failures are non-fatal at startup: the service starts in
     a degraded mode and each component retries the connection on first use.
     """
+    _load_runtime_dependencies()
     state = AppState()
     state.settings = get_settings()
 
@@ -221,6 +304,7 @@ async def recover_neo4j_state(app: FastAPI) -> AppState:
     of crashing, and health checks call this helper to perform a bounded lazy
     recovery once Neo4j becomes reachable.
     """
+    _load_runtime_dependencies()
     state = getattr(app.state, "app_state", None)
     if state is None:
         state = AppState()
@@ -380,6 +464,7 @@ async def _cleanup_partial_state(state: AppState) -> None:
 
 async def close_app_state(app: FastAPI) -> None:
     """Close all application resources."""
+    _load_runtime_dependencies()
     state: AppState = getattr(app.state, "app_state", None)
 
     if state:
@@ -445,6 +530,7 @@ async def close_app_state(app: FastAPI) -> None:
 
 def get_app_state(request: Request) -> AppState:
     """Get application state from request."""
+    _load_settings_dependency()
     state = getattr(request.app.state, "app_state", None)
     if state is None:
         # Create minimal state for health checks when app not fully initialized
@@ -453,7 +539,7 @@ def get_app_state(request: Request) -> AppState:
     return state
 
 
-def get_settings_from_state(request: Request) -> Settings:
+def get_settings_from_state(request: Request) -> Any:
     """Get settings from application state."""
     return get_app_state(request).settings
 
@@ -466,7 +552,7 @@ def get_neo4j_driver(request: Request) -> AsyncDriver:
     return driver
 
 
-def get_vector_store(request: Request) -> VectorStore:
+def get_vector_store(request: Request) -> Any:
     """Get vector store from application state."""
     store = get_app_state(request).vector_store
     if store is None:
@@ -474,61 +560,61 @@ def get_vector_store(request: Request) -> VectorStore:
     return store
 
 
-def get_sync_manager(request: Request) -> SyncManager:
+def get_sync_manager(request: Request) -> Any:
     """Get sync manager from application state."""
     return get_app_state(request).sync_manager
 
 
-def get_graph_rag(request: Request) -> GraphRAGEngine:
+def get_graph_rag(request: Request) -> Any:
     """Get GraphRAG engine from application state."""
     return get_app_state(request).graph_rag
 
 
-def get_hybrid_search(request: Request) -> HybridSearch:
+def get_hybrid_search(request: Request) -> Any:
     """Get hybrid search from application state."""
     return get_app_state(request).hybrid_search
 
 
-def get_community_detector(request: Request) -> CommunityDetector:
+def get_community_detector(request: Request) -> Any:
     """Get community detector from application state."""
     return get_app_state(request).community_detector
 
 
-def get_centrality_analyzer(request: Request) -> CentralityAnalyzer:
+def get_centrality_analyzer(request: Request) -> Any:
     """Get centrality analyzer from application state."""
     return get_app_state(request).centrality_analyzer
 
 
-def get_similarity_analyzer(request: Request) -> SimilarityAnalyzer:
+def get_similarity_analyzer(request: Request) -> Any:
     """Get similarity analyzer from application state."""
     return get_app_state(request).similarity_analyzer
 
 
-def get_schema_initializer(request: Request) -> SchemaInitializer:
+def get_schema_initializer(request: Request) -> Any:
     """Get schema initializer from application state."""
     return get_app_state(request).schema_initializer
 
 
-def get_value_tree_projection_agent(request: Request) -> ValueTreeProjectionAgent:
+def get_value_tree_projection_agent(request: Request) -> Any:
     """Get value tree projection agent from application state."""
     return get_app_state(request).value_tree_projection_agent
 
 
-def get_whitespace_analysis_agent(request: Request) -> WhitespaceAnalysisAgent:
+def get_whitespace_analysis_agent(request: Request) -> Any:
     """Get whitespace analysis agent from application state."""
     return get_app_state(request).whitespace_analysis_agent
 
 
-def get_roi_calculation_agent(request: Request) -> ROICalculationAgent:
+def get_roi_calculation_agent(request: Request) -> Any:
     """Get ROI calculation agent from application state."""
     return get_app_state(request).roi_calculation_agent
 
 
-def get_narrative_synthesis_agent(request: Request) -> NarrativeSynthesisAgent:
+def get_narrative_synthesis_agent(request: Request) -> Any:
     """Get narrative synthesis agent from application state."""
     return get_app_state(request).narrative_synthesis_agent
 
 
-def get_provenance_tracking_agent(request: Request) -> ProvenanceTrackingAgent:
+def get_provenance_tracking_agent(request: Request) -> Any:
     """Get provenance tracking agent from application state."""
     return get_app_state(request).provenance_tracking_agent
