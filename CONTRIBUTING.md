@@ -267,3 +267,20 @@ Releases follow [Semantic Versioning](https://semver.org/):
 - `PATCH` — bug fixes, no behavior changes
 
 Releases are tagged `vMAJOR.MINOR.PATCH` and documented in `CHANGELOG.md`.
+
+## PR Triage and Review Policy
+
+To keep the repository backlog manageable (goal: < 10 open PRs), we enforce the following policies:
+
+1. **Stale PR Management**: 
+   - A GitHub Action (`stale.yml`) automatically flags PRs with no activity for 30 days and closes them after 7 additional days.
+   - Maintainers will manually close PRs that are out of date and no longer actively worked on. (Comment "Closing due to inactivity, feel free to reopen" if manually closing).
+2. **Dependabot & Trivial PRs**:
+   - Dependency updates are grouped via Dependabot configuration to minimize PR volume.
+   - Maintainers should fast-track (bulk approve/merge) trivial PRs (docs, dependabot groups, minor fixes).
+3. **Review Delegation & Deadlines**:
+   - Active PRs must be assigned to specific team members.
+   - Reviewers should aim to complete reviews within a set deadline (e.g., "by Friday").
+4. **WIP / Draft Policy**:
+   - Use Draft PRs for work that is not yet ready for review.
+   - PRs must remain small and focused to enable faster reviews.

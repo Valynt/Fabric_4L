@@ -98,3 +98,9 @@ For every incremental PR, provide explicit **Pass / Fail** status and evidence l
 
 - Known risks:
 - Rollback plan:
+
+## PR Size & Status Policy
+
+- [ ] This PR is small and focused on a single logical change.
+- [ ] If this PR is still a Work-In-Progress, I have marked it as a **Draft** PR.
+- [ ] (For maintainers) If this PR is a trivial change (docs, dependabot group, minor fix), it can be fast-tracked for merge.
