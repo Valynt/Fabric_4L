@@ -673,12 +673,17 @@ def github_api_base(server_url: str) -> str:
     if not server.scheme or not server.netloc:
         raise ValueError(f"Invalid GitHub server URL: {server_url}")
 
-    if server.netloc == "github.com":
-        return "https://api.github.com/repos"
+    if server.netloc == "api.github.com":
+        api_host = server.netloc
+        api_path = "/repos"
+    elif server.netloc == "github.com":
+        api_host = "api.github.com"
+        api_path = "/repos"
+    else:
+        api_host = server.netloc
+        api_path = "/api/v3/repos"
 
-    return urllib.parse.urlunparse(
-        (server.scheme, server.netloc, "/api/v3/repos", "", "", "")
-    )
+    return urllib.parse.urlunparse((server.scheme, api_host, api_path, "", "", ""))
 
 
 def actions_runs_url(config: BacklogConfig) -> str:
@@ -871,8 +876,6 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default=14,
         help="Number of days of workflow runs to collect.",
     )
-    parser.add_argument(
-        "--branch",
     parser.add_argument(
         "--branch", default="all", help="Branch to report, or 'all' for all branches."
     )
