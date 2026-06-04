@@ -7,6 +7,7 @@ import argparse
 import json
 import subprocess
 import sys
+from collections import Counter
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -59,6 +60,240 @@ class EvidenceResult:
         payload = asdict(self)
         payload["item"] = asdict(self.item)
         return payload
+
+
+@dataclass(frozen=True)
+class CIRecurringSignature:
+    workflow: str
+    job: str
+    signature: str
+    category: str
+    count: int
+    first_seen: str = "-"
+    owner: str = "-"
+    blocking_status: str = "-"
+    remediation_link: str = "-"
+
+    @property
+    def workflow_job(self) -> str:
+        return f"{self.workflow} / {self.job}"
+
+    def to_dict(self) -> dict[str, object]:
+        return asdict(self)
+
+
+@dataclass(frozen=True)
+class CIFailureHealth:
+    source_path: str
+    total_runs: int
+    failed_runs: int
+    failure_rate: float
+    flaky_rerun_recoveries: int
+    flaky_rerun_attempts: int
+    flaky_rerun_recovery_rate: float
+    top_recurring_signatures: tuple[CIRecurringSignature, ...]
+
+    def to_dict(self) -> dict[str, object]:
+        return {
+            "source_path": self.source_path,
+            "total_runs": self.total_runs,
+            "failed_runs": self.failed_runs,
+            "failure_rate": self.failure_rate,
+            "flaky_rerun_recoveries": self.flaky_rerun_recoveries,
+            "flaky_rerun_attempts": self.flaky_rerun_attempts,
+            "flaky_rerun_recovery_rate": self.flaky_rerun_recovery_rate,
+            "top_recurring_signatures": [signature.to_dict() for signature in self.top_recurring_signatures],
+        }
+
+
+class CIFailureHealthCollector:
+    """Read pre-generated CI backlog JSON without contacting GitHub."""
+
+    FAILURE_CONCLUSIONS = {"failure", "failed", "timed_out", "timeout", "cancelled", "canceled", "action_required"}
+    SUCCESS_CONCLUSIONS = {"success", "passed", "neutral", "skipped"}
+
+    def __init__(self, repo_root: Path) -> None:
+        self.repo_root = repo_root.resolve()
+
+    def collect(self, backlog_json: Path, *, top_limit: int = 5) -> CIFailureHealth:
+        path = self._resolve_path(backlog_json)
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        entries = self._entries(payload)
+        total_runs = self._summary_int(payload, "total_runs", "total", "workflow_runs")
+        failed_runs = self._summary_int(payload, "failed_runs", "failures", "failed")
+
+        if total_runs is None:
+            total_runs = self._count_total_runs(entries)
+        if failed_runs is None:
+            failed_runs = self._count_failed_runs(entries)
+
+        flaky_attempts, flaky_recoveries = self._flaky_recovery_counts(payload, entries)
+        top = self._top_recurring(entries, top_limit=top_limit)
+        return CIFailureHealth(
+            source_path=self._display_path(path),
+            total_runs=total_runs,
+            failed_runs=failed_runs,
+            failure_rate=self._rate(failed_runs, total_runs),
+            flaky_rerun_recoveries=flaky_recoveries,
+            flaky_rerun_attempts=flaky_attempts,
+            flaky_rerun_recovery_rate=self._rate(flaky_recoveries, flaky_attempts),
+            top_recurring_signatures=tuple(top),
+        )
+
+    def _resolve_path(self, path: Path) -> Path:
+        resolved = path if path.is_absolute() else self.repo_root / path
+        if not resolved.exists():
+            raise FileNotFoundError(f"CI backlog JSON not found: {resolved}")
+        return resolved
+
+    def _display_path(self, path: Path) -> str:
+        try:
+            return str(path.relative_to(self.repo_root))
+        except ValueError:
+            return str(path)
+
+    @staticmethod
+    def _entries(payload: Any) -> list[dict[str, Any]]:
+        if isinstance(payload, list):
+            return [entry for entry in payload if isinstance(entry, dict)]
+        if not isinstance(payload, dict):
+            return []
+        for key in ("failures", "items", "entries", "backlog", "records", "runs"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return [entry for entry in value if isinstance(entry, dict)]
+        return []
+
+    @staticmethod
+    def _summary_int(payload: Any, *keys: str) -> int | None:
+        if not isinstance(payload, dict):
+            return None
+        containers = [payload]
+        for key in ("summary", "totals", "aggregate", "health"):
+            value = payload.get(key)
+            if isinstance(value, dict):
+                containers.append(value)
+        for container in containers:
+            for key in keys:
+                value = container.get(key)
+                if isinstance(value, bool):
+                    continue
+                if isinstance(value, int):
+                    return value
+                if isinstance(value, float):
+                    return int(value)
+        return None
+
+    def _count_total_runs(self, entries: list[dict[str, Any]]) -> int:
+        run_ids = {str(entry.get("run_id")) for entry in entries if entry.get("run_id") not in (None, "")}
+        if run_ids:
+            return len(run_ids)
+        return len(entries)
+
+    def _count_failed_runs(self, entries: list[dict[str, Any]]) -> int:
+        run_ids = {
+            str(entry.get("run_id"))
+            for entry in entries
+            if entry.get("run_id") not in (None, "") and self._is_failure_entry(entry)
+        }
+        if run_ids:
+            return len(run_ids)
+        return sum(1 for entry in entries if self._is_failure_entry(entry))
+
+    def _is_failure_entry(self, entry: dict[str, Any]) -> bool:
+        for key in ("conclusion", "status", "result", "run_conclusion"):
+            value = entry.get(key)
+            if isinstance(value, str):
+                normalized = value.strip().lower()
+                if normalized in self.FAILURE_CONCLUSIONS:
+                    return True
+                if normalized in self.SUCCESS_CONCLUSIONS:
+                    return False
+        return True
+
+    def _flaky_recovery_counts(self, payload: Any, entries: list[dict[str, Any]]) -> tuple[int, int]:
+        attempts = self._summary_int(payload, "flaky_rerun_attempts", "flaky_attempts")
+        recoveries = self._summary_int(payload, "flaky_rerun_recoveries", "flaky_recoveries")
+        if attempts is not None and recoveries is not None:
+            return attempts, recoveries
+
+        flaky_entries = [entry for entry in entries if self._category(entry).lower() == "flaky test"]
+        attempts = len(flaky_entries)
+        recoveries = sum(1 for entry in flaky_entries if self._rerun_recovered(entry))
+        return attempts, recoveries
+
+    @staticmethod
+    def _rerun_recovered(entry: dict[str, Any]) -> bool:
+        for key in ("rerun_recovered", "recovered_on_rerun", "flaky_recovered"):
+            value = entry.get(key)
+            if isinstance(value, bool):
+                return value
+        for key in ("rerun_conclusion", "rerun_result", "rerun_status"):
+            value = entry.get(key)
+            if isinstance(value, str) and value.strip().lower() in {"success", "passed"}:
+                return True
+        return False
+
+    def _top_recurring(self, entries: list[dict[str, Any]], *, top_limit: int) -> list[CIRecurringSignature]:
+        grouped: dict[tuple[str, str, str, str], dict[str, Any]] = {}
+        counts: Counter[tuple[str, str, str, str]] = Counter()
+        for entry in entries:
+            workflow = self._field(entry, "workflow", "workflow_name", "workflow_file", default="unknown workflow")
+            job = self._field(entry, "job", "job_name", default="unknown job")
+            signature = self._field(entry, "signature", "failure_signature", "fingerprint", "log_signature", default="uncategorized")
+            category = self._category(entry)
+            key = (workflow, job, signature, category)
+            count = self._entry_count(entry)
+            counts[key] += count
+            grouped.setdefault(key, entry)
+
+        signatures: list[CIRecurringSignature] = []
+        for (workflow, job, signature, category), count in counts.most_common(top_limit):
+            entry = grouped[(workflow, job, signature, category)]
+            signatures.append(
+                CIRecurringSignature(
+                    workflow=workflow,
+                    job=job,
+                    signature=signature,
+                    category=category,
+                    count=count,
+                    first_seen=self._field(entry, "first_seen", "first_seen_date", default="-"),
+                    owner=self._field(entry, "owner", default="-"),
+                    blocking_status=self._field(entry, "blocking_status", "blocking", default="-"),
+                    remediation_link=self._field(entry, "remediation_link", "issue", "issue_url", "url", default="-"),
+                )
+            )
+        return signatures
+
+    @staticmethod
+    def _entry_count(entry: dict[str, Any]) -> int:
+        for key in ("count", "occurrences", "failure_count", "runs", "failed_runs"):
+            value = entry.get(key)
+            if isinstance(value, bool):
+                continue
+            if isinstance(value, int):
+                return max(value, 1)
+            if isinstance(value, float):
+                return max(int(value), 1)
+        return 1
+
+    @staticmethod
+    def _category(entry: dict[str, Any]) -> str:
+        return CIFailureHealthCollector._field(entry, "category", "failure_category", default="uncategorized")
+
+    @staticmethod
+    def _field(entry: dict[str, Any], *keys: str, default: str) -> str:
+        for key in keys:
+            value = entry.get(key)
+            if value not in (None, ""):
+                return str(value)
+        return default
+
+    @staticmethod
+    def _rate(numerator: int, denominator: int) -> float:
+        if denominator <= 0:
+            return 0.0
+        return round((numerator / denominator) * 100, 1)
 
 
 REQUIRED_EVIDENCE: tuple[EvidenceItem, ...] = (
@@ -124,10 +359,19 @@ class EvidenceDocs:
     def __init__(self, repo_root: Path) -> None:
         self.repo_root = repo_root
 
-    def write_all(self, results: list[EvidenceResult], *, dry_run: bool, json_summary: Path | None = None) -> dict[str, object]:
+    def write_all(
+        self,
+        results: list[EvidenceResult],
+        *,
+        dry_run: bool,
+        json_summary: Path | None = None,
+        ci_failure_health: CIFailureHealth | None = None,
+    ) -> dict[str, object]:
         timestamp = datetime.now(UTC).isoformat().replace("+00:00", "Z")
         git_sha = self._git_sha()
         summary = self._summary(results)
+        if ci_failure_health is not None:
+            summary["ci_failure_health"] = ci_failure_health.to_dict()
         paths = {
             "dashboard": "docs/launch/readiness-dashboard.md",
             "blocker_register": "docs/launch/launch-blocker-register.md",
@@ -135,9 +379,9 @@ class EvidenceDocs:
         }
 
         if not dry_run:
-            self._write(paths["dashboard"], self.dashboard(results, timestamp, git_sha))
+            self._write(paths["dashboard"], self.dashboard(results, timestamp, git_sha, ci_failure_health=ci_failure_health))
             self._write(paths["blocker_register"], self.blocker_register(results, timestamp, git_sha))
-            self._write(paths["sign_off"], self.sign_off(results, timestamp, git_sha))
+            self._write(paths["sign_off"], self.sign_off(results, timestamp, git_sha, ci_failure_health=ci_failure_health))
             if json_summary:
                 json_summary = self._resolve_output_path(json_summary)
                 json_summary.parent.mkdir(parents=True, exist_ok=True)
@@ -145,7 +389,7 @@ class EvidenceDocs:
 
         return {"timestamp": timestamp, "git_sha": git_sha, "summary": summary, "paths": paths, "dry_run": dry_run}
 
-    def dashboard(self, results: list[EvidenceResult], timestamp: str, git_sha: str) -> str:
+    def dashboard(self, results: list[EvidenceResult], timestamp: str, git_sha: str, *, ci_failure_health: CIFailureHealth | None = None) -> str:
         scores = self._score_summary(results)
         lines = [
             "<!-- AUTO-GENERATED by scripts/ci/generate_launch_evidence_bundle.py - DO NOT EDIT MANUALLY -->",
@@ -164,6 +408,8 @@ class EvidenceDocs:
         for result in results:
             lines.append(self._result_row(result))
         lines.append("")
+        if ci_failure_health is not None:
+            lines.extend(self._ci_failure_health_section(ci_failure_health))
         return "\n".join(lines)
 
     def blocker_register(self, results: list[EvidenceResult], timestamp: str, git_sha: str) -> str:
@@ -190,7 +436,7 @@ class EvidenceDocs:
         lines.append("")
         return "\n".join(lines)
 
-    def sign_off(self, results: list[EvidenceResult], timestamp: str, git_sha: str) -> str:
+    def sign_off(self, results: list[EvidenceResult], timestamp: str, git_sha: str, *, ci_failure_health: CIFailureHealth | None = None) -> str:
         summary = self._summary(results)
         scores = summary["scores"]
         core_blocked = any(r.status != "passed" and r.item.blocks_core_ga for r in results)
@@ -223,7 +469,36 @@ class EvidenceDocs:
             artifact = result.item.artifact_path if result.artifact_found else "-"
             lines.append(f"| {result.item.name} | {result.status} | {result.classification} | {artifact} |")
         lines.append("")
+        if ci_failure_health is not None:
+            lines.extend(self._ci_failure_health_section(ci_failure_health))
         return "\n".join(lines)
+
+
+    @staticmethod
+    def _ci_failure_health_section(health: CIFailureHealth) -> list[str]:
+        lines = [
+            "## CI Failure Health",
+            "",
+            f"Source backlog JSON: `{health.source_path}`",
+            "",
+            f"- Total workflow runs: **{health.total_runs}**",
+            f"- Failed workflow runs: **{health.failed_runs}**",
+            f"- Failure rate: **{health.failure_rate}%**",
+            f"- Flaky rerun recovery: **{health.flaky_rerun_recoveries}/{health.flaky_rerun_attempts} ({health.flaky_rerun_recovery_rate}%)**",
+            "",
+            "| Rank | Workflow / Job | Category | Signature | Count | First Seen | Owner | Blocking Status | Remediation |",
+            "|---:|---|---|---|---:|---|---|---|---|",
+        ]
+        if not health.top_recurring_signatures:
+            lines.append("| - | No recurring failure signatures found | - | - | 0 | - | - | - | - |")
+        for index, signature in enumerate(health.top_recurring_signatures, start=1):
+            lines.append(
+                f"| {index} | {signature.workflow_job} | {signature.category} | {signature.signature} | "
+                f"{signature.count} | {signature.first_seen} | {signature.owner} | "
+                f"{signature.blocking_status} | {signature.remediation_link} |"
+            )
+        lines.append("")
+        return lines
 
     @staticmethod
     def _summary(results: list[EvidenceResult]) -> dict[str, Any]:
@@ -313,6 +588,15 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--dashboard-only", action="store_true", help="Compatibility flag; dashboard is generated with the normal doc set.")
     parser.add_argument("--repo-root", type=Path, default=Path.cwd())
     parser.add_argument("--json-summary", type=Path)
+    parser.add_argument(
+        "--ci-backlog-json",
+        type=Path,
+        help=(
+            "Include a CI Failure Health section from a pre-generated backlog JSON. "
+            "This only reads the provided local file and never contacts GitHub."
+        ),
+    )
+    parser.add_argument("--ci-backlog-top-limit", type=int, default=5)
     return parser
 
 
@@ -321,7 +605,18 @@ def main(argv: list[str] | None = None) -> int:
     repo_root = args.repo_root.resolve()
     collector = LaunchEvidenceCollector(repo_root, artifacts_only=args.artifacts_only, dry_run=args.dry_run)
     results = collector.collect_all(args.up_to_stage)
-    summary = EvidenceDocs(repo_root).write_all(results, dry_run=args.dry_run, json_summary=args.json_summary)
+    ci_failure_health = None
+    if args.ci_backlog_json is not None:
+        ci_failure_health = CIFailureHealthCollector(repo_root).collect(
+            args.ci_backlog_json,
+            top_limit=args.ci_backlog_top_limit,
+        )
+    summary = EvidenceDocs(repo_root).write_all(
+        results,
+        dry_run=args.dry_run,
+        json_summary=args.json_summary,
+        ci_failure_health=ci_failure_health,
+    )
     print(json.dumps(summary, indent=2, sort_keys=True))
     if args.dry_run:
         return 0
