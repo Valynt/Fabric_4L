@@ -1,11 +1,13 @@
 {
   "name": "Value Fabric Dev Environment",
-  "image": "mcr.microsoft.com/devcontainers/base:bookworm",
+  "build": {
+    "dockerfile": "Dockerfile"
+  },
   "features": {
     "ghcr.io/devcontainers/features/docker-in-docker": {},
     "ghcr.io/devcontainers/features/node": {
       "version": "22",
-      "pnpmVersion": "10"
+      "pnpmVersion": "10.18.1"
     },
     "ghcr.io/devcontainers/features/python": {
       "version": "3.11",
@@ -30,10 +32,17 @@
       ]
     }
   },
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "postStartCommand": "bash .devcontainer/post-start.sh",
   "forwardPorts": [
     3001,
     8000,
+    8001,
+    8002,
+    8003,
     8004,
+    8005,
+    8006,
     8007,
     8080,
     5432,
@@ -50,12 +59,32 @@
       "label": "API Gateway",
       "onAutoForward": "silent"
     },
+    "8001": {
+      "label": "Layer 1 Ingestion",
+      "onAutoForward": "silent"
+    },
+    "8002": {
+      "label": "Layer 2 Extraction",
+      "onAutoForward": "silent"
+    },
+    "8003": {
+      "label": "Layer 3 Knowledge Graph",
+      "onAutoForward": "silent"
+    },
     "8004": {
       "label": "Layer 4 Agents",
       "onAutoForward": "silent"
     },
+    "8005": {
+      "label": "Layer 5 Ground Truth",
+      "onAutoForward": "silent"
+    },
+    "8006": {
+      "label": "Layer 6 Benchmarks",
+      "onAutoForward": "silent"
+    },
     "8007": {
-      "label": "Layer 2-5 Signal Refinery",
+      "label": "Layer 2.5 Signal Refinery",
       "onAutoForward": "silent"
     },
     "8080": {
