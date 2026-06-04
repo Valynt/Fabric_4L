@@ -11,6 +11,7 @@
     "check:api-types": "pnpm run generate:api && git diff --exit-code apps/web/src/api/generated",
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
+    "test:security": "pytest tests/security/",
     "typecheck": "python scripts/ci/run_root_aggregate_checks.py typecheck",
     "check:default-scope": "node scripts/ci/check_default_scope.mjs",
     "preinstall": "node scripts/enforce-package-manager.cjs",

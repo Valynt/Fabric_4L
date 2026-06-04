@@ -97,3 +97,22 @@ class TestCORSHeaders:
         # Browser security: cannot have both wildcard and credentials
         if acao == "*":
             assert acac != "true", "Cannot use credentials with wildcard origin"
+
+
+# Central suite aggregation metadata: keep this thin and side-effect free.
+from tests.security.security_suite_manifest import (  # noqa: E402
+    category_by_key,
+    iter_missing_paths,
+    python_test_paths,
+)
+
+_SECURITY_HEADERS_CATEGORY = category_by_key("security_headers")
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
+def test_security_headers_coverage_manifest_is_current() -> None:
+    """Security-header coverage references focused tests without duplicating them."""
+    missing = tuple(iter_missing_paths(_SECURITY_HEADERS_CATEGORY))
+    assert not missing, f"Stale security-headers manifest paths: {missing}"
+    assert len(python_test_paths(_SECURITY_HEADERS_CATEGORY)) >= 8

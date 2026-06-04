@@ -84,7 +84,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio httpx psycopg2-binary redis pyjwt
+          pip install -r tests/requirements-test.txt
           # Install layer dependencies if available
           if [ -f services/layer1-ingestion/requirements.txt ]; then
             pip install -r services/layer1-ingestion/requirements.txt || true
@@ -290,7 +290,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pytest pytest-asyncio pytest-cov httpx psycopg2-binary redis pyjwt
+          pip install -r tests/requirements-test.txt
           # Install all layer dependencies
           for req in services/*/requirements.txt; do
             pip install -r "$req" || true
@@ -384,6 +384,23 @@ jobs:
     if: always()
 
     steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate centralized security test summary artifact
+        run: |
+          python scripts/ci/generate_security_test_summary.py \
+            --markdown artifacts/security/security-test-summary.md \
+            --json artifacts/security/security-test-summary.json
+
+      - name: Upload centralized security test summary
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-test-summary
+          path: |
+            artifacts/security/security-test-summary.md
+            artifacts/security/security-test-summary.json
+          retention-days: 90
+
       - name: Generate summary
         run: |
           echo "## Security Validation Results" >> $GITHUB_STEP_SUMMARY

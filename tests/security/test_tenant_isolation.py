@@ -463,3 +463,22 @@ class TestCacheIsolation:
         # Tenant B cache should be unaffected by tenant A operations
         # (This test assumes no cross-tenant cache dependencies)
         pass  # Main verification is that tenant B data remains intact
+
+
+# Central suite aggregation metadata: keep this thin and side-effect free.
+from tests.security.security_suite_manifest import (  # noqa: E402
+    category_by_key,
+    iter_missing_paths,
+    python_test_paths,
+)
+
+_TENANT_ISOLATION_CATEGORY = category_by_key("tenant_isolation")
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
+def test_tenant_isolation_coverage_manifest_is_current() -> None:
+    """Tenant-isolation coverage references focused tests without duplicating them."""
+    missing = tuple(iter_missing_paths(_TENANT_ISOLATION_CATEGORY))
+    assert not missing, f"Stale tenant-isolation manifest paths: {missing}"
+    assert len(python_test_paths(_TENANT_ISOLATION_CATEGORY)) >= 15
