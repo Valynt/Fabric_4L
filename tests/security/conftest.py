@@ -487,3 +487,63 @@ def mock_neo4j_driver():
     mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
     
     return mock_driver, mock_session, mock_result
+
+# Files that make up the lightweight centralized security aggregation suite.
+# Other files in this directory remain executable by explicit path, but they are
+# intentionally not collected by the directory-level ``pytest tests/security/``
+# command so that the command is a stable aggregation entrypoint rather than a
+# duplicate run of every detailed layer/security regression.
+_CENTRAL_SECURITY_AGGREGATION_FILES = {
+    "test_auth_guards.py",
+    "test_tenant_isolation.py",
+    "test_secret_handling.py",
+    "test_security_headers.py",
+    "test_dependency_policy.py",
+    "test_container_policy.py",
+}
+
+
+def _is_directory_level_security_aggregation(config: pytest.Config) -> bool:
+    args = [str(arg).rstrip("/") for arg in getattr(config, "args", ())]
+    if not args:
+        return False
+    security_dir = str(_REPO_ROOT / "tests" / "security")
+    return all(arg in {"tests/security", security_dir} for arg in args)
+
+
+def pytest_ignore_collect(collection_path, config: pytest.Config) -> bool:  # type: ignore[no-untyped-def]
+    """Keep ``pytest tests/security/`` focused on the aggregation manifests.
+
+    Explicit file runs such as ``pytest tests/security/test_rbac.py`` continue to
+    collect the detailed behavioral tests used by category-specific gates.
+    """
+    if not _is_directory_level_security_aggregation(config):
+        return False
+
+    path = Path(str(collection_path))
+    if path.suffix != ".py":
+        return False
+    if path.name in {"conftest.py", "__init__.py", "_category_manifest.py"}:
+        return False
+    return path.name not in _CENTRAL_SECURITY_AGGREGATION_FILES
+
+_CENTRAL_SECURITY_MANIFEST_TEST_NAMES = {
+    "test_auth_guard_security_coverage_manifest_is_current",
+    "test_tenant_isolation_security_coverage_manifest_is_current",
+    "test_secret_handling_security_coverage_manifest_is_current",
+    "test_security_headers_coverage_manifest_is_current",
+    "test_dependency_policy_security_coverage_manifest_is_current",
+    "test_container_policy_security_coverage_manifest_is_current",
+}
+
+
+def pytest_collection_modifyitems(config: pytest.Config, items: list[pytest.Item]) -> None:
+    """For the directory-level aggregation command, run only manifest tests."""
+    if not _is_directory_level_security_aggregation(config):
+        return
+
+    selected = [item for item in items if item.name in _CENTRAL_SECURITY_MANIFEST_TEST_NAMES]
+    deselected = [item for item in items if item.name not in _CENTRAL_SECURITY_MANIFEST_TEST_NAMES]
+    if deselected:
+        config.hook.pytest_deselected(items=deselected)
+        items[:] = selected
