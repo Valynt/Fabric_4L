@@ -136,7 +136,7 @@ Each failing workflow/job must be classified into exactly one primary category:
 | Select target release branch and baseline commit/CI run. | `UNASSIGNED` | P0 | Release branch, baseline SHA, and CI run URL are recorded. |
 | Confirm branch protection and exception rules. | `UNASSIGNED` | P0 | Required checks, bypass rules, exception approvers, and rollback expectations are linked. |
 | Complete remote branch inventory. | `UNASSIGNED` | P0 | Every remote branch has owner, purpose, base branch, last activity, diff scope, release relevance, and disposition. |
-| Triage open PR queue. | `UNASSIGNED` | P0 | Every open PR has exactly one allowed disposition plus owner and next action. |
+| Triage open PR queue. | `bmsull560` | P0 | [PR Triage Plan](../../reports/pr-triage-plan.md) |
 | Categorize CI failures and capture baseline metrics. | `UNASSIGNED` | P0 | Workflow metrics and per-failure triage records are attached. |
 | Assign stabilization owners and backups. | `UNASSIGNED` | P0 | Branch inventory, PR triage, CI follow-up, branch protection, and exception approval owners are named. |
 | Announce merge freeze. | `UNASSIGNED` | P0 | Freeze start timestamp and allowed exception process are recorded after the evidence above is complete. |
