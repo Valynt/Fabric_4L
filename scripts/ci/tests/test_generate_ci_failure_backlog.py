@@ -1,18 +1,34 @@
 from __future__ import annotations
 
+import datetime as dt
 import json
 import subprocess
 import sys
 from pathlib import Path
 
 from scripts.ci.generate_ci_failure_backlog import (
+    BacklogConfig,
     aggregate_backlog,
     build_failure_records,
+    build_payload,
+    github_api_base,
     load_fixture_payloads,
     render_markdown,
 )
 
 FIXTURE_DIR = Path(__file__).parent / "fixtures" / "ci_failure_backlog"
+
+
+def test_github_api_base_uses_enterprise_host_api_path() -> None:
+    assert (
+        github_api_base("https://github.example.internal")
+        == "https://github.example.internal/api/v3/repos"
+    )
+
+
+def test_github_api_base_supports_public_web_and_api_hosts() -> None:
+    assert github_api_base("https://github.com") == "https://api.github.com/repos"
+    assert github_api_base("https://api.github.com") == "https://api.github.com/repos"
 
 
 def test_build_failure_records_extracts_required_fields_and_rerun_relationship() -> None:
@@ -70,7 +86,18 @@ def test_render_markdown_outputs_one_row_per_recurring_signature() -> None:
     records = build_failure_records(runs, jobs_by_run, logs_by_job)
     backlog = aggregate_backlog(records, min_occurrences=2)
 
-    markdown = render_markdown(backlog, "2026-06-03T00:00:00+00:00", 14)
+    config = BacklogConfig(
+        repo="acme/fabric",
+        window_days=14,
+        branch=None,
+        workflow_filter=None,
+        include_cancelled=True,
+        generated_at=dt.datetime(2026, 6, 3, tzinfo=dt.UTC),
+        server_url="https://github.com",
+    )
+    payload = build_payload(runs, records, backlog, config)
+
+    markdown = render_markdown(payload)
 
     assert "| Occurrences | Workflow | Job | Category | Signature |" in markdown
     assert markdown.count("backend-tests (3.11, ubuntu-latest)") == 1
@@ -91,6 +118,9 @@ def test_cli_writes_machine_readable_json_and_markdown(tmp_path: Path) -> None:
             str(json_output),
             "--markdown-output",
             str(markdown_output),
+            "--include-cancelled",
+            "--window-days",
+            "30",
         ],
         check=True,
         text=True,
@@ -100,5 +130,5 @@ def test_cli_writes_machine_readable_json_and_markdown(tmp_path: Path) -> None:
     assert "wrote 3 failure records and 1 recurring backlog rows" in result.stdout
     payload = json.loads(json_output.read_text(encoding="utf-8"))
     assert len(payload["records"]) == 3
-    assert len(payload["backlog"]) == 1
+    assert len(payload["recurring_backlog"]) == 1
     assert "# CI Failure Backlog" in markdown_output.read_text(encoding="utf-8")
