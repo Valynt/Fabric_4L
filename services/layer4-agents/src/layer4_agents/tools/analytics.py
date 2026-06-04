@@ -21,12 +21,9 @@ logger = logging.getLogger(__name__)
 def _get_tenant_id() -> str:
     """Safely retrieve tenant ID from request context.
 
-    Returns "default" if context is not available (e.g., in tests or background tasks).
+    Raises RuntimeError if context is not available (fail closed).
     """
-    try:
-        return str(require_context().tenant_id)
-    except RuntimeError:
-        return "default"
+    return str(require_context().tenant_id)
 
 
 async def count_entities(

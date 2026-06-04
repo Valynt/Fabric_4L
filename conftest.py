@@ -12,7 +12,6 @@ silently skipping tests.
 import importlib.util
 import os
 os.environ["ENVIRONMENT"] = "development"
-os.environ["ALLOW_DEV_AUTH_BYPASS"] = "I_UNDERSTAND_RISK"
 os.environ["LAYER1_API_URL"] = "http://layer1:8001"
 os.environ["LAYER2_API_URL"] = "http://layer2:8002"
 os.environ["LAYER3_API_URL"] = "http://layer3:8003"

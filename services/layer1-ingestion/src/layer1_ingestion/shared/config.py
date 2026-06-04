@@ -125,7 +125,7 @@ class Settings(BaseSettings):
     )
 
     # JWT and Security
-    jwt_secret: str = Field(default="changeme", description="JWT signing secret")
+    jwt_secret: str = Field(description="JWT signing secret")
     cors_origins: list[str] = Field(default=[], description="CORS allowed origins")
 
     @field_validator("cors_origins", mode="before")

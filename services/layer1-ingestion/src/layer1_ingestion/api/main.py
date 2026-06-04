@@ -736,6 +736,8 @@ class ValidateTargetResponse(BaseModel):
 _SSRF_BLOCKED_HOSTNAMES: frozenset[str] = frozenset(
     {
         "169.254.169.254",  # AWS / Azure / GCP instance metadata
+        "169.254.170.2",    # AWS ECS Task metadata endpoint
+        "100.100.100.200",  # Alibaba Cloud instance metadata
         "metadata.google.internal",  # GCP metadata domain
         "metadata.internal",  # GCP/internal alias
     }
