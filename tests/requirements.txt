@@ -18,7 +18,7 @@ schemathesis==3.39.16
 
 # Test utilities
 factory-boy>=3.3.0
-faker>=20.0.0
+faker>=40.21.0
 
 # Async testing
 anyio>=4.0.0
