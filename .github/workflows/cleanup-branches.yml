@@ -1,0 +1,63 @@
+name: Cleanup Stale Branches
+on:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: '0 0 * * 0' # Weekly on Sunday
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete stale branches
+        uses: actions/github-script@v6
+        with:
+          script: |
+            const daysToStale = 30;
+            const threshold = new Date();
+            threshold.setDate(threshold.getDate() - daysToStale);
+            
+            const branches = await github.paginate(github.rest.repos.listBranches, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+            
+            for (const branch of branches) {
+              if (branch.name === 'main' || branch.name.startsWith('release/')) continue;
+              
+              const commit = await github.rest.repos.getCommit({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                ref: branch.commit.sha,
+              });
+              
+              const commitDate = new Date(commit.data.commit.committer.date);
+              
+              if (commitDate < threshold) {
+                const pulls = await github.rest.pulls.list({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  head: `${context.repo.owner}:${branch.name}`,
+                  state: 'open'
+                });
+                
+                if (pulls.data.length === 0) {
+                  console.log(`Deleting stale branch: ${branch.name}`);
+                  try {
+                    await github.rest.git.deleteRef({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      ref: `heads/${branch.name}`
+                    });
+                  } catch (e) {
+                    console.error(`Failed to delete ${branch.name}: ${e.message}`);
+                  }
+                }
+              }
+            }
