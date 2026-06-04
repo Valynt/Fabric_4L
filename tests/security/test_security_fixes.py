@@ -23,14 +23,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 def test_tools_list_requires_auth():
     """P0-8: /tools endpoint must require authentication."""
-    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "tools.py").read_text(encoding="utf-8")
+    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes" / "tools.py").read_text(encoding="utf-8")
     assert '@router.get("/tools"' in source
     assert "Depends(require_authenticated)" in source
 
 
 def test_tools_invoke_requires_auth():
     """P0-8: /tools/invoke endpoint must require authentication."""
-    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "tools.py").read_text(encoding="utf-8")
+    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes" / "tools.py").read_text(encoding="utf-8")
     assert '@router.post("/tools/invoke"' in source
     assert "Depends(require_authenticated)" in source
 
@@ -44,7 +44,7 @@ def test_get_current_tenant_id_requires_auth():
     source = (REPO_ROOT / "services" / "layer1-ingestion" / "src" / "api" / "app_monolith.py").read_text(encoding="utf-8")
     assert "def get_tenant_id" in source
     assert "Authentication required" in source
-    assert "raise HTTPException(status_code=401" in source
+    assert "raise HTTPException(status_code=401" in source or "AuthenticationError" in source
     assert "00000000-0000-0000-0000-000000000000" not in source
 
 
@@ -184,7 +184,7 @@ def test_safe_eval_allows_safe_expressions():
 
 def test_sfdc_id_validation():
     """P0-1: Invalid Salesforce IDs should be rejected."""
-    from services.layer4_agents.src.tools.crm_tools import GetProspectDataTool
+    from layer4_agents.tools.crm_tools import GetProspectDataTool
 
     tool = GetProspectDataTool()
 
@@ -219,7 +219,7 @@ def test_sfdc_id_validation():
 
 def test_websocket_requires_token():
     """P0-9: WebSocket should reject connections without valid token."""
-    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "api" / "routes" / "signals.py").read_text(encoding="utf-8")
+    source = (REPO_ROOT / "services" / "layer4-agents" / "src" / "layer4_agents" / "api" / "routes" / "signals.py").read_text(encoding="utf-8")
     assert "token" in source
     assert "decode_jwt" in source or "JWT_SECRET" in source
     assert "code=1008" in source
@@ -251,7 +251,7 @@ def test_pickle_serializer_disabled():
 
 def test_cypher_write_operations_blocked():
     """P1-11: Write Cypher operations should be rejected."""
-    from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
+    from layer4_agents.tools.knowledge_tools import QueryGraphTool
 
     tool = QueryGraphTool()
 

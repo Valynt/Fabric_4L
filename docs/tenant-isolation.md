@@ -1,37 +1,66 @@
 # Tenant Isolation
 
-## Model
+Tenant isolation is a first-class security gate for Fabric 4L. The gate covers
+database RLS, cross-tenant read/write denial, API tenant-context propagation,
+background job tenant context, knowledge graph tenant boundaries, and cache-key
+isolation.
 
-- Every account-scoped object includes `tenantId`
-- Backend uses tenant context middleware to extract `X-Tenant-ID`
-- API handlers require tenant context via dependency injection
-- Tests verify cross-tenant access is blocked
+## Commands
 
-## Implementation
+```bash
+# First-class grouped gate used by local validation and CI
+pnpm test:isolation
 
-### Middleware
+# Marker-based selection for ad hoc investigation
+pytest -m tenant_isolation -v --tb=short
 
-`TenantRequired` class extracts `X-Tenant-ID` from headers or query params and sets a context variable.
-
-### Database
-
-`MockTable` filters all `list()` and `get()` operations by tenant_id. Cross-tenant lookups return 404.
-
-### Tests
-
-`test_tenant_isolation.py` verifies:
-- Same account accessible with correct tenant header
-- Same account returns 404 with wrong tenant header
-- Missing tenant header returns 400
-
-## Production
-
-Use PostgreSQL RLS (Row Level Security) policies:
-
-```sql
-CREATE POLICY tenant_isolation ON accounts
-FOR ALL TO app_user
-USING (tenant_id = current_setting('app.current_tenant')::uuid);
+# Collection audit for marker coverage
+pytest -m tenant_isolation --collect-only -q
 ```
 
-Set tenant context per request using `SET LOCAL app.current_tenant = '...'`.
+`pnpm test:isolation` runs `scripts/ci/run_tenant_isolation_gate.py`. The runner
+prints failures by group and writes machine-readable evidence to:
+
+```text
+artifacts/tenant-isolation/summary.json
+```
+
+## Marker Rules
+
+- Use `@pytest.mark.tenant_isolation` for new tests that must be part of the
+  first-class gate.
+- Existing `tenant_boundary`, `tenant_matrix`, and `cross_tenant_write` tests are
+  automatically included in the `tenant_isolation` marker during collection.
+- Infrastructure-backed tests should keep their infra markers, such as
+  `requires_postgres`, `requires_redis`, or `requires_neo4j`.
+- Do not skip tenant isolation tests in CI because infrastructure is absent. CI
+  jobs that run the gate must provide PostgreSQL, Redis, and Neo4j where needed.
+
+## Required Coverage
+
+Every tenant-owned data path should have coverage for the relevant scenarios:
+
+- Tenant A cannot read Tenant B data.
+- Tenant A cannot mutate Tenant B data.
+- Missing tenant context fails closed.
+- Request-body or header tenant spoofing cannot override authenticated context.
+- Repository, query, cache, graph, or job operations receive tenant context from
+  trusted context, not from user-controlled payload fields.
+
+## Where To Add Tests
+
+- PostgreSQL RLS and background jobs: service-local security tests, for example
+  `services/layer1-ingestion/tests/security/`.
+- Cross-tenant API read/write denial: service-local `test_cross_tenant_hostile.py`
+  and `test_api_tenant_propagation.py`.
+- Knowledge graph tenant boundaries: `services/layer3-knowledge/tests/` plus
+  hostile graph regressions under `tests/security/`.
+- Layer 4 workflow, checkpoint, and agent job context: `services/layer4-agents/tests/`.
+- Ground Truth and Benchmarks repository boundaries: the Layer 5 and Layer 6
+  service test packages.
+- Cache and rate-limit key isolation: `tests/cache/` or shared identity tests.
+
+When adding a new required file or node-id, update
+`scripts/ci/run_tenant_isolation_gate.py` and the auto-marking inventory in root
+`conftest.py` so `pnpm test:isolation` and `pytest -m tenant_isolation` remain
+aligned.

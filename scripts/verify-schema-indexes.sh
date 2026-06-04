@@ -9,7 +9,19 @@ cd "${REPO_ROOT}"
 # Keep this wrapper dependency-light so `pnpm test:schema` can run in CI without
 # requiring a project-specific Python virtualenv.
 
-python3 - <<'PY'
+PYTHON_BIN="${PYTHON:-}"
+if [[ -z "${PYTHON_BIN}" ]]; then
+  if command -v python3 >/dev/null 2>&1; then
+    PYTHON_BIN="python3"
+  elif command -v python >/dev/null 2>&1; then
+    PYTHON_BIN="python"
+  else
+    echo "error: python3 or python is required to verify schema indexes" >&2
+    exit 127
+  fi
+fi
+
+"${PYTHON_BIN}" - <<'PY'
 from __future__ import annotations
 
 import json

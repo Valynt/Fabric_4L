@@ -211,7 +211,7 @@ def pytest_addoption(parser) -> None:
 def pytest_collection_modifyitems(config, items) -> None:
     """Automatically mark tests as mandatory based on their other markers.
 
-    Tests marked with: unit, contract, security, or tenant_boundary
+    Tests marked with: unit, contract, security, tenant_boundary, or tenant_isolation
     are automatically considered mandatory unless they also have:
     - slow
     - requires_postgres
@@ -224,7 +224,46 @@ def pytest_collection_modifyitems(config, items) -> None:
 
     This allows selecting mandatory tests with: pytest -m mandatory
     """
-    mandatory_markers = {"unit", "contract", "security", "tenant_boundary"}
+    tenant_isolation_aliases = {"tenant_boundary", "tenant_matrix", "cross_tenant_write"}
+    tenant_isolation_targets = {
+        "tests/security/test_cross_layer_tenant_isolation_matrix.py",
+        "tests/security/test_tenant_boundary_fails_closed.py",
+        "tests/security/test_tenant_repository_filter_presence.py",
+        "services/layer1-ingestion/tests/security/test_rls_enforcement_postgres.py",
+        "services/layer1-ingestion/tests/security/test_celery_tenant_isolation_postgres.py",
+        "services/layer1-ingestion/tests/security/test_targets_tenant_isolation.py",
+        "services/layer1-ingestion/tests/test_api_tenant_propagation.py",
+        "services/layer1-ingestion/tests/test_cross_tenant_hostile.py",
+        "services/layer2-extraction/tests/test_api_tenant_propagation.py",
+        "services/layer2-extraction/tests/test_cross_tenant_hostile.py",
+        "services/layer2-extraction/tests/test_missing_tenant_context_hostile.py",
+        "services/layer2-extraction/tests/test_job_store.py",
+        "services/layer2-extraction/tests/test_extraction_cache.py",
+        "tests/security/test_graph_tenant_hostile_regression.py",
+        "tests/security/test_neo4j_tenant_write_enforcement.py",
+        "tests/security/test_neo4j_cross_tenant_write_isolation.py",
+        "services/layer3-knowledge/tests/test_api_tenant_propagation.py",
+        "services/layer3-knowledge/tests/test_cross_tenant_hostile.py",
+        "services/layer3-knowledge/tests/test_tenant_isolation.py",
+        "services/layer4-agents/tests/test_api_tenant_propagation.py",
+        "services/layer4-agents/tests/test_cross_tenant_hostile.py",
+        "services/layer4-agents/tests/test_agent_tenant_isolation.py",
+        "services/layer4-agents/tests/test_workflow_tenant_isolation.py",
+        "services/layer4-agents/tests/test_checkpoint_tenant_isolation.py",
+        "services/layer5-ground-truth/tests/test_tenant_id_consistency.py",
+        "services/layer5-ground-truth/tests/test_cross_tenant_hostile.py",
+        "services/layer5-ground-truth/tests/unit/test_truth_service_and_api_tenant_boundaries.py",
+        "services/layer6-benchmarks/tests/test_api_tenant_propagation.py",
+        "services/layer6-benchmarks/tests/test_repository_tenant_isolation.py",
+        "services/layer6-benchmarks/tests/test_cross_tenant_hostile.py",
+        "tests/cache/test_redis_tenant_isolation.py",
+        "tests/shared/identity/test_api_key_cache.py",
+        "services/api/app/tests/test_distributed_session_store.py",
+    }
+    tenant_isolation_nodeids = {
+        "services/layer5-ground-truth/tests/test_api.py::TestGetTruth::test_org_isolation",
+    }
+    mandatory_markers = {"unit", "contract", "security", "tenant_boundary", "tenant_isolation"}
     exclusion_markers = {
         "slow", "requires_postgres", "requires_redis", "requires_neo4j",
         "requires_docker", "requires_openai", "e2e", "integration", "performance",
@@ -233,6 +272,17 @@ def pytest_collection_modifyitems(config, items) -> None:
 
     for item in items:
         item_markers = {m.name for m in item.iter_markers()}
+        item_path = Path(str(item.fspath)).resolve().relative_to(_REPO_ROOT).as_posix()
+        item_nodeid = item.nodeid.replace("\\", "/")
+
+        is_tenant_isolation_target = (
+            item_path in tenant_isolation_targets
+            or item_nodeid in tenant_isolation_nodeids
+            or item_markers & tenant_isolation_aliases
+        )
+        if is_tenant_isolation_target and "tenant_isolation" not in item_markers:
+            item.add_marker("tenant_isolation")
+            item_markers.add("tenant_isolation")
 
         # Skip if already has mandatory marker
         if "mandatory" in item_markers:

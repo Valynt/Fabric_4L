@@ -20,8 +20,8 @@ import structlog
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from security.query_validator import ValidatedNeo4jSession
-from services.cypher_scope_guard import (
+from ..security.query_validator import ValidatedNeo4jSession
+from .cypher_scope_guard import (
     validate_tenant_scoped_cypher,
 )
 

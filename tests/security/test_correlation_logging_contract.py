@@ -21,7 +21,8 @@ def test_global_exception_log_contains_correlation_id(caplog):
         response = client.get("/critical/boom")
 
     assert response.status_code == 500
-    assert response.json().get("trace_id")
+    payload = response.json()
+    assert payload.get("trace_id") or payload.get("error", {}).get("request_id")
     found = False
     for rec in caplog.records:
         if rec.message == "Unhandled exception" and hasattr(rec, "correlation_id"):

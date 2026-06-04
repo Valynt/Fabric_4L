@@ -136,6 +136,20 @@ pnpm run check:default-scope
 
 This sanity check fails if CI would pick up excluded directories through default workspace tooling.
 
+### Root gate command surface
+
+Use these root `pnpm` aliases when CI or release automation expects npm-script parity. They
+delegate to the existing Makefile or Python gates and do not introduce separate implementations.
+
+| Command | Canonical implementation |
+|---|---|
+| `pnpm test:security` | `python scripts/ci/run_root_aggregate_checks.py security` |
+| `pnpm test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` |
+| `pnpm test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` |
+| `pnpm test:crawler` | `python scripts/ci/run_root_aggregate_checks.py crawler` |
+| `pnpm test:router` | `python scripts/ci/run_root_aggregate_checks.py router` |
+| `pnpm db:migrate:status` | `python scripts/ci/run_root_aggregate_checks.py db-migrate-status` |
+
 ### Lockfile expectations by directory class
 
 - **Canonical runtime/workspace directories** (`apps/web`, `packages/*`, `services/*`): use pnpm/uv only. Commit `pnpm-lock.yaml`/approved `uv.lock` files and do **not** add `package-lock.json` or `yarn.lock`.

@@ -24,7 +24,10 @@ from urllib.parse import urlparse
 from uuid import UUID
 
 # Import settings at module level for early validation and clarity
-from .config.settings import get_settings
+try:
+    from .config.settings import get_settings
+except ImportError:  # Compatibility for legacy top-level ``import database``.
+    from layer4_agents.config.settings import get_settings
 
 # Task 4.1: Default isolation tier constant
 DEFAULT_ISOLATION_TIER = "shared"
@@ -182,7 +185,10 @@ _RLS_SUPERUSER_NAMES = frozenset({"postgres", "rdsadmin", "cloudsqladmin", "azur
 
 def _record_pool_state(engine: AsyncEngine) -> None:
     try:
-        from .metrics import get_metrics
+        try:
+            from .metrics import get_metrics
+        except ImportError:  # Compatibility for legacy top-level ``import database``.
+            from layer4_agents.metrics import get_metrics
 
         metrics = get_metrics()
         if metrics is None:
@@ -280,7 +286,10 @@ class TenantEnforcedAsyncSession(AsyncSession):
             return await super().execute(statement, params, **kwargs)
         except SATimeoutError:
             try:
-                from .metrics import get_metrics
+                try:
+                    from .metrics import get_metrics
+                except ImportError:  # Compatibility for legacy top-level ``import database``.
+                    from layer4_agents.metrics import get_metrics
 
                 metrics = get_metrics()
                 if metrics is not None:
@@ -322,7 +331,10 @@ def get_engine() -> AsyncEngine:
             start = connection_record.info.pop("pool_checkout_start", None)
             if start is not None:
                 try:
-                    from .metrics import get_metrics
+                    try:
+                        from .metrics import get_metrics
+                    except ImportError:  # Compatibility for legacy top-level ``import database``.
+                        from layer4_agents.metrics import get_metrics
 
                     metrics = get_metrics()
                     if metrics is not None:
@@ -542,7 +554,10 @@ def _record_privileged_db_session_activation(
         },
     )
     try:
-        from .metrics import get_metrics
+        try:
+            from .metrics import get_metrics
+        except ImportError:  # Compatibility for legacy top-level ``import database``.
+            from layer4_agents.metrics import get_metrics
 
         metrics = get_metrics()
         if metrics is not None:

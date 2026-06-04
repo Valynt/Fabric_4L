@@ -12,23 +12,23 @@ from neo4j.exceptions import (
 )
 from value_fabric.shared.error_handling.exceptions import ServiceUnavailableError
 
-from agents import (
+from ..agents import (
     NarrativeSynthesisAgent,
     ProvenanceTrackingAgent,
     ROICalculationAgent,
     ValueTreeProjectionAgent,
     WhitespaceAnalysisAgent,
 )
-from analytics import (
+from ..analytics import (
     CentralityAnalyzer,
     CommunityDetector,
     SimilarityAnalyzer,
 )
-from config import Settings, get_settings
-from db.driver import get_driver, reset_driver
-from ingestion import Neo4jLoader, SyncManager
-from retrieval import GraphRAGEngine, HybridSearch, VectorStore
-from schema import SchemaInitializer
+from ..config import Settings, get_settings
+from ..db.driver import get_driver, reset_driver
+from ..ingestion import Neo4jLoader, SyncManager
+from ..retrieval import GraphRAGEngine, HybridSearch, VectorStore
+from ..schema import SchemaInitializer
 
 logger = logging.getLogger(__name__)
 

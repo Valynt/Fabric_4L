@@ -53,6 +53,7 @@ for _pkg in (
     "layer3_knowledge",
     "layer3_knowledge.graph",
     "layer3_knowledge.schema",
+    "layer3_knowledge.utils",
     "layer3_knowledge.db",
 ):
     if _pkg not in sys.modules:
@@ -70,6 +71,11 @@ sys.modules["layer3_knowledge.graph.query_guards"] = _fk_gq
 _fk_sc = type(sys)("layer3_knowledge.schema.constraints")
 _fk_sc.get_relationship_types = lambda: []
 sys.modules["layer3_knowledge.schema.constraints"] = _fk_sc
+
+# Fake utils.cypher_security (used by query_execution.py)
+_fk_cs = type(sys)("layer3_knowledge.utils.cypher_security")
+_fk_cs.TENANT_OWNED_LABELS = TENANT_OWNED_LABELS
+sys.modules["layer3_knowledge.utils.cypher_security"] = _fk_cs
 
 
 def _load_module(dotted_name: str, rel_path: str):

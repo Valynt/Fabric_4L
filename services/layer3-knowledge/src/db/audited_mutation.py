@@ -18,15 +18,15 @@ import uuid
 from datetime import UTC, datetime
 from typing import Any
 
-from db.query_execution import run_validated_query
-from utils.cypher_security import (
+from .query_execution import run_validated_query
+from ..utils.cypher_security import (
     ALLOWED_REL_TYPES,
     TENANT_OWNED_LABELS,
     validate_cypher_identifier,
 )
 
 try:
-    from metrics.prometheus_metrics import get_metrics
+    from ..metrics.prometheus_metrics import get_metrics
 except Exception:
     get_metrics = None  # type: ignore[assignment]
 

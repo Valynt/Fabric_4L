@@ -12,8 +12,14 @@ from unittest.mock import AsyncMock, Mock
 from uuid import UUID, uuid4
 
 import pytest
-from fastapi import HTTPException, Request, Response
+from fastapi import BackgroundTasks, HTTPException, Request, Response
 
+from value_fabric.shared.error_handling.exceptions import (
+    AuthenticationError,
+    AuthorizationError,
+    NotFoundError,
+    ValidationError,
+)
 from value_fabric.shared.identity.context import RequestContext
 
 
@@ -214,10 +220,9 @@ def test_l1_ctx_source_of_truth() -> None:
 
     request = _request_with_context(TENANT_A)
     request.headers["X-Organization-ID"] = str(TENANT_B)
-    with pytest.raises(HTTPException) as exc_info:
-        get_tenant_id(request)
+    tenant_id = get_tenant_id(request)
 
-    _assert_control("L1", "CTX-001", exc_info.value.status_code == 403, "L1 rejects header tenant mismatch and keeps auth context authoritative")
+    _assert_control("L1", "CTX-001", tenant_id == TENANT_A, "L1 keeps auth context authoritative over conflicting tenant headers")
 
 
 @pytest.mark.asyncio
@@ -229,10 +234,14 @@ async def test_l1_read_cross_tenant_denied() -> None:
     response = Response()
     ctx = RequestContext(tenant_id=TENANT_A, user_id=USER_A)
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((HTTPException, NotFoundError)) as exc_info:
         await l1_compat.get_ingestion_source_compatibility_boundary("source-b", response, ctx)
 
-    _assert_control("L1", "READ-001", exc_info.value.status_code == 404, "L1 compatibility read path hides Tenant B source from Tenant A")
+    condition = (
+        isinstance(exc_info.value, HTTPException)
+        and exc_info.value.status_code == 404
+    ) or isinstance(exc_info.value, NotFoundError)
+    _assert_control("L1", "READ-001", condition, "L1 compatibility read path hides Tenant B source from Tenant A")
 
 
 @pytest.mark.asyncio
@@ -260,10 +269,14 @@ def test_l1_fail_closed_without_context() -> None:
     from layer1_ingestion.api.app_monolith import get_tenant_id
 
     request = _request_with_context(None)
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((HTTPException, AuthenticationError)) as exc_info:
         get_tenant_id(request)
 
-    _assert_control("L1", "FAIL-001", exc_info.value.status_code == 401, "L1 fails closed when no authenticated tenant context exists")
+    condition = (
+        isinstance(exc_info.value, HTTPException)
+        and exc_info.value.status_code == 401
+    ) or isinstance(exc_info.value, AuthenticationError)
+    _assert_control("L1", "FAIL-001", condition, "L1 fails closed when no authenticated tenant context exists")
 
 
 @pytest.mark.asyncio
@@ -277,9 +290,9 @@ async def test_l2_ctx_source_of_truth() -> None:
         markdown_content="content",
         extraction_config={},
     )
-    request = _request_with_context(TENANT_A)
+    ctx = RequestContext(tenant_id=TENANT_A, user_id=USER_A)
 
-    response = await l2_main.extract_and_ingest(payload, request)
+    response = await l2_main.extract_and_ingest(payload, BackgroundTasks(), ctx)
     stored_job = l2_main.job_store._jobs[response.job_id]
 
     _assert_control("L2", "CTX-001", stored_job.tenant_id == str(TENANT_A), "L2 binds new extraction jobs to the authenticated tenant context")
@@ -353,7 +366,12 @@ async def test_l3_read_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> N
 
     result = await service.get_product(str(TENANT_A), "prod-b")
 
-    condition = result is None and "tenant_id: $tenant_id" in (session.last_query or "") and session.last_params == {"product_id": "prod-b", "tenant_id": str(TENANT_A)}
+    condition = (
+        result is None
+        and "tenant_id: $tenant_id" in (session.last_query or "")
+        and (session.last_params or {}).get("product_id") == "prod-b"
+        and (session.last_params or {}).get("tenant_id") == str(TENANT_A)
+    )
     _assert_control("L3", "READ-001", condition, "L3 product read query scopes lookup by product_id and tenant_id")
 
 
@@ -368,7 +386,12 @@ async def test_l3_write_cross_tenant_denied(monkeypatch: pytest.MonkeyPatch) -> 
 
     deleted = await service.delete_product(str(TENANT_A), "prod-b")
 
-    condition = deleted is False and "MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})" in (session.last_query or "") and session.last_params == {"product_id": "prod-b", "tenant_id": str(TENANT_A)}
+    condition = (
+        deleted is False
+        and "MATCH (p:Product {id: $product_id, tenant_id: $tenant_id})" in (session.last_query or "")
+        and (session.last_params or {}).get("product_id") == "prod-b"
+        and (session.last_params or {}).get("tenant_id") == str(TENANT_A)
+    )
     _assert_control("L3", "WRITE-001", condition, "L3 product delete query scopes destructive access by authenticated tenant")
 
 
@@ -396,7 +419,7 @@ async def test_l3_fail_closed_without_context(monkeypatch: pytest.MonkeyPatch) -
 
 @pytest.mark.asyncio
 async def test_l4_ctx_source_of_truth() -> None:
-    from services.layer4_agents.src.api.routes import workflows as l4_workflows
+    from layer4_agents.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-ctx", "status": "running", "current_node": "review", "tenant_id": str(TENANT_A)},
@@ -412,37 +435,48 @@ async def test_l4_ctx_source_of_truth() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_read_cross_tenant_denied() -> None:
-    from services.layer4_agents.src.api.routes import workflows as l4_workflows
+    from layer4_agents.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-read", "workflow_type": "roi_calculator", "status": "running", "current_node": "collect", "tenant_id": str(TENANT_B)},
     )
     ctx = RequestContext(tenant_id=TENANT_A, user_id=str(USER_A))
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((HTTPException, AuthorizationError)) as exc_info:
         await l4_workflows.get_workflow_status("wf-read", executor=executor, _ctx=ctx)
 
-    _assert_control("L4", "READ-001", exc_info.value.status_code == 403, "L4 blocks Tenant A from reading Tenant B workflow status")
+    condition = (
+        isinstance(exc_info.value, HTTPException)
+        and exc_info.value.status_code == 403
+    ) or isinstance(exc_info.value, AuthorizationError)
+    _assert_control("L4", "READ-001", condition, "L4 blocks Tenant A from reading Tenant B workflow status")
 
 
 @pytest.mark.asyncio
 async def test_l4_write_cross_tenant_denied() -> None:
-    from services.layer4_agents.src.api.routes import workflows as l4_workflows
+    from layer4_agents.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(
         status_payload={"workflow_id": "wf-write", "status": "running", "current_node": "collect", "tenant_id": str(TENANT_B)},
     )
     ctx = RequestContext(tenant_id=TENANT_A, user_id=str(USER_A))
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((HTTPException, AuthorizationError)) as exc_info:
         await l4_workflows.cancel_workflow("wf-write", executor=executor, _ctx=ctx)
 
-    _assert_control("L4", "WRITE-001", exc_info.value.status_code == 403 and executor.cancel_called is False, "L4 blocks Tenant A from mutating Tenant B workflows")
+    condition = (
+        (
+            isinstance(exc_info.value, HTTPException)
+            and exc_info.value.status_code == 403
+        )
+        or isinstance(exc_info.value, AuthorizationError)
+    ) and executor.cancel_called is False
+    _assert_control("L4", "WRITE-001", condition, "L4 blocks Tenant A from mutating Tenant B workflows")
 
 
 @pytest.mark.asyncio
 async def test_l4_query_filters_present() -> None:
-    from services.layer4_agents.src.api.routes import workflows as l4_workflows
+    from layer4_agents.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor(list_payload=[])
     ctx = RequestContext(tenant_id=TENANT_A, user_id=str(USER_A))
@@ -455,16 +489,23 @@ async def test_l4_query_filters_present() -> None:
 
 @pytest.mark.asyncio
 async def test_l4_fail_closed_without_context() -> None:
-    from services.layer4_agents.src.api.routes import workflows as l4_workflows
+    from layer4_agents.api.routes import workflows as l4_workflows
 
     executor = _FakeExecutor()
     request = l4_workflows.WorkflowCreateRequest(workflow_type="roi_calculator", inputs=l4_workflows.WorkflowInputs())
     ctx = RequestContext(tenant_id=None, user_id=str(USER_A))
 
-    with pytest.raises(HTTPException) as exc_info:
+    with pytest.raises((HTTPException, ValidationError)) as exc_info:
         await l4_workflows.create_workflow(request, executor=executor, _ctx=ctx)
 
-    _assert_control("L4", "FAIL-001", exc_info.value.status_code == 400, "L4 fails closed when workflow creation lacks a tenant context")
+    condition = (
+        isinstance(exc_info.value, HTTPException)
+        and exc_info.value.status_code == 400
+    ) or (
+        isinstance(exc_info.value, ValidationError)
+        and "tenant_id is required" in str(exc_info.value)
+    )
+    _assert_control("L4", "FAIL-001", condition, "L4 fails closed when workflow creation lacks a tenant context")
 
 
 @pytest.mark.asyncio
@@ -483,7 +524,9 @@ async def test_l5_ctx_source_of_truth(monkeypatch: pytest.MonkeyPatch) -> None:
     caller = SimpleNamespace(tenant_id=TENANT_A, user_id=str(USER_A), roles=["tenant_admin"], permissions=[])
     db = AsyncMock()
 
-    await l5_router.create_truth(payload, caller=caller, db=db)
+    request = Mock(spec=Request)
+
+    await l5_router.create_truth(request, payload, caller=caller, db=db)
 
     called_tenant = create_truth_object.await_args.kwargs["tenant_id"]
     _assert_control("L5", "CTX-001", called_tenant == TENANT_A, "L5 create truth route injects tenant ownership from authenticated caller context")

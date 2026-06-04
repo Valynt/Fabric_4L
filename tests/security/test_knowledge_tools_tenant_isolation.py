@@ -199,8 +199,8 @@ class TestSemanticSearchToolTenantIsolation:
     @pytest.mark.asyncio
     async def test_semantic_search_applies_tenant_filter(self, mock_pinecone_index, monkeypatch):
         """POSITIVE: Semantic search includes tenant_id in metadata filter."""
-        from services.layer4_agents.src.tools.knowledge_tools import SemanticSearchTool
-        from services.layer4_agents.src.models.tool_schemas import SemanticSearchInput
+        from layer4_agents.tools.knowledge_tools import SemanticSearchTool
+        from layer4_agents.models.tool_schemas import SemanticSearchInput
         from value_fabric.shared.identity.context import RequestContext, set_request_context
         from value_fabric.shared.identity.permissions import Permission
         
@@ -255,8 +255,8 @@ class TestKnowledgeToolsRateLimiting:
     @pytest.mark.skip(reason="Rate limiting is not implemented at the tool layer, but at the API layer.")
     async def test_query_graph_respects_rate_limit(self, monkeypatch):
         """NEGATIVE: Tool fails gracefully when rate limit exceeded."""
-        from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
-        from services.layer4_agents.src.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         # Mock rate limiter that always blocks
         mock_limiter = MagicMock()
@@ -292,8 +292,8 @@ class TestKnowledgeToolsInputValidation:
     @pytest.mark.asyncio
     async def test_query_graph_blocks_write_operations(self):
         """NEGATIVE: Cypher write operations are blocked (read-only enforcement)."""
-        from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
-        from services.layer4_agents.src.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
         
@@ -320,8 +320,8 @@ class TestKnowledgeToolsInputValidation:
     @pytest.mark.asyncio
     async def test_query_graph_allows_read_operations(self):
         """POSITIVE: Read-only Cypher queries are permitted."""
-        from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
-        from services.layer4_agents.src.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         tool = QueryGraphTool(config={"neo4j_uri": "bolt://localhost:7687"})
         
@@ -359,8 +359,8 @@ class TestKnowledgeToolsAuditLogging:
     @pytest.mark.asyncio
     async def test_query_graph_logs_executed_queries(self, caplog, mock_tenant_context):
         """POSITIVE: Executed queries are logged for audit trail."""
-        from services.layer4_agents.src.tools.knowledge_tools import QueryGraphTool
-        from services.layer4_agents.src.models.tool_schemas import QueryGraphInput
+        from layer4_agents.tools.knowledge_tools import QueryGraphTool
+        from layer4_agents.models.tool_schemas import QueryGraphInput
         
         import logging
         

@@ -2,6 +2,8 @@
 
 import os
 import sys
+import types
+from importlib.machinery import ModuleSpec
 from pathlib import Path
 from typing import Callable, Generator
 
@@ -19,7 +21,31 @@ from unittest.mock import MagicMock, AsyncMock
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _L3_SRC = str(_REPO_ROOT / "services" / "layer3-knowledge" / "src")
 if _L3_SRC not in sys.path:
-    sys.path.insert(0, _L3_SRC)
+    sys.path.append(_L3_SRC)
+
+for _module_name in list(sys.modules):
+    if _module_name == "src" or _module_name.startswith("src."):
+        del sys.modules[_module_name]
+
+_src_module = types.ModuleType("src")
+_src_module.__spec__ = ModuleSpec("src", loader=None, is_package=True)
+_src_module.__path__ = [_L3_SRC]
+sys.modules["src"] = _src_module
+
+_SERVICES_ROOT = str(_REPO_ROOT / "services")
+_L3_SERVICES = str(_REPO_ROOT / "services" / "layer3-knowledge" / "src" / "services")
+_services_module = sys.modules.get("services")
+if _services_module is None or not hasattr(_services_module, "__path__"):
+    _services_module = types.ModuleType("services")
+    _services_module.__spec__ = ModuleSpec("services", loader=None, is_package=True)
+    _services_module.__path__ = [_SERVICES_ROOT, _L3_SERVICES]
+    sys.modules["services"] = _services_module
+else:
+    paths = list(_services_module.__path__)
+    for path in (_SERVICES_ROOT, _L3_SERVICES):
+        if path not in paths:
+            paths.append(path)
+    _services_module.__path__ = paths
 
 # Lazy imports for optional dependencies
 def _get_psycopg2():
@@ -52,10 +78,13 @@ TEST_JWT_SECRET = os.getenv(
 )
 DEFAULT_REDIS_PORT = 6379
 DEFAULT_REDIS_DB = 0
+BOOL_STRINGS = {"0", "1", "false", "true", "no", "yes", "off", "on"}
 
 # Ensure legacy non-UUID tenant IDs are accepted during security test execution.
 # This matches the pytest.ini intent (TESTING=true) when pytest-env is absent.
 os.environ.setdefault("TESTING", "true")
+if os.environ.get("DEBUG", "").strip().lower() not in BOOL_STRINGS:
+    os.environ["DEBUG"] = "false"
 
 # SECURITY: Auth boundary tests verify role/access control, not rate limits.
 # Process-local rate limit state persists across tests and causes spurious 429s.
@@ -376,7 +405,7 @@ def websocket_client(monkeypatch):
     
     try:
         # Try to import L4 app - may not be available without dependencies
-        from services.layer4_agents.src.api.main import app
+        from layer4_agents.api.main import app
     except ImportError:
         pytest.skip("Layer 4 FastAPI app not available for WebSocket testing")
     
@@ -404,17 +433,17 @@ def websocket_client(monkeypatch):
     
     # Patch get_executor in the websocket routes module
     try:
-        import services.layer4_agents.src.api.routes.workflows as _wf_mod
+        import layer4_agents.api.routes.workflows as _wf_mod
         monkeypatch.setattr(_wf_mod, "get_executor", _mock_get_executor)
     except Exception:
         pass
     
     # Also patch at the websocket routes import location
     try:
-        import services.layer4_agents.src.api.websocket.routes as _ws_mod
+        import layer4_agents.api.websocket.routes as _ws_mod
         # The websocket routes import get_executor locally, so we need to patch
         # the workflows module it imports from
-        import services.layer4_agents.src.api.routes.workflows as _wf_mod2
+        import layer4_agents.api.routes.workflows as _wf_mod2
         monkeypatch.setattr(_wf_mod2, "get_executor", _mock_get_executor)
     except Exception:
         pass

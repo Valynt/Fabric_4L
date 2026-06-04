@@ -25,6 +25,7 @@ from layer1_ingestion.crawler.httpx_crawler import (
     HttpxCrawler,
     HttpxCrawlerConfig,
 )
+from layer1_ingestion.shared.circuit_breaker import get_circuit_breaker_manager
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -39,6 +40,15 @@ def _no_sleep_config(max_retries: int = 3) -> HttpxCrawlerConfig:
         retry_jitter=False,
         retry_on_status_codes=[429, 500, 502, 503, 504],
     )
+
+
+@pytest.fixture(autouse=True)
+def reset_httpx_circuit_breaker():
+    """Keep global circuit-breaker state from leaking across retry cases."""
+    manager = get_circuit_breaker_manager()
+    manager.reset("httpx_client")
+    yield
+    manager.reset("httpx_client")
 
 
 # ---------------------------------------------------------------------------

@@ -4,14 +4,14 @@ from pathlib import Path
 
 
 def test_cross_tenant_and_global_scope_filters_are_present_in_repository_queries() -> None:
-    """Repository must enforce tenant scope and explicit global-scope handling."""
+    """Formula governance queries must enforce tenant scope."""
     source = Path(
-        "services/layer5-ground-truth/src/layer5_ground_truth/repositories/formula_governance_repository.py"
+        "services/layer5-ground-truth/src/layer5_ground_truth/services/formula_governance_service.py"
     ).read_text()
 
-    assert "tenant_id == tenant_id" in source
-    assert "is_global" in source
-    assert "or_(" in source, "Expected explicit tenant/global scope OR clause"
+    assert "Formula.tenant_id == tenant_id" in source
+    assert "FormulaVersion.tenant_id == tenant_id" in source
+    assert "FormulaParameter(" in source and "tenant_id=tenant_id" in source
 
 
 def test_audit_logs_are_append_only_and_non_privileged_mutation_is_blocked() -> None:

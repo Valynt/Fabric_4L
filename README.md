@@ -75,6 +75,20 @@ pnpm install
 pnpm --dir apps/web install
 ```
 
+## Canonical Gate Commands
+
+Root `pnpm` scripts provide stable aliases for CI and local release gates while delegating to
+the canonical Makefile or Python implementations.
+
+| Command | Delegates to | Purpose |
+|---|---|---|
+| `pnpm test:security` | `python scripts/ci/run_root_aggregate_checks.py security` | Fast security smoke suite for PR gating |
+| `pnpm test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` | OpenAPI, JSON Schema, and tool-manifest index/ref validation |
+| `pnpm test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Focused tenant isolation/RLS/cache tests |
+| `pnpm test:crawler` | `python scripts/ci/run_root_aggregate_checks.py crawler` | Focused Layer 1 crawler tests |
+| `pnpm test:router` | `python scripts/ci/run_root_aggregate_checks.py router` | API and frontend routing contract audit |
+| `pnpm db:migrate:status` | `python scripts/ci/run_root_aggregate_checks.py db-migrate-status` | Read-only migration status report; does not mutate the database |
+
 ## Quickstart (5 minutes)
 
 ### 1. Clone and configure

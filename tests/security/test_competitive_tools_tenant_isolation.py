@@ -14,7 +14,7 @@ async def test_query_graph_for_competitor_enforces_tenant_scope() -> None:
     """Same competitor name across tenants must never leak related attributes."""
     fake_neo4j_module = types.SimpleNamespace(AsyncGraphDatabase=MagicMock())
     sys.modules.setdefault("neo4j", fake_neo4j_module)
-    from services.layer4_agents.src.tools.competitive_tools import AnalyzeCompetitionTool
+    from layer4_agents.tools.competitive_tools import AnalyzeCompetitionTool
 
     tool = AnalyzeCompetitionTool()
 

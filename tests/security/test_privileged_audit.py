@@ -329,10 +329,10 @@ class TestAdminConsoleEndpoint:
         app.add_middleware(_InjectContextMiddleware, context=super_admin_context)
 
         # Import and register the router
-        from services.layer4_agents.src.tenants.api.routes.admin_console import (
+        from layer4_agents.tenants.api.routes.admin_console import (
             router as admin_console_router,
         )
-        from services.layer4_agents.src.database import get_db_from_context
+        from layer4_agents.database import get_db_from_context
 
         # Mock DB dependency — return empty results for read-only aggregation
         async def _mock_get_db():
@@ -417,10 +417,10 @@ class TestAdminConsoleEndpoint:
         app = FastAPI()
         app.add_middleware(_InjectContextMiddleware, context=super_admin_context)
 
-        from services.layer4_agents.src.tenants.api.routes.admin_console import (
+        from layer4_agents.tenants.api.routes.admin_console import (
             router as admin_console_router,
         )
-        from services.layer4_agents.src.database import get_db_from_context
+        from layer4_agents.database import get_db_from_context
 
         async def _mock_get_db():
             mock_session = AsyncMock()

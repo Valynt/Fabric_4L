@@ -56,6 +56,10 @@ def _audit_redis_key(name: str) -> str:
     return f"audit:{environment}:{service_name}:{name}"
 
 
+_PENDING_KEY = _audit_redis_key("pending")
+_DEAD_LETTER_KEY = _audit_redis_key("dead-letter")
+
+
 class RedisAuditQueue:
     """Durable Redis queue for audit events.
 

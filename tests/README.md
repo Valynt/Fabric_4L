@@ -4,8 +4,11 @@
 
 ### Fast path — no infrastructure required
 ```bash
-# Unit, contract, security, and tenant-isolation tests (CI gate)
-pytest tests/ -m "unit or contract or security or tenant_boundary"
+# First-class tenant isolation gate
+pnpm test:isolation
+
+# Marker-based tenant isolation selection
+pytest -m tenant_isolation -v --tb=short
 ```
 
 ### Exclude infrastructure-dependent tests
@@ -33,6 +36,7 @@ pytest tests/ -m "requires_infra or chaos or performance or slow"
 | `unit` | Fast, no I/O |
 | `contract` | OpenAPI / schema contract tests |
 | `security` | OWASP / tenant-boundary tests |
+| `tenant_isolation` | First-class tenant isolation gate coverage |
 | `tenant_boundary` | Cross-tenant isolation regression |
 | `chaos` | Failure-mode / degradation tests |
 | `performance` | Connection pool / SLO benchmarks |

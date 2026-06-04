@@ -11,12 +11,13 @@
     "check:api-types": "pnpm run generate:api && git diff --exit-code apps/web/src/api/generated",
     "lint": "python scripts/ci/run_root_aggregate_checks.py lint",
     "test": "python scripts/ci/run_root_aggregate_checks.py test",
-    "test:security": "make security-smoke",
-    "test:isolation": "make security-test-isolation",
-    "test:schema": "./scripts/verify-schema-indexes.sh",
-    "test:crawler": "make test-layer1-crawler",
-    "test:router": "python scripts/ci/router_contract_gate.py",
-    "db:migrate:status": "make check-migration-heads",
+    "test:security": "python scripts/ci/run_root_aggregate_checks.py security",
+    "test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation",
+    "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",
+    "test:crawler": "python scripts/ci/run_root_aggregate_checks.py crawler",
+    "test:router": "python scripts/ci/run_root_aggregate_checks.py router",
+    "db:migrate:status": "python scripts/ci/run_root_aggregate_checks.py db-migrate-status",
+    "db:migrate:check": "python scripts/ci/migration_status_report.py --mode check",
     "typecheck": "python scripts/ci/run_root_aggregate_checks.py typecheck",
     "check:default-scope": "node scripts/ci/check_default_scope.mjs",
     "preinstall": "node scripts/enforce-package-manager.cjs",
@@ -33,8 +34,7 @@
     "dev:layer6": "infisical run --env=dev --path=/shared --path=/infra --path=/layer6-benchmarks -- uvicorn services.layer6-benchmarks.src.api.main:app --reload",
     "env:dev": "infisical export --env=dev --path=/shared --path=/infra --path=/layer1-ingestion --path=/layer2-extraction --path=/layer2-5-signal-refinery --path=/layer3-knowledge --path=/layer4-agents --path=/layer5-ground-truth --path=/layer6-benchmarks --path=/apps/web --format=dotenv --output-file=.env.generated",
     "compose:dev": "pnpm env:dev && docker compose --env-file .env.generated up",
-    "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py",
-    "test:schema": "./scripts/verify-schema-indexes.sh"
+    "contract:breaking": "python scripts/ci/openapi_breaking_change_gate.py"
   },
   "engines": {
     "node": ">=22.12.0"

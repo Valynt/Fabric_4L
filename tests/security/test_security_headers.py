@@ -6,10 +6,28 @@ Validates that all responses include required security headers.
 
 # Lazy import for optional dependency
 import pytest
+
+from tests.security._category_manifest import assert_security_category_manifest
+
 try:
     from fastapi.testclient import TestClient
 except ImportError:
     TestClient = None
+
+
+SECURITY_HEADER_TESTS = (
+    "tests/security/test_security_headers.py",
+    "tests/security/test_security_misconfiguration.py",
+    "tests/security/test_shared_security_middleware.py",
+    "tests/security/test_p1_14_security_middleware.py",
+    "tests/security/test_h03_service_startup_validation.py",
+)
+
+
+@pytest.mark.security
+@pytest.mark.contract_static
+def test_security_headers_coverage_manifest_is_current() -> None:
+    assert_security_category_manifest("security_headers", SECURITY_HEADER_TESTS)
 
 
 class TestSecurityHeaders:

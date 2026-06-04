@@ -7,7 +7,7 @@ from uuid import uuid4
 
 import pytest
 
-from services.layer4_agents.src.tenants.api.routes import oidc
+from layer4_agents.tenants.api.routes import oidc
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
 from value_fabric.shared.identity.rate_limiter import RateLimitResult
 from value_fabric.shared.identity.rate_limiting import RateLimitConfig, RateLimitScope

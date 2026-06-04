@@ -9,11 +9,35 @@ Validates that:
 
 import pytest
 
+from tests.security._category_manifest import assert_security_category_manifest
+
 # Lazy import for optional dependency
 try:
     from fastapi.testclient import TestClient
 except ImportError:
     TestClient = None
+
+
+TENANT_ISOLATION_TESTS = (
+    "tests/security/test_tenant_isolation.py",
+    "tests/security/test_tenant_boundary_fails_closed.py",
+    "tests/security/test_cross_tenant_api.py",
+    "tests/security/test_cross_tenant_write.py",
+    "tests/security/test_cross_tenant_jwt.py",
+    "tests/security/test_cross_layer_tenant.py",
+    "tests/security/test_cross_layer_tenant_isolation_matrix.py",
+    "tests/security/test_graph_tenant_hostile_regression.py",
+    "tests/security/test_hostile_tenant_e2e_matrix.py",
+    "tests/security/test_neo4j_cross_tenant_write_isolation.py",
+    "tests/backend_integrated/test_tenant_isolation_security_persistence.py",
+)
+
+
+@pytest.mark.security
+@pytest.mark.tenant_boundary
+@pytest.mark.contract_static
+def test_tenant_isolation_security_coverage_manifest_is_current() -> None:
+    assert_security_category_manifest("tenant_isolation", TENANT_ISOLATION_TESTS)
 
 
 class TestTenantIsolation:

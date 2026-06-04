@@ -2,11 +2,11 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from services.competitive_intel_service import (
+from src.services.competitive_intel_service import (
     CompetitiveIntelService,
     _get_tenant_id as get_competitive_tenant,
 )
-from services.product_service import (
+from src.services.product_service import (
     ProductService,
     _get_tenant_id as get_product_tenant,
 )
@@ -14,7 +14,7 @@ from services.product_service import (
 
 def test_product_service_requires_context_tenant(monkeypatch):
     monkeypatch.setattr(
-        'services.product_service.require_context',
+        'src.services.product_service.require_context',
         lambda: (_ for _ in ()).throw(RuntimeError('no context')),
     )
     with pytest.raises(RuntimeError, match='tenant_id is required'):
@@ -23,7 +23,7 @@ def test_product_service_requires_context_tenant(monkeypatch):
 
 def test_competitive_service_requires_context_tenant(monkeypatch):
     monkeypatch.setattr(
-        'services.competitive_intel_service.require_context',
+        'src.services.competitive_intel_service.require_context',
         lambda: (_ for _ in ()).throw(RuntimeError('no context')),
     )
     with pytest.raises(RuntimeError, match='tenant_id is required'):

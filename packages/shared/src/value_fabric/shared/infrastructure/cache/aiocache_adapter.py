@@ -17,7 +17,10 @@ import logging
 import os
 from typing import Any
 
-from aiocache import Cache
+try:
+    from aiocache import Cache
+except ModuleNotFoundError:  # pragma: no cover - exercised by import-only suites
+    Cache = None
 
 from .redis_cache import CacheConfig, RedisCache_get_statsResult
 
@@ -56,6 +59,11 @@ class AiocacheCacheAdapter:
             logger.warning(
                 "No aiocache backend provided; using in-memory fallback for non-production environment '%s'.",
                 env_name,
+            )
+        if cache is None and Cache is None:
+            raise ImportError(
+                "aiocache is required when AiocacheCacheAdapter is constructed "
+                "without an explicit cache backend"
             )
         self._cache = cache or Cache(Cache.MEMORY, namespace=namespace)
         # _known_keys tracks keys set through this adapter instance only.

@@ -99,7 +99,7 @@ class TestLayerSpecificEnforcement:
 
     def test_layer_4_uses_async_context(self):
         """Layer 4 (agents) uses async SQLAlchemy with context."""
-        from services.layer4_agents.src.database import (
+        from layer4_agents.database import (
             get_db_from_context,
             get_db_with_optional_tenant,
         )
@@ -286,7 +286,7 @@ class TestMigrationCompleteness:
     def test_layer_4_has_full_implementation(self):
         """Layer 4 is the reference implementation."""
         # These should all be importable and functional
-        from services.layer4_agents.src.database import (
+        from layer4_agents.database import (
             get_db_from_context,
             get_db_with_optional_tenant,
             get_tiered_db_session,

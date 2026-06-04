@@ -2,7 +2,7 @@
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
         test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer2 test-layer2-5 test-layer3 test-layer4 \
-        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
+        test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
         preflight up down logs check-deprecations test-backup-drills db-production-readiness-gate \
@@ -20,7 +20,7 @@
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
 	release-evidence-packet collect-95-plus-evidence collect-95-plus-evidence-focused \
 	platform-contract-lint setup-hooks check-ui-duplicates check-readiness-consistency \
-	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads \
+	check-pytest-skip-governance check-conflict-markers check-legacy-debt check-reports-evidence-policy check-no-nul-bytes check-migration-entrypoints check-migration-heads check-migration-status-artifacts \
 	check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs check-migration-postgres-roundtrip gate-database gate-database-live db-production-readiness-gate \
 	check-keycloak-realm-seed-security \
 	check-manifest-secret-hygiene \
@@ -133,10 +133,20 @@ check-migration-postgres-roundtrip: ## Run upgrade, downgrade -1, upgrade, and m
 check-migration-runtime-consistency: ## Static migration/runtime URL and revision consistency checks
 	@$(PYTHON) scripts/ci/check_migration_runtime_consistency.py
 
+db-migrate-status: ## Read-only database migration status report with JSON and Markdown artifacts
+	@$(PYTHON) scripts/ci/migration_status_report.py --mode status
+
+db-migrate-check: ## Read-only database migration drift gate; fails on drift
+	@$(PYTHON) scripts/ci/migration_status_report.py --mode check
+
+check-migration-status-artifacts: db-migrate-check ## Emit database migration status artifacts and fail on drift
+	@test -s artifacts/database/migration-status.json
+	@test -s artifacts/database/migration-status.md
+
 check-database-governance-docs: ## Static validation for database runtime compatibility and governance docs
 	@$(PYTHON) scripts/ci/check_database_governance_docs.py
 
-gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-database-governance-docs ## Gate: static local database readiness checks (no live DB required)
+gate-database: check-migration-heads check-migration-entrypoints check-migration-rollback-policy check-migration-runtime-consistency check-migration-status-artifacts check-database-governance-docs ## Gate: static local database readiness checks plus read-only migration drift status
 	@echo "→ Gate: Database Readiness — static local checks"
 	@$(PYTHON) scripts/ci/check_db_bootstrap_conformance.py
 	@$(PYTHON) scripts/ci/check_db_production_readiness_split.py
