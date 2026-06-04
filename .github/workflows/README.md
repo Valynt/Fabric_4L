@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **53** GitHub Actions workflow files.
+This directory currently contains **69** GitHub Actions workflow files.
 
 ## Workflow Tiers
 
@@ -28,6 +28,7 @@ These are primary PR gate workflows (blocking when configured in branch protecti
 | `ai-evals-pipeline.yml` | Agent skill/prompt evaluation pipeline | `pull_request`/`push` (agent paths), `workflow_dispatch` |
 | `chaos-testing.yml` | Chaos engineering experiments | `schedule`, `workflow_dispatch`, `workflow_call` |
 | `secret-rotation.yml` | Secret rotation automation | `schedule`, `workflow_dispatch` |
+| `ci-failure-backlog.yml` | Weekly CI failure backlog artifacts from Actions run metadata | `schedule`, `workflow_dispatch` |
 
 ### Active Optional / Manual / Reusable
 
