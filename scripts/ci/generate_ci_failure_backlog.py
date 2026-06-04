@@ -446,7 +446,9 @@ def build_run_summary(runs: Sequence[Mapping[str, Any]], config: BacklogConfig) 
 
     grouped: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for run in backlog_runs:
-        grouped[str(run["workflow_name"])].append(run)
+        grouped[
+            f"{run['workflow_name']} ({run.get('workflow_path') or run.get('workflow_id') or 'unknown'})"
+        ].append(run)
 
     by_workflow: dict[str, dict[str, Any]] = {}
     for workflow_name, workflow_runs in sorted(grouped.items()):
