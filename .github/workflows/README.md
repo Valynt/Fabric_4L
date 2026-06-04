@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **54** GitHub Actions workflow files.
+This directory currently contains **69** GitHub Actions workflow files.
 
 ## Workflow Tiers
 
