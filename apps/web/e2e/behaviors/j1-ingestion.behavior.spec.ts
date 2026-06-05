@@ -1,33 +1,27 @@
 /**
  * Journey 1 Behavior Contract: Domain Ingestion → Value Tree Exploration
  *
- * Behavior-First Test Contract
- *
- * This file is the executable definition of how the L1→L2→L3 ingestion pipeline
- * MUST behave when accessed through the frontend. Every test encodes either:
- *   1. An intended allowed behavior (positive), or
- *   2. An intended denied behavior (negative)
- *
- * Operating Principle: No critical ingestion behavior exists unless it is tested.
+ * Behavior-First Test Contract — Strict Edition
  *
  * Intended Behavior (Allowed):
  *   - Authenticated user can submit a valid company domain for ingestion.
- *   - Ingestion job is created and its status is trackable through the UI.
- *   - Upon completion, the Value Tree Explorer shows nodes generated from the domain.
- *   - Value tree nodes include Capabilities, Use Cases, Personas, and Value Drivers.
- *   - All data is strictly scoped to the user's tenant_id.
+ *   - Ingestion job is created with the exact payload shape.
+ *   - Value Tree Explorer shows all four entity types from the L1→L2→L3 pipeline.
+ *   - All data is strictly scoped to tenant-e2e-001.
  *
  * Intended Behavior (Denied):
- *   - Empty domain submission is blocked (disabled button or validation error).
- *   - Invalid/malformed domain is rejected with a validation error.
- *   - Unauthenticated user is redirected to login when accessing ingestion.
- *   - Cross-tenant value tree data does not appear in the explorer.
+ *   - Empty domain submission leaves the submit button disabled.
+ *   - Invalid domain format is rejected with a 422 and a visible validation error.
+ *   - Unauthenticated user is redirected to /sign-in.
+ *   - Cross-tenant value tree data is not rendered.
+ *   - Malformed ingestion payload surfaces a safe UI error, not a crash.
  *
  * Failure Modes:
- *   - Invalid domain: validation error message, 422 from API, no job created.
- *   - Empty domain: submit button remains disabled.
+ *   - Empty domain: button remains disabled.
+ *   - Invalid domain: HTTP 422, `validation-error` testId visible.
  *   - Unauthenticated: redirect to /sign-in.
- *   - Cross-tenant leakage: foreign tenant IDs must not be visible.
+ *   - Cross-tenant leakage: foreign tenant ID absent from body + URL.
+ *   - Backend 422: `error-state` testId visible with structured error.
  *
  * Traceability: J1-BEH-001 through J1-BEH-010.
  * Priority: P0 production gate.
@@ -35,7 +29,12 @@
 
 import { test, expect } from '@playwright/test';
 import { journeyTest, expectNoErrors, navigateAndWait, isLiveMode } from '../helpers/journey-fixture';
-import { expectFailureMode, expectNoCrossTenantLeakageOnPage, expectCrossLayerBehavior } from '../helpers/behavior-helpers';
+import {
+  expectFailureMode,
+  expectNoCrossTenantLeakageOnPage,
+  expectCrossLayerBehavior,
+  expectVisibleByTestId,
+} from '../helpers/behavior-helpers';
 import { mockIngestionJobs } from '../helpers/api-harness';
 import { TEST_ACCOUNTS } from '../fixtures/account-helpers';
 
@@ -49,7 +48,7 @@ const FOREIGN_ACCOUNT_ID = 'acct-foreign-globex-999';
 const COMPLETED_JOB = {
   id: TEST_JOB_ID,
   domain: TEST_DOMAIN,
-  status: 'completed' as const,
+  status: 'completed',
   progress: 100,
   created_at: '2025-04-28T10:00:00Z',
   pages_crawled: 47,
@@ -112,35 +111,25 @@ journeyTest.describe('J1 Allowed Behaviors: Ingestion Pipeline', () => {
     await navigateAndWait(authedPage, '/command-center');
     await expectNoErrors(authedPage);
 
-    const domainInput = authedPage.getByPlaceholder(/enter company domain/i)
-      .or(authedPage.getByPlaceholder(/domain/i));
-    await expect(domainInput.first()).toBeVisible();
+    const domainInput = authedPage.getByPlaceholder(/enter company domain/i);
+    await expect(domainInput).toBeVisible();
+    await domainInput.fill(TEST_DOMAIN);
 
-    await domainInput.first().fill(TEST_DOMAIN);
-    await domainInput.first().blur();
+    const submitButton = authedPage.getByRole('button', { name: /synthesize/i });
+    await expect(submitButton).toBeEnabled();
 
-    const submitButton = authedPage.getByRole('button', { name: /synthesize/i })
-      .or(authedPage.getByRole('button', { name: /submit/i }));
-    await expect(submitButton.first()).toBeEnabled();
-    await submitButton.first().click();
-
-    // Cross-layer proof: verify the API call was made with correct payload
     await expectCrossLayerBehavior(authedPage, {
       apiPattern: '**/api/v1/ingest/targets',
       method: 'POST',
       uiAction: async () => {
-        // already clicked above; just wait for response
-        await authedPage.waitForTimeout(800);
+        await submitButton.click();
       },
       assertRequest: (payload) => {
-        expect(payload).toMatchObject({
-          domain: expect.stringContaining('behavior-test-corp'),
-        });
+        expect(payload).toMatchObject({ domain: TEST_DOMAIN });
       },
+      mockResponse: { status: 201, body: { target_id: 'target-behavior-001', job_id: TEST_JOB_ID, status: 'pending' } },
       assertUiState: async () => {
-        await expect(
-          authedPage.getByText(/submitted|job created|ingestion started/i).first(),
-        ).toBeVisible({ timeout: 10000 });
+        await expectVisibleByTestId(authedPage, 'ingestion-submitted');
       },
     });
   });
@@ -148,30 +137,22 @@ journeyTest.describe('J1 Allowed Behaviors: Ingestion Pipeline', () => {
   journeyTest('J1-BEH-002: user can track ingestion job status through the UI', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/command-center');
 
-    const jobsArea = authedPage.getByText(/jobs/i).first()
-      .or(authedPage.locator('table').first());
-    await expect(jobsArea).toBeVisible({ timeout: 10000 });
-
-    // The test domain or job ID should appear in the jobs list
-    await expect(
-      authedPage.getByText(TEST_DOMAIN).or(authedPage.getByText(/behavior-test-corp/i)).first(),
-    ).toBeVisible();
+    await expect(authedPage.getByRole('table')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText(TEST_DOMAIN)).toBeVisible();
+    await expect(authedPage.getByText('completed')).toBeVisible();
   });
 
-  journeyTest('J1-BEH-003: completed ingestion populates value tree with correct entity types', async ({ authedPage }) => {
+  journeyTest('J1-BEH-003: completed ingestion populates value tree with all four entity types', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/context/value-trees/explorer');
     await expectNoErrors(authedPage);
 
-    await expect(
-      authedPage.getByRole('heading', { name: /value tree/i }).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByRole('heading', { name: /value tree/i })).toBeVisible({ timeout: 10000 });
 
     if (!isLiveMode()) {
-      // Verify all four entity types are surfaced
-      await expect(authedPage.getByText(/capability/i).first()).toBeVisible();
-      await expect(authedPage.getByText(/use case/i).first()).toBeVisible();
-      await expect(authedPage.getByText(/persona/i).first()).toBeVisible();
-      await expect(authedPage.getByText(/value driver/i).first()).toBeVisible();
+      await expect(authedPage.getByText('Capability')).toBeVisible();
+      await expect(authedPage.getByText('UseCase')).toBeVisible();
+      await expect(authedPage.getByText('Persona')).toBeVisible();
+      await expect(authedPage.getByText('ValueDriver')).toBeVisible();
     }
   });
 
@@ -190,55 +171,49 @@ journeyTest.describe('J1 Allowed Behaviors: Ingestion Pipeline', () => {
 // ── Denied Behaviors ────────────────────────────────────────────────────────
 
 journeyTest.describe('J1 Denied Behaviors: Ingestion Pipeline', () => {
-  journeyTest('J1-BEH-005: empty domain submission is blocked', async ({ authedPage }) => {
+  journeyTest('J1-BEH-005: empty domain submission is blocked by disabled button', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/command-center');
 
-    const submitButton = authedPage.getByRole('button', { name: /synthesize/i })
-      .or(authedPage.getByRole('button', { name: /submit/i }));
+    const domainInput = authedPage.getByPlaceholder(/enter company domain/i);
+    await expect(domainInput).toBeVisible();
+    await domainInput.fill('');
 
-    // With empty input, the button should be disabled or the submission should fail validation
-    const isDisabled = await submitButton.first().isDisabled().catch(() => false);
-    if (!isDisabled) {
-      await submitButton.first().click();
-      await expectFailureMode(authedPage, 'validation_error');
-    }
+    const submitButton = authedPage.getByRole('button', { name: /synthesize/i });
+    await expect(submitButton).toBeDisabled();
   });
 
-  journeyTest('J1-BEH-006: invalid domain format is rejected with validation error', async ({ authedPage }) => {
+  journeyTest('J1-BEH-006: invalid domain format is rejected with validation error', async ({ authedPage, addMocks }) => {
+    await addMocks([
+      {
+        pattern: '**/api/v1/ingest/targets',
+        method: 'POST',
+        status: 422,
+        body: { error: 'Invalid domain format', code: 'VALIDATION_ERROR' },
+      },
+    ]);
+
     await navigateAndWait(authedPage, '/command-center');
 
-    const domainInput = authedPage.getByPlaceholder(/enter company domain/i)
-      .or(authedPage.getByPlaceholder(/domain/i));
-    await domainInput.first().fill('not-a-valid-domain!!!');
-    await domainInput.first().blur();
+    const domainInput = authedPage.getByPlaceholder(/enter company domain/i);
+    await domainInput.fill('not-a-valid-domain!!!');
 
-    const submitButton = authedPage.getByRole('button', { name: /synthesize/i })
-      .or(authedPage.getByRole('button', { name: /submit/i }));
-    await submitButton.first().click();
+    const submitButton = authedPage.getByRole('button', { name: /synthesize/i });
+    await submitButton.click();
 
-    // Expect validation error or disabled state
-    const hasValidationError = await authedPage.getByText(/invalid|please enter a valid|domain/i)
-      .first().isVisible({ timeout: 5000 }).catch(() => false);
-    const isButtonDisabled = await submitButton.first().isDisabled().catch(() => false);
-
-    expect(
-      hasValidationError || isButtonDisabled,
-      'Invalid domain must be rejected with validation error or blocked submission',
-    ).toBe(true);
+    await expectFailureMode(authedPage, 'validation_error');
   });
 
-  test('J1-BEH-007: unauthenticated user accessing ingestion is redirected to login', async ({ page }) => {
+  test('J1-BEH-007: unauthenticated user accessing ingestion is redirected to /sign-in', async ({ page }) => {
     await page.goto('/command-center', { waitUntil: 'domcontentloaded' });
     await expectFailureMode(page, 'unauthenticated_redirect');
   });
 
-  test('J1-BEH-008: unauthenticated user accessing value tree explorer is redirected to login', async ({ page }) => {
+  test('J1-BEH-008: unauthenticated user accessing value tree explorer is redirected to /sign-in', async ({ page }) => {
     await page.goto('/context/value-trees/explorer', { waitUntil: 'domcontentloaded' });
     await expectFailureMode(page, 'unauthenticated_redirect');
   });
 
   journeyTest('J1-BEH-009: cross-tenant value tree data is not visible', async ({ authedPage, addMocks }) => {
-    // Seed mock with foreign tenant data that should NOT appear
     await addMocks([
       {
         pattern: '**/api/v1/value-trees**',
@@ -258,7 +233,7 @@ journeyTest.describe('J1 Denied Behaviors: Ingestion Pipeline', () => {
     await expectNoCrossTenantLeakageOnPage(authedPage, FOREIGN_TENANT_ID, FOREIGN_ACCOUNT_ID);
   });
 
-  journeyTest('J1-BEH-010: ingestion API returns 422 for malformed payload and UI shows safe error', async ({ authedPage, addMocks }) => {
+  journeyTest('J1-BEH-010: ingestion API returns 422 and UI shows safe error state', async ({ authedPage, addMocks }) => {
     await addMocks([
       {
         pattern: '**/api/v1/ingest/targets',
@@ -270,15 +245,12 @@ journeyTest.describe('J1 Denied Behaviors: Ingestion Pipeline', () => {
 
     await navigateAndWait(authedPage, '/command-center');
 
-    const domainInput = authedPage.getByPlaceholder(/enter company domain/i)
-      .or(authedPage.getByPlaceholder(/domain/i));
-    await domainInput.first().fill(TEST_DOMAIN);
+    const domainInput = authedPage.getByPlaceholder(/enter company domain/i);
+    await domainInput.fill(TEST_DOMAIN);
 
-    const submitButton = authedPage.getByRole('button', { name: /synthesize/i })
-      .or(authedPage.getByRole('button', { name: /submit/i }));
-    await submitButton.first().click();
+    const submitButton = authedPage.getByRole('button', { name: /synthesize/i });
+    await submitButton.click();
 
-    // UI should show a safe error state, not crash or expose internals
-    await expectFailureMode(authedPage, 'validation_error');
+    await expectVisibleByTestId(authedPage, 'error-state');
   });
 });

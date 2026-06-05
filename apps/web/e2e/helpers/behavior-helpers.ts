@@ -1,40 +1,28 @@
 /**
- * Behavior-First Test Helpers
+ * Behavior-First Test Helpers — Strict Edition
  *
- * Shared utilities for behavior-first Playwright tests. These helpers make
- * it explicit when a test is asserting an allowed behavior versus a denied
- * behavior, and they enforce failure-mode checking.
+ * Shared utilities for behavior-first Playwright tests. These helpers enforce
+ * deterministic outcomes: no catch-and-ignore, no conditional branches, no
+ * soft assertions. A behavior test either proves the contract or fails.
  *
  * Usage:
- *   import { expectAllowedBehavior, expectDeniedBehavior, expectFailureMode } from '../helpers/behavior-helpers';
+ *   import { expectDeniedBehavior, expectFailureMode, expectCrossLayerBehavior } from '../helpers/behavior-helpers';
  */
-import { type Page, expect } from '@playwright/test';
+import { type Page, type Route, expect } from '@playwright/test';
 
 export type FailureMode =
   | { type: 'redirect'; target: RegExp }
-  | { type: 'error_state'; message: RegExp }
-  | { type: 'disabled'; selector: string }
+  | { type: 'error_state'; testId: string }
+  | { type: 'disabled'; testId: string }
   | { type: 'status_code'; code: number }
-  | { type: 'safe_empty'; message?: RegExp };
-
-/**
- * Assert that an allowed behavior produces the expected outcome.
- * Use this wrapper to make allowed-path assertions self-documenting.
- */
-export async function expectAllowedBehavior(
-  description: string,
-  assertion: () => Promise<void>,
-): Promise<void> {
-  await assertion();
-}
+  | { type: 'safe_empty'; testId: string };
 
 /**
  * Assert that a denied behavior produces the expected failure mode.
- * This is the core enforcement mechanism for behavior-first testing:
- * every denied path must fail in a predictable, safe way.
+ * No fallbacks. If the failure mode is not present exactly as specified, the test fails.
  */
 export async function expectDeniedBehavior(
-  description: string,
+  _description: string,
   page: Page,
   failureMode: FailureMode,
 ): Promise<void> {
@@ -43,33 +31,24 @@ export async function expectDeniedBehavior(
       await expect(page).toHaveURL(failureMode.target, { timeout: 10000 });
       break;
     case 'error_state':
-      await expect(
-        page.getByText(failureMode.message).first(),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId(failureMode.testId)).toBeVisible({ timeout: 10000 });
       break;
     case 'disabled':
-      await expect(
-        page.locator(failureMode.selector).first(),
-      ).toBeDisabled({ timeout: 5000 });
+      await expect(page.getByTestId(failureMode.testId)).toBeDisabled({ timeout: 5000 });
       break;
-    case 'status_code': {
-      // For API-level denials captured via route interception
-      // The caller should have set up the intercept before calling this.
+    case 'status_code':
+      // Status-code denials must be asserted by the caller via route interception.
+      // This branch is a type marker only; the actual assertion happens in the test.
       break;
-    }
-    case 'safe_empty': {
-      const msg = failureMode.message;
-      if (msg) {
-        await expect(page.getByText(msg).first()).toBeVisible({ timeout: 10000 });
-      }
+    case 'safe_empty':
+      await expect(page.getByTestId(failureMode.testId)).toBeVisible({ timeout: 10000 });
       break;
-    }
   }
 }
 
 /**
  * Assert a specific failure mode is visible on the page.
- * Convenience wrapper for common denied-path checks.
+ * Uses strict getByTestId selectors — no fuzzy text matching.
  */
 export async function expectFailureMode(
   page: Page,
@@ -77,41 +56,34 @@ export async function expectFailureMode(
 ): Promise<void> {
   switch (mode) {
     case 'unauthenticated_redirect':
-      await expect(page).toHaveURL(/login|auth|sign-in/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/sign-in/, { timeout: 10000 });
       break;
     case 'unauthorized_redirect':
-      await expect(page).toHaveURL(/home|forbidden|access-denied/, { timeout: 10000 });
+      await expect(page).toHaveURL(/\/home|\/forbidden|\/access-denied/, { timeout: 10000 });
       break;
     case 'forbidden_state':
-      await expect(
-        page.getByText(/forbidden|access denied|not authorized|permission/i).first(),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('forbidden-state')).toBeVisible({ timeout: 10000 });
       break;
     case 'not_found_state':
-      await expect(
-        page.getByText(/not found|404|does not exist/i).first(),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('not-found-state')).toBeVisible({ timeout: 10000 });
       break;
     case 'validation_error':
-      await expect(
-        page.getByText(/invalid|required|error|please enter/i).first(),
-      ).toBeVisible({ timeout: 10000 });
+      await expect(page.getByTestId('validation-error')).toBeVisible({ timeout: 10000 });
       break;
     case 'disabled_action':
-      await expect(
-        page.locator('button[disabled], [aria-disabled="true"]').first(),
-      ).toBeVisible({ timeout: 5000 });
+      await expect(page.getByTestId('action-disabled')).toBeVisible({ timeout: 5000 });
       break;
   }
 }
 
 /**
- * Assert that a UI action triggers an API call with the expected payload shape,
- * and that the UI updates correctly after the response.
+ * Assert that a UI action triggers an API call with an exact payload,
+ * and that the UI updates to an exact expected state.
  *
- * This is the primary cross-layer behavior proof helper.
+ * This is the strict cross-layer behavior proof. It does NOT use timeouts
+ * to guess when things are done; it waits for explicit state.
  */
-export async function expectCrossLayerBehavior(
+export async function expectCrossLayerBehavior<TRequest = unknown, TResponse = unknown>(
   page: Page,
   options: {
     /** API URL pattern to intercept */
@@ -120,28 +92,28 @@ export async function expectCrossLayerBehavior(
     method?: string;
     /** Action to perform on the UI */
     uiAction: () => Promise<void>;
-    /** Assert the intercepted request payload */
-    assertRequest?: (request: unknown) => void;
+    /** Assert the intercepted request payload exactly */
+    assertRequest: (request: TRequest) => void;
     /** Mock response to return (if not in live mode) */
-    mockResponse?: { status?: number; body: unknown };
+    mockResponse?: { status?: number; body: TResponse };
     /** Assert the UI state after response */
     assertUiState: () => Promise<void>;
   },
 ): Promise<void> {
-  let requestPayload: unknown = null;
-  let requestMade = false;
+  const requests: { payload: TRequest; url: string; method: string }[] = [];
 
-  await page.route(options.apiPattern, async (route) => {
+  await page.route(options.apiPattern, async (route: Route) => {
     if (options.method && route.request().method() !== options.method.toUpperCase()) {
       await route.fallback();
       return;
     }
-    requestMade = true;
-    try {
-      requestPayload = route.request().postDataJSON();
-    } catch {
-      requestPayload = null;
-    }
+
+    const payload = route.request().postDataJSON() as TRequest;
+    requests.push({
+      payload,
+      url: route.request().url(),
+      method: route.request().method(),
+    });
 
     if (options.mockResponse) {
       await route.fulfill({
@@ -156,28 +128,24 @@ export async function expectCrossLayerBehavior(
 
   await options.uiAction();
 
-  // Wait briefly for the request to be made
-  await page.waitForTimeout(500);
+  // Strict: exactly one matching request must be made
+  expect(requests, `Expected exactly one API call to ${options.apiPattern} (${options.method ?? 'any'})`).toHaveLength(1);
 
-  expect(requestMade, `Expected API call to ${options.apiPattern} but none was made`).toBe(true);
-
-  if (options.assertRequest) {
-    options.assertRequest(requestPayload);
-  }
+  options.assertRequest(requests[0].payload);
 
   await options.assertUiState();
 }
 
 /**
  * Assert that no cross-tenant data leakage occurs on the current page.
- * Checks for known foreign tenant identifiers and sensitive foreign data.
+ * Checks the full page text and URL for the foreign tenant identifier.
  */
 export async function expectNoCrossTenantLeakageOnPage(
   page: Page,
   foreignTenantId: string,
   foreignAccountId?: string,
 ): Promise<void> {
-  const bodyText = await page.locator('body').innerText().catch(() => '');
+  const bodyText = await page.locator('body').innerText();
   const pageUrl = page.url();
 
   expect(
@@ -196,4 +164,18 @@ export async function expectNoCrossTenantLeakageOnPage(
       `Page body must not contain foreign account ID ${foreignAccountId}`,
     ).toBe(false);
   }
+}
+
+/**
+ * Strict assertion: element with exact testId must be visible.
+ */
+export async function expectVisibleByTestId(page: Page, testId: string, timeout = 10000): Promise<void> {
+  await expect(page.getByTestId(testId)).toBeVisible({ timeout });
+}
+
+/**
+ * Strict assertion: element with exact testId must contain exact text.
+ */
+export async function expectTestIdContains(page: Page, testId: string, text: string | RegExp, timeout = 10000): Promise<void> {
+  await expect(page.getByTestId(testId)).toContainText(text, { timeout });
 }
