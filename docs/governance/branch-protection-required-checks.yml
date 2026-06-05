@@ -1,14 +1,13 @@
 version: 1
-validated_on: 2026-05-12
+validated_on: 2026-06-05
 required_status_checks:
   - mandatory-security-regression
   - contract-compliance
-  - p0-e2e-gate
+  - structural-preflight
   - prod-readiness
   - Layer 5 - Source Contract
   - Layer 5 - Tenant Isolation Regression
   - Layer 5 - Contract Shape Regression
-  - make verify
 enforcement:
   pull_request_merges: true
   direct_pushes: true

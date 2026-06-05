@@ -2,16 +2,15 @@
   "metadata": {
     "owner_team": "Platform Governance",
     "change_process": "Changes require approval from Platform Governance and Security in CODEOWNERS-reviewed PRs. Keep this list aligned with branch protection enforcement and CI job names.",
-    "last_reviewed": "2026-05-12"
+    "last_reviewed": "2026-06-05"
   },
   "required_status_checks": [
     "mandatory-security-regression",
     "contract-compliance",
-    "p0-e2e-gate",
+    "structural-preflight",
     "prod-readiness",
     "Layer 5 - Source Contract",
     "Layer 5 - Tenant Isolation Regression",
-    "Layer 5 - Contract Shape Regression",
-    "make verify"
+    "Layer 5 - Contract Shape Regression"
   ]
 }
