@@ -12,8 +12,8 @@ jobs:
   debt-burndown:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
       - name: Generate compatibility and duplicate debt reports
@@ -23,7 +23,7 @@ jobs:
           python scripts/ci/check_endpoint_coverage.py --write-report artifacts/debt-burndown/endpoint-coverage.json || true
           python scripts/check_ui_duplicate_filenames.py --write-report artifacts/debt-burndown/ui-duplicates.json || true
       - name: Upload monthly debt artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: monthly-debt-burndown-artifacts
           path: artifacts/debt-burndown

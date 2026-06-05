@@ -34,7 +34,7 @@ jobs:
     timeout-minutes: 5
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Check committed dev auth bypass flags
         run: bash scripts/ci/check-dev-auth-bypass.sh
@@ -46,7 +46,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
         with:
           fetch-depth: 0
 
@@ -64,7 +64,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Install Semgrep
         run: pip install semgrep
@@ -95,7 +95,7 @@ jobs:
 
       - name: Upload Semgrep results
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: semgrep-cypher-guard-${{ github.sha }}
           path: |
@@ -115,7 +115,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Build Docker image
         run: |
@@ -126,7 +126,7 @@ jobs:
             services/${{ matrix.layer }}
 
       - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
+        uses: aquasecurity/trivy-action@bfa4b33a029b9aa80ddb784b45574c30e072c59e # v0.35.0
         with:
           image-ref: '${{ matrix.layer }}:scan-target'
           format: 'sarif'
@@ -169,7 +169,7 @@ jobs:
             context: services/layer6-benchmarks
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Build image artifact
         run: |
@@ -180,7 +180,7 @@ jobs:
             ${{ matrix.artifact.context }}
 
       - name: Generate CycloneDX SBOM (Trivy)
-        uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
+        uses: aquasecurity/trivy-action@bfa4b33a029b9aa80ddb784b45574c30e072c59e # v0.35.0
         with:
           image-ref: '${{ matrix.artifact.name }}:ci'
           format: 'cyclonedx'
@@ -188,7 +188,7 @@ jobs:
           scanners: 'vuln'
 
       - name: Evaluate SBOM vulnerability policy
-        uses: aquasecurity/trivy-action@8e6cbf1955f948b0b1f0f2f12f6ec2e5374c8c57 # v0.35.0
+        uses: aquasecurity/trivy-action@bfa4b33a029b9aa80ddb784b45574c30e072c59e # v0.35.0
         with:
           scan-type: 'sbom'
           scan-ref: '${{ matrix.artifact.name }}-sbom.cdx.json'
@@ -207,7 +207,7 @@ jobs:
 
       - name: Upload SBOM and policy artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: sbom-${{ matrix.artifact.name }}
           path: |
@@ -223,7 +223,7 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Start ephemeral Value Fabric stack
         run: |
@@ -288,7 +288,7 @@ jobs:
 
       - name: Upload DAST evidence artifacts
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: dast-zap-reports
           path: zap-reports/
@@ -309,10 +309,10 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: '3.11'
 
@@ -344,7 +344,7 @@ jobs:
 
       - name: Upload bandit report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: bandit-report-${{ matrix.layer }}
           path: services/${{ matrix.layer }}/bandit-report.json
@@ -361,10 +361,10 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: '3.11'
 
@@ -381,7 +381,7 @@ jobs:
 
       - name: Upload pip-audit report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: pip-audit-report-${{ matrix.layer }}
           path: services/${{ matrix.layer }}/pip-audit-report.json
@@ -397,7 +397,7 @@ jobs:
         working-directory: apps/web
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Setup pnpm
         uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
@@ -405,7 +405,7 @@ jobs:
           version: '10.18.1'
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
         with:
           node-version: '22.12.0'
           cache: 'pnpm'
@@ -447,7 +447,7 @@ jobs:
 
       - name: Upload audit report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: frontend-security-audit
           path: apps/web/pnpm-audit-report.json
@@ -460,7 +460,7 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Check Dockerfiles for USER directive
         run: |
@@ -531,7 +531,7 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Dependency Review
         uses: actions/dependency-review-action@8c745b8aadf2f5f7f1c3e15ee5f2f4c3d8b74fcb # v4
@@ -554,7 +554,7 @@ jobs:
 
     steps:
       - name: Download all workflow artifacts
-        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v4
         with:
           path: security-evidence
 
@@ -571,7 +571,7 @@ jobs:
           } > security-evidence/SECURITY_EVIDENCE_MANIFEST.md
 
       - name: Upload release evidence artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: release-security-evidence-${{ github.sha }}
           path: security-evidence/
@@ -604,7 +604,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Build Docker image for SBOM
         run: |
@@ -626,7 +626,7 @@ jobs:
           test -s sbom-${{ matrix.layer }}.cdx.json
 
       - name: Upload SBOM artifact
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: sbom-${{ matrix.layer }}
           path: sbom-${{ matrix.layer }}.cdx.json
@@ -638,10 +638,10 @@ jobs:
     timeout-minutes: 10
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: '3.11'
 
@@ -658,10 +658,10 @@ jobs:
     if: github.event_name == 'pull_request' || github.event_name == 'push'
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v4
 
       - name: Set up Python
-        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v5
         with:
           python-version: '3.11'
 
@@ -671,7 +671,7 @@ jobs:
           version: '10.18.1'
 
       - name: Set up Node.js
-        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v4
         with:
           node-version: '22.12.0'
           cache: 'pnpm'
@@ -701,7 +701,7 @@ jobs:
 
       - name: Upload mandatory security evidence
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4
         with:
           name: mandatory-security-regression-${{ github.sha }}
           path: |
