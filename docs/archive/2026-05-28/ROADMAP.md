@@ -737,7 +737,7 @@ frontend/client/src/components/ui/    # shadcn components
 - [x] Single command `make test-backend-integrated-release-smoke` runs cross-layer checks
 - [x] Validates: L2 extract → L3 ingest → Graph query → Hybrid search happy path
 - [x] Fails CI on contract/status code regressions (exit code 1 on failure)
-- [x] Produces JSON artifact with pass/fail + timing per stage
+- [x] Produces evidence under `artifacts/release_smoke/` (readiness JSON, JUnit XML, pytest logs, compose diagnostics)
 - [x] Runs in GitHub Actions against docker-compose stack
 
 **Implementation:** ✅ COMPLETE
