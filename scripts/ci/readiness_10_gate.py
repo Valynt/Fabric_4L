@@ -92,12 +92,8 @@ READINESS_DIMENSIONS: tuple[GateDimension, ...] = (
         "CI workflow registry",
         (
             GateCommand(
-                (sys.executable, "scripts/ci/check_workflow_references.py", "--workflow-glob", "*.yml"),
-                "workflow references",
-            ),
-            GateCommand(
-                (sys.executable, "scripts/ci/check_workflow_targets_and_artifacts.py", "--workflow-glob", "*.yml"),
-                "workflow targets and artifacts",
+                (sys.executable, "scripts/ci/verify_workflow_registry.py"),
+                "workflow registry",
             ),
         ),
     ),

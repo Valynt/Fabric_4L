@@ -634,6 +634,7 @@
         "artifacts/chaos/",
         "artifacts/database/**",
         "artifacts/obs/",
+        "artifacts/readiness-10/**",
         "artifacts/readiness/",
         "artifacts/release/",
         "artifacts/release/junit/",

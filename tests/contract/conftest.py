@@ -207,14 +207,10 @@ def check_services_availability(request: pytest.FixtureRequest):
         has_no_service_static = any(
             "contract_static_no_service" in item.keywords for item in request.session.items
         )
-        has_service_required = any(
-            "service_required" in item.keywords or "runtime_contract" in item.keywords
-            for item in request.session.items
-        )
-        if has_no_service_static and not has_service_required:
-            # Static OpenAPI artifact checks can run without live services, but
-            # keep service availability gating whenever runtime contract tests
-            # are present in the same collected session.
+        if has_no_service_static:
+            # Static OpenAPI artifact checks can run without live services.
+            # Runtime contract tests remain gated by their item-level markers,
+            # so mixed collection does not hide static coverage.
             return
 
     mock_mode, missing_services, strict_mode = _evaluate_services_availability()

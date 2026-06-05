@@ -66,7 +66,7 @@ def tenant_scoped_ingestion_app():
     async def authenticated_context_middleware(request: Request, call_next):
         tenant_id = request.headers.get("x-test-tenant")
         if tenant_id:
-            request.state.context = SimpleNamespace(tenant_id=tenant_id)
+            request.state.governance_context = SimpleNamespace(tenant_id=tenant_id)
         return await call_next(request)
 
     app.dependency_overrides[ingestion.get_sync_manager] = lambda: manager
@@ -425,4 +425,3 @@ class TestIngestionEndpoints:
         # Validate logical consistency
         assert data["triples_processed"] >= data["entities_loaded"]
         assert data["triples_processed"] >= data["relationships_loaded"]
-

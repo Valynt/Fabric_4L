@@ -35,7 +35,7 @@ def _create_ready_repo(root: Path) -> None:
     _write(root / ".github/workflows/contract-compliance.yml", "contract-scorecard\n")
     _write(root / ".github/workflows/prod-readiness.yml", "gate-release-policy\ngate-obs\n")
     _write(root / ".github/workflows/critical-gates.yml", "p0\n")
-    _write(root / ".github/workflows/security-validation.yml", "security\n")
+    _write(root / ".github/workflows/security-gates.yml", "security\n")
     _write(root / ".github/workflows/release-evidence-bundle.yml", "release\n")
     _write(root / "docker-compose.dev.yml", "services: {}\n")
     _write(root / "docker-compose.full.yml", "services: {}\n")
