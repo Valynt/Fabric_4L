@@ -88,6 +88,25 @@ FULL_COMPOSE_REQUIRED_ENV_KEYS = {
     "SERVICE_AUTH_SECRET",
 }
 
+FRONTEND_REQUIRED_ENV_KEYS = {
+    "VITE_API_BASE",
+    "VITE_L1_PREFIX",
+    "VITE_L2_PREFIX",
+    "VITE_L2_5_PREFIX",
+    "VITE_L3_PREFIX",
+    "VITE_L4_PREFIX",
+    "VITE_L5_PREFIX",
+    "VITE_L6_PREFIX",
+    "VITE_L7_PREFIX",
+    "VITE_ENABLE_CRM_SYNC",
+    "VITE_CRM_PROVIDER",
+    "VITE_CRM_API_PROXY",
+    "VITE_ENABLE_C1_REPORTS",
+    "VITE_USE_MOCKS",
+}
+
+PYTHONPATH_BUILT_IN_PATHS = {"/app", "/app/src", "/app/.venv"}
+
 LIVE_COMPOSE_FILE = "docker-compose.live.yml"
 
 LIVE_COMPOSE_FORBIDDEN_TEXT = {
@@ -248,6 +267,30 @@ def iter_bind_sources(
                 continue
             sources.append(str(source))
     return sources
+
+
+def iter_volume_targets(service: dict[str, Any]) -> list[str]:
+    """Return all container-side target paths from volume mounts."""
+    targets: list[str] = []
+    for volume in service.get("volumes") or []:
+        if isinstance(volume, str):
+            _source, target = split_short_volume(volume)
+            if target is not None:
+                targets.append(target)
+        elif isinstance(volume, dict):
+            target = volume.get("target") or volume.get("dst")
+            if target:
+                targets.append(str(target))
+    return targets
+
+
+def target_covers_path(target: str, path: str) -> bool:
+    """Check if a volume target path covers (is prefix of or equal to) path."""
+    target_parts = target.rstrip("/").split("/")
+    path_parts = path.rstrip("/").split("/")
+    if len(target_parts) > len(path_parts):
+        return False
+    return path_parts[: len(target_parts)] == target_parts
 
 
 def resolve_build_paths(
@@ -506,6 +549,69 @@ def validate_live_compose_security(compose_file: Path) -> list[ComposeFailure]:
     return failures
 
 
+def validate_pythonpath_mounts(
+    compose_file: Path,
+    services: dict[str, Any],
+) -> list[ComposeFailure]:
+    """Ensure every PYTHONPATH entry under /app is backed by a volume mount or built-in path."""
+    failures: list[ComposeFailure] = []
+    for service_name, service in services.items():
+        if not isinstance(service, dict):
+            continue
+        pythonpath = None
+        for key, value in iter_environment_entries(service):
+            if key == "PYTHONPATH":
+                pythonpath = value
+                break
+        if not pythonpath:
+            continue
+        targets = iter_volume_targets(service)
+        for entry in pythonpath.split(":"):
+            entry = entry.strip()
+            if not entry:
+                continue
+            if entry in PYTHONPATH_BUILT_IN_PATHS:
+                continue
+            if not entry.startswith("/app"):
+                continue
+            if any(target_covers_path(t, entry) for t in targets):
+                continue
+            failures.append(
+                ComposeFailure(
+                    compose_file.name,
+                    service_name,
+                    f"PYTHONPATH entry '{entry}' is not backed by a volume mount",
+                )
+            )
+    return failures
+
+
+def validate_frontend_env_completeness(
+    compose_file: Path,
+    services: dict[str, Any],
+) -> list[ComposeFailure]:
+    """Ensure docker-compose.dev.yml frontend service declares all required env vars."""
+    if compose_file.name != "docker-compose.dev.yml":
+        return []
+
+    frontend_service = services.get("frontend")
+    if not isinstance(frontend_service, dict):
+        return []
+
+    declared_keys = {key for key, _value in iter_environment_entries(frontend_service)}
+    failures: list[ComposeFailure] = []
+    for required in FRONTEND_REQUIRED_ENV_KEYS:
+        if required not in declared_keys:
+            failures.append(
+                ComposeFailure(
+                    compose_file.name,
+                    "frontend",
+                    f"required frontend env variable '{required}' is missing from the service environment block",
+                )
+            )
+    return failures
+
+
 def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -> list[ComposeFailure]:
     data = load_compose(compose_file)
     declared_volumes = set((data.get("volumes") or {}).keys())
@@ -514,6 +620,8 @@ def validate_compose_contract(compose_file: Path, repo_root: Path = REPO_ROOT) -
     services = data["services"]
     failures.extend(validate_full_compose_hardening(compose_file, services))
     failures.extend(validate_live_compose_security(compose_file))
+    failures.extend(validate_pythonpath_mounts(compose_file, services))
+    failures.extend(validate_frontend_env_completeness(compose_file, services))
     for service_name, service in services.items():
         if not isinstance(service, dict):
             failures.append(

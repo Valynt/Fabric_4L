@@ -172,7 +172,7 @@ describe("clerkConfig — getClerkUrls defaults + overrides", () => {
     expect(urls).toEqual({
       signInUrl: "/sign-in",
       signUpUrl: "/sign-up",
-      afterSignInUrl: "/workspaces",
+      afterSignInUrl: "/home",
       afterSignUpUrl: "/onboarding",
       selectOrgUrl: "/workspaces",
     });

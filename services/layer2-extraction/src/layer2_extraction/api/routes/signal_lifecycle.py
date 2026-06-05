@@ -10,10 +10,13 @@ from value_fabric.shared.error_handling.exceptions import (
 
 import logging
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Request
 
 logger = logging.getLogger(__name__)
 from pydantic import BaseModel, ConfigDict
+from value_fabric.shared.identity.context import RequestContext
+
+from layer2_extraction.api.deps import require_authenticated
 
 from layer2_extraction.models.signal_lifecycle import (
     OperationalSignalLifecycleRecord,
@@ -47,14 +50,23 @@ def _actor_from_request(request: Request) -> SignalLifecycleActor:
 
 
 @router.post("/{signal_id}", response_model=OperationalSignalLifecycleRecord)
-async def create_signal(signal_id: str, request: Request) -> OperationalSignalLifecycleRecord:
+async def create_signal(
+    signal_id: str,
+    request: Request,
+    _ctx: RequestContext = Depends(require_authenticated),
+) -> OperationalSignalLifecycleRecord:
     actor = _actor_from_request(request)
     tenant_id = str(request.state.governance_context.tenant_id)
     return _service.create_signal(signal_id=signal_id, tenant_id=tenant_id, actor=actor)
 
 
 @router.post("/{signal_id}/supersede", response_model=OperationalSignalLifecycleRecord)
-async def supersede_signal(signal_id: str, body: TransitionRequest, request: Request) -> OperationalSignalLifecycleRecord:
+async def supersede_signal(
+    signal_id: str,
+    body: TransitionRequest,
+    request: Request,
+    _ctx: RequestContext = Depends(require_authenticated),
+) -> OperationalSignalLifecycleRecord:
     actor = _actor_from_request(request)
     tenant_id = str(request.state.governance_context.tenant_id)
     try:
@@ -67,7 +79,12 @@ async def supersede_signal(signal_id: str, body: TransitionRequest, request: Req
 
 
 @router.post("/{signal_id}/merge", response_model=OperationalSignalLifecycleRecord)
-async def merge_signal(signal_id: str, body: TransitionRequest, request: Request) -> OperationalSignalLifecycleRecord:
+async def merge_signal(
+    signal_id: str,
+    body: TransitionRequest,
+    request: Request,
+    _ctx: RequestContext = Depends(require_authenticated),
+) -> OperationalSignalLifecycleRecord:
     actor = _actor_from_request(request)
     tenant_id = str(request.state.governance_context.tenant_id)
     try:

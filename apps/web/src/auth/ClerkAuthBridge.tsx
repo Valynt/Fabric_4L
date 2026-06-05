@@ -20,7 +20,7 @@
  * This component renders nothing. Mount it once near the root, inside
  * the ClerkProvider and AuthProvider.
  */
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactElement } from "react";
 import { useAuth, useOrganization } from "@clerk/react";
 
 import { setActiveClerkOrgId, setClerkTokenGetter } from "@/auth/clerkSession";
@@ -43,7 +43,7 @@ function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
   return null;
 }
 
-export function ClerkAuthBridge(): null {
+export function ClerkAuthBridge(): ReactElement | null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
 

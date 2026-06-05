@@ -6,10 +6,19 @@
  * tenant-scoped routes; we send them here to pick or create one.
  */
 import { OrganizationList } from "@clerk/react";
-import { getClerkUrls } from "@/auth/clerkConfig";
+import { useOrganization } from "@clerk/react";
+import { Navigate, useLocation } from "react-router-dom";
 
 export default function SelectOrganizationPage() {
-  const urls = getClerkUrls();
+  const location = useLocation();
+  const normalizePath = (value: string) => value.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
+  const pickerPath = normalizePath(location.pathname);
+  const postOrgRedirectUrl = "/home";
+  const { isLoaded: orgLoaded, organization } = useOrganization();
+
+  if (orgLoaded && organization) {
+    return <Navigate to={postOrgRedirectUrl} replace />;
+  }
 
   return (
     <div className="mx-auto flex min-h-screen max-w-3xl flex-col items-center justify-center p-6">
@@ -23,8 +32,8 @@ export default function SelectOrganizationPage() {
       <div className="mt-8 w-full max-w-md">
         <OrganizationList
           hidePersonal
-          afterSelectOrganizationUrl={urls.afterSignInUrl}
-          afterCreateOrganizationUrl={urls.afterSignInUrl}
+          afterSelectOrganizationUrl={postOrgRedirectUrl}
+          afterCreateOrganizationUrl={postOrgRedirectUrl}
         />
       </div>
     </div>
