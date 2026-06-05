@@ -207,6 +207,7 @@ pythonpath = ["src", "../..", "../../packages/shared/src"]
 markers = [
     "postgres: Tests requiring PostgreSQL-specific features (JSONB, RLS, SET LOCAL, current_setting)",
     "requires_postgres: Tests requiring a reachable PostgreSQL service",
+    "benchmark: Layer 1 benchmark and performance tests",
     "security: Security and tenant isolation tests",
     "rls: Row-Level Security enforcement tests",
     "unit: Unit tests that do not require PostgreSQL",

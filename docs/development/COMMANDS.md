@@ -47,6 +47,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `lint:logs` | `python scripts/ci/check_observability_coverage.py` | Observability coverage lint |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
 | `test:security` | `python -m pytest tests/security/ -v --tb=short` | Centralized security readiness suite |
+| `test:security:hostile` | `python -m pytest tests/security/test_hostile_tenant_e2e_matrix.py tests/security/test_hostile_tenant_journey_contracts.py -v --tb=short` | Hostile tenant security contract suite |
 | `test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Tenant isolation alias |
 | `test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` | Schema/index alias |
 | `test:queues` | `python -m pytest tests/integration/test_celery_queue_topology.py -m celery` | Queue topology tests |
@@ -167,6 +168,7 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `test-layer1` | Run Layer 1 tests. |
 | `test-layer1-crawler` | Run focused Layer 1 crawler tests. |
 | `test-layer1-router-cache` | Run focused Layer 1 router/cache tests. |
+| `test-layer1-benchmarks` | Run Layer 1 benchmark and performance tests. |
 | `test-layer1-security-postgres` | Run Layer 1 PostgreSQL-backed security tests. |
 | `test-layer2` | Run Layer 2 tests. |
 | `test-layer2-5` | Run Layer 2.5 tests. |

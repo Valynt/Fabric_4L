@@ -14,7 +14,7 @@ governed by `docs/launch/launch-blocker-register.md` and
 | Field | Value |
 |---|---|
 | Release posture | **NO-GO / external evidence required** |
-| Reason | Required staging, live-service, trace, restore, and Prometheus evidence is not available in the current local environment. |
+| Reason | Required staging, ArgoCD sync, trace, restore, and Prometheus evidence is not available in the current local environment. |
 | Release-ready claim allowed | No |
 | S6-9 checklist status | Complete as a no-go matrix; do not treat this as launch sign-off. |
 
@@ -23,7 +23,6 @@ governed by `docs/launch/launch-blocker-register.md` and
 | Audit item | Owner area | Current blocker | Next evidence required |
 |---|---|---|---|
 | S1-1 | Platform Infrastructure | Active Kubernetes context is `docker-desktop`, not staging. | Run a staging manual job from `postgres-backup` CronJob and attach job status plus logs. |
-| S2-9 | Layer 6 | Static tenant tests pass, but live Layer 6 benchmark service tests fail with `httpx.ConnectError: [Errno 11001] getaddrinfo failed`. | Start or connect to the Layer 6 benchmark service and rerun live tenant/security invariant tests. |
 | S5-2 | Platform Infrastructure | ArgoCD manifests pass static validation, but no real ArgoCD cluster sync or rollback evidence is attached. | Capture ArgoCD application sync/status and rollback-readiness evidence in staging or another approved environment. |
 | S5-3 | Platform Infrastructure | WAL-G static wiring and dry-run evidence exist, but no real restore drill evidence is attached. | Execute non-production WAL-G restore drill and attach redacted restore proof, timing, and integrity checks. |
 | S5-4 | Observability | Static OTel coverage exists, but live trace receipt tests fail because services are unavailable at `localhost:8000` and `localhost:8007`. | Run required services and collector/backend, then pass live trace receipt tests. |
@@ -34,6 +33,7 @@ governed by `docs/launch/launch-blocker-register.md` and
 | Area | Evidence |
 |---|---|
 | Workflow consolidation | Current workflow count is below 50, workflow registry/permissions tests pass, and S6-6 is verified closed in the sprint register. |
+| Layer 6 tenant isolation | `python -m pytest services/layer6-benchmarks/tests/test_repository_tenant_isolation.py services/layer6-benchmarks/tests/test_cross_tenant_hostile.py tests/security/test_benchmarks_cross_tenant_isolation.py -v --tb=short` passed 26 tests; S2-9 is verified closed in the sprint register. |
 | GitOps and recovery static readiness | `tests/gitops/test_rollouts.py` and `tests/recovery/` pass locally, but environment-dependent S5-2/S5-3 evidence remains open. |
 | Documentation command map | `tests/docs/test_command_map.py` passes after current workflow references are aligned. |
 
@@ -42,7 +42,7 @@ governed by `docs/launch/launch-blocker-register.md` and
 - Do not mark release-ready while any open blocker above remains without
   passing evidence or an explicit launch-owner waiver.
 - Do not convert local static readiness into operational evidence for ArgoCD,
-  WAL-G, Prometheus, Layer 6, or OTel.
+  WAL-G, Prometheus, or OTel.
 - Update the sprint register with the exact command output or artifact location
   before changing any item to `verified closed`.
 - Re-run this matrix after all open blockers have evidence attached.

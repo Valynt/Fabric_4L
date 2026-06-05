@@ -1,7 +1,7 @@
 .PHONY: help verify verify-strict lint lint-layer1 lint-layer2 lint-layer2-5 lint-layer3 lint-layer4 \
         lint-layer5 lint-layer6 typecheck typecheck-layer1 typecheck-layer2 typecheck-layer2-5 \
         typecheck-layer3 typecheck-layer4 typecheck-layer5 typecheck-layer6 \
-        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer2 test-layer2-5 test-layer3 test-layer4 \
+        test contract-tests contract-lint test-layer1 test-layer1-crawler test-layer1-router-cache test-layer1-benchmarks test-layer2 test-layer2-5 test-layer3 test-layer4 \
         test-frontend build docker-build migrate migrate-layer1 migrate-layer2 migrate-layer2-5 migrate-layer4 migrate-layer5 migrate-api db-migrate-status db-migrate-check gate-database gate-database-live db-production-readiness-gate evals perf-test perf-eval clean sdk check-layer4-boundaries \
         setup bootstrap \
         check-env check-env-backend check-env-frontend validate-env-contract \
@@ -399,7 +399,7 @@ setup: ## Install all service dev dependencies into the pytest Python environmen
 # ─── Layer-Specific Tests ─────────────────────────────────────────────────────
 
 test-layer1: ## Run Layer 1 tests
-	cd services/layer1-ingestion && $(PYTEST) -m "not postgres and not requires_postgres" tests/
+	cd services/layer1-ingestion && $(PYTEST) -m "not postgres and not requires_postgres and not benchmark" tests/
 
 test-layer1-crawler: ## Run focused Layer 1 crawler tests
 	cd services/layer1-ingestion && $(PYTEST) tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
@@ -407,6 +407,9 @@ test-layer1-crawler: ## Run focused Layer 1 crawler tests
 test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache isolation tests
 	cd services/layer1-ingestion && $(PYTEST) tests/crawler/test_smart_router.py tests/unit/test_smart_router.py tests/integration/test_router_edge_cases.py
 	$(PYTEST) tests/cache/test_redis_tenant_isolation.py tests/shared/identity/test_api_key_cache.py
+
+test-layer1-benchmarks: ## Run Layer 1 benchmark and performance tests
+	cd services/layer1-ingestion && $(PYTEST) -m benchmark tests/benchmarks/ -v
 
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."

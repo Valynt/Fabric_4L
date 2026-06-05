@@ -60,10 +60,7 @@ def main() -> int:
                 labels = rule.get("labels") or {}
                 annotations = rule.get("annotations") or {}
 
-                if labels.get("environment") != "production":
-                    continue
-
-                if not labels.get("oncall_owner"):
+                if labels.get("environment") == "production" and not labels.get("oncall_owner"):
                     violations.append(f"{rule_file.relative_to(REPO_ROOT)}:{alert_name} missing labels.oncall_owner")
                 runbook_url = annotations.get("runbook_url")
                 if not runbook_url:
