@@ -50,8 +50,8 @@ The original assessment underweighted **DevOps + observability**, treating them 
 **Issue:** No repeatable cross-layer verification; cannot prove E2E workflow works
 **Solution:**
 - `make test-backend-integrated-release-smoke` - maintained release-smoke validation target
-- `.github/workflows/smoke-gate.yml` - CI integration with Docker Compose
-- JSON artifacts with pass/fail + timing per stage
+- `.github/workflows/pr-checks.yml` (`integration-checks`) - CI integration with Docker Compose
+- Evidence artifacts under `artifacts/release_smoke/` (compose diagnostics, readiness JSON, JUnit XML, pytest logs)
 **Assessment:** Smoke gate operational; validates L2→L3→L4 integration in CI
 
 ---

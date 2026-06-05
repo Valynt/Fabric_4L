@@ -52,8 +52,8 @@ def main() -> int:
     workflow_text = WORKFLOW_PATH.read_text(encoding="utf-8")
     errors: list[str] = []
 
-    governance_checks = governance_metadata.get("required_status_checks")
-    if governance_checks != checks:
+        governance_checks = governance_metadata.get("required_status_checks")
+        if governance_checks != checks:
         errors.append(
             "governance required-check mirror does not match config/ci/required-status-checks.json"
         )

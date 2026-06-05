@@ -64,8 +64,8 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- if and (eq $imageDigest "") (or (eq $imageTag "") (eq $imageTag "latest")) -}}
 {{- fail "image.tag must be explicitly set to a non-latest value or image.digest must be set" -}}
 {{- end -}}
-{{- if and (ne $imageDigest "") (not (hasPrefix "sha256:" $imageDigest)) -}}
-{{- fail "image.digest must be a sha256 digest in the form sha256:<digest>" -}}
+{{- if and (ne $imageDigest "") (not (mustRegexMatch "^sha256:[a-f0-9]{64}$" $imageDigest)) -}}
+{{- fail "image.digest must be a valid sha256 digest in the form sha256:<64 hex chars>" -}}
 {{- end -}}
 {{- if ne $imageDigest "" -}}
 {{- printf "%s@%s" $imageRepository $imageDigest -}}

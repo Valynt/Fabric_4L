@@ -34,7 +34,7 @@ Use the same runtime family across local development, CI, and container images t
 
 | Runtime | Canonical version | Applies to | Source of truth |
 |---|---:|---|---|
-| Node.js | `22.12.0` or newer within the Node 22 LTS line | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
+| Node.js | `22.12.0` | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
 | pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
 | Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
 | Python container base | `python:3.11.13-slim-bookworm` | Maintained service Dockerfiles and full/uv service variants | `FROM python:3.11.13-slim-bookworm` in service Dockerfiles |

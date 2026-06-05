@@ -731,17 +731,17 @@ frontend/client/src/components/ui/    # shadcn components
 
 **Gap:** No repeatable cross-layer verification; cannot prove E2E workflow works.
 
-**Evidence:** Smoke gate tested and operational. JSON report generated at `artifacts/smoke-report-*.json`. All 6 stages execute with retry logic.
+**Evidence:** Release-smoke gate tested and operational. Evidence and logs are generated under `artifacts/release_smoke/` (e.g., readiness JSON, JUnit XML, pytest logs, compose diagnostics).
 
 **Acceptance Criteria:**
 - [x] Single command `make test-backend-integrated-release-smoke` runs cross-layer checks
 - [x] Validates: L2 extract → L3 ingest → Graph query → Hybrid search happy path
 - [x] Fails CI on contract/status code regressions (exit code 1 on failure)
-- [x] Produces JSON artifact with pass/fail + timing per stage
+- [x] Produces evidence under `artifacts/release_smoke/` (readiness JSON, JUnit XML, pytest logs, compose diagnostics)
 - [x] Runs in GitHub Actions against docker-compose stack
 
 **Implementation:** ✅ COMPLETE
-- ✅ `.github/workflows/smoke-gate.yml` - CI workflow with Docker Compose
+- ✅ `.github/workflows/pr-checks.yml` (`integration-checks`) - CI workflow with Docker Compose
 - ✅ `make test-backend-integrated-release-smoke` - maintained release-smoke validation target
 - ✅ `docs/archive/legacy-docs/archive/legacy-services/README.md` - Smoke gate usage documented (lines 165-230)
 

@@ -35,9 +35,9 @@ DEV_ONLY_COMPOSE_DEFAULTS: dict[str, re.Pattern[str]] = {
 ENV_EXAMPLE_FORBIDDEN_DEFAULTS: dict[str, re.Pattern[str]] = {
     'reusable Redis password in .env.example': re.compile(r'^\s*REDIS_PASSWORD\s*=\s*\S+'),
     'reusable MinIO credentials in .env.example': re.compile(
-        r'^\s*(?:MINIO_ACCESS_KEY_ID|MINIO_SECRET_ACCESS_KEY|S3_ACCESS_KEY_ID|S3_SECRET_ACCESS_KEY)\s*=\s*minioadmin\s*$'
+        r'^\s*(?:MINIO_ACCESS_KEY_ID|MINIO_SECRET_ACCESS_KEY|S3_ACCESS_KEY_ID|S3_SECRET_ACCESS_KEY)\s*=\s*minioadmin\b'
     ),
-    'Keycloak admin password in .env.example': re.compile(r'^\s*KEYCLOAK_ADMIN_PASSWORD\s*=\s*admin\s*$'),
+    'Keycloak admin password in .env.example': re.compile(r'^\s*KEYCLOAK_ADMIN_PASSWORD\s*=\s*admin\b'),
 }
 
 DEV_ONLY_COMPOSE_NAMES = {'docker-compose.dev.yml', 'docker-compose.full.dev-vault.yml'}

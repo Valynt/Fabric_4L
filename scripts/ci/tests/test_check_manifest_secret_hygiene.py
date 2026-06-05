@@ -29,10 +29,10 @@ class ManifestSecretHygieneTests(unittest.TestCase):
                 '\n'.join(
                     [
                         'REDIS_PASSWORD=dev-redis-password',
-                        'MINIO_ACCESS_KEY_ID=minioadmin',
-                        'MINIO_SECRET_ACCESS_KEY=minioadmin',
-                        'S3_ACCESS_KEY_ID=minioadmin',
-                        'S3_SECRET_ACCESS_KEY=minioadmin',
+                        'MINIO_ACCESS_KEY_ID=minioadmin  # default',
+                        'MINIO_SECRET_ACCESS_KEY=minioadmin  # default',
+                        'S3_ACCESS_KEY_ID=minioadmin  # default',
+                        'S3_SECRET_ACCESS_KEY=minioadmin  # default',
                     ]
                 ),
                 encoding='utf-8',

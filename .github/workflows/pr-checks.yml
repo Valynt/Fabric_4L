@@ -1701,25 +1701,17 @@ jobs:
           secret-path: /layer2-extraction
 
       - name: Run release smoke gate
-<<<<<<< ours
-        env:
-          JWT_SECRET: release-smoke-jwt-secret-minimum-32-characters
-          SERVICE_AUTH_SECRET: release-smoke-service-auth-secret-32chars
-          POSTGRES_USER: release_smoke_app
-          POSTGRES_PASSWORD: release_smoke_strong_credential
-          NEO4J_PASSWORD: devpassword
-        run: |
-          python -m pip install -r tests/requirements-test.txt
-          make test-backend-integrated-release-smoke
-=======
         run: make test-backend-integrated-release-smoke
->>>>>>> theirs
 
       - name: Start core services for integration tests
         run: |
-          export NEO4J_PASSWORD=valuefabric
+          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
+          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
+          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
+          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+
           docker compose up -d neo4j redis postgres
-          # Start layers in background
           docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for services to be healthy

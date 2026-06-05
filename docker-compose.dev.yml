@@ -199,7 +199,7 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD:-}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD:-}@redis:6379/0
       - LOG_LEVEL=debug
-      - PYTHONPATH=/app:/app/src
+      - PYTHONPATH=/app:/app/src:/app/value_fabric
     depends_on:
       postgres:
         condition: service_healthy
@@ -209,6 +209,7 @@ services:
       - dev-network
     volumes:
       - ./services/layer2-extraction/src:/app/src:ro
+      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
     command: >
       uvicorn src.layer2_extraction.api.main:app
       --host 0.0.0.0
@@ -236,7 +237,7 @@ services:
       - CELERY_BROKER_URL=redis://:${REDIS_PASSWORD}@redis:6379/0
       - CELERY_RESULT_BACKEND=redis://:${REDIS_PASSWORD}@redis:6379/0
       - LOG_LEVEL=debug
-      - PYTHONPATH=/app:/app/src
+      - PYTHONPATH=/app:/app/src:/app/value_fabric
     depends_on:
       postgres:
         condition: service_healthy
@@ -246,6 +247,7 @@ services:
       - dev-network
     volumes:
       - ./services/layer2-extraction/src:/app/src:ro
+      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
     command: >
       celery -A layer2_extraction.shared.tasks worker
       --loglevel=info
@@ -270,7 +272,7 @@ services:
       - LAYER3_BASE_URL=http://layer3:8000
       - LAYER4_BASE_URL=http://layer4:8000
       - LOG_LEVEL=debug
-      - PYTHONPATH=/app:/app/src
+      - PYTHONPATH=/app:/app/src:/app/value_fabric
     depends_on:
       postgres:
         condition: service_healthy
@@ -280,6 +282,7 @@ services:
       - dev-network
     volumes:
       - ./services/layer2-5-signal-refinery/src:/app/src:ro
+      - ./packages/shared/src/value_fabric:/app/value_fabric:ro
     command: >
       uvicorn layer2_5_signal_refinery.api.main:app
       --host 0.0.0.0
