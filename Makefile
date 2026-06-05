@@ -29,6 +29,7 @@
 	check-layer3-tenant-dependency-imports \
 	check-test-skip-register-uniqueness \
 	check-raw-http-exception-usage \
+	check-behavior-contract \
 	harness-task harness-guard harness-check \
 	docs-harness
 
@@ -64,7 +65,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
-	check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-behavior-contract verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -183,6 +184,10 @@ check-reports-evidence-policy: ## Enforce reports/ artifact policy and fail on u
 check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories)
 	@mkdir -p artifacts
 	@$(PYTHON) scripts/ci/check_legacy_debt.py --baseline config/ci/legacy_debt_baseline.json --approvals config/ci/legacy_debt_approvals.json --config config/ci/legacy_debt_config.json --write-report artifacts/legacy-debt-report.json
+
+check-behavior-contract: ## Enforce behavior contract registry (every capability has allowed + denied tests)
+	@mkdir -p artifacts
+	@$(PYTHON) scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json
 
 
 verify-strict: verify contract-drift ## Full verification including contract drift detection (slower)

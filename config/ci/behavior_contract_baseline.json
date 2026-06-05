@@ -1,0 +1,16 @@
+{
+  "_comment": "Ratchet baseline for the behavior contract gate. Capability count and covered domains must not regress below these values. Regenerate with: python scripts/ci/check_behavior_contract.py --update-baseline",
+  "min_capabilities": 12,
+  "required_domains": [
+    "api_access",
+    "auth",
+    "configuration_validity",
+    "data_boundaries",
+    "environment_safety",
+    "failure_behavior",
+    "frontend_user_flows",
+    "production_readiness",
+    "service_to_service",
+    "tenant_isolation"
+  ]
+}

@@ -1,0 +1,218 @@
+# Behavior Contract Registry
+#
+# Source of truth that maps every production-critical capability to BOTH its
+# intended ALLOWED-path test and its intended DENIED-path test, plus the
+# expected failure mode and the marker/gate that proves it.
+#
+# Operating principle:  No critical behavior exists unless it is tested.
+# Enforcement rule:      Intended behavior passes. Unintended behavior fails.
+#                        Untested behavior is not production-ready.
+#
+# This file is validated by scripts/ci/check_behavior_contract.py:
+#   - every capability must declare an `allowed` AND a `denied` test
+#   - every referenced test file must exist and contain the referenced test
+#   - backend markers must be registered in pytest.ini
+#   - the capability count must not regress below the ratchet baseline
+#     (config/ci/behavior_contract_baseline.json)
+#
+# Governance: docs/governance/behavior-first-testing.md
+# Authoring template: tests/contract/BEHAVIOR_CONTRACT_TEMPLATE.md
+#
+# `kind` defaults to `backend` (pytest). Use `kind: frontend` for Vitest/Playwright
+# specs; for frontend entries `test` matches the `it(...)`/`test(...)` title substring.
+
+version: 1
+
+# Canonical behavior domains. Every capability must map to exactly one.
+domains:
+  - auth
+  - tenant_isolation
+  - api_access
+  - configuration_validity
+  - environment_safety
+  - data_boundaries
+  - failure_behavior
+  - frontend_user_flows
+  - service_to_service
+  - production_readiness
+
+capabilities:
+  - id: auth.bearer-token-required
+    domain: auth
+    description: >-
+      Protected routes require a valid bearer token. A valid token reaches the
+      handler; a missing or malformed token fails closed before the handler.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "401 with structured auth error; no handler side effects"
+    allowed:
+      file: tests/security/test_auth_boundaries.py
+      test: test_valid_token_succeeds
+    denied:
+      file: tests/security/test_auth_boundaries.py
+      test: test_no_auth_header_rejected
+
+  - id: auth.default-deny-routes
+    domain: auth
+    description: >-
+      Non-public routes default to centralized auth + tenant-context enforcement;
+      only explicitly allowlisted routes may be reached without it.
+    owner: "@value-fabric/security-leads"
+    marker: security
+    expected_failure_mode: "Route audit fails closed when governance middleware is missing"
+    allowed:
+      file: tests/security/test_auth_default_deny.py
+      test: test_non_public_routes_with_tenant_context_reach_handler
+    denied:
+      file: tests/security/test_auth_default_deny.py
+      test: test_non_public_routes_default_to_auth_enforcement
+
+  - id: tenant_isolation.cross-tenant-read
+    domain: tenant_isolation
+    description: >-
+      A user may read their own tenant's data but never another tenant's data,
+      even when spoofing tenant headers.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_boundary
+    expected_failure_mode: "403/401 on cross-tenant read; spoofed X-Tenant-ID ignored"
+    allowed:
+      file: tests/security/test_tenant_isolation.py
+      test: test_jwt_tenant_claim_takes_precedence
+    denied:
+      file: tests/security/test_tenant_isolation.py
+      test: test_user_cannot_access_other_tenant_data
+
+  - id: api_access.endpoints-require-auth
+    domain: api_access
+    description: >-
+      Account/business-case endpoints use tenant-scoped DB access and reject
+      unauthenticated requests.
+    owner: "@value-fabric/backend-leads"
+    marker: security
+    expected_failure_mode: "401 on unauthenticated access; queries always tenant-scoped"
+    allowed:
+      file: tests/security/test_cross_tenant_api.py
+      test: test_account_endpoint_uses_tenant_scoped_db
+    denied:
+      file: tests/security/test_cross_tenant_api.py
+      test: test_account_endpoint_requires_authentication
+
+  - id: configuration_validity.env-schema
+    domain: configuration_validity
+    description: >-
+      Declared environment schemas compile and are validated against active env
+      examples; an invalid/missing env contract fails closed.
+    owner: "@value-fabric/sre-leads"
+    marker: config
+    expected_failure_mode: "Env contract validator fails closed on drift/missing schema"
+    allowed:
+      file: tests/ci/test_env_contract_validator_i01.py
+      test: test_config_package_env_schemas_compile
+    denied:
+      file: tests/ci/test_env_contract_validator_i01.py
+      test: test_env_contract_validator_targets_active_env_examples_and_fails_closed
+
+  - id: environment_safety.dev-bypass
+    domain: environment_safety
+    description: >-
+      Dev auth-bypass flags are permitted only in development and are rejected in
+      production-like environments at startup.
+    owner: "@value-fabric/security-leads"
+    marker: production_safety
+    expected_failure_mode: "Startup raises in production when bypass flags are set"
+    allowed:
+      file: tests/security/test_dev_bypass.py
+      test: test_bypass_flag_does_not_raise_in_development
+    denied:
+      file: tests/security/test_dev_bypass.py
+      test: test_bypass_flag_rejected_in_production
+
+  - id: environment_safety.startup-guard-contract
+    domain: environment_safety
+    description: >-
+      Services that read bypass flags apply the shared startup guard so the
+      production rejection cannot be bypassed per-service.
+    owner: "@value-fabric/security-leads"
+    marker: contract_static
+    expected_failure_mode: "Shared startup guard rejects bypass flags in prod-like envs"
+    allowed:
+      file: tests/contract/test_startup_bypass_guard_contract.py
+      test: test_services_with_bypass_flags_apply_shared_startup_guard
+    denied:
+      file: tests/contract/test_startup_bypass_guard_contract.py
+      test: test_shared_startup_guard_rejects_bypass_flags_in_production_like
+
+  - id: data_boundaries.write-tenant-scope
+    domain: data_boundaries
+    description: >-
+      Writes are scoped to the authenticated tenant. A tenant_id in the request
+      body is ignored; a missing tenant_id derives from the JWT.
+    owner: "@value-fabric/security-leads"
+    marker: cross_tenant_write
+    expected_failure_mode: "Cross-tenant write blocked; body tenant_id never trusted"
+    allowed:
+      file: tests/security/test_cross_tenant_write.py
+      test: test_create_entity_with_missing_tenant_uses_jwt_tenant
+    denied:
+      file: tests/security/test_cross_tenant_write.py
+      test: test_create_entity_with_wrong_tenant_in_body_blocked
+
+  - id: failure_behavior.error-envelope
+    domain: failure_behavior
+    description: >-
+      Every layer emits the canonical structured error envelope; legacy flat
+      error payloads are rejected by the canonical regression.
+    owner: "@value-fabric/architects"
+    marker: contract_static
+    expected_failure_mode: "Non-canonical/flat error payloads rejected by contract"
+    allowed:
+      file: tests/contract/test_error_envelope_consistency.py
+      test: test_error_envelope_canonical_exists_in_all_layers
+    denied:
+      file: tests/contract/test_error_envelope_consistency.py
+      test: test_legacy_flat_error_payloads_are_rejected_by_canonical_envelope_regression
+
+  - id: frontend_user_flows.auth-fail-closed
+    domain: frontend_user_flows
+    description: >-
+      In Clerk mode the mock-auth flag must not authenticate signed-out users
+      (fail closed); mock auth is allowed only in non-Clerk dev mode.
+    owner: "@value-fabric/frontend-leads"
+    kind: frontend
+    expected_failure_mode: "Signed-out users remain unauthenticated in Clerk mode"
+    allowed:
+      file: apps/web/src/contexts/AuthContext.behavior.test.tsx
+      test: "allows mock auth in non-Clerk mode"
+    denied:
+      file: apps/web/src/contexts/AuthContext.behavior.test.tsx
+      test: "fails closed in Clerk mode"
+
+  - id: service_to_service.tenant-context-propagation
+    domain: service_to_service
+    description: >-
+      Cross-layer (L1-L6) calls carry and validate tenant context; queries are
+      tenant-filtered and fail closed when context is absent.
+    owner: "@value-fabric/security-leads"
+    marker: tenant_matrix
+    expected_failure_mode: "Internal call fails closed when tenant context is missing"
+    allowed:
+      file: tests/security/test_cross_layer_tenant_isolation_matrix.py
+      test: test_l4_query_filters_present
+    denied:
+      file: tests/security/test_cross_layer_tenant_isolation_matrix.py
+      test: test_l4_fail_closed_without_context
+
+  - id: production_readiness.prod-config-invariants
+    domain: production_readiness
+    description: >-
+      Production manifests include required observability/mTLS invariants and
+      never commit auth material.
+    owner: "@value-fabric/sre-leads"
+    marker: production_readiness
+    expected_failure_mode: "Gate fails if prod invariants missing or secrets committed"
+    allowed:
+      file: tests/k8s/test_production_blockers.py
+      test: test_prod_includes_thanos_and_loki_fluent_bit
+    denied:
+      file: tests/k8s/test_production_blockers.py
+      test: test_pgbouncer_auth_material_is_not_committed_or_configmapped

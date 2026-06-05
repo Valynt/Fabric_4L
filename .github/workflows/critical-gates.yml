@@ -31,6 +31,11 @@ jobs:
             owner: "@value-fabric/security-leads"
             escalation: "@value-fabric/ciso"
             command: "python -m pytest -q tests/security/test_sensitive_route_audit_coverage.py --maxfail=1"
+          - id: behavior-contract
+            service: shared
+            owner: "@value-fabric/qa-leads"
+            escalation: "@value-fabric/security-leads"
+            command: "python scripts/ci/check_behavior_contract.py --strict"
           - id: tenant-isolation-hostile
             service: layer4
             owner: "@value-fabric/security-leads"
