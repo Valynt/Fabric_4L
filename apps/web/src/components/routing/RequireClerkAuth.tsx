@@ -17,8 +17,8 @@
  * verified Fabric4L envelope, never anything from the browser.
  */
 import { useAuth, useOrganization } from "@clerk/react";
-import { Navigate, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useEffect, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
