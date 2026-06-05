@@ -28,10 +28,10 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -39,7 +39,7 @@ jobs:
         uses: grafana/setup-k6-action@v1
 
       - name: Restore performance baseline cache
-        uses: actions/cache@v4
+        uses: actions/cache@v5
         with:
           path: artifacts/performance/baseline.json
           key: performance-baseline-${{ github.ref_name }}-${{ github.run_id }}
@@ -59,7 +59,7 @@ jobs:
 
       - name: Upload performance baseline artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: performance-baseline-${{ github.run_id }}
           path: artifacts/performance/

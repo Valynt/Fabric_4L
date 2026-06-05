@@ -54,7 +54,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Cosign
         uses: sigstore/cosign-installer@v3.8.1
@@ -62,7 +62,7 @@ jobs:
           cosign-release: 'v2.4.0'
 
       - name: Log in to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -110,7 +110,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@v0.17.0
@@ -148,7 +148,7 @@ jobs:
           echo "SPDX SBOM generated: $OUTPUT"
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-${{ matrix.layer }}
           path: |
@@ -174,10 +174,10 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, frontend]
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Log in to Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -194,7 +194,7 @@ jobs:
 
       - name: Generate SLSA provenance
         id: slsa-provenance
-        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@v2.0.0
+        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@v2.1.0
         with:
           path: "${{ matrix.layer }}-subjects.txt"
 
@@ -204,7 +204,7 @@ jobs:
           ls -la *.intoto.jsonl || echo "Provenance files in directory"
 
       - name: Upload provenance artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: provenance-${{ matrix.layer }}
           path: |
@@ -225,7 +225,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: attestations/
           pattern: '*'
@@ -247,7 +247,7 @@ jobs:
           cosign sign-blob --yes "$BUNDLE" --output-signature="$BUNDLE.sig"
 
       - name: Upload signed bundle
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: attestations-${{ env.IMAGE_TAG }}
           path: |

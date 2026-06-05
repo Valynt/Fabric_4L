@@ -38,7 +38,7 @@ jobs:
 
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -81,7 +81,7 @@ jobs:
 
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.event.pull_request.head.sha }}
 
@@ -133,7 +133,7 @@ jobs:
             tests/performance/k6/l2_l3_l4_critical_paths.js
 
       - name: Upload PR results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: pr-performance-results
           path: artifacts/performance/pr-summary.json
@@ -147,20 +147,20 @@ jobs:
 
     steps:
       - name: Checkout main branch
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           ref: main
           path: baseline
 
       - name: Download baseline results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: baseline-performance
           path: baseline-artifacts/
         # CONTRACT ENFORCEMENT: Baseline required for performance comparison
 
       - name: Download PR results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pr-performance-results
           path: pr-artifacts/
@@ -179,7 +179,7 @@ jobs:
           echo "exit_code=$?" >> $GITHUB_OUTPUT
 
       - name: Comment PR with results
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             const fs = require('fs');
@@ -209,7 +209,7 @@ jobs:
 
     steps:
       - name: Checkout PR code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Cleanup Docker Compose
         run: |
@@ -238,13 +238,13 @@ jobs:
 
     steps:
       - name: Download PR results
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           name: pr-performance-results
           path: new-baseline/
 
       - name: Update baseline artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: baseline-performance
           path: new-baseline/pr-summary.json

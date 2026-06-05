@@ -23,7 +23,7 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event.schedule == '0 4 * * 0' || inputs.experiment == 'pod-delete'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
       - name: Run pod-delete chaos
         run: |
           kubectl apply -f k8s/chaos/litmus-experiments/pod-delete.yaml

@@ -46,7 +46,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Generate source SBOM (CycloneDX)
         uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
@@ -66,7 +66,7 @@ jobs:
         # BLOCKING: HIGH/CRITICAL vulnerabilities fail the build
 
       - name: Upload source SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         if: always()
         with:
           name: source-sbom-${{ matrix.layer }}-${{ github.sha }}
@@ -76,7 +76,7 @@ jobs:
           retention-days: 30
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v4.35.4
         if: always()
         with:
           sarif_file: source-${{ matrix.layer }}-vulns.sarif
@@ -99,7 +99,7 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Generate CycloneDX SBOM
         run: |
@@ -122,7 +122,7 @@ jobs:
         # Never exemptible: Security scans must not soft-fail
 
       - name: Upload SBOM artifacts
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: sbom-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: |
@@ -132,7 +132,7 @@ jobs:
           retention-days: 90
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v4.35.4
         if: always()
         with:
           sarif_file: ${{ matrix.layer }}-vulns.sarif
@@ -157,10 +157,10 @@ jobs:
         layer: [layer1-ingestion, layer2-extraction, layer3-knowledge, layer4-agents, layer5-ground-truth, layer6-benchmarks, apps-web]
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Log in to Container Registry
-        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
+        uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -175,12 +175,12 @@ jobs:
           echo "$DIGEST" > ${{ matrix.layer }}-subject.txt
 
       - name: Generate SLSA provenance
-        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@0f8f8ad6f4e4ed25d2d64415f3344f7a48adf578
+        uses: slsa-framework/slsa-github-generator/actions/generator/generic/create-base64-subjects-from-file@4d014fae4dbd39eb09e8d40348b73db095e6ba9a
         with:
           path: "${{ matrix.layer }}-subject.txt"
 
       - name: Upload provenance
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: provenance-${{ matrix.layer }}-${{ env.IMAGE_TAG }}
           path: "*.intoto.jsonl"
@@ -225,7 +225,7 @@ jobs:
     timeout-minutes: 20
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Audit Python dependencies
         run: |
@@ -267,7 +267,7 @@ jobs:
           pnpm --dir apps/web audit --audit-level high --json > frontend-audit.json || true
 
       - name: Upload audit results
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: dependency-audit-${{ github.sha }}-${{ steps.web_lock_hash.outputs.lock_hash }}
           path: "*-audit.json"
@@ -284,7 +284,7 @@ jobs:
     timeout-minutes: 15
 
     steps:
-      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Check Python licenses
         run: |
@@ -326,7 +326,7 @@ jobs:
 
       - name: Upload license report
         if: always()
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: license-report-${{ github.sha }}
           path: license-reports/
@@ -386,7 +386,7 @@ jobs:
           cat supply-chain-report.md
 
       - name: Upload report
-        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: supply-chain-report-${{ env.IMAGE_TAG }}
           path: supply-chain-report.md

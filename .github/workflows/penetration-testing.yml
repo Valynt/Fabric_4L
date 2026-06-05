@@ -43,10 +43,10 @@ jobs:
     if: github.event.inputs.scan_type != 'nikto-only'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Set up Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
@@ -93,7 +93,7 @@ jobs:
             --use-docker || true
 
       - name: Upload ZAP results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: zap-scan-results
           path: |
@@ -101,7 +101,7 @@ jobs:
           retention-days: 90
 
       - name: Upload SARIF to GitHub Security
-        uses: github/codeql-action/upload-sarif@3ce22a6e336a7fcc318bc58ae1986395bdc83ba7 # v4.35.4
+        uses: github/codeql-action/upload-sarif@dd903d2e4f5405488e5ef1422510ee31c8b32357 # v4.35.4
         if: always()
         with:
           sarif_file: zap-results/zap-results.sarif
@@ -128,7 +128,7 @@ jobs:
     if: github.event.inputs.scan_type != 'zap-only'
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Start test stack
         run: |
@@ -144,7 +144,7 @@ jobs:
             --timeout 1200 || true
 
       - name: Upload Nikto results
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: nikto-scan-results
           path: |
@@ -172,10 +172,10 @@ jobs:
     if: always()
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: penetration-results/
           merge-multiple: true
@@ -206,7 +206,7 @@ jobs:
           EOF
 
       - name: Upload consolidated report
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: penetration-test-report-${{ github.run_id }}
           path: |
@@ -215,7 +215,7 @@ jobs:
 
       - name: Update PR with results
         if: github.event_name == 'pull_request'
-        uses: actions/github-script@v7
+        uses: actions/github-script@v9
         with:
           script: |
             github.rest.issues.createComment({
