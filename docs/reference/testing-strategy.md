@@ -143,11 +143,11 @@ Contract tests are the primary enforcement mechanism for behavior-first testing.
 
 | Journey | Location | Tool | Browsers |
 |---------|----------|------|----------|
-| Authentication | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Value Pack Workflow | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Agent Workflow | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Knowledge Graph | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
-| Evidence Export | `frontend/e2e/` | Playwright | Chrome, Firefox, Safari |
+| Authentication | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Value Pack Workflow | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Agent Workflow | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Knowledge Graph | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
+| Evidence Export | `apps/web/e2e/journeys/` | Playwright | Chrome, Firefox, Safari |
 
 **Behavior-first requirement:** E2E tests must cover critical denied paths (e.g., unauthenticated redirect, insufficient permissions) in addition to golden paths.
 
@@ -158,7 +158,7 @@ Contract tests are the primary enforcement mechanism for behavior-first testing.
 | API Latency | `tests/performance/` | p95 < 200ms | `performance` |
 | Search Latency | `tests/performance/` | p95 < 2s | `performance` |
 | Load Tests | `tests/performance/` | 50 concurrent | `performance` |
-| Frontend LCP | `frontend/e2e/performance/` | < 2.5s | `performance` |
+| Frontend LCP | `apps/web/e2e/` | < 2.5s | `performance` |
 
 ### 6. Security Tests
 
@@ -179,10 +179,10 @@ Contract tests are the primary enforcement mechanism for behavior-first testing.
 
 | Test | Location | Standard | Tool |
 |------|----------|----------|------|
-| WCAG 2.1 AA Audit | `frontend/e2e/accessibility/` | WCAG 2.1 AA | axe-core |
-| Keyboard Navigation | `frontend/e2e/accessibility/` | WCAG 2.1.1 | Playwright |
-| Screen Reader | `frontend/e2e/accessibility/` | WCAG 4.1.2 | Playwright |
-| Mobile A11y | `frontend/e2e/accessibility/` | WCAG 2.1 | axe-core |
+| WCAG 2.1 AA Audit | `apps/web/scripts/a11y/` (axe scan) | WCAG 2.1 AA | axe-core |
+| Keyboard Navigation | `apps/web/e2e/` | WCAG 2.1.1 | Playwright |
+| Screen Reader | `apps/web/e2e/` | WCAG 4.1.2 | Playwright |
+| Component A11y | `apps/web/src/**/*.a11y.spec.tsx` | WCAG 2.1 | jest-axe |
 
 ---
 
@@ -241,6 +241,12 @@ All test data created via Factory Boy patterns in `tests/factories.py`:
 - `AuditLogEntryFactory` - Audit log entries
 
 ### Test Markers
+
+> The canonical, authoritative marker list lives in [`pytest.ini`](../../pytest.ini)
+> (55 markers). The subset below is the most commonly used; do not treat it as
+> exhaustive. Security/isolation markers such as `tenant_boundary`,
+> `cross_tenant_write`, `auth_boundaries`, `production_safety`, and
+> `contract_static` are also enforced by CI gates.
 
 ```ini
 markers =
