@@ -799,6 +799,17 @@ For every production-critical workflow, encode:
 
 If behavior is not explicitly intended, it **fails closed by default**.
 
+### Readiness Ladder (do not claim "ready" from static resolution alone)
+
+"Ready" is a four-stage ladder; no stage may be skipped:
+
+1. **Static contract resolved** — `make check-behavior-contract` (capabilities map to allowed + denied tests; static only).
+2. **Behavior tests executed** — `pnpm run test:critical-behaviors` (the tests actually run and pass).
+3. **Readiness audit passed** — `make check-behavior-readiness-audit` (executes the suites, enforces skip discipline, emits GREEN/YELLOW/RED to `artifacts/readiness/behavior-readiness-audit.json`).
+4. **Production ready** — `make production-readiness-gate` (canonical gate; the `behavior-readiness` gate is wired into the `mainline-full`, `release-candidate`, `production-core`, and `tier0-production-safety` profiles).
+
+A passing static contract (Stage 1) does **not** authorize a "ready" claim. Skips/xfails are only tolerated if benign + not-applicable or covered by an active, time-boxed waiver in `config/ci/behavior_readiness_waivers.yaml`; anything else is **RED**. See [`docs/governance/behavior-first-testing.md`](docs/governance/behavior-first-testing.md#readiness-ladder-from-static-resolution-to-production-ready).
+
 ### Security-Sensitive Changes
 
 For security-sensitive changes, include hostile tests.

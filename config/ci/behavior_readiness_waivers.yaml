@@ -1,0 +1,46 @@
+# Behavior Readiness Audit — Skip/Xfail Waiver Register
+#
+# Governs which skipped or xfailed tests are tolerable in the behavior-readiness
+# audit (scripts/ci/behavior_readiness_audit.py).
+#
+# Operating principle: No critical behavior exists unless it is tested.
+# A skip is only acceptable if it is either:
+#   1. benign + not-applicable  (a parametrized case that legitimately does not
+#      apply, e.g. a read-only endpoint family has no write methods), OR
+#   2. an explicitly waived, owned, time-boxed exception.
+#
+# Anything else (route-not-found, import error, missing dependency, fixture
+# unavailable, environment not configured, expired waiver) => RED.
+#
+# Status semantics produced by the audit:
+#   GREEN  = all executable gates pass; only benign not_applicable skips remain.
+#   YELLOW = all executable gates pass, but one or more active waivers remain.
+#   RED    = any failure, OR any unwaived/expired skip/xfail, OR static contract
+#            unresolved.
+
+version: 1
+
+# Benign skip reasons that are structurally not-applicable and DO NOT downgrade
+# GREEN. Each pattern is matched as a substring against the pytest skip message.
+# These represent parametrized matrix cells that legitimately do not apply.
+benign_skip_patterns:
+  - id: benign-no-write-methods
+    message_pattern: "has no write methods"
+    category: not_applicable
+    owner: "@value-fabric/security-leads"
+    reason: >-
+      Read-only endpoint families (e.g. L3 graph_viz GET /graph) have no
+      POST/PUT/DELETE/PATCH routes, so write-auth and optional-context-on-write
+      assertions do not apply. This is structural, not a coverage gap.
+
+# Time-boxed, owned waivers. Presence of ANY active waiver here downgrades the
+# audit from GREEN to YELLOW. Expired waivers downgrade to RED.
+# Schema per entry:
+#   id:               unique waiver id
+#   message_pattern:  substring matched against the skip/xfail message
+#   skip_id:          optional stable test node id substring
+#   owner:            GitHub team/handle accountable for removal
+#   reason:           why the skip is temporarily tolerated
+#   ticket:           tracking issue id
+#   expires_on:       YYYY-MM-DD; after this date the waiver fails closed (RED)
+waivers: []

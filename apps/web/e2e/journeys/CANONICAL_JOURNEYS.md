@@ -101,6 +101,24 @@ This journey validates that the platform correctly enforces RBAC and tier-based 
 | `j23-personal-settings.spec.ts` | Personal profile/security/preferences/notifications/sessions/activity | happy path | mocked | direct `/personal/*` route coverage, session controls, notification preferences, and personal audit activity | **P1 production confidence** — personal settings |
 | `debug-sidebar.spec.ts`, `debug-ui.spec.ts`, `full-ui-debug.spec.ts` | Diagnostics only | debug | mocked/manual | route/surface diagnostics and exploratory smoke output | **Excluded from normal CI via `@debug` tag** |
 
+## Behavior-First Contracts
+
+Each canonical journey has a corresponding **behavior contract** in `e2e/behaviors/` that explicitly encodes:
+
+1. **Allowed behaviors** — what must happen when a valid actor performs a valid action.
+2. **Denied behaviors** — what must happen when an invalid actor, action, or request occurs.
+3. **Expected failure modes** — explicit redirects, error states, disabled actions, or safe defaults.
+4. **Cross-layer proof** — UI action → API call → persistence → UI update.
+
+| Behavior Spec | Journey | Allowed | Denied |
+|---|---|---|---|
+| `j1-ingestion.behavior.spec.ts` | J1 | Submit domain, track job, explore value tree | Invalid domain, empty submission, cross-tenant leakage |
+| `j2-intelligence.behavior.spec.ts` | J2 | View signals/drivers/evidence, agent synthesis | Unsupported claims, low-confidence promotion, cross-tenant signals |
+| `j3-value-studio.behavior.spec.ts` | J3 | Tab nav, formula recalc, narrative, approved export | Export before approval, invalid formula, unauthorized access |
+| `j4-governance.behavior.spec.ts` | J4 | Decision traces, audit log, health monitor | Cross-tenant audit, missing provenance, unauthorized access |
+
+These behavior specs run in mocked mode by default and complement the golden-path journey tests by proving the **denied paths** and **failure modes** that journeys alone do not cover.
+
 ## Consolidation Decisions
 
 - Canonical ownership remains with `j1`–`j5` files (plus `j0` auth preflight) for required CI journey coverage.

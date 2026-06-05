@@ -3,7 +3,7 @@
 Tests explicit hostile cross-tenant access patterns for each layer's endpoint family:
 - L1: /api/v1/ingestion/**
 - L2: /signals/**
-- L3: /v1/entities/**, /v1/graph/**, /v1/search/**
+- L3: /v1/entities/** (entities.py), /v1/graph/** (graph_viz.py), /v1/search/** (query_search.py)
 - L4: /v1/workflows/**, /v1/accounts/**
 - L5: /api/v1/truths/**
 - L6: /v1/benchmarks/**
@@ -50,15 +50,15 @@ ENDPOINT_FAMILIES: Dict[str, tuple[str, Path, List[str]]] = {
     ),
     "L3_graph": (
         "L3",
-        REPO_ROOT / "services/layer3-knowledge/src/api/routes/graph.py",
+        REPO_ROOT / "services/layer3-knowledge/src/api/routes/graph_viz.py",
         "/v1/graph",
-        ["GET", "POST"],
+        ["GET"],
     ),
     "L3_search": (
         "L3",
-        REPO_ROOT / "services/layer3-knowledge/src/api/routes/search.py",
+        REPO_ROOT / "services/layer3-knowledge/src/api/routes/query_search.py",
         "/v1/search",
-        ["GET", "POST"],
+        ["POST"],
     ),
     "L4_workflows": (
         "L4",
@@ -134,6 +134,10 @@ class TestHostileCrossTenanEndpointFamilyContracts:
             "require_admin",
             "tenant_required",
             "get_request_context",  # Layer 6 uses this for auth + tenant context
+            "require_request_tenant_id",  # Layer 3 graph_viz fail-closed tenant guard
+            "require_tenant_context",  # Layer 3 canonical tenant context dependency
+            "create_neo4j_tenant_session",  # Layer 3 tenant-scoped Neo4j session
+            "TenantAccessError",  # Layer 3 query_search inline fail-closed tenant check
         }
         has_guard = bool(deps & acceptable_guards) or any(
             guard in src for guard in acceptable_guards
@@ -165,6 +169,10 @@ class TestHostileCrossTenanEndpointFamilyContracts:
                 "get_request_context",
                 "require_admin",
                 "tenant_required",
+                "require_request_tenant_id",
+                "require_tenant_context",
+                "create_neo4j_tenant_session",
+                "TenantAccessError",
             ]
         )
         assert has_auth, (

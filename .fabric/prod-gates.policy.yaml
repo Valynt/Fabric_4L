@@ -40,6 +40,7 @@ profiles:
       - obs
       - db-readiness
       - release-policy
+      - behavior-readiness
       - summary
 
   release-candidate:
@@ -61,6 +62,7 @@ profiles:
       - db-readiness
       - release-policy
       - sign-manifest
+      - behavior-readiness
       - summary
 
 
@@ -78,6 +80,7 @@ profiles:
       - secrets-readiness
       - deployment-readiness
       - launch-blockers
+      - behavior-readiness
       - summary
 
   tier0-production-safety:
@@ -91,6 +94,7 @@ profiles:
       - secrets-readiness
       - auth-readiness
       - launch-blockers
+      - behavior-readiness
       - summary
 
   tier1-beta-readiness:
@@ -352,6 +356,14 @@ gate-definitions:
     class: artifact
     artifact-dir: artifacts/release
     required: true
+
+  behavior-readiness:
+    target: gate-behavior-readiness
+    description: "Executable, skip-controlled behavior readiness audit: static contract resolution + executed behavior tests + route auth, with GREEN/YELLOW/RED machine-readable output and fail-closed skip discipline"
+    class: blocking
+    artifact-dir: artifacts/readiness
+    required: true
+    artifact: artifacts/readiness/behavior-readiness-audit.json
 
 deployment_profiles:
   production-core:

@@ -15,6 +15,7 @@
 	gate-api-contracts gate-auth-readiness gate-secrets-readiness gate-deployment-readiness \
 	gate-launch-blockers gate-frontend-readiness gate-reliability-readiness gate-rollback-readiness \
 	gate-performance-readiness gate-data-governance-readiness gate-compliance-readiness gate-incident-response-readiness \
+	gate-behavior-readiness check-behavior-readiness-audit \
 	gates-validate-policy gates-sign-manifest gates-render-summary release-gate \
 	db-production-readiness-gate architecture-readiness-gate security-readiness-gate gate-all \
 	gate-production gate-production-core tier0-production-safety-gate tier1-beta-readiness-gate tier2-enterprise-readiness-gate production-readiness-gate \
@@ -30,6 +31,7 @@
 	check-test-skip-register-uniqueness \
 	check-raw-http-exception-usage \
 	check-behavior-contract \
+	check-behavior-readiness-audit \
 	harness-task harness-guard harness-check \
 	docs-harness
 
@@ -65,7 +67,7 @@ VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
-	check-value-fabric-public-imports check-legacy-debt check-behavior-contract verify-structure docs-harness
+	check-value-fabric-public-imports check-legacy-debt check-behavior-contract check-behavior-readiness-audit verify-structure docs-harness
 
 verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
@@ -188,6 +190,10 @@ check-legacy-debt: ## Enforce legacy debt baseline (markers + legacy directories
 check-behavior-contract: ## Enforce behavior contract registry (every capability has allowed + denied tests)
 	@mkdir -p artifacts
 	@$(PYTHON) scripts/ci/check_behavior_contract.py --strict --write-report artifacts/behavior-contract.json
+
+check-behavior-readiness-audit: ## Enforce executable, skip-controlled behavior readiness audit (GREEN/YELLOW/RED)
+	@mkdir -p artifacts/readiness
+	@$(PYTHON) scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
 
 
 verify-strict: verify contract-drift ## Full verification including contract drift detection (slower)
@@ -793,6 +799,12 @@ gate-auth-readiness: check-keycloak-realm-seed-security ## Gate: route auth depe
 	@$(PYTHON) scripts/ci/check_route_auth_dependencies.py
 	@$(PYTHON) scripts/ci/check_auth_bypass.py
 	@echo "✅  gate-auth-readiness passed"
+
+gate-behavior-readiness: ## Gate: executable, skip-controlled behavior readiness audit (GREEN/YELLOW/RED)
+	@echo "→ Gate: Behavior Readiness Audit"
+	@mkdir -p artifacts/readiness
+	@$(PYTHON) scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
+	@echo "✅  gate-behavior-readiness passed"
 
 gate-secrets-readiness: check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene ## Gate: committed secret hygiene and secret mapping invariants
 	@echo "→ Gate: Secrets Readiness"

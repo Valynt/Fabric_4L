@@ -126,6 +126,64 @@ Before merging a production-critical capability:
 
 ---
 
+## Readiness Ladder: From Static Resolution to Production Ready
+
+"Ready" is **not** a single boolean. It is a four-stage ladder. Each stage is a
+strictly stronger claim than the one below it, and **no stage may be skipped**.
+Critically, **a passing static contract (Stage 1) does not by itself authorize a
+"ready" claim** — that requires Stages 2 and 3 as well.
+
+| Stage | Claim | Proven by | Command |
+|---|---|---|---|
+| 1. Static contract resolved | Every capability *maps to* an allowed + denied test that exists | `scripts/ci/check_behavior_contract.py` (static, no pytest) | `make check-behavior-contract` |
+| 2. Behavior tests executed | Those tests *actually run and pass* (not just resolve on paper) | pytest JUnit run of the critical-behavior suites | `pnpm run test:critical-behaviors` |
+| 3. Readiness audit passed | Executed results are aggregated, **skips/xfails are controlled**, and a GREEN/YELLOW/RED status is emitted | `scripts/ci/behavior_readiness_audit.py` | `make check-behavior-readiness-audit` / `make gate-behavior-readiness` |
+| 4. Production ready | The full canonical production gate passes **with** the behavior readiness audit wired in | policy-driven release gate + production readiness | `make production-readiness-gate` (profiles include `behavior-readiness`) |
+
+### Why each stage is necessary
+
+- **Stage 1 alone is insufficient.** A contract can resolve to a test that
+  exists but is skipped, xfailed, or never executed. Static resolution proves
+  *intent is mapped*, not that *behavior holds*.
+- **Stage 2 alone is insufficient.** Tests can pass while silently skipping
+  matrix cells (e.g. a route file moved and the test fell back to `pytest.skip`).
+  A green pytest run can still hide an unexecuted contract.
+- **Stage 3 closes the skip loophole.** The readiness audit fails closed on any
+  unexpected skip or xfail. A skip is tolerated **only** if it is either:
+  - **benign + not-applicable** (matched by `benign_skip_patterns` in
+    `config/ci/behavior_readiness_waivers.yaml`, e.g. a read-only endpoint
+    family has no write methods), or
+  - covered by an **active, owned, time-boxed waiver** in the same file.
+  Anything else (route-not-found, import error, missing dependency, expired
+  waiver) produces **RED**.
+- **Stage 4 is the only stage that authorizes release.** It runs the canonical
+  production-readiness gate with `behavior-readiness` wired into the
+  `mainline-full`, `release-candidate`, `production-core`, and
+  `tier0-production-safety` profiles.
+
+### Status semantics (Stage 3 audit output)
+
+The audit writes a machine-readable report to
+`artifacts/readiness/behavior-readiness-audit.json` containing the gate name,
+command, pass/fail, `passed_count`, `failed_count`, `skipped_count`,
+`xfailed_count`, `waiver_references`, `benign_skips`, and `final_status`:
+
+| Status | Meaning |
+|---|---|
+| **GREEN** | All executable gates pass; only benign not-applicable skips remain. |
+| **YELLOW** | All executable gates pass, but one or more active documented waivers remain. |
+| **RED** | Any failure, OR any unwaived/expired skip/xfail, OR the static contract is unresolved. |
+
+### Hard rule
+
+> Do **not** claim the repository is "ready" or "production-ready" from a passing
+> static contract alone. A "ready" claim requires the canonical readiness path to
+> **execute** behavior contracts (Stage 2) and the readiness audit to report
+> **GREEN or YELLOW with all skips/xfails resolved or explicitly waived**
+> (Stage 3). Production release requires Stage 4.
+
+---
+
 ## Relation to Other Documents
 
 - For tactical test execution commands, markers, and coverage targets, see [`docs/reference/testing-strategy.md`](../../docs/reference/testing-strategy.md).

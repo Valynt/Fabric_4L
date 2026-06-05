@@ -8,7 +8,8 @@ import { fileURLToPath } from 'node:url';
  * Test layers:
  *   1. contracts/  — Isolated page-level contract tests (fast, mocked)
  *   2. journeys/   — Chained user journey tests (live or contract mode)
- *   3. accessibility/ — Accessibility audits
+ *   3. behaviors/  — Behavior-first allowed/denied path tests (mocked, cross-layer)
+ *   4. accessibility/ — Accessibility audits
  *
  * Standards:
  * - Journey tests run against real backend when PLAYWRIGHT_BACKEND_URL is set

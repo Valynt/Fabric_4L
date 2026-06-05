@@ -2125,6 +2125,9 @@ jobs:
       - name: Run critical behaviors tests (frontend + backend + route auth)
         run: pnpm run test:critical-behaviors
 
+      - name: Run behavior readiness audit (executable, skip-controlled, GREEN/YELLOW/RED)
+        run: python scripts/ci/behavior_readiness_audit.py --report artifacts/readiness/behavior-readiness-audit.json
+
       - name: Save critical-behaviors evidence
         if: always()
         run: |
@@ -2137,6 +2140,14 @@ jobs:
         with:
           name: critical-behaviors-gate-result
           path: artifacts/critical-behaviors-gate/result.json
+          retention-days: 14
+
+      - name: Upload behavior readiness audit report
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: behavior-readiness-audit-report
+          path: artifacts/readiness/behavior-readiness-audit.json
           retention-days: 14
 
   unified-readiness-gate:

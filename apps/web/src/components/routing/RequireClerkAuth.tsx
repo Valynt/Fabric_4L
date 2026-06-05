@@ -17,8 +17,8 @@
  * verified Fabric4L envelope, never anything from the browser.
  */
 import { useAuth, useOrganization } from "@clerk/react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { useEffect, type ReactNode } from "react";
+import { Navigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
@@ -54,7 +54,6 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
-  const navigate = useNavigate();
   const urls = getClerkUrls();
   const { isLoaded: orgLoaded, organization } = useOrganization();
 
@@ -62,14 +61,8 @@ function RequireClerkAuthOrgCheck({
     return <ClerkLoadingFallback />;
   }
 
-  useEffect(() => {
-    if (requireOrganization && !organization) {
-      navigate(urls.selectOrgUrl, { replace: true });
-    }
-  }, [requireOrganization, organization, navigate, urls.selectOrgUrl]);
-
   if (requireOrganization && !organization) {
-    return <ClerkLoadingFallback />;
+    return <Navigate to={urls.selectOrgUrl} replace />;
   }
 
   return <>{children}</>;
@@ -79,7 +72,6 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
-  const navigate = useNavigate();
   const location = useLocation();
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -88,17 +80,11 @@ function RequireClerkAuthInner({
     return <ClerkLoadingFallback />;
   }
 
-  useEffect(() => {
-    if (!isSignedIn) {
-      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-        location.pathname + location.search,
-      )}`;
-      navigate(redirectTo, { replace: true });
-    }
-  }, [isSignedIn, navigate, urls.signInUrl, location.pathname, location.search]);
-
   if (!isSignedIn) {
-    return <ClerkLoadingFallback />;
+    const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+      location.pathname + location.search,
+    )}`;
+    return <Navigate to={redirectTo} replace />;
   }
 
   return (
