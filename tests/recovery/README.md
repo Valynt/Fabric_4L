@@ -19,7 +19,7 @@ This suite validates backup, restore, and disaster recovery readiness without to
 - `tests/recovery/test_restore_file_assets.py`
 - `tests/recovery/test_restore_audit_logs.py`
 - `tests/recovery/test_restore_billing_state.py`
-- `.github/workflows/restore-verification.yml`
+- `.github/workflows/dr-drill.yml`
 - `scripts/ops/restore_dry_run.py`
 
 ## Known Gaps
@@ -62,4 +62,3 @@ bash scripts/ops/test_postgres_backup_restore.sh
 ```
 
 That drill requires Docker and writes checksum evidence to `artifacts/postgres-backup-restore/`.
-

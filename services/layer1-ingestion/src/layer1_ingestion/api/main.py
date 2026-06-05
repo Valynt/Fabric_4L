@@ -2,6 +2,7 @@
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     AuthorizationError,
+    BadRequestError,
     ConflictError,
     NotFoundError,
     ServiceUnavailableError,
@@ -55,6 +56,7 @@ try:
     from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
     from value_fabric.shared.identity.vault_check import is_vault_healthy
     from value_fabric.shared.models.typed_dict import TypedDictModel
+    from value_fabric.shared.observability.metrics_access import verify_metrics_access
     from value_fabric.shared.security import SecurityConfig, add_security_middleware
     from value_fabric.shared.startup import reject_insecure_bypass_in_production
 except ImportError as e:
@@ -2762,7 +2764,7 @@ async def list_source_corpora(
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(SourceCorpus.created_at < cursor_dt)
         except ValueError:
-            raise ValidationError(
+            raise BadRequestError(
                 message="Invalid cursor format; expected ISO-8601 datetime"
             )
 
@@ -2837,7 +2839,7 @@ async def list_account_intelligence_packets(
             cursor_dt = _dt.fromisoformat(cursor)
             q = q.filter(AccountIntelligencePacket.created_at < cursor_dt)
         except ValueError:
-            raise ValidationError(
+            raise BadRequestError(
                 message="Invalid cursor format; expected ISO-8601 datetime"
             )
 
@@ -3303,6 +3305,9 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
 
 async def metrics_endpoint(request: Request):
     """Prometheus-compatible metrics endpoint."""
+    if not verify_metrics_access(request):
+        raise AuthorizationError(message="Metrics endpoint requires internal access")
+
     metrics = get_metrics()
 
     if not metrics:

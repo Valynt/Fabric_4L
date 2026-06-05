@@ -127,7 +127,7 @@ DIMENSIONS: tuple[Dimension, ...] = (
     Dimension("security_posture", "Security posture", (
         Check("security_doc", "Security policy documentation exists.", "SECURITY.md"),
         Check("critical_gates", "Critical security gates workflow exists.", ".github/workflows/critical-gates.yml"),
-        Check("security_workflow", "Security validation workflow exists.", ".github/workflows/security-validation.yml"),
+        Check("security_workflow", "Security gates workflow exists.", ".github/workflows/security-gates.yml"),
         Check("tenant_security_tests", "Tenant isolation tests exist.", "tests/security", "tenant"),
         Check("zero_trust_validation", "Zero-trust validation script exists.",
               "scripts/security/zero_trust_checks.sh"),
@@ -414,13 +414,13 @@ def _package_script_regression(root: Path) -> dict[str, Any]:
 
 
 def _readiness_workflow_regressions(root: Path) -> list[dict[str, Any]]:
-    workflow = root / ".github" / "workflows" / "launch-readiness.yml"
+    workflow = root / ".github" / "workflows" / "prod-readiness.yml"
     if not workflow.exists():
-        return [{"id": "launch_readiness_workflow", "status": "fail", "description": "launch-readiness workflow is missing"}]
+        return [{"id": "prod_readiness_workflow", "status": "fail", "description": "prod-readiness workflow is missing"}]
     text = workflow.read_text(encoding="utf-8")
     checks = (
-        ("launch_readiness_runs_readiness_10", "pnpm readiness:10" in text, "launch-readiness workflow runs pnpm readiness:10"),
-        ("launch_readiness_uploads_readiness_artifacts", "artifacts/readiness-10/**" in text, "launch-readiness workflow uploads readiness artifacts"),
+        ("prod_readiness_runs_readiness_10", "pnpm readiness:10" in text, "prod-readiness workflow runs pnpm readiness:10"),
+        ("prod_readiness_uploads_readiness_artifacts", "artifacts/readiness-10/**" in text, "prod-readiness workflow uploads readiness artifacts"),
         ("launch_readiness_gate_is_blocking", "pnpm readiness:10 || true" not in text and "pnpm readiness:10 ||" not in text, "readiness:10 is not guarded by || true"),
     )
     return [

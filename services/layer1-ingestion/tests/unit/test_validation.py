@@ -431,6 +431,12 @@ class TestValidationStageTask:
 
         return session
 
+    def _run_validation_stage(self, validation_stage, job, job_id=None):
+        return validation_stage.run(
+            {"job_id": str(job_id or uuid4())},
+            tenant_id=str(job.tenant_id),
+        )
+
     def test_no_schema_completes_without_modifying_extracted(self) -> None:
         """When no extraction_schema is configured, stage completes successfully."""
         from layer1_ingestion.shared.tasks import validation_stage
@@ -440,7 +446,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         # ExtractedData must not have been touched
@@ -460,7 +466,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is True
@@ -484,7 +490,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is False
@@ -500,7 +506,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted=None)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
 
@@ -515,7 +521,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            validation_stage.run({"job_id": str(uuid4())})
+            self._run_validation_stage(validation_stage, job)
 
         # Verify .filter() was called (tenant_id scoping)
         assert session.query.return_value.filter.called
@@ -556,7 +562,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            result = validation_stage.run({"job_id": str(uuid4())})
+            result = self._run_validation_stage(validation_stage, job)
 
         assert result["success"] is True
         assert extracted.validation_schema_valid is None
@@ -574,7 +580,7 @@ class TestValidationStageTask:
         session = self._make_session(job, extracted)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=session):
-            validation_stage.run({"job_id": str(uuid4())})
+            self._run_validation_stage(validation_stage, job)
 
         assert extracted.validation_schema_valid is False
         assert len(extracted.validation_errors) >= 1

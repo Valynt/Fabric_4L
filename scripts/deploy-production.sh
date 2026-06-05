@@ -248,9 +248,10 @@ phase "Phase 2 — CI pipeline health"
 
 REQUIRED_WORKFLOWS=(
   "build-deploy.yml"
-  "test-mandatory.yml"
-  "security-gate.yml"
+  "pr-checks.yml"
+  "security-gates.yml"
   "contract-compliance.yml"
+  "prod-readiness.yml"
 )
 
 if ! command -v gh &>/dev/null; then

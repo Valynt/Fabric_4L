@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **72** GitHub Actions workflow files.
+This directory currently contains **42** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -10,53 +10,51 @@ and deprecation inventory lives in:
 - `workflow-registry.json`
 - `WORKFLOW_REGISTRY.md`
 
+S6-6 caps this directory at fewer than 50 workflow YAML files. New workflow files
+must be justified in the registry and should prefer adding a profile or matrix job
+to an existing canonical workflow.
+
 ## Workflow Tiers
 
-### Required (PR merge gates)
-These are primary PR gate workflows (blocking when configured in branch protection):
+### Required / Blocking Gates
 
 | Workflow | Purpose | Trigger |
 |----------|---------|---------|
-| `pr-checks.yml` | Multi-layer lint/typecheck/tests/policy checks | `pull_request` (main), `push` (main) |
-| `critical-gates.yml` | Merge-blocking auth/tenant/OpenAPI/config critical gates | `pull_request` (main), `push` (main) |
-| `contract-compliance.yml` | Contract lint + drift and compliance checks | `pull_request` (contract paths), `schedule`, `workflow_dispatch` |
-| `security-gates.yml` | SAST/container/dependency security scans | `pull_request` (main), `push` (main), `schedule` |
-| `k8s-readiness.yml` | Kubernetes manifest validation and policy checks | `pull_request`/`push` (k8s paths), `workflow_dispatch` |
-| `openapi-drift-check.yml` | OpenAPI export + drift detection | `pull_request` (API paths), `push` (main/develop API paths) |
+| `pr-checks.yml` | Multi-layer lint/typecheck/tests/policy checks | `pull_request`, `push` |
+| `critical-gates.yml` | Merge-blocking auth/tenant/OpenAPI/config critical gates | `pull_request`, `push` |
+| `contract-compliance.yml` | Contract lint, drift, and compliance checks | `pull_request`, `push`, `schedule`, `workflow_dispatch` |
+| `security-gates.yml` | SAST/container/dependency security scans | `pull_request`, `push`, `schedule` |
+| `k8s-readiness.yml` | Kubernetes manifest validation and policy checks | `pull_request`, `push`, `workflow_dispatch` |
+| `openapi-drift-check.yml` | OpenAPI export and drift detection | `pull_request`, `push` |
+| `prod-readiness.yml` | Release-readiness evidence and policy gates | `pull_request`, `push`, `workflow_dispatch` |
 
 ### Scheduled / Continuous Assurance
 
 | Workflow | Purpose | Trigger |
 |----------|---------|---------|
-| `integration-tests.yml` | Full Docker-based integration test suite | `schedule`, `workflow_dispatch` |
-| `smoke-gate.yml` | Cross-layer smoke tests | `schedule`, `workflow_dispatch` |
-| `performance-load-tests.yml` | K6 critical-path load testing | `push` (perf-relevant paths), `schedule`, `workflow_dispatch` |
-| `ai-evals-pipeline.yml` | Agent skill/prompt evaluation pipeline | `pull_request`/`push` (agent paths), `workflow_dispatch` |
-| `chaos-testing.yml` | Chaos engineering experiments | `schedule`, `workflow_dispatch`, `workflow_call` |
-| `secret-rotation.yml` | Secret rotation automation | `schedule`, `workflow_dispatch` |
-| `ci-failure-backlog.yml` | Weekly CI failure backlog artifacts from Actions run metadata | `schedule`, `workflow_dispatch` |
-| `cleanup-branches.yml` | Stale branch cleanup automation | `push` (main), `schedule`, `workflow_dispatch` |
-| `stale.yml` | Stale pull request lifecycle automation | `schedule`, `workflow_dispatch` |
+| `audit-evidence.yml` | Audit evidence collection | `schedule`, `workflow_call`, `workflow_dispatch` |
+| `backend-integrated-reproducibility.yml` | Backend-integrated reproducibility evidence | `workflow_dispatch` |
+| `chaos-testing.yml` | Chaos engineering experiments | `schedule`, `workflow_call`, `workflow_dispatch` |
+| `dr-drill.yml` | Disaster recovery drill orchestration | `schedule`, `workflow_dispatch` |
+| `performance-load-tests.yml` | K6 critical-path load testing | `push`, `schedule`, `workflow_dispatch` |
+| `weekly-acceptance-gates.yml` | Weekly acceptance-gate evidence | `schedule`, `workflow_dispatch` |
 
 ### Active Optional / Manual / Reusable
 
 | Workflow | Purpose | Trigger |
 |----------|---------|---------|
-| `build-deploy.yml` | Build and deploy pipeline | `push` (main), `workflow_dispatch` |
-| `deploy.yml` | Deployment workflow | `push` (main), `workflow_dispatch` |
-| `environment-promotion.yml` | Dev→Staging→Prod promotion gates | `workflow_run` (Build & Deploy), `workflow_dispatch` |
+| `build-deploy.yml` | Build and deploy pipeline | `push`, `workflow_dispatch` |
+| `deploy.yml` | Deployment workflow | `workflow_call`, `workflow_dispatch` |
+| `environment-promotion.yml` | Environment promotion gates | `workflow_dispatch`, `workflow_run` |
 | `vault-integration.yml` | Reusable Vault/OIDC secret injection workflow | `workflow_call` |
-| `penetration-testing.yml` | Manual penetration test workflow | `workflow_dispatch` |
-| `zero-trust-validation.yml` | Zero-trust/security policy checks | `pull_request`, `push` |
-| `supply-chain.yml` | Supply-chain integrity and provenance checks | `push`, `workflow_dispatch` |
-| `test-reporting.yml` | Unified test result aggregation/reporting | `workflow_run` (PR Checks/Integration Tests), `pull_request` |
-| `package-sign.yml` | Package signing workflow | `workflow_dispatch` |
-| `publish-sdk.yml` | SDK publish workflow | `workflow_dispatch`, `release` |
-| `regenerate-sdk.yml` | SDK regeneration workflow | `workflow_dispatch` |
-| `runbook-validation.yml` | Runbook reference and format validation | `pull_request`/`push` (runbook paths) |
-| `security-validation.yml` | Extended security validation | `workflow_dispatch` |
-| `audit-evidence.yml` | Audit evidence collection | `schedule`, `workflow_dispatch` |
-| `release-evidence-bundle.yml` | Release-candidate evidence bundle via `pnpm evidence:bundle` | `pull_request`, `push`, `workflow_dispatch` |
+| `penetration-testing.yml` | Penetration test workflow | `schedule`, `workflow_dispatch` |
+| `zero-trust-validation.yml` | Zero-trust/security policy checks | `pull_request`, `push`, `schedule`, `workflow_dispatch` |
+| `supply-chain.yml` | Supply-chain integrity and provenance checks | `pull_request`, `push`, `workflow_call`, `workflow_dispatch` |
+| `test-reporting.yml` | Unified test result aggregation/reporting | `pull_request`, `workflow_run` |
+| `publish-sdk.yml` | SDK publish workflow | `push`, `workflow_dispatch` |
+| `runbook-validation.yml` | Runbook reference and format validation | `pull_request`, `push` |
+| `release-evidence-bundle.yml` | Release-candidate evidence bundle | `pull_request`, `push`, `workflow_dispatch` |
+| `repo-hygiene.yml` | Repository hygiene and consolidated maintenance checks | `pull_request`, `push`, `workflow_dispatch` |
 
 ## Drift Guard
 
@@ -64,7 +62,7 @@ To prevent README/workflow filename drift and missing ownership metadata, CI val
 the workflow registry against every workflow file in `.github/workflows/`.
 
 - Guard script: `scripts/ci/verify_workflow_registry.py`
-- Guard workflow: `.github/workflows/workflow-readme-sync-check.yml`
+- Count limit: fewer than 50 workflow YAML files
 
 ## Maintenance
 

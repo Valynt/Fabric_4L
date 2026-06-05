@@ -63,7 +63,7 @@ Rendered manifests are reviewed, CI required checks passed, secrets/config are p
 
 ## Related Gates
 
-Deployment gates: structural-preflight, per-layer lint/typecheck/test jobs, contract-checks, blue-green health gate, chaos smoke gate when promoted to required, frontend verification, and backend integrated release smoke where applicable.
+Deployment gates: structural-preflight, per-layer lint/typecheck/test jobs, contract-checks, blue-green health gate, canonical chaos-testing gate when promoted to required, frontend verification, and backend integrated release smoke where applicable.
 
 ## Related Runbooks
 
@@ -115,18 +115,18 @@ This runbook applies to Kubernetes deployments under `k8s/base/`, `k8s/blue-gree
 
 ---
 
-### Chaos Smoke Gate (Informational -> Required)
+### Chaos Testing Gate
 
-- Current non-blocking workflow: `.github/workflows/chaos-smoke.yml` job `chaos-smoke-informational`.
-- Command: `scripts/ci/run_chaos_smoke.sh`.
+- Current workflow: `.github/workflows/chaos-testing.yml`.
+- Command: `scripts/ci/run_chaos_smoke.sh` remains the lightweight local smoke entrypoint.
 - Includes minimal repeatable scenarios:
   - Redis outage behavior on Layer 1 job submission.
   - Database latency spike behavior on Layer 2 extraction.
   - Downstream Layer 3 timeout impact on Layer 4 approval policy path.
 - Promotion plan:
   1. Track flakes for two consecutive weeks.
-  2. Remove `continue-on-error: true`.
-  3. Add `chaos-smoke-informational` as required in branch protection policy.
+  2. Keep required chaos evidence in the canonical `chaos-testing.yml` workflow.
+  3. Add the canonical chaos-testing check name as required in branch protection policy if it becomes merge-blocking.
 
 ---
 

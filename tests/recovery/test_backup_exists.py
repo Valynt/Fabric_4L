@@ -141,5 +141,5 @@ def test_rpo_rto_and_runbooks_are_documented() -> None:
 
 
 def test_restore_verification_workflow_exists() -> None:
-    workflow = Path(".github/workflows/restore-verification.yml")
-    assert (ROOT / workflow).exists(), "restore verification workflow must publish scheduled evidence"
+    workflow = Path(".github/workflows/dr-drill.yml")
+    assert (ROOT / workflow).exists(), "DR drill workflow must publish scheduled restore evidence"

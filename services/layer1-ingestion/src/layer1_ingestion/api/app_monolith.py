@@ -62,6 +62,7 @@ from value_fabric.shared.fastapi_framework import (
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
 from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.models.typed_dict import TypedDictModel
+from value_fabric.shared.observability.metrics_access import verify_metrics_access
 from value_fabric.shared.security import validate_production_safety
 
 from ..metrics import MetricsMiddleware, get_metrics, initialize_metrics
@@ -2902,6 +2903,9 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
 @router.get("/metrics")
 async def metrics_endpoint(request: Request):
     """Prometheus-compatible metrics endpoint."""
+    if not verify_metrics_access(request):
+        raise AuthorizationError(message="Metrics endpoint requires internal access")
+
     metrics = get_metrics()
 
     if not metrics:

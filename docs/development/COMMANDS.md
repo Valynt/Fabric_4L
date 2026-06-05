@@ -336,7 +336,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 
 | CI workflow/job | Local command | Notes |
 |---|---|---|
-| `.github/workflows/verify-gate.yml` / `make verify` | `make verify` | Canonical broad local PR gate. |
+| `.github/workflows/pr-checks.yml` / `make verify` | `make verify` | Canonical broad local PR gate after workflow consolidation. |
 | `.github/workflows/pr-checks.yml` / schema index coverage | `pnpm test:schema` | Root alias for `run_root_aggregate_checks.py schema`. |
 | `.github/workflows/pr-checks.yml` / tenant isolation gate | `pnpm test:isolation` | Root alias for tenant isolation aggregate runner. |
 | `.github/workflows/contract-compliance.yml` / contract compliance | `pnpm run check:contract-compliance` | Full contract compliance gate. |

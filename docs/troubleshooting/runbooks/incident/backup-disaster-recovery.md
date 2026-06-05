@@ -188,7 +188,7 @@ billing jobs or accepting new billing webhooks.
 ### 9. CI / Scheduled Restore Verification Evidence
 
 Restore verification runs through the scheduled/manual GitHub workflow
-`.github/workflows/restore-verification.yml`. The workflow runs:
+`.github/workflows/dr-drill.yml`. Local dry-run evidence still uses:
 
 ```bash
 python -m pytest tests/recovery/ --junitxml artifacts/recovery/junit/recovery.xml

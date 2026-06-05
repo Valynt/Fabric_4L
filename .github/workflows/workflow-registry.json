@@ -1,68 +1,8 @@
 {
   "version": 1,
   "schema_version": "2026-06-04",
-  "last_audited": "2026-06-04",
-  "duplicate_groups": [
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/codeql.yml",
-      "overlapping_workflows": [
-        ".github/workflows/codeql-analysis.yml"
-      ],
-      "reason": "Both workflows run CodeQL analysis with overlapping security coverage.",
-      "resolution_path": "Keep the pinned advanced CodeQL workflow as canonical unless branch protection requires the legacy name; retire the duplicate after required checks are updated."
-    },
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/prod-readiness.yml",
-      "overlapping_workflows": [
-        ".github/workflows/production-readiness-check.yml",
-        ".github/workflows/launch-readiness.yml"
-      ],
-      "reason": "Production, launch, and readiness workflows cover adjacent release-readiness checks.",
-      "resolution_path": "Keep policy-driven prod-readiness as canonical and fold checklist-only evidence into release-gate artifacts before deprecating duplicates."
-    },
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/chaos-testing.yml",
-      "overlapping_workflows": [
-        ".github/workflows/chaos-engineering.yml",
-        ".github/workflows/chaos-smoke.yml"
-      ],
-      "reason": "Chaos workflows split smoke, engineering, and test coverage across separate triggers.",
-      "resolution_path": "Preserve chaos-testing as the evidence-producing workflow and move lightweight smoke coverage into its matrix or scheduled profile."
-    },
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/pr-checks.yml",
-      "overlapping_workflows": [
-        ".github/workflows/test.yml",
-        ".github/workflows/test-mandatory.yml",
-        ".github/workflows/verify-gate.yml"
-      ],
-      "reason": "PR, test, mandatory-test, and verify workflows overlap on merge validation duties.",
-      "resolution_path": "Keep branch-protected pr-checks canonical; retain the others only for distinct evidence until branch protection and reporting dependencies are reviewed."
-    },
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/security-gates.yml",
-      "overlapping_workflows": [
-        ".github/workflows/security-validation.yml",
-        ".github/workflows/secret-guardrails.yml"
-      ],
-      "reason": "Security gates, security validation, and secret guardrails overlap on security posture validation.",
-      "resolution_path": "Keep security-gates canonical and move unique secret guardrails into gate-secrets-readiness before deprecation."
-    },
-    {
-      "status": "candidate-for-consolidation",
-      "canonical_workflow": ".github/workflows/layer6-wrapper-drift.yml",
-      "overlapping_workflows": [
-        ".github/workflows/layer6-dashboard-metric-drift.yml"
-      ],
-      "reason": "Layer 6 wrapper and dashboard metric drift workflows both guard Layer 6 drift surfaces.",
-      "resolution_path": "Keep layer6-wrapper-drift as the canonical wrapper drift check and fold dashboard-specific metric assertions into one Layer 6 drift workflow before deprecation."
-    }
-  ],
+  "last_audited": "2026-06-05",
+  "duplicate_groups": [],
   "workflows": [
     {
       "path": ".github/workflows/ai-evals-pipeline.yml",
@@ -137,24 +77,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/audit-snapshot.yml",
-      "name": "audit-snapshot",
-      "owner": "@value-fabric/compliance-team",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "audit_snapshot governs audit-snapshot via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "docs/audit/snapshots/latest.json"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob audit-snapshot.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/backend-integrated-reproducibility.yml",
       "name": "Backend-Integrated Reproducibility Evidence",
       "owner": "@value-fabric/sre-leads",
@@ -212,38 +134,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/chaos-engineering.yml",
-      "name": "chaos-engineering",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "chaos_engineering governs chaos-engineering via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob chaos-engineering.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/chaos-smoke.yml",
-      "name": "Chaos Smoke (Informational)",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "chaos_smoke governs Chaos Smoke (Informational) via pull_request, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob chaos-smoke.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/chaos-testing.yml",
       "name": "Chaos Engineering Tests",
       "owner": "@value-fabric/sre-leads",
@@ -268,60 +158,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/ci-failure-backlog.yml",
-      "name": "CI Failure Backlog",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "ci_failure_backlog governs CI Failure Backlog via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [
-        "artifacts/ci-failure-backlog"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob ci-failure-backlog.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/cleanup-branches.yml",
-      "name": "Cleanup Stale Branches",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "push",
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "cleanup_branches governs Cleanup Stale Branches via push, schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob cleanup-branches.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/codeql-analysis.yml",
-      "name": "CodeQL Analysis",
-      "owner": "@value-fabric/security-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "schedule"
-      ],
-      "trigger_purpose": "codeql_analysis governs CodeQL Analysis via pull_request, push, schedule",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob codeql-analysis.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/codeql.yml",
       "name": "CodeQL Advanced",
       "owner": "@value-fabric/security-leads",
@@ -336,23 +172,6 @@
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob codeql.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/compliance-evidence-integrity.yml",
-      "name": "Compliance Evidence Integrity",
-      "owner": "@value-fabric/compliance-team",
-      "trigger": [
-        "pull_request",
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "compliance_evidence_integrity governs Compliance Evidence Integrity via pull_request, schedule, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob compliance-evidence-integrity.yml",
       "deprecation_status": "active"
     },
     {
@@ -522,23 +341,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/game-day-evidence.yml",
-      "name": "Game Day Evidence Capture",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "game_day_evidence governs Game Day Evidence Capture via workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "chaos-health.json"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob game-day-evidence.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/generated-api-freshness.yml",
       "name": "Generated API Freshness",
       "owner": "@value-fabric/architects",
@@ -574,29 +376,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/integration-tests.yml",
-      "name": "Integration Tests",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "integration_tests governs Integration Tests via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [
-        "INFISICAL_IDENTITY_ID"
-      ],
-      "produced_artifacts": [
-        "${{ github.workspace }}/artifacts/logs/",
-        "${{ github.workspace }}/artifacts/smoke-report-*.json",
-        "apps/web/e2e-results/",
-        "apps/web/e2e-results/junit.xml"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob integration-tests.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/k8s-readiness.yml",
       "name": "K8s Readiness",
       "owner": "@value-fabric/sre-leads",
@@ -616,25 +395,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/k8s-validation.yml",
-      "name": "Kubernetes Manifest Validation",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "k8s_validation governs Kubernetes Manifest Validation via pull_request, push, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/k8s-validation/"
-      ],
-      "runtime_budget_minutes": 10,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob k8s-validation.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/l4-frontend-contract-sync.yml",
       "name": "Layer 4 Frontend Contract Sync",
       "owner": "@value-fabric/frontend-leads",
@@ -649,33 +409,6 @@
       "produced_artifacts": [],
       "runtime_budget_minutes": 15,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob l4-frontend-contract-sync.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/launch-readiness.yml",
-      "name": "Launch Readiness Pipeline",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "launch_readiness governs Launch Readiness Pipeline via pull_request, push, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "${{ matrix.artifact }}",
-        ".tmp/launch-evidence-summary.json",
-        ".tmp/staging-evidence-summary.json",
-        "apps/web/test-results/**",
-        "apps/web/tmp/journey-slo-report.json",
-        "artifacts/readiness-10/**",
-        "docs/launch/launch-blocker-register.md",
-        "docs/launch/readiness-dashboard.md",
-        "docs/validation/launch_readiness_final_sign_off_evidence.md"
-      ],
-      "runtime_budget_minutes": 60,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob launch-readiness.yml",
       "deprecation_status": "active"
     },
     {
@@ -711,22 +444,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/layer6-dashboard-metric-drift.yml",
-      "name": "Layer6 Dashboard Metric Drift",
-      "owner": "@value-fabric/architects",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "layer6_dashboard_metric_drift governs Layer6 Dashboard Metric Drift via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob layer6-dashboard-metric-drift.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/layer6-wrapper-drift.yml",
       "name": "Layer6 Wrapper Drift",
       "owner": "@value-fabric/architects",
@@ -740,25 +457,6 @@
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob layer6-wrapper-drift.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/live-workflow-validation.yml",
-      "name": "Live Workflow Validation Gate",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "live_workflow_validation governs Live Workflow Validation Gate via pull_request, push, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/live-workflow-validation"
-      ],
-      "runtime_budget_minutes": 45,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob live-workflow-validation.yml",
       "deprecation_status": "active"
     },
     {
@@ -796,47 +494,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/package-manager-policy.yml",
-      "name": "Package Manager Policy",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "package_manager_policy governs Package Manager Policy via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob package-manager-policy.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/package-sign.yml",
-      "name": "Package and Sign",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "workflow_call",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "package_sign governs Package and Sign via workflow_call, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [
-        "${{ matrix.layer }}-provenance.intoto.jsonl",
-        "${{ matrix.layer }}-sbom.cyclonedx.json",
-        "${{ matrix.layer }}-sbom.spdx.json",
-        "${{ matrix.layer }}-subjects.txt",
-        "attestations-${{ env.IMAGE_TAG }}.tar.gz",
-        "attestations-${{ env.IMAGE_TAG }}.tar.gz.sig"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob package-sign.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/penetration-testing.yml",
       "name": "Penetration Testing",
       "owner": "@value-fabric/security-leads",
@@ -854,26 +511,6 @@
       ],
       "runtime_budget_minutes": 45,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob penetration-testing.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/performance-baseline.yml",
-      "name": "Performance Baseline",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "performance_baseline governs Performance Baseline via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [
-        "PERFORMANCE_TEST_TOKEN"
-      ],
-      "produced_artifacts": [
-        "artifacts/performance/"
-      ],
-      "runtime_budget_minutes": 25,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob performance-baseline.yml",
       "deprecation_status": "active"
     },
     {
@@ -979,42 +616,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/pr-performance-gate.yml",
-      "name": "PR Performance Gate",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "pull_request"
-      ],
-      "trigger_purpose": "pr_performance_gate governs PR Performance Gate via pull_request",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/performance/pr-summary.json",
-        "new-baseline/pr-summary.json"
-      ],
-      "runtime_budget_minutes": 20,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob pr-performance-gate.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/preflight.yml",
-      "name": "Preflight Checks",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "preflight governs Preflight Checks via pull_request, push",
-      "blocking": true,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 10,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob preflight.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/prod-readiness.yml",
       "name": "Prod Readiness Gates",
       "owner": "@value-fabric/sre-leads",
@@ -1047,21 +648,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/production-readiness-check.yml",
-      "name": "Production Readiness Checklist",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "production_readiness_check governs Production Readiness Checklist via workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 360,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob production-readiness-check.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/publish-sdk.yml",
       "name": "Publish SDK",
       "owner": "@value-fabric/sre-leads",
@@ -1079,42 +665,6 @@
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob publish-sdk.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/refresh-testing-kpis.yml",
-      "name": "Refresh Testing KPI Snapshot",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "refresh_testing_kpis governs Refresh Testing KPI Snapshot via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob refresh-testing-kpis.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/regenerate-sdk.yml",
-      "name": "Regenerate Python SDK",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "push",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "regenerate_sdk governs Regenerate Python SDK via push, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [
-        "GITHUB_TOKEN"
-      ],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob regenerate-sdk.yml",
       "deprecation_status": "active"
     },
     {
@@ -1172,24 +722,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/restore-verification.yml",
-      "name": "Restore Verification",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "restore_verification governs Restore Verification via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/recovery/**"
-      ],
-      "runtime_budget_minutes": 20,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob restore-verification.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/repro-seed-validation.yml",
       "name": "Repro Seed Validation",
       "owner": "@value-fabric/sre-leads",
@@ -1221,22 +753,6 @@
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob runbook-validation.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/secret-guardrails.yml",
-      "name": "Secret Guardrails",
-      "owner": "@value-fabric/security-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "secret_guardrails governs Secret Guardrails via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob secret-guardrails.yml",
       "deprecation_status": "active"
     },
     {
@@ -1293,66 +809,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/security-validation.yml",
-      "name": "Security Validation",
-      "owner": "@value-fabric/security-leads",
-      "trigger": [
-        "pull_request",
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "security_validation governs Security Validation via pull_request, schedule, workflow_dispatch",
-      "blocking": true,
-      "required_secrets": [
-        "TEST_JWT_SECRET"
-      ],
-      "produced_artifacts": [
-        ".pytest_cache/",
-        "artifacts/security/",
-        "coverage.xml",
-        "htmlcov/",
-        "test-results/"
-      ],
-      "runtime_budget_minutes": 20,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob security-validation.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/smoke-gate.yml",
-      "name": "Smoke Gate",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "smoke_gate governs Smoke Gate via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "artifacts/logs/",
-        "artifacts/smoke-report-*.json"
-      ],
-      "runtime_budget_minutes": 15,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob smoke-gate.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/stale.yml",
-      "name": "Close Stale PRs",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "schedule",
-        "workflow_dispatch"
-      ],
-      "trigger_purpose": "stale governs Close Stale PRs via schedule, workflow_dispatch",
-      "blocking": false,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob stale.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/supply-chain.yml",
       "name": "Supply Chain Integrity",
       "owner": "@value-fabric/security-leads",
@@ -1404,24 +860,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/test-mandatory.yml",
-      "name": "Mandatory Test Profile",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "test_mandatory governs Mandatory Test Profile via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        ".fabric/audit/security_regression_gate/"
-      ],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob test-mandatory.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/test-reporting.yml",
       "name": "Unified Test Reporting",
       "owner": "@value-fabric/qa-leads",
@@ -1435,26 +873,6 @@
       "produced_artifacts": [],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob test-reporting.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/test.yml",
-      "name": "Test Suite",
-      "owner": "@value-fabric/qa-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "test governs Test Suite via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [
-        "apps/web/e2e-results/",
-        "artifacts/logs/",
-        "performance-baseline.txt"
-      ],
-      "runtime_budget_minutes": 45,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob test.yml",
       "deprecation_status": "active"
     },
     {
@@ -1478,22 +896,6 @@
       "deprecation_status": "active"
     },
     {
-      "path": ".github/workflows/verify-gate.yml",
-      "name": "Verify Gate",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "verify_gate governs Verify Gate via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 60,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob verify-gate.yml",
-      "deprecation_status": "active"
-    },
-    {
       "path": ".github/workflows/weekly-acceptance-gates.yml",
       "name": "Weekly Acceptance Gates",
       "owner": "@value-fabric/qa-leads",
@@ -1509,22 +911,6 @@
       ],
       "runtime_budget_minutes": 30,
       "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob weekly-acceptance-gates.yml",
-      "deprecation_status": "active"
-    },
-    {
-      "path": ".github/workflows/workflow-readme-sync-check.yml",
-      "name": "Workflow README Sync Check",
-      "owner": "@value-fabric/sre-leads",
-      "trigger": [
-        "pull_request",
-        "push"
-      ],
-      "trigger_purpose": "workflow_readme_sync_check governs Workflow README Sync Check via pull_request, push",
-      "blocking": true,
-      "required_secrets": [],
-      "produced_artifacts": [],
-      "runtime_budget_minutes": 30,
-      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob workflow-readme-sync-check.yml",
       "deprecation_status": "active"
     },
     {

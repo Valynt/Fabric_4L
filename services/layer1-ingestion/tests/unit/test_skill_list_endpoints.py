@@ -91,7 +91,10 @@ def _make_app_with_overrides(tenant_id: UUID, db_mock: MagicMock):
     without an additional prefix.
     """
     from fastapi import FastAPI
+    from value_fabric.shared.error_handling import register_exception_handlers
+
     app = FastAPI()
+    register_exception_handlers(app)
     app.include_router(router)
 
     app.dependency_overrides[get_tenant_id] = lambda: tenant_id

@@ -399,7 +399,7 @@ setup: ## Install all service dev dependencies into the pytest Python environmen
 # ─── Layer-Specific Tests ─────────────────────────────────────────────────────
 
 test-layer1: ## Run Layer 1 tests
-	cd services/layer1-ingestion && $(PYTEST) tests/
+	cd services/layer1-ingestion && $(PYTEST) -m "not postgres and not requires_postgres" tests/
 
 test-layer1-crawler: ## Run focused Layer 1 crawler tests
 	cd services/layer1-ingestion && $(PYTEST) tests/crawler/ tests/unit/test_playwright_crawler.py tests/unit/test_crawler_config.py tests/unit/test_crawler_telemetry.py tests/unit/test_quality_gate.py
@@ -410,7 +410,7 @@ test-layer1-router-cache: ## Run focused Layer 1 router tests and shared cache i
 
 test-layer1-security-postgres: ## Run Layer 1 PostgreSQL-backed security tests (requires PostgreSQL)
 	@echo "→ Testing Layer 1 security with PostgreSQL..."
-	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) tests/security/test_rls_enforcement_postgres.py tests/security/test_celery_tenant_isolation_postgres.py tests/security/test_require_tenant_false_allowlist_postgres.py -m postgres -v
+	@cd services/layer1-ingestion && TEST_DATABASE_URL="postgresql+psycopg2://postgres:postgres@localhost:5432/ingestion" $(PYTEST) -m "postgres or requires_postgres" tests/security/ tests/pipeline/ -v
 
 test-layer2: ## Run Layer 2 tests
 	cd services/layer2-extraction && $(PYTEST) tests/
