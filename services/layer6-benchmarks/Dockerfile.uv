@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for Layer 6: Benchmark Service (uv edition)
-FROM python:3.11.11-slim-bookworm AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 
 # Install build dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -17,7 +17,7 @@ COPY pyproject.toml uv.lock ./
 RUN uv pip sync uv.lock --target /app/venv
 
 # Stage 2: Runtime
-FROM python:3.11.11-slim-bookworm AS runtime
+FROM python:3.11.13-slim-bookworm AS runtime
 
 # Install curl for healthcheck
 RUN apt-get update && apt-get install -y --no-install-recommends curl && rm -rf /var/lib/apt/lists/*
