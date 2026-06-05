@@ -44,7 +44,7 @@ the canonical families above:
 | --- | --- | --- | --- | --- |
 | `codeql-analysis.yml` | `codeql.yml` | `retired-recorded`; both CodeQL workflows were blocking before consolidation. | The current checkout keeps one canonical CodeQL workflow and the retired file is no longer present or registered. Branch protection must no longer require the retired workflow name. | `needs branch-protection update` |
 | `chaos-smoke.yml` | `chaos-testing.yml` | `retired-recorded`; historical workflow was PR-triggered and blocking. | The current checkout keeps `chaos-testing.yml` as the operational chaos owner and the retired smoke workflow is no longer present or registered. Branch protection must no longer require `chaos-smoke-informational` or `chaos-smoke-required-ready-marker`. | `needs branch-protection update` |
-| `deploy.yml` | `build-deploy.yml`, `environment-promotion.yml` | `present-blocked`; `blocking=true`; owns workflow-call deployment behavior. | Keep enabled: it owns the unique `workflow_call` trigger, `AWS_DEPLOY_ROLE_ARN` secret, `${{ steps.evidence.outputs.file }}` and `deployment-record.json` artifacts, plus `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `verify`, `evidence`, and `notify` jobs. | `not safe` |
+| `deploy.yml` | `build-deploy.yml`, `environment-promotion.yml` | `present-blocked`; `blocking=true`; owns workflow-call deployment behavior. | Keep enabled: it owns the unique `workflow_call` trigger, `AWS_DEPLOY_ROLE_ARN` and `INFISICAL_IDENTITY_ID` secrets, `${{ steps.evidence.outputs.file }}` and `deployment-record.json` artifacts, plus `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `rollback-on-failure`, `verify`, `evidence`, and `notify` jobs. | `not safe` |
 
 ## Guardrails
 
@@ -57,11 +57,3 @@ the canonical families above:
   whenever workflow files are added, removed, or renamed.
 - Run `python scripts/ci/verify_workflow_registry.py` before marking workflow
   inventory changes complete.
-
-## Deletion risk proof
-
-| Workflow | Status | Risk | Replacement proof |
-| --- | --- | --- | --- |
-| `codeql-analysis.yml` | retired-recorded | needs branch-protection update | `codeql.yml` remains canonical; both CodeQL workflows were blocking before consolidation. |
-| `chaos-smoke.yml` | retired-recorded | needs branch-protection update | `chaos-testing.yml` remains canonical; the retired smoke workflow was PR-triggered and blocking before consolidation. |
-| `deploy.yml` | present-blocked | not safe | `deploy.yml` is retained because it still owns workflow-call deployment behavior not covered by `build-deploy.yml` or `environment-promotion.yml`. Unique retained surfaces include trigger `workflow_call`, jobs `preflight`, `approval-gate`, `deploy`, `smoke-tests`, `rollback-on-failure`, `verify`, `evidence`, and `notify`; secrets `AWS_DEPLOY_ROLE_ARN` and `INFISICAL_IDENTITY_ID`; artifacts `${{ steps.evidence.outputs.file }}` and `deployment-record.json`. |

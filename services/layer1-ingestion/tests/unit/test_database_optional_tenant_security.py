@@ -5,8 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock
 
 import pytest
-from fastapi import HTTPException
 from starlette.requests import Request
+from value_fabric.shared.error_handling import AuthorizationError, ValidationError
 
 import layer1_ingestion.shared.database as database
 
@@ -43,7 +43,7 @@ def test_optional_tenant_rejects_non_super_admin_without_tenant(monkeypatch: pyt
         request=_make_request("case-review"),
         context=_make_context(super_admin=False),
     )
-    with pytest.raises(HTTPException, match="super admin role"):
+    with pytest.raises(AuthorizationError, match="super admin role"):
         next(gen)
 
     assert database.get_privileged_db_session_metrics()["denials_total"] == 1
@@ -58,7 +58,7 @@ def test_optional_tenant_super_admin_requires_privileged_reason(monkeypatch: pyt
         request=_make_request(),
         context=_make_context(super_admin=True),
     )
-    with pytest.raises(HTTPException, match="X-Privileged-Reason"):
+    with pytest.raises(ValidationError, match="X-Privileged-Reason"):
         next(gen)
 
     assert database.get_privileged_db_session_metrics()["missing_reason_total"] == 1

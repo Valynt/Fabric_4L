@@ -34,7 +34,7 @@ Fabric_4L/
 ├── .github/
 │   ├── workflows/             # 10 CI/CD workflows
 │   │   ├── build-deploy.yml           # Build → Sign → Attest → Deploy
-│   │   ├── codeql-analysis.yml        # CodeQL SAST (Python + JS/TS)
+│   │   ├── codeql.yml                 # CodeQL SAST (Python + JS/TS)
 │   │   ├── security-gates.yml         # Trivy, gitleaks, bandit, DAST, SBOM
 │   │   ├── pr-checks.yml             # Lint, typecheck, test, contract gates
 │   │   ├── integration-tests.yml      # Cross-layer integration
@@ -261,7 +261,7 @@ ghcr.io/bmsull560/fabric_4l/<layer>:latest             # Optional (workflow_disp
 
 | Tool | Target | Gate Level | Workflow |
 |------|--------|------------|----------|
-| **CodeQL** | Python + JavaScript/TypeScript | PR-blocking | `codeql-analysis.yml` |
+| **CodeQL** | Python + JavaScript/TypeScript | PR-blocking | `codeql.yml` |
 | **Bandit** | Python (all 6 layers) | PR-blocking (MEDIUM+) | `security-gates.yml`, `pr-checks.yml` |
 | **Ruff** | Python lint + format | PR-blocking | `pr-checks.yml` |
 | **ESLint** | TypeScript/React | PR-blocking | `pr-checks.yml` |
@@ -459,8 +459,8 @@ cosign verify-attestation \
 |----------|---------|-----------|
 | `pr-checks.yml` | PR to main | **Required** — blocks merge |
 | `security-gates.yml` | PR + push to main + weekly | **Required** — blocks merge |
-| `codeql-analysis.yml` | PR + push to main + weekly | **Required** — blocks merge |
-| `integration-tests.yml` | PR to main | **Required** — blocks merge |
+| `codeql.yml` | PR + push to main + weekly | **Required** — blocks merge |
+| `backend-integrated-reproducibility.yml` | Manual backend-integrated evidence | Release evidence |
 | `k8s-readiness.yml` | PR to main | **Required** — blocks merge |
 | `build-deploy.yml` | Push to main | **Release** — builds and deploys |
 | `performance-load-tests.yml` | Push to main | **Advisory** — SLO tracking |
@@ -702,7 +702,7 @@ See [PRODUCTION_READINESS_CHECKLIST.md](../PRODUCTION_READINESS_CHECKLIST.md) fo
 
 **Day 0–3: Foundation**
 - [x] Dev Container configuration (`.devcontainer/`)
-- [x] CodeQL SAST workflow (`codeql-analysis.yml`)
+- [x] CodeQL SAST workflow (`codeql.yml`)
 - [x] Artifact verification script (`verify-artifact.sh`)
 - [x] Build reproducibility checker (`build-reproducibility-check.sh`)
 - [x] Supply chain documentation (this document)

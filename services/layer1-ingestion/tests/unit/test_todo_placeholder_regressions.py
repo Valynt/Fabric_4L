@@ -2,7 +2,13 @@
 
 from pathlib import Path
 
-API_MAIN_PATH = Path(__file__).resolve().parents[2] / "src" / "api" / "main.py"
+API_MAIN_PATH = (
+    Path(__file__).resolve().parents[2]
+    / "src"
+    / "layer1_ingestion"
+    / "api"
+    / "main.py"
+)
 TASKS_PATH = Path(__file__).resolve().parents[2] / "src" / "shared" / "tasks.py"
 
 

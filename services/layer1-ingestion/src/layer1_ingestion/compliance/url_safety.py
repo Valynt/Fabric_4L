@@ -13,6 +13,20 @@ from ..shared.models import ComplianceEventType, ComplianceLog
 
 ALLOWED_SCHEMES = {"http", "https"}
 DEFAULT_ALLOWED_PORTS = {80, 443}
+CLOUD_METADATA_IPS = {
+    "169.254.169.254",  # AWS / Azure / GCP instance metadata
+    "169.254.170.2",  # AWS ECS task metadata
+    "100.100.100.200",  # Alibaba Cloud instance metadata
+    "192.0.0.254",  # Oracle Cloud instance metadata
+    "fd00:ec2::254",  # AWS EC2 IPv6 instance metadata
+}
+CLOUD_METADATA_HOSTNAMES = {
+    "metadata.google.internal",
+    "metadata.internal",
+}
+CLOUD_METADATA_IP_ADDRESSES = frozenset(
+    ipaddress.ip_address(value) for value in CLOUD_METADATA_IPS
+)
 
 
 class URLSafetyError(ValueError):
@@ -44,6 +58,8 @@ def _resolve_ips(hostname: str) -> tuple[str, ...]:
 
 def _is_blocked_ip(ip: str) -> bool:
     parsed = ipaddress.ip_address(ip)
+    if parsed in CLOUD_METADATA_IP_ADDRESSES:
+        return True
     return any(
         [
             parsed.is_loopback,
@@ -53,6 +69,13 @@ def _is_blocked_ip(ip: str) -> bool:
             parsed.is_reserved,
             parsed.is_unspecified,
         ]
+    )
+
+
+def _is_blocked_hostname(hostname: str) -> bool:
+    return (
+        hostname in CLOUD_METADATA_HOSTNAMES
+        or hostname.endswith(".metadata")
     )
 
 
@@ -80,6 +103,8 @@ def validate_url_safety(
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     if port not in ports:
         raise URLSafetyError("PORT_BLOCKED")
+    if _is_blocked_hostname(host):
+        raise URLSafetyError("IP_RANGE_BLOCKED")
 
     if allowlist_domains:
         normalized_allowlist = [d.lower().rstrip(".") for d in allowlist_domains if d]

@@ -17,8 +17,8 @@ protected_branch_patterns:
   - release/*
 
 informational_status_checks:
-  - chaos-smoke-informational
+  - chaos-testing
 promotion_policy:
   chaos_smoke:
     current_mode: informational
-    promotion_condition: "Two consecutive weeks flake-free; then add as required status check."
+    promotion_condition: "Two consecutive weeks flake-free; then add the canonical chaos-testing check as required status check."

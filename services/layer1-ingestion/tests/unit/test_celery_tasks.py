@@ -11,6 +11,7 @@ Tests verify:
 """
 from __future__ import annotations
 
+import asyncio
 import os
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, Mock, patch
@@ -30,6 +31,15 @@ PIPELINE_STAGE_TASKS = [
     "storage_stage",
     "notification_stage",
 ]
+
+
+def _maintenance_audit_patch():
+    record = MagicMock()
+    context = MagicMock()
+    context.__enter__ = Mock(return_value=record)
+    context.__exit__ = Mock(return_value=False)
+    return patch("layer1_ingestion.shared.tasks.maintenance_audit_log", return_value=context)
+
 
 # Note: Path setup and environment variables are handled by:
 # - tests/conftest.py (sys.path manipulation)
@@ -221,12 +231,12 @@ class TestCleanupOldContent:
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
-        mock_session.query.return_value.filter.return_value.all.return_value = [
-            mock_content_1,
-            mock_content_2,
-        ]
+        mock_session.query.return_value.filter.return_value.update.return_value = 2
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with (
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            _maintenance_audit_patch(),
+        ):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
         assert "deleted_count" in result
@@ -246,12 +256,19 @@ class TestCleanupOldContent:
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
-        mock_session.query.return_value.filter.return_value.all.return_value = [mock_content]
+        query = mock_session.query.return_value
+        query.filter.return_value.update.return_value = 1
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with (
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            _maintenance_audit_patch(),
+        ):
             cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
-        assert mock_content.processing_status == "DELETED"
+        query.filter.return_value.update.assert_called_once_with(
+            {"processing_status": "DELETED"},
+            synchronize_session=False,
+        )
 
     def test_cleanup_default_days_is_30(self) -> None:
         """cleanup_old_content default retention period must be 30 days."""
@@ -274,7 +291,9 @@ class TestComplianceCheckStage:
 
         job_id = uuid4()
         mock_job = Mock()
+        mock_job.id = job_id
         mock_job.status = "PENDING"
+        mock_job.created_at = datetime.now(UTC)
         mock_job.configuration = {
             "url": "https://example.com",
             "compliance": {"respect_robots_txt": False},  # Skip robots check
@@ -292,7 +311,9 @@ class TestComplianceCheckStage:
                 with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # Use .run() to bypass Celery's task dispatch machinery
                     # Pass string job_id to match Celery JSON serialization
-                    result = compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
+                    result = asyncio.run(
+                        compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
+                    )
 
         # Job status must be updated to VALIDATING
         assert mock_job.status == "VALIDATING"
@@ -313,7 +334,7 @@ class TestComplianceCheckStage:
             with pytest.raises(ValueError, match="not found"):
                 # Use .run() to bypass Celery's task dispatch machinery
                 # Pass string job_id to match Celery JSON serialization
-                compliance_check_stage.run(str(job_id), str(uuid4()))
+                asyncio.run(compliance_check_stage.run(str(job_id), str(uuid4())))
 
 
 # ── Crawl URL With Routing Tests ──────────────────────────────────────────────
@@ -334,7 +355,9 @@ class TestCrawlUrlWithRouting:
         job_id = str(uuid4())
         tenant_id = str(uuid4())
         mock_job = Mock()
+        mock_job.id = job_id
         mock_job.target_id = uuid4()
+        mock_job.tenant_id = tenant_id
 
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
@@ -343,7 +366,13 @@ class TestCrawlUrlWithRouting:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             try:
-                crawl_url_with_routing.run(job_id=job_id, url="https://example.com", tenant_id=tenant_id)
+                asyncio.run(
+                    crawl_url_with_routing.run(
+                        job_id=job_id,
+                        url="https://example.com",
+                        tenant_id=tenant_id,
+                    )
+                )
             except Exception:
                 pass  # We only care about the session args
 
@@ -375,7 +404,7 @@ class TestCeleryRetryBehavior:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
             with pytest.raises(Exception, match="Database connection refused"):
-                compliance_check_stage.run(str(uuid4()), str(uuid4()))
+                asyncio.run(compliance_check_stage.run(str(uuid4()), str(uuid4())))
 
     def test_process_scraping_job_handles_chain_failure(self) -> None:
         """process_scraping_job must raise when chain.apply_async fails."""
@@ -410,7 +439,9 @@ class TestCeleryRetryBehavior:
 
         job_id = uuid4()
         mock_job = Mock()
+        mock_job.id = job_id
         mock_job.status = "PENDING"
+        mock_job.created_at = datetime.now(UTC)
         mock_job.configuration = None  # Missing config
         mock_job.tenant_id = uuid4()
         mock_job.target_id = uuid4()
@@ -426,7 +457,9 @@ class TestCeleryRetryBehavior:
                 # AttributeError because code does config.get() when config is None
                 # Pass string job_id to match Celery JSON serialization
                 with pytest.raises((ValueError, AttributeError)):
-                    compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
+                    asyncio.run(
+                        compliance_check_stage.run(str(job_id), str(mock_job.tenant_id))
+                    )
 
     def test_cleanup_old_content_handles_empty_result(self) -> None:
         """cleanup_old_content must return deleted_count=0 when no old content found."""
@@ -435,9 +468,12 @@ class TestCeleryRetryBehavior:
         mock_session = MagicMock()
         mock_session.__enter__ = Mock(return_value=mock_session)
         mock_session.__exit__ = Mock(return_value=False)
-        mock_session.query.return_value.filter.return_value.all.return_value = []  # No results
+        mock_session.query.return_value.filter.return_value.update.return_value = 0
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with (
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            _maintenance_audit_patch(),
+        ):
             result = cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
         assert result["deleted_count"] == 0
@@ -452,7 +488,10 @@ class TestCeleryRetryBehavior:
         mock_session.__exit__ = Mock(return_value=False)
         mock_session.query.side_effect = Exception("Connection timeout")
 
-        with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
+        with (
+            patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session),
+            _maintenance_audit_patch(),
+        ):
             with pytest.raises(Exception, match="Connection timeout"):
                 cleanup_old_content(days=30, tenant_id=str(uuid4()))
 
@@ -559,7 +598,9 @@ class TestCeleryRetrySemantics:
 
         job_id = str(uuid4())
         mock_job = Mock()
+        mock_job.id = job_id
         mock_job.status = "PENDING"
+        mock_job.created_at = datetime.now(UTC)
         mock_job.configuration = {"url": "https://example.com", "compliance": {}}
         mock_job.tenant_id = uuid4()
         mock_job.target_id = uuid4()
@@ -580,13 +621,13 @@ class TestCeleryRetrySemantics:
                 with patch("layer1_ingestion.shared.tasks.validate_url_safety"):
                     # First attempt - pass string job_id to match Celery JSON serialization
                     try:
-                        compliance_check_stage.run(job_id, str(mock_job.tenant_id))
+                        asyncio.run(compliance_check_stage.run(job_id, str(mock_job.tenant_id)))
                     except Exception:
                         pass
 
                     # Second attempt (retry) should give same result
                     try:
-                        compliance_check_stage.run(job_id, str(mock_job.tenant_id))
+                        asyncio.run(compliance_check_stage.run(job_id, str(mock_job.tenant_id)))
                     except Exception:
                         pass
 
