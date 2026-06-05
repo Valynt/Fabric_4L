@@ -28,6 +28,7 @@ Usage::
     python scripts/ci/audit_infra_secrets.py                # audit + report
     python scripts/ci/audit_infra_secrets.py --enforce      # CI gate
     python scripts/ci/audit_infra_secrets.py --update-baseline
+    python scripts/ci/audit_infra_secrets.py --baseline config/ci/infra_secret_baseline.txt
 """
 
 from __future__ import annotations
@@ -48,14 +49,14 @@ SECRET_KEY_PATTERN = re.compile(
 
 # Recognized non-literal value forms — these are SAFE (sourced externally).
 SAFE_VALUE_PATTERNS = (
-    re.compile(r"^\$\{[^}]+\}$"),               # ${VAR}
-    re.compile(r"^\$[A-Z_][A-Z0-9_]*$"),         # $VAR
-    re.compile(r"^\{\{.*\}\}$"),                 # {{ secrets.X }}
-    re.compile(r"^secretKeyRef:"),               # k8s
-    re.compile(r"^valueFrom:"),                  # k8s
-    re.compile(r"^!\s*include\b"),               # yaml include
-    re.compile(r"^['\"]?\s*['\"]?$"),            # empty / blank
-    re.compile(r"^<.+>$"),                       # <REPLACE_ME> placeholders
+    re.compile(r"^\$\{[^}]+\}$"),  # ${VAR}
+    re.compile(r"^\$[A-Z_][A-Z0-9_]*$"),  # $VAR
+    re.compile(r"^\{\{.*\}\}$"),  # {{ secrets.X }}
+    re.compile(r"^secretKeyRef:"),  # k8s
+    re.compile(r"^valueFrom:"),  # k8s
+    re.compile(r"^!\s*include\b"),  # yaml include
+    re.compile(r"^['\"]?\s*['\"]?$"),  # empty / blank
+    re.compile(r"^<.+>$"),  # <REPLACE_ME> placeholders
     re.compile(r"^(changeme|placeholder|example|todo)$", re.IGNORECASE),
 )
 
@@ -201,11 +202,11 @@ def scan_all() -> tuple[list[SecretFinding], list[Path]]:
     return all_findings, files
 
 
-def _load_baseline() -> set[str]:
-    if not BASELINE_FILE.exists():
+def _load_baseline(baseline_file: Path = BASELINE_FILE) -> set[str]:
+    if not baseline_file.exists():
         return set()
     entries: set[str] = set()
-    for raw in BASELINE_FILE.read_text(encoding="utf-8").splitlines():
+    for raw in baseline_file.read_text(encoding="utf-8").splitlines():
         line = raw.strip()
         if not line or line.startswith("#"):
             continue
@@ -213,7 +214,9 @@ def _load_baseline() -> set[str]:
     return entries
 
 
-def _write_baseline(findings: list[SecretFinding]) -> None:
+def _write_baseline(
+    findings: list[SecretFinding], baseline_file: Path = BASELINE_FILE
+) -> None:
     header = (
         "# Infrastructure hardcoded-secret baseline (PR4 of elevate-to-9 plan).\n"
         "#\n"
@@ -223,9 +226,9 @@ def _write_baseline(findings: list[SecretFinding]) -> None:
         "#\n"
         "# Format: <repo-relative-path>:<line>:<KEY>\n"
     )
-    BASELINE_FILE.parent.mkdir(parents=True, exist_ok=True)
+    baseline_file.parent.mkdir(parents=True, exist_ok=True)
     entries = sorted({f.as_baseline_entry() for f in findings})
-    BASELINE_FILE.write_text(
+    baseline_file.write_text(
         header + "\n".join(entries) + ("\n" if entries else ""),
         encoding="utf-8",
     )
@@ -268,8 +271,18 @@ def _suggest_source(f: SecretFinding) -> str:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--enforce", action="store_true", help="Fail on any unbaselined finding.")
-    parser.add_argument("--update-baseline", action="store_true", help="Freeze current findings.")
+    parser.add_argument(
+        "--enforce", action="store_true", help="Fail on any unbaselined finding."
+    )
+    parser.add_argument(
+        "--baseline",
+        type=Path,
+        default=BASELINE_FILE,
+        help="Baseline file to read or update (default: config/ci/infra_secret_baseline.txt).",
+    )
+    parser.add_argument(
+        "--update-baseline", action="store_true", help="Freeze current findings."
+    )
     parser.add_argument(
         "--mapping-table",
         type=Path,
@@ -282,14 +295,16 @@ def main(argv: list[str] | None = None) -> int:
     findings, files = scan_all()
 
     if args.update_baseline:
-        _write_baseline(findings)
-        print(f"Baseline updated: {len(findings)} entries -> {BASELINE_FILE}")
+        _write_baseline(findings, args.baseline)
+        print(f"Baseline updated: {len(findings)} entries -> {args.baseline}")
         if args.mapping_table is not None:
-            args.mapping_table.write_text(_render_mapping_table(findings), encoding="utf-8")
+            args.mapping_table.write_text(
+                _render_mapping_table(findings), encoding="utf-8"
+            )
             print(f"Mapping table -> {args.mapping_table}")
         return 0
 
-    baseline = _load_baseline()
+    baseline = _load_baseline(args.baseline)
     current_entries = {f.as_baseline_entry() for f in findings}
     new_entries = sorted(current_entries - baseline)
 

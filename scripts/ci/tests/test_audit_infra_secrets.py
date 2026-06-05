@@ -6,7 +6,6 @@ import importlib.util
 import sys
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "ci" / "audit_infra_secrets.py"
 
@@ -77,9 +76,7 @@ def test_gate_treats_placeholder_as_safe(tmp_path, monkeypatch) -> None:
     f = tmp_path / "services" / "svc" / ".env.example"
     f.parent.mkdir(parents=True, exist_ok=True)
     f.write_text(
-        "DB_PASSWORD=<CHANGE_ME>\n"
-        "API_KEY=changeme\n"
-        "VAULT_TOKEN=\n",
+        "DB_PASSWORD=<CHANGE_ME>\n" "API_KEY=changeme\n" "VAULT_TOKEN=\n",
         encoding="utf-8",
     )
     baseline = tmp_path / "config" / "ci" / "infra_secret_baseline.txt"
@@ -120,3 +117,25 @@ def test_gate_detects_k8s_env_array_literal(tmp_path, monkeypatch) -> None:
 
     rc = mod.main(["--enforce", "--quiet"])
     assert rc == 1
+
+
+def test_gate_accepts_explicit_baseline_path(tmp_path, monkeypatch) -> None:
+    mod = _load_module()
+
+    docker_compose = tmp_path / "docker-compose.yml"
+    docker_compose.write_text(
+        "services:\n"
+        "  db:\n"
+        "    environment:\n"
+        "      POSTGRES_PASSWORD: hunter2hardcoded\n",
+        encoding="utf-8",
+    )
+
+    baseline = tmp_path / "custom" / "infra_secret_baseline.txt"
+    baseline.parent.mkdir(parents=True, exist_ok=True)
+    baseline.write_text("docker-compose.yml:4:POSTGRES_PASSWORD\n", encoding="utf-8")
+
+    monkeypatch.setattr(mod, "REPO_ROOT", tmp_path)
+
+    rc = mod.main(["--baseline", str(baseline), "--enforce", "--quiet"])
+    assert rc == 0
