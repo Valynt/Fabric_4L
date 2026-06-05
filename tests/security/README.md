@@ -53,10 +53,11 @@ pnpm test:isolation         # tenant-isolation focused gate
 
 ## CI Artifact
 
-CI publishes a security summary artifact from `.github/workflows/security-validation.yml` after running the centralized aggregation suite. The expected artifact directory is `artifacts/security/`, including:
+The tracked workflow that runs the centralized security aggregation suite is `.github/workflows/release-evidence-bundle.yml`. Its `sast-and-tests` job (`SAST & Security E2E`) runs `pytest tests/security/ -v --tb=short --junitxml=security-tests.xml` and uploads the result in the `sast-and-tests` artifact, including:
 
-- `artifacts/security/security-suite-report.xml`
-- `artifacts/security/security-suite-summary.md`
+- `security-tests.xml`
+
+No tracked `.github/workflows/security-validation.yml` workflow exists; use `release-evidence-bundle.yml` for release evidence from the centralized security suite.
 
 ## Environment Variables
 
