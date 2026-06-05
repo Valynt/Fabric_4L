@@ -1,23 +1,19 @@
+"""Signal lifecycle API routes."""
+
 from __future__ import annotations
 
+import logging
+
+from fastapi import APIRouter, Depends, Request
+from pydantic import BaseModel, ConfigDict
 from value_fabric.shared.error_handling.exceptions import (
     AuthenticationError,
     ConflictError,
     NotFoundError,
 )
-
-"""Signal lifecycle API routes."""
-
-import logging
-
-from fastapi import APIRouter, Depends, Request
-
-logger = logging.getLogger(__name__)
-from pydantic import BaseModel, ConfigDict
 from value_fabric.shared.identity.context import RequestContext
 
 from layer2_extraction.api.deps import require_authenticated
-
 from layer2_extraction.models.signal_lifecycle import (
     OperationalSignalLifecycleRecord,
     SignalLifecycleActor,
@@ -26,6 +22,8 @@ from layer2_extraction.services.signal_lifecycle_service import (
     InvalidLifecycleTransitionError,
     SignalLifecycleService,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/signals", tags=["signal-lifecycle"])
 _service = SignalLifecycleService()
