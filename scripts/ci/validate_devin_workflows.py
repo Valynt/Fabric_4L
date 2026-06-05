@@ -32,6 +32,7 @@ REQUIRED_FRONTMATTER_FIELDS = {
     "description",
     "pattern",
     "risk_level",
+    "category",
 }
 
 VALID_PATTERNS = {
@@ -45,6 +46,20 @@ VALID_RISK_LEVELS = {
     "low",
     "medium",
     "high",
+}
+
+VALID_CATEGORIES = {
+    "agent-infrastructure",
+    "quality-debt",
+    "testing",
+    "code-review",
+    "architecture",
+    "frontend-ux",
+    "documentation",
+    "infrastructure",
+    "planning",
+    "operations",
+    "orchestration",
 }
 
 STALE_PATH_PATTERNS = [
@@ -118,6 +133,15 @@ def check_frontmatter(file: Path, content: str) -> list[ValidationError]:
                 file,
                 "frontmatter",
                 f"Invalid risk_level '{fm['risk_level']}'; must be one of {VALID_RISK_LEVELS}",
+            )
+        )
+
+    if "category" in fm and fm["category"] not in VALID_CATEGORIES:
+        errors.append(
+            ValidationError(
+                file,
+                "frontmatter",
+                f"Invalid category '{fm['category']}'; must be one of {VALID_CATEGORIES}",
             )
         )
 

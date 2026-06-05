@@ -27,6 +27,7 @@ version: 1.0.0
 description: One-line purpose
 pattern: manager-worker | pipeline-dag | human-in-the-loop | circuit-breaker
 risk_level: low | medium | high
+category: agent-infrastructure | quality-debt | testing | code-review | architecture | frontend-ux | documentation | infrastructure | planning | operations | orchestration
 ---
 ```
 

@@ -30,7 +30,7 @@ An item may move to `verified closed` only when all of the following are true:
 | ID | Item | Owner team | Patch coverage | Current status | Required validation |
 |---|---|---|---|---|---|
 | S0-1 | Triage all 67 findings and assign owners | Platform Governance | not covered | verified closed | Owner matrix populated and linked to tracking board |
-| S0-2 | Unblock local dev toolchain for core team | DevEx | partial | requires implementation | `node --version`, `pnpm install --frozen-lockfile`, pytest collect-only |
+| S0-2 | Unblock local dev toolchain for core team | DevEx | covered | verified closed | `node --version`, `pnpm install --frozen-lockfile`, pytest collect-only |
 | S0-3 | Create sprint tracking board | Platform Governance | not covered | verified closed | Board/project visible with S0-S6 lanes and P0 labels |
 | S1-1 | Fix PostgreSQL backup CronJob secret reference | Platform Infrastructure | covered | covered | `kubectl create job --from=cronjob/postgres-backup ...` in staging |
 | S1-2 | Remove `default="changeme"` from L1 JWT secret configs | Layer 1 | covered | verified closed | `python -m pytest tests/security/test_jwt_config_validation.py -v --tb=short` |
@@ -66,7 +66,7 @@ An item may move to `verified closed` only when all of the following are true:
 | S4-4 | Reduce Tailwind arbitrary values | Frontend | not covered | verified closed | Count arbitrary values below target |
 | S4-5 | Add Suspense skeleton fallbacks for lazy settings pages | Frontend | covered | verified closed | Suspense fallback tests/build |
 | S4-6 | Add keyboard navigation to top interactive components | Frontend | not covered | requires implementation | `pnpm --dir apps/web run test:a11y:components` |
-| S4-7 | Route console calls through telemetry logger | Frontend | covered | covered | `pnpm --dir apps/web run lint` |
+| S4-7 | Route console calls through telemetry logger | Frontend | covered | verified closed | `pnpm --dir apps/web run lint` |
 | S4-8 | Add DEV hard guard to mock auth | Frontend | covered | verified closed | Auth context guard assertion |
 | S4-9 | Fix OpenAPI export for all services | Platform Contracts | not covered | verified closed | `python scripts/export_openapi.py` |
 | S5-1 | Integrate Sentry into all Python services | Observability | partial | requires implementation | Sentry integration tests across all Python services |
@@ -133,6 +133,8 @@ An item may move to `verified closed` only when all of the following are true:
 | 2026-06-05 | S3-3, S6-1, S6-2, S6-3, S6-4 | `rg -n "L2\.5\|Signal Refinery\|Layer 7\|Billing\|ADR-027\|quickstart\|Quickstart" docs/getting-started/quickstart.md docs/explanations/adr/ADR-027-shim-removal.md docs/architecture/layer7-billing.md docs/README.md docs/development/COMMANDS.md docs/development/DISCOVERY_MAP.md`; `python -m pytest tests/docs/test_command_map.py -v --tb=short` | Passed: quickstart, ADR-027, Layer 7, and documentation command/link governance evidence exists; 21 docs command-map tests passed |
 | 2026-06-05 | S5-5 | `rg -n "REPLACE_IN_PRODUCTION" k8s/base/postgres-patroni.yaml` | Passed: no Patroni production placeholder secret markers remain in the base manifest |
 | 2026-06-05 | S5-6 | `where.exe promtool`; `python -c "import yaml; yaml.safe_load(open('monitoring/prometheus/alerting/rules.yml', encoding='utf-8')); print('alert rules yaml ok')"` | Blocked for closure: alert rules YAML parses, but local `promtool` is not installed, so the required `promtool check rules monitoring/prometheus/alerting/rules.yml` validator could not be run |
+| 2026-06-05 | S0-2 | `node --version`; `corepack pnpm --version`; `python --version`; `corepack pnpm install --frozen-lockfile`; `make PYTHON=python setup`; `python -m py_compile tests/conftest.py scripts/ci/setup_python_dev_deps.py`; `python -m pytest --no-mandatory-dep-check --collect-only -q tests` | Passed: Node `v24.15.0`, pnpm `10.18.1`, Python `3.11.9`; frozen pnpm install passed; portable setup installed API and L1-L6 dev dependencies; repo-wide pytest collection completed with 4,290 tests collected and 4 skipped |
+| 2026-06-05 | S4-7 | `corepack pnpm --dir apps/web run lint` | Passed: frontend hygiene, explicit-any threshold, no-legacy-api-imports, and compatibility-shim registry checks passed |
 | 2026-06-05 | S3-1 | `python -m pytest tests/contract/test_billing_contracts.py services/layer7-billing/tests -v --tb=short` | Passed: 70 Layer 7 billing extraction/auth/tenant/webhook tests passed; 2 live-service billing contract tests skipped because dependent services were unavailable |
 | 2026-06-05 | S2-9 | `python -m pytest tests/layer6/test_layer6_security_invariants.py tests/security/test_benchmarks_cross_tenant_isolation.py -v --tb=short` | Partial: 13 static benchmark tenant tests passed; 13 Layer 6 live-style tests failed with `httpx.ConnectError` because the benchmark service target was unavailable |
 | 2026-06-05 | S4-2 | `corepack pnpm --dir apps/web run check:no-raw-api-client-in-hooks` | Passed: no raw `apiClient` calls found in `src/hooks`; typed-wrapper mandate upheld |

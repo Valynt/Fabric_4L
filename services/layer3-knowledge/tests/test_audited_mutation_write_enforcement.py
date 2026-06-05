@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import ast
+import importlib.util
 import json
 import subprocess
 import sys
@@ -14,6 +15,12 @@ TARGETS = [
     "services/layer3-knowledge/src/agents",
 ]
 AUDITED_HELPERS = {"write_relationship", "delete_relationship", "write_node", "delete_node"}
+
+SPEC = importlib.util.spec_from_file_location("check_layer3_audited_relationship_writes", SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+audited_write_check = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = audited_write_check
+SPEC.loader.exec_module(audited_write_check)
 
 
 def test_audited_relationship_write_gate_passes() -> None:
@@ -32,17 +39,15 @@ def test_audited_relationship_write_gate_passes() -> None:
 
 def test_write_endpoints_use_audited_mutation_helpers() -> None:
     routes_root = REPO_ROOT / "services" / "layer3-knowledge" / "src" / "api" / "routes"
-    mutating_functions: list[tuple[str, str]] = []
+    violations: list[tuple[str, int, str, str]] = []
 
     for path in sorted(routes_root.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
-        for node in ast.walk(tree):
-            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-                decorator_text = " ".join(ast.unparse(d) for d in node.decorator_list)
-                if any(method in decorator_text for method in [".post", ".put", ".patch", ".delete"]):
-                    body_source = ast.unparse(node)
-                    if "AuditedGraphMutation" in body_source and any(helper in body_source for helper in AUDITED_HELPERS):
-                        continue
-                    mutating_functions.append((str(path.relative_to(REPO_ROOT)), node.name))
+        visitor = audited_write_check.ScanVisitor(path)
+        visitor.visit(tree)
+        violations.extend(
+            (str(item.path.relative_to(REPO_ROOT)), item.line, item.function, item.snippet)
+            for item in visitor.violations
+        )
 
-    assert not mutating_functions, "Mutating route handlers must call AuditedGraphMutation helpers: " + str(mutating_functions)
+    assert not violations, "Direct graph writes must route through AuditedGraphMutation helpers: " + str(violations)

@@ -666,3 +666,13 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     """Return cached Settings instance (created on first call)."""
     return Settings()
+
+
+class _SettingsProxy:
+    """Lazy compatibility proxy for legacy direct ``settings`` imports."""
+
+    def __getattr__(self, name: str) -> object:
+        return getattr(get_settings(), name)
+
+
+settings = _SettingsProxy()

@@ -5,6 +5,7 @@ version: 1.0.0
 description: Agent generates diff, stops, notifies human, resumes only after approval
 pattern: human-in-the-loop
 risk_level: high
+category: orchestration
 ---
 
 # Human-in-the-Loop Workflow Template

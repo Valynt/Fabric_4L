@@ -69,7 +69,11 @@ class TestMetricsCoverage:
         metrics = PrometheusMetrics(config)
         
         # Should not raise
-        metrics.increment_unauthorized_traversal("depth_exceeded", "tenant_breach")
+        metrics.increment_unauthorized_traversal(
+            category="depth_limit",
+            route="tenant_query_executor",
+            violation_type="depth_exceeded",
+        )
 
     def test_entity_resolution_metrics_callable(self):
         """Entity resolution metrics should be callable without error."""
@@ -89,7 +93,11 @@ class TestMetricsCoverage:
         # Should not raise
         metrics.increment_mutation_success("relationship")
         metrics.increment_mutation_failure("error")
-        metrics.increment_unauthorized_traversal("type", "violation")
+        metrics.increment_unauthorized_traversal(
+            category="type",
+            route="disabled_metrics_test",
+            violation_type="violation",
+        )
         metrics.increment_entity_resolution("strategy", "confidence", "type")
         metrics.observe_entity_resolution_duration(1.0, "strategy", "type")
         metrics.observe_entity_resolution_confidence(0.5, "strategy", "type")

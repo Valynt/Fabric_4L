@@ -5,6 +5,7 @@ version: 1.0.0
 description: Multi-stage pipeline where each stage is an agent with explicit input/output contracts
 pattern: pipeline-dag
 risk_level: low
+category: orchestration
 ---
 
 # Pipeline (DAG) Workflow Template

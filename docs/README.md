@@ -26,6 +26,7 @@
 | Find validation and release evidence | [`validation/master_workflow_traceability_matrix.md`](./validation/master_workflow_traceability_matrix.md) |
 | Where new code must live | [`reference/layer-runtime-path-governance.md`](./reference/layer-runtime-path-governance.md) |
 | Review governance policy | [`governance.md`](./governance.md) |
+| Review repository discoverability coverage | [`governance/repository-discoverability-audit.md`](./governance/repository-discoverability-audit.md) |
 | Review security policy | [`security/multi-tenancy.md`](./security/multi-tenancy.md) |
 | Review supply chain policy | [`supply-chain/SUPPLY_CHAIN_SECURITY.md`](./supply-chain/SUPPLY_CHAIN_SECURITY.md) |
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |

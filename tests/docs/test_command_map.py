@@ -15,6 +15,7 @@ TEST_INVENTORY_DOC = REPO_ROOT / "docs" / "testing" / "test-inventory.md"
 DECISIONS_DIR = REPO_ROOT / "docs" / "decisions"
 EXPLANATION_ADR_DIR = REPO_ROOT / "docs" / "explanations" / "adr"
 LAYER_RUNTIME_PATH_GOVERNANCE_DOC = REPO_ROOT / "docs" / "reference" / "layer-runtime-path-governance.md"
+REPOSITORY_DISCOVERABILITY_AUDIT_DOC = REPO_ROOT / "docs" / "governance" / "repository-discoverability-audit.md"
 LAYER3_DISCOVERY_SURFACES = [
     LAYER_RUNTIME_PATH_GOVERNANCE_DOC,
     REPO_ROOT / "services" / "layer3-knowledge" / "README.md",
@@ -45,6 +46,28 @@ RUNBOOK_INDEX_DOCS = [
     REPO_ROOT / "docs" / "troubleshooting" / "runbooks" / "README.md",
     REPO_ROOT / "ops" / "incident" / "README.md",
 ]
+AUDIT_REQUIRED_DOMAINS = {
+    "Layer 1 ingestion",
+    "Layer 2 extraction",
+    "Layer 3 knowledge",
+    "Layer 4 agents",
+    "Layer 5 ground truth",
+    "Layer 6 benchmarks",
+    "API gateway",
+    "Frontend",
+    "Contracts and schemas",
+    "Packs and ontology",
+    "GitHub workflows",
+    "Test suites",
+    "Security and tenant isolation",
+    "Supply chain",
+    "Migrations and database",
+    "Release readiness",
+    "Observability and SLOs",
+    "Operational runbooks",
+    "Decisions and ADRs",
+    "Compliance and audit evidence",
+}
 
 
 def _read(path: Path) -> str:
@@ -140,6 +163,58 @@ def _testing_entrypoint_rows() -> list[tuple[str, str, str]]:
     return rows
 
 
+def _discovery_map_rows() -> list[tuple[str, str, str, str, str]]:
+    source = _read(REPO_ROOT / "docs" / "development" / "DISCOVERY_MAP.md")
+    start = source.index("## Start Here")
+    end = source.index("## Audited Domain Coverage", start)
+    rows: list[tuple[str, str, str, str, str]] = []
+
+    for line in source[start:end].splitlines():
+        if not line.startswith("|") or line.startswith("| ---") or "Work type" in line:
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) == 5:
+            rows.append((cells[0], cells[1], cells[2], cells[3], cells[4]))
+
+    return rows
+
+
+def _audit_rows() -> list[dict[str, str]]:
+    source = _read(REPOSITORY_DISCOVERABILITY_AUDIT_DOC)
+    start = source.index("## Coverage Matrix")
+    end = source.index("## Completion Rule", start)
+    rows: list[dict[str, str]] = []
+    headers: list[str] = []
+
+    for line in source[start:end].splitlines():
+        if not line.startswith("|") or line.startswith("| ---"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if not headers:
+            headers = cells
+            continue
+        if len(cells) == len(headers):
+            rows.append(dict(zip(headers, cells, strict=True)))
+
+    return rows
+
+
+def _audited_domain_rows() -> list[tuple[str, str]]:
+    source = _read(REPO_ROOT / "docs" / "development" / "DISCOVERY_MAP.md")
+    start = source.index("## Audited Domain Coverage")
+    end = source.index("## Issue To Validation Loop", start)
+    rows: list[tuple[str, str]] = []
+
+    for line in source[start:end].splitlines():
+        if not line.startswith("|") or line.startswith("| ---") or "Audited domain" in line:
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) == 2:
+            rows.append((cells[0], cells[1]))
+
+    return rows
+
+
 def _is_public_local_command(command: str) -> bool:
     parts = command.split()
     if len(parts) >= 2 and parts[0] == "make":
@@ -152,6 +227,14 @@ def _is_public_local_command(command: str) -> bool:
 
 def _markdown_links(source: str) -> set[str]:
     return set(re.findall(r"\]\(([^)]+)\)", source))
+
+
+def _backtick_values(source: str) -> list[str]:
+    return re.findall(r"`([^`]+)`", source)
+
+
+def _resolve_repo_path(value: str) -> Path:
+    return (REPO_ROOT / value).resolve()
 
 
 def test_every_root_package_script_is_documented() -> None:
@@ -261,6 +344,7 @@ def test_docs_quick_navigation_routes_major_work_surfaces() -> None:
         "Find validation and release evidence",
         "Where new code must live",
         "Review governance policy",
+        "Review repository discoverability coverage",
         "Review security policy",
         "Review supply chain policy",
         "Understand design decisions",
@@ -380,6 +464,79 @@ def test_runbook_indexes_link_to_existing_operational_docs() -> None:
     assert not missing, f"Runbook indexes reference missing operational docs: {missing}"
 
 
+def test_repository_discoverability_audit_covers_major_domains() -> None:
+    rows = _audit_rows()
+    domains = {row["Domain"] for row in rows}
+
+    missing = sorted(AUDIT_REQUIRED_DOMAINS - domains)
+    extras = sorted(domains - AUDIT_REQUIRED_DOMAINS)
+
+    assert not missing, f"Repository discoverability audit missing required domains: {missing}"
+    assert not extras, f"Repository discoverability audit has unrecognized domains: {extras}"
+
+
+def test_repository_discoverability_audit_has_no_incomplete_rows() -> None:
+    incomplete = [
+        f"{row['Domain']}: {row['Status']}"
+        for row in _audit_rows()
+        if row["Status"] != "covered"
+    ]
+
+    assert not incomplete, f"Repository discoverability audit has incomplete rows: {incomplete}"
+
+
+def test_repository_discoverability_audit_paths_exist() -> None:
+    missing: list[str] = []
+
+    for row in _audit_rows():
+        for column in ("Source of truth", "Governance / owner reference", "Evidence location"):
+            for value in _backtick_values(row[column]):
+                if not _resolve_repo_path(value).exists():
+                    missing.append(f"{row['Domain']} {column}: {value}")
+
+    assert not missing, f"Repository discoverability audit references missing paths: {missing}"
+
+
+def test_repository_discoverability_audit_validation_commands_are_public() -> None:
+    invalid: list[str] = []
+
+    for row in _audit_rows():
+        commands = _backtick_values(row["Public validation"])
+        if not commands:
+            invalid.append(f"{row['Domain']}: missing public validation")
+            continue
+        for command in commands:
+            if not _is_public_local_command(command):
+                invalid.append(f"{row['Domain']}: {command}")
+
+    assert not invalid, f"Repository discoverability audit references non-public validation commands: {invalid}"
+
+
+def test_discovery_map_routes_every_audited_domain() -> None:
+    audit_routes = {row["Domain"]: row["Discovery route"] for row in _audit_rows()}
+    discovery_routes = dict(_audited_domain_rows())
+    start_here_routes = {domain for domain, _, _, _, _ in _discovery_map_rows()}
+
+    missing_domains = sorted(set(audit_routes) - set(discovery_routes))
+    route_mismatches = sorted(
+        f"{domain}: audit={route!r}, discovery={discovery_routes.get(domain)!r}"
+        for domain, route in audit_routes.items()
+        if discovery_routes.get(domain) != route
+    )
+    missing_route_definitions = sorted(
+        f"{domain}: {route}"
+        for domain, route in discovery_routes.items()
+        if route not in start_here_routes
+    )
+
+    assert not missing_domains, f"Discovery map is missing audited domains: {missing_domains}"
+    assert not route_mismatches, f"Discovery map route mismatch with audit: {route_mismatches}"
+    assert not missing_route_definitions, (
+        "Audited domains point at undefined discovery routes: "
+        f"{missing_route_definitions}"
+    )
+
+
 def test_layer_runtime_path_governance_lists_existing_canonical_paths() -> None:
     governance = _read(LAYER_RUNTIME_PATH_GOVERNANCE_DOC)
     missing_from_doc: list[str] = []
@@ -487,6 +644,17 @@ def test_discovery_map_validation_commands_are_public_interfaces() -> None:
 
     missing_from_inventory = [name for _, name, _ in expected_commands if f"`{name}`" not in commands]
     assert not missing_from_inventory, f"Discovery map commands missing from COMMANDS.md: {missing_from_inventory}"
+
+
+def test_all_discovery_map_validation_commands_are_public_interfaces() -> None:
+    invalid: list[str] = []
+
+    for work_type, _, _, minimum_validation, broader_gate in _discovery_map_rows():
+        for command in _backtick_values(f"{minimum_validation} {broader_gate}"):
+            if not _is_public_local_command(command):
+                invalid.append(f"{work_type}: {command}")
+
+    assert not invalid, f"Discovery map validation cells reference non-public commands: {invalid}"
 
 
 def test_ci_to_local_mapping_references_existing_workflows_and_commands() -> None:

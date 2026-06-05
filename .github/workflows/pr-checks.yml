@@ -67,6 +67,16 @@ jobs:
       - name: Validate workflow ownership registry
         run: python scripts/ci/verify_workflow_registry.py
 
+      - name: Validate .devin/workflows specification compliance
+        run: |
+          pip install pyyaml
+          python scripts/ci/validate_devin_workflows.py
+
+      - name: Verify workflow INDEX.md is in sync
+        run: |
+          pip install pyyaml
+          python scripts/ci/generate_workflow_index.py --check
+
       - name: Enforce ADR numbering policy
         run: python scripts/ci/check_adr_numbering.py
 

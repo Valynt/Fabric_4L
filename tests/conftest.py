@@ -120,6 +120,10 @@ ADMIN_USER_ID = "admin-super-001"
 TEST_JWT_SECRET = os.getenv("JWT_SECRET", os.getenv("TEST_JWT_SECRET", "test-secret-key"))
 TEST_JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 
+_DEBUG_VALUE = os.getenv("DEBUG", "").strip().lower()
+if _DEBUG_VALUE and _DEBUG_VALUE not in {"0", "1", "false", "true", "no", "yes", "off", "on"}:
+    os.environ["DEBUG"] = "false"
+
 # Claim names matching GovernanceMiddleware defaults
 JWT_TENANT_CLAIM = os.getenv("JWT_TENANT_CLAIM", "tenant_id")
 JWT_USER_CLAIM = os.getenv("JWT_USER_CLAIM", "sub")

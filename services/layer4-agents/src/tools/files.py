@@ -5,3 +5,11 @@ re-export only so the packaged source of truth remains ``layer4_agents``.
 """
 
 from layer4_agents.tools.files import *  # noqa: F401,F403
+from layer4_agents.tools.files import (  # noqa: F401
+    TenantRequiredError,
+    _get_tenant_id,
+    _validate_path,
+    delete_file,
+    read_file,
+    write_file,
+)

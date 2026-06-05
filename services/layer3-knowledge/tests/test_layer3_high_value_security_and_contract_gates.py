@@ -4,7 +4,9 @@ from __future__ import annotations
 
 
 import ast
+import importlib.util
 import itertools
+import sys
 from pathlib import Path
 
 import pytest
@@ -14,6 +16,14 @@ from src.schema.entity_resolution import EntityResolutionRequest, ResolutionStra
 from src.services.entity_resolution import EntityResolutionService
 
 ROUTES_DIR = Path(__file__).resolve().parents[1] / "src" / "api" / "routes"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+AUDITED_WRITE_SCRIPT = REPO_ROOT / "scripts" / "ci" / "check_layer3_audited_relationship_writes.py"
+
+SPEC = importlib.util.spec_from_file_location("check_layer3_audited_relationship_writes", AUDITED_WRITE_SCRIPT)
+assert SPEC is not None and SPEC.loader is not None
+audited_write_check = importlib.util.module_from_spec(SPEC)
+sys.modules[SPEC.name] = audited_write_check
+SPEC.loader.exec_module(audited_write_check)
 
 
 def _iter_route_files() -> list[Path]:
@@ -35,16 +45,14 @@ def _is_write_endpoint(node: ast.AsyncFunctionDef | ast.FunctionDef) -> bool:
 
 class TestMutationPathCompleteness:
     def test_relationship_mutation_routes_reference_audited_gateway(self) -> None:
-        missing: list[str] = []
+        violations: list[str] = []
         for route_file in _iter_route_files():
             source = route_file.read_text(encoding="utf-8")
-            tree = ast.parse(source)
-            for node in ast.walk(tree):
-                if isinstance(node, (ast.AsyncFunctionDef, ast.FunctionDef)) and _is_write_endpoint(node):
-                    fn_segment = ast.get_source_segment(source, node) or ""
-                    if "relationship" in fn_segment.lower() and "AuditedGraphMutation" not in fn_segment:
-                        missing.append(f"{route_file.name}:{node.name}")
-        assert not missing, "Relationship mutation endpoints must route writes through AuditedGraphMutation gateway"
+            tree = ast.parse(source, filename=str(route_file))
+            visitor = audited_write_check.ScanVisitor(route_file)
+            visitor.visit(tree)
+            violations.extend(f"{route_file.name}:{item.function}:{item.line}" for item in visitor.violations)
+        assert not violations, "Relationship mutation endpoints must route writes through AuditedGraphMutation gateway"
 
 
 class TestDeterministicEntityResolutionProperties:
@@ -101,4 +109,8 @@ class TestObservabilityContractCoverage:
         # Constraint/index failures surface as mutation failures via error_type label.
         metrics.increment_mutation_failure("constraint_violation")
         metrics.increment_mutation_failure("index_failure")
-        metrics.increment_unauthorized_traversal("account_scope", "hostile_traversal")
+        metrics.increment_unauthorized_traversal(
+            category="account_scope",
+            route="entities.detail",
+            violation_type="hostile_traversal",
+        )
