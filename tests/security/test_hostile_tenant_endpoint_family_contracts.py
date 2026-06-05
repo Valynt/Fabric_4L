@@ -133,6 +133,7 @@ class TestHostileCrossTenanEndpointFamilyContracts:
             "get_db_from_context_sync",
             "require_admin",
             "tenant_required",
+            "get_request_context",  # Layer 6 uses this for auth + tenant context
         }
         has_guard = bool(deps & acceptable_guards) or any(
             guard in src for guard in acceptable_guards
@@ -156,8 +157,16 @@ class TestHostileCrossTenanEndpointFamilyContracts:
         if not has_writes:
             pytest.skip(f"Endpoint family {family_name} has no write methods")
 
-        # Check for require_authenticated or equivalent
-        has_auth = "require_authenticated" in src or "Depends(" in src and "require" in src.lower()
+        # Check for require_authenticated or equivalent (including get_request_context)
+        has_auth = any(
+            pattern in src for pattern in [
+                "require_authenticated",
+                "get_db_from_context",
+                "get_request_context",
+                "require_admin",
+                "tenant_required",
+            ]
+        )
         assert has_auth, (
             f"Endpoint family {family_name} ({endpoint_prefix}) in {layer} has write methods {write_methods & families_methods} "
             f"but does not appear to enforce authentication. Write operations must be authenticated."

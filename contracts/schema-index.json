@@ -299,6 +299,11 @@
     {
       "path": "contracts/observability/layer6-metrics.json",
       "id": "contract:contracts/observability/layer6-metrics.json"
+    },
+    {
+      "path": "contracts/config-policy/behavior-contract-matrix.json",
+      "id": "contract:contracts/config-policy/behavior-contract-matrix.json",
+      "title": "Critical Behavior Contract Matrix"
     }
   ],
   "ignored_orphans": []

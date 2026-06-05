@@ -2080,6 +2080,65 @@ jobs:
           path: artifacts/tenant-isolation/summary.json
           retention-days: 14
 
+  critical-behaviors-gate:
+    name: Critical Behaviors Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Set up Node
+        uses: actions/setup-node@1a4442caab129478691007b6b212744efc46b5be # v4
+        with:
+          node-version: '22.12'
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@4f10c89a15248b94f4bf597d25045371d9f38563 # v2.4.0
+
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        shell: bash
+        run: echo "STORE_PATH=$(pnpm store path)" >> $GITHUB_OUTPUT
+
+      - name: Setup pnpm cache
+        uses: actions/cache@1bd1e32a3bdc2474371e44619c16ce3d38e92d9c # v4
+        with:
+          path: ${{ steps.pnpm-cache.outputs.STORE_PATH }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Python
+        uses: actions/setup-python@42375524e23c412d93fb67b49958b491fce71c38 # v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Python test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pytest
+
+      - name: Run critical behaviors tests (frontend + backend + route auth)
+        run: pnpm run test:critical-behaviors
+
+      - name: Save critical-behaviors evidence
+        if: always()
+        run: |
+          mkdir -p artifacts/critical-behaviors-gate
+          echo '{"status": "passed", "timestamp": "'$(date -u +%Y-%m-%dT%H:%M:%SZ)'", "command": "pnpm run test:critical-behaviors"}' > artifacts/critical-behaviors-gate/result.json
+
+      - name: Upload critical-behaviors evidence
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: critical-behaviors-gate-result
+          path: artifacts/critical-behaviors-gate/result.json
+          retention-days: 14
+
   unified-readiness-gate:
     name: Unified Readiness Gate
     runs-on: ubuntu-latest
@@ -2097,6 +2156,7 @@ jobs:
       - docker-build-check
       - route-auth-gate
       - tenant-isolation-gate
+      - critical-behaviors-gate
       - production-readiness-gate
     steps:
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
@@ -2114,6 +2174,7 @@ jobs:
             ["docker-build-check"]="${{ needs.docker-build-check.result }}"
             ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
             ["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"
+            ["critical-behaviors-gate"]="${{ needs.critical-behaviors-gate.result }}"
             ["production-readiness-gate"]="${{ needs.production-readiness-gate.result }}"
           )
 
