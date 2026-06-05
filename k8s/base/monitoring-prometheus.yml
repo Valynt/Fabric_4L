@@ -27,6 +27,10 @@ data:
         static_configs:
           - targets: ["localhost:9090"]
 
+      - job_name: "alertmanager"
+        static_configs:
+          - targets: ["alertmanager:9093"]
+
       - job_name: "layer1-ingestion"
         static_configs:
           - targets: ["layer1-ingestion:8000"]
@@ -171,6 +175,7 @@ data:
             annotations:
               summary: "{{ $labels.job }} is down"
               description: "Prometheus cannot scrape {{ $labels.job }} for 2 minutes"
+              runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/infrastructure/service-down.md"
 
           - alert: DependencyHealthDegraded
             expr: value_fabric_health_status{component=~"database|redis|postgres|neo4j|layer3"} == 0

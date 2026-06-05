@@ -13,7 +13,7 @@ import math
 import random
 import re
 import time
-from dataclasses import dataclass, field
+from dataclasses import InitVar, dataclass, field
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
@@ -55,9 +55,9 @@ class FastPathResult:
     url: str
     status_code: int
     html: str
-    title: str
-    text_content: str
-    content_hash: str
+    title: str = ""
+    text_content: str = ""
+    content_hash: str = ""
     links_found: list[str] = field(default_factory=list)
     is_spa_detected: bool = False
     fetch_time_ms: int = 0
@@ -65,6 +65,16 @@ class FastPathResult:
     headers: dict[str, str] = field(default_factory=dict)
     original_html_length: int = 0  # P1 Fix: Store original size before truncation
     retry_count: int = 0  # Number of retry attempts made before success or final failure
+    links: InitVar[list[str] | None] = None
+    script_count: InitVar[int | None] = None
+
+    def __post_init__(
+        self,
+        links: list[str] | None,
+        script_count: int | None,
+    ) -> None:
+        if links is not None and not self.links_found:
+            object.__setattr__(self, "links_found", links)
 
 
 @dataclass

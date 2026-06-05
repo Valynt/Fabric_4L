@@ -60,13 +60,13 @@ class TestStaticPageRouting:
         """Empty page should fail quality gate and fallback."""
         html = load_fixture("static_pages/static_empty_page.html")
 
-        # Router should try fast path
+        # Router should try fast path with browser fallback available.
         router = SmartRouter()
         decision = router.decide(
             "https://example.com/empty",
             RouteType.FAST_WITH_FALLBACK
         )
-        assert decision.route == RouteType.FAST  # Router chooses fast
+        assert decision.route == RouteType.FAST_WITH_FALLBACK
 
         # Then quality gate should fail it
         gate = QualityGate()

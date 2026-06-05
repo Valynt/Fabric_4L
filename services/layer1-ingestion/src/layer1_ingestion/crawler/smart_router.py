@@ -193,7 +193,7 @@ class SmartRouter:
             return RoutingDecision(
                 url=url,
                 route=RouteType.FAST,
-                reason="sitemap",
+                reason="robots" if path == "/robots.txt" else "sitemap",
                 priority=10,
             )
 

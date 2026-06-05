@@ -106,6 +106,24 @@ def validate_url_safety(
     if _is_blocked_hostname(host):
         raise URLSafetyError("IP_RANGE_BLOCKED")
 
+    literal_ip: ipaddress.IPv4Address | ipaddress.IPv6Address | None = None
+    try:
+        literal_ip = ipaddress.ip_address(host)
+    except ValueError:
+        literal_ip = None
+    if literal_ip is not None:
+        if _is_blocked_ip(str(literal_ip)):
+            raise URLSafetyError("IP_RANGE_BLOCKED")
+        resolved_ips = (str(literal_ip),)
+        normalized = urlunsplit((parsed.scheme, f"{host}:{port}", parsed.path or "/", parsed.query, ""))
+        return URLSafetyResult(
+            normalized_url=normalized,
+            hostname=host,
+            scheme=parsed.scheme,
+            port=port,
+            resolved_ips=resolved_ips,
+        )
+
     if allowlist_domains:
         normalized_allowlist = [d.lower().rstrip(".") for d in allowlist_domains if d]
         if not any(host == d or host.endswith(f".{d}") for d in normalized_allowlist):

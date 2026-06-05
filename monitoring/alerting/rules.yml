@@ -333,6 +333,7 @@ groups:
         annotations:
           summary: "Layer 3 graph query failures are spiking"
           description: "Failure rate for category={{ $labels.category }}, operation={{ $labels.operation }}, route={{ $labels.route }} exceeded 0.5/sec for 10m."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/slow-queries.md"
 
       - alert: Layer3SustainedSlowGraphQueries
         expr: |
@@ -343,6 +344,7 @@ groups:
         annotations:
           summary: "Layer 3 sustained slow graph queries"
           description: "Slow query events for operation={{ $labels.operation }} have remained elevated for 15m."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/slow-queries.md"
 
       - alert: Layer3UnauthorizedTraversalAttempts
         expr: |
@@ -353,6 +355,7 @@ groups:
         annotations:
           summary: "Layer 3 unauthorized traversal attempt detected"
           description: "Unauthorized traversal category={{ $labels.category }}, route={{ $labels.route }}, violation_type={{ $labels.violation_type }} detected."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/tenant-isolation-failure.md"
 
       - alert: Layer3IndexConstraintHealthFailures
         expr: |
@@ -363,6 +366,7 @@ groups:
         annotations:
           summary: "Layer 3 index/constraint health failures detected"
           description: "Index/constraint health failures found for check_type={{ $labels.check_type }}, component={{ $labels.component }}."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/infrastructure/neo4j-down.md"
 
       # Ground truth staleness (L5)
       # `layer5_stale_objects_detected` is a Gauge reflecting the *current*
@@ -447,6 +451,7 @@ groups:
         annotations:
           summary: "Layer 1 repeated crawl failures"
           description: "Layer 1 retry events exceeded threshold in the last 15m."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
       - alert: Layer1StuckJobCandidates
         expr: sum(increase(layer1_retry_events_total{stage=~"browser_crawl|compliance_check"}[30m])) > 20
@@ -456,6 +461,7 @@ groups:
         annotations:
           summary: "Layer 1 stuck-job candidates detected"
           description: "Sustained Layer 1 retry volume over 30m suggests jobs are stuck or repeatedly failing to make progress."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/agent-workflow-stall.md"
 
       - alert: Layer1RobotsBypassAttempts
         expr: sum(increase(layer1_retry_events_total{reason="robots_bypass_attempt"}[10m])) > 0
@@ -465,6 +471,7 @@ groups:
         annotations:
           summary: "Layer 1 robots bypass attempts detected"
           description: "Detected retries explicitly flagged as robots bypass attempts."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/zero-trust-validation.md"
 
       - alert: Layer1TenantContextErrors
         expr: |
@@ -479,3 +486,4 @@ groups:
         annotations:
           summary: "Layer 1 tenant context errors detected or metric missing"
           description: "Layer 1 tenant-context failures were observed, or the expected layer1_errors_total{error_type=\"tenant_context_error\"} metric is not being emitted; investigate tenant-isolation handling and instrumentation."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/tenant-isolation-failure.md"

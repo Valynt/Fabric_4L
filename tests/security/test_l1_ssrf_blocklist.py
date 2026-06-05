@@ -2,11 +2,18 @@
 
 from __future__ import annotations
 
+from uuid import uuid4
+
 import pytest
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse
+from fastapi.testclient import TestClient
 from pydantic import ValidationError
 
+from layer1_ingestion.api import main as l1_main
 from layer1_ingestion.api.main import ExecuteTargetRequest
 from layer1_ingestion.compliance.url_safety import URLSafetyError, validate_url_safety
+from value_fabric.shared.error_handling.exceptions import ValueFabricException
 
 
 @pytest.mark.security
@@ -65,3 +72,55 @@ def test_l1_url_safety_allows_public_https_when_dns_resolves_publicly(
 
     assert result.hostname == "example.com"
     assert result.resolved_ips == ("1.1.1.1",)
+
+
+@pytest.mark.security
+def test_l1_create_target_runtime_blocks_metadata_ip_before_persistence(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """Exercise the Layer 1 request path without allowing metadata egress."""
+
+    class DBMustNotBeUsed:
+        touched = False
+
+        def __getattr__(self, name: str):  # pragma: no cover - fail path only
+            self.touched = True
+            raise AssertionError(f"DB was touched before URL safety blocked request: {name}")
+
+    db = DBMustNotBeUsed()
+
+    def fail_if_dns_resolution_is_attempted(_hostname: str) -> tuple[str, ...]:
+        raise AssertionError("metadata IP literal should be blocked before DNS resolution")
+
+    app = FastAPI()
+    app.dependency_overrides[l1_main.get_tenant_id] = lambda: uuid4()
+    app.dependency_overrides[l1_main.get_current_user_id] = lambda: uuid4()
+    app.dependency_overrides[l1_main.get_db_from_context_sync] = lambda: db
+    app.post("/api/v1/ingestion/targets")(l1_main.create_target)
+
+    @app.exception_handler(ValueFabricException)
+    async def value_fabric_exception_handler(_request, exc: ValueFabricException):
+        return JSONResponse(status_code=exc.status_code, content={"message": exc.message})
+
+    monkeypatch.setattr(
+        "layer1_ingestion.compliance.url_safety._resolve_ips",
+        fail_if_dns_resolution_is_attempted,
+    )
+
+    response = TestClient(app).post(
+        "/api/v1/ingestion/targets",
+        json={
+            "name": "blocked metadata endpoint",
+            "url": "http://169.254.169.254/latest/meta-data/",
+        },
+    )
+
+    assert response.status_code == 422
+    assert not db.touched
+    assert response.json()["message"] == str(
+        {
+            "error": "url_validation_failed",
+            "reason_code": "IP_RANGE_BLOCKED",
+            "message": "URL blocked by compliance policy",
+        }
+    )

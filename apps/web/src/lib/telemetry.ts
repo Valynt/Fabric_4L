@@ -13,6 +13,12 @@
  */
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug';
+type TelemetryImportMetaEnv = {
+  DEV?: boolean;
+  PROD?: boolean;
+  VITE_API_BASE?: string;
+};
+type ConsoleLike = Pick<typeof globalThis.console, LogLevel>;
 
 export interface LogContext extends Record<string, unknown> {
   feature?: string;
@@ -28,10 +34,15 @@ export interface LogContext extends Record<string, unknown> {
 
 export type TelemetryContextDefaults = Omit<LogContext, 'feature'>;
 
+function getImportMetaEnv(): TelemetryImportMetaEnv {
+  return (import.meta as ImportMeta & { env?: TelemetryImportMetaEnv }).env ?? {};
+}
+
 /** Determine whether console logging should be emitted */
 function isLoggingEnabled(): boolean {
+  const env = getImportMetaEnv();
   return (
-    import.meta.env.DEV === true ||
+    env.DEV === true ||
     (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development')
   );
 }
@@ -42,21 +53,8 @@ function log(level: LogLevel, message: string, context?: LogContext): void {
 
   const prefix = '[Fabric]';
   const args = context ? [prefix, message, context] : [prefix, message];
-
-  switch (level) {
-    case 'error':
-      console.error(...args);
-      break;
-    case 'warn':
-      console.warn(...args);
-      break;
-    case 'info':
-      console.info(...args);
-      break;
-    case 'debug':
-      console.debug(...args);
-      break;
-  }
+  const sink = globalThis['console'] as ConsoleLike | undefined;
+  sink?.[level]?.(...args);
 }
 
 /** Log an error with optional structured context */
@@ -88,7 +86,7 @@ function sendToTelemetryBackend(
   payload: { message: string; stack?: string; name?: string; level?: LogLevel; context?: LogContext }
 ): void {
   try {
-    const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
+    const API_BASE = getImportMetaEnv().VITE_API_BASE || '/api/v1';
     const data = JSON.stringify({
       type,
       timestamp: new Date().toISOString(),
@@ -130,7 +128,7 @@ export function captureException(error: Error, context?: LogContext): void {
     ...context,
   });
 
-  if (import.meta.env.PROD) {
+  if (getImportMetaEnv().PROD) {
     sendToTelemetryBackend('exception', {
       message: error.message,
       stack: error.stack,
@@ -152,7 +150,7 @@ export function captureMessage(
 ): void {
   log(level, message, context);
 
-  if (import.meta.env.PROD) {
+  if (getImportMetaEnv().PROD) {
     sendToTelemetryBackend('message', {
       message,
       level,

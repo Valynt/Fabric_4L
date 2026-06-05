@@ -427,10 +427,77 @@ class TestSSRFProtection:
         assert result.content_type == "ssrf_blocked"
 
     @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "url",
+        [
+            "http://169.254.169.254/latest/meta-data/",
+            "http://169.254.170.2/v2/metadata",
+            "http://100.100.100.200/latest/meta-data/",
+            "http://192.0.0.254/opc/v1/instance/",
+            "http://[fd00:ec2::254]/latest/meta-data/",
+            "http://metadata.google.internal/computeMetadata/v1/",
+            "http://metadata.internal/secret",
+            "https://service.metadata/secret",
+        ],
+    )
+    async def test_fetch_blocks_cloud_metadata_endpoints_before_network(
+        self,
+        url: str,
+    ) -> None:
+        class FailingClient:
+            async def get(self, *_args, **_kwargs):
+                raise AssertionError("SSRF validation must run before outbound fetch")
+
+            async def aclose(self):
+                pass
+
+        crawler = HttpxCrawler()
+        await crawler.start()
+        crawler._client = FailingClient()
+        crawler._semaphore = asyncio.Semaphore(1)
+
+        result = await crawler.fetch(url)
+        await crawler.stop()
+
+        assert result.status_code == 400
+        assert result.content_type == "ssrf_blocked"
+
+    @pytest.mark.asyncio
     async def test_redirect_to_private_ip_is_blocked(self) -> None:
         class FakeClient:
             async def get(self, *_args, **_kwargs):
                 return Response(302, headers={"location": "http://127.0.0.1/admin"})
+
+            async def aclose(self):
+                pass
+
+        crawler = HttpxCrawler()
+        await crawler.start()
+        crawler._client = FakeClient()
+        crawler._semaphore = asyncio.Semaphore(1)
+
+        result = await crawler.fetch("https://example.com/redirect")
+        await crawler.stop()
+
+        assert result.status_code == 400
+        assert result.content_type == "ssrf_blocked"
+
+    @pytest.mark.asyncio
+    @pytest.mark.parametrize(
+        "location",
+        [
+            "http://169.254.169.254/latest/meta-data/",
+            "http://metadata.google.internal/computeMetadata/v1/",
+            "https://service.metadata/secret",
+        ],
+    )
+    async def test_redirect_to_cloud_metadata_endpoint_is_blocked(
+        self,
+        location: str,
+    ) -> None:
+        class FakeClient:
+            async def get(self, *_args, **_kwargs):
+                return Response(302, headers={"location": location})
 
             async def aclose(self):
                 pass

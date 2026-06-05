@@ -2,9 +2,11 @@ import express from "express";
 import { createServer } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
+import { createLogger } from "../src/lib/telemetry";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const log = createLogger("web-server");
 
 async function startServer() {
   const app = express();
@@ -33,7 +35,7 @@ async function startServer() {
   const port = process.env.PORT || 3000;
 
   server.listen(port, () => {
-    console.log(`Server running on http://localhost:${port}/`);
+    log.info("Server started", { port, url: `http://localhost:${port}/` });
   });
 
   const shutdown = () => server.close(() => process.exit(0));

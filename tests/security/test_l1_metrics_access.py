@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import ast
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
+from fastapi.testclient import TestClient
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -54,3 +56,71 @@ def test_l1_metrics_handler_verifies_metrics_access_before_reading_metrics(
     assert "get_metrics()" in body
     assert body.index("verify_metrics_access(request)") < body.index("get_metrics()")
     assert "Metrics endpoint requires internal access" in body
+
+
+@pytest.mark.security
+def test_l1_metrics_route_rejects_unauthenticated_request() -> None:
+    from layer1_ingestion.api.main import app
+
+    response = TestClient(app).get("/api/v1/ingestion/metrics")
+
+    assert response.status_code in {401, 403}
+
+
+class _MetricsStub:
+    def get_metrics(self) -> str:
+        return "# l1 metrics\n"
+
+
+def _external_metrics_request(headers: dict[str, str] | None = None) -> SimpleNamespace:
+    return SimpleNamespace(
+        headers=headers or {},
+        client=SimpleNamespace(host="8.8.8.8"),
+    )
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {},
+        {"Authorization": "Bearer wrong-token"},
+        {"X-Prometheus-Scrape-Token": "wrong-token"},
+    ],
+)
+async def test_l1_metrics_handler_denies_external_requests_without_valid_token(
+    monkeypatch: pytest.MonkeyPatch,
+    headers: dict[str, str],
+) -> None:
+    from layer1_ingestion.api import main
+
+    monkeypatch.setenv("METRICS_INTERNAL_SCRAPE_TOKEN", "expected-token")
+    monkeypatch.setattr(main, "get_metrics", lambda: _MetricsStub())
+
+    with pytest.raises(main.AuthorizationError):
+        await main.metrics_endpoint(_external_metrics_request(headers))
+
+
+@pytest.mark.security
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "headers",
+    [
+        {"Authorization": "Bearer expected-token"},
+        {"X-Prometheus-Scrape-Token": "expected-token"},
+    ],
+)
+async def test_l1_metrics_handler_allows_external_requests_with_valid_token(
+    monkeypatch: pytest.MonkeyPatch,
+    headers: dict[str, str],
+) -> None:
+    from layer1_ingestion.api import main
+
+    monkeypatch.setenv("METRICS_INTERNAL_SCRAPE_TOKEN", "expected-token")
+    monkeypatch.setattr(main, "get_metrics", lambda: _MetricsStub())
+
+    response = await main.metrics_endpoint(_external_metrics_request(headers))
+
+    assert response.status_code == 200
+    assert b"# l1 metrics" in response.body
