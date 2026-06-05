@@ -290,11 +290,14 @@ jobs:
         run: |
           pip install pytest
           python scripts/ci/webhook_security_matrix_report.py
+          test -f artifacts/webhook-security-matrix.md
 
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
           python scripts/ci/check_route_tenant_propagation.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          test -f artifacts/route-tenant-propagation.json
+          test -f artifacts/route-tenant-propagation.md
           python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
           python -m pytest tests/security/test_route_tenant_propagation_static.py -v --tb=short
 
@@ -1627,7 +1630,7 @@ jobs:
   integration-checks:
     name: Integration Tests (Docker)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
@@ -1655,6 +1658,17 @@ jobs:
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /layer2-extraction
 
+      - name: Run release smoke tests
+        env:
+          JWT_SECRET: release-smoke-jwt-secret-minimum-32-characters
+          SERVICE_AUTH_SECRET: release-smoke-service-auth-secret-32chars
+          POSTGRES_USER: release_smoke_app
+          POSTGRES_PASSWORD: release_smoke_strong_credential
+          NEO4J_PASSWORD: devpassword
+        run: |
+          pip install -r tests/requirements-test.txt
+          make test-backend-integrated-release-smoke
+
       - name: Start core services
         run: |
           export NEO4J_PASSWORD=valuefabric
@@ -1681,15 +1695,6 @@ jobs:
           docker compose -f docker-compose.full.yml ps
         timeout-minutes: 3
 
-      - name: Run smoke tests
-        run: |
-          pip install httpx
-          python scripts/smoke/production_smoke.py \
-            --l2-url http://localhost:8002 \
-            --l3-url http://localhost:8003 \
-            --l4-url http://localhost:8004 \
-            --output-dir artifacts
-
       - name: Run integration test suite
         run: |
           pip install pytest httpx pytest-asyncio
@@ -1712,7 +1717,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: smoke-report-pr
-          path: artifacts/smoke-report-*.json
+          path: artifacts/release_smoke/**
           retention-days: 7
 
       - name: Upload logs on failure
@@ -2025,7 +2030,9 @@ jobs:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
           NEO4J_PASSWORD: testpassword
-        run: pnpm test:isolation
+        run: |
+          pnpm test:isolation
+          test -f artifacts/tenant-isolation/summary.json
 
       - name: Upload tenant isolation evidence
         if: always()
