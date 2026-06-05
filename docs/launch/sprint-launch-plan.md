@@ -238,7 +238,7 @@ Each sprint maps to one or more open blockers from `docs/launch/launch-blocker-r
 
 **Files to touch:**
 - `docs/launch/launch-control-room.md` (new)
-- `.github/workflows/launch-readiness.yml` (add control room validation step)
+- `.github/workflows/prod-readiness.yml` (add control room validation step)
 
 ---
 

@@ -14,6 +14,7 @@ from typing import Any
 import structlog
 from defusedxml.ElementTree import fromstring
 
+from ..shared.exceptions import XBRLParseError
 from ..metrics import get_metrics
 
 logger = structlog.get_logger()
@@ -329,12 +330,12 @@ class XBRLParser:
                         concept=tag_name,
                         decimals_value=decimals,
                         context_ref=context_ref,
-                        fallback="using_scale_0",
+                        fallback="skipping_fact",
                     )
                     metrics = get_metrics()
                     if metrics:
                         metrics.increment_errors(error_type="xbrl_parse_fallback", component="xbrl_parser")
-                    scale = 0
+                    continue
 
             # Apply scale if needed
             if scale != 0 and isinstance(value, (int, float, Decimal)):
@@ -453,7 +454,7 @@ class XBRLParser:
             if "EntityCentralIndexKey" in tag or "EntityRegistrantName" in tag:
                 if elem.text:
                     return elem.text
-        return None
+        raise XBRLParseError(f"Invalid XBRL date: {date_str}")
 
     def _extract_document_type(self, root: ET.Element) -> str | None:
         """Extract document type from DEI."""

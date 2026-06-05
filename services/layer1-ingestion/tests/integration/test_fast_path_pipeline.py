@@ -49,7 +49,7 @@ class TestTargetLevelModes:
         """BROWSER mode skips HTTPX entirely."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/sitemap.xml",  # Would normally be fast
             target_mode=RouteType.BROWSER,
         )
@@ -106,7 +106,7 @@ class TestPerURLSmartRouting:
         """Sitemap.xml routes to fast with high priority."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/sitemap.xml",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
@@ -140,13 +140,13 @@ class TestPerURLSmartRouting:
         """URLs with fragments/query params route to browser."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/page#section",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
         assert decision.route == RouteType.BROWSER
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/search?q=test",
             target_mode=RouteType.FAST_WITH_FALLBACK,
         )
@@ -157,7 +157,7 @@ class TestPerURLSmartRouting:
         """Previous browser crawl maintains consistency."""
         router = SmartRouter()
 
-        decision = await router.decide(
+        decision = router.decide(
             "https://example.com/page",
             target_mode=RouteType.FAST_WITH_FALLBACK,
             previous_route=RouteType.BROWSER,
@@ -344,6 +344,7 @@ class TestExecutionLogging:
                         <script src="3.js"></script>
                         <script src="4.js"></script>
                         <script src="5.js"></script>
+                        <script src="6.js"></script>
                     </head>
                     <body><div id="app"></div></body>
                 </html>
@@ -393,7 +394,11 @@ class TestEndToEndPipeline:
             )
         )
         respx.get("https://example.com/sitemap.xml").mock(
-            return_value=Response(200, xml="<xml></xml>")
+            return_value=Response(
+                200,
+                content=b"<xml></xml>",
+                headers={"content-type": "application/xml"},
+            )
         )
 
         router = SmartRouter()

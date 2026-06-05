@@ -82,9 +82,9 @@ class QualityGate:
         """
         checks = {
             "success_status": self._check_status_code(result),
+            "no_spa": self._check_no_spa(result),
             "text_length": self._check_text_length(result),
             "content_ratio": self._check_content_ratio(result),
-            "no_spa": self._check_no_spa(result),
             "fetch_time": self._check_fetch_time(result),
             "valid_content_type": self._check_content_type(result),
         }

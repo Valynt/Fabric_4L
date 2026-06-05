@@ -15,7 +15,13 @@ from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ServiceUnavailableError,
 )
-from value_fabric.shared.fastapi_framework import create_fabric_app, CallableProbe, ProbeResult, install_metrics_middleware
+from value_fabric.shared.fastapi_framework import (
+    CallableProbe,
+    ProbeResult,
+    create_fabric_app,
+    install_metrics_middleware,
+    register_health_endpoint,
+)
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.identity.rate_limiter import RedisRateLimiter
@@ -145,6 +151,7 @@ app = create_fabric_app(
     telemetry_service_name="layer7-billing",
     instrument_telemetry=True,
 )
+register_health_endpoint(app, service_name="layer7-billing", include_in_schema=False)
 
 # P0-02: Install GovernanceMiddleware — fail closed on missing/invalid auth.
 try:

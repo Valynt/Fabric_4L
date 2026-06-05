@@ -119,7 +119,7 @@ class TestStorageStageSourceCorpus:
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
-            result = tasks_module.storage_stage({"job_id": str(job.id)})
+            result = tasks_module.storage_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         return result, added_objects, mock_session
 
@@ -225,7 +225,7 @@ class TestStorageStageAccountIntelligencePacket:
         mock_session.add.side_effect = lambda obj: added_objects.append(obj)
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=mock_session):
-            result = tasks_module.storage_stage({"job_id": str(job.id)})
+            result = tasks_module.storage_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         return result, added_objects, mock_session
 
@@ -344,7 +344,7 @@ class TestFullSkillPipelineEventFlow:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async", side_effect=capture_dispatch):
-                tasks_module.notification_stage({"job_id": str(job.id)})
+                tasks_module.notification_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         # Two downstream events → two outbox rows
         assert len(outbox_rows) == 2
@@ -415,7 +415,7 @@ class TestFullSkillPipelineEventFlow:
 
         with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=notif_session):
             with patch.object(tasks_module.dispatch_outbox_event, "apply_async"):
-                tasks_module.notification_stage({"job_id": str(job.id)})
+                tasks_module.notification_stage({"job_id": str(job.id)}, str(job.tenant_id))
 
         assert len(outbox_rows) == 2
         event_types = {r.event_type for r in outbox_rows}
@@ -439,12 +439,14 @@ class TestCrossTenantHostile:
         from fastapi import FastAPI
         from layer1_ingestion.api.main import router, get_tenant_id, get_db_from_context_sync
         from fastapi.testclient import TestClient
+        from value_fabric.shared.error_handling import register_exception_handlers
 
         app = FastAPI()
+        register_exception_handlers(app)
         app.include_router(router)
         app.dependency_overrides[get_tenant_id] = lambda: tenant_id
         app.dependency_overrides[get_db_from_context_sync] = lambda: db_mock
-        return TestClient(app)
+        return TestClient(app, raise_server_exceptions=False)
 
     def test_tenant_a_cannot_read_tenant_b_corpus(self):
         """Tenant A requesting Tenant B's corpus ID gets 404."""
@@ -525,8 +527,10 @@ class TestCrossTenantHostile:
         from fastapi import FastAPI
         from layer1_ingestion.api.main import router
         from fastapi.testclient import TestClient
+        from value_fabric.shared.error_handling import register_exception_handlers
 
         app = FastAPI()
+        register_exception_handlers(app)
         app.include_router(router)
         # No dependency overrides — real get_tenant_id will raise 401
         client = TestClient(app, raise_server_exceptions=False)

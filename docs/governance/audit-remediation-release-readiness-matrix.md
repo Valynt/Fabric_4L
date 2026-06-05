@@ -48,6 +48,7 @@ the launch blocker register.
 | Layer 6 tenant isolation | `python -m pytest services/layer6-benchmarks/tests/test_repository_tenant_isolation.py services/layer6-benchmarks/tests/test_cross_tenant_hostile.py tests/security/test_benchmarks_cross_tenant_isolation.py -v --tb=short` passed 26 tests; S2-9 is verified closed in the sprint register. |
 | GitOps and recovery static readiness | `tests/gitops/test_rollouts.py` and `tests/recovery/` pass locally, but environment-dependent S5-2/S5-3 evidence remains open. |
 | Prometheus alert rules | `docker run --rm --entrypoint promtool -v "C:\Users\BBB\Fabric_4L\monitoring\prometheus\alerting:/rules:ro" prom/prometheus:v2.55.1 check rules /rules/rules.yml` passed with `SUCCESS: 11 rules found`; S5-6 is verified closed in the sprint register. |
+| Repository-owned readiness | `corepack pnpm readiness:10` passed 10/10 locally, including schema index, router contract, CI workflow registry, evidence packet generation, and maturity scorecard threshold. |
 | Documentation command map | `tests/docs/test_command_map.py` passes after current workflow references are aligned. |
 
 ## Sign-Off Rules

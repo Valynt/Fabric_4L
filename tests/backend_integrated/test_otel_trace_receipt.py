@@ -21,7 +21,7 @@ import pytest
 # Service endpoints (overridable via environment)
 BILLING_URL = os.getenv("BILLING_URL", "http://localhost:8000")
 LAYER25_URL = os.getenv("LAYER25_URL", "http://localhost:8007")
-LAYER7_URL = os.getenv("LAYER7_URL", "http://localhost:8000")
+LAYER7_URL = os.getenv("LAYER7_URL", "http://localhost:8008")
 JAEGER_URL = os.getenv("JAEGER_URL", "http://localhost:16686")
 
 
