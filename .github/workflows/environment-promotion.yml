@@ -2,14 +2,11 @@
 # Automated Dev -> Staging -> Prod promotion with approval gates
 # Triggers on successful builds to main branch
 #
-# OPERATIONAL GAP — ArgoCD not installed:
-# ArgoCD Application resources are defined in k8s/gitops/argocd-applications.yaml and
-# Argo Rollouts canary manifests exist in k8s/gitops/rollouts/ for L1 and L4, but there
-# is no ArgoCD installation manifest in this repository and no argocd namespace setup.
-# Until ArgoCD is operationally installed, the deploy-dev job commits kustomization changes
-# to Git and relies on manual kubectl apply or an external GitOps operator.
-# The "Trigger ArgoCD sync" steps are no-ops until ArgoCD is wired in.
-# Tracking issue: create an issue to install ArgoCD and wire the sync steps.
+# OPERATIONAL STATUS — ArgoCD manifests present, cluster sync unverified:
+# ArgoCD bootstrap and Application resources are defined in k8s/gitops/.
+# This workflow commits kustomization changes for GitOps reconciliation; the
+# sync/wait steps remain evidence markers unless a real ArgoCD cluster/app
+# status check is available in the target environment.
 name: Environment Promotion
 
 on:

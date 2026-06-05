@@ -102,6 +102,24 @@ def test_bunnyshell_application_credentials_are_required_and_auth_bypass_is_disa
         "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/ground_truth"
     )
 
+    layer7_compose = _component(config, "layer7")["dockerCompose"]
+    layer7_env = layer7_compose["environment"]
+    assert layer7_compose["build"]["dockerfile"] == "./services/layer7-billing/Dockerfile"
+    assert layer7_env["LAYER7_DATABASE_URL"] == (
+        "postgresql+asyncpg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/layer7_billing"
+    )
+    assert layer7_env["REDIS_URL"] == "redis://:${REDIS_PASSWORD}@redis:6379/0"
+    assert layer7_env["JWT_SECRET"] == "${JWT_SECRET}"
+    assert layer7_env["API_KEY_HMAC_SECRET"] == "${API_KEY_HMAC_SECRET}"
+    assert layer7_env["SERVICE_AUTH_SECRET"] == "${SERVICE_AUTH_SECRET}"
+    assert layer7_env["PORT"] == "8008"
+    assert layer7_compose["healthcheck"]["test"] == [
+        "CMD",
+        "curl",
+        "-f",
+        "http://localhost:8008/health",
+    ]
+
 
 def test_postgres_init_depends_on_postgres_healthy():
     """postgres-init must wait for postgres to pass its healthcheck (Finding 2)."""
@@ -141,6 +159,7 @@ def test_postgres_init_script_does_not_unconditionally_exit_zero():
     assert "exit 1" in script, (
         "postgres-init script must exit 1 on unexpected psql errors"
     )
+    assert "create_db layer7_billing" in script
 
 
 def test_postgres_multiple_databases_includes_all_required_dbs():
@@ -154,6 +173,7 @@ def test_postgres_multiple_databases_includes_all_required_dbs():
         "ground_truth",
         "layer4_agents",
         "layer6_benchmarks",
+        "layer7_billing",
     }
     declared = {db.strip() for db in multi_db.split(",")}
     missing = required - declared
@@ -171,6 +191,6 @@ def test_bunnyshell_layer4_ingress_targets_container_service_port():
         {
             "hostname": "layer4-{{ env.base_domain }}",
             "path": "/",
-            "servicePort": 8000,
+            "servicePort": 8004,
         }
     ]

@@ -25,9 +25,9 @@ def _version_for(command: list[str]) -> tuple[int, int] | None:
 def main() -> int:
     candidates = [
         ["python3.11"],
-        ["python3"],
-        ["python"],
         ["py", "-3.11"],
+        ["python"],
+        ["python3"],
         [sys.executable],
     ]
 

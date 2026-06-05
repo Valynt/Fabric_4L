@@ -8,6 +8,7 @@ resources:
   - ../../external-secrets/vault-integration.yml
   - ../../external-secrets/vault-database-dynamic.yml
   - ../../external-secrets/redis-secrets.yaml
+  - ../../external-secrets/wal-g-backup-secrets.yaml
   - ../../monitoring/placeholder-secret-scanner-cronjob.yaml
 
 labels:

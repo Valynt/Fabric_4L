@@ -16,7 +16,7 @@
 #
 # WAL-G ENABLEMENT CHECKLIST (complete all before setting ENABLE_WALG_BACKUP="true"):
 #   [ ] service account / IRSA confirmed (wal-g-backup SA + IAM role)
-#   [ ] WAL-G config map mounted (wal-g-config ConfigMap with S3 bucket, region, etc.)
+#   [ ] WAL-G static config mounted and aws-backup-credentials ExternalSecret synced
 #   [ ] S3 destination reachable from cluster (network policy + IAM permissions)
 #   [ ] wal-g backup-push succeeds in a manual / canary run
 #   [ ] restore drill succeeds (restore to a test instance, verify data integrity)
@@ -124,6 +124,8 @@ spec:
               envFrom:
                 - configMapRef:
                     name: wal-g-config
+                - secretRef:
+                    name: aws-backup-credentials
               env:
                 # SECURITY: Username is not sensitive — hardcoded to match postgres Deployment.
                 # Only password is sourced from the secret.
@@ -143,4 +145,3 @@ spec:
             - name: postgres-backups
               persistentVolumeClaim:
                 claimName: postgres-backup-pvc
-

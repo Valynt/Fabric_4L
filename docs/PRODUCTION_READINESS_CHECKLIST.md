@@ -50,7 +50,7 @@ Before any production deployment:
 | R1 | **Health checks configured** | Every Dockerfile has HEALTHCHECK; K8s has liveness + readiness probes | P0 | ✅ PASS |
 | R2 | **Pod Disruption Budgets** | PDB configured for L2, L3, L4, frontend (`minAvailable ≥ 1`) | P0 | ✅ PASS |
 | R3 | **Rolling update strategy** | `maxUnavailable: 0` ensures zero-downtime deploys | P0 | ✅ PASS |
-| R4 | **Rollback runbook** | `docs/troubleshooting/runbooks/infrastructure/deployment-rollback.md` exists; covers K8s rollback via `kubectl rollout undo`. ArgoCD-based rollback steps are documented but ArgoCD is not operationally installed — those steps cannot be executed until ArgoCD is wired in. DB schema rollback is not covered. | P0 | ⚠️ PARTIAL |
+| R4 | **Rollback runbook** | `docs/troubleshooting/runbooks/infrastructure/deployment-rollback.md` exists; covers K8s rollback via `kubectl rollout undo`. ArgoCD bootstrap and Application manifests exist, but cluster sync/rollback evidence is still required before ArgoCD rollback can be marked operational. DB schema rollback is not covered. | P0 | ⚠️ PARTIAL |
 | R5 | **DR policy documented** | `docs/reliability/dr-policy.md` exists with RTO/RPO targets | P0 | ✅ PASS |
 | R6 | **DR gameday executed** | Region loss + service failover drills documented | P1 | ✅ PASS |
 | R7 | **Backup/restore tested** | `make test-backup-drills` passes | P1 | ✅ PASS |
@@ -110,7 +110,7 @@ Before any production deployment:
 | Category | Total Checks | P0 Checks | All P0 Pass? |
 |----------|-------------|-----------|-------------|
 | Security | 18 | 12 | ⚠️ S10 PARTIAL |
-| Reliability | 12 | 8 | ⚠️ R4 PARTIAL (ArgoCD not installed) |
+| Reliability | 12 | 8 | ⚠️ R4 PARTIAL (ArgoCD sync evidence missing) |
 | Scalability | 8 | 3 | ✅ |
 | Compliance | 10 | 5 | ⚠️ C9 PARTIAL (SLSA not on every PR) |
 | Security Test Coverage | 4 | 1 | ✅ T1–T3 PASS |
@@ -126,8 +126,8 @@ Before any production deployment:
 
 **Current status: ⚠️ CONDITIONAL** — All test/code P0 blockers resolved as of 2026-05-19.
 Two infrastructure P0 partials remain:
-- **R4**: Rollback runbook covers K8s `kubectl rollout undo`; ArgoCD steps documented but ArgoCD not yet installed. DB schema rollback not covered.
+- **R4**: Rollback runbook covers K8s `kubectl rollout undo`; ArgoCD manifests are present but cluster sync/rollback evidence is still missing. DB schema rollback not covered.
 - **C9**: SLSA provenance runs on `workflow_call`/`workflow_dispatch` only, not every PR build.
 
-These are operational/infrastructure gaps, not code defects. Resolve ArgoCD installation and
+These are operational/infrastructure gaps, not code defects. Capture ArgoCD sync/rollback evidence and
 extend `supply-chain.yml` provenance trigger to clear for full production sign-off.

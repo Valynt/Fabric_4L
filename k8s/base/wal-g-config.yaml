@@ -6,13 +6,11 @@ metadata:
   name: wal-g-config
   namespace: value-fabric
 data:
-  WALG_S3_PREFIX: "s3://fabric4l-backups-REPLACE_ENV/postgres/wal"
   WALG_COMPRESSION_METHOD: "lz4"
   WALG_DELTA_MAX_STEPS: "7"
   WALG_UPLOAD_CONCURRENCY: "4"
   WALG_UPLOAD_DISK_CONCURRENCY: "2"
   WALG_DOWNLOAD_CONCURRENCY: "4"
-  AWS_REGION: "us-east-1"
   PGDATA: "/home/postgres/pgdata/pgroot"
   # Retention: 30 days
   WALG_RETAIN_COUNT: "30"
@@ -38,6 +36,8 @@ data:
       envFrom:
         - configMapRef:
             name: wal-g-config
+        - secretRef:
+            name: aws-backup-credentials
       env:
         - name: AWS_ROLE_ARN
           valueFrom:
@@ -67,11 +67,10 @@ data:
           drop:
             - ALL
 ---
-# Service account for WAL-G with IAM role annotation
+# Service account for WAL-G. Environment overlays may add cloud-workload
+# identity annotations after restore-drill evidence exists.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: wal-g-backup
   namespace: value-fabric
-  annotations:
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/fabric4l-wal-g-backup-REPLACE_ENV

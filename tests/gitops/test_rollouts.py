@@ -202,6 +202,15 @@ class TestFeatureFlags:
 class TestArgoCD:
     """Test ArgoCD application configuration."""
 
+    def test_argocd_bootstrap_manifest_declares_namespace_and_base_application(self):
+        docs = _load_manifest_yaml("k8s/gitops/argocd-install.yaml", fail_in_ci=True)
+
+        namespaces = [d for d in docs if d.get("kind") == "Namespace"]
+        apps = [d for d in docs if d.get("kind") == "Application"]
+
+        assert any(ns.get("metadata", {}).get("name") == "argocd" for ns in namespaces)
+        assert any(app.get("metadata", {}).get("name") == "fabric-4l-base" for app in apps)
+
     def test_argocd_applications_yaml_valid(self):
         """ArgoCD applications YAML is valid."""
         docs = _load_manifest_yaml("k8s/gitops/argocd-applications.yaml", fail_in_ci=True)
@@ -213,6 +222,25 @@ class TestArgoCD:
         # Should have AppProject
         projects = [d for d in docs if d.get("kind") == "AppProject"]
         assert len(projects) >= 1
+
+        app_sets = [d for d in docs if d.get("kind") == "ApplicationSet"]
+        assert len(app_sets) >= 1
+
+    def test_argocd_operational_docs_do_not_claim_missing_manifests(self):
+        workflow = open(".github/workflows/environment-promotion.yml", encoding="utf-8").read()
+        checklist = open("docs/PRODUCTION_READINESS_CHECKLIST.md", encoding="utf-8").read()
+
+        stale_claims = [
+            "ArgoCD not installed",
+            "no ArgoCD installation manifest",
+            "no argocd namespace setup",
+        ]
+        for claim in stale_claims:
+            assert claim not in workflow
+            assert claim not in checklist
+
+        assert "cluster sync/rollback evidence is still missing" in checklist
+        assert "cluster sync unverified" in workflow
 
     def test_production_requires_manual_sync(self):
         """Production application requires manual sync."""

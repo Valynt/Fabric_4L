@@ -96,8 +96,8 @@ spec:
                   key: replication-password
             - name: WALG_S3_PREFIX
               valueFrom:
-                configMapKeyRef:
-                  name: wal-g-config
+                secretKeyRef:
+                  name: aws-backup-credentials
                   key: WALG_S3_PREFIX
             - name: WALG_COMPRESSION_METHOD
               valueFrom:
@@ -106,8 +106,8 @@ spec:
                   key: WALG_COMPRESSION_METHOD
             - name: AWS_REGION
               valueFrom:
-                configMapKeyRef:
-                  name: wal-g-config
+                secretKeyRef:
+                  name: aws-backup-credentials
                   key: AWS_REGION
           resources:
             requests:

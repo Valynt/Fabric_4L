@@ -17,6 +17,7 @@ resources:
   - ../../external-secrets/layer4-secrets.yaml
   - ../../external-secrets/layer5-secrets.yaml
   - ../../external-secrets/layer6-secrets.yaml
+  - ../../external-secrets/wal-g-backup-secrets.yaml
   - ../../operators
   - ../../policy
   - ../../monitoring/placeholder-secret-scanner-cronjob.yaml

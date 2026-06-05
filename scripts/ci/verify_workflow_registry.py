@@ -18,6 +18,7 @@ DEFAULT_REGISTRY = DEFAULT_WORKFLOWS_DIR / "workflow-registry.json"
 MAKEFILE = ROOT / "Makefile"
 ROOT_PACKAGE_JSON = ROOT / "package.json"
 WEB_PACKAGE_JSON = ROOT / "apps" / "web" / "package.json"
+MAX_WORKFLOW_FILES = 49
 
 REQUIRED_FIELDS = {
     "path",
@@ -328,7 +329,14 @@ def validate_registry(
     except (OSError, json.JSONDecodeError, WorkflowRegistryError) as exc:
         return [str(exc)]
 
-    actual_files = {rel_path(path, root): path for path in workflow_files(workflows_dir)}
+    workflow_paths = workflow_files(workflows_dir)
+    if len(workflow_paths) > MAX_WORKFLOW_FILES:
+        errors.append(
+            f"{rel_path(workflows_dir, root)}: workflow count {len(workflow_paths)} exceeds "
+            f"S6-6 limit of {MAX_WORKFLOW_FILES}"
+        )
+
+    actual_files = {rel_path(path, root): path for path in workflow_paths}
     by_path: dict[str, dict[str, Any]] = {}
     for entry in entries:
         path = str(entry.get("path", ""))
