@@ -390,7 +390,15 @@ services:
     ports:
       - "3001:3001"
     environment:
+      - VITE_APP_ENV=development
       - VITE_API_BASE=/api/v1
+      - VITE_L1_PREFIX=/ingest
+      - VITE_L2_PREFIX=/extract
+      - VITE_L3_PREFIX=/graph
+      - VITE_L4_PREFIX=/agents
+      - VITE_L5_PREFIX=/truths
+      - VITE_L6_PREFIX=/benchmarks
+      - VITE_L7_PREFIX=/billing
       - VITE_USE_MOCKS=false
       - VITE_ENABLE_SSE=true
       - VITE_ENABLE_MOCK_FALLBACK=true

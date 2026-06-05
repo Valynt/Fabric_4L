@@ -47,6 +47,27 @@ function ClerkLoadingFallback() {
   );
 }
 
+function RequireClerkAuthOrgCheck({
+  children,
+  requireOrganization,
+}: {
+  children: ReactNode;
+  requireOrganization: boolean;
+}) {
+  const urls = getClerkUrls();
+  const { isLoaded: orgLoaded, organization } = useOrganization();
+
+  if (requireOrganization && !orgLoaded) {
+    return <ClerkLoadingFallback />;
+  }
+
+  if (requireOrganization && !organization) {
+    return <Navigate to={urls.selectOrgUrl} replace />;
+  }
+
+  return <>{children}</>;
+}
+
 function RequireClerkAuthInner({
   children,
   requireOrganization = true,
@@ -54,9 +75,8 @@ function RequireClerkAuthInner({
   const location = useLocation();
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { isLoaded: orgLoaded, organization } = useOrganization();
 
-  if (!authLoaded || (requireOrganization && !orgLoaded)) {
+  if (!authLoaded) {
     return <ClerkLoadingFallback />;
   }
 
@@ -67,11 +87,11 @@ function RequireClerkAuthInner({
     return <Navigate to={redirectTo} replace />;
   }
 
-  if (requireOrganization && !organization) {
-    return <Navigate to={urls.selectOrgUrl} replace />;
-  }
-
-  return <>{children}</>;
+  return (
+    <RequireClerkAuthOrgCheck requireOrganization={requireOrganization}>
+      {children}
+    </RequireClerkAuthOrgCheck>
+  );
 }
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {

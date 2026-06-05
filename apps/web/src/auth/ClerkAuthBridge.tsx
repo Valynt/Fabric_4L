@@ -29,9 +29,22 @@ import { useAccountContextStore } from "@/stores/accountContextStore";
 const FABRIC_AUTH_TEMPLATE_NAME =
   (import.meta.env.VITE_CLERK_JWT_TEMPLATE ?? "").toString().trim() || undefined;
 
+function OrgSync({ syncTenant }: { syncTenant: () => void }): null {
+  const { organization } = useOrganization();
+
+  useEffect(() => {
+    setActiveClerkOrgId(organization?.id ?? null);
+    syncTenant();
+    return () => {
+      setActiveClerkOrgId(null);
+    };
+  }, [organization?.id, syncTenant]);
+
+  return null;
+}
+
 export function ClerkAuthBridge(): null {
   const { isLoaded: authLoaded, isSignedIn, getToken } = useAuth();
-  const { organization } = useOrganization();
   const syncTenant = useAccountContextStore(s => s.syncTenant);
 
   // Stable ref that always points at the latest Clerk getToken closure.
@@ -71,17 +84,14 @@ export function ClerkAuthBridge(): null {
     };
   }, [authLoaded, isSignedIn]);
 
-  // 2) Track active org. Clear on unmount so HMR / layout swaps do not
-  //    leak a stale org id into the module-scope bridge state.
+  // 2) Track active org only when signed in to avoid Clerk useOrganization
+  //    dev warning on the sign-in page. Clear on unmount so HMR / layout
+  //    swaps do not leak a stale org id into the module-scope bridge state.
   //    Also call syncTenant so the accountContextStore purges any persisted
   //    account selection that belongs to a different tenant (P1-010).
-  useEffect(() => {
-    setActiveClerkOrgId(organization?.id ?? null);
-    syncTenant();
-    return () => {
-      setActiveClerkOrgId(null);
-    };
-  }, [organization?.id, syncTenant]);
+  if (!isSignedIn) {
+    return null;
+  }
 
-  return null;
+  return <OrgSync syncTenant={syncTenant} />;
 }

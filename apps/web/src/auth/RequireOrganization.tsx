@@ -17,11 +17,10 @@ interface RequireOrganizationProps {
   children: ReactNode;
 }
 
-function RequireOrganizationInner({ children }: RequireOrganizationProps) {
-  const { isLoaded: userLoaded } = useUser();
+function RequireOrganizationOrgCheck({ children }: RequireOrganizationProps) {
   const { organization, isLoaded: orgLoaded } = useOrganization();
 
-  if (!userLoaded || !orgLoaded) {
+  if (!orgLoaded) {
     return (
       <div className="flex h-full min-h-[400px] items-center justify-center">
         <div className="flex flex-col items-center gap-3">
@@ -37,6 +36,27 @@ function RequireOrganizationInner({ children }: RequireOrganizationProps) {
   }
 
   return <>{children}</>;
+}
+
+function RequireOrganizationInner({ children }: RequireOrganizationProps) {
+  const { isLoaded: userLoaded, isSignedIn } = useUser();
+
+  if (!userLoaded) {
+    return (
+      <div className="flex h-full min-h-[400px] items-center justify-center">
+        <div className="flex flex-col items-center gap-3">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
+          <p className="text-sm text-muted-foreground">Verifying organization...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return <Navigate to="/sign-in" replace />;
+  }
+
+  return <RequireOrganizationOrgCheck>{children}</RequireOrganizationOrgCheck>;
 }
 
 export function RequireOrganization(props: RequireOrganizationProps) {

@@ -81,6 +81,24 @@ installWebVitals();
 const clerkUrls = getClerkUrls();
 const clerkPublishableKey = getClerkPublishableKey();
 
+const clerkAppearance = {
+  variables: {
+    colorPrimary: "#0f766e",
+    borderRadius: "0.625rem",
+    fontFamily: "var(--font-sans)",
+  },
+  elements: {
+    card: "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
+    cardBox: "shadow-none",
+    headerTitle: "text-foreground",
+    headerSubtitle: "text-muted-foreground",
+    formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
+    formFieldInput:
+      "border-input bg-background text-foreground placeholder:text-muted-foreground",
+    footerActionLink: "text-primary hover:text-primary/80",
+  },
+};
+
 const ClerkProvider = lazy(() =>
   import("@clerk/react").then((m) => ({ default: m.ClerkProvider }))
 );
@@ -103,6 +121,7 @@ createRoot(document.getElementById("root")!).render(
     <Suspense fallback={null}>
       <ClerkProvider
         publishableKey={clerkPublishableKey}
+        appearance={clerkAppearance}
         signInUrl={clerkUrls.signInUrl}
         signUpUrl={clerkUrls.signUpUrl}
         signInFallbackRedirectUrl={clerkUrls.afterSignInUrl}
