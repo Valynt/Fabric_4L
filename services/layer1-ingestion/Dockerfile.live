@@ -5,7 +5,7 @@
 # This variant is intentionally scoped to docker-compose.live.yml, where the
 # build context must include both services/layer1-ingestion and value_fabric.
 
-FROM python:3.11.11-slim-bookworm AS builder
+FROM python:3.11.13-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -31,7 +31,7 @@ RUN if [ "$INSTALL_PLAYWRIGHT_BROWSERS" = "true" ]; then \
         mkdir -p /root/.cache/ms-playwright; \
     fi
 
-FROM python:3.11.11-slim-bookworm AS runtime
+FROM python:3.11.13-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libglib2.0-0 \

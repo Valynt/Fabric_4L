@@ -407,7 +407,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
@@ -673,7 +673,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'pnpm'
           cache-dependency-path: pnpm-lock.yaml
 
