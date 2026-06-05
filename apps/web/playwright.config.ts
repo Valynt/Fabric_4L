@@ -93,14 +93,22 @@ export default defineConfig({
       grep: /^(?!.*@backend)/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // ── Layer 2: Journey Tests (chained workflows, chromium-only in dev) ──
+    // ── Layer 2: Behavior Tests (strict allowed/denied path contracts) ─────
+    {
+      name: 'behaviors',
+      testDir: "./e2e/behaviors",
+      // Behavior tests are mocked by default; @backend variants run in backend-integrated
+      grep: /^(?!.*@backend)/,
+      use: { ...devices['Desktop Chrome'] },
+    },
+    // ── Layer 3: Journey Tests (chained workflows, chromium-only in dev) ──
     {
       name: 'journeys',
       testDir: "./e2e",
       grep: /^(?!.*@backend)/,
       use: { ...devices['Desktop Chrome'] },
     },
-    // ── Layer 3: Backend-integrated Tests (require PLAYWRIGHT_BACKEND_URL) ─
+    // ── Layer 4: Backend-integrated Tests (require PLAYWRIGHT_BACKEND_URL) ─
     // Only runs tests tagged @backend. Critical backend journeys fail closed
     // when PLAYWRIGHT_BACKEND_URL is absent; they are never silently skipped.
     {

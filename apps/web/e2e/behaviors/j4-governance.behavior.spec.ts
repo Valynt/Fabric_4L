@@ -1,28 +1,26 @@
 /**
  * Journey 4 Behavior Contract: Governance & Trust Validation
  *
- * Behavior-First Test Contract
- *
- * This file is the executable definition of how the Governance layer MUST behave
- * across L4 (Agent Workflows) and L5 (Ground Truth / Audit / Provenance).
+ * Behavior-First Test Contract — Strict Edition
  *
  * Intended Behavior (Allowed):
  *   - Authenticated user can view decision traces with provenance chains.
  *   - User can view audit log with tenant-scoped entries.
- *   - User can view health monitoring dashboard with system status.
+ *   - User can view health monitoring dashboard with component statuses.
  *   - Every trace links back to original source data.
  *
  * Intended Behavior (Denied):
  *   - Audit log does not show other tenant's actions.
- *   - Traces without provenance are flagged as incomplete.
- *   - Unauthenticated user cannot access governance pages.
- *   - Cross-tenant trace data is not visible.
+ *   - Traces without provenance render an `incomplete-provenance` testId.
+ *   - Unauthenticated access redirects to /sign-in.
+ *   - Cross-tenant trace data is not rendered.
+ *   - Health degradation renders a `degraded-state` testId, not raw exceptions.
  *
  * Failure Modes:
- *   - Cross-tenant audit: foreign tenant IDs invisible, 403 if bypassed.
- *   - Missing provenance: incomplete badge or warning on trace.
+ *   - Cross-tenant audit: foreign tenant ID invisible.
+ *   - Missing provenance: `incomplete-provenance` testId visible.
  *   - Unauthenticated: redirect to /sign-in.
- *   - Health degradation: safe error state, not raw exception.
+ *   - Health degradation: `degraded-state` testId visible.
  *
  * Traceability: J4-BEH-001 through J4-BEH-010.
  * Priority: P0 production gate.
@@ -30,7 +28,11 @@
 
 import { test, expect } from '@playwright/test';
 import { journeyTest, expectNoErrors, navigateAndWait } from '../helpers/journey-fixture';
-import { expectFailureMode, expectNoCrossTenantLeakageOnPage } from '../helpers/behavior-helpers';
+import {
+  expectFailureMode,
+  expectNoCrossTenantLeakageOnPage,
+  expectVisibleByTestId,
+} from '../helpers/behavior-helpers';
 
 // ── Test Data ───────────────────────────────────────────────────────────────
 
@@ -64,7 +66,7 @@ const MOCK_TRACES = [
     decision: 'Narrative section generated: Executive Summary',
     confidence: 0.82,
     timestamp: '2025-04-28T10:02:00Z',
-    provenance: [], // Missing provenance — should be flagged
+    provenance: [],
   },
 ];
 
@@ -159,48 +161,37 @@ journeyTest.describe('J4 Allowed Behaviors: Governance & Trust', () => {
     await navigateAndWait(authedPage, '/governance/traces');
     await expectNoErrors(authedPage);
 
-    await expect(authedPage.locator('h1').filter({ hasText: /decision trace/i })).toBeVisible({ timeout: 10000 });
-
-    // Traces should be visible
-    await expect(authedPage.getByText(/inventory visibility gaps/i).first()).toBeVisible({ timeout: 10000 });
-
-    // Provenance sources should be visible
-    await expect(authedPage.getByText(/q3 earnings call transcript/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByRole('heading', { name: /decision trace/i })).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Inventory visibility gaps')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Q3 Earnings Call Transcript')).toBeVisible({ timeout: 10000 });
   });
 
   journeyTest('J4-BEH-002: user can view audit log with tenant-scoped entries', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/governance/audit-log');
     await expectNoErrors(authedPage);
 
-    await expect(authedPage.getByRole('heading', { name: /audit/i }).first()).toBeVisible({ timeout: 10000 });
-
-    // Audit entries should be visible
-    await expect(authedPage.getByText(/domain.ingestion.submitted/i).first()).toBeVisible({ timeout: 10000 });
-    await expect(authedPage.getByText(/value_model.updated/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByRole('heading', { name: /audit/i })).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('domain.ingestion.submitted')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('value_model.updated')).toBeVisible({ timeout: 10000 });
   });
 
   journeyTest('J4-BEH-003: user can view health monitor with component statuses', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/governance/health');
     await expectNoErrors(authedPage);
 
-    await expect(authedPage.getByText(/healthy|status|system/i).first()).toBeVisible({ timeout: 10000 });
-
-    // Component statuses should be visible
-    await expect(authedPage.getByText(/database/i).first()).toBeVisible({ timeout: 10000 });
-    await expect(authedPage.getByText(/agent runtime/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('database')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('agent runtime')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('healthy')).toBeVisible({ timeout: 10000 });
   });
 
   journeyTest('J4-BEH-004: provenance chain links back to original source', async ({ authedPage }) => {
     await navigateAndWait(authedPage, '/governance/traces');
 
-    // Click on a trace to open detail
-    const traceRow = authedPage.getByText(/inventory visibility gaps/i).first();
+    const traceRow = authedPage.getByText('Inventory visibility gaps');
     await traceRow.click();
 
-    // Provenance section or link should be visible
-    await expect(
-      authedPage.getByText(/source|provenance|origin|document/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByTestId('provenance-list')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Q3 Earnings Call Transcript')).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -224,46 +215,33 @@ journeyTest.describe('J4 Denied Behaviors: Governance & Trust', () => {
         ],
       },
     ]);
+
     await navigateAndWait(authedPage, '/governance/audit-log');
     await expectNoErrors(authedPage);
-
-    // Foreign tenant entries must not leak
     await expectNoCrossTenantLeakageOnPage(authedPage, FOREIGN_TENANT_ID);
   });
 
-  journeyTest('J4-BEH-006: traces without provenance are flagged as incomplete', async ({ authedPage, addMocks }) => {
+  journeyTest('J4-BEH-006: traces without provenance render incomplete-provenance badge', async ({ authedPage, addMocks }) => {
     await addMocks([
       {
         pattern: '**/api/v1/agents/traces**',
         body: MOCK_TRACES,
       },
     ]);
+
     await navigateAndWait(authedPage, '/governance/traces');
     await expectNoErrors(authedPage);
 
-    // The trace with empty provenance should be visible but flagged
-    await expect(
-      authedPage.getByText(/narrative section generated/i).first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    // There should be some indication of incomplete/missing provenance
-    const hasIncompleteFlag = await authedPage.getByText(/incomplete|missing provenance|unverified|no source/i)
-      .first().isVisible({ timeout: 5000 }).catch(() => false);
-    const hasWarningIcon = await authedPage.locator('[data-testid*="warning"], [data-testid*="incomplete"], .text-amber-500, .text-yellow-500')
-      .first().isVisible({ timeout: 3000 }).catch(() => false);
-
-    expect(
-      hasIncompleteFlag || hasWarningIcon,
-      'Traces without provenance must be flagged as incomplete',
-    ).toBe(true);
+    await expect(authedPage.getByText('Narrative section generated')).toBeVisible({ timeout: 10000 });
+    await expectVisibleByTestId(authedPage, 'incomplete-provenance');
   });
 
-  test('J4-BEH-007: unauthenticated user accessing traces is redirected to login', async ({ page }) => {
+  test('J4-BEH-007: unauthenticated user accessing traces is redirected to /sign-in', async ({ page }) => {
     await page.goto('/governance/traces', { waitUntil: 'domcontentloaded' });
     await expectFailureMode(page, 'unauthenticated_redirect');
   });
 
-  test('J4-BEH-008: unauthenticated user accessing audit log is redirected to login', async ({ page }) => {
+  test('J4-BEH-008: unauthenticated user accessing audit log is redirected to /sign-in', async ({ page }) => {
     await page.goto('/governance/audit-log', { waitUntil: 'domcontentloaded' });
     await expectFailureMode(page, 'unauthenticated_redirect');
   });
@@ -288,7 +266,7 @@ journeyTest.describe('J4 Denied Behaviors: Governance & Trust', () => {
     await expectNoCrossTenantLeakageOnPage(authedPage, FOREIGN_TENANT_ID);
   });
 
-  journeyTest('J4-BEH-010: health monitor degradation shows safe warning state instead of crash', async ({ authedPage, addMocks }) => {
+  journeyTest('J4-BEH-010: health monitor degradation shows safe degraded state instead of crash', async ({ authedPage, addMocks }) => {
     await addMocks([
       {
         pattern: '**/api/v1/agents/health',
@@ -303,17 +281,9 @@ journeyTest.describe('J4 Denied Behaviors: Governance & Trust', () => {
     await navigateAndWait(authedPage, '/governance/health');
     await expectNoErrors(authedPage);
 
-    // Degraded status should be visible
-    await expect(
-      authedPage.getByText(/degraded|unhealthy|warning/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expectVisibleByTestId(authedPage, 'degraded-state');
+    await expect(authedPage.getByText('ingestion pipeline')).toBeVisible({ timeout: 10000 });
 
-    // Specific unhealthy component should be called out
-    await expect(
-      authedPage.getByText(/ingestion pipeline/i).first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    // Must NOT show raw exception or stack trace
     const bodyText = await authedPage.locator('body').innerText();
     expect(bodyText.includes('Traceback') || bodyText.includes('at ')).toBe(false);
   });

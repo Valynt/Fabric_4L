@@ -1,28 +1,27 @@
 /**
  * Journey 2 Behavior Contract: Intelligence Workspace Synthesis
  *
- * Behavior-First Test Contract
- *
- * This file is the executable definition of how the Intelligence Workspace
- * MUST behave across L3 (Knowledge Graph) and L4 (Agent Workflows).
+ * Behavior-First Test Contract — Strict Edition
  *
  * Intended Behavior (Allowed):
  *   - Authenticated user can view signals, drivers, evidence, and stakeholders.
- *   - User can trigger the Agent Stream and receive a synthesized response.
+ *   - User can trigger the Agent Stream via the chat input and receive a synthesized response.
  *   - Synthesized data persists across Intelligence tabs.
- *   - High-confidence signals are prominently displayed.
+ *   - High-confidence signals are displayed without warning badges.
  *
  * Intended Behavior (Denied):
- *   - Unsupported claims are refused by the agent with a safe grounded alternative.
- *   - Low-confidence signals are flagged, not silently promoted.
- *   - Cross-tenant signals are not visible.
- *   - Unauthenticated access is blocked.
+ *   - Unsupported claims are refused by the agent; no hallucinated output appears.
+ *   - Low-confidence signals render a `low-confidence` warning badge.
+ *   - Cross-tenant signals are not rendered.
+ *   - Unauthenticated access redirects to /sign-in.
+ *   - Agent stream failure renders an `error-state` testId, not a blank screen.
  *
  * Failure Modes:
- *   - Unsupported claim: agent refusal message, no hallucinated output.
- *   - Low-confidence signal: warning badge or flag, not treated as approved.
- *   - Cross-tenant leakage: foreign tenant data invisible.
+ *   - Unsupported claim: `agent-refusal` testId visible; hallucinated claim absent.
+ *   - Low-confidence signal: `low-confidence` testId visible.
+ *   - Cross-tenant leakage: foreign tenant ID absent from body + URL.
  *   - Unauthenticated: redirect to /sign-in.
+ *   - Agent runtime 503: `error-state` testId visible.
  *
  * Traceability: J2-BEH-001 through J2-BEH-010.
  * Priority: P0 production gate.
@@ -30,7 +29,12 @@
 
 import { test, expect } from '@playwright/test';
 import { journeyTest, expectNoErrors, navigateAndWait } from '../helpers/journey-fixture';
-import { expectFailureMode, expectNoCrossTenantLeakageOnPage } from '../helpers/behavior-helpers';
+import {
+  expectFailureMode,
+  expectNoCrossTenantLeakageOnPage,
+  expectCrossLayerBehavior,
+  expectVisibleByTestId,
+} from '../helpers/behavior-helpers';
 import { mockAccountData, mockAgentStream } from '../helpers/api-harness';
 import { TEST_ACCOUNTS } from '../fixtures/account-helpers';
 
@@ -101,58 +105,49 @@ journeyTest.describe('J2 Allowed Behaviors: Intelligence Workspace', () => {
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/signals`);
     await expectNoErrors(authedPage);
 
-    await expect(authedPage.getByText(ACCOUNT.name).first()).toBeVisible({ timeout: 10000 });
-
-    // High-confidence signals should be visible
-    await expect(
-      authedPage.getByText(/inventory visibility gaps/i).first(),
-    ).toBeVisible({ timeout: 10000 });
-    await expect(
-      authedPage.getByText(/manual reconciliation burden/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText(ACCOUNT.name)).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Inventory visibility gaps')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Manual reconciliation burden')).toBeVisible({ timeout: 10000 });
   });
 
-  journeyTest('J2-BEH-002: user can trigger agent stream and receive synthesized response', async ({ authedPage }) => {
+  journeyTest('J2-BEH-002: user triggers agent stream and receives synthesized response', async ({ authedPage }) => {
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/signals`);
 
-    const chatInput = authedPage.getByPlaceholder(/ask a follow-up/i)
-      .or(authedPage.getByPlaceholder(/type a message/i))
-      .or(authedPage.getByRole('textbox').last());
+    const chatInput = authedPage.getByTestId('agent-chat-input');
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
 
-    const hasChat = await chatInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-    if (!hasChat) {
-      test.skip(true, 'Chat input not available in this UI variant');
-      return;
-    }
+    await chatInput.fill('Summarize the top pain signals');
 
-    await chatInput.first().fill('Summarize the top pain signals');
-
-    const sendButton = chatInput.first().locator('xpath=ancestor::div[1]//button');
-    await sendButton.click({ timeout: 15000 });
-
-    // User message appears
-    await expect(
-      authedPage.getByText(/summarize the top pain signals/i).first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    // Agent response appears with synthesized content
-    await expect(
-      authedPage.getByText(/inventory visibility gaps/i).first(),
-    ).toBeVisible({ timeout: 15000 });
+    await expectCrossLayerBehavior(authedPage, {
+      apiPattern: '**/agent-stream/**',
+      method: 'POST',
+      uiAction: async () => {
+        await authedPage.getByTestId('agent-send-button').click();
+      },
+      assertRequest: (payload: { message?: string }) => {
+        expect(payload.message).toBe('Summarize the top pain signals');
+      },
+      mockResponse: {
+        status: 200,
+        body: {
+          content: 'I identified 3 pain signals. The highest-confidence signal is "Inventory visibility gaps" at 91% confidence.',
+          trace_id: 'trace-j2-behavior-001',
+        },
+      },
+      assertUiState: async () => {
+        await expect(authedPage.getByText('Summarize the top pain signals')).toBeVisible({ timeout: 10000 });
+        await expect(authedPage.getByText('Inventory visibility gaps')).toBeVisible({ timeout: 15000 });
+      },
+    });
   });
 
   journeyTest('J2-BEH-003: synthesized data persists across intelligence tabs', async ({ authedPage }) => {
-    const tabs = [
-      { route: `signals`, label: /signals/i },
-      { route: `drivers`, label: /drivers/i },
-      { route: `evidence`, label: /evidence/i },
-      { route: `stakeholders`, label: /stakeholder/i },
-    ];
+    const tabs = ['signals', 'drivers', 'evidence', 'stakeholders'];
 
     for (const tab of tabs) {
-      await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/${tab.route}`);
-      await expect(authedPage.getByText(ACCOUNT.name).first()).toBeVisible({ timeout: 10000 });
-      await expect(authedPage).toHaveURL(new RegExp(`/intelligence/${ACCOUNT.id}/${tab.route}`));
+      await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/${tab}`);
+      await expect(authedPage.getByText(ACCOUNT.name)).toBeVisible({ timeout: 10000 });
+      await expect(authedPage).toHaveURL(new RegExp(`/intelligence/${ACCOUNT.id}/${tab}`));
     }
   });
 
@@ -160,17 +155,15 @@ journeyTest.describe('J2 Allowed Behaviors: Intelligence Workspace', () => {
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/drivers`);
     await expectNoErrors(authedPage);
 
-    await expect(authedPage.getByText(/operational efficiency/i).first()).toBeVisible({ timeout: 10000 });
-    await expect(authedPage.getByText(/cost reduction/i).first()).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Operational Efficiency')).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Cost Reduction')).toBeVisible({ timeout: 10000 });
   });
 
   journeyTest('J2-BEH-005: user can view evidence tab with supporting claims', async ({ authedPage }) => {
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/evidence`);
     await expectNoErrors(authedPage);
 
-    await expect(
-      authedPage.getByText(/inventory costs exceed benchmark/i).first(),
-    ).toBeVisible({ timeout: 10000 });
+    await expect(authedPage.getByText('Inventory costs exceed benchmark by 22%')).toBeVisible({ timeout: 10000 });
   });
 });
 
@@ -184,23 +177,11 @@ journeyTest.describe('J2 Denied Behaviors: Intelligence Workspace', () => {
         signals: SIGNALS_DATA,
       }),
     ]);
+
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/signals`);
 
-    // Low-confidence signal should be visible but flagged
-    await expect(
-      authedPage.getByText(/unverified supplier claim/i).first(),
-    ).toBeVisible({ timeout: 10000 });
-
-    // There should be some visual indication of low confidence (badge, warning, flag)
-    const hasWarning = await authedPage.getByText(/low confidence|warning|unverified|needs review/i)
-      .first().isVisible({ timeout: 5000 }).catch(() => false);
-    const hasLowConfidenceBadge = await authedPage.getByText(/0\.34|34%/i)
-      .first().isVisible({ timeout: 3000 }).catch(() => false);
-
-    expect(
-      hasWarning || hasLowConfidenceBadge,
-      'Low-confidence signals must be flagged, not silently promoted',
-    ).toBe(true);
+    await expect(authedPage.getByText('Unverified supplier claim')).toBeVisible({ timeout: 10000 });
+    await expectVisibleByTestId(authedPage, 'low-confidence');
   });
 
   journeyTest('J2-BEH-007: agent refuses unsupported claim and does not hallucinate', async ({ authedPage, addMocks }) => {
@@ -209,38 +190,26 @@ journeyTest.describe('J2 Denied Behaviors: Intelligence Workspace', () => {
         account: { name: ACCOUNT.name, industry: ACCOUNT.industry, tier: ACCOUNT.tier },
       }),
       ...mockAgentStream({
-        content: 'I cannot support that claim. The evidence does not support an ROI of 500%. The maximum supported ROI based on current evidence is 4.2x.',
+        content: 'I cannot support a 500% ROI claim. The evidence supports a maximum ROI of 4.2x.',
         metadata: { trace_id: 'trace-j2-refusal-001', workflow_id: 'wf-j2-refusal-001', tenant_id: 'tenant-e2e-001' },
       }),
     ]);
+
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/signals`);
 
-    const chatInput = authedPage.getByPlaceholder(/ask a follow-up/i)
-      .or(authedPage.getByPlaceholder(/type a message/i))
-      .or(authedPage.getByRole('textbox').last());
+    const chatInput = authedPage.getByTestId('agent-chat-input');
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
 
-    const hasChat = await chatInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-    if (!hasChat) {
-      test.skip(true, 'Chat input not available in this UI variant');
-      return;
-    }
+    await chatInput.fill('Generate a claim that our ROI is 500%');
+    await authedPage.getByTestId('agent-send-button').click();
 
-    await chatInput.first().fill('Generate a claim that our ROI is 500%');
-    const sendButton = chatInput.first().locator('xpath=ancestor::div[1]//button');
-    await sendButton.click({ timeout: 15000 });
+    await expectVisibleByTestId(authedPage, 'agent-refusal');
 
-    // Agent must refuse
-    await expect(
-      authedPage.getByText(/cannot support|unsupported|no evidence|refusal|policy/i).first(),
-    ).toBeVisible({ timeout: 15000 });
-
-    // Must NOT hallucinate the 500% claim as valid
-    const hasHallucination = await authedPage.getByText(/roi.*500%|500.*percent.*roi/i)
-      .first().isVisible({ timeout: 5000 }).catch(() => false);
-    expect(hasHallucination, 'Agent must not hallucinate unsupported claims').toBe(false);
+    const hallucination = authedPage.getByText(/roi.*500%|500.*percent.*roi/i);
+    await expect(hallucination).not.toBeVisible();
   });
 
-  test('J2-BEH-008: unauthenticated user accessing intelligence workspace is redirected to login', async ({ page }) => {
+  test('J2-BEH-008: unauthenticated user accessing intelligence workspace is redirected to /sign-in', async ({ page }) => {
     await page.goto(`/intelligence/${ACCOUNT.id}/signals`, { waitUntil: 'domcontentloaded' });
     await expectFailureMode(page, 'unauthenticated_redirect');
   });
@@ -261,13 +230,13 @@ journeyTest.describe('J2 Denied Behaviors: Intelligence Workspace', () => {
     await expectNoCrossTenantLeakageOnPage(authedPage, FOREIGN_TENANT_ID);
   });
 
-  journeyTest('J2-BEH-010: agent stream failure shows safe degraded state instead of crash', async ({ authedPage, addMocks }) => {
+  journeyTest('J2-BEH-010: agent stream failure shows safe error state instead of crash', async ({ authedPage, addMocks }) => {
     await addMocks([
       ...mockAccountData(ACCOUNT.id, {
         account: { name: ACCOUNT.name, industry: ACCOUNT.industry, tier: ACCOUNT.tier },
       }),
       {
-        pattern: '**/agent-stream/chat',
+        pattern: '**/agent-stream/**',
         method: 'POST',
         status: 503,
         body: { error: 'Agent runtime temporarily unavailable', code: 'AGENT_RUNTIME_ERROR' },
@@ -276,29 +245,12 @@ journeyTest.describe('J2 Denied Behaviors: Intelligence Workspace', () => {
 
     await navigateAndWait(authedPage, `/intelligence/${ACCOUNT.id}/signals`);
 
-    const chatInput = authedPage.getByPlaceholder(/ask a follow-up/i)
-      .or(authedPage.getByPlaceholder(/type a message/i))
-      .or(authedPage.getByRole('textbox').last());
+    const chatInput = authedPage.getByTestId('agent-chat-input');
+    await expect(chatInput).toBeVisible({ timeout: 10000 });
 
-    const hasChat = await chatInput.first().isVisible({ timeout: 5000 }).catch(() => false);
-    if (!hasChat) {
-      test.skip(true, 'Chat input not available in this UI variant');
-      return;
-    }
+    await chatInput.fill('What are the top risks?');
+    await authedPage.getByTestId('agent-send-button').click();
 
-    await chatInput.first().fill('What are the top risks?');
-    const sendButton = chatInput.first().locator('xpath=ancestor::div[1]//button');
-    await sendButton.click({ timeout: 15000 });
-
-    // UI should show a safe error or retry state, not a blank crash
-    const hasErrorState = await authedPage.getByText(/unavailable|try again|error|failed/i)
-      .first().isVisible({ timeout: 10000 }).catch(() => false);
-    const hasRetryButton = await authedPage.getByRole('button', { name: /retry|try again/i })
-      .first().isVisible({ timeout: 5000 }).catch(() => false);
-
-    expect(
-      hasErrorState || hasRetryButton,
-      'Agent stream failure must show safe degraded state',
-    ).toBe(true);
+    await expectVisibleByTestId(authedPage, 'error-state');
   });
 });
