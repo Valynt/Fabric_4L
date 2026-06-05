@@ -20,8 +20,7 @@ import {
   assertOpenApiSchemaRejects,
 } from './openapi-validator';
 import {
-  ExtractResponseSchema,
-  ExtractionStatusSchema,
+  OperationalSignalLifecycleRecordSchema,
   GraphNodeSchema,
   SubgraphResponseSchema,
   FormulaEvaluateResponseSchema,
@@ -63,7 +62,7 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
   it('checked-in OpenAPI fixtures keep expected base-path version prefixes', () => {
     const expectedPrefixes: Record<string, Array<`/${string}`>> = {
       'layer1-ingestion.json': ['/api/v1', '/api', '/v1', '/health', '/ready', '/metrics'],
-      'layer2-extraction.json': ['/v1', '/health', '/ready', '/metrics'],
+      'layer2-extraction.json': ['/signals', '/health', '/health/live', '/ready', '/metrics'],
       'layer3-knowledge.json': ['/v1', '/health', '/ready', '/metrics', '/graph', '/entities'],
       'layer4-agents.json': ['/v1', '/', '/health', '/ready', '/metrics', '/auth'],
       'layer5-ground-truth.json': ['/api/v1', '/health', '/ready', '/metrics'],
@@ -94,35 +93,28 @@ describe('OpenAPI drift: tracked schemas have canonical mappings', () => {
 // ---------------------------------------------------------------------------
 
 describe('OpenAPI drift: L2 Extraction', () => {
-  it('ExtractResponse fixture passes canonical OpenAPI schema', () => {
+  it('OperationalSignalLifecycleRecord fixture passes canonical OpenAPI schema', () => {
     assertOpenApiSchema(
       'layer2-extraction.json',
-      '#/components/schemas/ExtractResponse',
-      fixtures.extractResponse(),
-      'ExtractResponse'
+      '#/components/schemas/OperationalSignalLifecycleRecord',
+      fixtures.operationalSignalLifecycleRecord(),
+      'OperationalSignalLifecycleRecord'
     );
   });
 
-  it('ExtractionStatus (completed) fixture passes canonical OpenAPI schema', () => {
+  it('OperationalSignalLifecycleRecord merged fixture passes canonical OpenAPI schema', () => {
     assertOpenApiSchema(
       'layer2-extraction.json',
-      '#/components/schemas/ExtractionStatusResponse',
-      fixtures.extractionStatus(),
-      'ExtractionStatus (completed)'
-    );
-  });
-
-  it('ExtractionStatus (failed) fixture passes canonical OpenAPI schema', () => {
-    assertOpenApiSchema(
-      'layer2-extraction.json',
-      '#/components/schemas/ExtractionStatusResponse',
-      fixtures.extractionStatus({
-        overall_status: 'failed',
-        extraction_status: 'failed',
-        ingestion_status: 'skipped',
-        last_error: 'timeout',
+      '#/components/schemas/OperationalSignalLifecycleRecord',
+      fixtures.operationalSignalLifecycleRecord({
+        status: 'merged',
+        lineage: {
+          supersedes: ['signal-old'],
+          superseded_by: [],
+          merged_into: 'signal-target',
+        },
       }),
-      'ExtractionStatus (failed)'
+      'OperationalSignalLifecycleRecord (merged)'
     );
   });
 });

@@ -13,6 +13,7 @@ Run with: pytest tests/test_value_hypothesis.py --noconftest -v
 
 import sys
 import types
+from pathlib import Path
 import uuid
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock, patch
@@ -24,6 +25,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 # The L4 codebase has pre-existing import issues (merge conflict markers,
 # missing exports). We mock the broken modules before importing our service.
 _mock_models = types.ModuleType("src.models")
+_mock_models.__path__ = [str(Path(__file__).resolve().parents[1] / "src" / "models")]
 _mock_pain_signal = types.ModuleType("src.models.pain_signal")
 _mock_pain_signal.ErrorCategory = type("ErrorCategory", (), {})  # type: ignore
 sys.modules.setdefault("src.models", _mock_models)

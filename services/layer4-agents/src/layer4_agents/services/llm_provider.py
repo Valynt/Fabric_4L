@@ -16,7 +16,6 @@ from .llm_adapter_interfaces import (
     CompletionRequest,
     CompletionResult,
     ErrorCategory,
-    ProviderNotImplementedError,
     StructuredOutputAdapter,
     ToolCall,
     ToolCallingAdapter,

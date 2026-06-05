@@ -26,17 +26,6 @@ from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from logging_config import get_logger
-from ...models.valuepack import (
-    DEFAULT_VALUEPACKS,
-    ComposableTemplateLibraryResponse,
-    OntologyMapResponse,
-    ValuePackComparisonRequest,
-    ValuePackComparisonResponse,
-    ValuePackCreate,
-    ValuePackListResponse,
-    ValuePackResponse,
-    ValuePackUpdate,
-)
 
 from ...api.routes._utils import get_tenant_id_from_api_key, increment_patch_version
 from ...api.routes.formulas import evaluate_expression
@@ -45,6 +34,16 @@ from ...auth.middleware import get_current_api_key
 from ...db.audited_mutation import AuditedGraphMutation
 from ...db.driver import get_driver
 from ...db.query_execution import run_validated_query
+from ...models.valuepack import (
+    DEFAULT_VALUEPACKS,
+    ComposableTemplateLibraryResponse,
+    OntologyMapResponse,
+    ValuePackComparisonRequest,
+    ValuePackComparisonResponse,
+    ValuePackCreate,
+    ValuePackListResponse,
+    ValuePackUpdate,
+)
 from ...utils.cypher_security import (
     ALLOWED_REL_TYPES,
     ALLOWED_TARGET_LABELS,

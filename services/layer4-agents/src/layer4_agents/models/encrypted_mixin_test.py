@@ -13,7 +13,8 @@ from collections.abc import Iterator
 from typing import TYPE_CHECKING, Any, ClassVar
 
 import pytest
-from sqlalchemy import String, create_engine as _sync_engine, text
+from sqlalchemy import String, text
+from sqlalchemy import create_engine as _sync_engine
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 

@@ -472,33 +472,15 @@ def create_fabric_app(
         applied = configure_structlog(structured_logging)
         app.state.structlog_configured = applied
 
-    # P1-004: Sentry error tracking — initialized when sentry-sdk is installed
-    # and SENTRY_DSN is configured.
+    # P1-004: Sentry error tracking uses the centralized scrubbed initializer
+    # and remains a no-op when SENTRY_DSN is unset.
     try:
-        import os
+        from value_fabric.shared.observability.sentry_init import init_sentry
 
-        import sentry_sdk
-        from sentry_sdk.integrations.fastapi import FastApiIntegration
-        from sentry_sdk.integrations.starlette import StarletteIntegration
-
-        sentry_dsn = os.getenv("SENTRY_DSN", "").strip()
-        if sentry_dsn:
-            sentry_sdk.init(
-                dsn=sentry_dsn,
-                release=version,
-                environment=os.getenv("ENVIRONMENT", "development"),
-                sample_rate=0.1,
-                traces_sample_rate=0.01,
-                profiles_sample_rate=0.0,
-                default_integrations=False,
-                integrations=[
-                    StarletteIntegration(),
-                    FastApiIntegration(),
-                ],
-                attach_stacktrace=True,
-                tags={"service": service_name},
-            )
-            app.state.sentry_enabled = True
+        app.state.sentry_enabled = init_sentry(
+            service_name=service_name,
+            release=version,
+        )
     except Exception:
         app.state.sentry_enabled = False
 

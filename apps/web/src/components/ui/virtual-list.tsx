@@ -5,7 +5,7 @@
  * plus a small overscan buffer for smooth scrolling.
  */
 
-import { useRef } from "react";
+import { Fragment, useRef } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { cn } from "@/lib/utils";
 
@@ -66,9 +66,11 @@ export function VirtualList<T>({
             >
               {columns > 1 ? (
                 <div className="grid h-full" style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))`, gap: '0.75rem' }}>
-                  {rowItems.map((item, colIndex) =>
-                    renderItem(item, rowStartIndex + colIndex)
-                  )}
+                  {rowItems.map((item, colIndex) => (
+                    <Fragment key={rowStartIndex + colIndex}>
+                      {renderItem(item, rowStartIndex + colIndex)}
+                    </Fragment>
+                  ))}
                 </div>
               ) : (
                 renderItem(items[virtualItem.index], virtualItem.index)

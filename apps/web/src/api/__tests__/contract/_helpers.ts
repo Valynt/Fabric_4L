@@ -72,6 +72,39 @@ export const ExtractionStatusSchema = z.object({
   completed_at: z.string().nullable(),
 });
 
+export const SignalLifecycleStatusSchema = z.enum([
+  'active',
+  'superseded',
+  'merged',
+]);
+
+export const SignalLifecycleActorSchema = z.object({
+  actor_id: z.string().min(1),
+  account_id: z.string().min(1),
+});
+
+export const SignalLineageSchema = z.object({
+  supersedes: z.array(z.string()).optional(),
+  superseded_by: z.array(z.string()).optional(),
+  merged_into: z.string().nullable().optional(),
+});
+
+export const SignalLifecycleMetadataSchema = z.object({
+  created_by: SignalLifecycleActorSchema,
+  created_at: z.string().optional(),
+  updated_by: SignalLifecycleActorSchema,
+  updated_at: z.string().optional(),
+});
+
+export const OperationalSignalLifecycleRecordSchema = z.object({
+  signal_id: z.string().min(1),
+  tenant_id: z.string().min(1),
+  account_id: z.string().min(1),
+  status: SignalLifecycleStatusSchema.default('active'),
+  lineage: SignalLineageSchema.optional(),
+  lifecycle: SignalLifecycleMetadataSchema,
+});
+
 // ---------------------------------------------------------------------------
 // L3 Knowledge Graph  (contracts/openapi/layer3-knowledge.json)
 // ---------------------------------------------------------------------------
@@ -407,6 +440,33 @@ export const fixtures = {
     next_retry_at: null,
     started_at: '2024-01-15T10:00:00Z',
     completed_at: '2024-01-15T10:01:30Z',
+    ...overrides,
+  }),
+
+  operationalSignalLifecycleRecord: (
+    overrides?: Partial<z.infer<typeof OperationalSignalLifecycleRecordSchema>>
+  ): z.infer<typeof OperationalSignalLifecycleRecordSchema> => ({
+    signal_id: 'signal-001',
+    tenant_id: 'tenant-001',
+    account_id: 'account-001',
+    status: 'active',
+    lineage: {
+      supersedes: [],
+      superseded_by: [],
+      merged_into: null,
+    },
+    lifecycle: {
+      created_by: {
+        actor_id: 'user-001',
+        account_id: 'account-001',
+      },
+      created_at: '2024-01-15T10:00:00Z',
+      updated_by: {
+        actor_id: 'user-001',
+        account_id: 'account-001',
+      },
+      updated_at: '2024-01-15T10:00:00Z',
+    },
     ...overrides,
   }),
 

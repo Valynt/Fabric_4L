@@ -1236,8 +1236,9 @@ def _upsert_tenant_registry(mapper, connection, target):
     is always consistent without requiring a separate commit.
     """
     if target.tenant_id is not None:
+        from datetime import UTC, datetime
+
         from sqlalchemy import text
-        from datetime import datetime, UTC
         now = datetime.now(UTC)
         connection.execute(
             text("""

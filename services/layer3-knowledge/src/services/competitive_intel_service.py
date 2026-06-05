@@ -39,13 +39,12 @@ import structlog
 from neo4j import AsyncDriver
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
+from ..db.audited_mutation import AuditedGraphMutation
+from ..db.query_execution import run_validated_query
 from ..security.query_validator import ValidatedNeo4jSession
 from .cypher_scope_guard import (
     validate_tenant_scoped_cypher,
 )
-
-from ..db.audited_mutation import AuditedGraphMutation
-from ..db.query_execution import run_validated_query
 
 
 class CompetitiveIntelService_add_competitorResult(TypedDictModel):
@@ -174,7 +173,7 @@ class CompetitiveIntelService:
     ) -> Any:
         """Execute Cypher through mandatory validation gateway."""
         params = parameters or {}
-        tenant_id = params["tenant_id"] if "tenant_id" in params else None
+        tenant_id = params.get("tenant_id", None)
         if not tenant_id:
             raise RuntimeError("tenant_id is required for CompetitiveIntelService cypher execution")
         self._validate_query_scope(query)

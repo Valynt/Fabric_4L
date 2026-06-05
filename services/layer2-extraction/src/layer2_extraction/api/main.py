@@ -26,9 +26,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import uuid4
 
-import sentry_sdk
 import structlog
-from sentry_sdk.integrations.fastapi import FastApiIntegration
 
 # Third-party imports for health check
 try:
@@ -62,14 +60,6 @@ except Exception:
 logger = structlog.get_logger(__name__)
 
 from value_fabric.shared.identity.middleware import GovernanceMiddleware
-
-# Initialize Sentry error tracking (no-op when SENTRY_DSN is unset)
-sentry_sdk.init(
-    dsn=os.getenv("SENTRY_DSN"),
-    integrations=[FastApiIntegration()],
-    traces_sample_rate=0.1,
-    profiles_sample_rate=0.1,
-)
 
 try:
     load_infisical_secrets()

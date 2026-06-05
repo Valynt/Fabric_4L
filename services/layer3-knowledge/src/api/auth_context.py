@@ -69,14 +69,14 @@ def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
     except Exception:
         raise AuthenticationError(message = "Could not decode JWT payload")
 
-    tenant_claim = payload["tenant_id"] if "tenant_id" in payload else payload["tid"] if "tid" in payload else ""
+    tenant_claim = payload["tenant_id"] if "tenant_id" in payload else payload.get("tid", "")
     tenant_id = str(tenant_claim).strip()
     if not tenant_id:
         raise AuthenticationError(message = "JWT token missing tenant_id claim")
 
     user_id = payload.get("sub") or payload.get("user_id") or ""
 
-    header_tenant = request.headers["x-tenant-id"] if "x-tenant-id" in request.headers else ""
+    header_tenant = request.headers.get("x-tenant-id", "")
     if header_tenant and header_tenant != tenant_id:
         raise AuthorizationError(message = "X-Tenant-ID header does not match authenticated tenant context")
 

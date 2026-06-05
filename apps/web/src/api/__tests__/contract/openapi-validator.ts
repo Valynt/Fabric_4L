@@ -139,16 +139,11 @@ export const OPENAPI_SCHEMA_MAP: Record<
   string,
   { specFile: string; ref: string; description: string }
 > = {
-  // L2 Extraction
-  ExtractResponseSchema: {
+  // L2 Extraction / signal lifecycle
+  OperationalSignalLifecycleRecordSchema: {
     specFile: 'layer2-extraction.json',
-    ref: '#/components/schemas/ExtractResponse',
-    description: 'L2 POST /v1/extract response',
-  },
-  ExtractionStatusSchema: {
-    specFile: 'layer2-extraction.json',
-    ref: '#/components/schemas/ExtractionStatusResponse',
-    description: 'L2 GET /v1/extract/status/{job_id} response',
+    ref: '#/components/schemas/OperationalSignalLifecycleRecord',
+    description: 'L2 operational signal lifecycle record',
   },
 
   // L3 Knowledge Graph

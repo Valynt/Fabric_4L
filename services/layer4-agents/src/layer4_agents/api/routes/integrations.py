@@ -246,7 +246,7 @@ def _decode_signed_state(state: str) -> dict[str, Any]:
     padding = "=" * (-len(encoded_payload) % 4)
     payload_bytes = base64.urlsafe_b64decode((encoded_payload + padding).encode("utf-8"))
     payload = json.loads(payload_bytes.decode("utf-8"))
-    tenant_id = payload["tenant_id"] if "tenant_id" in payload else None
+    tenant_id = payload.get("tenant_id", None)
     return_to = payload.get("return_to")
     oauth_base_url = payload.get("oauth_base_url")
     if not tenant_id or not isinstance(tenant_id, str):

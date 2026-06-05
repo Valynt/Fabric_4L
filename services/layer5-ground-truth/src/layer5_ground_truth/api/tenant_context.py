@@ -42,15 +42,15 @@ async def enforce_authenticated_tenant_precedence(
     If request query/header/payload provide a tenant id that conflicts with the
     authenticated tenant context, fail closed with 403 and emit an audit log.
     """
-    query_values = getattr(request, "query_params")
+    query_values = request.query_params
     candidates: list[tuple[str, UUID | None]] = [
         (
             "header:X-Tenant-ID",
-            _as_uuid(request.headers["X-Tenant-ID"] if "X-Tenant-ID" in request.headers else None),
+            _as_uuid(request.headers.get("X-Tenant-ID", None)),
         ),
         (
             "query:tenant_id",
-            _as_uuid(query_values["tenant_id"] if "tenant_id" in query_values else None),
+            _as_uuid(query_values.get("tenant_id", None)),
         ),
     ]
 

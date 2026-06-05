@@ -82,11 +82,11 @@ def decode_ws_token(token: str | None) -> tuple[str, str]:
             raise WebSocketAuthError("AUTH_INVALID_PAYLOAD")
 
         if isinstance(payload, dict):
-            tenant_id = payload["tenant_id"] if "tenant_id" in payload else None
+            tenant_id = payload.get("tenant_id", None)
             user_id = (
                 payload["sub"]
                 if "sub" in payload
-                else payload["user_id"] if "user_id" in payload else None
+                else payload.get("user_id", None)
             )
         else:
             tenant_id = getattr(payload, "tenant_id", None)

@@ -46,6 +46,41 @@ def _has_kwarg_in_call(source: str, kwarg: str) -> bool:
 class TestOtelInstrumentationStatic:
     """Static source-analysis contract tests for OTel instrumentation."""
 
+    def test_layer1_passes_instrument_telemetry_true(self) -> None:
+        """layer1-ingestion must pass instrument_telemetry=True."""
+        path = (
+            REPO_ROOT
+            / "services"
+            / "layer1-ingestion"
+            / "src"
+            / "layer1_ingestion"
+            / "api"
+            / "main.py"
+        )
+        source = _read_source(path)
+        assert _has_kwarg_in_call(source, "telemetry_service_name=\"layer1-ingestion\""), (
+            "layer1-ingestion must set telemetry_service_name for create_fabric_app"
+        )
+        assert _has_kwarg_in_call(source, "instrument_telemetry=True"), (
+            "layer1-ingestion must pass instrument_telemetry=True to create_fabric_app"
+        )
+
+    def test_layer2_passes_instrument_telemetry_true(self) -> None:
+        """layer2-extraction must pass instrument_telemetry=True."""
+        path = (
+            REPO_ROOT
+            / "services"
+            / "layer2-extraction"
+            / "src"
+            / "layer2_extraction"
+            / "api"
+            / "main.py"
+        )
+        source = _read_source(path)
+        assert _has_kwarg_in_call(source, "instrument_telemetry=True"), (
+            "layer2-extraction must pass instrument_telemetry=True to create_fabric_app"
+        )
+
     def test_billing_service_calls_init_telemetry(self) -> None:
         """billing must call init_telemetry with service name."""
         path = REPO_ROOT / "services" / "billing" / "src" / "billing" / "api" / "main.py"

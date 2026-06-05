@@ -44,6 +44,12 @@ def is_production_like_environment(environment: str | None = None) -> bool:
     return env == "production"
 
 
+def _default_jwt_secret() -> str:
+    if is_production_like_environment():
+        raise RuntimeError("JWT_SECRET must be set in production-like environments")
+    return "local-development-only-jwt-secret-not-for-production"
+
+
 def parse_cors_origins(value: object) -> list[str]:
     if value is None:
         return []
@@ -125,13 +131,20 @@ class Settings(BaseSettings):
     )
 
     # JWT and Security
-    jwt_secret: str = Field(description="JWT signing secret")
+    jwt_secret: str = Field(default_factory=_default_jwt_secret, description="JWT signing secret")
     cors_origins: list[str] = Field(default=[], description="CORS allowed origins")
 
     @field_validator("cors_origins", mode="before")
     @classmethod
     def parse_cors_origins_field(cls, v: object) -> object:
         return parse_cors_origins(v)
+
+    @field_validator("debug", mode="before")
+    @classmethod
+    def parse_debug_mode(cls, v: object) -> object:
+        if isinstance(v, str) and v.strip().lower() == "release":
+            return False
+        return v
 
     @field_validator("environment")
     @classmethod

@@ -65,12 +65,16 @@ def _scrub_event(event: dict[str, Any], hint: Any) -> dict[str, Any] | None:
     return scrubbed
 
 
-def init_sentry() -> None:
-    """Initialize Sentry SDK if SENTRY_DSN is configured.  No-op otherwise."""
+def init_sentry(
+    *,
+    service_name: str | None = None,
+    release: str | None = None,
+) -> bool:
+    """Initialize Sentry SDK if SENTRY_DSN is configured. No-op otherwise."""
     dsn = os.environ.get("SENTRY_DSN", "").strip()
     if not dsn:
         logger.debug("SENTRY_DSN not set; Sentry is disabled.")
-        return
+        return False
 
     environment = os.environ.get("ENVIRONMENT", "development").lower()
     sample_rate_env = os.environ.get("SENTRY_SAMPLE_RATE", "")
@@ -82,10 +86,12 @@ def init_sentry() -> None:
     try:
         import sentry_sdk
         from sentry_sdk.integrations.fastapi import FastApiIntegration
+        from sentry_sdk.integrations.starlette import StarletteIntegration
         from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
 
         sentry_sdk.init(
             dsn=dsn,
+            release=release,
             environment=environment,
             sample_rate=sample_rate,
             traces_sample_rate=sample_rate,
@@ -93,6 +99,7 @@ def init_sentry() -> None:
             before_send=_scrub_event,
             before_send_transaction=_scrub_event,
             integrations=[
+                StarletteIntegration(),
                 FastApiIntegration(),
                 SqlalchemyIntegration(),
             ],
@@ -102,14 +109,19 @@ def init_sentry() -> None:
             include_source_context=True,
             in_app_include=["value_fabric", "app"],
         )
+        if service_name:
+            sentry_sdk.set_tag("service", service_name)
         logger.info(
             "Sentry initialized: env=%s sample_rate=%s",
             environment,
             sample_rate,
         )
+        return True
     except ImportError:
         logger.warning(
             "sentry-sdk is not installed; install with: pip install sentry-sdk[fastapi]"
         )
+        return False
     except Exception as exc:
         logger.error("Failed to initialize Sentry: %s", exc)
+        return False

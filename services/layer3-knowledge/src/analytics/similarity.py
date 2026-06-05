@@ -9,7 +9,6 @@ from value_fabric.shared.identity.isolation import ScopedQuery, TenantScopedCyph
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
-
 from ..db.query_execution import run_scoped_query
 from ..retrieval.vector_store import VectorStore
 

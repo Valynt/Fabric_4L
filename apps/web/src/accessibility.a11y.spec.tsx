@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 import { axe, toHaveNoViolations } from "jest-axe";
 
@@ -24,6 +26,13 @@ import { SkipLink } from "@/components/ui/skip-link";
 import { EmptyState } from "@/components/states/EmptyState";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { OptimizedImage } from "@/components/ui/optimized-image";
+import { DataTable } from "@/components/ui/fabric/DataTable";
+import {
+  Stepper,
+  StepperContent,
+  StepperList,
+  StepperTrigger,
+} from "@/components/ui/stepper";
 
 expect.extend(toHaveNoViolations);
 
@@ -283,5 +292,89 @@ describe("component accessibility smoke tests", () => {
 
     const results = await axe(container);
     expect(results).toHaveNoViolations();
+  });
+
+  it("clickable data table rows activate with Enter and Space", async () => {
+    const user = userEvent.setup();
+    const selected: string[] = [];
+
+    render(
+      <DataTable
+        data={[{ id: "acme", name: "Acme Corp", status: "Active" }]}
+        columns={[
+          { key: "name", header: "Account" },
+          { key: "status", header: "Status" },
+        ]}
+        keyExtractor={(item) => item.id}
+        onRowClick={(item) => selected.push(item.id)}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /acme corp active/i });
+    row.focus();
+    expect(row).toHaveFocus();
+
+    await user.keyboard("{Enter}");
+    await user.keyboard(" ");
+
+    expect(selected).toEqual(["acme", "acme"]);
+  });
+
+  it("stepper tabs expose selection state and change with keyboard activation", async () => {
+    const user = userEvent.setup();
+
+    function StepperFixture() {
+      const [value, setValue] = useState("scope");
+
+      return (
+        <Stepper value={value} onValueChange={setValue}>
+          <StepperList>
+            <StepperTrigger value="scope">Scope</StepperTrigger>
+            <StepperTrigger value="evidence">Evidence</StepperTrigger>
+            <StepperTrigger value="review">Review</StepperTrigger>
+          </StepperList>
+          <StepperContent value="scope">Scope content</StepperContent>
+          <StepperContent value="evidence">Evidence content</StepperContent>
+          <StepperContent value="review">Review content</StepperContent>
+        </Stepper>
+      );
+    }
+
+    render(<StepperFixture />);
+
+    const evidenceTab = screen.getByRole("tab", { name: /evidence/i });
+    expect(screen.getByRole("tab", { name: /scope/i })).toHaveAttribute("aria-selected", "true");
+
+    evidenceTab.focus();
+    await user.keyboard("{Enter}");
+
+    expect(evidenceTab).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tabpanel")).toHaveTextContent(/evidence content/i);
+  });
+
+  it("dialog trigger is keyboard reachable and Escape returns focus", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button type="button">Open governance review</Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Governance review</DialogTitle>
+            <DialogDescription>Review pending policy evidence.</DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>,
+    );
+
+    const trigger = screen.getByRole("button", { name: /open governance review/i });
+    trigger.focus();
+    await user.keyboard("{Enter}");
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(trigger).toHaveFocus();
   });
 });

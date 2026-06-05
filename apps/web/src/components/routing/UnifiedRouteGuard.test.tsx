@@ -19,10 +19,31 @@ vi.mock("@/hooks/useEntitlements", () => ({ useEntitlements: () => ({ entitlemen
 vi.mock("@/stores", () => ({ useUserTierStore: () => ({ canAccessRoute: () => true }) }));
 
 import { UnifiedRouteGuard } from "./UnifiedRouteGuard";
+import { AuthContext } from "@/contexts/AuthContext";
+
+function renderGuard() {
+  return render(
+    <AuthContext.Provider
+      value={{
+        isAuthenticated: true,
+        isLoading: false,
+        user: null,
+        currentTenantSlug: "tenant-a",
+        accessToken: null,
+        initiateLogin: vi.fn(),
+        handleCallback: vi.fn(async () => true),
+        logout: vi.fn(),
+        refreshToken: vi.fn(async () => true),
+      }}
+    >
+      <UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>
+    </AuthContext.Provider>
+  );
+}
 
 describe("UnifiedRouteGuard deny behavior", () => {
   it("redirects when account acl denies", () => {
-    render(<UnifiedRouteGuard><div>protected</div></UnifiedRouteGuard>);
+    renderGuard();
     expect(screen.getByText("redirect:/t/tenant-a/accounts")).toBeInTheDocument();
   });
 });

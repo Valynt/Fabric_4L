@@ -13,22 +13,17 @@ import sys
 from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from value_fabric.shared.error_handling.exceptions import (
-    NotFoundError,
     ServiceUnavailableError,
-    ValidationError,
 )
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_authenticated
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..common.db import get_route_db
-from ...services.billing_security import get_client_ip as _get_client_ip
-from ...services.billing_security import is_stripe_webhook_ip as _is_stripe_webhook_ip
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/billing", tags=["Billing"])
@@ -170,13 +165,6 @@ class reconcile_invoiceResult(TypedDictModel):
 # ============================================================================
 # Forwarding stubs — all billing endpoints now served by Layer 7
 # ============================================================================
-
-import os
-
-from fastapi import APIRouter, Depends, Header, Query, Request
-from fastapi.responses import JSONResponse
-from pydantic import BaseModel, Field
-from sqlalchemy.ext.asyncio import AsyncSession
 
 _L7_BILLING_URL = os.environ.get("LAYER7_BILLING_URL", "http://layer7-billing:8008")
 

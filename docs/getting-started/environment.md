@@ -117,6 +117,7 @@ JWT_SECRET=a3f5c7e9...
 |----------|---------|---------|
 | `VITE_API_BASE_URL` | Frontend API endpoint | `/api/v1` |
 | `VITE_ENABLE_QUERY_DEVTOOLS` | Debug tools | `true` (dev only) |
+| `VITE_ENABLE_WEB_VITALS` | Local opt-in for frontend RUM metrics; staging/production enable automatically | `false` |
 | `L1_PORT` | Service port | `8001` |
 | `ENVIRONMENT` | Environment name | `development` |
 
@@ -171,6 +172,10 @@ VITE_L3_URL=http://localhost:8003
 VITE_L4_URL=http://localhost:8004
 VITE_ENABLE_QUERY_DEVTOOLS=true          # Dev only
 VITE_API_LOG_LEVEL=debug                 # Dev only
+VITE_ENVIRONMENT=development
+VITE_APP_VERSION=local
+VITE_JAEGER_ENDPOINT=http://localhost:4318/v1/traces
+VITE_ENABLE_WEB_VITALS=false             # Set true only to collect local RUM/web-vitals
 ```
 
 ---

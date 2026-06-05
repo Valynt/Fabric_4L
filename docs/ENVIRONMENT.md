@@ -43,7 +43,9 @@ Variables: `CRM_INSTANCE_URL`, `VAULT_ADDR`, private internal base URLs
 - Committed to git in `.env.*` files
 - Must never contain credentials
 
-Variables: `VITE_API_BASE`, `VITE_ENABLE_QUERY_DEVTOOLS`, `VITE_API_LOG_LEVEL`
+Variables: `VITE_API_BASE`, `VITE_ENABLE_QUERY_DEVTOOLS`, `VITE_API_LOG_LEVEL`,
+`VITE_ENVIRONMENT`, `VITE_APP_VERSION`, `VITE_JAEGER_ENDPOINT`,
+`VITE_ENABLE_WEB_VITALS`
 
 ### Class D — Local-only developer convenience
 

@@ -105,7 +105,7 @@ check-workflow-registry: ## Validate GitHub Actions workflow ownership and artif
 	@$(PYTHON) scripts/ci/verify_workflow_registry.py
 
 check-conflict-markers: ## Fail if unresolved merge conflict markers exist in tracked source files
-	@bash scripts/ci/check_conflict_markers.sh
+	@$(PYTHON) scripts/ci/check_conflict_markers.py
 
 check-no-nul-bytes: ## Fail if tracked source/config files contain NUL bytes
 	@$(PYTHON) scripts/ci/check_no_nul_bytes.py
@@ -250,39 +250,32 @@ MYPY_OVERRIDES = --python-version 3.11
 
 # Per-layer typecheck targets for development efficiency
 typecheck-layer1: ## Type-check Layer 1 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 1..."
-	@cd services/layer1-ingestion && mypy src/ $(MYPY_LAYER1_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer1-ingestion src/ -- $(MYPY_LAYER1_FLAGS)
 
 typecheck-layer2: ## Type-check Layer 2 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 2..."
-	@cd services/layer2-extraction && mypy src/ $(MYPY_LAYER2_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-extraction src/ -- $(MYPY_LAYER2_FLAGS)
 
 typecheck-layer2-5: ## Type-check Layer 2.5 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 2.5..."
-	@cd services/layer2-5-signal-refinery && mypy src/ $(MYPY_LAYER2_5_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer2-5-signal-refinery src/ -- $(MYPY_LAYER2_5_FLAGS)
 
 typecheck-layer3: ## Type-check Layer 3 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 3..."
-	@cd services/layer3-knowledge && mypy src/ $(MYPY_LAYER3_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer3-knowledge src/ -- $(MYPY_LAYER3_FLAGS)
 
 typecheck-layer4: ## Type-check Layer 4 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 4..."
-	@cd services/layer4-agents && mypy src/ $(MYPY_LAYER4_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer4-agents src/ -- $(MYPY_LAYER4_FLAGS)
 
 typecheck-layer5: ## Type-check Layer 5 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 5..."
-	@cd services/layer5-ground-truth && mypy src/ $(MYPY_LAYER5_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer5-ground-truth src/ -- $(MYPY_LAYER5_FLAGS)
 
 typecheck-layer6: ## Type-check Layer 6 only
-	@if [ "$(MYPY_VERSION_CHECK)" = "mypy_not_found" ]; then echo "❌  mypy not found. Run: pip install mypy"; exit 1; fi
 	@echo "→ Type-checking Layer 6..."
-	@cd services/layer6-benchmarks && mypy src/ $(MYPY_LAYER6_FLAGS)
+	@$(PYTHON) scripts/ci/run_mypy_layer.py services/layer6-benchmarks src/ -- $(MYPY_LAYER6_FLAGS)
 
 typecheck: ## Type-check all Python layers with mypy (fails fast on first error)
 	@$(MAKE) typecheck-layer1 && \

@@ -3,8 +3,8 @@ from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     NotFoundError,
     ServiceUnavailableError,
-    ValueFabricException,
     ValidationError,
+    ValueFabricException,
 )
 
 """FastAPI application for Layer 1: Intelligent Data Ingestion Service.
@@ -44,10 +44,10 @@ from value_fabric.shared.error_handling.handlers import (
     global_exception_handler as shared_global_exception_handler,
 )
 from value_fabric.shared.error_handling.handlers import (
-    value_fabric_exception_handler as shared_value_fabric_exception_handler,
+    validation_exception_handler as shared_validation_exception_handler,
 )
 from value_fabric.shared.error_handling.handlers import (
-    validation_exception_handler as shared_validation_exception_handler,
+    value_fabric_exception_handler as shared_value_fabric_exception_handler,
 )
 from value_fabric.shared.error_handling.models import ErrorCode, ErrorResponse
 from value_fabric.shared.fastapi_framework import (

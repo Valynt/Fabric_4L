@@ -64,6 +64,11 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 pythonpath = ["src"]
 
+[tool.value_fabric]
+deployable = false
+status = "legacy-billing-compatibility"
+canonical_service = "services/layer7-billing"
+
 [tool.mypy]
 python_version = "3.11"
 strict = false

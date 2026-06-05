@@ -14,6 +14,7 @@ import { I18nProvider } from "./i18n";
 import { STALE_TIME } from "./hooks/useApiShared";
 import { logError } from "./lib/telemetry";
 import { installAnalytics } from "./lib/analytics";
+import { installWebVitals } from "./lib/web-vitals";
 
 // P1-004: Sentry error tracking — initialized when SENTRY_DSN is configured.
 const sentryDsn = import.meta.env.VITE_SENTRY_DSN;
@@ -75,6 +76,7 @@ const queryClient = new QueryClient({
 });
 
 installAnalytics();
+installWebVitals();
 
 const clerkUrls = getClerkUrls();
 const clerkPublishableKey = getClerkPublishableKey();

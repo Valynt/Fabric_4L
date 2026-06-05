@@ -14,6 +14,10 @@ env:
   NAMESPACE: value-fabric
   PROM_NS: value-fabric
   PROM_LABEL: app.kubernetes.io/name=prometheus
+
+permissions:
+  contents: read
+
 jobs:
   pod-delete:
     runs-on: ubuntu-latest

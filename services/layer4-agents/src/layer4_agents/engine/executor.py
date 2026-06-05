@@ -1439,7 +1439,7 @@ class OrchestrationController:
                     "parameters": payload.get("parameters"),
                 }
                 context = {
-                    "tenant_id": payload["tenant_id"] if "tenant_id" in payload else None,
+                    "tenant_id": payload.get("tenant_id", None),
                     "correlation_id": message.correlation_id,
                 }
 

@@ -7,7 +7,7 @@ protocols by wrapping the Anthropic Messages API.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 from .llm_adapter_interfaces import (
     AdapterError,
@@ -22,6 +22,9 @@ from .llm_adapter_interfaces import (
 )
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from .llm_provider import LLMEmbeddingResponse, LLMTextResponse
 
 
 class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputAdapter):
@@ -138,10 +141,8 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                 kwargs["system"] = system
             response = await self._create_message(**kwargs)
             content = self._response_text(response)
-            usage = self._response_usage(response)
             return CompletionResult(
                 content=content.strip(),
-                usage_metadata=usage,
             )
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
@@ -154,31 +155,31 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
         temperature: float = 0.3,
         max_tokens: int | None = None,
         response_format: dict[str, Any] | None = None,
-    ) -> "LLMTextResponse":
+    ) -> LLMTextResponse:
         """Synchronous-style text completion for LLMProvider protocol compatibility."""
         from .llm_provider import LLMTextResponse, LLMUsage
 
-        req = CompletionRequest(
-            model=model,
-            messages=messages,
-            temperature=temperature,
-            max_tokens=max_tokens or 4096,
-        )
-        result = await self.complete(req)
-        if isinstance(result, AdapterError):
-            raise RuntimeError(f"Anthropic provider error: {result.message}")
-        usage_meta = getattr(result, "usage_metadata", {}) or {}
+        system, anthropic_messages = self._build_anthropic_messages(messages)
+        kwargs: dict[str, Any] = {
+            "model": model,
+            "messages": anthropic_messages,
+            "max_tokens": max_tokens or 4096,
+            "temperature": temperature,
+        }
+        if system is not None:
+            kwargs["system"] = system
+        response = await self._create_message(**kwargs)
+        usage_meta = self._response_usage(response)
         return LLMTextResponse(
-            content=result.content,
+            content=self._response_text(response).strip(),
             usage=LLMUsage(
                 prompt_tokens=usage_meta.get("prompt_tokens", 0),
                 completion_tokens=usage_meta.get("completion_tokens", 0),
             ),
         )
 
-    async def embed(self, *, model: str, text: str) -> "LLMEmbeddingResponse":
+    async def embed(self, *, model: str, text: str) -> LLMEmbeddingResponse:
         """Embeddings are not natively supported by Anthropic; raise clear error."""
-        from .llm_provider import LLMEmbeddingResponse
 
         raise NotImplementedError(
             "Anthropic does not provide a native embedding API. "
@@ -232,7 +233,7 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
             elif response.content and len(response.content) > 0:
                 blocks = response.content
                 text_parts: list[str] = []
-                tc_list: list[ToolCall] = []
+                anthropic_tool_calls: list[ToolCall] = []
                 for block in blocks:
                     if getattr(block, "type", None) == "text":
                         text_parts.append(block.text or "")
@@ -242,7 +243,7 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                         args = getattr(block, "input", {})
                         if isinstance(args, dict):
                             args = json.dumps(args)
-                        tc_list.append(
+                        anthropic_tool_calls.append(
                             ToolCall(
                                 id=getattr(block, "id", ""),
                                 name=getattr(block, "name", ""),
@@ -250,7 +251,7 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                             )
                         )
                 content = " ".join(text_parts).strip()
-                tool_calls = tuple(tc_list)
+                tool_calls = tuple(anthropic_tool_calls)
             return CompletionResult(content=content, tool_calls=tool_calls)
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
@@ -262,7 +263,6 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
         schema: dict[str, Any],
     ) -> dict[str, Any] | AdapterError:
         try:
-            schema_title = schema.get("name", schema.get("title", "StructuredOutput"))
             system, messages = self._build_anthropic_messages(request.messages)
             # Inject schema instructions into system prompt
             import json
@@ -296,9 +296,14 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                 content = content[:-3]
             content = content.strip()
             # Validate with Pydantic if schema available
-            from pydantic import create_model, ConfigDict
 
             result = json.loads(content)
+            if not isinstance(result, dict):
+                return AdapterError(
+                    category=ErrorCategory.INVALID_REQUEST,
+                    message="Structured output was not a JSON object.",
+                    retryable=False,
+                )
             # Basic validation using schema
             return result
         except Exception as exc:

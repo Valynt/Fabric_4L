@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import logging
 import os
-from typing import Any, ClassVar
+from typing import Any, ClassVar, cast
 
 from sqlalchemy import Column, String, event
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -227,7 +227,7 @@ class PIIMixin:
                 Contact.email_hash == PIIMixin.hash_for_query("alice@example.com")
             )
         """
-        return blind_index(plaintext)
+        return cast(str | None, blind_index(plaintext))
 
     @classmethod
     def pii_fields(cls) -> list[str]:

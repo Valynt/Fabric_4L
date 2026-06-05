@@ -24,6 +24,9 @@ env:
   AWS_REGION: us-east-1
   CLUSTER_NAME: fabric4l-production
 
+permissions:
+  contents: read
+
 jobs:
   preflight:
     runs-on: ubuntu-latest

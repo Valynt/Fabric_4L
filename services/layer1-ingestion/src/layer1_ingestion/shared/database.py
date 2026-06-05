@@ -3,6 +3,7 @@ from value_fabric.shared.error_handling.exceptions import (
     AuthorizationError,
     ValidationError,
 )
+
 from layer1_ingestion.shared.exceptions import TenantContextError
 
 INTENTIONAL_DB_ADAPTER_BYPASS = True
