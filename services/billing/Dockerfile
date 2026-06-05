@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile:1
 # Multi-stage build for services/billing – Stripe billing microservice
 # Stage 1: Builder
-FROM python:3.11.13-slim-bookworm AS builder
+FROM python:3.14.5-slim-bookworm AS builder
 
 WORKDIR /app
 
@@ -18,7 +18,7 @@ RUN uv pip install --system ".[prod]"
 COPY src/ ./src/
 
 # Stage 2: Runtime
-FROM python:3.11.13-slim-bookworm AS runtime
+FROM python:3.14.5-slim-bookworm AS runtime
 
 RUN apt-get update && apt-get upgrade -y && apt-get install -y --no-install-recommends \
     libpq5 \
