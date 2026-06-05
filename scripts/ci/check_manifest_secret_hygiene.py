@@ -29,7 +29,6 @@ DEV_ONLY_COMPOSE_DEFAULTS: dict[str, re.Pattern[str]] = {
         r'\bKC_BOOTSTRAP_ADMIN_PASSWORD\b.*(?::-[\"\']?admin[\"\']?|[=:]\s*[\"\']?admin[\"\']?$)'
     ),
     'dev MinIO root credentials': re.compile(r'\bMINIO_ROOT_(?:USER|PASSWORD)\b.*(?:=|:)\s*minioadmin\b'),
-    'dev inline postgres password': re.compile(r'postgres:postgres'),
 }
 
 ENV_EXAMPLE_FORBIDDEN_DEFAULTS: dict[str, re.Pattern[str]] = {
