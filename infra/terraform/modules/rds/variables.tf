@@ -23,6 +23,12 @@ variable "allowed_cidr_blocks" {
   type        = list(string)
 }
 
+variable "egress_cidr_blocks" {
+  description = "CIDR blocks allowed for database-initiated egress. Defaults to allowed_cidr_blocks to keep egress within approved VPC/service CIDRs."
+  type        = list(string)
+  default     = []
+}
+
 variable "engine_version" {
   description = "PostgreSQL engine version"
   type        = string
