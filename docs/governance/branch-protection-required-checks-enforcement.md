@@ -14,9 +14,10 @@ The required status checks enforced for `main` and `release/*` are:
 2. `contract-compliance`
 3. `structural-preflight`
 4. `prod-readiness`
-5. `Layer 5 - Source Contract`
-6. `Layer 5 - Tenant Isolation Regression`
-7. `Layer 5 - Contract Shape Regression`
+5. `behavior-tests`
+6. `Layer 5 - Source Contract`
+7. `Layer 5 - Tenant Isolation Regression`
+8. `Layer 5 - Contract Shape Regression`
 
 ## Enforcement scope verification
 

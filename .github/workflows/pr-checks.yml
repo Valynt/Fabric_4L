@@ -1323,6 +1323,51 @@ jobs:
           name: frontend-build-failure
           path: apps/web/dist/public/
 
+  behavior-tests:
+    name: behavior-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      CI: "true"
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
+        with:
+          version: '10.18.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: '22.12.0'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Behavior-first E2E contracts
+        run: pnpm run test:e2e:behaviors
+
+      - name: Upload behavior test results
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: behavior-test-results
+          path: |
+            apps/web/e2e-results/**
+            apps/web/playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 14
+
   p0-e2e-gate:
     name: p0-e2e-gate
     runs-on: ubuntu-latest

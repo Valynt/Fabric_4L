@@ -39,6 +39,7 @@
     "test:a11y:keyboard-flow": "pnpm exec playwright test e2e/accessibility/keyboard-flow.spec.ts --config=playwright.a11y.config.ts",
     "test:a11y:gate": "node scripts/a11y/enforce-thresholds.mjs",
     "test:e2e:contracts": "pnpm run test:e2e:guard && playwright test --project=contracts",
+    "test:e2e:behaviors": "pnpm run test:e2e:guard && playwright test --project=behaviors",
     "test:e2e:journeys": "pnpm run test:e2e:guard && playwright test --project=journeys",
     "test:e2e:golden:j1:canonical": "pnpm run test:e2e:guard && playwright test --project=backend-integrated e2e/journeys/j1-golden-path-backend-integrated.spec.ts",
     "test:e2e:golden:j1:deep": "pnpm run test:e2e:guard && playwright test --project=journeys e2e/journeys/j1-golden-path-deep.spec.ts",

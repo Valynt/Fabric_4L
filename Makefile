@@ -305,7 +305,10 @@ test: test-layer1 test-layer2 test-layer2-5 test-layer3 test-layer4 test-layer5 
 test-e2e-contracts: ## Layer 1: Run Playwright isolated page contract tests (mocked)
 	cd apps/web && npx playwright test --project=contracts
 
-test-e2e-journeys: ## Layer 2: Run Playwright chained user journeys (live or mocked)
+test-e2e-behaviors: ## Layer 2: Run strict behavior-first allowed/denied path tests (mocked)
+	cd apps/web && npx playwright test --project=behaviors
+
+test-e2e-journeys: ## Layer 3: Run Playwright chained user journeys (live or mocked)
 	cd apps/web && npx playwright test --project=journeys
 
 test-backend-contracts: ## Layer 3: Run backend contract/integration assertions

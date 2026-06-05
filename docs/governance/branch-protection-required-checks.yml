@@ -5,6 +5,7 @@ required_status_checks:
   - contract-compliance
   - structural-preflight
   - prod-readiness
+  - behavior-tests
   - Layer 5 - Source Contract
   - Layer 5 - Tenant Isolation Regression
   - Layer 5 - Contract Shape Regression
