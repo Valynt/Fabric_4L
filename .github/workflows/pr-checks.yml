@@ -1656,8 +1656,9 @@ jobs:
           secret-path: /layer2-extraction
 
       - name: Run release smoke gate
-        run: make test-backend-integrated-release-smoke
-
+        run: |
+          pip install pytest pytest-asyncio httpx pytest-timeout pytest-randomly
+          make test-backend-integrated-release-smoke
       - name: Start core services for integration tests
         run: |
           export NEO4J_PASSWORD=valuefabric
