@@ -731,7 +731,7 @@ frontend/client/src/components/ui/    # shadcn components
 
 **Gap:** No repeatable cross-layer verification; cannot prove E2E workflow works.
 
-**Evidence:** Smoke gate tested and operational. JSON report generated at `artifacts/smoke-report-*.json`. All 6 stages execute with retry logic.
+**Evidence:** Release-smoke gate tested and operational. Evidence and logs are generated under `artifacts/release_smoke/` (e.g., readiness JSON, JUnit XML, pytest logs, compose diagnostics).
 
 **Acceptance Criteria:**
 - [x] Single command `make test-backend-integrated-release-smoke` runs cross-layer checks
