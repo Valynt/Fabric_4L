@@ -98,6 +98,7 @@ This journey validates that the platform correctly enforces RBAC and tier-based 
 | `session-refresh-edge-cases.spec.ts` | Session refresh edge cases | happy path + edge case | mocked | silent token refresh, expiry during workflow, multi-tab sync, logout propagation, network recovery | **P1 production confidence** — session management |
 | `api-failure-recovery-deep.spec.ts` | API failure recovery (deep) | resilience | mocked | timeout handling, 5xx errors, offline mode, partial failures, retry mechanisms, error recovery | **P1 production confidence** — degraded UX |
 | `deep-link-tenant-isolation-deep.spec.ts` | Deep link tenant isolation (deep) | security | integrated (@backend) | deep link context respect, stale cache prevention, forged header blocking, expiry handling, cross-tenant blocking | **P0 production gate** — deep link security |
+| `j23-personal-settings.spec.ts` | Personal profile/security/preferences/notifications/sessions/activity | happy path | mocked | direct `/personal/*` route coverage, session controls, notification preferences, and personal audit activity | **P1 production confidence** — personal settings |
 | `debug-sidebar.spec.ts`, `debug-ui.spec.ts`, `full-ui-debug.spec.ts` | Diagnostics only | debug | mocked/manual | route/surface diagnostics and exploratory smoke output | **Excluded from normal CI via `@debug` tag** |
 
 ## Consolidation Decisions

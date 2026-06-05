@@ -34,6 +34,10 @@ if (mode === "full") {
     [pnpmCommand, ["run", "test:e2e:validation:p0"]],
   ]);
   gates.splice(6, 0, [
+    "P1 workflow validation",
+    [pnpmCommand, ["run", "test:e2e:validation:p1"]],
+  ]);
+  gates.splice(7, 0, [
     "Broad workflow validation",
     [pnpmCommand, ["run", "test:e2e:validation"]],
   ]);

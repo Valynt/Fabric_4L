@@ -45,10 +45,6 @@ async def enforce_authenticated_tenant_precedence(
     query_values = request.query_params
     candidates: list[tuple[str, UUID | None]] = [
         (
-            "header:X-Tenant-ID",
-            _as_uuid(request.headers.get("X-Tenant-ID", None)),
-        ),
-        (
             "query:tenant_id",
             _as_uuid(query_values.get("tenant_id", None)),
         ),

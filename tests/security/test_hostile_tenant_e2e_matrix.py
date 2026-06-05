@@ -1,7 +1,7 @@
 """Hostile-tenant end-to-end matrix guardrails.
 
 Static checks that ensure hostile-path coverage exists for:
-- L1-L6 + API gateway cross-tenant/IDOR probes,
+- L1-L7 + API gateway cross-tenant/IDOR probes,
 - RBAC downgrade and privilege escalation handling,
 - tampered/expired token handling,
 - safe error contract shape (no internals), and
@@ -27,6 +27,7 @@ REQUIRED_ROUTE_PATTERNS = [
     "**/api/v1/workflows/**",  # L4
     "**/api/v1/truth/**",  # L5
     "**/api/v1/benchmarks/**",  # L6
+    "**/api/v1/billing/**",  # L7
     "**/api/v1/accounts/**",  # API gateway
 ]
 
@@ -46,7 +47,7 @@ def test_frontend_hostile_tenant_matrix_spec_exists() -> None:
     assert FRONTEND_SPEC.exists(), f"Missing frontend hostile matrix spec: {FRONTEND_SPEC}"
 
 
-def test_matrix_covers_l1_l6_and_api_gateway_paths() -> None:
+def test_matrix_covers_l1_l7_and_api_gateway_paths() -> None:
     src = FRONTEND_SPEC.read_text(encoding="utf-8")
     for pattern in REQUIRED_ROUTE_PATTERNS:
         assert pattern in src, f"Missing hostile matrix route pattern: {pattern}"

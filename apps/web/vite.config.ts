@@ -4,9 +4,10 @@ import react from "@vitejs/plugin-react";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { defineConfig, type Plugin, type ViteDevServer } from "vite";
+import { defineConfig, loadEnv, type Plugin, type ViteDevServer } from "vite";
 import { vitePluginManusRuntime } from "vite-plugin-manus-runtime";
 import { visualizer } from "rollup-plugin-visualizer";
+import { assertFrontendApiEnv } from "./scripts/frontend-api-env.mjs";
 
 // =============================================================================
 // Manus Debug Collector - Vite Plugin
@@ -19,15 +20,35 @@ const PROJECT_ROOT = __dirname;
 const LOG_DIR = path.join(PROJECT_ROOT, ".manus-logs");
 const MAX_LOG_SIZE_BYTES = 1 * 1024 * 1024; // 1MB per log file
 const TRIM_TARGET_BYTES = Math.floor(MAX_LOG_SIZE_BYTES * 0.6); // Trim to 60% to avoid constant re-trimming
-const VITE_PROXY_L1_URL = process.env.VITE_PROXY_L1_URL || "http://localhost:8001";
-const VITE_PROXY_L2_URL = process.env.VITE_PROXY_L2_URL || "http://localhost:8002";
-const VITE_PROXY_L3_URL = process.env.VITE_PROXY_L3_URL || "http://localhost:8003";
+const viteMode =
+  process.env.NODE_ENV === "production"
+    ? "production"
+    : process.env.MODE || "development";
+const viteEnv = loadEnv(viteMode, __dirname, "");
+const frontendEnv = { ...process.env, ...viteEnv };
+const isProductionFrontend =
+  process.env.NODE_ENV === "production" ||
+  frontendEnv.VITE_APP_ENV === "production";
+
+assertFrontendApiEnv(frontendEnv, {
+  production: isProductionFrontend,
+  source: "Vite frontend build",
+});
+
+const VITE_PROXY_L1_URL =
+  frontendEnv.VITE_PROXY_L1_URL || "http://localhost:8001";
+const VITE_PROXY_L2_URL =
+  frontendEnv.VITE_PROXY_L2_URL || "http://localhost:8002";
+const VITE_PROXY_L3_URL =
+  frontendEnv.VITE_PROXY_L3_URL || "http://localhost:8003";
 const VITE_PROXY_L4_URL =
-  process.env.INTERNAL_L4_PROXY_URL ||
-  process.env.VITE_PROXY_L4_URL ||
+  frontendEnv.INTERNAL_L4_PROXY_URL ||
+  frontendEnv.VITE_PROXY_L4_URL ||
   "http://localhost:8004";
-const VITE_PROXY_L5_URL = process.env.VITE_PROXY_L5_URL || "http://localhost:8005";
-const VITE_PROXY_L6_URL = process.env.VITE_PROXY_L6_URL || "http://localhost:8006";
+const VITE_PROXY_L5_URL =
+  frontendEnv.VITE_PROXY_L5_URL || "http://localhost:8005";
+const VITE_PROXY_L6_URL =
+  frontendEnv.VITE_PROXY_L6_URL || "http://localhost:8006";
 
 type LogSource = "browserConsole" | "networkRequests" | "sessionReplay";
 
@@ -46,10 +67,13 @@ interface HmrLikePayload {
 function isManusLogPayload(value: unknown): value is ManusLogPayload {
   if (typeof value !== "object" || value === null) return false;
   const payload = value as Record<string, unknown>;
-  const isUnknownArray = (candidate: unknown): candidate is unknown[] => candidate === undefined || Array.isArray(candidate);
-  return isUnknownArray(payload.consoleLogs)
-    && isUnknownArray(payload.networkRequests)
-    && isUnknownArray(payload.sessionEvents);
+  const isUnknownArray = (candidate: unknown): candidate is unknown[] =>
+    candidate === undefined || Array.isArray(candidate);
+  return (
+    isUnknownArray(payload.consoleLogs) &&
+    isUnknownArray(payload.networkRequests) &&
+    isUnknownArray(payload.sessionEvents)
+  );
 }
 
 function isHmrLikePayload(value: unknown): value is HmrLikePayload {
@@ -94,7 +118,7 @@ function writeToLogFile(source: LogSource, entries: unknown[]) {
   const logPath = path.join(LOG_DIR, `${source}.log`);
 
   // Format entries with timestamps
-  const lines = entries.map((entry) => {
+  const lines = entries.map(entry => {
     const ts = new Date().toISOString();
     return `[${ts}] ${JSON.stringify(entry)}`;
   });
@@ -141,7 +165,8 @@ function vitePluginManusDebugCollector(): Plugin {
           if (!isHmrLikePayload(rawPayload)) {
             return;
           }
-          const payloadType = typeof rawPayload.type === "string" ? rawPayload.type : "unknown";
+          const payloadType =
+            typeof rawPayload.type === "string" ? rawPayload.type : "unknown";
           writeToLogFile("sessionReplay", [{ source: "hmr", payloadType }]);
         });
       });
@@ -182,7 +207,7 @@ function vitePluginManusDebugCollector(): Plugin {
         }
 
         let body = "";
-        req.on("data", (chunk) => {
+        req.on("data", chunk => {
           body += chunk.toString();
         });
 
@@ -210,7 +235,9 @@ const plugins = [
   vitePluginManusRuntime(),
   vitePluginManusDebugCollector(),
   // Bundle analyzer - only during build when ANALYZE=true
-  process.env.ANALYZE === "true" ? visualizer({ open: false, gzipSize: true }) : null,
+  process.env.ANALYZE === "true"
+    ? visualizer({ open: false, gzipSize: true })
+    : null,
 ].filter(Boolean) as Plugin[];
 
 export default defineConfig({
@@ -231,30 +258,34 @@ export default defineConfig({
     reportCompressedSize: true,
     rollupOptions: {
       output: {
-        manualChunks: (id) => {
+        manualChunks: id => {
           // TanStack Query
-          if (id.includes('@tanstack/react-query')) {
-            return 'vendor-react-query';
+          if (id.includes("@tanstack/react-query")) {
+            return "vendor-react-query";
           }
           // Radix UI components — merged into vendor-react to avoid circular chunk deps
-          if (id.includes('@radix-ui')) {
-            return 'vendor-react';
+          if (id.includes("@radix-ui")) {
+            return "vendor-react";
           }
           // Charting libraries
-          if (id.includes('recharts') || id.includes('chart.js') || id.includes('d3')) {
-            return 'vendor-charts';
+          if (
+            id.includes("recharts") ||
+            id.includes("chart.js") ||
+            id.includes("d3")
+          ) {
+            return "vendor-charts";
           }
           // HTTP client
-          if (id.includes('axios')) {
-            return 'vendor-axios';
+          if (id.includes("axios")) {
+            return "vendor-axios";
           }
           // Schema validation
-          if (id.includes('zod')) {
-            return 'vendor-zod';
+          if (id.includes("zod")) {
+            return "vendor-zod";
           }
           // React core (exact packages only — avoid @clerk/react, @radix-ui/react-*)
-          if (id.includes('/react/') || id.includes('react-dom')) {
-            return 'vendor-react';
+          if (id.includes("/react/") || id.includes("react-dom")) {
+            return "vendor-react";
           }
         },
       },
@@ -281,40 +312,42 @@ export default defineConfig({
     // Proxy configuration for multi-layer API routing
     // Each layer runs on a different port; unified under /api/v1 for future gateway compatibility
     proxy: {
-      '/api/v1/ingest': {
+      "/api/v1/ingest": {
         target: VITE_PROXY_L1_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/ingest/, '/api/v1/ingestion'),
+        rewrite: path =>
+          path.replace(/^\/api\/v1\/ingest/, "/api/v1/ingestion"),
       },
-      '/api/v1/extract': {
+      "/api/v1/extract": {
         target: VITE_PROXY_L2_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/extract/, ''),
+        rewrite: path => path.replace(/^\/api\/v1\/extract/, ""),
       },
-      '/api/v1/graph': {
+      "/api/v1/graph": {
         target: VITE_PROXY_L3_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/graph/, '/v1'),
+        rewrite: path => path.replace(/^\/api\/v1\/graph/, "/v1"),
       },
-      '/api/v1/audit': {
+      "/api/v1/audit": {
         target: VITE_PROXY_L4_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/audit/, '/v1/audit'),
+        rewrite: path => path.replace(/^\/api\/v1\/audit/, "/v1/audit"),
       },
-      '/api/v1/agents': {
+      "/api/v1/agents": {
         target: VITE_PROXY_L4_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/agents/, '/v1'),
+        rewrite: path => path.replace(/^\/api\/v1\/agents/, "/v1"),
       },
-      '/api/v1/truths': {
+      "/api/v1/truths": {
         target: VITE_PROXY_L5_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/truths/, '/api/v1'),
+        rewrite: path => path.replace(/^\/api\/v1\/truths/, "/api/v1"),
       },
-      '/api/v1/benchmarks': {
+      "/api/v1/benchmarks": {
         target: VITE_PROXY_L6_URL,
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api\/v1\/benchmarks/, '/v1/benchmarks'),
+        rewrite: path =>
+          path.replace(/^\/api\/v1\/benchmarks/, "/v1/benchmarks"),
       },
     },
   },
@@ -353,4 +386,3 @@ export default defineConfig({
     },
   },
 });
-

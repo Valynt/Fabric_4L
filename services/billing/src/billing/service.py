@@ -1,9 +1,10 @@
-"""BillingService – core business logic for Stripe-integrated billing.
+"""BillingService – legacy Stripe billing compatibility logic.
 
-This class owns all interactions with the Stripe API and the billing
-database.  It is intentionally decoupled from FastAPI (no ``Request``
-types, no dependency-injection decorators) so it can be unit-tested
-without a running HTTP server.
+This class preserves historical Stripe API and billing database interactions
+for regression coverage. Canonical deployable billing behavior lives in
+``services/layer7-billing``. The class remains intentionally decoupled from
+FastAPI (no ``Request`` types, no dependency-injection decorators) so it can
+be unit-tested without a running HTTP server.
 """
 
 from __future__ import annotations
@@ -27,10 +28,10 @@ def _hash_email(email: str) -> str:
 
 
 class BillingService:
-    """Service layer for Stripe billing operations.
+    """Legacy service layer for Stripe billing compatibility tests.
 
     All methods accept an ``AsyncSession`` so callers control transaction
-    boundaries.  No direct Stripe API calls are made unless a live
+    boundaries. No direct Stripe API calls are made unless a live
     ``stripe_client`` is injected (defaults to ``None`` for unit tests).
     """
 

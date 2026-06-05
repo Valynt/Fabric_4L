@@ -7,6 +7,23 @@
  */
 
 export interface paths {
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness Handler */
+        get: operations["readiness_handler_ready_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -16,23 +33,6 @@ export interface paths {
         };
         /** Health Check */
         get: operations["health_check_health_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/ready": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Ready */
-        get: operations["ready_ready_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2777,6 +2777,146 @@ export interface paths {
         patch: operations["update_tenant_settings_v1_tenants__tenant_id__settings_patch"];
         trace?: never;
     };
+    "/v1/{tenant_id}/dashboard/usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tenant Usage
+         * @description Get aggregated usage metrics for the tenant.
+         *
+         *     Returns API call counts, agent execution stats, LLM token usage,
+         *     and active user count for the specified time window.
+         */
+        get: operations["get_tenant_usage_v1__tenant_id__dashboard_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{tenant_id}/dashboard/daily-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Daily Usage
+         * @description Get daily usage breakdown for charting.
+         *
+         *     Returns one entry per day with api_calls, agent_executions,
+         *     and llm_tokens.
+         */
+        get: operations["get_daily_usage_v1__tenant_id__dashboard_daily_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{tenant_id}/dashboard/tier-usage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tier Usage
+         * @description Get current resource usage vs. tier limits.
+         *
+         *     Shows how close the tenant is to each limit, useful for
+         *     upgrade prompts in the UI.
+         */
+        get: operations["get_tier_usage_v1__tenant_id__dashboard_tier_usage_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{tenant_id}/dashboard/top-endpoints": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Top Endpoints
+         * @description Get the most-called API endpoints for the tenant.
+         *
+         *     Useful for understanding usage patterns and optimizing.
+         */
+        get: operations["get_top_endpoints_v1__tenant_id__dashboard_top_endpoints_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{tenant_id}/dashboard/audit-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tenant Audit Log
+         * @description Get audit log entries for the tenant.
+         *
+         *     Supports pagination and optional action type filtering.
+         */
+        get: operations["get_tenant_audit_log_v1__tenant_id__dashboard_audit_log_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/{tenant_id}/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Tenant Settings
+         * @description Get tenant settings and configuration.
+         */
+        get: operations["get_tenant_settings_v1__tenant_id__settings_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Update Tenant Settings
+         * @description Update tenant settings (tenant_admin only).
+         *
+         *     Supports partial updates — only provided fields are changed.
+         *     Branding changes require the custom_branding feature to be enabled.
+         */
+        patch: operations["update_tenant_settings_v1__tenant_id__settings_patch"];
+        trace?: never;
+    };
     "/v1/admin/tenant-overview": {
         parameters: {
             query?: never;
@@ -3701,13 +3841,7 @@ export interface paths {
         };
         /**
          * Get Subscription
-         * @description Get current subscription status for a customer.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *
-         *     Returns:
-         *         Subscription details including plan and status
+         * @description [STUB] Forwarded to Layer 7. Get current subscription status.
          */
         get: operations["get_subscription_v1_billing_subscription_get"];
         put?: never;
@@ -3729,14 +3863,7 @@ export interface paths {
         put?: never;
         /**
          * Create Checkout
-         * @description Create a Stripe checkout session for subscription.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         request: Checkout session parameters
-         *
-         *     Returns:
-         *         Session ID and checkout URL
+         * @description [STUB] Forwarded to Layer 7. Create a Stripe checkout session.
          */
         post: operations["create_checkout_v1_billing_checkout_post"];
         delete?: never;
@@ -3756,36 +3883,9 @@ export interface paths {
         put?: never;
         /**
          * Create Portal
-         * @description Create a Stripe customer portal session.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         request: Portal session parameters
-         *
-         *     Returns:
-         *         Portal URL for customer to manage billing
+         * @description [STUB] Forwarded to Layer 7. Create a Stripe customer portal session.
          */
         post: operations["create_portal_v1_billing_portal_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/invoices/{invoice_id}/reconciliation": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Reconcile Invoice
-         * @description Reconcile usage ledger against invoice line items.
-         */
-        get: operations["reconcile_invoice_v1_billing_invoices__invoice_id__reconciliation_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -3803,14 +3903,7 @@ export interface paths {
         put?: never;
         /**
          * Cancel Subscription
-         * @description Cancel a customer's subscription.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         request: Cancellation options
-         *
-         *     Returns:
-         *         Cancellation result with period end date
+         * @description [STUB] Forwarded to Layer 7. Cancel a customer's subscription.
          */
         post: operations["cancel_subscription_v1_billing_subscription_cancel_post"];
         delete?: never;
@@ -3830,14 +3923,7 @@ export interface paths {
         put?: never;
         /**
          * Update Subscription Plan
-         * @description Update a customer's subscription plan.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         request: Target plan details
-         *
-         *     Returns:
-         *         Update result with previous and current plan
+         * @description [STUB] Forwarded to Layer 7. Update a customer's subscription plan.
          */
         post: operations["update_subscription_plan_v1_billing_subscription_update_plan_post"];
         delete?: never;
@@ -3857,13 +3943,7 @@ export interface paths {
         put?: never;
         /**
          * Reactivate Subscription
-         * @description Reactivate a subscription scheduled to cancel at period end.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *
-         *     Returns:
-         *         Reactivation result
+         * @description [STUB] Forwarded to Layer 7. Reactivate a subscription.
          */
         post: operations["reactivate_subscription_v1_billing_subscription_reactivate_post"];
         delete?: never;
@@ -3881,13 +3961,7 @@ export interface paths {
         };
         /**
          * Get Entitlements
-         * @description Get all feature entitlements for a customer.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *
-         *     Returns:
-         *         Plan details and feature availability map
+         * @description [STUB] Forwarded to Layer 7. Get all feature entitlements for a customer.
          */
         get: operations["get_entitlements_v1_billing_entitlements_get"];
         put?: never;
@@ -3907,14 +3981,7 @@ export interface paths {
         };
         /**
          * Check Feature
-         * @description Check if a customer has access to a specific feature.
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         feature_id: Feature identifier to check
-         *
-         *     Returns:
-         *         Feature access status
+         * @description [STUB] Forwarded to Layer 7. Check if a customer has access to a specific feature.
          */
         get: operations["check_feature_v1_billing_check_feature_get"];
         put?: never;
@@ -3936,295 +4003,9 @@ export interface paths {
         put?: never;
         /**
          * Sync Customer
-         * @description Sync customer with Stripe (create or update).
-         *
-         *     Args:
-         *         customer_id: Internal customer/user ID
-         *         request: Customer details
-         *
-         *     Returns:
-         *         Customer record with Stripe ID if available
+         * @description [STUB] Forwarded to Layer 7. Sync customer with Stripe.
          */
         post: operations["sync_customer_v1_billing_sync_customer_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/webhook": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Stripe Webhook
-         * @description Handle Stripe webhook events.
-         *
-         *     Processes subscription lifecycle events from Stripe with idempotency.
-         *     Must configure webhook secret in STRIPE_WEBHOOK_SECRET env var.
-         *
-         *     SECURITY: Validates request originates from Stripe IP ranges AND
-         *     has valid Stripe-Signature header. Dual verification for defense-in-depth.
-         *
-         *     Headers:
-         *         Stripe-Signature: Webhook signature for verification
-         *
-         *     Returns:
-         *         Processing status
-         */
-        post: operations["stripe_webhook_v1_billing_webhook_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ingest Usage Event
-         * @description Ingest a single usage event for billing.
-         *
-         *     Args:
-         *         request: Usage event details
-         *
-         *     Returns:
-         *         Ingested event with ID and status
-         *
-         *     Raises:
-         *         400: Validation error
-         *         409: Duplicate event (idempotency conflict)
-         */
-        post: operations["ingest_usage_event_v1_billing_events_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/events/batch": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Ingest Usage Batch
-         * @description Ingest multiple usage events in a batch.
-         *
-         *     Args:
-         *         request: Batch of usage events (max 1000)
-         *
-         *     Returns:
-         *         Summary with counts of created, duplicate, and error events
-         *
-         *     Raises:
-         *         400: Batch validation error
-         */
-        post: operations["ingest_usage_batch_v1_billing_events_batch_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/usage/{customer_id}/summary": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Usage Summary
-         * @description Get aggregated usage summary for a customer and metric.
-         *
-         *     Args:
-         *         customer_id: Customer to query
-         *         metric_name: Metric to aggregate
-         *         start_date: Start of period (ISO format)
-         *         end_date: End of period (ISO format)
-         *
-         *     Returns:
-         *         Usage summary with total quantity and event count
-         */
-        get: operations["get_usage_summary_v1_billing_usage__customer_id__summary_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/usage/{customer_id}/events": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * List Usage Events
-         * @description List individual usage events for a customer.
-         *
-         *     Args:
-         *         customer_id: Customer to query
-         *         metric_name: Optional metric filter
-         *         start_date: Optional start date filter
-         *         end_date: Optional end date filter
-         *         limit: Maximum results (1-1000)
-         *         offset: Pagination offset
-         *
-         *     Returns:
-         *         List of usage events
-         */
-        get: operations["list_usage_events_v1_billing_usage__customer_id__events_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/usage/{customer_id}/sync": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Sync Usage To Stripe
-         * @description Sync pending usage events to Stripe MeterEvents.
-         *
-         *     Aggregates pending usage and reports to Stripe for metered billing.
-         *     Requires Stripe customer to be linked and STRIPE_METER_EVENTS_ENABLED=true.
-         *
-         *     Args:
-         *         customer_id: Customer to sync usage for
-         *         metric_name: Optional metric filter (syncs all if omitted)
-         *
-         *     Returns:
-         *         Sync summary with counts and Stripe responses
-         *
-         *     Raises:
-         *         400: Validation error or no Stripe customer linked
-         *         402: Stripe not configured
-         */
-        post: operations["sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/limits/{customer_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Usage Limits
-         * @description Get current usage and limits for a customer.
-         *
-         *     Returns all configured limits and current usage percentages.
-         *     Use this to show progress bars or warnings in the UI.
-         *
-         *     Args:
-         *         customer_id: Customer to check
-         *
-         *     Returns:
-         *         Usage limits and current consumption for all metrics
-         */
-        get: operations["get_usage_limits_v1_billing_limits__customer_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/limits/{customer_id}/check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Check Request Allowed
-         * @description Check if a request should be allowed based on usage limits.
-         *
-         *     Use this endpoint before processing expensive operations to validate
-         *     that the customer has quota remaining. Returns 402 Payment Required
-         *     if the hard limit is exceeded.
-         *
-         *     Args:
-         *         customer_id: Customer making the request
-         *         metric_name: Metric being consumed
-         *         quantity: Amount to be consumed
-         *
-         *     Returns:
-         *         Validation result with allow/deny decision
-         *
-         *     Raises:
-         *         402: Hard limit exceeded (upgrade required)
-         *         400: Invalid request
-         */
-        post: operations["check_request_allowed_v1_billing_limits__customer_id__check_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/billing/plans/{plan_id}/limits": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /**
-         * Get Plan Limits
-         * @description Get the configured usage limits for a plan.
-         *
-         *     Returns the limits configuration without customer-specific usage data.
-         *     Useful for displaying plan details in pricing pages.
-         *
-         *     Args:
-         *         plan_id: Plan identifier (free, pro, enterprise)
-         *
-         *     Returns:
-         *         Plan limits configuration
-         */
-        get: operations["get_plan_limits_v1_billing_plans__plan_id__limits_get"];
-        put?: never;
-        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -4240,19 +4021,13 @@ export interface paths {
         };
         /**
          * List Invoices
-         * @description List invoices with optional filters.
-         *
-         *     Returns paginated list of invoices for the tenant, optionally filtered
-         *     by customer and status.
+         * @description [STUB] Forwarded to Layer 7. List invoices with optional filters.
          */
         get: operations["list_invoices_v1_billing_invoices_get"];
         put?: never;
         /**
          * Create Invoice
-         * @description Create a new invoice.
-         *
-         *     Creates a draft invoice for the specified customer and billing period.
-         *     Add line items via POST /invoices/{id}/items, then finalize via POST /invoices/{id}/finalize.
+         * @description [STUB] Forwarded to Layer 7. Create a new invoice.
          */
         post: operations["create_invoice_v1_billing_invoices_post"];
         delete?: never;
@@ -4270,7 +4045,7 @@ export interface paths {
         };
         /**
          * Get Invoice
-         * @description Get invoice details including line items and charges.
+         * @description [STUB] Forwarded to Layer 7. Get invoice details including line items and charges.
          */
         get: operations["get_invoice_v1_billing_invoices__invoice_id__get"];
         put?: never;
@@ -4292,7 +4067,7 @@ export interface paths {
         put?: never;
         /**
          * Add Invoice Item
-         * @description Add a line item to an invoice.
+         * @description [STUB] Forwarded to Layer 7. Add a line item to an invoice.
          */
         post: operations["add_invoice_item_v1_billing_invoices__invoice_id__items_post"];
         delete?: never;
@@ -4312,9 +4087,7 @@ export interface paths {
         put?: never;
         /**
          * Finalize Invoice
-         * @description Finalize a draft invoice (make it open/payable).
-         *
-         *     Recalculates totals from line items and changes status to 'open'.
+         * @description [STUB] Forwarded to Layer 7. Finalize a draft invoice.
          */
         post: operations["finalize_invoice_v1_billing_invoices__invoice_id__finalize_post"];
         delete?: never;
@@ -4334,7 +4107,7 @@ export interface paths {
         put?: never;
         /**
          * Void Invoice
-         * @description Void an invoice.
+         * @description [STUB] Forwarded to Layer 7. Void an invoice.
          */
         post: operations["void_invoice_v1_billing_invoices__invoice_id__void_post"];
         delete?: never;
@@ -4352,13 +4125,13 @@ export interface paths {
         };
         /**
          * List Charges
-         * @description List charge records.
+         * @description [STUB] Forwarded to Layer 7. List charge records.
          */
         get: operations["list_charges_v1_billing_charges_get"];
         put?: never;
         /**
          * Record Charge
-         * @description Record a charge attempt.
+         * @description [STUB] Forwarded to Layer 7. Record a charge attempt.
          */
         post: operations["record_charge_v1_billing_charges_post"];
         delete?: never;
@@ -4376,9 +4149,7 @@ export interface paths {
         };
         /**
          * Get Revenue Summary
-         * @description Get revenue summary for a period.
-         *
-         *     Returns aggregated invoice and charge totals for the specified period.
+         * @description [STUB] Forwarded to Layer 7. Get revenue summary for a period.
          */
         get: operations["get_revenue_summary_v1_billing_reports_revenue_get"];
         put?: never;
@@ -4398,13 +4169,191 @@ export interface paths {
         };
         /**
          * Get Customer Balance
-         * @description Get customer balance summary.
-         *
-         *     Returns open invoice amounts and lifetime payment totals.
+         * @description [STUB] Forwarded to Layer 7. Get customer balance summary.
          */
         get: operations["get_customer_balance_v1_billing_customers__customer_id__balance_get"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/limits/{customer_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Usage Limits
+         * @description [STUB] Forwarded to Layer 7. Get current usage and limits for a customer.
+         */
+        get: operations["get_usage_limits_v1_billing_limits__customer_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/limits/{customer_id}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Check Request Allowed
+         * @description [STUB] Forwarded to Layer 7. Check if a request should be allowed based on usage limits.
+         */
+        post: operations["check_request_allowed_v1_billing_limits__customer_id__check_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/plans/{plan_id}/limits": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Plan Limits
+         * @description [STUB] Forwarded to Layer 7. Get the configured usage limits for a plan.
+         */
+        get: operations["get_plan_limits_v1_billing_plans__plan_id__limits_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Usage Event
+         * @description [STUB] Forwarded to Layer 7. Ingest a single usage event for billing.
+         */
+        post: operations["ingest_usage_event_v1_billing_events_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/events/batch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ingest Usage Batch
+         * @description [STUB] Forwarded to Layer 7. Ingest multiple usage events in a batch.
+         */
+        post: operations["ingest_usage_batch_v1_billing_events_batch_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/usage/{customer_id}/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Usage Summary
+         * @description [STUB] Forwarded to Layer 7. Get aggregated usage summary.
+         */
+        get: operations["get_usage_summary_v1_billing_usage__customer_id__summary_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/usage/{customer_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Usage Events
+         * @description [STUB] Forwarded to Layer 7. List individual usage events for a customer.
+         */
+        get: operations["list_usage_events_v1_billing_usage__customer_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/usage/{customer_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Usage To Stripe
+         * @description [STUB] Forwarded to Layer 7. Sync pending usage events to Stripe MeterEvents.
+         */
+        post: operations["sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/billing/webhook": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Stripe Webhook
+         * @description [STUB] Forwarded to Layer 7. Handle Stripe webhook events.
+         */
+        post: operations["stripe_webhook_v1_billing_webhook_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -5296,7 +5245,7 @@ export interface components {
              * Query
              * @description Search across name, domain, owner
              */
-            query: string | null;
+            query?: string | null;
             provider?: components["schemas"]["CRMProvider"] | null;
             /** Stage */
             stage?: string | null;
@@ -5330,6 +5279,12 @@ export interface components {
              */
             sort_order: string;
         };
+        /**
+         * ActionClass
+         * @description Canonical high-impact action classes requiring human approval.
+         * @enum {string}
+         */
+        ActionClass: "approve_hypotheses" | "publish_business_case" | "apply_benchmark_assumptions" | "generate_customer_facing_deliverable" | "change_account_value_model";
         /**
          * ActivityItemSchema
          * @description Activity timeline item from fetch_interaction_history tool.
@@ -5391,7 +5346,7 @@ export interface components {
             unit_amount_cents?: number | null;
             /**
              * Type
-             * @description Item type: subscription, metered, one_time, proration
+             * @description Item type
              * @default one_time
              */
             type: string;
@@ -5761,6 +5716,11 @@ export interface components {
             body: components["schemas"]["GateDecisionRequest"];
             context?: components["schemas"]["RequestContext"] | null;
         };
+        /** Body_update_tenant_settings_v1__tenant_id__settings_patch */
+        Body_update_tenant_settings_v1__tenant_id__settings_patch: {
+            update: components["schemas"]["layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"];
+            context?: components["schemas"]["RequestContext"] | null;
+        };
         /** Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch */
         Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch: {
             update: components["schemas"]["layer4_agents__tenants__api__routes__admin__TenantSettingsUpdate"];
@@ -6020,17 +5980,6 @@ export interface components {
              */
             cancel_immediately: boolean;
         };
-        /** CancelSubscriptionResponse */
-        CancelSubscriptionResponse: {
-            /** Canceled */
-            canceled: boolean;
-            /** Cancel At Period End */
-            cancel_at_period_end: boolean;
-            /** Current Period End */
-            current_period_end: string | null;
-            /** Subscription Id */
-            subscription_id: string;
-        };
         /**
          * CaseListItem
          * @description Case list response item.
@@ -6069,7 +6018,7 @@ export interface components {
         CheckoutRequest: {
             /**
              * Plan Id
-             * @description Plan to subscribe to (pro, enterprise)
+             * @description Plan to subscribe to
              */
             plan_id: string;
             /**
@@ -6082,13 +6031,6 @@ export interface components {
              * @description Redirect URL if checkout canceled
              */
             cancel_url: string;
-        };
-        /** CheckoutResponse */
-        CheckoutResponse: {
-            /** Session Id */
-            session_id: string;
-            /** Checkout Url */
-            checkout_url: string;
         };
         /**
          * CheckpointInfo
@@ -6313,7 +6255,7 @@ export interface components {
          */
         CompanyKnowledgeProfileUpdateRequest: {
             /** Company Name */
-            company_name: string | null;
+            company_name?: string | null;
             /** Website */
             website?: string | null;
             /** Identity */
@@ -6566,6 +6508,7 @@ export interface components {
          */
         CreateGateRequest: {
             gate_type: components["schemas"]["GateType"];
+            action_class?: components["schemas"]["ActionClass"] | null;
         };
         /**
          * CreateInvoiceRequest
@@ -6693,7 +6636,7 @@ export interface components {
         /** CurrentTenantSettingsUpdate */
         CurrentTenantSettingsUpdate: {
             /** Settings */
-            settings: {
+            settings?: {
                 [key: string]: unknown;
             } | null;
         };
@@ -6709,23 +6652,6 @@ export interface components {
             };
             /** Updated At */
             updated_at: string;
-        };
-        /** CustomerBalanceResponse */
-        CustomerBalanceResponse: {
-            /** Customer Id */
-            customer_id: string;
-            /** Open Invoices Cents */
-            open_invoices_cents: number;
-            /** Open Invoices Dollars */
-            open_invoices_dollars: string;
-            /** Lifetime Paid Cents */
-            lifetime_paid_cents: number;
-            /** Lifetime Paid Dollars */
-            lifetime_paid_dollars: string;
-            /** Balance Cents */
-            balance_cents: number;
-            /** Balance Dollars */
-            balance_dollars: string;
         };
         /**
          * CustomerSyncRequest
@@ -6827,7 +6753,7 @@ export interface components {
              * Sources
              * @description Specific sources to use: sec_edgar, web_crawl, domain_lookup, news_scan
              */
-            sources: string[] | null;
+            sources?: string[] | null;
             /**
              * Force
              * @description Re-enrich even if already enriched
@@ -6857,17 +6783,6 @@ export interface components {
             stale: number;
             /** Coverage Pct */
             coverage_pct: number;
-        };
-        /** EntitlementsResponse */
-        EntitlementsResponse: {
-            /** Plan Id */
-            plan_id: string;
-            /** Plan Name */
-            plan_name: string;
-            /** Features */
-            features: {
-                [key: string]: unknown;
-            };
         };
         /**
          * ErrorAnalysisResponse
@@ -7371,9 +7286,9 @@ export interface components {
          */
         ICPProfileUpdateRequest: {
             /** Industries */
-            industries: string[] | null;
+            industries?: string[] | null;
             /** Company Size */
-            company_size: string[] | null;
+            company_size?: string[] | null;
             /** Buyer Personas */
             buyer_personas?: {
                 [key: string]: unknown;
@@ -7638,23 +7553,6 @@ export interface components {
              * Format: date-time
              */
             updated_at: string;
-        };
-        /** LimitsCheckResponse */
-        LimitsCheckResponse: {
-            /** Allowed */
-            allowed: boolean;
-            /** Customer Id */
-            customer_id: string;
-            /** Metric Name */
-            metric_name: string;
-            /** Quantity */
-            quantity: number;
-            /** Limit */
-            limit: number | null;
-            /** Current Usage */
-            current_usage: number | null;
-            /** Remaining */
-            remaining: number | null;
         };
         /**
          * LineageRef
@@ -8049,11 +7947,6 @@ export interface components {
              */
             return_url: string;
         };
-        /** PortalResponse */
-        PortalResponse: {
-            /** Portal Url */
-            portal_url: string;
-        };
         /**
          * ProcessingMetadata
          * @description Metadata about signal processing.
@@ -8378,7 +8271,7 @@ export interface components {
              * Prospect Id
              * @description Prospect identifier
              */
-            prospect_id: string | null;
+            prospect_id?: string | null;
             /**
              * Value Driver Ids
              * @description Value drivers to calculate
@@ -8437,13 +8330,6 @@ export interface components {
              * @default balanced
              */
             strategy: string;
-        };
-        /** ReactivateSubscriptionResponse */
-        ReactivateSubscriptionResponse: {
-            /** Reactivated */
-            reactivated: boolean;
-            /** Subscription Id */
-            subscription_id: string;
         };
         /**
          * RecordChargeRequest
@@ -8662,21 +8548,6 @@ export interface components {
             tenant_id: string;
             /** Status */
             status: string;
-        };
-        /** RevenueSummaryResponse */
-        RevenueSummaryResponse: {
-            /** Total Revenue Cents */
-            total_revenue_cents: number;
-            /** Total Revenue Dollars */
-            total_revenue_dollars: string;
-            /** Invoice Count */
-            invoice_count: number;
-            /** Charge Count */
-            charge_count: number;
-            /** Period Start */
-            period_start: string;
-            /** Period End */
-            period_end: string;
         };
         /** ReviewRequest */
         ReviewRequest: {
@@ -9151,7 +9022,7 @@ export interface components {
              * Reason
              * @description Human-readable reason for the status change
              */
-            reason: string | null;
+            reason?: string | null;
             /**
              * Changed By
              * @description User ID or service name initiating the change
@@ -9170,30 +9041,12 @@ export interface components {
             status: string;
         };
         /**
-         * SubscriptionResponse
-         * @description Subscription status response.
-         */
-        SubscriptionResponse: {
-            /** Id */
-            id: string | null;
-            /** Plan Id */
-            plan_id: string;
-            /** Status */
-            status: string;
-            /** Current Period Start */
-            current_period_start: string | null;
-            /** Current Period End */
-            current_period_end: string | null;
-            /** Cancel At Period End */
-            cancel_at_period_end: boolean;
-        };
-        /**
          * SyncAccountsRequest
          * @description Manual sync trigger request.
          */
         SyncAccountsRequest: {
             /** @description Specific provider to sync, or null for all */
-            provider: components["schemas"]["CRMProvider"] | null;
+            provider?: components["schemas"]["CRMProvider"] | null;
             /**
              * Account Ids
              * @description Specific account IDs to sync, or null for all
@@ -9464,8 +9317,8 @@ export interface components {
          */
         TenantUpdateRequest: {
             /** Name */
-            name: string | null;
-            status: components["schemas"]["TenantStatus"] | null;
+            name?: string | null;
+            status?: components["schemas"]["TenantStatus"] | null;
             /** Settings */
             settings?: {
                 [key: string]: unknown;
@@ -9675,18 +9528,9 @@ export interface components {
              */
             plan_id: string;
         };
-        /** UpdatePlanResponse */
-        UpdatePlanResponse: {
-            /** Previous Plan Id */
-            previous_plan_id: string;
-            /** Subscription Id */
-            subscription_id: string;
-            /** Updated */
-            updated: boolean;
-        };
         /** UpdateTaskRequest */
         UpdateTaskRequest: {
-            status: components["schemas"]["TaskStatus"] | null;
+            status?: components["schemas"]["TaskStatus"] | null;
             /** Assignee */
             assignee?: string | null;
             /** Due Date */
@@ -9754,29 +9598,6 @@ export interface components {
                 [key: string]: unknown;
             } | null;
         };
-        /** UsageEventResponse */
-        UsageEventResponse: {
-            /** Id */
-            id: string;
-            /** Event Id */
-            event_id: string;
-            /** Event Name */
-            event_name: string;
-            /** Metric Name */
-            metric_name: string;
-            /** Quantity */
-            quantity: number;
-            /** Unit */
-            unit: string;
-            /** Timestamp */
-            timestamp: string;
-            /** Status */
-            status: string;
-            /** Metadata */
-            metadata: {
-                [key: string]: unknown;
-            } | null;
-        };
         /**
          * UsageMetricsResponse
          * @description Usage metrics response.
@@ -9800,30 +9621,6 @@ export interface components {
             llm_usage: {
                 [key: string]: unknown;
             };
-        };
-        /** UsageSummaryResponse */
-        UsageSummaryResponse: {
-            /** Customer Id */
-            customer_id: string;
-            /** Metric Name */
-            metric_name: string;
-            /** Total Quantity */
-            total_quantity: number;
-            /** Event Count */
-            event_count: number;
-            /** Period Start */
-            period_start: string | null;
-            /** Period End */
-            period_end: string | null;
-        };
-        /** UsageSyncResponse */
-        UsageSyncResponse: {
-            /** Synced */
-            synced: number;
-            /** Failed */
-            failed: number;
-            /** Error */
-            error: string | null;
         };
         /**
          * UserInviteRequest
@@ -9894,8 +9691,8 @@ export interface components {
          */
         UserUpdateRequest: {
             /** Display Name */
-            display_name: string | null;
-            role: components["schemas"]["Role"] | null;
+            display_name?: string | null;
+            role?: components["schemas"]["Role"] | null;
             status?: components["schemas"]["UserStatus"] | null;
         };
         /**
@@ -9978,7 +9775,7 @@ export interface components {
          */
         ValidationAuthContextSeedRequest: {
             /** Tenant Id */
-            tenant_id: string | null;
+            tenant_id?: string | null;
             /**
              * Tenant Slug
              * @default tenant-validation
@@ -10796,7 +10593,7 @@ export interface components {
         /** WorkspaceEvidenceResponse */
         WorkspaceEvidenceResponse: {
             /** Evidence */
-            evidence: components["schemas"]["WorkspaceEvidenceItem"][];
+            evidence?: components["schemas"]["WorkspaceEvidenceItem"][];
         };
         /** add_invoice_itemResult */
         add_invoice_itemResult: {
@@ -10862,6 +10659,15 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
+        /** delete_hypothesisResult */
+        delete_hypothesisResult: {
+            /** Hypothesis Id */
+            hypothesis_id: unknown;
+            /** Status */
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
         /** finalize_invoiceResult */
         finalize_invoiceResult: {
             /** Amount Due Cents */
@@ -10876,6 +10682,30 @@ export interface components {
             total_cents: unknown;
             /** Total Dollars */
             total_dollars: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** generate_hypothesesResult */
+        generate_hypothesesResult: {
+            /** Account Id */
+            account_id: unknown;
+            /** Count */
+            count: unknown;
+            /** Hypotheses */
+            hypotheses: unknown;
+            /** Status */
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_daily_usageResult */
+        get_daily_usageResult: {
+            /** Data */
+            data: unknown;
+            /** Days */
+            days: unknown;
+            /** Tenant Id */
+            tenant_id: unknown;
         } & {
             [key: string]: unknown;
         };
@@ -10938,6 +10768,121 @@ export interface components {
             plan_id: unknown;
             /** Plan Name */
             plan_name: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_subscriptionResult */
+        get_subscriptionResult: {
+            /** Cancel At Period End */
+            cancel_at_period_end: boolean;
+            /** Current Period End */
+            current_period_end: unknown;
+            /** Current Period Start */
+            current_period_start: unknown;
+            /** Id */
+            id: unknown;
+            /** Plan Id */
+            plan_id: string;
+            /** Status */
+            status: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_tenant_audit_logResult */
+        get_tenant_audit_logResult: {
+            /** Events */
+            events: unknown;
+            /** Limit */
+            limit: unknown;
+            /** Offset */
+            offset: unknown;
+            /** Tenant Id */
+            tenant_id: unknown;
+            /** Total */
+            total: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_tenant_settingsResult */
+        get_tenant_settingsResult: {
+            /** Created At */
+            created_at: unknown;
+            /** Id */
+            id: unknown;
+            /** Name */
+            name: unknown;
+            /** Settings */
+            settings: {
+                [key: string]: unknown;
+            };
+            /** Slug */
+            slug: unknown;
+            /** Status */
+            status: unknown;
+            /** Tier Id */
+            tier_id: unknown;
+            /** Updated At */
+            updated_at: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_tenant_usageResult */
+        get_tenant_usageResult: {
+            /** Agent Executions */
+            agent_executions: {
+                [key: string]: unknown;
+            };
+            /** Api Calls */
+            api_calls: {
+                [key: string]: unknown;
+            };
+            /** Llm Usage */
+            llm_usage: {
+                [key: string]: unknown;
+            };
+            /** Period */
+            period: {
+                [key: string]: unknown;
+            };
+            /** Tenant Id */
+            tenant_id: unknown;
+            /** Users */
+            users: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * get_tier_usageResult
+         * @description Response for tier usage endpoint.
+         */
+        get_tier_usageResult: {
+            /** Tier Id */
+            tier_id: string;
+            /** Limits */
+            limits: {
+                [key: string]: unknown;
+            };
+            /** Current */
+            current: {
+                [key: string]: unknown;
+            };
+            /** Utilization */
+            utilization: {
+                [key: string]: unknown;
+            };
+        } & {
+            [key: string]: unknown;
+        };
+        /** get_top_endpointsResult */
+        get_top_endpointsResult: {
+            /** Days */
+            days: unknown;
+            /** Endpoints */
+            endpoints: unknown;
+            /** Tenant Id */
+            tenant_id: unknown;
         } & {
             [key: string]: unknown;
         };
@@ -11139,6 +11084,31 @@ export interface components {
             } | null;
         };
         /**
+         * TenantSettingsUpdate
+         * @description Request body for updating tenant settings.
+         */
+        layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate: {
+            /**
+             * Name
+             * @description Tenant display name
+             */
+            name?: string | null;
+            /**
+             * Branding
+             * @description Branding settings (logo_url, primary_color, etc.)
+             */
+            branding?: {
+                [key: string]: unknown;
+            } | null;
+            /**
+             * Notification Preferences
+             * @description Notification preferences
+             */
+            notification_preferences?: {
+                [key: string]: unknown;
+            } | null;
+        };
+        /**
          * RegisterTenantRequest
          * @description Request to register a new tenant.
          */
@@ -11184,14 +11154,74 @@ export interface components {
         } & {
             [key: string]: unknown;
         };
-        /** reconcile_invoiceResult */
-        reconcile_invoiceResult: {
-            /** Invoice Id */
-            invoice_id: unknown;
-            /** Mismatch Count */
-            mismatch_count: unknown;
-            /** Mismatches */
-            mismatches: unknown;
+        /**
+         * logout_result
+         * @description Response from logout endpoint.
+         */
+        logout_result: {
+            /** Detail */
+            detail: string;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * oidc_callbackResult
+         * @description Non-secret session metadata returned after a successful OIDC callback.
+         *
+         *     The access token is delivered exclusively via the httpOnly ``vf_session``
+         *     cookie set on this response.  It is intentionally absent from this body so
+         *     that JavaScript cannot read it.
+         */
+        oidc_callbackResult: {
+            /** Email */
+            email: unknown;
+            /** Expires In */
+            expires_in: number;
+            /** Role */
+            role: unknown;
+            /** Token Type */
+            token_type: string;
+            /** User Id */
+            user_id: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** oidc_loginResult */
+        oidc_loginResult: {
+            /** Authorization Url */
+            authorization_url: unknown;
+            /** State */
+            state: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** oidc_metadataResult */
+        oidc_metadataResult: {
+            /** Auto Provision Users */
+            auto_provision_users: unknown;
+            /** Claim Mapping Keys */
+            claim_mapping_keys: unknown[];
+            /** Default Role */
+            default_role: unknown;
+            /** Enabled */
+            enabled: unknown;
+            /** Issuer Url */
+            issuer_url: unknown;
+            /** Provider Name */
+            provider_name: unknown;
+            /** Scopes */
+            scopes: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** rank_hypothesesResult */
+        rank_hypothesesResult: {
+            /** Count */
+            count: unknown;
+            /** Hypotheses */
+            hypotheses: unknown;
+            /** Strategy */
+            strategy: unknown;
         } & {
             [key: string]: unknown;
         };
@@ -11209,6 +11239,24 @@ export interface components {
             status: unknown;
             /** Stripe Charge Id */
             stripe_charge_id: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /**
+         * refresh_result
+         * @description Non-secret metadata returned after a successful token refresh.
+         */
+        refresh_result: {
+            /** Email */
+            email: unknown;
+            /** Expires In */
+            expires_in: number;
+            /** Role */
+            role: unknown;
+            /** Token Type */
+            token_type: string;
+            /** User Id */
+            user_id: unknown;
         } & {
             [key: string]: unknown;
         };
@@ -11231,6 +11279,17 @@ export interface components {
             stripe_customer_id: unknown;
             /** Tenant Id */
             tenant_id: unknown;
+        } & {
+            [key: string]: unknown;
+        };
+        /** validate_hypothesisResult */
+        validate_hypothesisResult: {
+            /** Hypothesis */
+            hypothesis: unknown;
+            /** Promoted Artifacts */
+            promoted_artifacts?: unknown;
+            /** Status */
+            status: string;
         } & {
             [key: string]: unknown;
         };
@@ -11287,7 +11346,7 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    health_check_health_get: {
+    readiness_handler_ready_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -11307,7 +11366,7 @@ export interface operations {
             };
         };
     };
-    ready_ready_get: {
+    health_check_health_get: {
         parameters: {
             query?: never;
             header?: never;
@@ -13396,15 +13455,6 @@ export interface operations {
                     };
                 };
             };
-            /** @description Invalid webhook credentials, tenant binding, or signature */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -13443,15 +13493,6 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
-                };
-            };
-            /** @description Invalid webhook credentials, tenant binding, or signature */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
             /** @description Validation Error */
@@ -15006,9 +15047,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: string;
-                    };
+                    "application/json": components["schemas"]["oidc_loginResult"];
                 };
             };
             /** @description Validation Error */
@@ -15040,9 +15079,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["oidc_callbackResult"];
                 };
             };
             /** @description Validation Error */
@@ -15073,9 +15110,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["oidc_metadataResult"];
                 };
             };
             /** @description Validation Error */
@@ -15109,9 +15144,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["refresh_result"];
                 };
             };
             /** @description Validation Error */
@@ -15144,9 +15177,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["logout_result"];
                 };
             };
             /** @description Validation Error */
@@ -15251,35 +15282,8 @@ export interface operations {
                     "application/json": components["schemas"]["WebhookProvisioningResponse"];
                 };
             };
-            /** @description Invalid signature or expired timestamp */
-            401: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Tenant not found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
             /** @description Validation Error */
             422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Webhook provisioning not configured */
-            501: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -15573,6 +15577,264 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TenantSettingsUpdateResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tenant_usage_v1__tenant_id__dashboard_usage_get: {
+        parameters: {
+            query?: {
+                /** @description Number of days to aggregate */
+                days?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_tenant_usageResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_daily_usage_v1__tenant_id__dashboard_daily_usage_get: {
+        parameters: {
+            query?: {
+                days?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_daily_usageResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tier_usage_v1__tenant_id__dashboard_tier_usage_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_tier_usageResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_top_endpoints_v1__tenant_id__dashboard_top_endpoints_get: {
+        parameters: {
+            query?: {
+                days?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_top_endpointsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tenant_audit_log_v1__tenant_id__dashboard_audit_log_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                /** @description Filter by action type */
+                action_filter?: string | null;
+            };
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_tenant_audit_logResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_tenant_settings_v1__tenant_id__settings_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_tenant_settingsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    update_tenant_settings_v1__tenant_id__settings_patch: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                tenant_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Body_update_tenant_settings_v1__tenant_id__settings_patch"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_tenant_settingsResult"];
                 };
             };
             /** @description Validation Error */
@@ -16187,7 +16449,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["generate_hypothesesResult"];
                 };
             };
             /** @description Validation Error */
@@ -16282,7 +16544,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["delete_hypothesisResult"];
                 };
             };
             /** @description Validation Error */
@@ -16355,7 +16617,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["validate_hypothesisResult"];
                 };
             };
             /** @description Validation Error */
@@ -16450,7 +16712,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": unknown;
+                    "application/json": components["schemas"]["rank_hypothesesResult"];
                 };
             };
             /** @description Validation Error */
@@ -17278,7 +17540,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SubscriptionResponse"];
+                    "application/json": components["schemas"]["get_subscriptionResult"];
                 };
             };
             /** @description Validation Error */
@@ -17313,7 +17575,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CheckoutResponse"];
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17348,38 +17612,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PortalResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    reconcile_invoice_v1_billing_invoices__invoice_id__reconciliation_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                invoice_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["reconcile_invoiceResult"];
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17414,7 +17649,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CancelSubscriptionResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17449,7 +17686,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["UpdatePlanResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17480,7 +17719,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ReactivateSubscriptionResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17511,7 +17752,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EntitlementsResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -17579,340 +17822,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["sync_customerResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    stripe_webhook_v1_billing_webhook_post: {
-        parameters: {
-            query?: never;
-            header: {
-                "Stripe-Signature": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["stripe_webhookResult"];
-                };
-            };
-            /** @description Invalid webhook payload/signature/timestamp */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Invalid origin */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Webhook processing not configured or failed */
-            500: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-            /** @description Stripe processing failed */
-            502: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_usage_event_v1_billing_events_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UsageEventRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ingest_usage_eventResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    ingest_usage_batch_v1_billing_events_batch_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UsageBatchRequest"];
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ingest_usage_batchResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_usage_summary_v1_billing_usage__customer_id__summary_get: {
-        parameters: {
-            query: {
-                metric_name: string;
-                start_date?: string | null;
-                end_date?: string | null;
-            };
-            header?: never;
-            path: {
-                customer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UsageSummaryResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_usage_events_v1_billing_usage__customer_id__events_get: {
-        parameters: {
-            query?: {
-                metric_name?: string | null;
-                start_date?: string | null;
-                end_date?: string | null;
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path: {
-                customer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UsageEventResponse"][];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post: {
-        parameters: {
-            query?: {
-                metric_name?: string | null;
-            };
-            header?: never;
-            path: {
-                customer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["UsageSyncResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_usage_limits_v1_billing_limits__customer_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                customer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["get_usage_limitsResult"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    check_request_allowed_v1_billing_limits__customer_id__check_post: {
-        parameters: {
-            query: {
-                metric_name: string;
-                quantity?: number;
-            };
-            header?: never;
-            path: {
-                customer_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["LimitsCheckResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_plan_limits_v1_billing_plans__plan_id__limits_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                plan_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["get_plan_limitsResult"];
                 };
             };
             /** @description Validation Error */
@@ -18210,7 +18119,9 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["RevenueSummaryResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
                 };
             };
             /** @description Validation Error */
@@ -18241,7 +18152,317 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["CustomerBalanceResponse"];
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_limits_v1_billing_limits__customer_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_usage_limitsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    check_request_allowed_v1_billing_limits__customer_id__check_post: {
+        parameters: {
+            query: {
+                metric_name: string;
+                quantity?: number;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_plan_limits_v1_billing_plans__plan_id__limits_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                plan_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["get_plan_limitsResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_usage_event_v1_billing_events_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsageEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ingest_usage_eventResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    ingest_usage_batch_v1_billing_events_batch_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UsageBatchRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ingest_usage_batchResult"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_usage_summary_v1_billing_usage__customer_id__summary_get: {
+        parameters: {
+            query: {
+                metric_name: string;
+                start_date?: string | null;
+                end_date?: string | null;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_usage_events_v1_billing_usage__customer_id__events_get: {
+        parameters: {
+            query?: {
+                metric_name?: string | null;
+                start_date?: string | null;
+                end_date?: string | null;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post: {
+        parameters: {
+            query?: {
+                metric_name?: string | null;
+            };
+            header?: never;
+            path: {
+                customer_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    stripe_webhook_v1_billing_webhook_post: {
+        parameters: {
+            query: {
+                background_tasks: unknown;
+            };
+            header: {
+                "Stripe-Signature": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["stripe_webhookResult"];
                 };
             };
             /** @description Validation Error */

@@ -219,6 +219,32 @@ Keep logical `pg_dump` drills even when physical/PITR is enabled; they provide a
 fast contract check that tenant-scoped data can be backed up and restored
 without relying on provider control-plane operations.
 
+### WAL-G physical-backup enablement gate
+
+`ENABLE_WALG_BACKUP` must stay `false` in the checked-in CronJob until a
+non-production WAL-G drill has captured redacted evidence. Before any overlay or
+release branch enables physical backups, run:
+
+```bash
+python scripts/ci/check_walg_enablement_gate.py \
+  --cronjob k8s/base/postgres-backup-cronjob.yaml \
+  --evidence docs/launch/evidence/walg-restore-drill-evidence.json
+```
+
+If `ENABLE_WALG_BACKUP=true`, the evidence file must use schema
+`walg-physical-backup-restore-evidence.v1` and include:
+
+1. `wal-g backup-push` proof with durable object-storage artifact URI.
+2. `wal-g backup-fetch` proof into an isolated non-production target.
+3. Positive RTO/RPO timing values.
+4. Passing data-integrity and tenant-checksum validations.
+5. Passing application smoke validation after restore.
+6. Redacted logs and SRE owner approval timestamp.
+
+The gate passes without evidence only while physical WAL-G backups remain
+disabled. This prevents committing a physical-backup enablement before the
+restore drill has been tested and captured.
+
 ---
 
 ## RTO / RPO Targets

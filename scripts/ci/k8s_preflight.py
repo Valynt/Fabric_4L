@@ -23,7 +23,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 BASE_DIR = ROOT / "k8s" / "base"
 SECRETS_TEMPLATE = ROOT / "k8s" / "secrets.yml.template"
-LAYER5_MIGRATIONS = ROOT / "value-fabric" / "layer5-ground-truth" / "src" / "migrations" / "versions"
+LAYER5_MIGRATIONS = ROOT / "services" / "layer5-ground-truth" / "src" / "layer5_ground_truth" / "migrations" / "versions"
 WORKLOAD_KINDS = {"Deployment", "StatefulSet", "DaemonSet"}
 
 # Explicit lifecycle classifications for layer-style service directories.
@@ -234,7 +234,7 @@ def check_layer5_migration_guardrails(file_path: Path, doc: dict[str, Any]) -> l
             Violation(
                 file_path,
                 "Deployment/layer5-ground-truth",
-                "value-fabric/layer5-ground-truth/src/migrations/versions directory missing",
+                "services/layer5-ground-truth/src/layer5_ground_truth/migrations/versions directory missing",
             )
         )
     else:

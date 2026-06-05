@@ -275,6 +275,7 @@ All PRs targeting `main` must pass the GitHub checks as named in the workflow:
 - `structural-preflight` — import topology, Python contract lint, frontend root policy, and pnpm-only/package-manager enforcement
 - Per-layer lint, typecheck, and test jobs
 - `contract-checks` — OpenAPI drift detection and related contract coverage
+- `production-readiness-gate` — canonical production-readiness gate (`make production-readiness-gate`) required by CI
 - Any additional required jobs shown in the PR’s Checks tab under `.github/workflows/pr-checks.yml`
 
 ### PR body

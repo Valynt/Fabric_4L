@@ -7,7 +7,6 @@ resources:
   - ../../base
   - ../../external-secrets/vault-integration.yml
   - ../../external-secrets/vault-database-dynamic.yml
-  - ../../external-secrets/neo4j-secrets.yaml
   - ../../external-secrets/pgbouncer-secrets.yaml
   - ../../external-secrets/redis-secrets.yaml
   - ../../external-secrets/layer1-secrets.yaml
@@ -23,54 +22,6 @@ resources:
   - ../../monitoring/placeholder-secret-scanner-cronjob.yaml
   - ../../monitoring/thanos.yml
   - ../../monitoring/loki-fluent-bit.yml
-  - ../../routing/gateway-api
-  - hostname-config.yaml
-
-# Gateway API hostname replacements: inject production hostnames into
-# Gateway listeners, HTTPRoute hostnames, and Certificate dnsNames.
-replacements:
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.host
-    targets:
-      - select:
-          kind: Gateway
-          name: value-fabric-gateway
-        fieldPaths:
-          - spec.listeners.0.hostname
-          - spec.listeners.1.hostname
-      - select:
-          kind: HTTPRoute
-          name: frontend
-        fieldPaths:
-          - spec.hostnames.0
-      - select:
-          kind: Certificate
-          name: frontend-tls
-        fieldPaths:
-          - spec.dnsNames.0
-  - source:
-      kind: ConfigMap
-      name: routing-host
-      fieldPath: data.apiHost
-    targets:
-      - select:
-          kind: Gateway
-          name: value-fabric-gateway
-        fieldPaths:
-          - spec.listeners.2.hostname
-          - spec.listeners.3.hostname
-      - select:
-          kind: HTTPRoute
-          name: layer-apis
-        fieldPaths:
-          - spec.hostnames.0
-      - select:
-          kind: Certificate
-          name: layer-apis-tls
-        fieldPaths:
-          - spec.dnsNames.0
 
 labels:
   - pairs:
@@ -91,6 +42,9 @@ patches:
 #   CI: environment-promotion.yml runs prepare_kustomize_deploy.sh automatically.
 #   Manual: export REGISTRY=ghcr.io/bmsull560/fabric_4l && bash scripts/ci/prepare_kustomize_deploy.sh prod <output>
 images:
+  - name: services/api
+    newName: ghcr.io/bmsull560/fabric_4l/api-gateway
+    digest: sha256:d7e77817e2efbf0fa25a83ec5cdf56389f3d9ab7e98c1c54d250dfaa15361e42
   - name: services/layer1-ingestion
     newName: ghcr.io/bmsull560/fabric_4l/layer1-ingestion
     digest: sha256:b2b1f176486b4174a0c380fda796d46d8ec70309227ce80c9a93ff9f60da995d

@@ -1,6 +1,6 @@
 # ADR-023: Billing Service Extraction
 
-**Status:** Accepted
+**Status:** Superseded by Layer 7 billing ownership rationalization (2026-06-05)
 **Date:** May 29, 2026
 **Authors:** Architecture Lead, Backend Lead
 **Reviewers:** Platform Architecture Committee
@@ -18,53 +18,52 @@ The Stripe billing logic in `services/layer4-agents/` (`services/billing_service
 
 A separate `services/layer7-billing/` service handles internal usage-event tracking (usage metering, plan entitlements), but Stripe-integrated subscription management, customer sync, webhooks, and invoice charging remains inside L4.
 
-This ADR records the decision to extract the Stripe billing subsystem from L4 into a standalone `services/billing/` service, consistent with the decomposition plan in ADR-022.
+This ADR records the historical decision to extract the Stripe billing subsystem from L4 into a standalone `services/billing/` service, consistent with the decomposition plan in ADR-022. That ownership model was superseded on 2026-06-05: canonical deployable billing behavior is now consolidated in `services/layer7-billing/`, while `services/billing/` is retained only as non-deployable compatibility code.
 
 ## Decision
 
-We will create **`services/billing/`** as a standalone FastAPI service that:
+The original decision was to create **`services/billing/`** as a standalone FastAPI service that:
 
 1. Owns all Stripe-integrated billing logic: subscription management, customer sync, webhook idempotency, and invoice tracking.
 2. Exposes a versioned HTTP API consumed by L4 (and eventually by other services).
 3. Has its own `Dockerfile`, Alembic migration chain, and `pytest` coverage gate (≥80%).
 4. Shares Pydantic-only schemas through `packages/shared/billing_schemas/` — no SQLAlchemy models cross service boundaries.
 
-L4 will call `services/billing/` via an internal HTTP client. During the migration period, the existing L4 billing routes may act as thin proxies.
+This is no longer the production ownership model. L4 billing routes now forward to `services/layer7-billing/`, and `services/billing/` must not regain Docker, Compose, Kubernetes, or production routing ownership.
 
-### Shared schemas location
+### Historical shared schemas proposal
 
-```
-packages/shared/billing_schemas/
-├── __init__.py
-├── plans.py          # PlanId, SubscriptionStatus enums
-├── customers.py      # CustomerRead, CustomerCreateRequest
-├── subscriptions.py  # SubscriptionRead, SubscriptionCreateRequest
-└── webhooks.py       # WebhookEvent, WebhookPayload
-```
+The original proposal placed Pydantic-only billing schemas in
+`packages/shared/billing_schemas/`. Current Layer 7 ownership keeps the
+canonical deployable API in `services/layer7-billing/` and its OpenAPI contract
+in `contracts/openapi/layer7-billing.json`; any shared schemas must be added
+only when there is an active cross-service caller that cannot consume the
+OpenAPI-generated contract.
 
-### Service layout
+### Current ownership layout
 
 ```
-services/billing/
+services/layer7-billing/
 ├── Dockerfile
+├── README.md
 ├── pyproject.toml
 ├── pytest.ini
-├── migrations/
-│   └── billing/       # Alembic migration chain (tagged billing/)
 ├── src/
-│   └── billing/
-│       ├── __init__.py
+│   └── layer7_billing/
 │       ├── api/
-│       │   ├── __init__.py
-│       │   └── main.py         # FastAPI app, GovernanceMiddleware
-│       ├── database.py         # Async SQLAlchemy session factory
-│       ├── models.py           # SQLAlchemy ORM models (billing_customers, etc.)
-│       ├── schemas.py          # Service-local Pydantic schemas (extends shared)
-│       └── service.py          # BillingService class
+│       │   ├── main.py
+│       │   └── routes/         # Extracted billing, overage, usage, webhook routes
+│       ├── database.py         # Async SQLAlchemy session factory with tenant context
+│       ├── models.py           # Tenant-scoped billing models
+│       ├── repository.py       # Tenant-filtered data access layer
+│       └── webhook_security.py # Stripe signature verification helpers
 └── tests/
-    ├── __init__.py
-    ├── conftest.py
-    └── test_billing_service.py
+
+services/billing/               # non-deployable legacy compatibility package
+├── README.md
+├── pyproject.toml              # [tool.value_fabric].deployable = false
+├── src/billing/
+└── tests/
 ```
 
 ## Rationale
@@ -77,26 +76,26 @@ The Sprint 7 plan identifies L4 billing extraction as a P0 blocker for GA. The k
 - Billing scaling cannot be independently tuned until it is a separate deployment unit.
 - ADR-022 (L4 Internal Decomposition) commits to Billing as the pilot extraction; this ADR provides the concrete implementation record.
 
-### Why `services/billing/` and not `services/layer7-billing/`?
+### Supersession: why Layer 7 now owns billing runtime
 
-`services/layer7-billing/` handles internal metering (usage events, plan entitlements, invoice listing) without direct Stripe integration. `services/billing/` will own the Stripe-integrated payment lifecycle. The two services are complementary:
+The split between an internal metering service and a separate Stripe service created ambiguous runtime ownership. Current architecture consolidates deployable billing behavior in `services/layer7-billing/` so there is one billing API owner, one Docker/Compose deployable, and one tenant-isolated persistence boundary for usage, entitlement, invoice, payment-state, webhook, and subscription-control-plane behavior.
 
-| Service | Concern | Stripe |
-|---------|---------|--------|
-| `services/layer7-billing/` | Usage metering, entitlements | No (internal accounting) |
-| `services/billing/` | Subscriptions, customers, webhooks | Yes (Stripe API) |
+| Path | Concern | Deployable | Stripe |
+|------|---------|------------|--------|
+| `services/layer7-billing/` | Canonical billing runtime: usage metering, entitlements, invoice/payment state, webhook verification, subscription-control-plane API | Yes | Yes, through Layer 7 webhook and adapter surfaces |
+| `services/billing/` | Historical Stripe migration and webhook-idempotency compatibility tests | No | Historical compatibility code only |
 
-### Why `packages/shared/billing_schemas/`?
+### Why avoid cross-service ORM sharing?
 
-Cross-service communication must not import SQLAlchemy models. Pydantic schemas enforce a typed, serialisable API contract that both L4 (as a caller) and `services/billing/` (as a provider) can share without binding to database internals.
+Cross-service communication must not import SQLAlchemy models. Current callers should consume Layer 7 through HTTP/OpenAPI contracts or narrowly scoped Pydantic DTOs; database internals stay inside `services/layer7-billing/`.
 
 ## Trade-offs
 
 ### Positive
-- Independent deployment and scaling for billing
+- Independent deployment and scaling for billing through Layer 7
 - Stripe-related outages do not affect workflow execution
-- Smaller, focused test suite per service (billing ≥80%, not testing all of L4)
-- Stripe API version upgrades scoped to one service
+- Smaller, focused Layer 7 and compatibility test suites
+- Stripe API version upgrades scoped to the canonical billing service
 
 ### Negative
 - Additional network hop for billing calls from L4
@@ -107,23 +106,24 @@ Cross-service communication must not import SQLAlchemy models. Pydantic schemas 
 
 | Risk | Mitigation |
 |---|---|
-| Network latency L4→billing | Internal K8s ClusterIP service; gRPC upgrade path documented |
-| Shared DB migration conflicts | Alembic revisions tagged `billing/`; separate `migrations/billing/` chain |
-| Contract drift | `contracts/openapi/billing.yaml` maintained; CI drift gate via `check_workflow_targets_and_artifacts.py` |
-| Tenant isolation regression | Cross-tenant hostile tests required in `services/billing/tests/` |
+| Network latency L4→Layer 7 | Internal service call; remove proxy once callers migrate directly to Layer 7 |
+| Shared DB migration conflicts | Keep Layer 7 tenant-scoped persistence as the canonical billing data boundary |
+| Contract drift | `contracts/openapi/layer7-billing.json` maintained; Layer 4 proxy contracts remain temporary compatibility surfaces |
+| Tenant isolation regression | Cross-tenant hostile tests required in `services/layer7-billing/tests/`; `services/billing/tests/` remains compatibility-only |
 
 ## Compatibility Notes
 
-- **COMPAT-L4-004:** L4 billing routes act as proxies during migration (removal target: 2026-12-31)
+- **COMPAT-L4-003:** L4 billing routes act as proxies to Layer 7 during migration (removal target: 2026-10-31).
 - Legacy path `from layer4_agents.services.billing_service import BillingService` remains importable during migration but is deprecated.
+- `services/billing/` is non-deployable compatibility code. It intentionally has no Dockerfile and no Compose/Kubernetes ownership.
 
 ## Acceptance Criteria
 
-- [x] `docker build -f services/billing/Dockerfile .` succeeds
-- [x] `pytest services/billing/` passes with ≥80% line coverage
+- [x] Historical: `docker build -f services/billing/Dockerfile .` succeeded before this ADR was superseded. The Dockerfile is now retired because `services/billing/` is non-deployable.
+- [x] `pytest services/billing/` passes with compatibility coverage
 - [x] `grep -r "from app.billing" services/` returns 0 (no direct service-internal imports)
-- [x] Shared schemas exist at `packages/shared/billing_schemas/`
-- [x] ADR-023 (this document) merged to `main`
+- [x] Layer 7 OpenAPI contract exists at `contracts/openapi/layer7-billing.json`
+- [x] ADR-023 (this document) merged to `main`; superseded ownership note added 2026-06-05
 
 ## Related Decisions
 
@@ -135,4 +135,4 @@ Cross-service communication must not import SQLAlchemy models. Pydantic schemas 
 
 ---
 
-**Last Updated:** May 29, 2026
+**Last Updated:** June 5, 2026

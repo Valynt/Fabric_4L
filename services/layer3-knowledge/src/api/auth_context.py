@@ -1,9 +1,6 @@
 from __future__ import annotations
 
-from value_fabric.shared.error_handling.exceptions import (
-    AuthenticationError,
-    AuthorizationError,
-)
+from value_fabric.shared.error_handling.exceptions import AuthenticationError
 
 """Allowed service-local exception for Layer 3 service wrapper.
 
@@ -43,17 +40,29 @@ class TenantBearerContext:
 
 
 def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
-    """Extract and validate tenant context from a JWT bearer token on a raw Request.
+    """Resolve tenant context from verified request state before bearer fallback.
 
-    Raises(401) if the token is absent, malformed, or missing
-    the ``tenant_id`` claim.
-    Raises(403) if the ``X-Tenant-ID`` header is present but
-    conflicts with the token claim.
-
-    Note: signature verification is intentionally omitted — the auth
-    middleware upstream is responsible for that. This function only decodes
-    the payload to extract claims.
+    Service APIs must scope data from the gateway-signed Fabric auth envelope
+    or canonical governance context, not from browser-controlled tenant headers.
+    The bearer fallback exists only for legacy paths that run after upstream
+    verification but before FastAPI dependencies execute.
     """
+    ctx = getattr(request.state, "governance_context", None)
+    if ctx is not None and getattr(ctx, "tenant_id", None):
+        return TenantBearerContext(
+            tenant_id=str(ctx.tenant_id),
+            user_id=str(getattr(ctx, "user_id", "") or ""),
+            source="governance_context",
+        )
+
+    auth = getattr(request.state, "auth", None)
+    if auth is not None and getattr(auth, "tenant_id", None):
+        return TenantBearerContext(
+            tenant_id=str(auth.tenant_id),
+            user_id=str(getattr(auth, "user_id", "") or ""),
+            source="fabric_auth_envelope",
+        )
+
     auth_header = request.headers.get("authorization", "")
     if not auth_header.lower().startswith("bearer "):
         raise AuthenticationError(message = "Missing or invalid authorization header")
@@ -75,10 +84,6 @@ def extract_tenant_from_bearer(request: Request) -> TenantBearerContext:
         raise AuthenticationError(message = "JWT token missing tenant_id claim")
 
     user_id = payload.get("sub") or payload.get("user_id") or ""
-
-    header_tenant = request.headers.get("x-tenant-id", "")
-    if header_tenant and header_tenant != tenant_id:
-        raise AuthorizationError(message = "X-Tenant-ID header does not match authenticated tenant context")
 
     return TenantBearerContext(tenant_id=tenant_id, user_id=user_id)
 

@@ -1,7 +1,7 @@
 # Frontend Workflow Coverage Matrix
 
 **Owner:** Frontend Platform  
-**Last updated:** May 5, 2026  
+**Last updated:** June 5, 2026  
 **Purpose:** This matrix is the source of truth for deciding whether user-facing frontend workflows are functioning as expected. It complements Playwright, Vitest, contract tests, accessibility scans, and bundle checks by making the expected workflow proof explicit.
 
 ## Release Gate Policy
@@ -13,7 +13,8 @@ A workflow is considered release-significant when it appears in the **P0** or **
 | Type safety | `pnpm run check` passes. |
 | Contract safety | `pnpm run test:contracts` passes and schema drift checks validate canonical OpenAPI fixtures. |
 | P0 workflow safety | `pnpm run test:e2e:validation:p0` and `pnpm run test:e2e:guard` pass in CI-capable environments. |
-| Broad workflow safety | `pnpm run test:e2e:validation` passes before release candidate sign-off. |
+| P1 workflow safety | `pnpm run test:e2e:validation:p1` and `pnpm run test:e2e:guard` pass in CI-capable environments. |
+| Broad workflow safety | `pnpm run test:e2e:validation` passes before release candidate sign-off and includes P0 plus P1 evidence owners. |
 | Accessibility and resilience | P0 flows include keyboard, error, and role-state assertions through focused E2E or component tests. |
 | Build and bundle confidence | `pnpm run build` and `pnpm run test:bundle-budget` pass. |
 | Master workflow traceability | `docs/validation/product_workflow_validation_inventory.md` remains aligned to P0/P1 evidence owners in this matrix. |
@@ -64,7 +65,7 @@ For Layer 1–6 backend ownership and required UI fallback contracts per P0/P1 r
 | P1-ADVERSARIAL | Full adversarial path with noisy data, prompt injection, weak evidence, and tenant controls | `/context/sources`, `/workflow/intelligence`, `/governance/evidence`, `/governance/traces`, `/deliverables` | `e2e/journeys/j22-adversarial-e2e.spec.ts`; `e2e/journeys/j9-agent-grounding-governance.spec.ts`; `e2e/security/tenant-isolation-deep.spec.ts` | Unsafe document-instruction handling, unsupported claims, hidden cross-tenant exposure. |
 | P1-PERSONAS | Persona-based journeys for seller, value engineer, sales leader, CSM, admin, and executive buyer | `/accounts`, `/workflow/*`, `/studio/:accountId/*`, `/realization/:accountId`, `/settings/*`, `/deliverables/cases/:caseId` | `e2e/journeys/j21-persona-journeys.spec.ts`; `e2e/personas/persona-journeys.spec.ts` | Persona permissions drifting away from actual role-based UI behavior. |
 | P1-SETTINGS | Tenant, team, billing, data, and governance settings | `/settings/*`, `/settings/team/*`, `/settings/billing/*`, `/settings/governance/*`, `/settings/data/*` | `e2e/admin.spec.ts`; `e2e/admin-system.spec.ts`; `e2e/contracts/settings-governance.spec.ts` | Role leakage, sensitive action exposure, audit gaps. |
-| P1-PERSONAL | User profile, sessions, security, preferences, and notifications | `/personal/*` | `e2e/collaboration/collaboration-notifications-tasks.spec.ts`; `src/components/layout/GlobalLayout.test.tsx` | Low direct route coverage and session-state drift. |
+| P1-PERSONAL | User profile, sessions, security, preferences, and notifications | `/personal/*` | `e2e/journeys/j23-personal-settings.spec.ts`; `e2e/collaboration/collaboration-notifications-tasks.spec.ts`; `src/components/layout/GlobalLayout.test.tsx` | Session-state drift, stale audit activity, and notification preference regression. |
 | P1-INTEGRATIONS | CRM and external integration lifecycle | `/settings/data/integrations`, `/context/integrations`, `/dev/integration` | `e2e/integrations/crm-external-integrations.spec.ts`; `e2e/journeys/j17-crm-integration.spec.ts` | Mock/real API divergence and secret-handling UX. |
 
 ## P2 Watchlist

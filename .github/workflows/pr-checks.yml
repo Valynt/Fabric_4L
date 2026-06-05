@@ -127,7 +127,7 @@ jobs:
 
       - name: Validate Gateway API integration in production overlay
         run: |
-          bash scripts/ci/validate-gateway-api.sh k8s/envs/prod
+          bash scripts/ci/validate-gateway-api.sh k8s/deployments/prod-gateway-api
 
       - name: Validate deploy safety guardrails
         run: |
@@ -356,8 +356,8 @@ jobs:
           python scripts/ci/check_pr_overlap_guard.py --lookback 20 --threshold 0.45
 
 
-  production-readiness-suites:
-    name: Production Readiness Suites
+  production-readiness-gate:
+    name: Production Readiness Gate
     runs-on: ubuntu-latest
     timeout-minutes: 30
 
@@ -370,39 +370,22 @@ jobs:
           python-version: '3.11'
           cache: 'pip'
 
-      - name: Install production-readiness test dependencies
+      - name: Install production-readiness gate dependencies
         run: |
           python -m pip install --upgrade pip
           python -m pip install -r tests/requirements-test.txt
 
-      - name: Run centralized production-readiness suites
+      - name: Run canonical production-readiness gate
         shell: bash
         run: |
           set -euo pipefail
-          suites=(security reliability observability recovery release tenancy billing abuse config audit)
-          mkdir -p artifacts/production-readiness
-          for suite in "${suites[@]}"; do
-            mkdir -p "artifacts/production-readiness/${suite}"
-            summary_file="artifacts/production-readiness/${suite}/summary.md"
-            {
-              echo "# Production readiness: ${suite}"
-              echo
-              echo "- Suite: tests/${suite}/"
-              echo "- JUnit artifact: artifacts/production-readiness/${suite}/junit.xml"
-              echo "- Status: running"
-            } > "${summary_file}"
-            echo "## Production readiness: ${suite}" >> "$GITHUB_STEP_SUMMARY"
-            python -m pytest "tests/${suite}/" -v --tb=short \
-              --junitxml "artifacts/production-readiness/${suite}/junit.xml"
-            {
-              echo "# Production readiness: ${suite}"
-              echo
-              echo "- Suite: tests/${suite}/"
-              echo "- JUnit artifact: artifacts/production-readiness/${suite}/junit.xml"
-              echo "- Status: passed"
-            } > "${summary_file}"
-            echo "- ${suite}: passed; artifacts: artifacts/production-readiness/${suite}/junit.xml, ${summary_file}" >> "$GITHUB_STEP_SUMMARY"
-          done
+          make production-readiness-gate
+          {
+            echo "## Production Readiness Gate"
+            echo
+            echo "- Command: make production-readiness-gate"
+            echo "- Artifacts: artifacts/production-readiness/**"
+          } >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload production-readiness artifacts
         if: always()
@@ -1211,7 +1194,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
@@ -1339,6 +1322,65 @@ jobs:
         with:
           name: frontend-build-failure
           path: apps/web/dist/public/
+
+  p0-e2e-gate:
+    name: p0-e2e-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: apps/web
+    env:
+      PLAYWRIGHT_LIVE_MODE: "true"
+      PLAYWRIGHT_LIVE_FRONTEND_URL: http://localhost:3001
+      PLAYWRIGHT_BACKEND_URL: http://localhost:8004
+      SERVICE_AUTH_SECRET: test-service-auth-secret-for-validation-seed-1234567890
+      VITE_USE_MOCKS: "false"
+      VITE_ENABLE_MOCK_FALLBACK: "false"
+
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@e0a5a4ff5d1fb2a0f0f1d713d8b623f2c2b5d5b1 # v3
+        with:
+          version: '10.18.1'
+
+      - name: Set up Node.js
+        uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
+        with:
+          node-version: '22.12.0'
+          cache: 'pnpm'
+          cache-dependency-path: 'pnpm-lock.yaml'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Start deterministic E2E backend
+        working-directory: ${{ github.workspace }}
+        run: docker compose -f docker-compose.e2e.yml up -d --build --wait
+
+      - name: Run P0 E2E gate
+        run: pnpm run test:e2e:live:p0
+
+      - name: Upload P0 E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
+        with:
+          name: p0-e2e-gate-artifacts
+          path: |
+            apps/web/e2e-results/**
+            apps/web/playwright-report/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Tear down deterministic E2E backend
+        if: always()
+        working-directory: ${{ github.workspace }}
+        run: docker compose -f docker-compose.e2e.yml down -v
 
   # Kubernetes manifest validation (server-side dry-run via kustomize)
   k8s-dry-run:
@@ -1658,7 +1700,8 @@ jobs:
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /layer2-extraction
 
-      - name: Run release smoke tests
+      - name: Run release smoke gate
+<<<<<<< ours
         env:
           JWT_SECRET: release-smoke-jwt-secret-minimum-32-characters
           SERVICE_AUTH_SECRET: release-smoke-service-auth-secret-32chars
@@ -1666,10 +1709,13 @@ jobs:
           POSTGRES_PASSWORD: release_smoke_strong_credential
           NEO4J_PASSWORD: devpassword
         run: |
-          pip install -r tests/requirements-test.txt
+          python -m pip install -r tests/requirements-test.txt
           make test-backend-integrated-release-smoke
+=======
+        run: make test-backend-integrated-release-smoke
+>>>>>>> theirs
 
-      - name: Start core services
+      - name: Start core services for integration tests
         run: |
           export NEO4J_PASSWORD=valuefabric
           docker compose up -d neo4j redis postgres
@@ -1819,7 +1865,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '24'
+          node-version: '22.12.0'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -2011,7 +2057,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '24'
+          node-version: '22.12.0'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -2059,7 +2105,7 @@ jobs:
       - docker-build-check
       - route-auth-gate
       - tenant-isolation-gate
-      - production-readiness-suites
+      - production-readiness-gate
     steps:
       - name: Enforce unified structural/security/tenant/contract/migration/deployment gate
         run: |
@@ -2076,7 +2122,7 @@ jobs:
             ["docker-build-check"]="${{ needs.docker-build-check.result }}"
             ["route-auth-gate"]="${{ needs.route-auth-gate.result }}"
             ["tenant-isolation-gate"]="${{ needs.tenant-isolation-gate.result }}"
-            ["production-readiness-suites"]="${{ needs.production-readiness-suites.result }}"
+            ["production-readiness-gate"]="${{ needs.production-readiness-gate.result }}"
           )
 
           failed=0

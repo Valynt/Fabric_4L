@@ -16,6 +16,7 @@ const HOSTILE_VECTORS: HostileVector[] = [
   { name: 'L4 workflow escalation attempt', path: '/agents/workflows/wf-tenant-b', routePattern: '**/api/v1/workflows/**', status: 403, errorCode: 'RBAC_DENIED', auditEventExpected: true },
   { name: 'L5 truth object IDOR', path: '/governance/truth/truth-tenant-b', routePattern: '**/api/v1/truth/**', status: 404, errorCode: 'IDOR_RESOURCE_NOT_FOUND', auditEventExpected: true },
   { name: 'L6 benchmark foreign tenant read', path: '/benchmarks?tenant=tenant-b', routePattern: '**/api/v1/benchmarks/**', status: 403, errorCode: 'AUTH_FORBIDDEN', auditEventExpected: true },
+  { name: 'L7 billing foreign tenant read', path: '/billing/invoices?tenant=tenant-b', routePattern: '**/api/v1/billing/**', status: 403, errorCode: 'AUTH_FORBIDDEN', auditEventExpected: true },
   { name: 'API gateway accounts privilege escalation', path: '/accounts/acct-tenant-b', routePattern: '**/api/v1/accounts/**', status: 403, errorCode: 'RBAC_DENIED', auditEventExpected: true },
 ];
 

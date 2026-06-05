@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -110,6 +111,15 @@ GROUPS: tuple[TenantIsolationGroup, ...] = (
         ),
     ),
     TenantIsolationGroup(
+        id="l7-billing",
+        title="L7 Billing API Tenant Isolation",
+        targets=(
+            "services/layer7-billing/tests/test_api_tenant_propagation.py",
+            "services/layer7-billing/tests/test_cross_tenant_hostile.py",
+            "services/layer7-billing/tests/test_tenant_isolation.py",
+        ),
+    ),
+    TenantIsolationGroup(
         id="cache",
         title="Shared Cache Isolation",
         targets=(
@@ -170,12 +180,36 @@ def _run_group(group: TenantIsolationGroup) -> dict[str, object]:
     }
 
 
+def _git_commit_sha() -> str:
+    result = subprocess.run(
+        ("git", "rev-parse", "HEAD"),
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
+    )
+    return result.stdout.strip() if result.returncode == 0 else "unknown"
+
+
+def _archive_summary(summary_path: Path, generated_at_utc: str) -> Path:
+    archive_name = generated_at_utc[:10] + "-hostile-tenant-isolation-l1-l7-api"
+    archive_dir = summary_path.parent / "archive" / archive_name
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = archive_dir / "summary.json"
+    shutil.copy2(summary_path, archive_path)
+    return archive_path
+
+
 def _write_summary(results: list[dict[str, object]]) -> None:
     SUMMARY_PATH.parent.mkdir(parents=True, exist_ok=True)
     failed = [result for result in results if result["status"] != "pass"]
+    generated_at_utc = datetime.now(timezone.utc).isoformat()
+    command = " ".join((sys.executable, "scripts/ci/run_tenant_isolation_gate.py"))
     payload = {
-        "gate": "tenant-isolation",
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "gate": "tenant-isolation-hostile-l1-l7-api",
+        "generated_at_utc": generated_at_utc,
+        "commit_sha": _git_commit_sha(),
+        "command": command,
         "status": "pass" if not failed else "fail",
         "summary": {
             "groups": len(results),
@@ -186,6 +220,11 @@ def _write_summary(results: list[dict[str, object]]) -> None:
     }
     SUMMARY_PATH.write_text(json.dumps(payload, indent=2), encoding="utf-8")
     print(f"\nTenant isolation summary written to {SUMMARY_PATH.relative_to(REPO_ROOT)}", flush=True)
+    if failed:
+        print("Tenant isolation summary was not archived because the gate failed.", flush=True)
+    else:
+        archive_path = _archive_summary(SUMMARY_PATH, generated_at_utc)
+        print(f"Tenant isolation summary archived to {archive_path.relative_to(REPO_ROOT)}", flush=True)
 
 
 def main(argv: Sequence[str] | None = None) -> int:

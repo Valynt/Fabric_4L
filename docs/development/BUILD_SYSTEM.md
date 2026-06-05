@@ -2,7 +2,7 @@
 title: "Canonical Build System"
 category: "reference"
 audience: "contributors"
-last-reviewed: "2026-06-04"
+last-reviewed: "2026-06-05"
 freshness: "current"
 related: ["./COMMANDS", "../../README", "../../CONTRIBUTING", "../../AGENTS"]
 ---
@@ -26,6 +26,25 @@ Public Makefile targets are targets with `##` help text and appear through `make
 Internal implementation details include Makefile recipes without `##` help text, shell/Python helper scripts used inside documented targets, generated artifacts, and workflow-only commands that are not listed in the command map. Internal commands may change without notice.
 
 Root `package.json` scripts are documented public npm-script interfaces. Most root scripts are thin wrappers around Makefile targets, Python CI runners, or package-level pnpm scripts. They do not define a separate build system.
+
+
+## Runtime Version Matrix
+
+Use the same runtime family across local development, CI, and container images to avoid version-drift failures. The intended matrix is:
+
+| Runtime | Canonical version | Applies to | Source of truth |
+|---|---:|---|---|
+| Node.js | `22.12.0` or newer within the Node 22 LTS line | Local frontend tooling, pnpm workspaces, GitHub Actions `setup-node` jobs | Root `package.json` `engines.node` and workflow `node-version` entries |
+| pnpm | `10.18.1` | Local installs, CI installs, Corepack activation | Root `package.json` `packageManager` and `corepack prepare pnpm@10.18.1 --activate` commands |
+| Python | `3.11` | Local backend tooling, pytest, contract/governance CI jobs | Makefile interpreter selection and GitHub Actions `setup-python` jobs |
+| Python container base | `python:3.11.13-slim-bookworm` | Maintained service Dockerfiles and full/uv service variants | `FROM python:3.11.13-slim-bookworm` in service Dockerfiles |
+
+Policy notes:
+
+- CI should pin Node setup jobs to `22.12.0` rather than a moving major alias or Node 24 unless the root engine and local setup docs are intentionally upgraded together.
+- CI should run Python governance, contract, and backend checks on Python 3.11 to match the supported service runtime family.
+- Service Dockerfiles should use the shared Python 3.11 patch image above; update all service Dockerfiles together when refreshing the patch level.
+- If a workflow needs a newer runtime for a one-off tool, document the exception in that workflow and in this matrix before merging the drift.
 
 ## Canonical Setup Flow
 

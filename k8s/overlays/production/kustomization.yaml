@@ -19,6 +19,9 @@ images:
   - name: services/layer2-extraction
     newName: ghcr.io/bmsull560/fabric_4l/layer2-extraction
     digest: sha256:13029594c9b8a1084e95fddac9b5143605f947b974c742ff8c84b2a0729423ec
+  - name: services/layer2-5-signal-refinery
+    newName: ghcr.io/bmsull560/fabric_4l/layer2-5-signal-refinery
+    digest: sha256:723c8398bfc10e4ba47fe654e1a6b5ed37a109765419d55518995a01c262f208
   - name: services/layer3-knowledge
     newName: ghcr.io/bmsull560/fabric_4l/layer3-knowledge
     digest: sha256:f819389f54cd1aa32d9e2264470d8a87df25e4351e7fd97843adac2a72afe60d

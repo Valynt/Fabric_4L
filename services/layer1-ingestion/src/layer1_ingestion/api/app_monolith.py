@@ -494,13 +494,11 @@ router = APIRouter(prefix="/api/v1/ingestion")
 
 
 def get_tenant_id(request: Request) -> UUID:
-    """Extract organization (tenant) ID from the GovernanceMiddleware context.
-    """
+    """Extract organization (tenant) ID from verified identity context."""
     ctx = getattr(request.state, "governance_context", None)
     if ctx is not None:
         return ctx.tenant_id
 
-    # Never trust tenant headers without authenticated governance context.
     raise AuthenticationError(message = "Authentication required")
 
 
@@ -2900,6 +2898,7 @@ async def health_check(db: Session = Depends(get_db_from_context_sync)):
     )
 
 
+@app.get("/metrics", include_in_schema=False)
 @router.get("/metrics")
 async def metrics_endpoint(request: Request):
     """Prometheus-compatible metrics endpoint."""
@@ -3013,6 +3012,7 @@ app.include_router(router)
 
 # Legacy compatibility routes (redirect to new endpoints)
 @app.get("/health")
+@app.get("/ready", include_in_schema=False)
 @app.get("/health/live", include_in_schema=False)
 async def legacy_health_check():
     """Legacy-compatible health check with dependency status."""

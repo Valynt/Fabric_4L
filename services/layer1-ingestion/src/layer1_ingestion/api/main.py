@@ -5,7 +5,6 @@ from value_fabric.shared.error_handling.exceptions import (
     BadRequestError,
     ConflictError,
     NotFoundError,
-    ServiceUnavailableError,
     ValidationError,
 )
 
@@ -445,21 +444,10 @@ router = APIRouter(prefix="/api/v1/ingestion")
 
 
 def get_tenant_id(request: Request) -> UUID:
-    """Extract organization (tenant) ID from the GovernanceMiddleware context."""
+    """Extract organization (tenant) ID from verified identity context."""
     ctx = getattr(request.state, "governance_context", None)
-    header_value = request.headers.get("X-Organization-ID")
     if ctx is not None:
-        if header_value and str(header_value) != str(ctx.tenant_id):
-            raise AuthorizationError(
-                message="X-Organization-ID does not match authenticated tenant"
-            )
         return ctx.tenant_id
-
-    if header_value:
-        try:
-            UUID(header_value)
-        except ValueError:
-            raise ValidationError(message="Invalid X-Organization-ID header format")
 
     raise AuthenticationError(message="Authentication required")
 

@@ -61,6 +61,9 @@ jobs:
       - name: Reject :latest/:main in production K8s manifests
         run: python scripts/ci/check_production_k8s_mutable_tags.py
 
+      - name: Validate production overlays and image references
+        run: python scripts/ci/validate_k8s_production_overlays.py
+
       - name: Render overlays
         run: |
           kustomize build k8s/envs/dev --load-restrictor=LoadRestrictionsNone > /tmp/dev.yaml

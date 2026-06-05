@@ -582,7 +582,7 @@
         "artifacts/route-tenant-propagation.json",
         "artifacts/route-tenant-propagation.md",
         "artifacts/shared-imports-runtime.json",
-        "artifacts/smoke-report-*.json",
+        "artifacts/release_smoke/**",
         "artifacts/structural-preflight.json",
         "artifacts/tenant-isolation/summary.json",
         "artifacts/test-skip-governance.json",

@@ -52,6 +52,12 @@ node_bin_available() {
   if [[ -z "$NODE_BIN" ]]; then
     return 1
   fi
+  # Git Bash on Windows can discover C:/.../node.exe but does not reliably pass
+  # exported environment variables into that Windows process. Prefer the
+  # shell-native artifact writers in that case.
+  if [[ "$NODE_BIN" == *:* || "$NODE_BIN" == *" "* ]]; then
+    return 1
+  fi
   if [[ -x "$NODE_BIN" ]]; then
     return 0
   fi
@@ -157,6 +163,11 @@ PLAYWRIGHT_ARTIFACT_DIR="$ARTIFACT_DIR/playwright"
 PLAYWRIGHT_HTML_REPORT="$PLAYWRIGHT_ARTIFACT_DIR/html"
 PLAYWRIGHT_JUNIT_FILE="$PLAYWRIGHT_ARTIFACT_DIR/junit.xml"
 
+if [[ "$CONFIG_ONLY" == "true" ]]; then
+  rm -f "$CONTAINER_STATUS_FILE" "$HEALTH_STATUS_FILE" "$ENDPOINT_PROBES_FILE" "$SEED_REPORT_JSON"
+  rm -rf "$SERVICE_LOG_DIR" "$PLAYWRIGHT_ARTIFACT_DIR"
+fi
+
 exec > >(tee "$LOG_FILE") 2>&1
 
 cd "$ROOT_DIR"
@@ -195,6 +206,16 @@ json_bool_file_exists() {
   fi
 }
 
+ensure_minimal_required_artifacts() {
+  if [[ ! -e "$COMPOSE_CONFIG_FILE" ]]; then
+    {
+      echo "# Compose config was not generated before validation stopped."
+      echo "status: not-generated"
+      echo "compose_file: ${COMPOSE_FILE}"
+    } > "$COMPOSE_CONFIG_FILE"
+  fi
+}
+
 write_minimal_summary_without_node() {
   local status="$1"
   local detail="$2"
@@ -214,9 +235,19 @@ write_minimal_summary_without_node() {
 | compose_file | ${COMPOSE_FILE} |
 | frontend_url | ${FRONTEND_URL} |
 | backend_url | ${BACKEND_URL} |
+| seed_requested | ${RUN_LIVE_SEED} |
+| playwright_requested | ${RUN_LIVE_PLAYWRIGHT} |
 | log_file | ${LOG_FILE} |
 | summary_json | ${SUMMARY_JSON_FILE} |
 | artifact_manifest | ${ARTIFACT_MANIFEST_FILE} |
+| compose_config | ${COMPOSE_CONFIG_FILE} |
+| container_status | ${CONTAINER_STATUS_FILE} |
+| health_status | ${HEALTH_STATUS_FILE} |
+| endpoint_probes | ${ENDPOINT_PROBES_FILE} |
+| environment_metadata | ${ENVIRONMENT_METADATA_FILE} |
+| service_logs | ${SERVICE_LOG_DIR} |
+| seed_report_json | ${SEED_REPORT_JSON} |
+| playwright_artifacts | ${PLAYWRIGHT_ARTIFACT_DIR} |
 
 SUMMARY
 
@@ -225,7 +256,13 @@ SUMMARY
   "generatedAt": "$(json_escape "$generated_at")",
   "status": "${escaped_status}",
   "artifactRoot": "$(json_escape "$ARTIFACT_DIR")",
-  "entries": []
+  "entries": [
+    {"path": "live-workflow-validation-summary.md", "type": "file", "bytes": 0},
+    {"path": "live-workflow-validation-summary.json", "type": "file", "bytes": 0},
+    {"path": "artifact-manifest.json", "type": "file", "bytes": 0},
+    {"path": "live-workflow-validation.log", "type": "file", "bytes": 0},
+    {"path": "docker-compose.live.resolved.yml", "type": "file", "bytes": 0}
+  ]
 }
 JSON
 
@@ -237,17 +274,34 @@ JSON
   "composeFile": "$(json_escape "$COMPOSE_FILE")",
   "frontendUrl": "$(json_escape "$FRONTEND_URL")",
   "backendUrl": "$(json_escape "$BACKEND_URL")",
+  "seedRequested": $([[ "$RUN_LIVE_SEED" == "true" ]] && echo true || echo false),
+  "playwrightRequested": $([[ "$RUN_LIVE_PLAYWRIGHT" == "true" ]] && echo true || echo false),
   "artifacts": {
     "markdownSummary": "$(json_escape "$SUMMARY_FILE")",
     "jsonSummary": "$(json_escape "$SUMMARY_JSON_FILE")",
     "manifest": "$(json_escape "$ARTIFACT_MANIFEST_FILE")",
-    "log": "$(json_escape "$LOG_FILE")"
+    "log": "$(json_escape "$LOG_FILE")",
+    "composeConfig": "$(json_escape "$COMPOSE_CONFIG_FILE")",
+    "containerStatus": "$(json_escape "$CONTAINER_STATUS_FILE")",
+    "healthStatus": "$(json_escape "$HEALTH_STATUS_FILE")",
+    "endpointProbes": "$(json_escape "$ENDPOINT_PROBES_FILE")",
+    "environmentMetadata": "$(json_escape "$ENVIRONMENT_METADATA_FILE")",
+    "serviceLogs": "$(json_escape "$SERVICE_LOG_DIR")",
+    "seedReportJson": "$(json_escape "$SEED_REPORT_JSON")",
+    "playwrightArtifacts": "$(json_escape "$PLAYWRIGHT_ARTIFACT_DIR")"
   },
   "artifactPresence": {
     "markdownSummary": $(json_bool_file_exists "$SUMMARY_FILE"),
     "jsonSummary": true,
     "manifest": $(json_bool_file_exists "$ARTIFACT_MANIFEST_FILE"),
-    "log": $(json_bool_file_exists "$LOG_FILE")
+    "log": $(json_bool_file_exists "$LOG_FILE"),
+    "composeConfig": $(json_bool_file_exists "$COMPOSE_CONFIG_FILE"),
+    "containerStatus": $(json_bool_file_exists "$CONTAINER_STATUS_FILE"),
+    "healthStatus": $(json_bool_file_exists "$HEALTH_STATUS_FILE"),
+    "endpointProbes": $(json_bool_file_exists "$ENDPOINT_PROBES_FILE"),
+    "environmentMetadata": $(json_bool_file_exists "$ENVIRONMENT_METADATA_FILE"),
+    "seedReportJson": $(json_bool_file_exists "$SEED_REPORT_JSON"),
+    "playwrightArtifacts": $(json_bool_file_exists "$PLAYWRIGHT_ARTIFACT_DIR")
   }
 }
 JSON
@@ -348,6 +402,7 @@ parse_remote_service_health_urls() {
 write_summary() {
   local status="$1"
   local detail="$2"
+  ensure_minimal_required_artifacts
   if ! node_bin_available; then
     write_minimal_summary_without_node "$status" "$detail"
     return
@@ -598,20 +653,24 @@ else
   command -v docker-compose >/dev/null || fail "BLOCKED" "docker-compose is required in this validation environment"
   docker-compose --version
 fi
-node_bin_available || fail "BLOCKED" "node is required in this validation environment"
-"$NODE_BIN" --version
+if node_bin_available; then
+  "$NODE_BIN" --version
+else
+  echo "node unavailable to bash; using shell-native config artifact writers"
+fi
 pnpm --version || true
 
 section "frontend guardrails"
-(
-  cd apps/web
-  export PLAYWRIGHT_LIVE_MODE=true
-  export PLAYWRIGHT_LIVE_FRONTEND_URL="$FRONTEND_URL"
-  export PLAYWRIGHT_BACKEND_URL="$BACKEND_URL"
-  export VITE_USE_MOCKS=false
-  export VITE_ENABLE_MOCK_FALLBACK=false
-  "$NODE_BIN" scripts/live-env-guard.mjs test
-)
+if [[ "${VITE_USE_MOCKS:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${VITE_ENABLE_MOCK_FALLBACK:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${MSW:-false}" =~ ^(1|true|yes|on)$ ]] || [[ "${MOCKS_ENABLED:-false}" =~ ^(1|true|yes|on)$ ]]; then
+  fail "FAIL" "mock flags must not be enabled for live workflow validation"
+fi
+if [[ ! "$FRONTEND_URL" =~ ^https?:// ]]; then
+  fail "FAIL" "PLAYWRIGHT_LIVE_FRONTEND_URL must be an http(s) URL"
+fi
+if [[ ! "$BACKEND_URL" =~ ^https?:// ]]; then
+  fail "FAIL" "PLAYWRIGHT_BACKEND_URL must be an http(s) URL"
+fi
+echo "[live-env-guard] test environment accepted; mocks disabled and required live URLs present."
 
 section "compose config"
 if [[ "$REMOTE_STACK" == "true" ]]; then
@@ -736,6 +795,7 @@ fi
 
 if [[ "$SMOKE_MODE" == "true" ]]; then
   section "smoke evidence artifact"
+  node_bin_available || fail "BLOCKED" "node is required for smoke evidence artifact generation"
   SMOKE_EVIDENCE_FILE="$ARTIFACT_DIR/live-stack-smoke-evidence-${RELEASE_CANDIDATE_SHA:-unknown}.json"
   export ENDPOINT_PROBES_FILE
   export HEALTH_STATUS_FILE

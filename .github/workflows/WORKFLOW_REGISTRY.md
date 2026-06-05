@@ -8,7 +8,8 @@ This registry is the ownership and artifact contract for GitHub Actions workflow
 - S6-6 caps the directory at fewer than 50 workflow YAML files; prefer matrix/profile jobs in an existing canonical workflow over new workflow files.
 - `owner` is the accountable team for triage, maintenance, branch-protection impact, and deprecation planning.
 - `trigger` must match the workflow `on:` events exactly.
-- `blocking` indicates whether the workflow is intended to block a merge, release, deployment, or promotion decision when configured by branch protection or a release gate.
+- `blocking` indicates whether the workflow is intended to block a merge, release, deployment, or promotion decision in its owning gate. It does **not** automatically mean every job in that workflow is a branch-protection required status check.
+- Branch-protection required status checks are the explicit, curated contexts in `config/ci/required-status-checks.json`; update that file and `.github/workflows/branch-protection-validation.yml` when a workflow/job should become branch-protection enforced.
 - `required_secrets` must list every `secrets.X` reference used by the workflow, including `GITHUB_TOKEN` when referenced.
 - `produced_artifacts` must list every `actions/upload-artifact` path. Workflows that upload no artifacts must use an empty list.
 - `runtime_budget_minutes` must be at least the largest workflow job timeout. If jobs do not declare timeouts, use the expected runtime budget.

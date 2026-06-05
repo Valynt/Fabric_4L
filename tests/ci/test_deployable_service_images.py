@@ -87,6 +87,22 @@ def test_legacy_billing_marker_points_to_canonical_layer7_service() -> None:
     value_fabric = metadata["tool"]["value_fabric"]
     assert value_fabric["deployable"] is False
     assert value_fabric["canonical_service"] == "services/layer7-billing"
+    assert value_fabric["runtime_owner"] is False
+
+
+def test_legacy_billing_service_has_no_runtime_dockerfile() -> None:
+    assert not (REPO_ROOT / "services" / "billing" / "Dockerfile").exists()
+    assert (REPO_ROOT / "services" / "layer7-billing" / "Dockerfile").exists()
+
+
+def test_layer7_readme_declares_canonical_billing_ownership() -> None:
+    readme = (REPO_ROOT / "services" / "layer7-billing" / "README.md").read_text(
+        encoding="utf-8"
+    )
+
+    assert "canonical deployable billing runtime" in readme
+    assert "services/billing/" in readme
+    assert "Legacy compatibility package" in readme
 
 
 def test_non_deployable_service_is_excluded_from_gate(checker_module, tmp_path) -> None:

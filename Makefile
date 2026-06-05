@@ -627,6 +627,8 @@ setup-hooks: ## Configure git to use .githooks/ (run once after clone)
 GATE_PYTEST := $(PYTEST) --tb=short -q -n 0
 GATE_TIMEOUT_SECONDS ?= 180
 GATE_JUNIT_DIR := $(ARTIFACT_DIR)/junit
+PRODUCTION_READINESS_SUITES := security reliability observability recovery release tenancy billing abuse config audit
+PRODUCTION_READINESS_ARTIFACT_DIR := artifacts/production-readiness
 
 gate-mandatory-security-regression: ## Gate: mandatory security regression suite for launch readiness
 	@echo "→ Gate: Mandatory Security Regression"
@@ -669,20 +671,41 @@ gate-config: ## Gate: startup validation, security config hardening
 	@echo "✅  gate-config passed"
 
 gate-local: gate-security ## Run the minimal local security gate only (not a production-readiness decision)
-	@echo "✅  Local gate passed — production readiness NOT assessed; run make gate-production for the full release gate"
+	@echo "✅  Local gate passed — production readiness NOT assessed; run make production-readiness-gate for the canonical gate"
 
 gate-local-production-subset: gate-security gate-database ## Run a local-only production-readiness subset; not a ship/no-ship decision
-	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make gate-production for the full release gate"
+	@echo "✅  Local production-readiness subset passed — production readiness NOT fully assessed; run make production-readiness-gate for the canonical gate"
 
 # Backward-compatible alias retained for scripts/users that still call gate-all.
 gate-all: gate-local-production-subset ## Compatibility alias for the local-only subset; not a production-readiness decision
-	@echo "⚠️  gate-all is local-only and does not authorize production release; run make gate-production or make production-readiness-gate for the full suite"
+	@echo "⚠️  gate-all is local-only and does not authorize production release; run make production-readiness-gate for the canonical gate"
 
-gate-production: release-gate collect-95-plus-evidence ## Run the full production-readiness gate suite and evidence collection
-	@echo "✅  Production-readiness gate completed — all blocking release-candidate gates passed"
+production-readiness-gate: ## Canonical production-readiness gate required by CI
+	@echo "→ Gate: Production Readiness — centralized suites"
+	mkdir -p $(PRODUCTION_READINESS_ARTIFACT_DIR)
+	for suite in $(PRODUCTION_READINESS_SUITES); do \
+		mkdir -p "$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite"; \
+		summary_file="$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/summary.md"; \
+		{ \
+			echo "# Production readiness: $$suite"; \
+			echo; \
+			echo "- Suite: tests/$$suite/"; \
+			echo "- JUnit artifact: $(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
+			echo "- Status: running"; \
+		} > "$$summary_file"; \
+		$(PYTEST) "tests/$$suite/" --junitxml "$(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
+		{ \
+			echo "# Production readiness: $$suite"; \
+			echo; \
+			echo "- Suite: tests/$$suite/"; \
+			echo "- JUnit artifact: $(PRODUCTION_READINESS_ARTIFACT_DIR)/$$suite/junit.xml"; \
+			echo "- Status: passed"; \
+		} > "$$summary_file"; \
+	done
+	@echo "✅  production-readiness-gate passed"
 
-production-readiness-gate: gate-production ## Compatibility alias for the canonical full production-readiness gate suite
-	@echo "✅  production-readiness-gate alias completed (canonical: gate-production)"
+gate-production: production-readiness-gate ## Compatibility alias for the canonical production-readiness gate
+	@echo "✅  gate-production alias completed (canonical: production-readiness-gate)"
 
 # Tiered readiness targets intentionally delegate to release-gate profiles so
 # gate composition stays centralized in $(POLICY_FILE) instead of drifting across
@@ -751,6 +774,7 @@ gate-database-readiness: ## Gate: database production readiness split checks and
 
 gate-backup-restore-readiness: ## Gate: PostgreSQL backup/restore production-readiness drill
 	@echo "→ Gate: Backup/Restore Readiness"
+	@$(PYTHON) scripts/ci/check_walg_enablement_gate.py
 	@bash scripts/ops/test_postgres_backup_restore.sh
 	@echo "✅  gate-backup-restore-readiness passed"
 

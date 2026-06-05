@@ -229,12 +229,7 @@ def get_current_user(
     if ctx is not None and getattr(ctx, "tenant_id", None):
         return _token_claims_from_context(ctx)
 
-    query_values = request.query_params
-    hinted_tenant = (
-        request.headers["X-Tenant-ID"]
-        if "X-Tenant-ID" in request.headers
-        else query_values.get("tenant_id", None)
-    )
+    hinted_tenant = request.query_params.get("tenant_id", None)
     if hinted_tenant:
         raise _auth_http_exception(
             status.HTTP_403_FORBIDDEN,

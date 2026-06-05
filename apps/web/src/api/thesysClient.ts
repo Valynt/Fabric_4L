@@ -3,10 +3,11 @@
  * OpenAI-compatible API for Generative UI streaming
  */
 
-import { apiClient, buildApiFetchInit } from './client';
-import { createFeatureLogger } from '@/lib/telemetry';
+import { apiClient, buildApiFetchInit } from "./client";
+import { createFeatureLogger } from "@/lib/telemetry";
+import { API_BASE, L4_PREFIX } from "@/lib/apiConfig";
 
-const log = createFeatureLogger('thesysClient');
+const log = createFeatureLogger("thesysClient");
 
 /**
  * Validate if a string is valid JSON without throwing
@@ -20,17 +21,15 @@ function isValidJson(str: string): boolean {
   }
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api/v1';
-const L4_PREFIX = import.meta.env.VITE_L4_PREFIX || '/agents';
-const ENABLE_C1 = import.meta.env.VITE_ENABLE_C1_REPORTS === 'true';
+const ENABLE_C1 = import.meta.env.VITE_ENABLE_C1_REPORTS === "true";
 
 export interface C1Message {
-  role: 'user' | 'assistant' | 'system';
+  role: "user" | "assistant" | "system";
   content: string;
 }
 
 export interface C1StreamChunk {
-  type: 'content' | 'component' | 'error' | 'done';
+  type: "content" | "component" | "error" | "done";
   data?: unknown;
   error?: string;
 }
@@ -70,7 +69,10 @@ export async function* streamC1Response(
   signal?: AbortSignal
 ): AsyncGenerator<C1StreamChunk, void, unknown> {
   if (!isC1Enabled()) {
-    yield { type: 'error', error: 'C1 is not enabled. Set VITE_ENABLE_C1_REPORTS=true.' };
+    yield {
+      type: "error",
+      error: "C1 is not enabled. Set VITE_ENABLE_C1_REPORTS=true.",
+    };
     return;
   }
 
@@ -80,9 +82,9 @@ export async function* streamC1Response(
     const response = await fetch(
       url,
       buildApiFetchInit({
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           messages,
@@ -95,39 +97,45 @@ export async function* streamC1Response(
 
     if (!response.ok) {
       const text = await response.text();
-      yield { type: 'error', error: `Server error (${response.status}): ${text}` };
+      yield {
+        type: "error",
+        error: `Server error (${response.status}): ${text}`,
+      };
       return;
     }
 
     if (!response.body) {
-      yield { type: 'error', error: 'Streaming not supported by this browser.' };
+      yield {
+        type: "error",
+        error: "Streaming not supported by this browser.",
+      };
       return;
     }
 
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
 
-    let buffer = '';
+    let buffer = "";
 
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
 
       buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split('\n');
+      const lines = buffer.split("\n");
       // Keep the last (possibly incomplete) line in the buffer
-      buffer = lines.pop() || '';
+      buffer = lines.pop() || "";
 
       for (const line of lines) {
         const trimmed = line.trim();
         if (!trimmed) continue;
 
-        if (trimmed.startsWith('data: ')) {
+        if (trimmed.startsWith("data: ")) {
           try {
             const data = JSON.parse(trimmed.slice(6)) as C1StreamChunk;
             yield data;
           } catch (err) {
-            log.warn('Malformed SSE chunk', { errorCode: String(err) });
+            log.warn("Malformed SSE chunk", { errorCode: String(err) });
           }
         }
       }
@@ -135,30 +143,36 @@ export async function* streamC1Response(
 
     // Process any remaining buffered data - only if it looks complete
     const remaining = buffer.trim();
-    if (remaining.startsWith('data: ')) {
+    if (remaining.startsWith("data: ")) {
       const jsonPart = remaining.slice(6);
       // Only parse if the JSON looks complete (ends with } or ] and has matching braces)
-      if ((jsonPart.endsWith('}') || jsonPart.endsWith(']')) && isValidJson(jsonPart)) {
+      if (
+        (jsonPart.endsWith("}") || jsonPart.endsWith("]")) &&
+        isValidJson(jsonPart)
+      ) {
         try {
           const data = JSON.parse(jsonPart) as C1StreamChunk;
           yield data;
         } catch (err) {
-          log.warn('Failed to parse final SSE chunk', { errorCode: String(err) });
+          log.warn("Failed to parse final SSE chunk", {
+            errorCode: String(err),
+          });
         }
       } else {
-        log.warn('Discarding incomplete final chunk');
+        log.warn("Discarding incomplete final chunk");
       }
     }
 
-    yield { type: 'done' };
+    yield { type: "done" };
   } catch (error) {
-    if (error instanceof DOMException && error.name === 'AbortError') {
+    if (error instanceof DOMException && error.name === "AbortError") {
       // Stream was intentionally aborted — not an error
       return;
     }
     yield {
-      type: 'error',
-      error: error instanceof Error ? error.message : 'Failed to stream C1 response',
+      type: "error",
+      error:
+        error instanceof Error ? error.message : "Failed to stream C1 response",
     };
   }
 }
@@ -172,11 +186,15 @@ export async function evaluateWhatIf(
   adjustments: Array<{ name: string; value: number; original_value: number }>,
   baseCaseData?: Record<string, unknown>
 ): Promise<WhatIfResult> {
-  const response = await apiClient.post<WhatIfResult>('l3', '/formulas/scenario', {
-    base_case_id: baseCaseId,
-    adjustments,
-    base_case_data: baseCaseData,
-  });
+  const response = await apiClient.post<WhatIfResult>(
+    "l3",
+    "/formulas/scenario",
+    {
+      base_case_id: baseCaseId,
+      adjustments,
+      base_case_data: baseCaseData,
+    }
+  );
 
   return response.data;
 }

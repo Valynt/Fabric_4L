@@ -39,7 +39,7 @@ class TestStrictRobotsModeNetworkFailure:
             import asyncio
 
             allowed, reason, rules = asyncio.run(
-                checker.check_url("example.com", "https://example.com/page")
+                checker.check_url("https://example.com/page")
             )
 
             assert allowed is False
@@ -70,7 +70,7 @@ class TestStrictRobotsModeNetworkFailure:
 
             with pytest.raises(RobotsFetchError) as exc_info:
                 asyncio.run(
-                    checker.check_url("example.com", "https://example.com/page")
+                    checker.check_url("https://example.com/page")
                 )
 
             assert "Network timeout" in str(exc_info.value)
@@ -97,7 +97,7 @@ class TestStrictRobotsModeNetworkFailure:
             # Caller catches exception and decides to allow
             try:
                 asyncio.run(
-                    checker.check_url("example.com", "https://example.com/page")
+                    checker.check_url("https://example.com/page")
                 )
             except RobotsFetchError:
                 # Caller decides to allow anyway
@@ -125,19 +125,19 @@ class TestStrictRobotsModeParseFailure:
                 "cached": False,
             }
 
-        with patch("protego.Protego.parse", side_effect=Exception("Parse error")):
-            import asyncio
+            with patch("protego.Protego.parse", side_effect=Exception("Parse error")):
+                import asyncio
 
-            allowed, reason, rules = asyncio.run(
-                checker.check_url("example.com", "https://example.com/page")
-            )
+                allowed, reason, rules = asyncio.run(
+                    checker.check_url("https://example.com/page")
+                )
 
-            assert allowed is False
-            assert "strict mode" in reason.lower()
-            assert "parse error" in reason.lower()
-            assert rules is not None
-            assert rules.get("strict_mode") is True
-            assert rules.get("parse_error") == "ROBOTS_PARSE_ERROR"
+                assert allowed is False
+                assert "strict mode" in reason.lower()
+                assert "parse error" in reason.lower()
+                assert rules is not None
+                assert rules.get("strict_mode") is True
+                assert rules.get("parse_error") == "ROBOTS_PARSE_ERROR"
 
     def test_parse_failure_permissive_mode_allows(self):
         """Parse failure in permissive mode should return True (allow with warning)."""
@@ -156,17 +156,17 @@ class TestStrictRobotsModeParseFailure:
                 "cached": False,
             }
 
-        with patch("protego.Protego.parse", side_effect=Exception("Parse error")):
-            import asyncio
+            with patch("protego.Protego.parse", side_effect=Exception("Parse error")):
+                import asyncio
 
-            allowed, reason, rules = asyncio.run(
-                checker.check_url("example.com", "https://example.com/page")
-            )
+                allowed, reason, rules = asyncio.run(
+                    checker.check_url("https://example.com/page")
+                )
 
-            assert allowed is True
-            assert reason is None  # Permissive mode doesn't return error reason
-            assert rules is not None
-            assert rules.get("parse_error") == "ROBOTS_PARSE_ERROR"
+                assert allowed is True
+                assert reason is None  # Permissive mode doesn't return error reason
+                assert rules is not None
+                assert rules.get("parse_error") == "ROBOTS_PARSE_ERROR"
 
 
 class TestStrictRobotsModeNoRobotsTxt:
@@ -188,7 +188,7 @@ class TestStrictRobotsModeNoRobotsTxt:
             import asyncio
 
             allowed, reason, rules = asyncio.run(
-                checker.check_url("example.com", "https://example.com/page")
+                checker.check_url("https://example.com/page")
             )
 
             assert allowed is False
@@ -214,7 +214,7 @@ class TestStrictRobotsModeNoRobotsTxt:
             import asyncio
 
             allowed, reason, rules = asyncio.run(
-                checker.check_url("example.com", "https://example.com/page")
+                checker.check_url("https://example.com/page")
             )
 
             assert allowed is True
@@ -247,20 +247,20 @@ class TestCrawlDelayApplication:
                 "cached": False,
             }
 
-        import asyncio
+            import asyncio
 
-        # This should not block for 5 seconds
-        # In the actual implementation, crawl delay is handled by Celery retry
-        # in the compliance_check_stage task
-        allowed, reason, rules = asyncio.run(
-            checker.check_url("example.com", "https://example.com/page")
-        )
+            # This should not block for 5 seconds
+            # In the actual implementation, crawl delay is handled by Celery retry
+            # in the compliance_check_stage task
+            allowed, reason, rules = asyncio.run(
+                checker.check_url("https://example.com/page")
+            )
 
-        # The checker itself doesn't apply the delay - it returns the delay
-        # The task layer handles it via Celery retry
-        assert allowed is True  # robots.txt allows the URL
-        assert rules is not None
-        assert rules.get("crawl_delay") == 5
+            # The checker itself doesn't apply the delay - it returns the delay
+            # The task layer handles it via Celery retry
+            assert allowed is True  # robots.txt allows the URL
+            assert rules is not None
+            assert rules.get("crawl_delay") == 5
 
     def test_crawl_delay_respected_in_task(self):
         """Verify that the task layer applies crawl delay via Celery retry."""

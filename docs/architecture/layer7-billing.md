@@ -8,19 +8,20 @@
 
 ## Purpose
 
-Layer 7 is the **internal usage-event tracking and entitlement service**. It handles:
+Layer 7 is the **canonical deployable billing service**. It owns billing runtime behavior for the platform and handles:
 
-1. **Usage Event Ingestion** — Accept and persist usage events from all platform services
-2. **Plan Entitlement Checks** — Query whether a tenant has remaining quota for a given feature
-3. **Invoice Listing** — Provide invoice summaries for tenant billing portals
-4. **Payment State Tracking** — Track subscription status, trial state, and grace periods
+1. **Usage Event Ingestion** — Accept and persist usage events from all platform services.
+2. **Plan Entitlement Checks** — Query whether a tenant has remaining quota for a given feature.
+3. **Invoice Listing** — Provide invoice summaries for tenant billing portals.
+4. **Payment State Tracking** — Track subscription status, trial state, and grace periods.
+5. **Stripe-facing Control Plane** — Verify Stripe webhooks and host subscription, checkout, portal, plan, overage, and usage-sync API surfaces as the Layer 4 billing routes migrate to thin proxies.
 
-Layer 7 does **not** integrate directly with Stripe. Stripe-integrated subscription management lives in `services/billing/` per ADR-023. The two services are complementary:
+`services/layer7-billing/` is the only deployable billing service. The historical `services/billing/` package is non-deployable compatibility code retained for legacy Stripe migration and webhook-idempotency tests; it must not own Docker/Compose/Kubernetes runtime wiring.
 
-| Service | Concern | Stripe Integration |
-|---------|---------|-------------------|
-| `services/layer7-billing/` (this doc) | Usage metering, entitlements, invoice listing | No (internal accounting) |
-| `services/billing/` | Subscriptions, customers, webhooks | Yes (Stripe API) |
+| Path | Ownership | Deployable | Stripe Surface |
+|------|-----------|------------|----------------|
+| `services/layer7-billing/` (this doc) | Canonical billing runtime, APIs, tenant-scoped persistence, webhook verification, entitlement decisions, usage metering | Yes | Yes — webhook verification and future checkout/portal/subscription adapters live here |
+| `services/billing/` | Legacy compatibility package and historical tests only | No | Historical service logic only; no production ownership |
 
 ---
 
@@ -48,9 +49,9 @@ Layer 7 does **not** integrate directly with Stripe. Stripe-integrated subscript
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
-              PostgreSQL       Redis          (services/billing/)
-              (events,         (caching,        Stripe integration
-               invoices,       rate limits)      for subscriptions)
+              PostgreSQL       Redis           Stripe API
+              (events,         (caching,       (via Layer 7
+               invoices,       rate limits)     adapters/webhooks)
                entitlements)
 ```
 
@@ -60,17 +61,22 @@ Layer 7 does **not** integrate directly with Stripe. Stripe-integrated subscript
 
 ### REST Endpoints (port 8008)
 
+Canonical endpoints are exposed under `/v1/billing`. Layer 4 billing routes remain temporary forwarding shims while callers migrate directly to Layer 7.
+
 | Method | Path | Purpose |
 |--------|------|---------|
-| POST | `/api/v1/events` | Ingest a usage event |
-| GET | `/api/v1/events` | List usage events for tenant |
-| GET | `/api/v1/entitlements` | Check plan entitlements |
-| GET | `/api/v1/entitlements/{feature_key}` | Check specific feature quota |
-| POST | `/api/v1/entitlements/{feature_key}/consume` | Consume one unit of quota |
-| GET | `/api/v1/invoices` | List invoices for tenant |
-| GET | `/api/v1/invoices/{invoice_id}` | Get invoice details |
-| GET | `/api/v1/subscription` | Get current subscription state |
+| POST | `/v1/billing/plans` | Upsert a tenant-scoped billing plan and entitlement list |
+| GET | `/v1/billing/entitlements/{plan_id}/decision` | Check whether a feature is allowed for a plan |
+| POST | `/v1/billing/usage-events` | Ingest a single idempotent usage event |
+| GET | `/v1/billing/usage-aggregates` | List tenant usage aggregates |
+| GET | `/v1/billing/invoices` | List tenant invoices |
+| GET | `/v1/billing/payment-state` | Get current tenant payment state |
+| POST | `/v1/billing/webhook` | Receive and verify Stripe billing webhooks |
+| GET | `/v1/billing/subscription` | Get current subscription status for a customer |
+| POST | `/v1/billing/checkout` | Create a checkout session once the Stripe adapter is configured |
+| POST | `/v1/billing/portal` | Create a customer portal session once the Stripe adapter is configured |
 | GET | `/health` | Service health check |
+| GET | `/ready` | Readiness checks, including database probe |
 
 ### Authentication
 
@@ -176,7 +182,10 @@ pytest services/layer7-billing/tests/ --cov=src/layer7_billing --cov-report=term
 | `REDIS_URL` | — | Redis connection string |
 | `JWT_SECRET` | — | Shared JWT secret for auth |
 | `API_PORT` | 8008 | Service listen port |
-| `BILLING_SERVICE_URL` | `http://billing:8000` | Stripe billing service URL (ADR-023) |
+| `STRIPE_WEBHOOK_SECRET` | — | Stripe webhook signing secret used by `/v1/billing/webhook` |
+| `STRIPE_WEBHOOK_TIMESTAMP_TOLERANCE_SECONDS` | 300 | Maximum accepted Stripe webhook timestamp skew |
+| `STRIPE_WEBHOOK_RATE_LIMIT_PER_MINUTE` | 100 | Per-source-IP webhook rate limit |
+| `BILLING_USAGE_EVENT_RATE_LIMIT_PER_MINUTE` | 1000 | Per-tenant usage event ingestion rate limit |
 
 ---
 
@@ -186,12 +195,12 @@ pytest services/layer7-billing/tests/ --cov=src/layer7_billing --cov-report=term
 1. L4 Agent calls POST /api/v1/workflows
 2. API Gateway intercepts, injects X-Tenant-ID
 3. Before executing, L4 calls L7:
-   GET /api/v1/entitlements/agent_runs
-4. L7 checks Redis cache (TTL 60s), falls back to DB:
-   - If quota remaining → HTTP 200, proceed
-   - If quota exhausted → HTTP 429, block with Retry-After
+   GET /v1/billing/entitlements/{plan_id}/decision?feature=agent_runs
+4. L7 checks tenant-scoped entitlement state:
+   - If quota/policy allows the feature → HTTP 200 with `allowed: true`, proceed
+   - If quota/policy blocks the feature → HTTP 200 with `allowed: false`; callers enforce the gate
 5. After workflow completes, L4 emits usage event:
-   POST /api/v1/events {event_type: "agent_run", quantity: 1}
+   POST /v1/billing/usage-events {metric: "agent_run", quantity: 1, ...}
 ```
 
 ---
@@ -212,10 +221,11 @@ The `tenant_context` middleware sets the RLS variable from the `X-Tenant-ID` hea
 
 ## Related
 
-- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — Stripe billing separation
+- [ADR-023: Billing Service Extraction](../explanations/adr/ADR-023-billing-service-extraction.md) — superseded extraction record; current ownership is consolidated in Layer 7
 - [ADR-010: PostgreSQL RLS for Multi-Tenancy](../explanations/adr/ADR-010-postgresql-rls-for-multi-tenancy.md) — Tenant isolation
-- `services/billing/` — Stripe-integrated subscription management
+- [Compatibility Debt Registry](../governance/compatibility-debt-registry.md) — active L4 billing proxy/shim retirement tracking
+- `services/billing/` — non-deployable legacy compatibility package
 
 ---
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-06-05*

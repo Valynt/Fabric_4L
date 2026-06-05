@@ -1,14 +1,25 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  readonly VITE_API_BASE: string;
-  readonly VITE_L1_PREFIX: string;
-  readonly VITE_L2_PREFIX: string;
-  readonly VITE_L3_PREFIX: string;
-  readonly VITE_L4_PREFIX: string;
-  readonly VITE_L5_PREFIX: string;
-  readonly VITE_L6_PREFIX: string;
-  // Add more env variables as needed
+  readonly VITE_APP_ENV?: string;
+  readonly VITE_API_BASE?: string;
+  readonly VITE_API_VERSION_PREFIX?: string;
+  readonly VITE_L1_PREFIX?: string;
+  readonly VITE_L2_PREFIX?: string;
+  readonly VITE_L2_5_PREFIX?: string;
+  readonly VITE_L3_PREFIX?: string;
+  readonly VITE_L4_PREFIX?: string;
+  readonly VITE_L5_PREFIX?: string;
+  readonly VITE_L6_PREFIX?: string;
+  readonly VITE_L7_PREFIX?: string;
+  readonly VITE_LAYER1_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER2_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER2_5_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER3_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER4_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER5_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER6_ROUTE_PREFIX?: string;
+  readonly VITE_LAYER7_ROUTE_PREFIX?: string;
 }
 
 interface ImportMeta {

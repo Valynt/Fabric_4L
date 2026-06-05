@@ -120,9 +120,16 @@ EXPORT_ENV: dict[str, str] = {
 def _module_stub(name: str, **attrs: Any) -> ModuleType:
     """Create an importable module stub for OpenAPI export subprocesses."""
 
+    is_package = attrs.pop("__package_stub__", "." not in name)
     module = ModuleType(name)
     module.__dict__.update(attrs)
-    module.__spec__ = importlib.util.spec_from_loader(name, loader=None)
+    module.__spec__ = importlib.util.spec_from_loader(
+        name,
+        loader=None,
+        is_package=is_package,
+    )
+    if is_package:
+        module.__path__ = []  # type: ignore[attr-defined]
     sys.modules[name] = module
     return module
 
@@ -163,10 +170,35 @@ class _MockStateGraph:
         return value
 
 
+class _MockAsyncDriver:
+    async def close(self) -> None:
+        return None
+
+
 class _MockAsyncGraphDatabase:
+    @staticmethod
+    def driver(*args: Any, **kwargs: Any) -> _MockAsyncDriver:
+        return _MockAsyncDriver()
+
+
+class _MockNeo4jGraphDatabase:
     @staticmethod
     def driver(*args: Any, **kwargs: Any) -> Any:
         return None
+
+
+class _MockNeo4jError(Exception):
+    pass
+
+
+class _MockLanggraphInterrupt(Exception):
+    pass
+
+
+class _MockLanggraphCommand:
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        self.args = args
+        self.kwargs = kwargs
 
 
 class _MockS3Client:
@@ -239,6 +271,26 @@ def _install_common_openapi_dependency_shims() -> None:
         sys.modules["passlib"] = _module_stub("passlib")
         sys.modules["passlib.context"] = passlib_context
 
+    if importlib.util.find_spec("neo4j") is None:
+        _module_stub(
+            "neo4j",
+            AsyncDriver=_MockAsyncDriver,
+            AsyncGraphDatabase=_MockAsyncGraphDatabase,
+            AsyncSession=object,
+            Driver=object,
+            GraphDatabase=_MockNeo4jGraphDatabase,
+        )
+        _module_stub(
+            "neo4j.exceptions",
+            AuthError=_MockNeo4jError,
+            ClientError=_MockNeo4jError,
+            ConfigurationError=_MockNeo4jError,
+            DatabaseError=_MockNeo4jError,
+            Neo4jError=_MockNeo4jError,
+            ServiceUnavailable=_MockNeo4jError,
+            TransientError=_MockNeo4jError,
+        )
+
     _install_email_validator_shim()
 
 
@@ -251,10 +303,9 @@ def _install_layer4_openapi_dependency_shims() -> None:
         _module_stub("langgraph.checkpoint.base", BaseCheckpointSaver=_MockLanggraphCheckpoint.BaseCheckpointSaver)
         _module_stub("langgraph.checkpoint.postgres")
         _module_stub("langgraph.checkpoint.postgres.aio", AsyncPostgresSaver=_MockLanggraphCheckpoint.AsyncPostgresSaver)
+        _module_stub("langgraph.errors", GraphInterrupt=_MockLanggraphInterrupt, NodeInterrupt=_MockLanggraphInterrupt)
         _module_stub("langgraph.graph", StateGraph=_MockStateGraph)
-
-    if importlib.util.find_spec("neo4j") is None:
-        _module_stub("neo4j", AsyncGraphDatabase=_MockAsyncGraphDatabase)
+        _module_stub("langgraph.types", Command=_MockLanggraphCommand)
 
     if importlib.util.find_spec("boto3") is None:
         class _MockBoto3(ModuleType):

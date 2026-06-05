@@ -88,6 +88,7 @@ services:
       - "8004:8000"
     environment:
       - DEV_TENANT_ID=00000000-0000-4000-e2e0-000000000001
+      - SERVICE_AUTH_SECRET=${SERVICE_AUTH_SECRET:-test-service-auth-secret-for-validation-seed-1234567890}
       # JWT secret (required at import time, bypassed at runtime)
       - JWT_SECRET=e2e-test-secret-do-not-use-in-production-minimum-32-chars
       # Database

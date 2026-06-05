@@ -174,6 +174,11 @@ async def get_current_context(request: Request) -> Optional[RequestContext]:
         context = getattr(state, "governance_context", None)
         if context is not None:
             return context
+        auth = getattr(state, "auth", None)
+        if auth is not None:
+            from value_fabric.shared.identity.fabric_auth import request_context_from_auth
+
+            return request_context_from_auth(auth)
     return get_request_context()
 
 

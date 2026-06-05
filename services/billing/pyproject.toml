@@ -68,6 +68,7 @@ pythonpath = ["src"]
 deployable = false
 status = "legacy-billing-compatibility"
 canonical_service = "services/layer7-billing"
+runtime_owner = false
 
 [tool.mypy]
 python_version = "3.11"

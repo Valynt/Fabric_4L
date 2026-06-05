@@ -1,15 +1,16 @@
 # Legacy Billing Service
 
-Stripe-integrated subscription billing compatibility code for Value Fabric.
+Historical Stripe-integrated subscription billing compatibility code for Value Fabric.
 
-> Status: legacy, non-deployable. Canonical deployable billing behavior now
-> lives in `services/layer7-billing/`. This package remains in the tree only
-> for compatibility tests and historical Stripe migration coverage until the
-> registered compatibility debt is retired.
+> Status: legacy, non-deployable. Canonical deployable billing behavior lives
+> in `services/layer7-billing/`. This package remains in the tree only for
+> compatibility tests and historical Stripe migration coverage until the
+> registered compatibility debt is retired. Do not add Docker/Compose/Kubernetes
+> runtime ownership here.
 
 ## Overview
 
-This package covers historical Stripe-integrated billing logic:
+This package preserves historical Stripe-integrated billing logic for regression coverage only:
 - Subscription management (create, cancel, update)
 - Customer sync with Stripe
 - Webhook idempotency processing
@@ -19,7 +20,11 @@ See [ADR-023](../../docs/explanations/adr/ADR-023-billing-service-extraction.md)
 `docs/governance/compatibility-debt-registry.md` for the current retirement
 tracking.
 
-## API
+## Compatibility API
+
+The historical FastAPI app still exposes these routes for compatibility tests,
+but production callers must use the canonical `/v1/billing/*` surface in
+`services/layer7-billing/`.
 
 | Method | Path | Description |
 |--------|------|-------------|

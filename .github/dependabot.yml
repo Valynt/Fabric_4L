@@ -23,7 +23,7 @@ updates:
   labels:
   - dependencies
   - python
-  - service-billing
+  - legacy-billing-compat
   commit-message:
     prefix: chore(deps)
   reviewers:
@@ -299,23 +299,6 @@ updates:
   - dependencies
   - docker
   - service-api
-  commit-message:
-    prefix: chore(deps)
-  reviewers:
-  - value-fabric/backend-leads
-  - value-fabric/sre-leads
-  groups:
-    docker-dependencies:
-      patterns:
-      - '*'
-- package-ecosystem: docker
-  directory: /services/billing
-  schedule:
-    interval: weekly
-  labels:
-  - dependencies
-  - docker
-  - service-billing
   commit-message:
     prefix: chore(deps)
   reviewers:

@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
+import subprocess
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -29,23 +31,52 @@ def is_text_file(path: Path) -> bool:
     return path.suffix.lower() in TEXT_EXTENSIONS
 
 
-def iter_files(root: Path) -> list[Path]:
+def iter_tracked_files(root: Path) -> list[Path] | None:
+    try:
+        result = subprocess.run(
+            ["git", "ls-files", "-z"],
+            cwd=root,
+            check=True,
+            capture_output=True,
+            text=False,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return None
+
     files: list[Path] = []
-    for p in root.rglob("*"):
-        if p.is_dir() and p.name in EXCLUDE_DIRS:
+    for raw in result.stdout.split(b"\0"):
+        if not raw:
             continue
-        if p.is_file() and is_text_file(p):
-            if any(part in EXCLUDE_DIRS for part in p.parts):
-                continue
-            files.append(p)
+        rel = raw.decode("utf-8", errors="ignore")
+        path = root / rel
+        if is_text_file(path) and not any(part in EXCLUDE_DIRS for part in path.parts):
+            files.append(path)
     return files
 
 
-def scan_markers(repo_root: Path, excluded_paths: set[str]) -> list[Finding]:
+def iter_files(root: Path) -> list[Path]:
+    tracked_files = iter_tracked_files(root)
+    if tracked_files is not None:
+        return tracked_files
+
+    files: list[Path] = []
+    for dirpath, dirnames, filenames in os.walk(root):
+        dirnames[:] = [name for name in dirnames if name not in EXCLUDE_DIRS]
+        current_dir = Path(dirpath)
+        for filename in filenames:
+            p = current_dir / filename
+            if p.is_file() and is_text_file(p):
+                files.append(p)
+    return files
+
+
+def scan_markers(
+    repo_root: Path, excluded_paths: set[str], excluded_prefixes: tuple[str, ...]
+) -> list[Finding]:
     findings: list[Finding] = []
     for file_path in iter_files(repo_root):
         rel = file_path.relative_to(repo_root).as_posix()
-        if rel in excluded_paths:
+        if rel in excluded_paths or rel.startswith(excluded_prefixes):
             continue
         try:
             lines = file_path.read_text(encoding="utf-8", errors="ignore").splitlines()
@@ -54,8 +85,36 @@ def scan_markers(repo_root: Path, excluded_paths: set[str]) -> list[Finding]:
         for idx, line in enumerate(lines, start=1):
             for marker in MARKERS:
                 if marker in line:
+                    if is_non_debt_marker_usage(marker, line):
+                        continue
                     findings.append(Finding("marker", marker, rel, idx, line.strip()))
     return findings
+
+
+def is_non_debt_marker_usage(marker: str, line: str) -> bool:
+    """Ignore domain lifecycle statuses; keep explicit legacy/deprecation notices."""
+
+    if marker != "DEPRECATED":
+        return False
+
+    normalized = line.strip().lower()
+    semantic_tokens = (
+        "approvalstatus.deprecated",
+        "artifactstatus.deprecated",
+        "formulastatus.deprecated",
+        "auditaction.model_deprecated",
+        "model_deprecated",
+        "deprecated_use",
+        'deprecated = "deprecated"',
+        "deprecated: \"deprecate\"",
+        "status_deprecated",
+        "status: enum",
+        '"status": "deprecated"',
+        "optional filter:",
+        "enum [",
+        "enum:",
+    )
+    return any(token in normalized for token in semantic_tokens)
 
 
 def scan_legacy_dirs(repo_root: Path, legacy_dirs: list[str]) -> list[Finding]:
@@ -119,6 +178,14 @@ def validate_obsolete_approval_metadata(approvals: dict[str, Any]) -> list[str]:
     return errors
 
 
+def safe_print(text: str, *, file: Any = None) -> None:
+    stream = file if file is not None else sys.stdout
+    try:
+        print(text, file=stream)
+    except UnicodeEncodeError:
+        print(text.encode(stream.encoding or "utf-8", errors="replace").decode(stream.encoding or "utf-8"), file=stream)
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Check legacy debt markers/directories against a baseline")
     ap.add_argument("--repo-root", type=Path, default=Path("."))
@@ -133,7 +200,8 @@ def main() -> int:
     legacy_dirs = config.get("legacy_directories", ["shared", "apps/web/src/legacy", "apps/web/src/obsolete"])
 
     excluded_paths = set(config.get("excluded_paths", []))
-    marker_findings = scan_markers(repo_root, excluded_paths)
+    excluded_prefixes = tuple(config.get("excluded_prefixes", []))
+    marker_findings = scan_markers(repo_root, excluded_paths, excluded_prefixes)
     dir_findings = scan_legacy_dirs(repo_root, legacy_dirs)
     findings = marker_findings + dir_findings
 
@@ -171,21 +239,21 @@ def main() -> int:
         args.write_report.parent.mkdir(parents=True, exist_ok=True)
         args.write_report.write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")
 
-    print("Legacy debt counts:", json.dumps(counts, sort_keys=True))
+    safe_print("Legacy debt counts: " + json.dumps(counts, sort_keys=True))
     if findings:
-        print("Actionable findings:")
+        safe_print("Actionable findings:")
         for f in findings:
-            print(f"- {f.file}:{f.line} [{f.kind}:{f.key}] {f.text}")
+            safe_print(f"- {f.file}:{f.line} [{f.kind}:{f.key}] {f.text}")
 
     if metadata_errors:
-        print("ERROR: obsolete marker approvals are missing required metadata:", file=sys.stderr)
+        safe_print("ERROR: obsolete marker approvals are missing required metadata:", file=sys.stderr)
         for err in metadata_errors:
-            print(f"  - {err}", file=sys.stderr)
+            safe_print(f"  - {err}", file=sys.stderr)
 
     if regressions:
-        print("ERROR: legacy debt regressions detected:", file=sys.stderr)
+        safe_print("ERROR: legacy debt regressions detected:", file=sys.stderr)
         for r in regressions:
-            print(f"  - {r}", file=sys.stderr)
+            safe_print(f"  - {r}", file=sys.stderr)
 
     if metadata_errors or regressions:
         return 1

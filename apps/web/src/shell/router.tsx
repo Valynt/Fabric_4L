@@ -725,6 +725,13 @@ export const router = createBrowserRouter([
           </UnifiedRouteGuard>
         ),
         children: [
+          { path: "/personal", element: <Navigate to="/personal/profile" replace /> },
+          { path: "/personal/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings" } },
+          { path: "/personal/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings" } },
+          { path: "/personal/preferences", element: <PersonalPreferences />, handle: { title: "Preferences", category: "Personal Settings" } },
+          { path: "/personal/notifications", element: <PersonalNotifications />, handle: { title: "Notifications", category: "Personal Settings" } },
+          { path: "/personal/sessions", element: <PersonalSessions />, handle: { title: "Active Sessions", category: "Personal Settings" } },
+          { path: "/personal/activity", element: <PersonalActivity />, handle: { title: "My Activity", category: "Personal Settings" } },
           { path: "/settings", element: <Navigate to="/settings/profile" replace /> },
           { path: "/settings/profile", element: <PersonalProfile />, handle: { title: "Profile", category: "Personal Settings" } },
           { path: "/settings/security", element: <PersonalSecurity />, handle: { title: "Security", category: "Personal Settings" } },

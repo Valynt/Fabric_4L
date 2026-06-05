@@ -7,6 +7,23 @@
  */
 
 export interface paths {
+    "/ready": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Readiness Handler */
+        get: operations["readiness_handler_ready_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/health": {
         parameters: {
             query?: never;
@@ -107,6 +124,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/formulas/scenario": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Calculate What-If Scenario
+         * @description Calculate new business case metrics based on variable adjustments.
+         */
+        post: operations["calculate_scenario_v1_formulas_scenario_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/formulas/variables": {
         parameters: {
             query?: never;
@@ -177,26 +214,6 @@ export interface paths {
          * @description Update an existing formula. Creates new version if expression changes.
          */
         patch: operations["update_formula_v1_formulas__formula_id__patch"];
-        trace?: never;
-    };
-    "/v1/formulas/scenario": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /**
-         * Calculate What-If Scenario
-         * @description Calculate new business case metrics based on variable adjustments.
-         */
-        post: operations["calculate_scenario_v1_formulas_scenario_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
         trace?: never;
     };
     "/v1/packs": {
@@ -1287,6 +1304,7 @@ export interface paths {
          *
          *     Establishes `HAS_EVIDENCE` from ValueDriver to Evidence node,
          *     enabling value traceability from driver tree back to proof points.
+         *     Phase 1 hardening: Uses AuditedGraphMutation for audit trail.
          */
         post: operations["link_evidence_to_driver_v1_evidence_links_post"];
         /**
@@ -1575,6 +1593,64 @@ export interface paths {
          * @description Get industry-specific benchmarks for ROI assumptions.
          */
         get: operations["get_industry_benchmarks_v1_roi_benchmarks__industry__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/signals": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Graph Signals */
+        get: operations["list_graph_signals_v1_graph_signals_get"];
+        put?: never;
+        /**
+         * Persist Signal
+         * @description Persist a ValueSignal as a Neo4j node and link to its Account.
+         *
+         *     Called by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).
+         *     Phase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.
+         */
+        post: operations["persist_signal_v1_graph_signals_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/signals/{signal_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Graph Signal */
+        get: operations["get_graph_signal_v1_graph_signals__signal_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/graph/signals/{signal_id}/related": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get Signal Related */
+        get: operations["get_signal_related_v1_graph_signals__signal_id__related_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2302,64 +2378,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/v1/graph/signals": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List Graph Signals */
-        get: operations["list_graph_signals_v1_graph_signals_get"];
-        put?: never;
-        /**
-         * Persist Signal
-         * @description Persist a ValueSignal as a Neo4j node and link to its Account.
-         *
-         *     Called by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).
-         *     Phase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.
-         */
-        post: operations["persist_signal_v1_graph_signals_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/graph/signals/{signal_id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Graph Signal */
-        get: operations["get_graph_signal_v1_graph_signals__signal_id__get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/v1/graph/signals/{signal_id}/related": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get Signal Related */
-        get: operations["get_signal_related_v1_graph_signals__signal_id__related_get"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2768,6 +2786,11 @@ export interface components {
             request: components["schemas"]["PackCreateRequest"];
             settings?: components["schemas"]["Settings"] | null;
         };
+        /** Body_create_value_case_v1_calculators_value_cases_post */
+        Body_create_value_case_v1_calculators_value_cases_post: {
+            case_data: components["schemas"]["ValueCaseRequest"];
+            context?: components["schemas"]["RequestContext"] | null;
+        };
         /** Body_create_variable_v1_variables_post */
         Body_create_variable_v1_variables_post: {
             request: components["schemas"]["VariableCreateRequest"];
@@ -2783,6 +2806,11 @@ export interface components {
             request: components["schemas"]["PackForkRequest"];
             settings?: components["schemas"]["Settings"] | null;
         };
+        /** Body_get_value_levers_v1_calculators_levers_get */
+        Body_get_value_levers_v1_calculators_levers_get: {
+            request: components["schemas"]["LeverConfigRequest"];
+            context?: components["schemas"]["RequestContext"] | null;
+        };
         /** Body_resolve_variable_v1_variables__variable_id__resolve_post */
         Body_resolve_variable_v1_variables__variable_id__resolve_post: {
             request: components["schemas"]["ResolveRequest"];
@@ -2797,6 +2825,11 @@ export interface components {
         Body_update_pack_v1_packs__pack_id__put: {
             request: components["schemas"]["PackUpdateRequest"];
             settings?: components["schemas"]["Settings"] | null;
+        };
+        /** Body_update_value_case_v1_calculators_value_cases__case_id__put */
+        Body_update_value_case_v1_calculators_value_cases__case_id__put: {
+            case_data: components["schemas"]["ValueCaseRequest"];
+            context?: components["schemas"]["RequestContext"] | null;
         };
         /** Body_update_variable_v1_variables__variable_id__put */
         Body_update_variable_v1_variables__variable_id__put: {
@@ -4584,10 +4617,23 @@ export interface components {
              */
             density: number;
         };
-        /** HTTPValidationError */
+        /**
+         * HTTPValidationError
+         * @description Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients.
+         */
         HTTPValidationError: {
-            /** Detail */
-            detail?: components["schemas"]["ValidationError"][];
+            error: {
+                /** @description Machine-readable error code */
+                code: string;
+                /** @description Human-readable error message */
+                message: string;
+                /** @description Request ID for support correlation */
+                request_id: string;
+                /** @description Optional sanitized error details */
+                details?: {
+                    [key: string]: unknown;
+                } | null;
+            };
         };
         /**
          * HealthResponse
@@ -6516,6 +6562,17 @@ export interface components {
              */
             INGESTION_TIMEOUT_SECONDS: number;
         };
+        /** SignalListResponse */
+        SignalListResponse: {
+            /** Items */
+            items: components["schemas"]["SignalNode"][];
+            /** Total */
+            total: number;
+            /** Limit */
+            limit: number;
+            /** Offset */
+            offset: number;
+        };
         /**
          * SignalMatchResponse
          * @description Signal-to-product match result.
@@ -6533,6 +6590,40 @@ export interface components {
             top_matches: {
                 [key: string]: unknown;
             }[];
+        };
+        /** SignalNode */
+        SignalNode: {
+            /** Id */
+            id: string;
+            /** Tenant Id */
+            tenant_id: string;
+            /** Account Id */
+            account_id: string;
+            /** Type */
+            type: string;
+            /** Content */
+            content: string;
+            /** Confidence */
+            confidence: number;
+            /** Trust Score */
+            trust_score?: number | null;
+            /** Lifecycle State */
+            lifecycle_state?: string | null;
+            /** Impact Area */
+            impact_area?: string | null;
+            /** Created At */
+            created_at?: string | null;
+            /** Updated At */
+            updated_at?: string | null;
+        };
+        /** SignalRelatedResponse */
+        SignalRelatedResponse: {
+            /** Value Drivers */
+            value_drivers: unknown[];
+            /** Personas */
+            personas: unknown[];
+            /** Accounts */
+            accounts: unknown[];
         };
         /** SimilarityRequest */
         SimilarityRequest: {
@@ -7813,51 +7904,6 @@ export interface components {
                 } | null;
             };
         };
-        /** SignalListResponse */
-        SignalListResponse: {
-            /** Items */
-            items: components["schemas"]["SignalNode"][];
-            /** Total */
-            total: number;
-            /** Limit */
-            limit: number;
-            /** Offset */
-            offset: number;
-        };
-        /** SignalNode */
-        SignalNode: {
-            /** Id */
-            id: string;
-            /** Tenant Id */
-            tenant_id: string;
-            /** Account Id */
-            account_id: string;
-            /** Type */
-            type: string;
-            /** Content */
-            content: string;
-            /** Confidence */
-            confidence: number;
-            /** Trust Score */
-            trust_score?: number | null;
-            /** Lifecycle State */
-            lifecycle_state?: string | null;
-            /** Impact Area */
-            impact_area?: string | null;
-            /** Created At */
-            created_at?: string | null;
-            /** Updated At */
-            updated_at?: string | null;
-        };
-        /** SignalRelatedResponse */
-        SignalRelatedResponse: {
-            /** Value Drivers */
-            value_drivers: unknown[];
-            /** Personas */
-            personas: unknown[];
-            /** Accounts */
-            accounts: unknown[];
-        };
     };
     responses: never;
     parameters: never;
@@ -7867,6 +7913,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    readiness_handler_ready_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+        };
+    };
     health_check_health_get: {
         parameters: {
             query?: never;
@@ -8041,32 +8107,12 @@ export interface operations {
             };
         };
         responses: {
-            /** @description Formula evaluated successfully */
+            /** @description Successful Response */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    /**
-                     * @example {
-                     *       "result": 245.5,
-                     *       "unit": "percent",
-                     *       "confidence": 0.92,
-                     *       "calculation_steps": [
-                     *         {
-                     *           "step": 1,
-                     *           "operation": "annual_benefit - annual_cost",
-                     *           "result": "245500.0"
-                     *         },
-                     *         {
-                     *           "step": 2,
-                     *           "operation": "divide by implementation_cost",
-                     *           "result": "245.5"
-                     *         }
-                     *       ],
-                     *       "formula_used": "(annual_benefit - annual_cost) / implementation_cost * 100"
-                     *     }
-                     */
                     "application/json": components["schemas"]["FormulaEvaluateResponse"];
                 };
             };
@@ -8083,6 +8129,46 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    calculate_scenario_v1_formulas_scenario_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScenarioRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ScenarioResponse"];
+                };
+            };
+            /** @description Invalid adjustments or missing base case data */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
             };
         };
     };
@@ -8272,74 +8358,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["FormulaMetadata"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    calculate_scenario_v1_formulas_scenario_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["ScenarioRequest"];
-            };
-        };
-        responses: {
-            /** @description Scenario calculated successfully */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    /**
-                     * @example {
-                     *       "scenario_id": "scenario_abc123",
-                     *       "original_value": 500000,
-                     *       "adjusted_value": 600000,
-                     *       "delta_percentage": 20,
-                     *       "new_roi": 2.5,
-                     *       "new_payback_months": 8.5,
-                     *       "formula_used": "(total_value - implementation_cost) / implementation_cost",
-                     *       "calculation_steps": [
-                     *         {
-                     *           "step": 1,
-                     *           "operation": "Base case values",
-                     *           "details": {
-                     *             "total_value": 500000
-                     *           }
-                     *         },
-                     *         {
-                     *           "step": 2,
-                     *           "operation": "Adjust implementation_cost",
-                     *           "details": {
-                     *             "from": 200000,
-                     *             "to": 180000
-                     *           }
-                     *         }
-                     *       ]
-                     *     }
-                     */
-                    "application/json": components["schemas"]["ScenarioResponse"];
-                };
-            };
-            /** @description Invalid adjustments or missing base case data */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -11216,6 +11234,139 @@ export interface operations {
             };
         };
     };
+    list_graph_signals_v1_graph_signals_get: {
+        parameters: {
+            query: {
+                account_id: string;
+                lifecycle_states?: string[] | null;
+                types?: string[] | null;
+                min_confidence?: number;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    persist_signal_v1_graph_signals_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalNode"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_graph_signal_v1_graph_signals__signal_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalNode"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_signal_related_v1_graph_signals__signal_id__related_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                signal_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignalRelatedResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_benchmarks_v1_roi_benchmarks_get: {
         parameters: {
             query?: {
@@ -11371,7 +11522,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["LeverConfigRequest"];
+                "application/json": components["schemas"]["Body_get_value_levers_v1_calculators_levers_get"];
             };
         };
         responses: {
@@ -11404,7 +11555,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ValueCaseRequest"];
+                "application/json": components["schemas"]["Body_create_value_case_v1_calculators_value_cases_post"];
             };
         };
         responses: {
@@ -11437,7 +11588,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RequestContext"] | null;
+            };
+        };
         responses: {
             /** @description Successful Response */
             200: {
@@ -11470,7 +11625,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ValueCaseRequest"];
+                "application/json": components["schemas"]["Body_update_value_case_v1_calculators_value_cases__case_id__put"];
             };
         };
         responses: {
@@ -12405,139 +12560,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SearchResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    list_graph_signals_v1_graph_signals_get: {
-        parameters: {
-            query: {
-                account_id: string;
-                lifecycle_states?: string[] | null;
-                types?: string[] | null;
-                min_confidence?: number;
-                limit?: number;
-                offset?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignalListResponse"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    persist_signal_v1_graph_signals_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": {
-                    [key: string]: unknown;
-                };
-            };
-        };
-        responses: {
-            /** @description Successful Response */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignalNode"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_graph_signal_v1_graph_signals__signal_id__get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                signal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignalNode"];
-                };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    get_signal_related_v1_graph_signals__signal_id__related_get: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                signal_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["SignalRelatedResponse"];
                 };
             };
             /** @description Validation Error */

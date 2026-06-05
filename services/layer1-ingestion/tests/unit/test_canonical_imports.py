@@ -27,19 +27,31 @@ def _load_from_canonical_path(dotted_name: str, rel_path: str) -> types.ModuleTy
 
     # Create dummy parent packages to bypass real __init__.py execution
     parts = dotted_name.split(".")
+    created_parents: list[str] = []
     for i in range(1, len(parts)):
         parent_name = ".".join(parts[:i])
         if parent_name not in sys.modules:
             parent_mod = types.ModuleType(parent_name)
             parent_mod.__path__ = [str(SERVICE_SRC / parts[0])]
             sys.modules[parent_name] = parent_mod
+            created_parents.append(parent_name)
 
     spec = importlib.util.spec_from_file_location(dotted_name, file_path)
     assert spec is not None
     mod = importlib.util.module_from_spec(spec)
-    sys.modules[dotted_name] = mod
-    if spec.loader:
-        spec.loader.exec_module(mod)
+    previous_module = sys.modules.get(dotted_name)
+    had_previous_module = dotted_name in sys.modules
+    try:
+        sys.modules[dotted_name] = mod
+        if spec.loader:
+            spec.loader.exec_module(mod)
+    finally:
+        if had_previous_module:
+            sys.modules[dotted_name] = previous_module  # type: ignore[assignment]
+        else:
+            sys.modules.pop(dotted_name, None)
+        for parent_name in reversed(created_parents):
+            sys.modules.pop(parent_name, None)
     return mod
 
 

@@ -66,6 +66,7 @@ For every incremental PR, provide explicit **Pass / Fail** status and evidence l
 | contract-checks |  |  |  |
 | runtime-contract-checks |  |  |  |
 | route-auth-gate |  |  |  |
+| production-readiness-gate |  |  |  |
 | unified-readiness-gate |  |  |  |
 
 ### Behavior Parity (Required for incremental PRs)
@@ -80,6 +81,7 @@ For every incremental PR, provide explicit **Pass / Fail** status and evidence l
 ## Validation
 
 - [ ] `make verify`
+- [ ] `make production-readiness-gate`
 - [ ] `make evals` (required for agent/skill prompt changes)
 
 ## Code Quality Checklist

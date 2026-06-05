@@ -266,19 +266,27 @@ def add_idempotency_middleware(
 def add_tenant_enforcement_middleware(app: FastAPI) -> None:
     """Install a middleware that audits/blocks requests missing tenant context.
 
-    Behavior follows ``EnforcementRolloutConfig.tenant_enforcement`` on
-    ``app.state`` via :func:`record_enforcement_decision`. Routes marked as
-    enforcement opt-outs (e.g., ``/health``, ``/ready``) are skipped.
+    ``GovernanceMiddleware`` is the primary central fail-closed auth and tenant
+    gate for non-public service routes. This rollout middleware remains as a
+    defense-in-depth/audit control and explicitly skips the same public route
+    allowlist so probes and documentation never depend on middleware ordering.
     """
 
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.responses import JSONResponse
 
     from value_fabric.shared.fastapi_framework.app import record_enforcement_decision
+    from value_fabric.shared.identity.middleware import GovernanceMiddleware, _is_public_path
 
     class _TenantEnforcementMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
             path = request.url.path
+            if _is_public_path(path):
+                return await call_next(request)
+
+            if any(middleware.cls is GovernanceMiddleware for middleware in app.user_middleware):
+                return await call_next(request)
+
             from value_fabric.shared.boundaries.tenant_boundary import get_tenant_context
 
             ctx = get_tenant_context()

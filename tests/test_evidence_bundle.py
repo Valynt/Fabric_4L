@@ -32,11 +32,25 @@ def _stub_generators(module, monkeypatch):
         path.write_text("# Release Evidence Packet\n", encoding="utf-8")
         return {"name": "release_evidence_packet", "output": "maturity/release-evidence-packet"}
 
+    def restore_dry_run(_repo_root: Path, _gaps: list[dict], staging_root: Path):
+        path = staging_root / "restore" / "restore-dry-run-evidence.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"status":"pass"}\n', encoding="utf-8")
+        return {"name": "restore_dry_run", "output": "restore/restore-dry-run-evidence.json"}
+
+    def rollback_verification(_repo_root: Path, _gaps: list[dict], staging_root: Path):
+        path = staging_root / "rollback" / "release-rollback-verification.json"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text('{"status":"pass"}\n', encoding="utf-8")
+        return {"name": "rollback_verification", "output": "rollback/release-rollback-verification.json"}
+
     def command_record(name: str):
         return {"name": name, "returncode": 0}
 
     monkeypatch.setattr(module, "_generate_launch_scorecard", launch_scorecard)
     monkeypatch.setattr(module, "_generate_release_packet", release_packet)
+    monkeypatch.setattr(module, "_generate_restore_dry_run", restore_dry_run)
+    monkeypatch.setattr(module, "_generate_rollback_verification", rollback_verification)
     monkeypatch.setattr(
         module,
         "_generate_contract_reports",
@@ -94,6 +108,8 @@ def test_generate_evidence_bundle_creates_archive_and_manifest(tmp_path, monkeyp
         assert "manifest.json" in names
         assert "README.md" in names
         assert "maturity/launch-readiness-scorecard.json" in names
+        assert "restore/restore-dry-run-evidence.json" in names
+        assert "rollback/release-rollback-verification.json" in names
         assert "tests/artifacts/frontend/junit.xml" in names
         assert "supply-chain/artifacts/scan/sbom-layer1-test.cdx.json" in names
         manifest = json.loads(tar.extractfile("manifest.json").read().decode("utf-8"))  # type: ignore[union-attr]
@@ -105,6 +121,9 @@ def test_generate_evidence_bundle_creates_archive_and_manifest(tmp_path, monkeyp
             data = tar.extractfile(name).read()  # type: ignore[union-attr]
             assert by_name[name]["size_bytes"] == len(data)
             assert by_name[name]["sha256"] == module.hashlib.sha256(data).hexdigest()
+
+        assert "restore dry-run proof" in manifest["bundle_contents"]
+        assert "rollback verification proof" in manifest["bundle_contents"]
 
 
 def test_missing_optional_heavy_artifacts_become_gaps(tmp_path, monkeypatch):

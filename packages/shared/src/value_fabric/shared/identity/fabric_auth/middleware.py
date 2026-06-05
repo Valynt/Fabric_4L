@@ -25,17 +25,16 @@ from starlette.responses import JSONResponse, Response
 from starlette.types import ASGIApp
 
 from .context import AuthContext, DEFAULT_AUDIENCE, DEFAULT_ISSUER
+from value_fabric.shared.identity.context import AUTH_SOURCE_JWT, RequestContext
 from .errors import (
     EnvelopeMissingError,
     FabricAuthError,
-    TenantMismatchError,
 )
 from .signer import KeySet, verify_envelope
 
 logger = logging.getLogger(__name__)
 
 ENVELOPE_HEADER = "X-Fabric-Auth"
-TENANT_HINT_HEADER = "X-Tenant-ID"
 REQUEST_ID_HEADER = "X-Request-ID"
 
 DEFAULT_PUBLIC_PATHS: tuple[str, ...] = (
@@ -68,6 +67,21 @@ def require_auth_context() -> AuthContext:
     return auth
 
 
+def request_context_from_auth(auth: AuthContext) -> RequestContext:
+    """Build canonical tenant context from a verified auth envelope."""
+    return RequestContext(
+        tenant_id=auth.tenant_id,
+        user_id=auth.user_id,
+        roles=list(auth.roles),
+        permissions=frozenset(auth.permissions),
+        source=AUTH_SOURCE_JWT,
+        auth_source=AUTH_SOURCE_JWT,
+        request_id=auth.request_id,
+        org_id=auth.clerk_org_id,
+        raw={"fabric_auth_envelope": True, "clerk_user_id": auth.clerk_user_id},
+    )
+
+
 class FabricAuthMiddleware(BaseHTTPMiddleware):
     """Verify the ``X-Fabric-Auth`` envelope on every request.
 
@@ -77,8 +91,8 @@ class FabricAuthMiddleware(BaseHTTPMiddleware):
         expected_audience: must equal envelope ``aud``.
         mode: ``"enforce"`` or ``"observe"``.
         public_paths: prefix paths excluded from auth.
-        tenant_hint_must_match: when True (default), reject requests whose
-            ``X-Tenant-ID`` header does not equal the envelope tenant.
+        tenant_hint_must_match: deprecated no-op retained for constructor
+            compatibility. Tenant identity is always envelope-derived.
     """
 
     def __init__(
@@ -131,16 +145,6 @@ class FabricAuthMiddleware(BaseHTTPMiddleware):
             except FabricAuthError as exc:
                 failure = exc
 
-        if auth is not None and self._tenant_hint_must_match:
-            hint = request.headers.get(TENANT_HINT_HEADER)
-            if hint and hint != auth.tenant_id:
-                failure = TenantMismatchError(
-                    log_detail=(
-                        f"X-Tenant-ID hint={hint!r} != envelope={auth.tenant_id!r}"
-                    )
-                )
-                auth = None
-
         if failure is not None:
             logger.warning(
                 "fabric_auth %s code=%s path=%s detail=%s",
@@ -164,10 +168,15 @@ class FabricAuthMiddleware(BaseHTTPMiddleware):
 
         assert auth is not None  # for type checkers
         token_var = _AUTH_CONTEXT.set(auth)
+        previous_governance_context = getattr(request.state, "governance_context", None)
         try:
             request.state.auth = auth
+            if previous_governance_context is None:
+                request.state.governance_context = request_context_from_auth(auth)
             response: Response = await call_next(request)
         finally:
+            if previous_governance_context is None:
+                request.state.governance_context = None
             _AUTH_CONTEXT.reset(token_var)
 
         if REQUEST_ID_HEADER not in response.headers and auth.request_id:

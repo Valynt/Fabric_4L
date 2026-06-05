@@ -14,18 +14,18 @@ Resolution order (first match wins):
   4. ``X-Tenant-ID`` header (UUID) — accepted *only* for internal
      service-to-service calls; grants the ``system`` role.
 
-On success, a ``RequestContext`` is stored in the ``ContextVar`` so all
-downstream code can call ``get_request_context()`` or ``require_context()``.
+On success, a ``RequestContext`` with an authenticated tenant is stored in the
+``ContextVar`` so all downstream code can call ``get_request_context()`` or
+``require_context()``.
 
-On failure / missing credentials, the middleware passes the request through
-**without** a context — individual endpoints use FastAPI Depends to enforce
-authentication where required (some endpoints, e.g. ``/health``, are public).
+On failure / missing credentials for any non-public path, the middleware fails
+closed before route handlers run. Public probes and documentation endpoints are
+listed in ``PUBLIC_PATH_ALLOWLIST``.
 """
 
 from __future__ import annotations
 
 import asyncio
-import hashlib
 import hmac
 import inspect
 import logging
@@ -37,7 +37,7 @@ import types
 from typing import Any, Callable, Optional
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Request, Response, status
+from fastapi import FastAPI, HTTPException, Request, Response, status
 from fastapi.routing import APIRoute
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
@@ -49,9 +49,6 @@ except ImportError:
 from .context import (
     AUTH_SOURCE_SERVICE_ACCOUNT,
     RequestContext,
-    clear_current_context,
-    get_current_context,
-    set_current_context,
     set_request_context,
     _current_context,
 )
@@ -151,6 +148,10 @@ PUBLIC_PATH_ALLOWLIST: frozenset[str] = frozenset(
     {
         "/health",
         "/health/detailed",
+        "/health/live",
+        "/live",
+        "/ready",
+        "/readiness",
         "/metrics",
         "/docs",
         "/openapi.json",
@@ -166,31 +167,38 @@ def _is_public_path(path: str) -> bool:
     return path in PUBLIC_PATH_ALLOWLIST or path.startswith("/docs") or path.startswith("/redoc")
 
 
-def _is_authenticated_dependency(dep: Any) -> bool:
-    call = getattr(dep, "call", None)
-    return callable(call) and getattr(call, "__name__", "") == "require_authenticated"
-
-
 def audit_protected_routes(app: FastAPI) -> None:
-    """Fail closed if any non-public route is missing auth dependency wiring."""
-    missing_auth: list[str] = []
+    """Fail closed if central auth middleware is missing for protected routes.
+
+    Authentication and tenant-context enforcement are intentionally centralized
+    in :class:`GovernanceMiddleware`; route handlers no longer need to repeat
+    ``Depends(require_authenticated)`` solely to become private. This startup
+    audit therefore verifies that any app exposing non-public routes has the
+    central middleware installed. Explicit route dependencies remain valid for
+    RBAC or endpoint-specific checks, but they are not the platform auth gate.
+    """
+    protected_routes: list[str] = []
     for route in app.routes:
         if not isinstance(route, APIRoute):
             continue
-        path = route.path
-        if _is_public_path(path):
-            continue
-        if any(_is_authenticated_dependency(dep) for dep in route.dependant.dependencies):
+        if _is_public_path(route.path):
             continue
         methods = ",".join(sorted(route.methods or []))
-        missing_auth.append(f"{methods} {path}")
+        protected_routes.append(f"{methods} {route.path}")
 
-    if missing_auth:
-        missing = "\n - ".join(sorted(missing_auth))
-        raise RuntimeError(
-            "Auth route audit failed. Non-public routes must include Depends(require_authenticated)."
-            f"\n - {missing}"
-        )
+    if not protected_routes:
+        return
+
+    middleware_types = [middleware.cls for middleware in app.user_middleware]
+    if GovernanceMiddleware in middleware_types:
+        return
+
+    missing = "\n - ".join(sorted(protected_routes))
+    raise RuntimeError(
+        "Auth route audit failed. Apps with non-public routes must install "
+        "GovernanceMiddleware for central auth and tenant-context enforcement."
+        f"\n - {missing}"
+    )
 
 
 def _allow_legacy_test_tenant_ids() -> bool:
@@ -436,6 +444,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         tenant_settings_resolver: Optional[Callable] = None,
         on_rate_limit_hit: Optional[Callable[[str, str], None]] = None,
         enforce_authentication: bool = True,
+        require_tenant_context: bool = True,
     ) -> None:
         super().__init__(app)
         self._api_key_resolver = api_key_resolver
@@ -444,6 +453,7 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
         self._tenant_settings_resolver = tenant_settings_resolver
         self._on_rate_limit_hit = on_rate_limit_hit
         self._enforce_authentication = enforce_authentication
+        self._require_tenant_context = require_tenant_context
         self._validate_multi_worker_rate_limit_configuration(rate_limiter)
         self._shared_rate_limit_config = SharedRateLimitMiddlewareConfig.from_env()
         # P0 FIX: Query param tenant authentication removed entirely
@@ -478,6 +488,23 @@ class GovernanceMiddleware(BaseHTTPMiddleware):
                         content={
                             "detail": "Authentication credentials were not provided.",
                             "error": "authentication_required",
+                        },
+                    )
+                if not ctx.is_auth_source_valid():
+                    return JSONResponse(
+                        status_code=status.HTTP_401_UNAUTHORIZED,
+                        headers={"WWW-Authenticate": "Bearer"},
+                        content={
+                            "detail": "Authentication context is invalid.",
+                            "error": "authentication_context_invalid",
+                        },
+                    )
+                if self._require_tenant_context and not ctx.tenant_id:
+                    return JSONResponse(
+                        status_code=status.HTTP_403_FORBIDDEN,
+                        content={
+                            "detail": "Tenant context is required for this route.",
+                            "error": "tenant_context_required",
                         },
                     )
 

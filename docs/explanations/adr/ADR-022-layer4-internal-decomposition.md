@@ -57,17 +57,19 @@ Phase 1 — Canonical runtime
   value_fabric/layer4/billing/schemas.py         ← from api/schemas/billing.py
   value_fabric/layer4/billing/services/          ← interfaces + re-exports
 
-Phase 2 — Service wrapper
-  services/billing/src/billing/main.py           ← standalone FastAPI app
-  services/billing/src/billing/routes.py         ← mount billing routes
-  services/billing/Dockerfile
-  services/billing/pyproject.toml
-  docker-compose.dev.yml                         ← port 8007
+Phase 2 — Service wrapper (superseded 2026-06-05)
+  services/layer7-billing/src/layer7_billing/api/  ← canonical deployable billing API
+  services/layer7-billing/Dockerfile
+  services/layer7-billing/pyproject.toml
+  docker-compose.full.yml                         ← port 8008
 
 Phase 3 — Proxy migration
   services/layer4-agents/src/layer4_agents/api/routes/billing.py
-    → becomes a thin proxy to services/billing/ via HTTP client
-  → Remove after all callers migrate (target: 2026-09-30)
+    → becomes a thin proxy to services/layer7-billing/ via HTTP client
+  → Remove after all callers migrate (target: 2026-10-31)
+
+Compatibility note:
+  services/billing/ remains non-deployable historical Stripe compatibility code only.
 ```
 
 ### Future Candidates (ordered by priority)

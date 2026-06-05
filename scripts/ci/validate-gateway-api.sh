@@ -6,7 +6,7 @@
 #   bash scripts/ci/validate-gateway-api.sh [overlay-path]
 #
 # Defaults:
-#   overlay-path: k8s/envs/prod
+#   overlay-path: k8s/deployments/prod-gateway-api
 #
 # Exit codes:
 #   0  Gateway API resources are properly integrated
@@ -14,7 +14,7 @@
 #
 set -euo pipefail
 
-OVERLAY="${1:-k8s/envs/prod}"
+OVERLAY="${1:-k8s/deployments/prod-gateway-api}"
 TMPDIR="$(mktemp -d)"
 trap 'rm -rf "${TMPDIR}"' EXIT
 

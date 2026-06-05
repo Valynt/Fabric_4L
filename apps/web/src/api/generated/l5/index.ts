@@ -432,31 +432,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create assumption */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["AssumptionCreate"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["AssumptionResponse"];
-                    };
-                };
-            };
-        };
+        /** Create Assumption */
+        post: operations["create_assumption_api_v1_assumptions_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -472,31 +449,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create policy rule */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path?: never;
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["PolicyRuleCreate"];
-                };
-            };
-            responses: {
-                /** @description Created */
-                201: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": components["schemas"]["PolicyRuleCreate"];
-                    };
-                };
-            };
-        };
+        /** Create Policy Rule */
+        post: operations["create_policy_rule_api_v1_policy_rules_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -512,38 +466,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Apply assumption */
-        post: {
-            parameters: {
-                query?: never;
-                header?: never;
-                path: {
-                    assumption_id: string;
-                };
-                cookie?: never;
-            };
-            requestBody: {
-                content: {
-                    "application/json": components["schemas"]["ApplySelectionRequest"];
-                };
-            };
-            responses: {
-                /** @description Applied */
-                200: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-                /** @description Approval required */
-                409: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content?: never;
-                };
-            };
-        };
+        /** Apply Assumption Selection */
+        post: operations["apply_assumption_selection_api_v1_assumptions__assumption_id__apply_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -604,6 +528,46 @@ export interface components {
             metadata?: {
                 [key: string]: components["schemas"]["JsonValue"];
             };
+        };
+        /** ApplySelectionRequest */
+        ApplySelectionRequest: {
+            /**
+             * Context
+             * @default evaluation
+             */
+            context: string;
+        };
+        /** AssumptionCreate */
+        AssumptionCreate: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Impact Value
+             * @default 0
+             */
+            impact_value: number;
+        };
+        /** AssumptionResponse */
+        AssumptionResponse: {
+            /** Name */
+            name: string;
+            /** Description */
+            description?: string | null;
+            /**
+             * Impact Value
+             * @default 0
+             */
+            impact_value: number;
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            lifecycle_state: components["schemas"]["LifecycleState"];
+            /** Is Approved For Use */
+            is_approved_for_use: boolean;
         };
         /**
          * ClaimType
@@ -687,6 +651,11 @@ export interface components {
             };
         };
         JsonValue: unknown;
+        /**
+         * LifecycleState
+         * @enum {string}
+         */
+        LifecycleState: "draft" | "approved" | "deprecated" | "archived" | "published";
         /**
          * MaturityHistoryResponse
          * @description Schema for a MaturityHistory entry in API responses.
@@ -1115,6 +1084,18 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
+        };
+        /** PolicyRuleCreate */
+        PolicyRuleCreate: {
+            /** Name */
+            name: string;
+            /**
+             * Min Impact Threshold
+             * @default 0
+             */
+            min_impact_threshold: number;
+            /** Required Reviewer Role */
+            required_reviewer_role: string;
         };
         /**
          * PromoteModelRequest
@@ -1770,27 +1751,6 @@ export interface components {
                     [key: string]: unknown;
                 } | null;
             };
-        };
-        AssumptionCreate: {
-            name: string;
-            description?: string;
-            impact_value?: number;
-        };
-        AssumptionResponse: components["schemas"]["AssumptionCreate"] & {
-            /** Format: uuid */
-            id: string;
-            /** @enum {string} */
-            lifecycle_state: "draft" | "approved" | "deprecated" | "archived" | "published";
-            is_approved_for_use: boolean;
-        };
-        PolicyRuleCreate: {
-            name: string;
-            min_impact_threshold?: number;
-            required_reviewer_role: string;
-        };
-        ApplySelectionRequest: {
-            /** @default evaluation */
-            context: string;
         };
     };
     responses: never;
@@ -2581,6 +2541,109 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ModelEvaluationListResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_assumption_api_v1_assumptions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssumptionCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssumptionResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_policy_rule_api_v1_policy_rules_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PolicyRuleCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PolicyRuleCreate"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    apply_assumption_selection_api_v1_assumptions__assumption_id__apply_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                assumption_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApplySelectionRequest"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: string;
+                    };
                 };
             };
             /** @description Validation Error */

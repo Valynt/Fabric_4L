@@ -1,0 +1,10 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: layer2-5-signal-refinery-pdb
+  namespace: value-fabric
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: layer2-5-signal-refinery

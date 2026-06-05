@@ -87,6 +87,7 @@ Every root `package.json` script is a stable public npm-script interface.
 | `ci:workflow-registry` | `python scripts/ci/verify_workflow_registry.py` | Workflow registry validation |
 | `ops:backup:verify` | `python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py` | Backup recovery validation |
 | `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
+| `ops:walg:gate` | `python scripts/ci/check_walg_enablement_gate.py` | WAL-G physical backup enablement evidence gate |
 | `ops:quota:check` | `python scripts/ci/check_quota_policy.py` | Quota policy validation |
 
 ## Public Makefile Targets
@@ -286,8 +287,8 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `gate-local` | Minimal local security gate; not production readiness. |
 | `gate-local-production-subset` | Local-only production-readiness subset. |
 | `gate-all` | Compatibility alias for `gate-local-production-subset`. |
-| `gate-production` | Full production-readiness gate suite. |
-| `production-readiness-gate` | Compatibility alias for `gate-production`. |
+| `production-readiness-gate` | Canonical production-readiness gate required by CI. |
+| `gate-production` | Compatibility alias for `production-readiness-gate`. |
 | `gate-production-core` | Policy-driven production-core gate profile. |
 | `tier0-production-safety-gate` | Tier 0 safety gate profile. |
 | `tier1-beta-readiness-gate` | Tier 1 beta readiness profile. |
@@ -346,7 +347,7 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 | Frontend PR checks | `pnpm run verify:frontend` or `pnpm --dir apps/web run <script>` | Use package-level scripts for focused frontend checks. |
 | Migration status/drift checks | `pnpm db:migrate:status`, `pnpm db:migrate:check`, or `make gate-database` | `db:migrate:*` are read-only. |
 | Database readiness | `make gate-database` | Local static/read-only gate; live checks require explicit DB environment. |
-| Production readiness policy | `make gate-production` or `make production-readiness-gate` | Full release gate; slower than PR validation. |
+| Production readiness gate | `make production-readiness-gate` | Canonical CI-required production-readiness gate. `make gate-production` is a compatibility alias. |
 | Release evidence | `make release-evidence-packet` | Generates canonical release evidence. |
 | Incident response docs | `pnpm ops:runbooks:lint` and `pnpm ops:incident:check` | Validates `ops/incident/` runbooks, severity, escalation, communications, postmortem, and workflow links. |
 | Docs command-map validation | `pnpm docs:check` | Runs `python -m pytest tests/docs/`. |

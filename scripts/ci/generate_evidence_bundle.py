@@ -36,6 +36,8 @@ HEAVY_EVIDENCE_EXPECTATIONS = (
     ("container SBOM references", "artifacts/**/*sbom*"),
     ("K8s validation report", "artifacts/**/*k8s*"),
     ("observability dashboard/rule validation", "artifacts/**/*observability*"),
+    ("restore dry-run proof", "artifacts/**/*restore*"),
+    ("rollback verification proof", "artifacts/**/*rollback*"),
     ("release smoke results", "artifacts/release_smoke/**"),
 )
 
@@ -91,6 +93,17 @@ SECTION_PATTERNS: dict[str, tuple[str, ...]] = {
         "artifacts/**/*alert*",
         "artifacts/**/*grafana*",
         "artifacts/**/*prometheus*",
+    ),
+    "restore": (
+        "artifacts/recovery/**",
+        "artifacts/**/*restore*",
+        "artifacts/**/*backup*",
+        "artifacts/**/*recovery*",
+    ),
+    "rollback": (
+        "artifacts/**/*rollback*",
+        "artifacts/**/*release-safety*",
+        "artifacts/release/**",
     ),
     "release-smoke": (
         "artifacts/release_smoke/**",
@@ -413,6 +426,58 @@ def _generate_migration_status(repo_root: Path, gaps: list[dict[str, Any]], stag
     )
 
 
+def _generate_restore_dry_run(repo_root: Path, gaps: list[dict[str, Any]], staging_root: Path) -> dict[str, Any]:
+    output_dir = staging_root / "restore"
+    command = [
+        sys.executable,
+        "scripts/ops/restore_dry_run.py",
+        "--output-dir",
+        str(output_dir),
+    ]
+    record = _run_command(
+        name="restore_dry_run",
+        command=command,
+        repo_root=repo_root,
+        gaps=gaps,
+        staging_root=staging_root,
+    )
+    if (output_dir / "restore-dry-run-evidence.json").exists():
+        record["output"] = "restore/restore-dry-run-evidence.json"
+    return record
+
+
+def _generate_rollback_verification(repo_root: Path, gaps: list[dict[str, Any]], staging_root: Path) -> dict[str, Any]:
+    command = [sys.executable, "scripts/ci/verify_release_rollback.py"]
+    record = _run_command(
+        name="rollback_verification",
+        command=command,
+        repo_root=repo_root,
+        gaps=gaps,
+        staging_root=staging_root,
+    )
+    payload = {
+        "generated_at_utc": _utc_now(),
+        "schema_version": "release-rollback-verification.v1",
+        "status": "pass" if record.get("returncode") == 0 else "finding",
+        "command": " ".join(command),
+        "returncode": record.get("returncode"),
+        "stdout_path": record.get("stdout_path"),
+        "stderr_path": record.get("stderr_path"),
+        "proof_sources": [
+            "scripts/ci/check_migration_rollback_policy.py",
+            "scripts/ci/verify_release_rollback.py",
+            "docs/operations/runbooks/database-migration-rollback.md",
+            "docs/runbooks/deployment/rollback-production-release.md",
+            "tests/release/test_database_migration_rollback.py",
+            "tests/release/test_rollback_procedure.py",
+        ],
+        "note": "Static rollback proof only; live production rollback drills must be attached as environment evidence before launch approval.",
+    }
+    _write_json(staging_root / "rollback" / "release-rollback-verification.json", payload)
+    record["output"] = "rollback/release-rollback-verification.json"
+    return record
+
+
 def _write_migration_inventory(repo_root: Path, staging_root: Path) -> dict[str, Any]:
     managed = []
     for path in sorted(repo_root.glob("services/*/migrations/alembic.ini")):
@@ -633,6 +698,8 @@ running Docker release smoke, live scans, full test suites, or image builds.
 - `security/`: copied SAST, security regression, vulnerability, and scan files.
 - `contracts/`: OpenAPI breaking-change and contract drift reports.
 - `migrations/`: migration status artifacts.
+- `restore/`: dry-run restore proof and copied backup/recovery artifacts.
+- `rollback/`: release rollback verification proof and copied rollback artifacts.
 - `supply-chain/`: SBOM, signing, and attestation references.
 - `k8s/`: Kubernetes inventory and validation evidence.
 - `observability/`: dashboard and alert/rule inventory.
@@ -690,6 +757,8 @@ def _write_manifest(
             "contract drift reports",
             "OpenAPI breaking-change report",
             "migration status",
+            "restore dry-run proof",
+            "rollback verification proof",
             "container SBOM references",
             "K8s validation report",
             "observability dashboard/rule validation",
@@ -760,6 +829,8 @@ def generate_evidence_bundle(
         input_sources.append(_generate_contract_reports(repo_root, gaps, staging_root))
         input_sources.append(_write_migration_inventory(repo_root, staging_root))
         input_sources.append(_generate_migration_status(repo_root, gaps, staging_root))
+        input_sources.append(_generate_restore_dry_run(repo_root, gaps, staging_root))
+        input_sources.append(_generate_rollback_verification(repo_root, gaps, staging_root))
         input_sources.append(_generate_workflow_registry(repo_root, staging_root))
         input_sources.append(_generate_observability_inventory(repo_root, staging_root, gaps))
         input_sources.append(_generate_k8s_inventory(repo_root, staging_root, gaps))

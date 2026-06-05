@@ -481,24 +481,11 @@ router = APIRouter(prefix="/api/v1/ingestion")
 
 
 def get_tenant_id(request: Request) -> UUID:
-    """Extract organization (tenant) ID from the GovernanceMiddleware context.
-
-    Falls back to the X-Organization-ID header for backward compatibility
-    with existing integration tests.
-    """
+    """Extract organization (tenant) ID from verified identity context."""
     ctx = getattr(request.state, "governance_context", None)
     if ctx is not None:
         return ctx.tenant_id
 
-    # Legacy header fallback (integration tests / dev only)
-    header_value = request.headers.get("X-Organization-ID")
-    if header_value:
-        try:
-            return UUID(header_value)
-        except ValueError:
-            raise ValidationError(message = "Invalid X-Organization-ID header format")
-
-    # P0-3 FIX: Never fall back to a hardcoded tenant — require authentication
     raise AuthenticationError(message = "Authentication required")
 
 
