@@ -36,6 +36,7 @@
     "test:agents": "python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py",
     "readiness:10": "python scripts/ci/readiness_10_gate.py",
     "test:security": "python -m pytest tests/security/ -v --tb=short",
+    "test:critical-behaviors": "pnpm --filter ./apps/web run test:critical-behaviors && python scripts/ci/check_route_auth_dependencies.py && python -m pytest tests/security/test_tenant_boundary_fails_closed.py tests/security/test_billing_tenant_boundary.py -q",
     "test:security:hostile": "python -m pytest tests/security/test_hostile_tenant_e2e_matrix.py tests/security/test_hostile_tenant_journey_contracts.py -v --tb=short",
     "test:isolation": "python scripts/ci/run_root_aggregate_checks.py isolation",
     "test:schema": "python scripts/ci/run_root_aggregate_checks.py schema",

@@ -7,12 +7,9 @@
  */
 import { OrganizationList } from "@clerk/react";
 import { useOrganization } from "@clerk/react";
-import { Navigate, useLocation } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 
 export default function SelectOrganizationPage() {
-  const location = useLocation();
-  const normalizePath = (value: string) => value.split(/[?#]/, 1)[0].replace(/\/+$/, "") || "/";
-  const pickerPath = normalizePath(location.pathname);
   const postOrgRedirectUrl = "/home";
   const { isLoaded: orgLoaded, organization } = useOrganization();
 

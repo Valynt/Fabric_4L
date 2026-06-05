@@ -151,6 +151,11 @@ export const router = createBrowserRouter([
     handle: { accessPolicy: authPolicy },
   },
   {
+    path: "/signin",
+    element: <Navigate to="/sign-in" replace />,
+    handle: { accessPolicy: authPolicy },
+  },
+  {
     path: "/sign-up",
     element: <ClerkSignUpPage />,
     handle: { accessPolicy: authPolicy },

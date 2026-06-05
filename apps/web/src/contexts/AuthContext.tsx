@@ -13,6 +13,7 @@
 import { createContext, useContext, useMemo } from 'react';
 import { useAuth as useClerkAuth, useUser as useClerkUser, useOrganization } from '@clerk/react';
 import { createFeatureLogger } from '@/lib/telemetry';
+import { isClerkAuthEnabled } from '@/auth/clerkConfig';
 import { type UserInfo, UserInfoSchema } from '../schemas/auth';
 
 export type { UserInfo } from '../schemas/auth';
@@ -63,8 +64,10 @@ function safeNavigate(path: string) {
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Check if mock auth mode is enabled (DEV-only guard)
-  const mockAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true';
+  // Mock auth must never override Clerk auth state. If both are configured,
+  // prefer Clerk and treat mock auth as disabled to avoid redirect loops.
+  const clerkMode = isClerkAuthEnabled();
+  const mockAuthEnabled = import.meta.env.DEV && import.meta.env.VITE_ENABLE_MOCK_AUTH === 'true' && !clerkMode;
 
   // Clerk hooks (only used when mock auth is disabled)
   const { isLoaded: authLoaded, isSignedIn } = useClerkAuth();

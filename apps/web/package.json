@@ -80,6 +80,7 @@
     "test:legacy-removals": "node scripts/quality/assert-legacy-removals.mjs",
     "test:coverage:critical": "vitest run --coverage --config vitest.critical-coverage.config.ts",
     "test:hooks:priority": "vitest run src/hooks/useTenantMembership.test.ts src/hooks/useWorkflowContext.test.ts src/hooks/useValueCaseArtifacts.test.ts",
+    "test:critical-behaviors": "vitest run src/auth/clerkConfig.test.ts src/contexts/AuthContext.behavior.test.tsx src/components/routing/RequireClerkAuth.test.tsx src/pages/SelectOrganization.test.tsx src/api/__tests__/contract/tenant-context.contract.test.ts && pnpm run test:prod-auth-bypass",
     "check:no-legacy-api-imports": "node scripts/assert-no-legacy-api-imports.mjs",
     "check:compatibility-shims-registered": "node scripts/quality/assert-compatibility-shims-registered.mjs",
     "check:async-boundaries": "node scripts/quality/async-boundary-audit.mjs",

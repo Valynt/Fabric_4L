@@ -741,11 +741,7 @@ frontend/client/src/components/ui/    # shadcn components
 - [x] Runs in GitHub Actions against docker-compose stack
 
 **Implementation:** ✅ COMPLETE
-<<<<<<< ours
 - ✅ `.github/workflows/pr-checks.yml` (`integration-checks`) - CI workflow with Docker Compose
-=======
-- ✅ `.github/workflows/smoke-gate.yml` - CI workflow with Docker Compose
->>>>>>> theirs
 - ✅ `make test-backend-integrated-release-smoke` - maintained release-smoke validation target
 - ✅ `docs/archive/legacy-docs/archive/legacy-services/README.md` - Smoke gate usage documented (lines 165-230)
 
