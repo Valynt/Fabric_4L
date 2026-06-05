@@ -410,6 +410,13 @@ services:
       - VITE_ENABLE_QUERY_DEVTOOLS=true
       - VITE_API_LOG_LEVEL=debug
       - VITE_ENABLE_MOCK_AUTH=true
+      - VITE_AUTH_PROVIDER=${VITE_AUTH_PROVIDER:-clerk}
+      - VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
+      - VITE_CLERK_SIGN_IN_URL=${VITE_CLERK_SIGN_IN_URL:-/sign-in}
+      - VITE_CLERK_SIGN_UP_URL=${VITE_CLERK_SIGN_UP_URL:-/sign-up}
+      - VITE_CLERK_AFTER_SIGN_IN_URL=${VITE_CLERK_AFTER_SIGN_IN_URL:-/home}
+      - VITE_CLERK_AFTER_SIGN_UP_URL=${VITE_CLERK_AFTER_SIGN_UP_URL:-/onboarding}
+      - VITE_CLERK_JWT_TEMPLATE=${VITE_CLERK_JWT_TEMPLATE:-fabric4l-api}
       # Vite dev-server proxy targets must use Docker service names (not localhost,
       # which inside this container resolves to the frontend itself).
       - VITE_PROXY_L1_URL=http://layer1:8000

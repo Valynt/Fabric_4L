@@ -48,7 +48,7 @@ const FOREIGN_ACCOUNT_ID = 'acct-foreign-globex-999';
 const COMPLETED_JOB = {
   id: TEST_JOB_ID,
   domain: TEST_DOMAIN,
-  status: 'completed',
+  status: 'completed' as const,
   progress: 100,
   created_at: '2025-04-28T10:00:00Z',
   pages_crawled: 47,

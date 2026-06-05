@@ -17,18 +17,33 @@ INDEX_HTML = REPO_ROOT / "apps" / "web" / "index.html"
 
 # Required CSP directives and the values that must be present in each.
 CSP_REQUIREMENTS: dict[str, set[str]] = {
-    "script-src": {"'self'", "'unsafe-inline'", "https://*.clerk.accounts.dev", "blob:"},
+    "script-src": {
+        "'self'",
+        "'unsafe-inline'",
+        "https://*.clerk.accounts.dev",
+        # Clerk Smart CAPTCHA (Cloudflare Turnstile) loads its challenge script
+        # from this origin; without it the CAPTCHA fails to load on sign-up.
+        "https://challenges.cloudflare.com",
+        "blob:",
+    },
     "worker-src": {"'self'", "blob:"},
     "style-src": {"'self'", "'unsafe-inline'", "https://fonts.googleapis.com"},
     "connect-src": {
         "'self'",
         "https://*.fabric4l.io",
         "https://*.clerk.accounts.dev",
+        "https://challenges.cloudflare.com",
         "https://clerk-telemetry.com",
     },
     "font-src": {"'self'", "https://fonts.gstatic.com"},
     "img-src": {"'self'", "data:", "https://*.clerk.accounts.dev", "https://img.clerk.com"},
-    "frame-src": {"'self'", "https://*.clerk.accounts.dev"},
+    # Clerk Smart CAPTCHA renders the Turnstile widget inside an iframe served
+    # from challenges.cloudflare.com, so it must be an allowed frame source.
+    "frame-src": {
+        "'self'",
+        "https://*.clerk.accounts.dev",
+        "https://challenges.cloudflare.com",
+    },
 }
 
 

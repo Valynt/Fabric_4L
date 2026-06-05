@@ -7,9 +7,11 @@
  *     existing <ProtectedRoute /> guards remain authoritative, so this
  *     component is a no-op and zero-risk to add to existing routes.
  *   - When AUTH_PROVIDER=clerk:
- *       - If Clerk is still loading, render a small spinner.
+ *       - If Clerk is still loading, render nothing (null) to prevent any
+ *         protected UI from flashing on screen.
  *       - If the user is not signed in, redirect to the configured sign-in
- *         URL with the original location preserved.
+ *         URL with the original location preserved. The redirect happens
+ *         synchronously via useLayoutEffect before the browser paints.
  *       - If the user has no active organization (and the route requires
  *         one), redirect to the org-picker page.
  *
@@ -17,8 +19,8 @@
  * verified Fabric4L envelope, never anything from the browser.
  */
 import { useAuth, useOrganization } from "@clerk/react";
-import { Navigate, useLocation } from "react-router-dom";
-import type { ReactNode } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 
 import { getClerkUrls, isClerkAuthEnabled } from "@/auth/clerkConfig";
 
@@ -32,21 +34,6 @@ interface RequireClerkAuthProps {
   requireOrganization?: boolean;
 }
 
-function ClerkLoadingFallback() {
-  return (
-    <div
-      role="status"
-      aria-live="polite"
-      className="flex h-full min-h-[400px] items-center justify-center"
-    >
-      <div className="flex flex-col items-center gap-3">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-border border-t-primary" />
-        <p className="text-sm text-muted-foreground">Verifying session...</p>
-      </div>
-    </div>
-  );
-}
-
 function RequireClerkAuthOrgCheck({
   children,
   requireOrganization,
@@ -54,15 +41,26 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
+  const navigate = useNavigate();
   const urls = getClerkUrls();
   const { isLoaded: orgLoaded, organization } = useOrganization();
+  const hasNavigated = useRef(false);
 
   if (requireOrganization && !orgLoaded) {
-    return <ClerkLoadingFallback />;
+    // Render nothing while org state loads to prevent UI flash
+    return null;
   }
 
+  useLayoutEffect(() => {
+    if (requireOrganization && !organization && !hasNavigated.current) {
+      hasNavigated.current = true;
+      navigate(urls.selectOrgUrl, { replace: true });
+    }
+  }, [requireOrganization, organization, navigate, urls.selectOrgUrl]);
+
   if (requireOrganization && !organization) {
-    return <Navigate to={urls.selectOrgUrl} replace />;
+    // Redirect in progress — render nothing to prevent UI flash
+    return null;
   }
 
   return <>{children}</>;
@@ -72,19 +70,37 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const hasNavigated = useRef(false);
 
-  if (!authLoaded) {
-    return <ClerkLoadingFallback />;
-  }
+  // DEBUG: log auth state
+  // eslint-disable-next-line no-console
+  console.log('[RequireClerkAuth]', { path: location.pathname, authLoaded, isSignedIn });
 
-  if (!isSignedIn) {
-    const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-      location.pathname + location.search,
-    )}`;
-    return <Navigate to={redirectTo} replace />;
+  // Redirect synchronously before paint to prevent ANY protected UI from flashing.
+  // useLayoutEffect runs after DOM mutations but before the browser paints,
+  // so the user never sees the protected route content.
+  useLayoutEffect(() => {
+    // eslint-disable-next-line no-console
+    console.log('[RequireClerkAuth] useLayoutEffect', { path: location.pathname, authLoaded, isSignedIn, hasNavigated: hasNavigated.current });
+    if (authLoaded && !isSignedIn && !hasNavigated.current) {
+      hasNavigated.current = true;
+      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+        location.pathname + location.search,
+      )}`;
+      // eslint-disable-next-line no-console
+      console.log('[RequireClerkAuth] navigating to', redirectTo);
+      navigate(redirectTo, { replace: true });
+    }
+  }, [authLoaded, isSignedIn, navigate, urls.signInUrl, location.pathname, location.search]);
+
+  // While Clerk is still loading OR the user is not signed in (redirect pending),
+  // render absolutely nothing. This guarantees zero UI flash.
+  if (!authLoaded || !isSignedIn) {
+    return null;
   }
 
   return (
@@ -95,6 +111,8 @@ function RequireClerkAuthInner({
 }
 
 export function RequireClerkAuth(props: RequireClerkAuthProps) {
+  // eslint-disable-next-line no-console
+  console.log('[RequireClerkAuth] render', { clerkEnabled: isClerkAuthEnabled() });
   // No-op under legacy auth — let downstream <ProtectedRoute /> own the gate.
   if (!isClerkAuthEnabled()) {
     return <>{props.children}</>;

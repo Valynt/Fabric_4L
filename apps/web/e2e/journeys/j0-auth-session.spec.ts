@@ -81,10 +81,6 @@ test.describe('Route Guard Contract', () => {
     await expect(page).toHaveURL(/\/sign-in/, { timeout: 10000 });
   });
 
-  test.skip(
-    true,
-    'Known issue: RequireClerkAuth Navigate is a no-op for /workspaces and /onboarding.',
-  );
   test('unauthenticated /workspaces redirects to /sign-in', async ({ page }) => {
     await go(page, '/workspaces');
     await expect(page).toHaveURL(/\/sign-in/, { timeout: 10000 });

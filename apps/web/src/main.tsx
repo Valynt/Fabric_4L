@@ -36,6 +36,7 @@ import {
   getClerkPublishableKey,
   getClerkUrls,
 } from "./auth/clerkConfig";
+import { shadcn } from "@clerk/ui/themes";
 
 // ReactQueryDevtools is only included in development builds.
 // Vite's tree-shaking drops this import entirely in production,
@@ -81,21 +82,20 @@ installWebVitals();
 const clerkUrls = getClerkUrls();
 const clerkPublishableKey = getClerkPublishableKey();
 
+// Brand Clerk's components with the official shadcn theme. The theme maps
+// Clerk's internal UI to the same shadcn CSS tokens the app already defines
+// (--primary, --background, --border, ...). Because those tokens flip under
+// the `.dark` class managed by ThemeProvider, Clerk automatically follows the
+// app's light/dark mode without needing the React theme context — which
+// matters here because <ClerkProvider> is mounted above <ThemeProvider>.
+//
+// We intentionally do NOT hardcode colorPrimary (it previously drifted from
+// the app brand token); the shadcn theme derives it from --primary. Only the
+// app font is carried over so the widget matches the surrounding typography.
 const clerkAppearance = {
+  theme: shadcn,
   variables: {
-    colorPrimary: "#0f766e",
-    borderRadius: "0.625rem",
     fontFamily: "var(--font-sans)",
-  },
-  elements: {
-    card: "rounded-lg border border-border bg-card text-card-foreground shadow-sm",
-    cardBox: "shadow-none",
-    headerTitle: "text-foreground",
-    headerSubtitle: "text-muted-foreground",
-    formButtonPrimary: "bg-primary text-primary-foreground hover:bg-primary/90",
-    formFieldInput:
-      "border-input bg-background text-foreground placeholder:text-muted-foreground",
-    footerActionLink: "text-primary hover:text-primary/80",
   },
 };
 
