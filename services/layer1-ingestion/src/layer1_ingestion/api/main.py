@@ -31,7 +31,7 @@ from uuid import UUID, uuid4
 from zoneinfo import available_timezones
 
 import structlog
-from fastapi import APIRouter, Depends, FastAPI, Query, Request
+from fastapi import APIRouter, Depends, FastAPI, HTTPException, Query, Request
 from fastapi.responses import Response
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import func
@@ -129,7 +129,7 @@ class _UnavailableTask:
             error=str(self.import_error),
             exc_info=self.import_error,
         )
-        raise ServiceUnavailableError(message=str(_build_task_unavailable_detail()))
+        raise HTTPException(status_code=503, detail=_build_task_unavailable_detail())
 
 
 try:

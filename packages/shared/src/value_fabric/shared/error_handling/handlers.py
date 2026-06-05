@@ -280,6 +280,17 @@ async def http_exception_handler(request: Request, exc: HTTPException) -> JSONRe
     error_code = _map_http_status_to_error_code(exc)
 
     message = sanitize_public_error(exc, status_code=exc.status_code).message
+    detail = getattr(exc, "detail", None)
+    if isinstance(detail, dict):
+        detail_code = detail.get("code")
+        detail_message = detail.get("message")
+        if isinstance(detail_code, str) and detail_code:
+            try:
+                error_code = ErrorCode(detail_code)
+            except ValueError:
+                error_code = detail_code
+        if isinstance(detail_message, str) and detail_message:
+            message = detail_message
 
     error_envelope = ErrorEnvelope(
         error=ErrorDetail(

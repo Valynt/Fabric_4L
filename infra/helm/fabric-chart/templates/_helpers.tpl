@@ -55,3 +55,21 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- define "fabric.environment" -}}
 {{- default "dev" .Values.global.environment }}
 {{- end }}
+
+{{/* Shared application image reference. Digests take precedence over tags. */}}
+{{- define "fabric.image" -}}
+{{- $imageRepository := required "image.repository is required" .Values.image.repository -}}
+{{- $imageTag := .Values.image.tag | default "" | toString -}}
+{{- $imageDigest := .Values.image.digest | default "" | toString -}}
+{{- if and (eq $imageDigest "") (or (eq $imageTag "") (eq $imageTag "latest")) -}}
+{{- fail "image.tag must be explicitly set to a non-latest value or image.digest must be set" -}}
+{{- end -}}
+{{- if and (ne $imageDigest "") (not (mustRegexMatch "^sha256:[a-f0-9]{64}$" $imageDigest)) -}}
+{{- fail "image.digest must be a valid sha256 digest in the form sha256:<64 hex chars>" -}}
+{{- end -}}
+{{- if ne $imageDigest "" -}}
+{{- printf "%s@%s" $imageRepository $imageDigest -}}
+{{- else -}}
+{{- printf "%s:%s" $imageRepository $imageTag -}}
+{{- end -}}
+{{- end }}

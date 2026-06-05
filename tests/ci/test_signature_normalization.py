@@ -60,6 +60,18 @@ def test_normalizes_common_volatile_ci_tokens_to_same_hash() -> None:
     assert normalized_first.signature_summary.startswith("<timestamp> <run_id>")
 
 
+def test_normalizes_pre_tokenized_source_locations_without_bad_group_references() -> None:
+    module = _load_module()
+
+    normalized = module.normalize_ci_log_signature(
+        "FAILED <temp_path>:123:45 and <workspace_path>:987"
+    )
+
+    assert "<temp_path>:<line>:<col>" in normalized.normalized_text
+    assert "<workspace_path>:<line>" in normalized.normalized_text
+    assert "<workspace_path>:<line>:" not in normalized.normalized_text
+
+
 def test_recurrence_counts_group_by_workflow_job_hash_and_primary_category() -> None:
     module = _load_module()
     records = [

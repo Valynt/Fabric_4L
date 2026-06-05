@@ -22,7 +22,8 @@ helm install fabric ./fabric-chart -f values.yaml
 helm install fabric ./fabric-chart -f values-dev.yaml
 
 # Production
-helm install fabric ./fabric-chart -f values-prod.yaml
+helm install fabric ./fabric-chart -f values-prod.yaml \
+  --set image.digest=sha256:<signed-image-digest>
 ```
 
 ## Configuration
@@ -31,6 +32,9 @@ helm install fabric ./fabric-chart -f values-prod.yaml
 |-----------|-------------|---------|
 | `global.environment` | Deployment environment | `dev` |
 | `global.imageRegistry` | Container registry | `""` |
+| `image.repository` | Shared image repository | `ghcr.io/bmsull560/fabric_4l` |
+| `image.tag` | Non-latest image tag used when `image.digest` is empty | `REQUIRED_IMAGE_TAG` |
+| `image.digest` | Optional sha256 digest; takes precedence over `image.tag` and is required for production policy compliance | `""` |
 | `services.layer1.enabled` | Enable Layer 1 | `true` |
 | `services.layer1.replicaCount` | Layer 1 replicas | `2` |
 | `services.layer4.resources.limits.memory` | Layer 4 memory limit | `4Gi` |

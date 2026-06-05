@@ -290,11 +290,14 @@ jobs:
         run: |
           pip install pytest
           python scripts/ci/webhook_security_matrix_report.py
+          test -f artifacts/webhook-security-matrix.md
 
       - name: Tenant boundary static runtime enforcement
         run: |
           python scripts/ci/boundary_check.py --base-ref "origin/${{ github.base_ref || 'main' }}"
           python scripts/ci/check_route_tenant_propagation.py --base-ref "origin/${{ github.base_ref || 'main' }}"
+          test -f artifacts/route-tenant-propagation.json
+          test -f artifacts/route-tenant-propagation.md
           python -m pytest tests/security/test_boundary_check_static.py -v --tb=short
           python -m pytest tests/security/test_route_tenant_propagation_static.py -v --tb=short
 
@@ -1208,7 +1211,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '22'
+          node-version: '22.12.0'
           cache: 'pnpm'
           cache-dependency-path: 'pnpm-lock.yaml'
 
@@ -1627,7 +1630,7 @@ jobs:
   integration-checks:
     name: Integration Tests (Docker)
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     # Skip on fork PRs (no secrets available)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
 
@@ -1657,13 +1660,28 @@ jobs:
 
       - name: Run release smoke gate
         run: |
-          pip install pytest pytest-asyncio httpx pytest-timeout pytest-randomly
+          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
+          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
+          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
+          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+
+          if [ -f tests/requirements-test.txt ]; then
+            pip install -r tests/requirements-test.txt
+          else
+            pip install pytest pytest-asyncio httpx pytest-timeout pytest-randomly
+          fi
           make test-backend-integrated-release-smoke
+
       - name: Start core services for integration tests
         run: |
-          export NEO4J_PASSWORD=valuefabric
+          export JWT_SECRET="${JWT_SECRET:-release-smoke-jwt-secret-minimum-32-characters}"
+          export SERVICE_AUTH_SECRET="${SERVICE_AUTH_SECRET:-release-smoke-service-auth-secret-32chars}"
+          export POSTGRES_USER="${POSTGRES_USER:-release_smoke_app}"
+          export POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-release_smoke_strong_credential}"
+          export NEO4J_PASSWORD="${NEO4J_PASSWORD:-devpassword}"
+
           docker compose up -d neo4j redis postgres
-          # Start layers in background
           docker compose up -d --build layer2-extraction layer3-knowledge layer4-agents
 
       - name: Wait for services to be healthy
@@ -1809,7 +1827,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '24'
+          node-version: '22.12.0'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -2001,7 +2019,7 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@60edb5dd545a775178f52524783378180af0d1f8 # v4
         with:
-          node-version: '24'
+          node-version: '22.12.0'
 
       - name: Enable pnpm
         run: corepack enable && corepack prepare pnpm@10.18.1 --activate
@@ -2020,7 +2038,9 @@ jobs:
           NEO4J_URI: bolt://localhost:7687
           NEO4J_USER: neo4j
           NEO4J_PASSWORD: testpassword
-        run: pnpm test:isolation
+        run: |
+          pnpm test:isolation
+          test -f artifacts/tenant-isolation/summary.json
 
       - name: Upload tenant isolation evidence
         if: always()

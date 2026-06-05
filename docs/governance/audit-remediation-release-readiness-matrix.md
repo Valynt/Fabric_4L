@@ -29,7 +29,7 @@ the launch blocker register.
 | S1-1 | Staging `postgres-backup` CronJob/manual job succeeds and logs are attached. | Switch from `docker-desktop` to staging Kubernetes context, run the backup job, and attach job status plus logs. |
 | S5-2 | ArgoCD app sync/status and rollback-readiness evidence pass in a real cluster. | Use staging or another approved cluster with ArgoCD installed; static manifest tests are not sufficient. |
 | S5-3 | Non-production WAL-G restore drill succeeds with redacted restore proof, timing, and integrity checks. | Execute the restore drill against an approved non-production target; dry-run evidence is not sufficient. |
-| S5-4 | Live trace receipt tests pass with the required services and collector/backend running. | Re-run `tests/backend_integrated/test_otel_trace_receipt.py` after the sandbox/approval layer allows endpoint overrides, or run it in staging/backend-integrated CI. |
+| S5-4 | Live trace receipt tests pass with the required services and collector/backend running. | Re-run `tests/backend_integrated/test_otel_trace_receipt.py` after billing, Layer 2.5, Layer 7, and Jaeger are reachable, or run it in staging/backend-integrated CI. |
 
 ## Open Release Blockers
 
@@ -38,7 +38,7 @@ the launch blocker register.
 | S1-1 | Platform Infrastructure | Active Kubernetes context is `docker-desktop`, not staging. | Run a staging manual job from `postgres-backup` CronJob and attach job status plus logs. |
 | S5-2 | Platform Infrastructure | ArgoCD manifests pass static validation, but no real ArgoCD cluster sync or rollback evidence is attached. | Capture ArgoCD application sync/status and rollback-readiness evidence in staging or another approved environment. |
 | S5-3 | Platform Infrastructure | WAL-G static wiring and dry-run evidence exist, but no real restore drill evidence is attached. | Execute non-production WAL-G restore drill and attach redacted restore proof, timing, and integrity checks. |
-| S5-4 | Observability | Static OTel coverage exists. A local live trace attempt started Jaeger plus billing, Layer 2.5, and Layer 7 services, but the authoritative pytest invocation with endpoint overrides was blocked by the local sandbox/approval limit before execution. | Run `tests/backend_integrated/test_otel_trace_receipt.py` with `BILLING_URL`, `LAYER25_URL`, `LAYER7_URL`, and `JAEGER_URL` set against running services, then attach passing output. |
+| S5-4 | Observability | Static OTel coverage exists, but the latest local live trace retry failed because billing, Layer 2.5, and Layer 7 were not reachable on their default local ports. | Run `tests/backend_integrated/test_otel_trace_receipt.py` with `BILLING_URL`, `LAYER25_URL`, `LAYER7_URL`, and `JAEGER_URL` set against running services, then attach passing output. |
 
 ## Closed Local Readiness Gates
 

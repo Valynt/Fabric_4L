@@ -24,7 +24,56 @@ CONFIG_ONLY="false"
 START_STACK="true"
 REMOTE_STACK="false"
 SMOKE_MODE="false"
+
+resolve_node_bin() {
+  if command -v node >/dev/null 2>&1; then
+    command -v node
+    return 0
+  fi
+
+  local candidate
+  for candidate in \
+    "/c/Program Files/nodejs/node.exe" \
+    "/mnt/c/Program Files/nodejs/node.exe" \
+    "C:/Program Files/nodejs/node.exe"; do
+    if [[ -x "$candidate" ]]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+NODE_BIN="${NODE_BIN:-$(resolve_node_bin || true)}"
 FINALIZED="false"
+
+node_bin_available() {
+  if [[ -z "$NODE_BIN" ]]; then
+    return 1
+  fi
+  if [[ -x "$NODE_BIN" ]]; then
+    return 0
+  fi
+  command -v "$NODE_BIN" >/dev/null 2>&1
+}
+
+json_escape() {
+  local value="${1:-}"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\n'/\\n}"
+  value="${value//$'\r'/}"
+  printf '%s' "$value"
+}
+
+artifact_exists_json() {
+  if [[ -e "$1" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
 
 usage() {
   cat <<'USAGE'
@@ -129,22 +178,97 @@ sanitize_stream() {
   '
 }
 
+json_escape() {
+  local value="$1"
+  value="${value//\\/\\\\}"
+  value="${value//\"/\\\"}"
+  value="${value//$'\r'/}"
+  value="${value//$'\n'/\\n}"
+  printf '%s' "$value"
+}
+
+json_bool_file_exists() {
+  if [[ -e "$1" ]]; then
+    printf 'true'
+  else
+    printf 'false'
+  fi
+}
+
+write_minimal_summary_without_node() {
+  local status="$1"
+  local detail="$2"
+  local escaped_status escaped_detail generated_at
+  FINALIZED="true"
+  escaped_status="$(json_escape "$status")"
+  escaped_detail="$(json_escape "$detail")"
+  generated_at="$(date -u +"%Y-%m-%dT%H:%M:%SZ" 2>/dev/null || printf '')"
+
+  cat > "$SUMMARY_FILE" <<SUMMARY
+# Live Workflow Validation Summary
+
+| Field | Value |
+| --- | --- |
+| status | ${status} |
+| detail | ${detail} |
+| compose_file | ${COMPOSE_FILE} |
+| frontend_url | ${FRONTEND_URL} |
+| backend_url | ${BACKEND_URL} |
+| log_file | ${LOG_FILE} |
+| summary_json | ${SUMMARY_JSON_FILE} |
+| artifact_manifest | ${ARTIFACT_MANIFEST_FILE} |
+
+SUMMARY
+
+  cat > "$ARTIFACT_MANIFEST_FILE" <<JSON
+{
+  "generatedAt": "$(json_escape "$generated_at")",
+  "status": "${escaped_status}",
+  "artifactRoot": "$(json_escape "$ARTIFACT_DIR")",
+  "entries": []
+}
+JSON
+
+  cat > "$SUMMARY_JSON_FILE" <<JSON
+{
+  "generatedAt": "$(json_escape "$generated_at")",
+  "status": "${escaped_status}",
+  "detail": "${escaped_detail}",
+  "composeFile": "$(json_escape "$COMPOSE_FILE")",
+  "frontendUrl": "$(json_escape "$FRONTEND_URL")",
+  "backendUrl": "$(json_escape "$BACKEND_URL")",
+  "artifacts": {
+    "markdownSummary": "$(json_escape "$SUMMARY_FILE")",
+    "jsonSummary": "$(json_escape "$SUMMARY_JSON_FILE")",
+    "manifest": "$(json_escape "$ARTIFACT_MANIFEST_FILE")",
+    "log": "$(json_escape "$LOG_FILE")"
+  },
+  "artifactPresence": {
+    "markdownSummary": $(json_bool_file_exists "$SUMMARY_FILE"),
+    "jsonSummary": true,
+    "manifest": $(json_bool_file_exists "$ARTIFACT_MANIFEST_FILE"),
+    "log": $(json_bool_file_exists "$LOG_FILE")
+  }
+}
+JSON
+}
+
 write_environment_metadata() {
-  VALIDATION_MODE="$([[ "$REMOTE_STACK" == "true" ]] && echo remote-live || echo compose-live)" \
-  ENVIRONMENT_METADATA_FILE="$ENVIRONMENT_METADATA_FILE" \
-  LIVE_ENVIRONMENT_NAME="$LIVE_ENVIRONMENT_NAME" \
-  RELEASE_CANDIDATE_SHA="$RELEASE_CANDIDATE_SHA" \
-  FRONTEND_URL="$FRONTEND_URL" \
-  BACKEND_URL="$BACKEND_URL" \
-  RUN_LIVE_SEED="$RUN_LIVE_SEED" \
-  RUN_LIVE_PLAYWRIGHT="$RUN_LIVE_PLAYWRIGHT" \
-  REQUIRED_REMOTE_SERVICE_NAMES="$REQUIRED_REMOTE_SERVICE_NAMES" \
-  REMOTE_SERVICE_NAMES="${remote_service_names[*]:-}" \
-  GITHUB_RUN_ID="${GITHUB_RUN_ID:-}" \
-  GITHUB_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-}" \
-  GITHUB_SERVER_URL="${GITHUB_SERVER_URL:-}" \
-  GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}" \
-  node <<'NODE'
+  export VALIDATION_MODE="$([[ "$REMOTE_STACK" == "true" ]] && echo remote-live || echo compose-live)"
+  export ENVIRONMENT_METADATA_FILE
+  export LIVE_ENVIRONMENT_NAME
+  export RELEASE_CANDIDATE_SHA
+  export FRONTEND_URL
+  export BACKEND_URL
+  export RUN_LIVE_SEED
+  export RUN_LIVE_PLAYWRIGHT
+  export REQUIRED_REMOTE_SERVICE_NAMES
+  export REMOTE_SERVICE_NAMES="${remote_service_names[*]:-}"
+  export GITHUB_RUN_ID="${GITHUB_RUN_ID:-}"
+  export GITHUB_RUN_ATTEMPT="${GITHUB_RUN_ATTEMPT:-}"
+  export GITHUB_SERVER_URL="${GITHUB_SERVER_URL:-}"
+  export GITHUB_REPOSITORY="${GITHUB_REPOSITORY:-}"
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const githubRunUrl = process.env.GITHUB_RUN_ID && process.env.GITHUB_SERVER_URL && process.env.GITHUB_REPOSITORY
@@ -224,6 +348,11 @@ parse_remote_service_health_urls() {
 write_summary() {
   local status="$1"
   local detail="$2"
+  if ! node_bin_available; then
+    write_minimal_summary_without_node "$status" "$detail"
+    return
+  fi
+
   FINALIZED="true"
   cat > "$SUMMARY_FILE" <<SUMMARY
 # Live Workflow Validation Summary
@@ -260,7 +389,26 @@ SUMMARY
 write_machine_summary() {
   local status="$1"
   local detail="$2"
-  STATUS="$status" DETAIL="$detail"   SUMMARY_JSON_FILE="$SUMMARY_JSON_FILE"   LOG_FILE="$LOG_FILE" SUMMARY_FILE="$SUMMARY_FILE"   ARTIFACT_MANIFEST_FILE="$ARTIFACT_MANIFEST_FILE"   COMPOSE_FILE="$COMPOSE_FILE" COMPOSE_CONFIG_FILE="$COMPOSE_CONFIG_FILE"   CONTAINER_STATUS_FILE="$CONTAINER_STATUS_FILE" HEALTH_STATUS_FILE="$HEALTH_STATUS_FILE"   ENDPOINT_PROBES_FILE="$ENDPOINT_PROBES_FILE" ENVIRONMENT_METADATA_FILE="$ENVIRONMENT_METADATA_FILE" SERVICE_LOG_DIR="$SERVICE_LOG_DIR"   SEED_REPORT_JSON="$SEED_REPORT_JSON" PLAYWRIGHT_ARTIFACT_DIR="$PLAYWRIGHT_ARTIFACT_DIR"   FRONTEND_URL="$FRONTEND_URL" BACKEND_URL="$BACKEND_URL"   RUN_LIVE_SEED="$RUN_LIVE_SEED" RUN_LIVE_PLAYWRIGHT="$RUN_LIVE_PLAYWRIGHT"   node <<'NODE'
+  export STATUS="$status"
+  export DETAIL="$detail"
+  export SUMMARY_JSON_FILE
+  export LOG_FILE
+  export SUMMARY_FILE
+  export ARTIFACT_MANIFEST_FILE
+  export COMPOSE_FILE
+  export COMPOSE_CONFIG_FILE
+  export CONTAINER_STATUS_FILE
+  export HEALTH_STATUS_FILE
+  export ENDPOINT_PROBES_FILE
+  export ENVIRONMENT_METADATA_FILE
+  export SERVICE_LOG_DIR
+  export SEED_REPORT_JSON
+  export PLAYWRIGHT_ARTIFACT_DIR
+  export FRONTEND_URL
+  export BACKEND_URL
+  export RUN_LIVE_SEED
+  export RUN_LIVE_PLAYWRIGHT
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const exists = (p) => Boolean(p) && fs.existsSync(p);
@@ -309,7 +457,10 @@ NODE
 
 write_artifact_manifest() {
   local status="$1"
-  STATUS="$status" ARTIFACT_DIR="$ARTIFACT_DIR" ARTIFACT_MANIFEST_FILE="$ARTIFACT_MANIFEST_FILE" node <<'NODE'
+  export STATUS="$status"
+  export ARTIFACT_DIR
+  export ARTIFACT_MANIFEST_FILE
+  "$NODE_BIN" <<'NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const root = process.env.ARTIFACT_DIR;
@@ -447,18 +598,19 @@ else
   command -v docker-compose >/dev/null || fail "BLOCKED" "docker-compose is required in this validation environment"
   docker-compose --version
 fi
-node --version
+node_bin_available || fail "BLOCKED" "node is required in this validation environment"
+"$NODE_BIN" --version
 pnpm --version || true
 
 section "frontend guardrails"
 (
   cd apps/web
-  PLAYWRIGHT_LIVE_MODE=true \
-  PLAYWRIGHT_LIVE_FRONTEND_URL="$FRONTEND_URL" \
-  PLAYWRIGHT_BACKEND_URL="$BACKEND_URL" \
-  VITE_USE_MOCKS=false \
-  VITE_ENABLE_MOCK_FALLBACK=false \
-  node scripts/live-env-guard.mjs test
+  export PLAYWRIGHT_LIVE_MODE=true
+  export PLAYWRIGHT_LIVE_FRONTEND_URL="$FRONTEND_URL"
+  export PLAYWRIGHT_BACKEND_URL="$BACKEND_URL"
+  export VITE_USE_MOCKS=false
+  export VITE_ENABLE_MOCK_FALLBACK=false
+  "$NODE_BIN" scripts/live-env-guard.mjs test
 )
 
 section "compose config"
@@ -585,14 +737,14 @@ fi
 if [[ "$SMOKE_MODE" == "true" ]]; then
   section "smoke evidence artifact"
   SMOKE_EVIDENCE_FILE="$ARTIFACT_DIR/live-stack-smoke-evidence-${RELEASE_CANDIDATE_SHA:-unknown}.json"
-  ENDPOINT_PROBES_FILE="$ENDPOINT_PROBES_FILE" \
-  HEALTH_STATUS_FILE="$HEALTH_STATUS_FILE" \
-  RELEASE_CANDIDATE_SHA="${RELEASE_CANDIDATE_SHA:-}" \
-  COMPOSE_FILE="$COMPOSE_FILE" \
-  FRONTEND_URL="$FRONTEND_URL" \
-  BACKEND_URL="$BACKEND_URL" \
-  SMOKE_EVIDENCE_FILE="$SMOKE_EVIDENCE_FILE" \
-  node <<'SMOKE_NODE'
+  export ENDPOINT_PROBES_FILE
+  export HEALTH_STATUS_FILE
+  export RELEASE_CANDIDATE_SHA="${RELEASE_CANDIDATE_SHA:-}"
+  export COMPOSE_FILE
+  export FRONTEND_URL
+  export BACKEND_URL
+  export SMOKE_EVIDENCE_FILE
+  "$NODE_BIN" <<'SMOKE_NODE'
 const fs = require('node:fs');
 const path = require('node:path');
 const probesFile = process.env.ENDPOINT_PROBES_FILE;

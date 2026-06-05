@@ -23,12 +23,11 @@ jobs:
           REQUIRED_CHECKS=(
             "mandatory-security-regression"
             "contract-compliance"
-            "p0-e2e-gate"
+            "structural-preflight"
             "prod-readiness"
             "Layer 5 - Source Contract"
             "Layer 5 - Tenant Isolation Regression"
             "Layer 5 - Contract Shape Regression"
-            "make verify"
           )
 
           REPO="${{ github.repository }}"

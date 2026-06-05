@@ -369,7 +369,7 @@ class TestFullSkillPipelineEventFlow:
             dispatch_session.query.return_value.filter.return_value.first.return_value = row
 
             with patch("layer1_ingestion.shared.tasks.get_db_session", return_value=dispatch_session):
-                tasks_module.dispatch_outbox_event(str(row.id))
+                tasks_module.dispatch_outbox_event(str(row.id), str(tenant_id))
 
             assert row.status == OutboxStatus.DISPATCHED.value
             assert row.dispatched_at is not None

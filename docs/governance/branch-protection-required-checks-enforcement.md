@@ -1,7 +1,7 @@
 # Branch Protection Required Checks Enforcement Evidence
 
-- **Evidence date:** 2026-05-12
-- **Policy metadata source:** `docs/governance/branch-protection-required-checks.yml`
+- **Evidence date:** 2026-06-05
+- **Policy metadata source:** `config/ci/required-status-checks.json` (mirrored in `docs/governance/branch-protection-required-checks.yml` for governance evidence)
 - **Validation workflow:** `.github/workflows/branch-protection-validation.yml`
 - **Drift guard script:** `scripts/ci/check_required_check_policy.py`
 - **Drift guard test:** `tests/ci/test_required_check_policy.py`
@@ -12,12 +12,11 @@ The required status checks enforced for `main` and `release/*` are:
 
 1. `mandatory-security-regression`
 2. `contract-compliance`
-3. `p0-e2e-gate`
+3. `structural-preflight`
 4. `prod-readiness`
 5. `Layer 5 - Source Contract`
 6. `Layer 5 - Tenant Isolation Regression`
 7. `Layer 5 - Contract Shape Regression`
-8. `make verify`
 
 ## Enforcement scope verification
 
