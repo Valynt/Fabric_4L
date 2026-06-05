@@ -764,17 +764,42 @@ A manufacturing value driver, SaaS ROI formula, healthcare benchmark, or public-
 
 ## 14. Testing Rules
 
-Every meaningful change should include or preserve tests.
+### Operating Principle
 
-Prioritize:
+> **No critical behavior exists unless it is tested.**
+
+### Enforcement Rule
+
+- **Intended behavior passes.**
+- **Unintended behavior fails.**
+- **Untested behavior is not production-ready.**
+
+Every meaningful change should include or preserve tests. The test suite is the executable contract for intended behavior. Troubleshooting should not be the primary mechanism for discovering security, configuration, or runtime gaps.
+
+For the canonical governance statement, see [`docs/governance/behavior-first-testing.md`](docs/governance/behavior-first-testing.md).
+
+### Priorities
 
 - Unit tests for pure logic
 - Integration tests for service boundaries
-- Contract tests for API shapes
+- Contract tests for API shapes **and failure modes**
 - Tenant-isolation tests for data access
 - Regression tests for drift fixes
 - Frontend behavior tests over brittle CSS tests
 - E2E tests only where workflow coverage matters
+
+### Behavior-First Requirements
+
+For every production-critical workflow, encode:
+
+1. **The intended allowed behavior** — a passing test.
+2. **The intended denied behavior** — a passing test that asserts denial.
+3. **The expected failure mode** — explicit error codes, safe defaults, or structured rejections.
+4. **The test or gate that proves the behavior before release** — pytest marker, CI job, or Makefile target.
+
+If behavior is not explicitly intended, it **fails closed by default**.
+
+### Security-Sensitive Changes
 
 For security-sensitive changes, include hostile tests.
 
@@ -786,9 +811,27 @@ Tenant A cannot mutate Tenant B data.
 Missing tenant context fails closed.
 Invalid contract payload is rejected.
 Agent output schema mismatch is caught.
+Unauthenticated request is rejected with 401.
+Cross-tenant read fails with 403.
 ```
 
+### Naming
+
+Name tests after the behavior they prove, not the method they call:
+
+- Good: `test_authenticated_user_can_read_own_data`
+- Bad: `test_get_user_returns_200`
+
+### Maintenance
+
 Do not remove failing tests unless they are demonstrably obsolete and replaced with better coverage.
+
+When a critical behavior is discovered to be untested:
+
+1. File a behavior-debt ticket.
+2. Add a `TODO(behavior-debt)` comment in code with the ticket link.
+3. Prioritize the test in the next sprint.
+4. Do not merge additional logic on top of the untested behavior until the contract is encoded.
 
 ---
 
