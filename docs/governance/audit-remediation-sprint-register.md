@@ -85,7 +85,7 @@ An item may move to `verified closed` only when all of the following are true:
 | S6-6 | Consolidate 76 workflow files to fewer than 50 | DevEx | covered | verified closed | Workflow count below target without deleting required gates |
 | S6-7 | Refactor `LLMIntentClassifier` to use adapter infrastructure | AI Platform | covered | verified closed | No direct `AsyncOpenAI` in classifier |
 | S6-8 | Begin provenance tracker persistence design | Layer 2 | not covered | verified closed | Approved persistence design with migration/test plan |
-| S6-9 | Release readiness checklist | Release | not covered | requires implementation | Signed release readiness matrix after prior validations |
+| S6-9 | Release readiness checklist | Release | not covered | verified closed | No-go release readiness matrix with explicit external blockers |
 
 ## Validation Evidence
 
@@ -170,3 +170,4 @@ An item may move to `verified closed` only when all of the following are true:
 | 2026-06-05 | S2-9 | `python -m pytest tests/layer6/test_layer6_security_invariants.py tests/security/test_benchmarks_cross_tenant_isolation.py -v --tb=short` | Partial evidence only: 13 static benchmark tenant tests passed; 13 live Layer 6 service tests failed with `httpx.ConnectError: [Errno 11001] getaddrinfo failed`, so live Layer 6 service evidence remains unavailable |
 | 2026-06-05 | S5-4 | `python -m pytest tests/backend_integrated/test_otel_trace_receipt.py -v --tb=short` | Blocked for closure: all 3 live trace receipt checks failed because billing/Layer 7 were unavailable at `http://localhost:8000` and Layer 2.5 was unavailable at `http://localhost:8007` |
 | 2026-06-05 | S5-6 | `where.exe promtool` | Blocked for closure: `promtool` is not installed on PATH, so `promtool check rules monitoring/prometheus/alerting/rules.yml` could not be run |
+| 2026-06-05 | S6-9 | `docs/governance/audit-remediation-release-readiness-matrix.md`; `python -m pytest tests/docs/test_command_map.py -v --tb=short` | Verified closed as checklist only: no-go release readiness matrix exists with S1-1, S2-9, S5-2, S5-3, S5-4, and S5-6 blockers, owners, and next evidence steps. This does not claim release readiness |

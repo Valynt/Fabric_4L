@@ -20,7 +20,7 @@ groups:
             {{ $value | printf "%.0f" }} cross-tenant WebSocket access denials
             in the last 5 minutes. Possible BOLA/IDOR probing (OBS-L4-009).
             Review structured logs for actor_tenant_id and targeted workflow_ids.
-          runbook_url: "https://docs.valuefabric.internal/runbooks/security/ws-tenant-probe"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/tenant-isolation-failure.md"
 
       - alert: WebSocketCrossTenantProbeCritical
         expr: |
@@ -36,7 +36,7 @@ groups:
             Tenant bucket {{ $labels.actor_tenant_tier }} generated
             {{ $value | printf "%.0f" }} cross-tenant WebSocket access denials
             in the last 5 minutes. Likely active BOLA/IDOR attack (OBS-L4-009).
-          runbook_url: "https://docs.valuefabric.internal/runbooks/security/ws-tenant-probe"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/incident/tenant-isolation-failure.md"
 
   - name: journey_slo_alerts
     interval: 30s
@@ -50,6 +50,7 @@ groups:
         annotations:
           summary: "Journey success rate below launch SLO"
           description: "Key clickpath success rate dropped below 99% for 10m. Release gate must remain blocked."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/slo-breach-response.md"
 
       - alert: JourneyP95LatencySLOViolation
         expr: max_over_time(journey:sli_p95_latency_seconds_5m{journey="account_signals_evidence_driver_calculator_business_case"}[15m]) > 12
@@ -60,6 +61,7 @@ groups:
         annotations:
           summary: "Journey p95 latency above launch SLO"
           description: "Key clickpath p95 latency exceeded 12 seconds for 10m."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/slo-breach-response.md"
 
       - alert: JourneyNonEmptyResponseSLOViolation
         expr: avg_over_time(journey:sli_non_empty_ratio_5m{journey="account_signals_evidence_driver_calculator_business_case"}[15m]) < 1
@@ -70,6 +72,7 @@ groups:
         annotations:
           summary: "Journey non-empty response guarantee violated"
           description: "One or more required journey responses became empty."
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/slo-breach-response.md"
   - name: error_rate_alerts
     interval: 30s
     rules:
@@ -86,7 +89,7 @@ groups:
         annotations:
           summary: "Layer 1 error rate elevated"
           description: "Layer 1 ingestion service error rate is above 5% for 5 minutes."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer1#error-rate"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
       - alert: HighErrorRateLayer2
         expr: |
@@ -101,7 +104,7 @@ groups:
         annotations:
           summary: "Layer 2 error rate elevated"
           description: "Layer 2 extraction service error rate is above 5% for 5 minutes."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer2#error-rate"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
       - alert: HighErrorRateLayer3
         expr: |
@@ -116,7 +119,7 @@ groups:
         annotations:
           summary: "Layer 3 error rate elevated"
           description: "Layer 3 knowledge graph service error rate is above 5% for 5 minutes."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer3#error-rate"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
       - alert: HighErrorRateLayer4
         expr: |
@@ -131,7 +134,7 @@ groups:
         annotations:
           summary: "Layer 4 error rate elevated"
           description: "Layer 4 agents service error rate is above 5% for 5 minutes."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/layers/layer4#error-rate"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
       - alert: HighErrorRateCritical
         expr: |
@@ -147,7 +150,7 @@ groups:
         annotations:
           summary: "Critical: platform-wide error rate above 10%"
           description: "Aggregate 5xx rate across all Fabric_4L services exceeds 10% for 2 minutes."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/platform/critical-error-rate"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/troubleshooting/runbooks/application/high-error-rate.md"
 
   - name: db_pool_alerts
     interval: 30s
@@ -168,4 +171,4 @@ groups:
         annotations:
           summary: "Sustained DB pool utilization above 80%"
           description: "Connection pool utilization has stayed above 80% for 10m on Layer 4 and/or Layer 5."
-          runbook_url: "https://docs.valuefabric.internal/runbooks/database/pool-utilization"
+          runbook_url: "https://github.com/bmsull560/Fabric_4L/blob/main/docs/operations/runbooks/database-pool-exhaustion.md"

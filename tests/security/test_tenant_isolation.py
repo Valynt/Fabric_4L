@@ -30,6 +30,7 @@ TENANT_ISOLATION_TESTS = (
     "tests/security/test_cross_layer_tenant_isolation_matrix.py",
     "tests/security/test_graph_tenant_hostile_regression.py",
     "tests/security/test_hostile_tenant_e2e_matrix.py",
+    "tests/security/test_hostile_tenant_journey_contracts.py",
     "tests/security/test_neo4j_cross_tenant_write_isolation.py",
     "tests/backend_integrated/test_tenant_isolation_security_persistence.py",
 )

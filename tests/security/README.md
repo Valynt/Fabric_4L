@@ -22,6 +22,7 @@ The category manifests aggregate the detailed security coverage listed in the ma
 ```bash
 pytest tests/security/      # centralized aggregation manifests
 pnpm test:security          # delegates to pytest tests/security/
+pnpm test:security:hostile  # root hostile tenant tests, cross-platform
 pnpm test:isolation         # tenant-isolation focused gate
 ```
 
@@ -29,9 +30,9 @@ pnpm test:isolation         # tenant-isolation focused gate
 
 | Category | Aggregation file | Referenced coverage |
 | --- | --- | --- |
-| Auth guards | `test_auth_guards.py` | Auth boundaries, default deny, auth source validation, JWT validation/config, API key rejection, RBAC, WebSocket auth, MCP gateway auth, API impersonation |
-| Tenant isolation | `test_tenant_isolation.py` and `pnpm test:isolation` | Tenant boundary fail-closed behavior, cross-tenant API/write/JWT checks, cross-layer tenant matrix, graph hostile regressions, RLS, background jobs, cache isolation |
-| Secret handling | `test_secret_handling.py` | Secret redaction, production/dev bypass guardrails, startup validation, JWT rotation, environment contract checks, bcrypt security |
+| Auth guards | `test_auth_guards.py` | Auth boundaries, default deny, L1 metrics access, L1 SSRF guard evidence, auth source validation, JWT validation/config, API key rejection, RBAC, WebSocket auth, MCP gateway auth, API impersonation |
+| Tenant isolation | `test_tenant_isolation.py`, `pnpm test:security:hostile`, and `pnpm test:isolation` | Tenant boundary fail-closed behavior, root hostile tenant journeys, cross-tenant API/write/JWT checks, cross-layer tenant matrix, graph hostile regressions, RLS, background jobs, cache isolation |
+| Secret handling | `test_secret_handling.py` | Secret redaction, production/dev bypass guardrails, startup validation, JWT placeholder rejection, JWT rotation, environment contract checks, bcrypt security |
 | Security headers | `test_security_headers.py` | HTTP security headers, CORS posture, middleware misconfiguration, shared security middleware, startup validation |
 | Dependency policy | `test_dependency_policy.py` | Supply chain policy, frozen lockfile enforcement, provider billing posture, deprecated dependency boundaries, frontend coverage thresholds |
 | Container policy | `test_container_policy.py` | Dockerfile lockfile policy, supply-chain image/SBOM policy, Kubernetes security policies, Bunnyshell deployment contract |
@@ -46,6 +47,7 @@ pnpm test:isolation         # tenant-isolation focused gate
 ```bash
 pytest tests/security/      # centralized aggregation manifests
 pnpm test:security          # delegates to pytest tests/security/
+pnpm test:security:hostile  # avoids shell-dependent test_hostile_*.py glob expansion
 pnpm test:isolation         # tenant-isolation focused gate
 ```
 
@@ -65,4 +67,3 @@ CI publishes a security summary artifact from `.github/workflows/security-valida
 | `REDIS_HOST` | No | `localhost` | Redis hostname |
 | `REDIS_PORT` | No | `6379` | Redis port |
 | `NEO4J_URI` | No | `bolt://localhost:7687` | Neo4j Bolt URI |
-

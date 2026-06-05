@@ -21,6 +21,8 @@ from fastapi.testclient import TestClient
 STATUS_BASE = "/api/v1/ingestion/targets"
 BATCH_BASE = "/api/v1/ingestion/jobs/batch"
 
+pytestmark = pytest.mark.requires_postgres
+
 
 @pytest.fixture(autouse=True)
 def _mock_process_scraping_job(monkeypatch):

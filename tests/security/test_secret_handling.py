@@ -12,6 +12,7 @@ SECRET_HANDLING_TESTS = (
     "tests/security/test_dev_bypass.py",
     "tests/security/test_startup_bypass_nonzero_exit.py",
     "tests/security/test_h03_service_startup_validation.py",
+    "packages/shared/src/value_fabric/shared/security/tests/test_production_safety.py",
     "tests/security/test_cross_stack_jwt_contract.py",
     "tests/security/test_jwt_rotation.py",
     "tests/ci/test_bunnyshell_environment_contract.py",

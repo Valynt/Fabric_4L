@@ -192,6 +192,24 @@ class QualityGate:
         """Check if minimum links were found."""
         return len(result.links_found) >= self.thresholds.min_link_count
 
+    def _detect_spa_in_content(self, html: str) -> bool:
+        """Detect SPA shell markers in fetched HTML.
+
+        Kept for benchmark compatibility; production crawl results pass the
+        precomputed ``is_spa_detected`` signal into ``evaluate``.
+        """
+        normalized = html.lower()
+        markers = [
+            '<div id="root"></div>',
+            '<div id="app"></div>',
+            '<div id="__next"></div>',
+            "data-reactroot",
+            "ng-version=",
+            'data-server-rendered="false"',
+            "window.__initial_state__",
+        ]
+        return sum(marker in normalized for marker in markers) >= 2
+
     def should_fallback(self, result: FastPathResult) -> tuple[bool, str | None]:
         """Quick check for fallback decision.
 

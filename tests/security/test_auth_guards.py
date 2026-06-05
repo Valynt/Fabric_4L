@@ -13,6 +13,8 @@ AUTH_GUARD_TESTS = (
     "tests/security/test_adversarial_auth.py",
     "tests/security/test_jwt_config_validation.py",
     "tests/security/test_jwt_validation.py",
+    "tests/security/test_l1_metrics_access.py",
+    "tests/security/test_l1_ssrf_blocklist.py",
     "tests/security/test_p0_5_api_key_rejection.py",
     "tests/security/test_rbac.py",
     "tests/security/test_websocket_auth.py",
