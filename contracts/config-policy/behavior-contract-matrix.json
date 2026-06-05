@@ -1,0 +1,171 @@
+{
+  "$schema": "https://valuefabric.ai/contracts/behavior-contract.schema.json",
+  "version": "1.0.0",
+  "title": "Critical Behavior Contract Matrix",
+  "description": "Machine-readable specification of critical pass/fail behaviors across all layers. Each entry maps a security domain to test files, gate commands, and endpoint families that must be covered.",
+  "critical_domains": [
+    {
+      "domain": "authentication",
+      "description": "Auth provider setup, token validation, and fail-closed behavior",
+      "endpoint_families": [
+        "/ready",
+        "/health",
+        "/v1/**"
+      ],
+      "required_behaviors": [
+        "VALID_JWT_ACCEPTED",
+        "EXPIRED_JWT_REJECTED",
+        "TAMPERED_JWT_REJECTED",
+        "MISSING_AUTH_REJECTED"
+      ],
+      "test_files": [
+        "tests/security/test_tenant_context_contract.py",
+        "apps/web/src/auth/clerkConfig.test.ts",
+        "apps/web/src/contexts/AuthContext.behavior.test.tsx"
+      ],
+      "gate_commands": [
+        "pnpm --filter ./apps/web run test:critical-behaviors"
+      ]
+    },
+    {
+      "domain": "tenant_isolation",
+      "description": "Tenant context propagation, RLS enforcement, cross-tenant access prevention",
+      "endpoint_families": [
+        "/api/v1/ingestion/**",
+        "/signals/**",
+        "/v1/entities/**",
+        "/v1/workflows/**",
+        "/api/v1/truths/**",
+        "/v1/benchmarks/**",
+        "/v1/billing/**",
+        "/v1/accounts/**"
+      ],
+      "required_behaviors": [
+        "TENANT_CONTEXT_REQUIRED",
+        "TENANT_SCOPED_DB_SESSION",
+        "CROSS_TENANT_IDOR_DENIED_404",
+        "CROSS_TENANT_READ_DENIED_403",
+        "CROSS_TENANT_WRITE_DENIED_403"
+      ],
+      "test_files": [
+        "tests/security/test_tenant_boundary_fails_closed.py",
+        "tests/security/test_cross_tenant_api.py",
+        "tests/security/test_hostile_tenant_journey_contracts.py",
+        "tests/security/test_hostile_tenant_endpoint_family_contracts.py"
+      ],
+      "gate_commands": [
+        "python -m pytest tests/security/test_tenant_boundary_fails_closed.py -v",
+        "python -m pytest tests/security/test_hostile_tenant_endpoint_family_contracts.py -v"
+      ]
+    },
+    {
+      "domain": "rbac_privilege_escalation",
+      "description": "Role-based access control, privilege escalation prevention, admin permission gates",
+      "endpoint_families": [
+        "/v1/admin/**",
+        "/v1/governance/**",
+        "/v1/cross-tenant/**"
+      ],
+      "required_behaviors": [
+        "ADMIN_PERMISSION_REQUIRED",
+        "NON_ADMIN_DENIED_403",
+        "PRIVILEGE_ESCALATION_AUDIT_LOGGED",
+        "ROLE_DOWNGRADE_DETECTED"
+      ],
+      "test_files": [
+        "tests/security/test_hostile_tenant_journey_contracts.py"
+      ],
+      "gate_commands": [
+        "python -m pytest tests/security/test_hostile_tenant_journey_contracts.py::test_rbac_privilege_escalation_requires_explicit_admin_permissions -v"
+      ]
+    },
+    {
+      "domain": "api_error_contract",
+      "description": "Safe error envelope, no sensitive leaks (stacktraces, secrets, tokens), request IDs",
+      "endpoint_families": [
+        "**"
+      ],
+      "required_behaviors": [
+        "ERROR_HAS_REQUEST_ID",
+        "ERROR_HAS_CODE",
+        "NO_TRACEBACK_LEAK",
+        "NO_DATABASE_LEAK",
+        "NO_SECRET_LEAK",
+        "NO_TOKEN_LEAK"
+      ],
+      "test_files": [
+        "tests/security/test_hostile_tenant_journey_contracts.py",
+        "tests/contract/test_error_envelope_consistency.py"
+      ],
+      "gate_commands": [
+        "python -m pytest tests/security/test_hostile_tenant_journey_contracts.py::test_error_payload_contract_avoids_sensitive_internal_leaks -v"
+      ]
+    },
+    {
+      "domain": "audit_observability",
+      "description": "Denied-action audit logging, security event tracking, compliance observability",
+      "endpoint_families": [
+        "/v1/**"
+      ],
+      "required_behaviors": [
+        "DENIED_ACTION_AUDIT_LOGGED",
+        "AUDIT_INCLUDES_ACTOR",
+        "AUDIT_INCLUDES_RESOURCE",
+        "AUDIT_INCLUDES_ACTION",
+        "AUDIT_INCLUDES_REASON"
+      ],
+      "test_files": [
+        "tests/security/test_hostile_tenant_journey_contracts.py",
+        "tests/security/test_privileged_audit.py"
+      ],
+      "gate_commands": [
+        "python -m pytest tests/security/test_hostile_tenant_journey_contracts.py::test_denied_actions_have_audit_or_security_logging_hooks -v"
+      ]
+    },
+    {
+      "domain": "route_auth_dependencies",
+      "description": "Route handler auth dependencies (require_authenticated, get_db_from_context, no deprecated get_db)",
+      "endpoint_families": [
+        "/v1/**",
+        "/api/v1/**"
+      ],
+      "required_behaviors": [
+        "NO_DEPRECATED_GET_DB",
+        "NO_OPTIONAL_CONTEXT_ON_WRITE",
+        "WRITE_ROUTES_REQUIRE_AUTH"
+      ],
+      "test_files": [
+        "tests/security/test_tenant_context_contract.py"
+      ],
+      "gate_commands": [
+        "python scripts/ci/check_route_auth_dependencies.py"
+      ]
+    },
+    {
+      "domain": "production_safety",
+      "description": "Dev auth bypass prevention in production builds, security configuration validation",
+      "endpoint_families": [
+        "**"
+      ],
+      "required_behaviors": [
+        "NO_DEV_AUTH_BYPASS_IN_PRODUCTION_BUILD",
+        "PRODUCTION_SAFETY_VALIDATOR_ENABLED"
+      ],
+      "test_files": [
+        "apps/web/scripts/security/run-prod-auth-bypass-gate.mjs"
+      ],
+      "gate_commands": [
+        "pnpm --filter ./apps/web run test:prod-auth-bypass"
+      ]
+    }
+  ],
+  "unified_gate_command": "pnpm run test:critical-behaviors",
+  "ci_job_name": "critical-behaviors-gate",
+  "required_in_pr_checks": true,
+  "depends_on": [
+    "structural-preflight",
+    "contract-checks"
+  ],
+  "blocks_merge": true,
+  "evidence_artifact_path": "artifacts/critical-behaviors-gate-results.json"
+}
