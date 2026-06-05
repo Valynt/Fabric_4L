@@ -53,7 +53,7 @@ def main() -> int:
     errors: list[str] = []
 
     governance_checks = governance_metadata.get("required_status_checks")
-    if governance_checks != checks:
+    if sorted(governance_checks or []) != sorted(checks):
         errors.append(
             "governance required-check mirror does not match config/ci/required-status-checks.json"
         )
