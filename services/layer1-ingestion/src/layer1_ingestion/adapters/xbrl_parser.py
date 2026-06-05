@@ -15,6 +15,7 @@ import structlog
 from defusedxml.ElementTree import fromstring
 
 from ..metrics import get_metrics
+from ..shared.exceptions import XBRLParseError
 
 logger = structlog.get_logger()
 
@@ -453,7 +454,7 @@ class XBRLParser:
             if "EntityCentralIndexKey" in tag or "EntityRegistrantName" in tag:
                 if elem.text:
                     return elem.text
-        raise XBRLParseError(f"Invalid XBRL date: {date_str}")
+        return None
 
     def _extract_document_type(self, root: ET.Element) -> str | None:
         """Extract document type from DEI."""
@@ -466,6 +467,7 @@ class XBRLParser:
 
     def _parse_date(self, date_str: str) -> datetime | None:
         """Parse date string to datetime."""
+        date_str = date_str.strip()
         formats = [
             "%Y-%m-%d",
             "%Y-%m-%dT%H:%M:%S",
@@ -478,7 +480,7 @@ class XBRLParser:
             except ValueError:
                 continue
 
-        return None
+        raise XBRLParseError(f"Invalid XBRL date: {date_str}")
 
     def _parse_value(self, value: str) -> Any:
         """Parse a value string to appropriate type."""

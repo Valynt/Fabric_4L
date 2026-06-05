@@ -64,10 +64,12 @@ class TestXBRLParserErrorHandling:
         result = parser.parse("<root><child>text</child></root>")
         assert result.all_facts == []
 
-    def test_parse_date_returns_none_on_invalid_date(self):
-        """_parse_date returns None for unparseable dates."""
+    def test_parse_date_raises_on_invalid_date(self):
+        """_parse_date raises XBRLParseError for unparseable dates."""
         parser = XBRLParser()
-        assert parser._parse_date("not-a-date") is None
+        from layer1_ingestion.shared.exceptions import XBRLParseError
+        with pytest.raises(XBRLParseError):
+            parser._parse_date("not-a-date")
 
     def test_parse_value_returns_string_for_non_numeric(self):
         """_parse_value falls back to string for non-numeric input."""
@@ -278,6 +280,22 @@ class TestEntityExtraction:
 
         # Entity is set from DEI or context
         assert result.entity is not None
+
+    def test_missing_dei_entity_returns_none_without_failing_parse(self):
+        xml = """<?xml version="1.0"?>
+        <xbrl xmlns="http://www.xbrl.org/2003/instance"
+              xmlns:dei="http://xbrl.sec.gov/dei/2023">
+            <context id="ctx">
+                <entity><identifier>CIK123</identifier></entity>
+                <period><endDate>2023-12-31</endDate></period>
+            </context>
+            <dei:DocumentType contextRef="ctx">10-K</dei:DocumentType>
+        </xbrl>"""
+        parser = XBRLParser()
+        result = parser.parse(xml)
+
+        assert result.entity is None
+        assert result.document_type == "10-K"
 
     def test_document_type_extracted_from_dei(self):
         xml = """<?xml version="1.0"?>
