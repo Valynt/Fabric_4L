@@ -16,6 +16,8 @@ locals {
       Environment = var.environment
     },
   )
+
+  egress_cidr_blocks = length(var.egress_cidr_blocks) > 0 ? var.egress_cidr_blocks : var.allowed_cidr_blocks
 }
 
 resource "aws_security_group" "redis" {
@@ -36,7 +38,8 @@ resource "aws_security_group" "redis" {
     from_port   = 0
     to_port     = 0
     protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = local.egress_cidr_blocks
+    description = "Redis egress limited to approved VPC/service CIDRs"
   }
 }
 
