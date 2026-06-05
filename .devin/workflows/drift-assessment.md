@@ -5,6 +5,7 @@ version: 1.0.0
 description: Multi-layer drift detection for API contracts, schemas, and behavior drift
 pattern: circuit-breaker
 risk_level: medium
+category: architecture
 ---
 
 # Drift Assessment Workflow

@@ -5,6 +5,7 @@ version: 1.0.0
 description: Assess launch readiness using dual-track claimed-versus-verified evidence and generate a refreshed 5-sprint plan without creating artifacts until explicitly approved
 pattern: human-in-the-loop
 risk_level: high
+category: planning
 ---
 
 # Fabric_4L Dual-Track Launch Readiness Assessment & Sprint Plan

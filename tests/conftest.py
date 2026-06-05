@@ -149,9 +149,10 @@ for p in _PATHS_TO_ADD:
 
 def _prepend_namespace_path(module: types.ModuleType, paths: list[Path]) -> None:
     namespace_paths = list(getattr(module, "__path__", []))
-    for path in reversed([str(path) for path in paths]):
-        if path not in namespace_paths:
-            namespace_paths.insert(0, path)
+    requested_paths = [str(path) for path in paths]
+    namespace_paths = [path for path in namespace_paths if path not in requested_paths]
+    for path in reversed(requested_paths):
+        namespace_paths.insert(0, path)
     module.__path__ = namespace_paths  # type: ignore[attr-defined]
 
 
@@ -175,14 +176,19 @@ def _install_legacy_collection_import_aliases() -> None:
     layer4_src = _PROJECT_ROOT / "services" / "layer4-agents" / "src"
 
     src_module = _ensure_namespace_module("src", [layer3_src, layer4_src])
-    _ensure_namespace_module("src.agents", [layer3_src / "agents", layer4_src / "agents"])
-    _ensure_namespace_module("src.api", [layer3_src / "api", layer4_src / "api"])
-    _ensure_namespace_module("src.analytics", [layer3_src / "analytics"])
+    src_agents_module = _ensure_namespace_module("src.agents", [layer3_src / "agents", layer4_src / "agents"])
+    src_api_module = _ensure_namespace_module("src.api", [layer3_src / "api", layer4_src / "api"])
+    src_analytics_module = _ensure_namespace_module("src.analytics", [layer3_src / "analytics"])
     src_models_module = _ensure_namespace_module("src.models", [layer3_src / "models", layer4_src / "models"])
-    _ensure_namespace_module("src.retrieval", [layer3_src / "retrieval"])
-    _ensure_namespace_module("src.services", [layer3_src / "services", layer4_src / "services"])
+    src_retrieval_module = _ensure_namespace_module("src.retrieval", [layer3_src / "retrieval"])
+    src_services_module = _ensure_namespace_module("src.services", [layer3_src / "services", layer4_src / "services"])
     src_tools_module = _ensure_namespace_module("src.tools", [layer4_src / "tools"])
+    setattr(src_module, "agents", src_agents_module)
+    setattr(src_module, "api", src_api_module)
+    setattr(src_module, "analytics", src_analytics_module)
     setattr(src_module, "models", src_models_module)
+    setattr(src_module, "retrieval", src_retrieval_module)
+    setattr(src_module, "services", src_services_module)
     setattr(src_module, "tools", src_tools_module)
 
     services_module = _ensure_namespace_module("services", [_PROJECT_ROOT / "services"])

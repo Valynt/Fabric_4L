@@ -5,6 +5,7 @@ version: 1.0.0
 description: Comprehensive roadmap management workflow for auditing task status, identifying gaps, proposing additions, and generating work packages
 pattern: circuit-breaker
 risk_level: low
+category: planning
 ---
 
 # Roadmap Management Workflow

@@ -5,6 +5,7 @@ version: 1.0.0
 description: Set up and manage Bunnyshell Environments as a Service for Value Fabric. Use when creating development, staging, or production environments, configuring environment templates, integrating Bunnyshell with existing infrastructure, or automating environment lifecycle management.
 pattern: circuit-breaker
 risk_level: low
+category: infrastructure
 ---
 
 # Bunnyshell Environment Management

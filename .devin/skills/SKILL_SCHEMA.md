@@ -33,6 +33,9 @@ allowed_agents:                       # Which agents may invoke this skill
   - test-assurance
   - code-reviewer
   - "*"                              # Wildcard = all agents
+related_workflow:                     # Optional linked .devin/workflows entry
+  - workflow-id-1
+  - workflow-id-2
 ---
 ```
 
@@ -75,7 +78,8 @@ After creating a skill, add it to `registry/skills.json` with:
   "side_effects": "read",
   "timeout_ms": 30000,
   "required_context": ["project_graph"],
-  "allowed_agents": ["*"]
+  "allowed_agents": ["*"],
+  "related_workflow": ["workflow-id-1", "workflow-id-2"]
 }
 ```
 

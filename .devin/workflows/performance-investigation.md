@@ -5,6 +5,7 @@ version: 1.0.0
 description: Systematic performance investigation workflow for identifying bottlenecks, analyzing metrics, and implementing optimizations
 pattern: pipeline-dag
 risk_level: medium
+category: infrastructure
 ---
 
 # Performance Investigation Workflow

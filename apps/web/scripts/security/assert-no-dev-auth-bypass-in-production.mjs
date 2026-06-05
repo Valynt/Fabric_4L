@@ -1,7 +1,8 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const projectRoot = new URL('../..', import.meta.url).pathname;
+const projectRoot = fileURLToPath(new URL('../..', import.meta.url));
 const distRoots = [join(projectRoot, 'dist/public'), join(projectRoot, 'dist')].filter(existsSync);
 
 if (distRoots.length === 0) {

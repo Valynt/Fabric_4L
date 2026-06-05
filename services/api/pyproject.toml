@@ -33,6 +33,10 @@ asyncio_mode = "auto"
 testpaths = ["app/tests"]
 pythonpath = [".", "../..", "../../packages/shared/src"]
 
+[tool.setuptools.packages.find]
+include = ["app*"]
+exclude = ["migrations*"]
+
 [tool.coverage.run]
 source = ["app"]
 omit = ["*/tests/*", "*/migrations/*"]

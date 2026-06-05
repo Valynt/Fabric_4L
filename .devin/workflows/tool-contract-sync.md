@@ -5,6 +5,7 @@ version: 1.0.0
 description: Audit and fix the three-way sync between tool implementations, skill definitions, and tool manifests. Use when tools are registered in the ToolRegistry but missing skill MDs or JSON Schema manifests, or when evals are missing. Closes the gap between 26 registered tools and only 9 skill definitions + 9 manifests + 2 evals.
 pattern: circuit-breaker
 risk_level: medium
+category: quality-debt
 ---
 
 # Tool-Contract Sync

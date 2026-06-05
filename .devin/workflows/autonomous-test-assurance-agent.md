@@ -5,6 +5,7 @@ version: 1.0.0
 description: Autonomous Level 4 agent for end-to-end test assurance with self-directed discovery, automatic remediation, and PR-ready delivery without human checkpoints
 pattern: manager-worker
 risk_level: high
+category: testing
 ---
 
 # Autonomous Test Assurance Agent (Level 4)

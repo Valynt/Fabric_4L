@@ -5,6 +5,7 @@ version: 1.0.0
 description: Systematic code quality improvement workflow for transforming functional code into production-grade output through inspection, analysis, and targeted fixes
 pattern: circuit-breaker
 risk_level: low
+category: code-review
 ---
 
 # Code Quality Improvement Workflow
