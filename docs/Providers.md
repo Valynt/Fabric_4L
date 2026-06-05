@@ -374,15 +374,16 @@ This document catalogs every external service, API, database, and infrastructure
 | Property | Value |
 |----------|-------|
 | **Purpose** | Continuous integration, smoke gate validation, scheduled tests |
-| **Workflows** | `smoke-gate.yml` — 6-stage cross-layer integration test runs on every PR to `main` and daily at 02:00 UTC |
+| **Workflows** | `pr-checks.yml` / `integration-checks` — runs the maintained release-smoke gate with `make test-backend-integrated-release-smoke` during PR validation |
 
-### Smoke Gate Script
+### Release Smoke Gate
 
 | Property | Value |
 |----------|-------|
-| **File** | `scripts/smoke/production_smoke.py` |
-| **Stages** | L2 health, L3 health + Neo4j, L4 health + Postgres, L2→L3 extract-ingest, L3 graph query, L3 hybrid search |
-| **Artifacts** | JSON pass/fail report in `artifacts/smoke-report-*.json` |
+| **Command** | `make test-backend-integrated-release-smoke` |
+| **Harness** | `scripts/ci/run_release_smoke.sh` |
+| **Coverage** | Boots the maintained L1–L6 release-smoke stack, probes readiness, then runs the `release_smoke` backend-integrated pytest target. |
+| **Artifacts** | Compose diagnostics, readiness evidence, JUnit XML, and pytest logs under `artifacts/release_smoke/` |
 
 ---
 

@@ -819,7 +819,7 @@ System Admin → Tenant Admin → Analyst/Developer → Viewer
 
 **Nightly/Scheduled:**
 - Integration Tests (`integration-tests.yml`)
-- Smoke Tests (`smoke-gate.yml`)
+- Smoke Tests (`pr-checks.yml` / `integration-checks`, via `make test-backend-integrated-release-smoke`)
 - Performance Tests (`performance-load-tests.yml`)
 - Contract Drift (`contract-drift-check.yml`)
 - AI Evals (`ai-evals-pipeline.yml`)

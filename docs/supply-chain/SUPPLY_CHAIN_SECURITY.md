@@ -36,12 +36,11 @@ Fabric_4L/
 │   │   ├── build-deploy.yml           # Build → Sign → Attest → Deploy
 │   │   ├── codeql.yml                 # CodeQL SAST (Python + JS/TS)
 │   │   ├── security-gates.yml         # Trivy, gitleaks, bandit, DAST, SBOM
-│   │   ├── pr-checks.yml             # Lint, typecheck, test, contract gates
+│   │   ├── pr-checks.yml             # Lint, typecheck, test, contract, release-smoke gates
 │   │   ├── integration-tests.yml      # Cross-layer integration
 │   │   ├── k8s-readiness.yml         # K8s manifest validation
 │   │   ├── performance-load-tests.yml # k6 SLO evaluation
 │   │   ├── zero-trust-validation.yml  # Network policy enforcement
-│   │   ├── smoke-gate.yml            # Post-deploy smoke tests
 │   │   └── publish-sdk.yml           # SDK artifact publication
 │   ├── scripts/               # CI helper scripts
 │   └── pull_request_template.md
@@ -465,7 +464,7 @@ cosign verify-attestation \
 | `build-deploy.yml` | Push to main | **Release** — builds and deploys |
 | `performance-load-tests.yml` | Push to main | **Advisory** — SLO tracking |
 | `zero-trust-validation.yml` | Push to main | **Advisory** — security validation |
-| `smoke-gate.yml` | Post-deploy | **Release gate** — blocks promotion |
+| `pr-checks.yml` / `integration-checks` | PR validation | **Release-smoke gate** — runs `make test-backend-integrated-release-smoke` |
 | `publish-sdk.yml` | Manual | **Release** — SDK publication |
 
 ### Failure Gating Rules

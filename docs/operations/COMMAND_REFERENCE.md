@@ -485,7 +485,7 @@ python -m pytest tests/contract/ -v
 ```bash
 # Run smoke test suite
 cd value-fabric
-python scripts/smoke/production_smoke.py
+make test-backend-integrated-release-smoke
 
 # Or inline health check
 for port in 8001 8002 8003 8004 8005 8006; do

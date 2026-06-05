@@ -10,8 +10,8 @@ Validates L2→L3→L4 integration across 6 stages:
 6. L3 Hybrid Search Verification
 
 Usage:
-    python scripts/smoke/production_smoke.py
-    python scripts/smoke/production_smoke.py --l2-url http://localhost:8002 --l3-url http://localhost:8003 --l4-url http://localhost:8004
+    python docs/runbooks/operational/production_smoke.py
+    python docs/runbooks/operational/production_smoke.py --l2-url http://localhost:8002 --l3-url http://localhost:8003 --l4-url http://localhost:8004
 
 Exit Codes:
     0: All stages passed
