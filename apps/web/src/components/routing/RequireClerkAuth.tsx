@@ -54,6 +54,7 @@ function RequireClerkAuthOrgCheck({
   children: ReactNode;
   requireOrganization: boolean;
 }) {
+  const navigate = useNavigate();
   const urls = getClerkUrls();
   const { isLoaded: orgLoaded, organization } = useOrganization();
 
@@ -61,8 +62,14 @@ function RequireClerkAuthOrgCheck({
     return <ClerkLoadingFallback />;
   }
 
+  useEffect(() => {
+    if (requireOrganization && !organization) {
+      navigate(urls.selectOrgUrl, { replace: true });
+    }
+  }, [requireOrganization, organization, navigate, urls.selectOrgUrl]);
+
   if (requireOrganization && !organization) {
-    return <Navigate to={urls.selectOrgUrl} replace />;
+    return <ClerkLoadingFallback />;
   }
 
   return <>{children}</>;
@@ -72,6 +79,7 @@ function RequireClerkAuthInner({
   children,
   requireOrganization = true,
 }: RequireClerkAuthProps) {
+  const navigate = useNavigate();
   const location = useLocation();
   const urls = getClerkUrls();
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
@@ -80,11 +88,17 @@ function RequireClerkAuthInner({
     return <ClerkLoadingFallback />;
   }
 
+  useEffect(() => {
+    if (!isSignedIn) {
+      const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
+        location.pathname + location.search,
+      )}`;
+      navigate(redirectTo, { replace: true });
+    }
+  }, [isSignedIn, navigate, urls.signInUrl, location.pathname, location.search]);
+
   if (!isSignedIn) {
-    const redirectTo = `${urls.signInUrl}?redirect_url=${encodeURIComponent(
-      location.pathname + location.search,
-    )}`;
-    return <Navigate to={redirectTo} replace />;
+    return <ClerkLoadingFallback />;
   }
 
   return (
