@@ -58,7 +58,7 @@ Before any production deployment:
 | R9 | **Alerting configured** | Prometheus rules + AlertManager → Slack for all critical alerts | P0 | ✅ PASS |
 | R10 | **Incident runbooks** | Runbooks exist for all critical alert types (10+ runbooks) | P0 | ✅ PASS |
 | R11 | **Postmortem template** | `docs/operations/postmortem-template.md` exists | P1 | ✅ PASS |
-| R12 | **Smoke tests post-deploy** | `make test-backend-integrated-release-smoke` validates release-smoke functionality through the `pr-checks.yml` integration gate | P0 | ✅ PASS |
+| R12 | **Release smoke gate** | `make test-backend-integrated-release-smoke` (CI: `pr-checks.yml` / `integration-checks`) validates the L1–L6 release-smoke stack; artifacts under `artifacts/release_smoke/` | P0 | ✅ PASS |
 
 ---
 
