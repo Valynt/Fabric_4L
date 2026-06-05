@@ -12,8 +12,8 @@ kubectl apply -k k8s/deployments/prod-nginx
 
 | Field | Value |
 |---|---|
-| Frontend host | `app.value-fabric.example.com` |
-| API host | `api.value-fabric.example.com` |
+| Frontend host | `www.valuepact.ai` |
+| API host | `api.valuepact.ai` |
 
 Override the production domain by editing `hostname-config.yaml`. The
 `replacements:` block propagates the ConfigMap values into every Ingress host
