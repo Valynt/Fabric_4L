@@ -13,7 +13,11 @@ Use this checklist for staging and production release approvals.
 - [ ] Run `python scripts/ci/check_compatibility_launch_freeze.py --strict` and confirm PASS.
 - [ ] Confirm every entry in `docs/governance/compatibility-debt-registry.md` includes Platform Architecture review metadata and an explicit post-launch removal ticket.
 - [ ] For agent/skill changes, run `make evals` and confirm pass.
+<<<<<<< ours
 - [ ] Run release-smoke validation locally via `make test-backend-integrated-release-smoke` (boots the Docker L1–L6 stack; artifacts under `artifacts/release_smoke/`).
+=======
+- [ ] Run smoke tests (`make test-backend-integrated-release-smoke`) against the target environment.
+>>>>>>> theirs
 - [ ] Run `pytest tests/release/test_observability_deployment_readiness.py` and confirm PASS (release gate for Task 46/47 evidence).
 - [ ] Verify `docs/readiness/observability-deployment-readiness.md` contains only `✅ PASS` rows with ISO dates and concrete artifact paths.
 - [ ] Confirm CloudNativePG CRD exists: `kubectl get crd clusters.postgresql.cnpg.io`.
