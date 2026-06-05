@@ -10,7 +10,7 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from ..config import Settings, get_settings
 
-from ..db.query_execution import run_validated_query
+from ..db.query_execution import run_scoped_query
 from ..retrieval.vector_store import VectorStore
 
 
@@ -64,11 +64,9 @@ class SimilarityAnalyzer:
             raise RuntimeError("Tenant-scoped similarity analytics require tenant_id")
         return str(context.tenant_id)
 
-    @staticmethod
-    def _query_tuple(scoped_query: ScopedQuery) -> tuple[str, dict[str, Any]]:
-        """Expose strict scoped-query execution metadata while preserving session.run compatibility."""
-        # strict-scoped-query-execution: callers pass only builder-created tenant-scoped query objects.
-        return scoped_query.as_tuple()
+    async def _run_scoped(self, session: Any, query: ScopedQuery):
+        """Execute a builder-produced tenant-scoped query through the approved gateway."""
+        return await run_scoped_query(session.run, query)
 
     def _builder(self, tenant_id: str | None = None) -> TenantScopedCypher:
         return TenantScopedCypher(self._resolve_tenant_id(tenant_id))
@@ -171,7 +169,7 @@ class SimilarityAnalyzer:
                 operation="similarity.find_similar_by_type",
                 labels=("Entity", target_type),
             )
-            graph_result = await run_validated_query(session, *self._query_tuple(graph_query))
+            graph_result = await self._run_scoped(session, graph_query)
 
             graph_results = []
             async for record in graph_result:
@@ -246,7 +244,7 @@ class SimilarityAnalyzer:
                 operation="similarity.compare_entities.lookup",
                 labels=("Entity",),
             )
-            result = await run_validated_query(session, *self._query_tuple(entity_query))
+            result = await self._run_scoped(session, entity_query)
             record = await result.single()
 
             if not record:
@@ -281,7 +279,7 @@ class SimilarityAnalyzer:
                 operation="similarity.compare_entities.common_neighbors",
                 labels=("Entity",),
             )
-            common_result = await run_validated_query(session, *self._query_tuple(common_query))
+            common_result = await self._run_scoped(session, common_query)
             common_record = await common_result.single()
 
             if common_record:
@@ -313,7 +311,7 @@ class SimilarityAnalyzer:
                 operation="similarity.compare_entities.path",
                 labels=("Entity",),
             )
-            path_result = await run_validated_query(session, *self._query_tuple(path_query))
+            path_result = await self._run_scoped(session, path_query)
             path_record = await path_result.single()
 
             path_info = {
@@ -387,7 +385,7 @@ class SimilarityAnalyzer:
                 operation="similarity.jaccard",
                 labels=("Entity",),
             )
-            result = await run_validated_query(session, *self._query_tuple(query))
+            result = await self._run_scoped(session, query)
 
             return [
                 {
@@ -433,7 +431,7 @@ class SimilarityAnalyzer:
                 operation="similarity.adamic_adar",
                 labels=("Entity",),
             )
-            result = await run_validated_query(session, *self._query_tuple(query))
+            result = await self._run_scoped(session, query)
 
             return [
                 {
@@ -505,7 +503,7 @@ class SimilarityAnalyzer:
                 operation="similarity.path",
                 labels=("ValueDriver",),
             )
-            result = await run_validated_query(session, *self._query_tuple(query))
+            result = await self._run_scoped(session, query)
 
             return [
                 {
@@ -586,7 +584,7 @@ class SimilarityAnalyzer:
                     operation="similarity.combined.enrich",
                     labels=("Entity",),
                 )
-                result = await run_validated_query(session, *self._query_tuple(enrich_query))
+                result = await self._run_scoped(session, enrich_query)
                 record = await result.single()
                 if record:
                     entity["name"] = record["name"]

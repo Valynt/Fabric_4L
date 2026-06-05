@@ -124,7 +124,12 @@ class CentralityAnalyzer:
         async with driver.session(database=self.settings.neo4j_database) as session:
             try:
                 # Check for GDS
-                await run_validated_query(session, "RETURN gds.version() as version")
+                await run_validated_query(
+                    session,
+                    "RETURN gds.version() as version",
+                    allow_system_query=True,
+                    query_name="centrality.gds_version.pagerank",
+                )
             except Exception:
                 logger.warning("GDS not available, using fallback")
                 return await self._fallback_centrality(
@@ -153,6 +158,8 @@ class CentralityAnalyzer:
                     LIMIT $limit
                     """,
                     {"graph_name": graph_name, "limit": top_k},
+                    allow_system_query=True,
+                    query_name="centrality.gds_pagerank_stream",
                 )
 
                 rankings = []
@@ -195,7 +202,12 @@ class CentralityAnalyzer:
 
         async with driver.session(database=self.settings.neo4j_database) as session:
             try:
-                await run_validated_query(session, "RETURN gds.version() as version")
+                await run_validated_query(
+                    session,
+                    "RETURN gds.version() as version",
+                    allow_system_query=True,
+                    query_name="centrality.gds_version.betweenness",
+                )
             except Exception:
                 return await self._fallback_centrality(
                     session, node_labels, "betweenness", top_k, tenant_id=tenant_id
@@ -219,6 +231,8 @@ class CentralityAnalyzer:
                     LIMIT $limit
                     """,
                     {"graph_name": graph_name, "limit": top_k},
+                    allow_system_query=True,
+                    query_name="centrality.gds_betweenness_stream",
                 )
 
                 rankings = []
@@ -482,6 +496,8 @@ class CentralityAnalyzer:
             await run_validated_query(session,
                 "CALL gds.graph.drop($graph_name)",
                 {"graph_name": graph_name},
+                allow_system_query=True,
+                query_name="centrality.gds_drop_graph",
             )
         except Exception as e:
             logger.debug(f"Could not drop graph: {e}")

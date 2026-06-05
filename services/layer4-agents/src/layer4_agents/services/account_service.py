@@ -477,36 +477,47 @@ class AccountService:
     # Filter Options
     # ========================================================================
 
-    async def get_filter_options(self) -> dict:
-        """Get available filter options for account list."""
+    async def get_filter_options(self, *, tenant_id: str) -> dict:
+        """Get available filter options for account list scoped to a tenant."""
+        if not tenant_id:
+            raise ValueError("tenant_id is required for account filter options")
+
         # Get distinct industries
         industry_result = await self.db.execute(
-            select(Account.industry).where(Account.industry.isnot(None)).distinct()
+            select(Account.industry)
+            .where(Account.tenant_id == tenant_id, Account.industry.isnot(None))
+            .distinct()
         )
         industries = [row[0] for row in industry_result.all() if row[0]]
 
         # Get distinct stages
         stage_result = await self.db.execute(
-            select(Account.stage).where(Account.stage.isnot(None)).distinct()
+            select(Account.stage)
+            .where(Account.tenant_id == tenant_id, Account.stage.isnot(None))
+            .distinct()
         )
         stages = [row[0] for row in stage_result.all() if row[0]]
 
         # Get distinct regions
         region_result = await self.db.execute(
-            select(Account.region).where(Account.region.isnot(None)).distinct()
+            select(Account.region)
+            .where(Account.tenant_id == tenant_id, Account.region.isnot(None))
+            .distinct()
         )
         regions = [row[0] for row in region_result.all() if row[0]]
 
         # Get distinct segments
         segment_result = await self.db.execute(
-            select(Account.segment).where(Account.segment.isnot(None)).distinct()
+            select(Account.segment)
+            .where(Account.tenant_id == tenant_id, Account.segment.isnot(None))
+            .distinct()
         )
         segments = [row[0] for row in segment_result.all() if row[0]]
 
         # Get owners
         owner_result = await self.db.execute(
             select(Account.owner_id, Account.owner_name)
-            .where(Account.owner_id.isnot(None))
+            .where(Account.tenant_id == tenant_id, Account.owner_id.isnot(None))
             .distinct()
         )
         owners = [

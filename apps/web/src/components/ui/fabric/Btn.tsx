@@ -45,7 +45,7 @@ export function Btn({
       disabled={disabled}
       variant={VARIANT_MAP[variant]}
       size={size}
-      className={cn("text-[12px] font-semibold", className)}
+      className={cn("vf-text-body-s font-semibold", className)}
     >
       {children}
     </Button>

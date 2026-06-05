@@ -13,6 +13,10 @@ from unittest.mock import MagicMock
 import pytest
 
 from value_fabric.shared.idempotency import (
+    IdempotencyConflictError,
+    IdempotencyRecord,
+    IdempotencyRequest,
+    IdempotencyService,
     InMemoryIdempotencyStore,
     RedisIdempotencyStore,
     StoredIdempotencyRecord,
@@ -76,6 +80,7 @@ class TestRedisIdempotencyStore:
     def test_redis_error_falls_back_to_in_memory(self):
         redis_mock = MagicMock()
         redis_mock.get.side_effect = ConnectionError("Redis down")
+        redis_mock.ping.side_effect = ConnectionError("Redis down")
         store = RedisIdempotencyStore(redis_mock)
 
         # First get triggers fallback
@@ -119,3 +124,32 @@ class TestInMemoryIdempotencyStore:
         )
         store.set(record)
         assert store.get("t-1", "ep-1", "ik-1") is None
+
+
+class TestIdempotencyServiceTenantBoundary:
+    """Idempotency service rejects tenant context mismatches."""
+
+    def test_check_replay_rejects_tenant_mismatch(self):
+        service = IdempotencyService(InMemoryIdempotencyStore())
+        request = IdempotencyRequest(
+            tenant_id="tenant-a",
+            endpoint_key="POST /privacy/dsar",
+            idempotency_key="key-1",
+            request_fingerprint="fp-1",
+        )
+
+        with pytest.raises(IdempotencyConflictError, match="tenant"):
+            service.check_replay(request, tenant_id="tenant-b")
+
+    def test_store_response_rejects_tenant_mismatch(self):
+        service = IdempotencyService(InMemoryIdempotencyStore())
+        request = IdempotencyRequest(
+            tenant_id="tenant-a",
+            endpoint_key="POST /privacy/dsar",
+            idempotency_key="key-1",
+            request_fingerprint="fp-1",
+        )
+        response = IdempotencyRecord(status_code=202, body={}, headers={})
+
+        with pytest.raises(IdempotencyConflictError, match="tenant"):
+            service.store_response(request, response, tenant_id="tenant-b")

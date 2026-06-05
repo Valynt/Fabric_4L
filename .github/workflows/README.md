@@ -2,7 +2,7 @@
 
 ## Overview
 
-This directory currently contains **69** GitHub Actions workflow files.
+This directory currently contains **72** GitHub Actions workflow files.
 
 The authoritative ownership, trigger, secret, artifact, runtime, local-command,
 and deprecation inventory lives in:
@@ -35,6 +35,8 @@ These are primary PR gate workflows (blocking when configured in branch protecti
 | `chaos-testing.yml` | Chaos engineering experiments | `schedule`, `workflow_dispatch`, `workflow_call` |
 | `secret-rotation.yml` | Secret rotation automation | `schedule`, `workflow_dispatch` |
 | `ci-failure-backlog.yml` | Weekly CI failure backlog artifacts from Actions run metadata | `schedule`, `workflow_dispatch` |
+| `cleanup-branches.yml` | Stale branch cleanup automation | `push` (main), `schedule`, `workflow_dispatch` |
+| `stale.yml` | Stale pull request lifecycle automation | `schedule`, `workflow_dispatch` |
 
 ### Active Optional / Manual / Reusable
 

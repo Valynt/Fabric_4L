@@ -103,7 +103,9 @@ class AuditedGraphMutation:
                     "properties": props,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.write_relationship",
             )
             self._increment_mutation_success("relationship")
         except Exception:
@@ -144,7 +146,9 @@ class AuditedGraphMutation:
                     "tenant_id": self.tenant_id,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.delete_relationship",
             )
             self._increment_mutation_success("relationship_delete")
         except Exception:
@@ -195,6 +199,8 @@ class AuditedGraphMutation:
                 "operation_source": self.operation_source,
             },
             tenant_id=self.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="audited_mutation.audit_relationship",
         )
 
     async def _version_relationship(
@@ -228,6 +234,8 @@ class AuditedGraphMutation:
                 "details": details,
             },
             tenant_id=self.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="audited_mutation.version_relationship",
         )
 
     # ---------------------------------------------------------------------------
@@ -263,7 +271,9 @@ class AuditedGraphMutation:
                     "properties": props,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.write_node",
             )
             self._increment_mutation_success("node")
         except Exception:
@@ -294,7 +304,9 @@ class AuditedGraphMutation:
                     "tenant_id": self.tenant_id,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.delete_node",
             )
             self._increment_mutation_success("node_delete")
         except Exception:
@@ -344,6 +356,8 @@ class AuditedGraphMutation:
                 "operation_source": self.operation_source,
             },
             tenant_id=self.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="audited_mutation.audit_node",
         )
 
     # ---------------------------------------------------------------------------
@@ -387,7 +401,9 @@ class AuditedGraphMutation:
                     "now": now,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.write_nodes_batch",
             )
             self._increment_mutation_success("node_batch")
         except Exception:
@@ -435,7 +451,9 @@ class AuditedGraphMutation:
                     "now": now,
                 },
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.write_relationships_batch",
             )
             self._increment_mutation_success("relationship_batch")
         except Exception:
@@ -472,7 +490,9 @@ class AuditedGraphMutation:
                 rel_query,
                 {"source_id": source_id, "tenant_id": self.tenant_id},
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.delete_by_source.relationships",
             )
             record = await rel_result.single()
             stats["relationships_deleted"] = record["deleted"] if record else 0
@@ -494,7 +514,9 @@ class AuditedGraphMutation:
                 entity_query,
                 {"source_id": source_id, "tenant_id": self.tenant_id},
                 tenant_id=self.tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
+                query_name="audited_mutation.delete_by_source.entities",
             )
             record = await entity_result.single()
             stats["entities_deleted"] = record["deleted"] if record else 0

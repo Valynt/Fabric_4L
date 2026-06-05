@@ -34,8 +34,8 @@ export function FabricDialog({
       {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
       <DialogContent className={cn("sm:max-w-lg", className)}>
         <DialogHeader>
-          <DialogTitle className="text-[18px] font-semibold">{title}</DialogTitle>
-          {description && <DialogDescription className="text-[13px]">{description}</DialogDescription>}
+          <DialogTitle className="vf-heading-l font-semibold">{title}</DialogTitle>
+          {description && <DialogDescription className="vf-text-body-m">{description}</DialogDescription>}
         </DialogHeader>
         <div className="py-2">{children}</div>
         {footer && <div className="flex justify-end gap-3 pt-4">{footer}</div>}

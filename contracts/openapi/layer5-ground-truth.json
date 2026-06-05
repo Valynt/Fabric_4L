@@ -119,8 +119,8 @@
               "anyOf": [
                 {
                   "type": "number",
-                  "maximum": 1,
-                  "minimum": 0
+                  "maximum": 1.0,
+                  "minimum": 0.0
                 },
                 {
                   "type": "null"
@@ -488,11 +488,11 @@
           "400": {
             "description": "Invalid transition or insufficient evidence"
           },
-          "404": {
-            "description": "TruthObject not found"
-          },
           "409": {
             "description": "Concurrent transition conflict"
+          },
+          "404": {
+            "description": "TruthObject not found"
           },
           "422": {
             "description": "Validation Error",
@@ -1332,24 +1332,35 @@
         "tags": [
           "assumption-governance"
         ],
-        "summary": "Create assumption",
+        "summary": "Create Assumption",
+        "operationId": "create_assumption_api_v1_assumptions_post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/AssumptionCreate"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/AssumptionResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1362,24 +1373,35 @@
         "tags": [
           "assumption-governance"
         ],
-        "summary": "Create policy rule",
+        "summary": "Create Policy Rule",
+        "operationId": "create_policy_rule_api_v1_policy_rules_post",
         "requestBody": {
-          "required": true,
           "content": {
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/PolicyRuleCreate"
               }
             }
-          }
+          },
+          "required": true
         },
         "responses": {
           "201": {
-            "description": "Created",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PolicyRuleCreate"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
                 }
               }
             }
@@ -1392,7 +1414,8 @@
         "tags": [
           "assumption-governance"
         ],
-        "summary": "Apply assumption",
+        "summary": "Apply Assumption Selection",
+        "operationId": "apply_assumption_selection_api_v1_assumptions__assumption_id__apply_post",
         "parameters": [
           {
             "name": "assumption_id",
@@ -1400,7 +1423,8 @@
             "required": true,
             "schema": {
               "type": "string",
-              "format": "uuid"
+              "format": "uuid",
+              "title": "Assumption Id"
             }
           }
         ],
@@ -1416,10 +1440,28 @@
         },
         "responses": {
           "200": {
-            "description": "Applied"
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Apply Assumption Selection Api V1 Assumptions  Assumption Id  Apply Post"
+                }
+              }
+            }
           },
-          "409": {
-            "description": "Approval required"
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -1500,11 +1542,11 @@
           },
           "confidence_contribution": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence Contribution",
             "description": "Contribution to overall confidence (0.0\u20131.0)",
-            "default": 0
+            "default": 0.0
           },
           "source_date": {
             "anyOf": [
@@ -1530,6 +1572,92 @@
         "type": "object",
         "title": "AddSourceRequest",
         "description": "Schema for POST /truths/{id}/sources."
+      },
+      "ApplySelectionRequest": {
+        "properties": {
+          "context": {
+            "type": "string",
+            "title": "Context",
+            "default": "evaluation"
+          }
+        },
+        "type": "object",
+        "title": "ApplySelectionRequest"
+      },
+      "AssumptionCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "impact_value": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Impact Value",
+            "default": 0.0
+          }
+        },
+        "type": "object",
+        "required": [
+          "name"
+        ],
+        "title": "AssumptionCreate"
+      },
+      "AssumptionResponse": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "impact_value": {
+            "type": "number",
+            "minimum": 0.0,
+            "title": "Impact Value",
+            "default": 0.0
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Id"
+          },
+          "lifecycle_state": {
+            "$ref": "#/components/schemas/LifecycleState"
+          },
+          "is_approved_for_use": {
+            "type": "boolean",
+            "title": "Is Approved For Use"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "id",
+          "lifecycle_state",
+          "is_approved_for_use"
+        ],
+        "title": "AssumptionResponse"
       },
       "ClaimType": {
         "type": "string",
@@ -1707,6 +1835,17 @@
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
       "JsonValue": {},
+      "LifecycleState": {
+        "type": "string",
+        "enum": [
+          "draft",
+          "approved",
+          "deprecated",
+          "archived",
+          "published"
+        ],
+        "title": "LifecycleState"
+      },
       "MaturityHistoryResponse": {
         "properties": {
           "id": {
@@ -2039,8 +2178,8 @@
           },
           "score": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Score",
             "description": "Primary score (0.0-1.0)"
           },
@@ -2054,7 +2193,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -2067,7 +2206,7 @@
             "anyOf": [
               {
                 "type": "number",
-                "minimum": 0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -2080,7 +2219,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -2321,7 +2460,7 @@
           },
           "context_window": {
             "type": "integer",
-            "minimum": 1,
+            "minimum": 1.0,
             "title": "Context Window",
             "description": "Maximum context window in tokens",
             "default": 4096
@@ -2330,7 +2469,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "minimum": 1
+                "minimum": 1.0
               },
               {
                 "type": "null"
@@ -2341,23 +2480,23 @@
           },
           "cost_per_1k_input": {
             "type": "number",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Cost Per 1K Input",
             "description": "Cost per 1,000 input tokens in USD",
-            "default": 0
+            "default": 0.0
           },
           "cost_per_1k_output": {
             "type": "number",
-            "minimum": 0,
+            "minimum": 0.0,
             "title": "Cost Per 1K Output",
             "description": "Cost per 1,000 output tokens in USD",
-            "default": 0
+            "default": 0.0
           },
           "cost_per_1k_cached": {
             "anyOf": [
               {
                 "type": "number",
-                "minimum": 0
+                "minimum": 0.0
               },
               {
                 "type": "null"
@@ -2640,6 +2779,29 @@
         "title": "ModelVersionSummary",
         "description": "Summary view of a ModelVersion for list responses."
       },
+      "PolicyRuleCreate": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "min_impact_threshold": {
+            "type": "number",
+            "title": "Min Impact Threshold",
+            "default": 0.0
+          },
+          "required_reviewer_role": {
+            "type": "string",
+            "title": "Required Reviewer Role"
+          }
+        },
+        "type": "object",
+        "required": [
+          "name",
+          "required_reviewer_role"
+        ],
+        "title": "PolicyRuleCreate"
+      },
       "PromoteModelRequest": {
         "properties": {
           "environment": {
@@ -2648,8 +2810,8 @@
           },
           "traffic_percentage": {
             "type": "integer",
-            "maximum": 100,
-            "minimum": 0,
+            "maximum": 100.0,
+            "minimum": 0.0,
             "title": "Traffic Percentage",
             "description": "Traffic percentage (0-100)",
             "default": 100
@@ -2946,8 +3108,8 @@
           },
           "confidence": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence",
             "description": "Extraction model confidence score",
             "examples": [
@@ -3116,8 +3278,8 @@
           },
           "confidence": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence"
           },
           "status": {
@@ -3407,8 +3569,8 @@
           },
           "confidence": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence"
           },
           "status": {
@@ -3538,11 +3700,11 @@
           },
           "confidence_contribution": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence Contribution",
             "description": "Contribution to overall confidence (0.0\u20131.0)",
-            "default": 0
+            "default": 0.0
           },
           "source_date": {
             "anyOf": [
@@ -3642,11 +3804,11 @@
           },
           "confidence_contribution": {
             "type": "number",
-            "maximum": 1,
-            "minimum": 0,
+            "maximum": 1.0,
+            "minimum": 0.0,
             "title": "Confidence Contribution",
             "description": "Contribution to overall confidence (0.0\u20131.0)",
-            "default": 0
+            "default": 0.0
           },
           "source_date": {
             "anyOf": [
@@ -4145,85 +4307,6 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
-      },
-      "AssumptionCreate": {
-        "type": "object",
-        "required": [
-          "name"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "description": {
-            "type": "string"
-          },
-          "impact_value": {
-            "type": "number",
-            "minimum": 0
-          }
-        }
-      },
-      "AssumptionResponse": {
-        "allOf": [
-          {
-            "$ref": "#/components/schemas/AssumptionCreate"
-          },
-          {
-            "type": "object",
-            "required": [
-              "id",
-              "lifecycle_state",
-              "is_approved_for_use"
-            ],
-            "properties": {
-              "id": {
-                "type": "string",
-                "format": "uuid"
-              },
-              "lifecycle_state": {
-                "type": "string",
-                "enum": [
-                  "draft",
-                  "approved",
-                  "deprecated",
-                  "archived",
-                  "published"
-                ]
-              },
-              "is_approved_for_use": {
-                "type": "boolean"
-              }
-            }
-          }
-        ]
-      },
-      "PolicyRuleCreate": {
-        "type": "object",
-        "required": [
-          "name",
-          "required_reviewer_role"
-        ],
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "min_impact_threshold": {
-            "type": "number"
-          },
-          "required_reviewer_role": {
-            "type": "string"
-          }
-        }
-      },
-      "ApplySelectionRequest": {
-        "type": "object",
-        "properties": {
-          "context": {
-            "type": "string",
-            "default": "evaluation"
-          }
-        }
       }
     }
   },

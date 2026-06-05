@@ -6,10 +6,13 @@
     "version": "0.2.0"
   },
   "paths": {
-    "/health": {
+    "/ready": {
       "get": {
-        "summary": "Health Check",
-        "operationId": "health_check_health_get",
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -22,10 +25,10 @@
         }
       }
     },
-    "/ready": {
+    "/health": {
       "get": {
-        "summary": "Ready",
-        "operationId": "ready_ready_get",
+        "summary": "Health Check",
+        "operationId": "health_check_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -3452,16 +3455,6 @@
                 }
               }
             }
-          },
-          "401": {
-            "description": "Invalid webhook credentials, tenant binding, or signature",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
           }
         }
       }
@@ -3575,16 +3568,6 @@
           },
           "422": {
             "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid webhook credentials, tenant binding, or signature",
             "content": {
               "application/json": {
                 "schema": {
@@ -5908,11 +5891,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": {
-                    "type": "string"
-                  },
-                  "title": "Response Oidc Login Auth Oidc  Tenant Slug  Login Get"
+                  "$ref": "#/components/schemas/oidc_loginResult"
                 }
               }
             }
@@ -5964,9 +5943,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Oidc Callback Auth Oidc Callback Get"
+                  "$ref": "#/components/schemas/oidc_callbackResult"
                 }
               }
             }
@@ -6009,9 +5986,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Oidc Metadata Auth Oidc  Tenant Slug  Metadata Get"
+                  "$ref": "#/components/schemas/oidc_metadataResult"
                 }
               }
             }
@@ -6093,9 +6068,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Auth Refresh Auth Oidc Refresh Post"
+                  "$ref": "#/components/schemas/refresh_result"
                 }
               }
             }
@@ -6161,9 +6134,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "object",
-                  "additionalProperties": true,
-                  "title": "Response Auth Logout Auth Oidc Logout Post"
+                  "$ref": "#/components/schemas/logout_result"
                 }
               }
             }
@@ -6341,36 +6312,6 @@
           },
           "422": {
             "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Invalid signature or expired timestamp",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Tenant not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "501": {
-            "description": "Webhook provisioning not configured",
             "content": {
               "application/json": {
                 "schema": {
@@ -6848,6 +6789,515 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/TenantSettingsUpdateResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/dashboard/usage": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Tenant Usage",
+        "description": "Get aggregated usage metrics for the tenant.\n\nReturns API call counts, agent execution stats, LLM token usage,\nand active user count for the specified time window.",
+        "operationId": "get_tenant_usage_v1__tenant_id__dashboard_usage_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "description": "Number of days to aggregate",
+              "default": 30,
+              "title": "Days"
+            },
+            "description": "Number of days to aggregate"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_tenant_usageResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/dashboard/daily-usage": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Daily Usage",
+        "description": "Get daily usage breakdown for charting.\n\nReturns one entry per day with api_calls, agent_executions,\nand llm_tokens.",
+        "operationId": "get_daily_usage_v1__tenant_id__dashboard_daily_usage_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_daily_usageResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/dashboard/tier-usage": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Tier Usage",
+        "description": "Get current resource usage vs. tier limits.\n\nShows how close the tenant is to each limit, useful for\nupgrade prompts in the UI.",
+        "operationId": "get_tier_usage_v1__tenant_id__dashboard_tier_usage_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_tier_usageResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/dashboard/top-endpoints": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Top Endpoints",
+        "description": "Get the most-called API endpoints for the tenant.\n\nUseful for understanding usage patterns and optimizing.",
+        "operationId": "get_top_endpoints_v1__tenant_id__dashboard_top_endpoints_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "days",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 365,
+              "minimum": 1,
+              "default": 30,
+              "title": "Days"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 50,
+              "minimum": 1,
+              "default": 10,
+              "title": "Limit"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_top_endpointsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/dashboard/audit-log": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Tenant Audit Log",
+        "description": "Get audit log entries for the tenant.\n\nSupports pagination and optional action type filtering.",
+        "operationId": "get_tenant_audit_log_v1__tenant_id__dashboard_audit_log_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "action_filter",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Filter by action type",
+              "title": "Action Filter"
+            },
+            "description": "Filter by action type"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_tenant_audit_logResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/{tenant_id}/settings": {
+      "get": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Get Tenant Settings",
+        "description": "Get tenant settings and configuration.",
+        "operationId": "get_tenant_settings_v1__tenant_id__settings_get",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_tenant_settingsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Tenant Admin Dashboard"
+        ],
+        "summary": "Update Tenant Settings",
+        "description": "Update tenant settings (tenant_admin only).\n\nSupports partial updates \u2014 only provided fields are changed.\nBranding changes require the custom_branding feature to be enabled.",
+        "operationId": "update_tenant_settings_v1__tenant_id__settings_patch",
+        "parameters": [
+          {
+            "name": "tenant_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Tenant Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Body_update_tenant_settings_v1__tenant_id__settings_patch"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_tenant_settingsResult"
                 }
               }
             }
@@ -7851,7 +8301,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/generate_hypothesesResult"
+                }
               }
             }
           },
@@ -7973,7 +8425,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/delete_hypothesisResult"
+                }
               }
             }
           },
@@ -8124,7 +8578,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/validate_hypothesisResult"
+                }
               }
             }
           },
@@ -8255,7 +8711,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/rank_hypothesesResult"
+                }
               }
             }
           },
@@ -9540,7 +9998,7 @@
           "Billing"
         ],
         "summary": "Get Subscription",
-        "description": "Get current subscription status for a customer.\n\nArgs:\n    customer_id: Internal customer/user ID\n\nReturns:\n    Subscription details including plan and status",
+        "description": "[STUB] Forwarded to Layer 7. Get current subscription status.",
         "operationId": "get_subscription_v1_billing_subscription_get",
         "parameters": [
           {
@@ -9562,7 +10020,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SubscriptionResponse"
+                  "$ref": "#/components/schemas/get_subscriptionResult"
                 }
               }
             }
@@ -9586,7 +10044,7 @@
           "Billing"
         ],
         "summary": "Create Checkout",
-        "description": "Create a Stripe checkout session for subscription.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Checkout session parameters\n\nReturns:\n    Session ID and checkout URL",
+        "description": "[STUB] Forwarded to Layer 7. Create a Stripe checkout session.",
         "operationId": "create_checkout_v1_billing_checkout_post",
         "parameters": [
           {
@@ -9618,7 +10076,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CheckoutResponse"
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Create Checkout V1 Billing Checkout Post"
                 }
               }
             }
@@ -9642,7 +10104,7 @@
           "Billing"
         ],
         "summary": "Create Portal",
-        "description": "Create a Stripe customer portal session.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Portal session parameters\n\nReturns:\n    Portal URL for customer to manage billing",
+        "description": "[STUB] Forwarded to Layer 7. Create a Stripe customer portal session.",
         "operationId": "create_portal_v1_billing_portal_post",
         "parameters": [
           {
@@ -9674,50 +10136,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/PortalResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/invoices/{invoice_id}/reconciliation": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Reconcile Invoice",
-        "description": "Reconcile usage ledger against invoice line items.",
-        "operationId": "reconcile_invoice_v1_billing_invoices__invoice_id__reconciliation_get",
-        "parameters": [
-          {
-            "name": "invoice_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Invoice Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/reconcile_invoiceResult"
+                  "type": "object",
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Create Portal V1 Billing Portal Post"
                 }
               }
             }
@@ -9741,7 +10164,7 @@
           "Billing"
         ],
         "summary": "Cancel Subscription",
-        "description": "Cancel a customer's subscription.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Cancellation options\n\nReturns:\n    Cancellation result with period end date",
+        "description": "[STUB] Forwarded to Layer 7. Cancel a customer's subscription.",
         "operationId": "cancel_subscription_v1_billing_subscription_cancel_post",
         "parameters": [
           {
@@ -9773,7 +10196,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CancelSubscriptionResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Cancel Subscription V1 Billing Subscription Cancel Post"
                 }
               }
             }
@@ -9797,7 +10222,7 @@
           "Billing"
         ],
         "summary": "Update Subscription Plan",
-        "description": "Update a customer's subscription plan.\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Target plan details\n\nReturns:\n    Update result with previous and current plan",
+        "description": "[STUB] Forwarded to Layer 7. Update a customer's subscription plan.",
         "operationId": "update_subscription_plan_v1_billing_subscription_update_plan_post",
         "parameters": [
           {
@@ -9829,7 +10254,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/UpdatePlanResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Update Subscription Plan V1 Billing Subscription Update Plan Post"
                 }
               }
             }
@@ -9853,7 +10280,7 @@
           "Billing"
         ],
         "summary": "Reactivate Subscription",
-        "description": "Reactivate a subscription scheduled to cancel at period end.\n\nArgs:\n    customer_id: Internal customer/user ID\n\nReturns:\n    Reactivation result",
+        "description": "[STUB] Forwarded to Layer 7. Reactivate a subscription.",
         "operationId": "reactivate_subscription_v1_billing_subscription_reactivate_post",
         "parameters": [
           {
@@ -9875,7 +10302,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ReactivateSubscriptionResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Reactivate Subscription V1 Billing Subscription Reactivate Post"
                 }
               }
             }
@@ -9899,7 +10328,7 @@
           "Billing"
         ],
         "summary": "Get Entitlements",
-        "description": "Get all feature entitlements for a customer.\n\nArgs:\n    customer_id: Internal customer/user ID\n\nReturns:\n    Plan details and feature availability map",
+        "description": "[STUB] Forwarded to Layer 7. Get all feature entitlements for a customer.",
         "operationId": "get_entitlements_v1_billing_entitlements_get",
         "parameters": [
           {
@@ -9921,7 +10350,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/EntitlementsResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Entitlements V1 Billing Entitlements Get"
                 }
               }
             }
@@ -9945,7 +10376,7 @@
           "Billing"
         ],
         "summary": "Check Feature",
-        "description": "Check if a customer has access to a specific feature.\n\nArgs:\n    customer_id: Internal customer/user ID\n    feature_id: Feature identifier to check\n\nReturns:\n    Feature access status",
+        "description": "[STUB] Forwarded to Layer 7. Check if a customer has access to a specific feature.",
         "operationId": "check_feature_v1_billing_check_feature_get",
         "parameters": [
           {
@@ -10002,7 +10433,7 @@
           "Billing"
         ],
         "summary": "Sync Customer",
-        "description": "Sync customer with Stripe (create or update).\n\nArgs:\n    customer_id: Internal customer/user ID\n    request: Customer details\n\nReturns:\n    Customer record with Stripe ID if available",
+        "description": "[STUB] Forwarded to Layer 7. Sync customer with Stripe.",
         "operationId": "sync_customer_v1_billing_sync_customer_post",
         "parameters": [
           {
@@ -10052,594 +10483,13 @@
         }
       }
     },
-    "/v1/billing/webhook": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Stripe Webhook",
-        "description": "Handle Stripe webhook events.\n\nProcesses subscription lifecycle events from Stripe with idempotency.\nMust configure webhook secret in STRIPE_WEBHOOK_SECRET env var.\n\nSECURITY: Validates request originates from Stripe IP ranges AND\nhas valid Stripe-Signature header. Dual verification for defense-in-depth.\n\nHeaders:\n    Stripe-Signature: Webhook signature for verification\n\nReturns:\n    Processing status",
-        "operationId": "stripe_webhook_v1_billing_webhook_post",
-        "parameters": [
-          {
-            "name": "Stripe-Signature",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Stripe-Signature"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/stripe_webhookResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid webhook payload/signature/timestamp",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Invalid origin",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Webhook processing not configured or failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "502": {
-            "description": "Stripe processing failed",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/events": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Ingest Usage Event",
-        "description": "Ingest a single usage event for billing.\n\nArgs:\n    request: Usage event details\n\nReturns:\n    Ingested event with ID and status\n\nRaises:\n    400: Validation error\n    409: Duplicate event (idempotency conflict)",
-        "operationId": "ingest_usage_event_v1_billing_events_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UsageEventRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ingest_usage_eventResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/events/batch": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Ingest Usage Batch",
-        "description": "Ingest multiple usage events in a batch.\n\nArgs:\n    request: Batch of usage events (max 1000)\n\nReturns:\n    Summary with counts of created, duplicate, and error events\n\nRaises:\n    400: Batch validation error",
-        "operationId": "ingest_usage_batch_v1_billing_events_batch_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UsageBatchRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ingest_usage_batchResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/usage/{customer_id}/summary": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Get Usage Summary",
-        "description": "Get aggregated usage summary for a customer and metric.\n\nArgs:\n    customer_id: Customer to query\n    metric_name: Metric to aggregate\n    start_date: Start of period (ISO format)\n    end_date: End of period (ISO format)\n\nReturns:\n    Usage summary with total quantity and event count",
-        "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get",
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Customer Id"
-            }
-          },
-          {
-            "name": "metric_name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Metric Name"
-            }
-          },
-          {
-            "name": "start_date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Date"
-            }
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Date"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageSummaryResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/usage/{customer_id}/events": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "List Usage Events",
-        "description": "List individual usage events for a customer.\n\nArgs:\n    customer_id: Customer to query\n    metric_name: Optional metric filter\n    start_date: Optional start date filter\n    end_date: Optional end date filter\n    limit: Maximum results (1-1000)\n    offset: Pagination offset\n\nReturns:\n    List of usage events",
-        "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get",
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Customer Id"
-            }
-          },
-          {
-            "name": "metric_name",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Metric Name"
-            }
-          },
-          {
-            "name": "start_date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Start Date"
-            }
-          },
-          {
-            "name": "end_date",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "End Date"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 1000,
-              "minimum": 1,
-              "default": 100,
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Offset"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/UsageEventResponse"
-                  },
-                  "title": "Response List Usage Events V1 Billing Usage  Customer Id  Events Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/usage/{customer_id}/sync": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Sync Usage To Stripe",
-        "description": "Sync pending usage events to Stripe MeterEvents.\n\nAggregates pending usage and reports to Stripe for metered billing.\nRequires Stripe customer to be linked and STRIPE_METER_EVENTS_ENABLED=true.\n\nArgs:\n    customer_id: Customer to sync usage for\n    metric_name: Optional metric filter (syncs all if omitted)\n\nReturns:\n    Sync summary with counts and Stripe responses\n\nRaises:\n    400: Validation error or no Stripe customer linked\n    402: Stripe not configured",
-        "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post",
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Customer Id"
-            }
-          },
-          {
-            "name": "metric_name",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Metric Name"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UsageSyncResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/limits/{customer_id}": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Get Usage Limits",
-        "description": "Get current usage and limits for a customer.\n\nReturns all configured limits and current usage percentages.\nUse this to show progress bars or warnings in the UI.\n\nArgs:\n    customer_id: Customer to check\n\nReturns:\n    Usage limits and current consumption for all metrics",
-        "operationId": "get_usage_limits_v1_billing_limits__customer_id__get",
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Customer Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_usage_limitsResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/limits/{customer_id}/check": {
-      "post": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Check Request Allowed",
-        "description": "Check if a request should be allowed based on usage limits.\n\nUse this endpoint before processing expensive operations to validate\nthat the customer has quota remaining. Returns 402 Payment Required\nif the hard limit is exceeded.\n\nArgs:\n    customer_id: Customer making the request\n    metric_name: Metric being consumed\n    quantity: Amount to be consumed\n\nReturns:\n    Validation result with allow/deny decision\n\nRaises:\n    402: Hard limit exceeded (upgrade required)\n    400: Invalid request",
-        "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post",
-        "parameters": [
-          {
-            "name": "customer_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Customer Id"
-            }
-          },
-          {
-            "name": "metric_name",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Metric Name"
-            }
-          },
-          {
-            "name": "quantity",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "minimum": 0,
-              "default": 1.0,
-              "title": "Quantity"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/LimitsCheckResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/billing/plans/{plan_id}/limits": {
-      "get": {
-        "tags": [
-          "Billing"
-        ],
-        "summary": "Get Plan Limits",
-        "description": "Get the configured usage limits for a plan.\n\nReturns the limits configuration without customer-specific usage data.\nUseful for displaying plan details in pricing pages.\n\nArgs:\n    plan_id: Plan identifier (free, pro, enterprise)\n\nReturns:\n    Plan limits configuration",
-        "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get",
-        "parameters": [
-          {
-            "name": "plan_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Plan Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/get_plan_limitsResult"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/v1/billing/invoices": {
       "get": {
         "tags": [
           "Billing"
         ],
         "summary": "List Invoices",
-        "description": "List invoices with optional filters.\n\nReturns paginated list of invoices for the tenant, optionally filtered\nby customer and status.",
+        "description": "[STUB] Forwarded to Layer 7. List invoices with optional filters.",
         "operationId": "list_invoices_v1_billing_invoices_get",
         "parameters": [
           {
@@ -10726,7 +10576,7 @@
           "Billing"
         ],
         "summary": "Create Invoice",
-        "description": "Create a new invoice.\n\nCreates a draft invoice for the specified customer and billing period.\nAdd line items via POST /invoices/{id}/items, then finalize via POST /invoices/{id}/finalize.",
+        "description": "[STUB] Forwarded to Layer 7. Create a new invoice.",
         "operationId": "create_invoice_v1_billing_invoices_post",
         "requestBody": {
           "required": true,
@@ -10768,7 +10618,7 @@
           "Billing"
         ],
         "summary": "Get Invoice",
-        "description": "Get invoice details including line items and charges.",
+        "description": "[STUB] Forwarded to Layer 7. Get invoice details including line items and charges.",
         "operationId": "get_invoice_v1_billing_invoices__invoice_id__get",
         "parameters": [
           {
@@ -10811,7 +10661,7 @@
           "Billing"
         ],
         "summary": "Add Invoice Item",
-        "description": "Add a line item to an invoice.",
+        "description": "[STUB] Forwarded to Layer 7. Add a line item to an invoice.",
         "operationId": "add_invoice_item_v1_billing_invoices__invoice_id__items_post",
         "parameters": [
           {
@@ -10864,7 +10714,7 @@
           "Billing"
         ],
         "summary": "Finalize Invoice",
-        "description": "Finalize a draft invoice (make it open/payable).\n\nRecalculates totals from line items and changes status to 'open'.",
+        "description": "[STUB] Forwarded to Layer 7. Finalize a draft invoice.",
         "operationId": "finalize_invoice_v1_billing_invoices__invoice_id__finalize_post",
         "parameters": [
           {
@@ -10907,7 +10757,7 @@
           "Billing"
         ],
         "summary": "Void Invoice",
-        "description": "Void an invoice.",
+        "description": "[STUB] Forwarded to Layer 7. Void an invoice.",
         "operationId": "void_invoice_v1_billing_invoices__invoice_id__void_post",
         "parameters": [
           {
@@ -10968,7 +10818,7 @@
           "Billing"
         ],
         "summary": "List Charges",
-        "description": "List charge records.",
+        "description": "[STUB] Forwarded to Layer 7. List charge records.",
         "operationId": "list_charges_v1_billing_charges_get",
         "parameters": [
           {
@@ -11071,7 +10921,7 @@
           "Billing"
         ],
         "summary": "Record Charge",
-        "description": "Record a charge attempt.",
+        "description": "[STUB] Forwarded to Layer 7. Record a charge attempt.",
         "operationId": "record_charge_v1_billing_charges_post",
         "requestBody": {
           "required": true,
@@ -11113,7 +10963,7 @@
           "Billing"
         ],
         "summary": "Get Revenue Summary",
-        "description": "Get revenue summary for a period.\n\nReturns aggregated invoice and charge totals for the specified period.",
+        "description": "[STUB] Forwarded to Layer 7. Get revenue summary for a period.",
         "operationId": "get_revenue_summary_v1_billing_reports_revenue_get",
         "parameters": [
           {
@@ -11143,7 +10993,9 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/RevenueSummaryResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Revenue Summary V1 Billing Reports Revenue Get"
                 }
               }
             }
@@ -11167,7 +11019,7 @@
           "Billing"
         ],
         "summary": "Get Customer Balance",
-        "description": "Get customer balance summary.\n\nReturns open invoice amounts and lifetime payment totals.",
+        "description": "[STUB] Forwarded to Layer 7. Get customer balance summary.",
         "operationId": "get_customer_balance_v1_billing_customers__customer_id__balance_get",
         "parameters": [
           {
@@ -11186,7 +11038,565 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/CustomerBalanceResponse"
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Customer Balance V1 Billing Customers  Customer Id  Balance Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/limits/{customer_id}": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Usage Limits",
+        "description": "[STUB] Forwarded to Layer 7. Get current usage and limits for a customer.",
+        "operationId": "get_usage_limits_v1_billing_limits__customer_id__get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_usage_limitsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/limits/{customer_id}/check": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Check Request Allowed",
+        "description": "[STUB] Forwarded to Layer 7. Check if a request should be allowed based on usage limits.",
+        "operationId": "check_request_allowed_v1_billing_limits__customer_id__check_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric Name"
+            }
+          },
+          {
+            "name": "quantity",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "minimum": 0,
+              "default": 1.0,
+              "title": "Quantity"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Check Request Allowed V1 Billing Limits  Customer Id  Check Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/plans/{plan_id}/limits": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Plan Limits",
+        "description": "[STUB] Forwarded to Layer 7. Get the configured usage limits for a plan.",
+        "operationId": "get_plan_limits_v1_billing_plans__plan_id__limits_get",
+        "parameters": [
+          {
+            "name": "plan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Plan Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/get_plan_limitsResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/events": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Ingest Usage Event",
+        "description": "[STUB] Forwarded to Layer 7. Ingest a single usage event for billing.",
+        "operationId": "ingest_usage_event_v1_billing_events_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageEventRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ingest_usage_eventResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/events/batch": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Ingest Usage Batch",
+        "description": "[STUB] Forwarded to Layer 7. Ingest multiple usage events in a batch.",
+        "operationId": "ingest_usage_batch_v1_billing_events_batch_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsageBatchRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ingest_usage_batchResult"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/summary": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Get Usage Summary",
+        "description": "[STUB] Forwarded to Layer 7. Get aggregated usage summary.",
+        "operationId": "get_usage_summary_v1_billing_usage__customer_id__summary_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Metric Name"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Usage Summary V1 Billing Usage  Customer Id  Summary Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/events": {
+      "get": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "List Usage Events",
+        "description": "[STUB] Forwarded to Layer 7. List individual usage events for a customer.",
+        "operationId": "list_usage_events_v1_billing_usage__customer_id__events_get",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metric Name"
+            }
+          },
+          {
+            "name": "start_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Start Date"
+            }
+          },
+          {
+            "name": "end_date",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "End Date"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  "title": "Response List Usage Events V1 Billing Usage  Customer Id  Events Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/usage/{customer_id}/sync": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Sync Usage To Stripe",
+        "description": "[STUB] Forwarded to Layer 7. Sync pending usage events to Stripe MeterEvents.",
+        "operationId": "sync_usage_to_stripe_v1_billing_usage__customer_id__sync_post",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Customer Id"
+            }
+          },
+          {
+            "name": "metric_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Metric Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Sync Usage To Stripe V1 Billing Usage  Customer Id  Sync Post"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/billing/webhook": {
+      "post": {
+        "tags": [
+          "Billing"
+        ],
+        "summary": "Stripe Webhook",
+        "description": "[STUB] Forwarded to Layer 7. Handle Stripe webhook events.",
+        "operationId": "stripe_webhook_v1_billing_webhook_post",
+        "parameters": [
+          {
+            "name": "background_tasks",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "title": "Background Tasks"
+            }
+          },
+          {
+            "name": "Stripe-Signature",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Stripe-Signature"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/stripe_webhookResult"
                 }
               }
             }
@@ -13704,10 +14114,19 @@
         },
         "type": "object",
         "title": "AccountSearchRequest",
-        "description": "Account search request body.",
-        "required": [
-          "query"
-        ]
+        "description": "Account search request body."
+      },
+      "ActionClass": {
+        "type": "string",
+        "enum": [
+          "approve_hypotheses",
+          "publish_business_case",
+          "apply_benchmark_assumptions",
+          "generate_customer_facing_deliverable",
+          "change_account_value_model"
+        ],
+        "title": "ActionClass",
+        "description": "Canonical high-impact action classes requiring human approval."
       },
       "ActivityItemSchema": {
         "properties": {
@@ -13872,7 +14291,7 @@
           "type": {
             "type": "string",
             "title": "Type",
-            "description": "Item type: subscription, metered, one_time, proration",
+            "description": "Item type",
             "default": "one_time"
           },
           "usage_quantity": {
@@ -14935,6 +15354,28 @@
         ],
         "title": "Body_decide_gate_v1_harness_gates__gate_id__decide_post"
       },
+      "Body_update_tenant_settings_v1__tenant_id__settings_patch": {
+        "properties": {
+          "update": {
+            "$ref": "#/components/schemas/layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "update"
+        ],
+        "title": "Body_update_tenant_settings_v1__tenant_id__settings_patch"
+      },
       "Body_update_tenant_settings_v1_tenants__tenant_id__settings_patch": {
         "properties": {
           "update": {
@@ -15458,45 +15899,7 @@
           }
         },
         "type": "object",
-        "title": "CancelSubscriptionRequest",
-        "required": [
-          "cancel_immediately"
-        ]
-      },
-      "CancelSubscriptionResponse": {
-        "properties": {
-          "canceled": {
-            "type": "boolean",
-            "title": "Canceled"
-          },
-          "cancel_at_period_end": {
-            "type": "boolean",
-            "title": "Cancel At Period End"
-          },
-          "current_period_end": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Period End"
-          },
-          "subscription_id": {
-            "type": "string",
-            "title": "Subscription Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "canceled",
-          "cancel_at_period_end",
-          "current_period_end",
-          "subscription_id"
-        ],
-        "title": "CancelSubscriptionResponse"
+        "title": "CancelSubscriptionRequest"
       },
       "CaseListItem": {
         "properties": {
@@ -15588,7 +15991,7 @@
           "plan_id": {
             "type": "string",
             "title": "Plan Id",
-            "description": "Plan to subscribe to (pro, enterprise)"
+            "description": "Plan to subscribe to"
           },
           "success_url": {
             "type": "string",
@@ -15609,24 +16012,6 @@
         ],
         "title": "CheckoutRequest",
         "description": "Request to create a checkout session."
-      },
-      "CheckoutResponse": {
-        "properties": {
-          "session_id": {
-            "type": "string",
-            "title": "Session Id"
-          },
-          "checkout_url": {
-            "type": "string",
-            "title": "Checkout Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "session_id",
-          "checkout_url"
-        ],
-        "title": "CheckoutResponse"
       },
       "CheckpointInfo": {
         "properties": {
@@ -16295,10 +16680,7 @@
         },
         "type": "object",
         "title": "CompanyKnowledgeProfileUpdateRequest",
-        "description": "Request to update profile sections.",
-        "required": [
-          "company_name"
-        ]
+        "description": "Request to update profile sections."
       },
       "ComponentHealthInfo": {
         "properties": {
@@ -16837,6 +17219,16 @@
         "properties": {
           "gate_type": {
             "$ref": "#/components/schemas/GateType"
+          },
+          "action_class": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ActionClass"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "additionalProperties": false,
@@ -17197,10 +17589,7 @@
           }
         },
         "type": "object",
-        "title": "CurrentTenantSettingsUpdate",
-        "required": [
-          "settings"
-        ]
+        "title": "CurrentTenantSettingsUpdate"
       },
       "CurrentTenantSettingsUpdateResponse": {
         "properties": {
@@ -17230,49 +17619,6 @@
           "updated_at"
         ],
         "title": "CurrentTenantSettingsUpdateResponse"
-      },
-      "CustomerBalanceResponse": {
-        "properties": {
-          "customer_id": {
-            "type": "string",
-            "title": "Customer Id"
-          },
-          "open_invoices_cents": {
-            "type": "integer",
-            "title": "Open Invoices Cents"
-          },
-          "open_invoices_dollars": {
-            "type": "string",
-            "title": "Open Invoices Dollars"
-          },
-          "lifetime_paid_cents": {
-            "type": "integer",
-            "title": "Lifetime Paid Cents"
-          },
-          "lifetime_paid_dollars": {
-            "type": "string",
-            "title": "Lifetime Paid Dollars"
-          },
-          "balance_cents": {
-            "type": "integer",
-            "title": "Balance Cents"
-          },
-          "balance_dollars": {
-            "type": "string",
-            "title": "Balance Dollars"
-          }
-        },
-        "type": "object",
-        "required": [
-          "customer_id",
-          "open_invoices_cents",
-          "open_invoices_dollars",
-          "lifetime_paid_cents",
-          "lifetime_paid_dollars",
-          "balance_cents",
-          "balance_dollars"
-        ],
-        "title": "CustomerBalanceResponse"
       },
       "CustomerSyncRequest": {
         "properties": {
@@ -17504,10 +17850,7 @@
           }
         },
         "type": "object",
-        "title": "EnrichAccountRequest",
-        "required": [
-          "sources"
-        ]
+        "title": "EnrichAccountRequest"
       },
       "EnrichmentStatus": {
         "type": "string",
@@ -17563,30 +17906,6 @@
           "coverage_pct"
         ],
         "title": "EnrichmentStatusResponse"
-      },
-      "EntitlementsResponse": {
-        "properties": {
-          "plan_id": {
-            "type": "string",
-            "title": "Plan Id"
-          },
-          "plan_name": {
-            "type": "string",
-            "title": "Plan Name"
-          },
-          "features": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Features"
-          }
-        },
-        "type": "object",
-        "required": [
-          "plan_id",
-          "plan_name",
-          "features"
-        ],
-        "title": "EntitlementsResponse"
       },
       "ErrorAnalysisResponse": {
         "properties": {
@@ -18977,11 +19296,7 @@
         },
         "type": "object",
         "title": "ICPProfileUpdateRequest",
-        "description": "Request to update an ICP profile.",
-        "required": [
-          "industries",
-          "company_size"
-        ]
+        "description": "Request to update an ICP profile."
       },
       "ICPSourceType": {
         "type": "string",
@@ -19074,10 +19389,7 @@
         },
         "type": "object",
         "title": "IntegrationCreateRequest",
-        "description": "Request to create/update an integration.\n\nSECURITY: Never accept access_token, refresh_token, or auth_code\nfrom frontend requests. Tokens are obtained via OAuth callback\nor internal service mechanisms only.",
-        "required": [
-          "enabled"
-        ]
+        "description": "Request to create/update an integration.\n\nSECURITY: Never accept access_token, refresh_token, or auth_code\nfrom frontend requests. Tokens are obtained via OAuth callback\nor internal service mechanisms only."
       },
       "IntegrationListResponse": {
         "properties": {
@@ -19463,70 +19775,6 @@
         ],
         "title": "KnowledgeSourceResponse",
         "description": "Knowledge source item in API responses."
-      },
-      "LimitsCheckResponse": {
-        "properties": {
-          "allowed": {
-            "type": "boolean",
-            "title": "Allowed"
-          },
-          "customer_id": {
-            "type": "string",
-            "title": "Customer Id"
-          },
-          "metric_name": {
-            "type": "string",
-            "title": "Metric Name"
-          },
-          "quantity": {
-            "type": "number",
-            "title": "Quantity"
-          },
-          "limit": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Limit"
-          },
-          "current_usage": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Usage"
-          },
-          "remaining": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Remaining"
-          }
-        },
-        "type": "object",
-        "required": [
-          "allowed",
-          "customer_id",
-          "metric_name",
-          "quantity",
-          "limit",
-          "current_usage",
-          "remaining"
-        ],
-        "title": "LimitsCheckResponse"
       },
       "LineageRef": {
         "properties": {
@@ -20485,19 +20733,6 @@
         "title": "PortalRequest",
         "description": "Request to create a customer portal session."
       },
-      "PortalResponse": {
-        "properties": {
-          "portal_url": {
-            "type": "string",
-            "title": "Portal Url"
-          }
-        },
-        "type": "object",
-        "required": [
-          "portal_url"
-        ],
-        "title": "PortalResponse"
-      },
       "ProcessingMetadata": {
         "properties": {
           "extraction_duration_ms": {
@@ -21190,10 +21425,7 @@
         },
         "type": "object",
         "title": "ROIAnalysisRequest",
-        "description": "Quick ROI analysis request.",
-        "required": [
-          "prospect_id"
-        ]
+        "description": "Quick ROI analysis request."
       },
       "ROIAnalysisResponse": {
         "properties": {
@@ -21260,24 +21492,6 @@
         ],
         "title": "RankHypothesesRequest",
         "description": "Request to re-rank hypotheses."
-      },
-      "ReactivateSubscriptionResponse": {
-        "properties": {
-          "reactivated": {
-            "type": "boolean",
-            "title": "Reactivated"
-          },
-          "subscription_id": {
-            "type": "string",
-            "title": "Subscription Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "reactivated",
-          "subscription_id"
-        ],
-        "title": "ReactivateSubscriptionResponse"
       },
       "RecordChargeRequest": {
         "properties": {
@@ -21787,44 +22001,6 @@
         "title": "RetryProvisioningResponse",
         "description": "Response from retry provisioning request."
       },
-      "RevenueSummaryResponse": {
-        "properties": {
-          "total_revenue_cents": {
-            "type": "integer",
-            "title": "Total Revenue Cents"
-          },
-          "total_revenue_dollars": {
-            "type": "string",
-            "title": "Total Revenue Dollars"
-          },
-          "invoice_count": {
-            "type": "integer",
-            "title": "Invoice Count"
-          },
-          "charge_count": {
-            "type": "integer",
-            "title": "Charge Count"
-          },
-          "period_start": {
-            "type": "string",
-            "title": "Period Start"
-          },
-          "period_end": {
-            "type": "string",
-            "title": "Period End"
-          }
-        },
-        "type": "object",
-        "required": [
-          "total_revenue_cents",
-          "total_revenue_dollars",
-          "invoice_count",
-          "charge_count",
-          "period_start",
-          "period_end"
-        ],
-        "title": "RevenueSummaryResponse"
-      },
       "ReviewRequest": {
         "properties": {
           "review_id": {
@@ -22030,10 +22206,7 @@
         },
         "type": "object",
         "title": "SalesforceOAuthAuthorizeRequest",
-        "description": "Request to start Salesforce OAuth.",
-        "required": [
-          "return_to"
-        ]
+        "description": "Request to start Salesforce OAuth."
       },
       "SalesforceOAuthAuthorizeResponse": {
         "properties": {
@@ -22730,10 +22903,7 @@
         },
         "type": "object",
         "title": "StatusChangeRequest",
-        "description": "Request body for tenant status change endpoints.",
-        "required": [
-          "reason"
-        ]
+        "description": "Request body for tenant status change endpoints."
       },
       "StatusUpdateRequest": {
         "properties": {
@@ -22749,66 +22919,6 @@
         ],
         "title": "StatusUpdateRequest",
         "description": "Request to update narrative status."
-      },
-      "SubscriptionResponse": {
-        "properties": {
-          "id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Id"
-          },
-          "plan_id": {
-            "type": "string",
-            "title": "Plan Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "current_period_start": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Period Start"
-          },
-          "current_period_end": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Current Period End"
-          },
-          "cancel_at_period_end": {
-            "type": "boolean",
-            "title": "Cancel At Period End"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "plan_id",
-          "status",
-          "current_period_start",
-          "current_period_end",
-          "cancel_at_period_end"
-        ],
-        "title": "SubscriptionResponse",
-        "description": "Subscription status response."
       },
       "SyncAccountsRequest": {
         "properties": {
@@ -22847,10 +22957,7 @@
         },
         "type": "object",
         "title": "SyncAccountsRequest",
-        "description": "Manual sync trigger request.",
-        "required": [
-          "provider"
-        ]
+        "description": "Manual sync trigger request."
       },
       "SyncAccountsResponse": {
         "properties": {
@@ -23438,11 +23545,7 @@
         },
         "type": "object",
         "title": "TenantUpdateRequest",
-        "description": "Payload to update tenant metadata.",
-        "required": [
-          "name",
-          "status"
-        ]
+        "description": "Payload to update tenant metadata."
       },
       "TenantUserInfo": {
         "properties": {
@@ -23868,29 +23971,6 @@
         ],
         "title": "UpdatePlanRequest"
       },
-      "UpdatePlanResponse": {
-        "properties": {
-          "previous_plan_id": {
-            "type": "string",
-            "title": "Previous Plan Id"
-          },
-          "subscription_id": {
-            "type": "string",
-            "title": "Subscription Id"
-          },
-          "updated": {
-            "type": "boolean",
-            "title": "Updated"
-          }
-        },
-        "type": "object",
-        "required": [
-          "previous_plan_id",
-          "subscription_id",
-          "updated"
-        ],
-        "title": "UpdatePlanResponse"
-      },
       "UpdateTaskRequest": {
         "properties": {
           "status": {
@@ -23940,10 +24020,7 @@
           }
         },
         "type": "object",
-        "title": "UpdateTaskRequest",
-        "required": [
-          "status"
-        ]
+        "title": "UpdateTaskRequest"
       },
       "UsageBatchRequest": {
         "properties": {
@@ -24046,67 +24123,6 @@
         "title": "UsageEventRequest",
         "description": "Request body for ingesting a single usage event."
       },
-      "UsageEventResponse": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "event_id": {
-            "type": "string",
-            "title": "Event Id"
-          },
-          "event_name": {
-            "type": "string",
-            "title": "Event Name"
-          },
-          "metric_name": {
-            "type": "string",
-            "title": "Metric Name"
-          },
-          "quantity": {
-            "type": "number",
-            "title": "Quantity"
-          },
-          "unit": {
-            "type": "string",
-            "title": "Unit"
-          },
-          "timestamp": {
-            "type": "string",
-            "title": "Timestamp"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "metadata": {
-            "anyOf": [
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Metadata"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "event_id",
-          "event_name",
-          "metric_name",
-          "quantity",
-          "unit",
-          "timestamp",
-          "status",
-          "metadata"
-        ],
-        "title": "UsageEventResponse"
-      },
       "UsageMetricsResponse": {
         "properties": {
           "tenant_id": {
@@ -24144,88 +24160,6 @@
         ],
         "title": "UsageMetricsResponse",
         "description": "Usage metrics response."
-      },
-      "UsageSummaryResponse": {
-        "properties": {
-          "customer_id": {
-            "type": "string",
-            "title": "Customer Id"
-          },
-          "metric_name": {
-            "type": "string",
-            "title": "Metric Name"
-          },
-          "total_quantity": {
-            "type": "number",
-            "title": "Total Quantity"
-          },
-          "event_count": {
-            "type": "integer",
-            "title": "Event Count"
-          },
-          "period_start": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period Start"
-          },
-          "period_end": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Period End"
-          }
-        },
-        "type": "object",
-        "required": [
-          "customer_id",
-          "metric_name",
-          "total_quantity",
-          "event_count",
-          "period_start",
-          "period_end"
-        ],
-        "title": "UsageSummaryResponse"
-      },
-      "UsageSyncResponse": {
-        "properties": {
-          "synced": {
-            "type": "integer",
-            "title": "Synced"
-          },
-          "failed": {
-            "type": "integer",
-            "title": "Failed"
-          },
-          "error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Error"
-          }
-        },
-        "type": "object",
-        "required": [
-          "synced",
-          "failed",
-          "error"
-        ],
-        "title": "UsageSyncResponse"
       },
       "UserInviteRequest": {
         "properties": {
@@ -24383,11 +24317,7 @@
         },
         "type": "object",
         "title": "UserUpdateRequest",
-        "description": "Update a user's role or status.",
-        "required": [
-          "display_name",
-          "role"
-        ]
+        "description": "Update a user's role or status."
       },
       "ValidateClaimsRequest": {
         "properties": {
@@ -24608,10 +24538,7 @@
         "additionalProperties": false,
         "type": "object",
         "title": "ValidationAuthContextSeedRequest",
-        "description": "Non-production deterministic auth-context seed payload.\n\nThe payload intentionally accepts only non-secret metadata and optional\npre-hashed API key material. Raw secrets are rejected by ``extra=forbid``.",
-        "required": [
-          "tenant_id"
-        ]
+        "description": "Non-production deterministic auth-context seed payload.\n\nThe payload intentionally accepts only non-secret metadata and optional\npre-hashed API key material. Raw secrets are rejected by ``extra=forbid``."
       },
       "ValidationError": {
         "properties": {
@@ -24808,11 +24735,7 @@
         },
         "type": "object",
         "title": "ValidationSessionRequest",
-        "description": "Non-production browser session payload for backend-integrated Playwright validation.",
-        "required": [
-          "user_id",
-          "email"
-        ]
+        "description": "Non-production browser session payload for backend-integrated Playwright validation."
       },
       "ValidationState": {
         "type": "string",
@@ -26351,10 +26274,7 @@
           }
         },
         "type": "object",
-        "title": "WorkspaceEvidenceResponse",
-        "required": [
-          "evidence"
-        ]
+        "title": "WorkspaceEvidenceResponse"
       },
       "add_invoice_itemResult": {
         "properties": {
@@ -26502,6 +26422,24 @@
         ],
         "title": "create_invoiceResult"
       },
+      "delete_hypothesisResult": {
+        "properties": {
+          "hypothesis_id": {
+            "title": "Hypothesis Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "hypothesis_id",
+          "status"
+        ],
+        "title": "delete_hypothesisResult"
+      },
       "finalize_invoiceResult": {
         "properties": {
           "amount_due_cents": {
@@ -26534,6 +26472,53 @@
           "total_dollars"
         ],
         "title": "finalize_invoiceResult"
+      },
+      "generate_hypothesesResult": {
+        "properties": {
+          "account_id": {
+            "title": "Account Id"
+          },
+          "count": {
+            "title": "Count"
+          },
+          "hypotheses": {
+            "title": "Hypotheses"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "account_id",
+          "count",
+          "hypotheses",
+          "status"
+        ],
+        "title": "generate_hypothesesResult"
+      },
+      "get_daily_usageResult": {
+        "properties": {
+          "data": {
+            "title": "Data"
+          },
+          "days": {
+            "title": "Days"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "data",
+          "days",
+          "tenant_id"
+        ],
+        "title": "get_daily_usageResult"
       },
       "get_invoiceResult": {
         "properties": {
@@ -26655,6 +26640,211 @@
           "plan_name"
         ],
         "title": "get_plan_limitsResult"
+      },
+      "get_subscriptionResult": {
+        "properties": {
+          "cancel_at_period_end": {
+            "type": "boolean",
+            "title": "Cancel At Period End"
+          },
+          "current_period_end": {
+            "title": "Current Period End"
+          },
+          "current_period_start": {
+            "title": "Current Period Start"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "plan_id": {
+            "type": "string",
+            "title": "Plan Id"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "cancel_at_period_end",
+          "current_period_end",
+          "current_period_start",
+          "id",
+          "plan_id",
+          "status"
+        ],
+        "title": "get_subscriptionResult"
+      },
+      "get_tenant_audit_logResult": {
+        "properties": {
+          "events": {
+            "title": "Events"
+          },
+          "limit": {
+            "title": "Limit"
+          },
+          "offset": {
+            "title": "Offset"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          },
+          "total": {
+            "title": "Total"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "events",
+          "limit",
+          "offset",
+          "tenant_id",
+          "total"
+        ],
+        "title": "get_tenant_audit_logResult"
+      },
+      "get_tenant_settingsResult": {
+        "properties": {
+          "created_at": {
+            "title": "Created At"
+          },
+          "id": {
+            "title": "Id"
+          },
+          "name": {
+            "title": "Name"
+          },
+          "settings": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Settings"
+          },
+          "slug": {
+            "title": "Slug"
+          },
+          "status": {
+            "title": "Status"
+          },
+          "tier_id": {
+            "title": "Tier Id"
+          },
+          "updated_at": {
+            "title": "Updated At"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "created_at",
+          "id",
+          "name",
+          "settings",
+          "slug",
+          "status",
+          "tier_id",
+          "updated_at"
+        ],
+        "title": "get_tenant_settingsResult"
+      },
+      "get_tenant_usageResult": {
+        "properties": {
+          "agent_executions": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Agent Executions"
+          },
+          "api_calls": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Api Calls"
+          },
+          "llm_usage": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Llm Usage"
+          },
+          "period": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Period"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          },
+          "users": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Users"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "agent_executions",
+          "api_calls",
+          "llm_usage",
+          "period",
+          "tenant_id",
+          "users"
+        ],
+        "title": "get_tenant_usageResult"
+      },
+      "get_tier_usageResult": {
+        "properties": {
+          "tier_id": {
+            "type": "string",
+            "title": "Tier Id"
+          },
+          "limits": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Limits"
+          },
+          "current": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Current"
+          },
+          "utilization": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Utilization"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "tier_id",
+          "limits",
+          "current",
+          "utilization"
+        ],
+        "title": "get_tier_usageResult",
+        "description": "Response for tier usage endpoint."
+      },
+      "get_top_endpointsResult": {
+        "properties": {
+          "days": {
+            "title": "Days"
+          },
+          "endpoints": {
+            "title": "Endpoints"
+          },
+          "tenant_id": {
+            "title": "Tenant Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "days",
+          "endpoints",
+          "tenant_id"
+        ],
+        "title": "get_top_endpointsResult"
       },
       "get_usage_limitsResult": {
         "properties": {
@@ -27080,6 +27270,51 @@
         "title": "TenantSettingsUpdate",
         "description": "Update tenant settings."
       },
+      "layer4_agents__tenants__api__routes__admin_dashboard__TenantSettingsUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Name",
+            "description": "Tenant display name"
+          },
+          "branding": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Branding",
+            "description": "Branding settings (logo_url, primary_color, etc.)"
+          },
+          "notification_preferences": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notification Preferences",
+            "description": "Notification preferences"
+          }
+        },
+        "type": "object",
+        "title": "TenantSettingsUpdate",
+        "description": "Request body for updating tenant settings."
+      },
       "layer4_agents__tenants__api__routes__registration__RegisterTenantRequest": {
         "properties": {
           "name": {
@@ -27174,26 +27409,129 @@
         ],
         "title": "list_invoicesResult"
       },
-      "reconcile_invoiceResult": {
+      "logout_result": {
         "properties": {
-          "invoice_id": {
-            "title": "Invoice Id"
-          },
-          "mismatch_count": {
-            "title": "Mismatch Count"
-          },
-          "mismatches": {
-            "title": "Mismatches"
+          "detail": {
+            "type": "string",
+            "title": "Detail"
           }
         },
         "additionalProperties": true,
         "type": "object",
         "required": [
-          "invoice_id",
-          "mismatch_count",
-          "mismatches"
+          "detail"
         ],
-        "title": "reconcile_invoiceResult"
+        "title": "logout_result",
+        "description": "Response from logout endpoint."
+      },
+      "oidc_callbackResult": {
+        "properties": {
+          "email": {
+            "title": "Email"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "role": {
+            "title": "Role"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "user_id": {
+            "title": "User Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "email",
+          "expires_in",
+          "role",
+          "token_type",
+          "user_id"
+        ],
+        "title": "oidc_callbackResult",
+        "description": "Non-secret session metadata returned after a successful OIDC callback.\n\nThe access token is delivered exclusively via the httpOnly ``vf_session``\ncookie set on this response.  It is intentionally absent from this body so\nthat JavaScript cannot read it."
+      },
+      "oidc_loginResult": {
+        "properties": {
+          "authorization_url": {
+            "title": "Authorization Url"
+          },
+          "state": {
+            "title": "State"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "authorization_url",
+          "state"
+        ],
+        "title": "oidc_loginResult"
+      },
+      "oidc_metadataResult": {
+        "properties": {
+          "auto_provision_users": {
+            "title": "Auto Provision Users"
+          },
+          "claim_mapping_keys": {
+            "items": {},
+            "type": "array",
+            "title": "Claim Mapping Keys"
+          },
+          "default_role": {
+            "title": "Default Role"
+          },
+          "enabled": {
+            "title": "Enabled"
+          },
+          "issuer_url": {
+            "title": "Issuer Url"
+          },
+          "provider_name": {
+            "title": "Provider Name"
+          },
+          "scopes": {
+            "title": "Scopes"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "auto_provision_users",
+          "claim_mapping_keys",
+          "default_role",
+          "enabled",
+          "issuer_url",
+          "provider_name",
+          "scopes"
+        ],
+        "title": "oidc_metadataResult"
+      },
+      "rank_hypothesesResult": {
+        "properties": {
+          "count": {
+            "title": "Count"
+          },
+          "hypotheses": {
+            "title": "Hypotheses"
+          },
+          "strategy": {
+            "title": "Strategy"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "count",
+          "hypotheses",
+          "strategy"
+        ],
+        "title": "rank_hypothesesResult"
       },
       "record_chargeResult": {
         "properties": {
@@ -27227,6 +27565,38 @@
           "stripe_charge_id"
         ],
         "title": "record_chargeResult"
+      },
+      "refresh_result": {
+        "properties": {
+          "email": {
+            "title": "Email"
+          },
+          "expires_in": {
+            "type": "integer",
+            "title": "Expires In"
+          },
+          "role": {
+            "title": "Role"
+          },
+          "token_type": {
+            "type": "string",
+            "title": "Token Type"
+          },
+          "user_id": {
+            "title": "User Id"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "email",
+          "expires_in",
+          "role",
+          "token_type",
+          "user_id"
+        ],
+        "title": "refresh_result",
+        "description": "Non-secret metadata returned after a successful token refresh."
       },
       "stripe_webhookResult": {
         "properties": {
@@ -27270,6 +27640,27 @@
           "tenant_id"
         ],
         "title": "sync_customerResult"
+      },
+      "validate_hypothesisResult": {
+        "properties": {
+          "hypothesis": {
+            "title": "Hypothesis"
+          },
+          "promoted_artifacts": {
+            "title": "Promoted Artifacts"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          }
+        },
+        "additionalProperties": true,
+        "type": "object",
+        "required": [
+          "hypothesis",
+          "status"
+        ],
+        "title": "validate_hypothesisResult"
       },
       "void_invoiceResult": {
         "properties": {

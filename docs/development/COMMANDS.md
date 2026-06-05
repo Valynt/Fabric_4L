@@ -21,22 +21,44 @@ Every root `package.json` script is a stable public npm-script interface.
 | `generate:api` | `pnpm --filter ./apps/web run generate:types` | Frontend API types |
 | `check:contract-compliance` | `python scripts/ci/contract_compliance_gate.py --mode full` | Contract gate |
 | `check:api-types` | `pnpm run generate:api && git diff --exit-code apps/web/src/api/generated` | Generated type drift |
+| `sbom` | `python scripts/ci/supply_chain_gate.py sbom` | Supply chain SBOM generation |
+| `audit:ci` | `python scripts/ci/supply_chain_gate.py audit` | Supply chain audit |
+| `container:scan` | `python scripts/ci/supply_chain_gate.py container` | Container supply chain scan |
 | `docs:check` | `python -m pytest tests/docs/` | Documentation validation |
 | `ops:runbooks:lint` | `python scripts/ci/check_incident_runbooks.py --mode runbooks-lint` | Incident runbook validation |
 | `ops:incident:check` | `python scripts/ci/check_incident_runbooks.py --mode incident-check` | Incident workflow validation |
 | `lint` | `python scripts/ci/run_root_aggregate_checks.py lint` | Root aggregate CI runner |
 | `test` | `python scripts/ci/run_root_aggregate_checks.py test` | Root aggregate CI runner |
+| `test:observability` | `python -m pytest tests/observability/ -v --tb=short` | Observability tests |
+| `test:reliability` | `python -m pytest tests/reliability/ -v --tb=short` | Reliability tests |
+| `test:recovery` | `python -m pytest tests/recovery/ -v --tb=short` | Recovery tests |
+| `test:release` | `python -m pytest tests/release/ -v --tb=short` | Release tests |
+| `test:tenancy` | `python -m pytest tests/tenancy/ -v --tb=short` | Tenancy tests |
+| `test:billing` | `python -m pytest tests/billing/ -v --tb=short` | Billing tests |
+| `billing:webhooks:replay-test` | `python -m pytest tests/billing/test_webhook_idempotency.py -v --tb=short` | Billing webhook replay regression |
+| `test:abuse` | `python -m pytest tests/abuse/ -v --tb=short` | Abuse prevention tests |
+| `test:config` | `python -m pytest tests/config/ -v --tb=short` | Configuration tests |
+| `config:validate` | `python -m pytest tests/config/ -v --tb=short` | Configuration validation |
+| `flags:lint` | `python -m pytest tests/config/test_feature_flag_defaults.py -v --tb=short` | Feature flag policy |
+| `test:audit` | `python -m pytest tests/audit/ -v --tb=short` | Audit tests |
+| `test:data-lifecycle` | `python -m pytest tests/data_lifecycle/ -v --tb=short` | Data lifecycle tests |
+| `test:production-readiness` | `python -m pytest tests/security/ tests/reliability/ tests/observability/ tests/recovery/ tests/release/ tests/tenancy/ tests/billing/ tests/abuse/ tests/config/ tests/audit/ -v --tb=short` | Production readiness pytest suite |
+| `test:performance` | `python -m pytest tests/performance/` | Performance tests |
+| `lint:logs` | `python scripts/ci/check_observability_coverage.py` | Observability coverage lint |
 | `readiness:10` | `python scripts/ci/readiness_10_gate.py` | Readiness gate |
 | `test:security` | `python -m pytest tests/security/ -v --tb=short` | Centralized security readiness suite |
 | `test:isolation` | `python scripts/ci/run_root_aggregate_checks.py isolation` | Tenant isolation alias |
 | `test:schema` | `python scripts/ci/run_root_aggregate_checks.py schema` | Schema/index alias |
 | `test:queues` | `python -m pytest tests/integration/test_celery_queue_topology.py -m celery` | Queue topology tests |
+| `loadtest:smoke` | `k6 run --summary-export artifacts/performance/loadtest-smoke-summary.json --env PERF_DURATION=30s tests/performance/k6/l2_l3_l4_critical_paths.js` | Performance smoke load test |
 | `test:crawler` | `python scripts/ci/run_root_aggregate_checks.py crawler` | Layer 1 crawler alias |
 | `test:router` | `python scripts/ci/run_root_aggregate_checks.py router` | Router contract alias |
 | `test:agents` | `python -m pytest tests/agents services/layer4-agents/tests/test_workflows_real_execution.py services/layer4-agents/tests/unit/test_workflow_state_machine.py` | Agent regression tests |
 | `db:extensions:check` | `python scripts/ci/run_root_aggregate_checks.py db-extensions-check` | Database extension policy |
 | `db:migrate:status` | `python scripts/ci/run_root_aggregate_checks.py db-migrate-status` | Read-only migration status |
 | `db:migrate:check` | `python scripts/ci/migration_status_report.py --mode check` | Read-only migration drift gate |
+| `db:migrate:test` | `python scripts/ci/check_migration_drift.py --round-trip` | Migration round-trip drift test |
+| `db:schema:diff` | `python scripts/ci/migration_status_report.py --mode check` | Database schema drift check |
 | `typecheck` | `python scripts/ci/run_root_aggregate_checks.py typecheck` | Root aggregate CI runner |
 | `check:default-scope` | `node scripts/ci/check_default_scope.mjs` | Workspace policy |
 | `preinstall` | `node scripts/enforce-package-manager.cjs` | Package-manager guard |
@@ -55,11 +77,16 @@ Every root `package.json` script is a stable public npm-script interface.
 | `compose:dev` | `pnpm env:dev && docker compose --env-file .env.generated up` | Dev stack |
 | `contract:breaking` | `python scripts/ci/openapi_breaking_change_gate.py` | Contract compatibility |
 | `evidence:bundle` | `python scripts/ci/generate_evidence_bundle.py` | Evidence bundle generation |
+| `evidence:build` | `node --experimental-strip-types scripts/collect_evidence.ts build` | Evidence collection build |
+| `evidence:validate` | `node --experimental-strip-types scripts/collect_evidence.ts validate` | Evidence collection validation |
 | `release:dry-run` | `python scripts/ci/generate_release_safety_artifact.py --environment release-candidate --profile release-candidate` | Release safety artifact |
 | `release:rollback:verify` | `python scripts/ci/verify_release_rollback.py` | Release rollback verification |
+| `production:scorecard` | `python scripts/ci/check_production_readiness_scorecard.py --scorecard-only` | Production readiness scorecard |
+| `production:check` | `python scripts/ci/check_production_readiness_scorecard.py && python scripts/ci/validate_production_readiness_plan.py` | Production readiness validation |
 | `ci:workflow-registry` | `python scripts/ci/verify_workflow_registry.py` | Workflow registry validation |
 | `ops:backup:verify` | `python -m pytest tests/recovery/test_backup_exists.py tests/recovery/test_restore_smoke.py` | Backup recovery validation |
 | `ops:restore:dry-run` | `python scripts/ops/restore_dry_run.py --output-dir artifacts/recovery` | Restore dry-run evidence |
+| `ops:quota:check` | `python scripts/ci/check_quota_policy.py` | Quota policy validation |
 
 ## Public Makefile Targets
 
@@ -86,7 +113,6 @@ Public Makefile targets are targets with `##` help text and are exposed by `make
 | `verify` | Run all checks before PR. |
 | `verify-structure` | Run structural preflight and Python contract lint checks. |
 | `verify-strict` | Run `verify` plus contract drift detection. |
-| `check-default-scope` | Not a Makefile target; use `pnpm run check:default-scope`. |
 | `check-conflict-markers` | Fail on unresolved merge conflict markers. |
 | `check-no-nul-bytes` | Fail on tracked NUL bytes. |
 | `check-readiness-consistency` | Check readiness percentage and archive consistency. |
@@ -326,5 +352,6 @@ Supported gates are `typecheck`, `lint`, `test`, `security`, `schema`, `isolatio
 ## Related Documentation
 
 - [Canonical Build System](./BUILD_SYSTEM.md) - Command hierarchy and public interface policy.
+- [Development Discovery Map](./DISCOVERY_MAP.md) - Route issue types to canonical files, drift checks, validation commands, and evidence.
 - [Contributing](../../CONTRIBUTING.md) - Contributor setup and PR process.
 - [Agent Reference](../../AGENTS.md) - AI agent command and governance reference.

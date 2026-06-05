@@ -120,50 +120,14 @@ Manual activation:
 
 6. **Generate a Refreshed 5-Sprint Plan**
 
-   **Sprint 1 — Launch Gate Repair and Baseline Evidence**
-   - Goal: Align `prod-readiness.yml` to the commands and files that actually exist now.
-   - Tasks:
-     - [ ] Repair missing policy/config references used by launch gates
-     - [ ] Replace or restore missing `make` targets referenced by `prod-readiness.yml`
-     - [ ] Ensure launch-gate jobs produce fresh `arch`, `security`, `agent`, `state`, `obs`, and `release` artifacts
-     - [ ] Re-run baseline gate sequence using current repo commands
-   - Exit Criteria: The launch-gate workflow runs end-to-end and any remaining failures are real product failures, not broken gate plumbing.
+   Produce a dependency-aware 5-sprint plan tied to the top blockers:
+   - Sprint 1 — Launch Gate Repair and Baseline Evidence
+   - Sprint 2 — Security Isolation and Contract Closure
+   - Sprint 3 — Monitoring, Health, and Kubernetes Verification
+   - Sprint 4 — L1 Ingestion Hardening and Runtime Confidence
+   - Sprint 5 — Final Evidence Refresh and Go/No-Go
 
-   **Sprint 2 — Security Isolation and Contract Closure**
-   - Goal: Clear the current security-isolation and contract-drift blockers.
-   - Tasks:
-     - [ ] Fix the reported cross-tenant access success path
-     - [ ] Raise critical-endpoint isolation test coverage from 85% to 100%
-     - [ ] Clear the single contract-drift violation
-     - [ ] Regenerate fresh `artifacts/security/*` and `artifacts/arch/*`
-   - Exit Criteria: Fresh arch and security artifacts both pass.
-
-   **Sprint 3 — Monitoring, Health, and Kubernetes Verification**
-   - Goal: Produce real verification for observability and deployment readiness.
-   - Tasks:
-     - [ ] Verify Prometheus endpoints return real counters
-     - [ ] Verify health checks expose actual dependency status
-     - [ ] Verify Kubernetes manifests render cleanly and deploy in staging or equivalent validation path
-     - [ ] Produce the missing observability evidence artifacts
-   - Exit Criteria: Health, metrics, and Kubernetes checklist items are verified from current evidence, not inferred.
-
-   **Sprint 4 — L1 Ingestion Hardening and Runtime Confidence**
-   - Goal: Verify or finish the remaining L1 launch-critical runtime work.
-   - Tasks:
-     - [ ] Confirm actual Celery/Redis wiring status with code and runtime evidence
-     - [ ] Complete any remaining rate-limit/runtime hardening needed for launch
-     - [ ] Re-run smoke and integration paths against the validated L1 state
-     - [ ] Decide whether any remaining L1 gaps are launch blockers or explicit post-launch carryovers
-   - Exit Criteria: L1 reaches target with evidence, or is explicitly de-scoped from initial launch with recorded risk acceptance.
-
-   **Sprint 5 — Final Evidence Refresh and Go/No-Go**
-   - Goal: Re-run the full evidence stack and produce a final launch decision.
-   - Tasks:
-     - [ ] Re-run gate, smoke, and verification artifacts
-     - [ ] Recompute the dual-track readiness table
-     - [ ] Refresh the final launch checklist
-     - [ ] Produce explicit go/no-go status with owners for any carryovers
-   - Exit Criteria: The release policy is green, or the final report documents a no-go decision with residual blockers and owners.
+   See `.devin/skills/launch-readiness-assessment/SKILL.md` for full sprint templates.
 
 7. **Define Cross-Cutting Tracks**
    - **Evidence Freshness**: Prefer the newest artifact per gate and call out stale evidence explicitly.
@@ -213,88 +177,8 @@ Manual activation:
 
 ## Output Format
 
-```markdown
-# Launch Readiness Assessment - {YYYY-MM-DD}
-
-**Claimed Readiness: {N}%**
-**Verified Readiness: {N}% | Blocked**
-
-| Layer | Claimed | Verified | Target | Gap | Evidence |
-|-------|---------|----------|--------|-----|----------|
-| L1 Ingestion | {N}% | {N}% / Unverified / Blocked | 90% | {text} | {artifact or note} |
-| L2 Extraction | {N}% | {N}% / Unverified / Blocked | 95% | {text} | {artifact or note} |
-| L3 Knowledge | {N}% | {N}% / Unverified / Blocked | 90% | {text} | {artifact or note} |
-| L4 Agents | {N}% | {N}% / Unverified / Blocked | 85% | {text} | {artifact or note} |
-| L5 Ground Truth | 100% | {N}% / Unverified / Blocked | 100% | {text} | {artifact or note} |
-| Frontend | {N}% | {N}% / Unverified / Blocked | 85% | {text} | {artifact or note} |
-| DevOps | {N}% | {N}% / Unverified / Blocked | 80% | {text} | {artifact or note} |
-
-## L6 Benchmarks Note
-- Claimed: {text}
-- Verified: {text}
-- Launch relevance: {text}
-
-## Top 5 Launch Blockers
-1. [Blocker] -> [Evidence] -> [Owning sprint]
-2. ...
-
-## Refreshed 5-Sprint Plan
-### Sprint 1 — Launch Gate Repair and Baseline Evidence
-- Goal: ...
-- Exit Criteria: ...
-
-### Sprint 2 — Security Isolation and Contract Closure
-- Goal: ...
-- Exit Criteria: ...
-
-### Sprint 3 — Monitoring, Health, and Kubernetes Verification
-- Goal: ...
-- Exit Criteria: ...
-
-### Sprint 4 — L1 Ingestion Hardening and Runtime Confidence
-- Goal: ...
-- Exit Criteria: ...
-
-### Sprint 5 — Final Evidence Refresh and Go/No-Go
-- Goal: ...
-- Exit Criteria: ...
-
-## Quick Wins
-- [ ] [Quick win]
-
-## Launch Checklist ({met}/{total} verified)
-- [ ] [Criterion]
-```
-
-## Execution Log Format
-
-Present progress using this structured format:
-
-```
-[INIT] Loaded ROADMAP.md, prior assessments, and newest local evidence artifacts
-[GATES] Launch-gate integrity: commands={ok|drift} policy={ok|missing} artifacts={ok|missing}
-[ASSESS] Claimed readiness captured for L1-L5, Frontend, DevOps; L6 noted separately
-[VERIFY] Fresh evidence mapped to arch/security/state/agent/obs/smoke signals
-[RISKS] Identified top 5 blockers from verified evidence
-[PLAN] Generated refreshed 5-sprint sequence around current blockers
-[CHECKLIST] Final launch checklist: {N}/{total} verified
-[REVIEW] Presenting assessment and awaiting approval before creating any dated artifact
-[ARTIFACTS] User approved - creating new dated launch-readiness report
-[COMPLETE] Assessment saved without touching archived or superseded reports
-```
-
-## Concrete Actions Checklist
-
-- [ ] Read and analyzed `ROADMAP.md` current claimed state
-- [ ] Read newest local evidence artifacts across release, arch, security, smoke, and test outputs
-- [ ] Verified launch-gate workflow integrity against current repo files and commands
-- [ ] Built a dual-track readiness table with claimed and verified fields
-- [ ] Identified top 5 blockers from current evidence
-- [ ] Generated a refreshed 5-sprint plan tied to those blockers
-- [ ] Kept L6 separate from the main readiness table
-- [ ] Presented assessment without creating artifacts
-- [ ] Only after approval: created a new dated report in `.windsurf/plans/`
-- [ ] Preserved older dated assessments and archived Phase 2 documents
+Generate a dated report following the template in `.devin/skills/launch-readiness-assessment/SKILL.md`.
+Include: readiness table, L6 note, top 5 blockers, 5-sprint plan, quick wins, and launch checklist.
 
 ## Safety Rules
 

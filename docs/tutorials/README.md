@@ -9,6 +9,8 @@ Step-by-step guides for common tasks on the Fabric_4L platform.
 | Tutorial | Description | Time |
 |----------|-------------|------|
 | [First Account Setup](./first-account-setup.md) | Create your first tenant, configure ingestion, and query the knowledge graph | 20 min |
+| [Run an Agent Workflow](./agent-workflow-run.md) | Start a Layer 4 workflow, monitor its state, and inspect the generated artifacts | 25 min |
+| [Validate a Business Case](./validate-business-case.md) | Review a generated value case, check evidence, and promote validated claims | 30 min |
 
 ---
 
@@ -44,4 +46,4 @@ To add a new tutorial:
 
 ---
 
-*Last updated: 2026-06-04*
+*Last updated: 2026-06-05*

@@ -309,6 +309,7 @@ class ProvenanceTrackingAgent(BaseAgent):
                     activity_id=context.get("activity_id"),
                     label=context.get("label"),
                     attributes=context.get("attributes", {}),
+                    tenant_id=tenant_id,
                 )
             elif operation == "record_derivation":
                 # SECURITY: Validate entity_ids
@@ -424,6 +425,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                     "tenant_id": tenant_id,
                     "attributes": attributes,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.record_entity",
             )
             record = await result.single()
 
@@ -433,6 +437,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             "type": entity_type,
             "label": label,
             "recorded": record is not None,
+            "error": "",
         })
 
 
@@ -442,6 +447,7 @@ class ProvenanceTrackingAgent(BaseAgent):
         activity_id: str,
         label: str,
         attributes: dict[str, Any],
+        tenant_id: str = "system",
     ) -> dict[str, Any]:
         """Record a PROV-O activity.
 
@@ -465,6 +471,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             full_id: $full_activity_id,
             label: $label,
             activity_type: $activity_type,
+            tenant_id: $tenant_id,
             started_at: datetime(),
             attributes: $attributes
         })
@@ -479,8 +486,12 @@ class ProvenanceTrackingAgent(BaseAgent):
                     "full_activity_id": full_activity_id,
                     "label": label,
                     "activity_type": activity_type,
+                    "tenant_id": tenant_id,
                     "attributes": attributes,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.record_activity",
             )
             record = await result.single()
 
@@ -490,6 +501,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             "type": activity_type,
             "label": label,
             "recorded": record is not None,
+            "error": "",
         })
 
 
@@ -533,6 +545,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                     "derivation_type": derivation_type,
                     "tenant_id": tenant_id,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.record_derivation",
             )
             record = await result.single()
 
@@ -541,6 +556,7 @@ class ProvenanceTrackingAgent(BaseAgent):
             "derived_entity": derived_entity_id,
             "source_entity": source_entity_id,
             "recorded": record is not None,
+            "error": "",
         })
 
 
@@ -668,6 +684,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                     if trace.completed_at
                     else None,
                 },
+                tenant_id=trace.tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.create_decision_trace",
             )
 
             # Create step nodes and link to trace
@@ -700,6 +719,9 @@ class ProvenanceTrackingAgent(BaseAgent):
                         "llm_model": step.llm_model,
                         "tenant_id": trace.tenant_id,
                     },
+                    tenant_id=trace.tenant_id,
+                    require_explicit_tenant_id=True,
+                    query_name="provenance_tracking.create_decision_step",
                 )
 
     async def _query_lineage(self, entity_id: str, tenant_id: str = "system") -> dict[str, Any]:
@@ -734,20 +756,36 @@ class ProvenanceTrackingAgent(BaseAgent):
 
         async with self._driver.session() as session:
             # Get upstream
-            result = await run_validated_query(session, upstream_query, {"entity_id": entity_id, "tenant_id": tenant_id})
+            result = await run_validated_query(
+                session,
+                upstream_query,
+                {"entity_id": entity_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.query_upstream_lineage",
+            )
             async for record in result:
                 upstream.extend(record.get("lineage", []))
 
             # Get downstream
-            result = await run_validated_query(session, downstream_query, {"entity_id": entity_id, "tenant_id": tenant_id})
+            result = await run_validated_query(
+                session,
+                downstream_query,
+                {"entity_id": entity_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="provenance_tracking.query_downstream_lineage",
+            )
             async for record in result:
                 downstream.extend(record.get("lineage", []))
 
         return ProvenanceTrackingAgent__query_lineageResult.model_validate({
             "entity_id": entity_id,
+            "lineage": [*upstream, *downstream],
             "upstream_lineage": upstream,
             "downstream_lineage": downstream,
             "full_lineage_depth": len(upstream) + len(downstream),
+            "error": "",
         })
 
 

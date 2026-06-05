@@ -176,6 +176,7 @@ class SyncManager:
                 """,
                 {"source_id": source_id, "tenant_id": tenant_id},
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
                 query_name="sync_manager.get_sync_status",
             )
             record = await result.single()
@@ -214,6 +215,7 @@ class SyncManager:
                 """,
                 {"tenant_id": tenant_id},
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
                 query_name="sync_manager.list_synced_sources",
             )
 
@@ -254,6 +256,7 @@ class SyncManager:
                 """,
                 {"source_id": source_id, "tenant_id": validated_tenant_id},
                 tenant_id=validated_tenant_id,
+                require_explicit_tenant_id=True,
                 allow_system_query=True,
                 query_name="sync_manager.delete_sync_metadata",
             )

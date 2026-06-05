@@ -447,8 +447,12 @@ async def signal_stream_websocket(
             return
         # decode_jwt returns TokenClaims (dataclass) or dict depending on version
         if isinstance(payload, dict):
-            tenant_id: str | None = payload.get("tenant_id")
-            user_id: str | None = payload.get("sub") or payload.get("user_id")
+            tenant_id: str | None = payload["tenant_id"] if "tenant_id" in payload else None
+            user_id: str | None = (
+                payload["sub"]
+                if "sub" in payload
+                else payload["user_id"] if "user_id" in payload else None
+            )
         else:
             tenant_id = getattr(payload, "tenant_id", None)
             user_id = getattr(payload, "sub", None) or getattr(payload, "user_id", None)

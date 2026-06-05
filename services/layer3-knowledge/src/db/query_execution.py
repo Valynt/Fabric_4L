@@ -362,6 +362,7 @@ async def run_validated_query(
     allow_system_query: bool = False,
     is_bypass: bool = False,
     query_name: str | None = None,
+    require_explicit_tenant_id: bool = True,
     **kwargs: Any,
 ) -> Any:
     """Execute legacy Cypher through fail-closed tenant validation.
@@ -369,16 +370,19 @@ async def run_validated_query(
     This compatibility wrapper is the approved temporary surface for migrated
     high-risk runtime modules that still hold raw Cypher strings. It merges
     positional and keyword parameters, derives the tenant from the explicit
-    ``tenant_id`` argument or existing ``tenant_id`` / ``_tenant_id`` parameters,
-    and rejects any tenant-owned label query missing explicit tenant predicates
-    before delegating to the Neo4j session.
+    authenticated ``tenant_id`` argument, and rejects any tenant-owned label
+    query missing explicit tenant predicates before delegating to the Neo4j
+    session.
+
+    ``require_explicit_tenant_id`` is retained as an explicit migration marker
+    for call sites that have been audited. Parameter-derived tenant context is
+    not accepted.
     """
 
     params = dict(parameters or {})
     params.update(kwargs)
-    resolved_tenant_id = tenant_id or params.get("tenant_id") or params.get("_tenant_id")
     context = TenantExecutionContext(
-        tenant_id=str(resolved_tenant_id) if resolved_tenant_id else None,
+        tenant_id=str(tenant_id) if tenant_id else None,
         is_bypass=is_bypass,
         allow_system_query=allow_system_query,
         allow_multi_clause_tenant_query=True,

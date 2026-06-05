@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import re
 import tempfile
 import unittest
 from pathlib import Path
@@ -15,6 +16,39 @@ SPEC = importlib.util.spec_from_file_location(
 verify_workflow_registry = importlib.util.module_from_spec(SPEC)
 assert SPEC and SPEC.loader
 SPEC.loader.exec_module(verify_workflow_registry)
+
+
+WORKFLOW_REGISTRY_DOC = ROOT / ".github" / "workflows" / "WORKFLOW_REGISTRY.md"
+WORKFLOW_README = ROOT / ".github" / "workflows" / "README.md"
+WORKFLOW_REGISTRY_JSON = ROOT / ".github" / "workflows" / "workflow-registry.json"
+
+
+def load_repository_registry_entries() -> dict[str, dict[str, object]]:
+    data = json.loads(WORKFLOW_REGISTRY_JSON.read_text(encoding="utf-8"))
+    return {str(entry["path"]): entry for entry in data["workflows"]}
+
+
+def workflow_inventory_rows() -> dict[str, dict[str, str]]:
+    source = WORKFLOW_REGISTRY_DOC.read_text(encoding="utf-8")
+    start = source.index("## Inventory")
+    end = source.index("## Overlap Register", start)
+    rows: dict[str, dict[str, str]] = {}
+
+    for line in source[start:end].splitlines():
+        if not line.startswith("| `"):
+            continue
+        cells = [cell.strip() for cell in line.strip("|").split("|")]
+        if len(cells) != 5:
+            continue
+        workflow = cells[0].strip("`")
+        rows[workflow] = {
+            "owner": cells[1].strip("`"),
+            "blocking": cells[2],
+            "triggers": cells[3].strip("`"),
+            "local_validation": cells[4].strip("`"),
+        }
+
+    return rows
 
 
 class WorkflowRegistryVerifierTests(unittest.TestCase):
@@ -145,6 +179,50 @@ class WorkflowRegistryVerifierTests(unittest.TestCase):
         self.write_workflow("a.yml")
         self.write_registry([self.entry("a.yml", deprecation_status="deprecated")])
         self.assertTrue(any("non-active workflow must declare" in error for error in self.errors()))
+
+
+class WorkflowRegistryDocumentationTests(unittest.TestCase):
+    def test_markdown_inventory_matches_json_workflow_paths(self) -> None:
+        registry_paths = set(load_repository_registry_entries())
+        markdown_paths = set(workflow_inventory_rows())
+
+        self.assertEqual(markdown_paths, registry_paths)
+
+    def test_markdown_inventory_fields_match_json_source_of_truth(self) -> None:
+        registry_entries = load_repository_registry_entries()
+        markdown_rows = workflow_inventory_rows()
+        mismatches: list[str] = []
+
+        for path, entry in registry_entries.items():
+            row = markdown_rows.get(path)
+            if row is None:
+                mismatches.append(f"{path}: missing markdown row")
+                continue
+
+            expected_blocking = "yes" if entry["blocking"] else "no"
+            expected_triggers = ", ".join(entry["trigger"])
+            expected_command = str(entry["local_validation_command"])
+
+            if row["owner"] != entry["owner"]:
+                mismatches.append(f"{path}: owner {row['owner']} != {entry['owner']}")
+            if row["blocking"] != expected_blocking:
+                mismatches.append(f"{path}: blocking {row['blocking']} != {expected_blocking}")
+            if row["triggers"] != expected_triggers:
+                mismatches.append(f"{path}: triggers {row['triggers']} != {expected_triggers}")
+            if row["local_validation"] != expected_command:
+                mismatches.append(f"{path}: command {row['local_validation']} != {expected_command}")
+
+        self.assertFalse(mismatches, "\n".join(mismatches))
+
+    def test_workflow_readme_count_matches_current_workflow_files(self) -> None:
+        source = WORKFLOW_README.read_text(encoding="utf-8")
+        match = re.search(r"currently contains \*\*(\d+)\*\* GitHub Actions workflow files", source)
+
+        self.assertIsNotNone(match, "workflow README must document the current workflow count")
+        assert match is not None
+        expected_count = len(verify_workflow_registry.workflow_files(ROOT / ".github" / "workflows"))
+
+        self.assertEqual(int(match.group(1)), expected_count)
 
 
 if __name__ == "__main__":

@@ -11,7 +11,7 @@ execution.
 
 import pytest
 
-from agents.roi_calculation import ROICalculationAgent
+from src.agents.roi_calculation import ROICalculationAgent
 
 
 @pytest.fixture

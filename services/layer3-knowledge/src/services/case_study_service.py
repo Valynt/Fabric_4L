@@ -236,27 +236,23 @@ class CaseStudyService:
     # CRUD Operations
     # -------------------------------------------------------------------
 
-    async def create(self, case_study: CaseStudy) -> dict[str, Any]:
+    async def create(self, case_study: CaseStudy, *, tenant_id: str | None = None) -> dict[str, Any]:
         """Create a new case study as an Evidence node."""
+        execution_tenant_id = tenant_id or case_study.tenant_id
+        if str(case_study.tenant_id) != str(execution_tenant_id):
+            raise AuthorizationError(
+                "Case study tenant does not match authenticated tenant context.",
+                details={"service": "CaseStudyService", "reason": "tenant_mismatch"},
+            )
         props = case_study.to_node_properties()
 
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
-                """
-                // strict-scoped-query-execution: props includes required tenant_id for Evidence
-                CREATE (e:Evidence $props)
-                RETURN e.id AS id, e.title AS title, e.industry AS industry
-                """,
-                props=props,
-            )
-            record = await result.single()
-
-            # Phase 1 hardening: Use AuditedGraphMutation for relationship writes
             mutation = AuditedGraphMutation(
-                tenant_id=case_study.tenant_id,
+                tenant_id=execution_tenant_id,
                 session=session,
                 operation_source="case_study_service.create",
             )
+            await mutation.write_node("Evidence", case_study.id, props)
 
             # Create relationships to products if specified
             if case_study.products_used:
@@ -266,9 +262,16 @@ class CaseStudyService:
                     MATCH (p:Product {name: $product_name, tenant_id: $tenant_id})
                     RETURN p.id as product_id
                     """
-                    product_result = await run_validated_query(session, product_query,
-                        product_name=product_name,
-                        tenant_id=case_study.tenant_id,
+                    product_result = await run_validated_query(
+                        session,
+                        product_query,
+                        {
+                            "product_name": product_name,
+                            "tenant_id": execution_tenant_id,
+                        },
+                        tenant_id=execution_tenant_id,
+                        require_explicit_tenant_id=True,
+                        query_name="case_study_service.lookup_product",
                     )
                     product_record = await product_result.single()
                     if product_record:
@@ -282,9 +285,16 @@ class CaseStudyService:
                     MATCH (ps:PainSignal {name: $signal_name, tenant_id: $tenant_id})
                     RETURN ps.id as signal_id
                     """
-                    signal_result = await run_validated_query(session, signal_query,
-                        signal_name=signal_name,
-                        tenant_id=case_study.tenant_id,
+                    signal_result = await run_validated_query(
+                        session,
+                        signal_query,
+                        {
+                            "signal_name": signal_name,
+                            "tenant_id": execution_tenant_id,
+                        },
+                        tenant_id=execution_tenant_id,
+                        require_explicit_tenant_id=True,
+                        query_name="case_study_service.lookup_pain_signal",
                     )
                     signal_record = await signal_result.single()
                     if signal_record:
@@ -299,9 +309,9 @@ class CaseStudyService:
         )
 
         return CaseStudyService_createResult.model_validate({
-            "id": record["id"] if record else case_study.id,
-            "title": record["title"] if record else case_study.title,
-            "industry": record["industry"] if record else case_study.industry,
+            "id": case_study.id,
+            "title": case_study.title,
+            "industry": case_study.industry,
             "status": "created",
         })
 
@@ -309,7 +319,8 @@ class CaseStudyService:
     async def get(self, tenant_id: str, case_study_id: str) -> dict[str, Any] | None:
         """Get a case study by ID."""
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (e:Evidence {id: $id, tenant_id: $tenant_id, evidence_type: 'case_study'})
                 OPTIONAL MATCH (p:Product {tenant_id: $tenant_id})-[:DEMONSTRATES]->(e)
@@ -318,8 +329,13 @@ class CaseStudyService:
                        collect(DISTINCT p.name) AS linked_products,
                        collect(DISTINCT ps.name) AS linked_signals
                 """,
-                id=case_study_id,
+                {
+                    "id": case_study_id,
+                    "tenant_id": tenant_id,
+                },
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.get",
             )
             record = await result.single()
 
@@ -344,15 +360,21 @@ class CaseStudyService:
         safe_updates["updated_at"] = datetime.now(UTC).isoformat()
 
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (e:Evidence {id: $id, tenant_id: $tenant_id, evidence_type: 'case_study'})
                 SET e += $updates
                 RETURN e.id AS id, e.title AS title
                 """,
-                id=case_study_id,
+                {
+                    "id": case_study_id,
+                    "tenant_id": tenant_id,
+                    "updates": safe_updates,
+                },
                 tenant_id=tenant_id,
-                updates=safe_updates,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.update",
             )
             record = await result.single()
 
@@ -364,17 +386,37 @@ class CaseStudyService:
     async def delete(self, tenant_id: str, case_study_id: str) -> bool:
         """Delete a case study and its relationships."""
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
+            exists_result = await run_validated_query(
+                session,
                 """
                 MATCH (e:Evidence {id: $id, tenant_id: $tenant_id, evidence_type: 'case_study'})
-                DETACH DELETE e
-                RETURN count(*) AS deleted
+                RETURN count(e) AS found
                 """,
-                id=case_study_id,
+                {
+                    "id": case_study_id,
+                    "tenant_id": tenant_id,
+                },
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.delete.exists",
             )
-            record = await result.single()
-            deleted = record["deleted"] > 0 if record else False
+            exists_record = await exists_result.single()
+            found_count = 0
+            if exists_record:
+                try:
+                    found_count = exists_record["found"]
+                except KeyError:
+                    found_count = exists_record["deleted"]
+            deleted = bool(found_count > 0)
+            if not deleted:
+                return False
+
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="case_study_service.delete",
+            )
+            await mutation.delete_node("Evidence", case_study_id)
 
             if deleted:
                 logger.info(
@@ -424,8 +466,15 @@ class CaseStudyService:
                 "// strict-scoped-query-execution: where_str includes e.tenant_id = $tenant_id\n"
                 f"MATCH (e:Evidence) WHERE {where_str} RETURN count(e) AS total"
             )
-            validate_tenant_scoped_cypher(count_query, tenant_id)
-            count_result = await run_validated_query(session, count_query, **params)
+            validate_tenant_scoped_cypher(count_query)
+            count_result = await run_validated_query(
+                session,
+                count_query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.search.count",
+            )
             count_record = await count_result.single()
             total = count_record["total"] if count_record else 0
 
@@ -433,14 +482,21 @@ class CaseStudyService:
             search_query = f"""
                 // strict-scoped-query-execution: where_str includes e.tenant_id = $tenant_id
                 MATCH (e:Evidence) WHERE {where_str}
-                OPTIONAL MATCH (p:Product {tenant_id: $tenant_id})-[:DEMONSTRATES]->(e)
+                OPTIONAL MATCH (p:Product {{tenant_id: $tenant_id}})-[:DEMONSTRATES]->(e)
                 RETURN e {{.*}} AS case_study,
                        collect(DISTINCT p.name) AS linked_products
                 ORDER BY e.published_date DESC
                 SKIP $offset LIMIT $limit
                 """
-            validate_tenant_scoped_cypher(search_query, tenant_id)
-            result = await run_validated_query(session, search_query, **params)
+            validate_tenant_scoped_cypher(search_query)
+            result = await run_validated_query(
+                session,
+                search_query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.search",
+            )
 
             records = [record async for record in result]
             items = []
@@ -472,13 +528,17 @@ class CaseStudyService:
     async def get_by_industry(self, tenant_id: str) -> dict[str, int]:
         """Get case study counts grouped by industry."""
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 """
                 MATCH (e:Evidence {tenant_id: $tenant_id, evidence_type: 'case_study'})
                 RETURN e.industry AS industry, count(e) AS count
                 ORDER BY count DESC
                 """,
+                {"tenant_id": tenant_id},
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.get_by_industry",
             )
             records = [record async for record in result]
             return CaseStudyService_get_by_industryResult.model_validate({r["industry"]: r["count"] for r in records})
@@ -486,13 +546,17 @@ class CaseStudyService:
     async def get_by_product(self, tenant_id: str) -> dict[str, int]:
         """Get case study counts grouped by product."""
         async with self.driver.session() as session:
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 """
-                MATCH (p:Product {tenant_id: $tenant_id})-[:DEMONSTRATES]->(e:Evidence {evidence_type: 'case_study'})
+                MATCH (p:Product {tenant_id: $tenant_id})-[:DEMONSTRATES]->(e:Evidence {tenant_id: $tenant_id, evidence_type: 'case_study'})
                 RETURN p.name AS product, count(e) AS count
                 ORDER BY count DESC
                 """,
+                {"tenant_id": tenant_id},
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="case_study_service.get_by_product",
             )
             records = [record async for record in result]
             return CaseStudyService_get_by_productResult.model_validate({r["product"]: r["count"] for r in records})
@@ -560,4 +624,3 @@ class CaseStudyService:
             "created": created,
             "errors": errors,
         })
-

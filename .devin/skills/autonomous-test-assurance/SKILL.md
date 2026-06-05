@@ -550,3 +550,652 @@ Before marking any boundary as tested:
 **Command**: `pytest tests/api/test_auth.py -v`
 **Result**: ✅ PASS (run 5x, deterministic)
 ```
+
+
+---
+
+# Extracted Workflow Reference
+
+### 4.3 Security Test Requirements
+
+For each boundary:
+
+```markdown
+## Security Test Checklist
+
+### Authentication
+- [ ] Missing auth fails (401)
+- [ ] Invalid auth fails (401)
+- [ ] Expired token fails (401)
+- [ ] Malformed token fails (401)
+
+### Authorization
+- [ ] Wrong role fails (403)
+- [ ] User accessing another user's resource fails
+- [ ] Admin-only actions require admin role
+
+### Tenant Isolation
+- [ ] Wrong tenant fails
+- [ ] Spoofed tenant headers fail/rejected
+- [ ] Route/body/query tenant mismatch fails
+- [ ] Missing tenant context fails closed
+
+### Input Validation
+- [ ] Malformed input fails safely
+- [ ] Unknown fields rejected (or ignored by policy)
+- [ ] Unsafe strings sanitized
+- [ ] Invalid enum/state transition rejected
+- [ ] Oversized payloads rejected
+
+### Destructive Actions
+- [ ] Require ownership proof
+- [ ] Require authorization proof
+- [ ] Require confirmation (frontend)
+
+### Secrets Protection
+- [ ] Sensitive fields not in errors
+- [ ] Sensitive fields not in logs
+- [ ] Sensitive fields not in responses
+- [ ] API keys redacted in audit logs
+
+### Idempotency
+- [ ] Duplicate webhook doesn't double-apply
+- [ ] Failed job retries safely
+- [ ] Poison messages go to DLQ
+- [ ] Missing idempotency key handled safely
+```
+
+
+### 4.4 Example Test Patterns
+
+**Python (pytest) - Tenant Isolation:**
+
+```python
+# Positive test
+async def test_user_can_read_own_tenant_data(client, auth_headers, tenant_a):
+    """Proves tenant A user can read tenant A data."""
+    response = await client.get(
+        "/api/entities",
+        headers={**auth_headers, "X-Tenant-ID": tenant_a.id}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert all(e["tenant_id"] == tenant_a.id for e in data)
+
+# Negative test
+async def test_user_cannot_read_other_tenant_data(client, auth_headers, tenant_a, tenant_b):
+    """Proves tenant A user cannot read tenant B data."""
+    # Create entity in tenant B
+    entity_b = await create_entity(tenant_id=tenant_b.id)
+
+    # Try to access as tenant A user
+    response = await client.get(
+        f"/api/entities/{entity_b.id}",
+        headers={**auth_headers, "X-Tenant-ID": tenant_a.id}
+    )
+    assert response.status_code == 404  # Not 403 - don't reveal existence
+```
+
+**TypeScript (Vitest) - Auth Guard:**
+
+```typescript
+// Positive test
+it('allows authenticated users to access protected route', async () => {
+  const wrapper = render(<ProtectedRoute />, {
+    wrapper: createAuthWrapper({ isAuthenticated: true, user: mockUser })
+  });
+
+  await waitFor(() => {
+    expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
+  });
+});
+
+// Negative test
+it('redirects unauthenticated users to login', async () => {
+  const wrapper = render(<ProtectedRoute />, {
+    wrapper: createAuthWrapper({ isAuthenticated: false })
+  });
+
+  await waitFor(() => {
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+});
+```
+
+---
+
+### 5.3 Refactoring Patterns
+
+**Before/After: Weak Assertion:**
+
+```python
+# Before - vague
+assert result is not None
+
+# After - explicit
+assert result.status == "completed"
+assert result.tenant_id == expected_tenant_id
+```
+
+**Before/After: Positional Selector:**
+
+```typescript
+// Before - fragile
+const button = container.querySelector('button:nth-child(2)');
+
+// After - stable
+const button = screen.getByRole('button', { name: /submit/i });
+```
+
+**Before/After: Over-Mocked Security:**
+
+```python
+# Before - mocks bypass real auth
+@patch('auth.verify_token', return_value=mock_user)
+def test_route_with_auth(mock_verify):
+    response = client.get("/protected")
+    assert response.status_code == 200
+
+# After - tests real boundary
+def test_route_with_valid_token(client, valid_token):
+    response = client.get(
+        "/protected",
+        headers={"Authorization": f"Bearer {valid_token}"}
+    )
+    assert response.status_code == 200
+```
+
+---
+
+### 7.1 Self-Generate Remediation Report
+
+**Autonomous action**: Create `artifacts/testing/assurance-remediation-report.md` with complete context:
+
+```markdown
+# Test Assurance Remediation Report
+
+## Executive Summary
+- Production invariants identified: N
+- P0 gaps addressed: N
+- P1 gaps addressed: N
+- Tests added: N positive, N negative
+- Tests refactored: N
+- Production fixes required: N (minimal)
+- Production-assurance score before: X%
+- Production-assurance score after: Y%
+
+## Test Coverage Map
+[Link to test-inventory.md]
+
+## Production Invariants
+[Link to invariants document]
+
+## Test Gap Matrix
+[Link to gap matrix with status updates]
+
+## Tests Added
+
+### Positive Tests
+| File | Test | Boundary Covered | Status |
+|------|------|------------------|--------|
+| | | | |
+
+### Negative/Adversarial Tests
+| File | Test | Boundary Covered | Status |
+|------|------|------------------|--------|
+| | | | |
+
+### Regression Tests
+| File | Test | Violation Fixed | Status |
+|------|------|-----------------|--------|
+| | | | |
+
+## Tests Refactored
+
+| File | Change | Risk Covered |
+|------|--------|--------------|
+| | | |
+
+## Production Code Changes
+
+| File | Change | Reason |
+|------|--------|--------|
+| | | |
+
+## Commands Run
+
+```bash
+# Narrow tests
+pytest tests/security/test_tenant_isolation.py -v
+# Result: X passed, Y failed
+
+# Broader gate
+make test-security
+# Result: All passed
+```
+
+## Remaining P0/P1 Gaps
+
+| Boundary | Reason Not Addressed | Recommended Action |
+|----------|---------------------|-------------------|
+| | | |
+
+## Residual Risk
+
+- [ ] Description of remaining risk
+
+## Recommended CI Production Gate
+
+```yaml
+# Suggested addition to CI
+- name: Production Assurance Gate
+  run: |
+    pnpm test:security
+    pnpm test:tenant-isolation
+    pnpm test:authorization
+```
+
+## PR Review Checklist
+
+- [ ] Tests are meaningful
+- [ ] Negative tests fail on vulnerable behavior
+- [ ] Mocks are not hiding the real boundary
+- [ ] Selectors are stable
+- [ ] Assertions are atomic
+- [ ] CI is updated if needed
+```
+
+---
+
+## High-Value First Targets
+
+### Priority 1: Tenant Isolation
+```bash
+# Start here
+grep -r "tenant_id" services/*/src/api/routes.py --include="*.py"
+```
+
+Tests to add:
+- Cross-tenant read denied
+- Cross-tenant write denied
+- Spoofed tenant header ignored/rejected
+- Missing tenant context fails closed
+- Tenant ID in route/body/query cannot override authenticated context
+
+### Priority 2: Authorization
+```bash
+grep -r "role\|permission\|admin" services/*/src/ --include="*.py" | grep -i "require\|check\|verify"
+```
+
+Tests to add:
+- Unauthenticated request returns 401
+- Authenticated wrong-role request returns 403
+- User cannot access another user's resource
+- Admin-only actions require admin role
+
+### Priority 3: Input Validation
+```bash
+grep -r "BaseModel\|validator\|Field" services/*/src/models/ --include="*.py"
+```
+
+Tests to add:
+- Malformed payload rejected
+- Unknown fields rejected or ignored by policy
+- Unsafe strings sanitized
+- Invalid enum/state transition rejected
+
+### Priority 4: Database/RLS
+```bash
+grep -r "USING\|WITH CHECK" services/*/migrations/ --include="*.sql"
+```
+
+Tests to add:
+- Tenant A cannot SELECT tenant B
+- Tenant A cannot UPDATE tenant B
+- Tenant A cannot DELETE tenant B
+
+### Priority 5: Webhook/Job Idempotency
+```bash
+grep -r "idempotency\|dedup" services/*/src/ --include="*.py"
+```
+
+Tests to add:
+- Duplicate event does not duplicate side effects
+- Failed job retries safely
+- Poison message goes to DLQ
+
+### Priority 6: Frontend Route Guards
+```bash
+grep -r "RouteGuard\|ProtectedRoute\|useAuth" apps/web/src/ --include="*.tsx"
+```
+
+Tests to add:
+- Protected routes redirect unauthenticated users
+- Tenant switch clears stale state
+- Forbidden resources show safe error state
+
+---
+
+---
+
+# Extracted Workflow Reference
+
+### 4.3 Security Test Requirements
+
+For each boundary:
+
+```markdown
+## Security Test Checklist
+
+### Authentication
+- [ ] Missing auth fails (401)
+- [ ] Invalid auth fails (401)
+- [ ] Expired token fails (401)
+- [ ] Malformed token fails (401)
+
+### Authorization
+- [ ] Wrong role fails (403)
+- [ ] User accessing another user's resource fails
+- [ ] Admin-only actions require admin role
+
+### Tenant Isolation
+- [ ] Wrong tenant fails
+- [ ] Spoofed tenant headers fail/rejected
+- [ ] Route/body/query tenant mismatch fails
+- [ ] Missing tenant context fails closed
+
+### Input Validation
+- [ ] Malformed input fails safely
+- [ ] Unknown fields rejected (or ignored by policy)
+- [ ] Unsafe strings sanitized
+- [ ] Invalid enum/state transition rejected
+- [ ] Oversized payloads rejected
+
+### Destructive Actions
+- [ ] Require ownership proof
+- [ ] Require authorization proof
+- [ ] Require confirmation (frontend)
+
+### Secrets Protection
+- [ ] Sensitive fields not in errors
+- [ ] Sensitive fields not in logs
+- [ ] Sensitive fields not in responses
+- [ ] API keys redacted in audit logs
+
+### Idempotency
+- [ ] Duplicate webhook doesn't double-apply
+- [ ] Failed job retries safely
+- [ ] Poison messages go to DLQ
+- [ ] Missing idempotency key handled safely
+```
+
+
+### 4.4 Example Test Patterns
+
+**Python (pytest) - Tenant Isolation:**
+
+```python
+# Positive test
+async def test_user_can_read_own_tenant_data(client, auth_headers, tenant_a):
+    """Proves tenant A user can read tenant A data."""
+    response = await client.get(
+        "/api/entities",
+        headers={**auth_headers, "X-Tenant-ID": tenant_a.id}
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert all(e["tenant_id"] == tenant_a.id for e in data)
+
+# Negative test
+async def test_user_cannot_read_other_tenant_data(client, auth_headers, tenant_a, tenant_b):
+    """Proves tenant A user cannot read tenant B data."""
+    # Create entity in tenant B
+    entity_b = await create_entity(tenant_id=tenant_b.id)
+
+    # Try to access as tenant A user
+    response = await client.get(
+        f"/api/entities/{entity_b.id}",
+        headers={**auth_headers, "X-Tenant-ID": tenant_a.id}
+    )
+    assert response.status_code == 404  # Not 403 - don't reveal existence
+```
+
+**TypeScript (Vitest) - Auth Guard:**
+
+```typescript
+// Positive test
+it('allows authenticated users to access protected route', async () => {
+  const wrapper = render(<ProtectedRoute />, {
+    wrapper: createAuthWrapper({ isAuthenticated: true, user: mockUser })
+  });
+
+  await waitFor(() => {
+    expect(screen.getByRole('heading', { name: /dashboard/i })).toBeInTheDocument();
+  });
+});
+
+// Negative test
+it('redirects unauthenticated users to login', async () => {
+  const wrapper = render(<ProtectedRoute />, {
+    wrapper: createAuthWrapper({ isAuthenticated: false })
+  });
+
+  await waitFor(() => {
+    expect(mockNavigate).toHaveBeenCalledWith('/login');
+  });
+});
+```
+
+---
+
+### 5.3 Refactoring Patterns
+
+**Before/After: Weak Assertion:**
+
+```python
+# Before - vague
+assert result is not None
+
+# After - explicit
+assert result.status == "completed"
+assert result.tenant_id == expected_tenant_id
+```
+
+**Before/After: Positional Selector:**
+
+```typescript
+// Before - fragile
+const button = container.querySelector('button:nth-child(2)');
+
+// After - stable
+const button = screen.getByRole('button', { name: /submit/i });
+```
+
+**Before/After: Over-Mocked Security:**
+
+```python
+# Before - mocks bypass real auth
+@patch('auth.verify_token', return_value=mock_user)
+def test_route_with_auth(mock_verify):
+    response = client.get("/protected")
+    assert response.status_code == 200
+
+# After - tests real boundary
+def test_route_with_valid_token(client, valid_token):
+    response = client.get(
+        "/protected",
+        headers={"Authorization": f"Bearer {valid_token}"}
+    )
+    assert response.status_code == 200
+```
+
+---
+
+### 7.1 Self-Generate Remediation Report
+
+**Autonomous action**: Create `artifacts/testing/assurance-remediation-report.md` with complete context:
+
+```markdown
+# Test Assurance Remediation Report
+
+## Executive Summary
+- Production invariants identified: N
+- P0 gaps addressed: N
+- P1 gaps addressed: N
+- Tests added: N positive, N negative
+- Tests refactored: N
+- Production fixes required: N (minimal)
+- Production-assurance score before: X%
+- Production-assurance score after: Y%
+
+## Test Coverage Map
+[Link to test-inventory.md]
+
+## Production Invariants
+[Link to invariants document]
+
+## Test Gap Matrix
+[Link to gap matrix with status updates]
+
+## Tests Added
+
+### Positive Tests
+| File | Test | Boundary Covered | Status |
+|------|------|------------------|--------|
+| | | | |
+
+### Negative/Adversarial Tests
+| File | Test | Boundary Covered | Status |
+|------|------|------------------|--------|
+| | | | |
+
+### Regression Tests
+| File | Test | Violation Fixed | Status |
+|------|------|-----------------|--------|
+| | | | |
+
+## Tests Refactored
+
+| File | Change | Risk Covered |
+|------|--------|--------------|
+| | | |
+
+## Production Code Changes
+
+| File | Change | Reason |
+|------|--------|--------|
+| | | |
+
+## Commands Run
+
+```bash
+# Narrow tests
+pytest tests/security/test_tenant_isolation.py -v
+# Result: X passed, Y failed
+
+# Broader gate
+make test-security
+# Result: All passed
+```
+
+## Remaining P0/P1 Gaps
+
+| Boundary | Reason Not Addressed | Recommended Action |
+|----------|---------------------|-------------------|
+| | | |
+
+## Residual Risk
+
+- [ ] Description of remaining risk
+
+## Recommended CI Production Gate
+
+```yaml
+# Suggested addition to CI
+- name: Production Assurance Gate
+  run: |
+    pnpm test:security
+    pnpm test:tenant-isolation
+    pnpm test:authorization
+```
+
+## PR Review Checklist
+
+- [ ] Tests are meaningful
+- [ ] Negative tests fail on vulnerable behavior
+- [ ] Mocks are not hiding the real boundary
+- [ ] Selectors are stable
+- [ ] Assertions are atomic
+- [ ] CI is updated if needed
+```
+
+---
+
+## High-Value First Targets
+
+### Priority 1: Tenant Isolation
+```bash
+# Start here
+grep -r "tenant_id" services/*/src/api/routes.py --include="*.py"
+```
+
+Tests to add:
+- Cross-tenant read denied
+- Cross-tenant write denied
+- Spoofed tenant header ignored/rejected
+- Missing tenant context fails closed
+- Tenant ID in route/body/query cannot override authenticated context
+
+### Priority 2: Authorization
+```bash
+grep -r "role\|permission\|admin" services/*/src/ --include="*.py" | grep -i "require\|check\|verify"
+```
+
+Tests to add:
+- Unauthenticated request returns 401
+- Authenticated wrong-role request returns 403
+- User cannot access another user's resource
+- Admin-only actions require admin role
+
+### Priority 3: Input Validation
+```bash
+grep -r "BaseModel\|validator\|Field" services/*/src/models/ --include="*.py"
+```
+
+Tests to add:
+- Malformed payload rejected
+- Unknown fields rejected or ignored by policy
+- Unsafe strings sanitized
+- Invalid enum/state transition rejected
+
+### Priority 4: Database/RLS
+```bash
+grep -r "USING\|WITH CHECK" services/*/migrations/ --include="*.sql"
+```
+
+Tests to add:
+- Tenant A cannot SELECT tenant B
+- Tenant A cannot UPDATE tenant B
+- Tenant A cannot DELETE tenant B
+
+### Priority 5: Webhook/Job Idempotency
+```bash
+grep -r "idempotency\|dedup" services/*/src/ --include="*.py"
+```
+
+Tests to add:
+- Duplicate event does not duplicate side effects
+- Failed job retries safely
+- Poison message goes to DLQ
+
+### Priority 6: Frontend Route Guards
+```bash
+grep -r "RouteGuard\|ProtectedRoute\|useAuth" apps/web/src/ --include="*.tsx"
+```
+
+Tests to add:
+- Protected routes redirect unauthenticated users
+- Tenant switch clears stale state
+- Forbidden resources show safe error state
+
+---

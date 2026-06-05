@@ -1,49 +1,46 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "Value Fabric - Extraction Pipeline",
-    "description": "Ontology-guided extraction of entities from unstructured text to RDF/OWL",
+    "title": "Layer 2 Extraction Service",
+    "description": "Extraction pipeline for entities and relationships from content",
     "version": "1.0.0"
   },
   "paths": {
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
           "health"
         ],
-        "summary": "Health Check",
-        "operationId": "health_check_health_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/ready": {
-      "get": {
-        "tags": [
-          "system"
-        ],
-        "summary": "Readiness Check",
-        "description": "Standard readiness contract for orchestration and probes.",
-        "operationId": "readiness_check_ready_get",
+        "summary": "Default Handler",
+        "operationId": "default_handler_health_get",
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "additionalProperties": {
-                    "type": "string"
-                  },
+                  "additionalProperties": true,
                   "type": "object",
-                  "title": "Response Readiness Check Ready Get"
+                  "title": "Response Default Handler Health Get"
                 }
               }
             }
@@ -51,511 +48,22 @@
         }
       }
     },
-    "/v1/extract/signals": {
-      "post": {
-        "tags": [
-          "extraction"
-        ],
-        "summary": "Extract Signals",
-        "description": "Extract operational pain signals from prospect setup data.\n\nUses LLM-based structured extraction to identify operational signals\n(equipment downtime, changeover inefficiency, quality defects, etc.)\nfrom prospect-provided business context.\n\nArgs:\n    request: Signal extraction request with prospect data\n    http_request: HTTP request object\n    x_tenant_id: Tenant ID from header\n    x_trace_id: Optional trace ID from header\n\nReturns:\n    SignalExtractionResponse with extracted signals",
-        "operationId": "extract_signals_v1_extract_signals_post",
-        "parameters": [
-          {
-            "name": "x-tenant-id",
-            "in": "header",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "description": "Tenant ID for scoping",
-              "title": "X-Tenant-Id"
-            },
-            "description": "Tenant ID for scoping"
-          },
-          {
-            "name": "x-trace-id",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Trace ID for observability",
-              "title": "X-Trace-Id"
-            },
-            "description": "Trace ID for observability"
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/SignalExtractionRequest"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignalExtractionResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract": {
-      "post": {
-        "tags": [
-          "extraction"
-        ],
-        "summary": "Extract",
-        "operationId": "extract_v1_extract_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExtractRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtractResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract-and-ingest": {
-      "post": {
-        "tags": [
-          "extraction"
-        ],
-        "summary": "Extract And Ingest",
-        "operationId": "extract_and_ingest_v1_extract_and_ingest_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ExtractRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtractAndIngestResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract/results/{job_id}": {
-      "get": {
-        "tags": [
-          "extraction"
-        ],
-        "summary": "Get Extraction Results",
-        "description": "Get extracted entities for a specific extraction job.\n\nArgs:\n    job_id: Extraction job identifier\n    request: HTTP request for tenant context\n    \nReturns:\n    ExtractionEntitiesResponse with extracted entities\n    \nRaises:\n    HTTPException 404: Job not found for tenant\n    HTTPException 409: Extraction not complete",
-        "operationId": "get_extraction_results_v1_extract_results__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 1,
-              "title": "Page"
-            }
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Page Size"
-            }
-          },
-          {
-            "name": "mode",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "full",
-              "title": "Mode"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtractionResultsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract/{job_id}/entities": {
-      "get": {
-        "tags": [
-          "extraction"
-        ],
-        "summary": "Get Extraction Entities",
-        "description": "Backward-compatible alias for extraction results route.",
-        "operationId": "get_extraction_entities_v1_extract__job_id__entities_get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          },
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 1,
-              "title": "Page"
-            }
-          },
-          {
-            "name": "page_size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "default": 100,
-              "title": "Page Size"
-            }
-          },
-          {
-            "name": "mode",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "string",
-              "default": "full",
-              "title": "Mode"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtractionResultsResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract/status/{job_id}": {
-      "get": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Get Extraction Status",
-        "operationId": "get_extraction_status_v1_extract_status__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ExtractionStatusResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract/batch": {
-      "post": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Extract Batch",
-        "operationId": "extract_batch_v1_extract_batch_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "items": {
-                  "$ref": "#/components/schemas/ExtractRequest"
-                },
-                "type": "array",
-                "title": "Requests"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/extract/jobs/{job_id}/events": {
-      "get": {
-        "tags": [
-          "jobs"
-        ],
-        "summary": "Stream Job Events",
-        "operationId": "stream_job_events_v1_extract_jobs__job_id__events_get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/metrics": {
+    "/health/live": {
       "get": {
         "tags": [
           "health"
         ],
-        "summary": "Metrics Endpoint",
-        "operationId": "metrics_endpoint_metrics_get",
+        "summary": "Default Handler",
+        "operationId": "default_handler_health_live_get",
         "responses": {
           "200": {
             "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/entities": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "List Entities",
-        "description": "List extracted entity instances from the knowledge graph.",
-        "operationId": "list_entities_v1_ontology_entities_get",
-        "parameters": [
-          {
-            "name": "entity_type",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "enum": [
-                "Capability",
-                "UseCase",
-                "Persona",
-                "ValueDriver",
-                "Feature"
-              ],
-              "title": "Entity Type"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 1000,
-              "minimum": 1,
-              "default": 100,
-              "title": "Limit"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+                  "additionalProperties": true,
+                  "type": "object",
+                  "title": "Response Default Handler Health Live Get"
                 }
               }
             }
@@ -563,22 +71,21 @@
         }
       }
     },
-    "/v1/ontology/relationships/{entity_id}": {
-      "get": {
+    "/signals/{signal_id}": {
+      "post": {
         "tags": [
-          "ontology"
+          "signal-lifecycle"
         ],
-        "summary": "Get Relationships",
-        "description": "Get relationships for a specific entity instance.",
-        "operationId": "get_relationships_v1_ontology_relationships__entity_id__get",
+        "summary": "Create Signal",
+        "operationId": "create_signal_signals__signal_id__post",
         "parameters": [
           {
-            "name": "entity_id",
+            "name": "signal_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Entity Id"
+              "title": "Signal Id"
             }
           }
         ],
@@ -587,7 +94,9 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {}
+                "schema": {
+                  "$ref": "#/components/schemas/OperationalSignalLifecycleRecord"
+                }
               }
             }
           },
@@ -604,297 +113,21 @@
         }
       }
     },
-    "/v1/ontology/schema": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Get Ontology Schema",
-        "description": "Get the complete ontology schema for the current tenant.",
-        "operationId": "get_ontology_schema_v1_ontology_schema_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologySchema"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/validate": {
+    "/signals/{signal_id}/supersede": {
       "post": {
         "tags": [
-          "ontology"
+          "signal-lifecycle"
         ],
-        "summary": "Validate Ontology Schema",
-        "description": "Validate an ontology schema without saving it.",
-        "operationId": "validate_ontology_schema_v1_ontology_schema_validate_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ValidateSchemaRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ValidateSchemaResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/publish": {
-      "post": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Publish Ontology Schema",
-        "description": "Publish the current schema as a new version.",
-        "operationId": "publish_ontology_schema_v1_ontology_schema_publish_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PublishSchemaRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/PublishSchemaResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/import": {
-      "post": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Import Ontology Schema",
-        "description": "Import an ontology schema from JSON.",
-        "operationId": "import_ontology_schema_v1_ontology_schema_import_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ImportSchemaRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologySchema"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/export": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Export Ontology Schema",
-        "description": "Export the current ontology schema as JSON.",
-        "operationId": "export_ontology_schema_v1_ontology_schema_export_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/types": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "List Ontology Types",
-        "description": "List all ontology types for the current tenant.",
-        "operationId": "list_ontology_types_v1_ontology_schema_types_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/OntologyType"
-                  },
-                  "type": "array",
-                  "title": "Response List Ontology Types V1 Ontology Schema Types Get"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Create Ontology Type",
-        "description": "Create a new ontology type.",
-        "operationId": "create_ontology_type_v1_ontology_schema_types_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateTypeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologyType"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/types/{type_id}": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Get Ontology Type",
-        "description": "Get a specific ontology type by ID.",
-        "operationId": "get_ontology_type_v1_ontology_schema_types__type_id__get",
+        "summary": "Supersede Signal",
+        "operationId": "supersede_signal_signals__signal_id__supersede_post",
         "parameters": [
           {
-            "name": "type_id",
+            "name": "signal_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Type Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologyType"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Update Ontology Type",
-        "description": "Update an existing ontology type.",
-        "operationId": "update_ontology_type_v1_ontology_schema_types__type_id__put",
-        "parameters": [
-          {
-            "name": "type_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Type Id"
+              "title": "Signal Id"
             }
           }
         ],
@@ -903,7 +136,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateTypeRequest"
+                "$ref": "#/components/schemas/TransitionRequest"
               }
             }
           }
@@ -914,47 +147,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyType"
+                  "$ref": "#/components/schemas/OperationalSignalLifecycleRecord"
                 }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Delete Ontology Type",
-        "description": "Delete (soft-delete) an ontology type.",
-        "operationId": "delete_ontology_type_v1_ontology_schema_types__type_id__delete",
-        "parameters": [
-          {
-            "name": "type_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Type Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
@@ -971,22 +165,21 @@
         }
       }
     },
-    "/v1/ontology/schema/types/{type_id}/properties": {
+    "/signals/{signal_id}/merge": {
       "post": {
         "tags": [
-          "ontology"
+          "signal-lifecycle"
         ],
-        "summary": "Add Type Property",
-        "description": "Add a property to an ontology type.",
-        "operationId": "add_type_property_v1_ontology_schema_types__type_id__properties_post",
+        "summary": "Merge Signal",
+        "operationId": "merge_signal_signals__signal_id__merge_post",
         "parameters": [
           {
-            "name": "type_id",
+            "name": "signal_id",
             "in": "path",
             "required": true,
             "schema": {
               "type": "string",
-              "title": "Type Id"
+              "title": "Signal Id"
             }
           }
         ],
@@ -995,7 +188,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/OntologyProperty"
+                "$ref": "#/components/schemas/TransitionRequest"
               }
             }
           }
@@ -1006,370 +199,8 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/OntologyType"
+                  "$ref": "#/components/schemas/OperationalSignalLifecycleRecord"
                 }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/types/{type_id}/properties/{property_id}": {
-      "put": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Update Type Property",
-        "description": "Update a property of an ontology type.",
-        "operationId": "update_type_property_v1_ontology_schema_types__type_id__properties__property_id__put",
-        "parameters": [
-          {
-            "name": "type_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Type Id"
-            }
-          },
-          {
-            "name": "property_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Property Id"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/OntologyProperty"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologyType"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Remove Type Property",
-        "description": "Remove a property from an ontology type.",
-        "operationId": "remove_type_property_v1_ontology_schema_types__type_id__properties__property_id__delete",
-        "parameters": [
-          {
-            "name": "type_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Type Id"
-            }
-          },
-          {
-            "name": "property_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Property Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/relationships": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "List Type Relationships",
-        "description": "List all type relationships for the current tenant.",
-        "operationId": "list_type_relationships_v1_ontology_schema_relationships_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "items": {
-                    "$ref": "#/components/schemas/TypeRelationship"
-                  },
-                  "type": "array",
-                  "title": "Response List Type Relationships V1 Ontology Schema Relationships Get"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Create Type Relationship",
-        "description": "Create a new relationship between types.",
-        "operationId": "create_type_relationship_v1_ontology_schema_relationships_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/CreateRelationshipRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TypeRelationship"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/relationships/{relationship_id}": {
-      "delete": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Delete Type Relationship",
-        "description": "Delete a type relationship.",
-        "operationId": "delete_type_relationship_v1_ontology_schema_relationships__relationship_id__delete",
-        "parameters": [
-          {
-            "name": "relationship_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Relationship Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/versions": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "List Schema Versions",
-        "description": "List all published schema versions.",
-        "operationId": "list_schema_versions_v1_ontology_schema_versions_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/ontology/schema/versions/{version}": {
-      "get": {
-        "tags": [
-          "ontology"
-        ],
-        "summary": "Get Schema Version",
-        "description": "Get a specific published schema version.",
-        "operationId": "get_schema_version_v1_ontology_schema_versions__version__get",
-        "parameters": [
-          {
-            "name": "version",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Version"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/OntologySchema"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/audit/trace/{job_id}": {
-      "get": {
-        "tags": [
-          "audit"
-        ],
-        "summary": "Get Provenance",
-        "operationId": "get_provenance_v1_audit_trace__job_id__get",
-        "parameters": [
-          {
-            "name": "job_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Job Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProvenanceResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/audit/entity/{entity_id}": {
-      "get": {
-        "tags": [
-          "audit"
-        ],
-        "summary": "Get Entity Provenance",
-        "operationId": "get_entity_provenance_v1_audit_entity__entity_id__get",
-        "parameters": [
-          {
-            "name": "entity_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Entity Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           },
@@ -1389,451 +220,6 @@
   },
   "components": {
     "schemas": {
-      "Cardinality": {
-        "type": "string",
-        "enum": [
-          "one_to_one",
-          "one_to_many",
-          "many_to_many"
-        ],
-        "title": "Cardinality",
-        "description": "Cardinality constraints for relationships."
-      },
-      "CreateRelationshipRequest": {
-        "properties": {
-          "source_type_id": {
-            "type": "string",
-            "title": "Source Type Id"
-          },
-          "target_type_id": {
-            "type": "string",
-            "title": "Target Type Id"
-          },
-          "relationship_type": {
-            "type": "string",
-            "title": "Relationship Type"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "cardinality": {
-            "type": "string",
-            "title": "Cardinality",
-            "default": "many_to_many"
-          }
-        },
-        "type": "object",
-        "required": [
-          "source_type_id",
-          "target_type_id",
-          "relationship_type"
-        ],
-        "title": "CreateRelationshipRequest"
-      },
-      "CreateTypeRequest": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description"
-          },
-          "parent_type_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Type Id"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description"
-        ],
-        "title": "CreateTypeRequest"
-      },
-      "EntityProvenance": {
-        "properties": {
-          "extraction_job_id": {
-            "type": "string",
-            "title": "Extraction Job Id",
-            "description": "Extraction job identifier"
-          },
-          "source_url": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Source Url",
-            "description": "Source URL if applicable"
-          },
-          "trace_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trace Id",
-            "description": "Trace identifier for observability"
-          }
-        },
-        "type": "object",
-        "required": [
-          "extraction_job_id"
-        ],
-        "title": "EntityProvenance"
-      },
-      "EntitySourceSpan": {
-        "properties": {
-          "document_id": {
-            "type": "string",
-            "title": "Document Id",
-            "description": "Document identifier"
-          },
-          "start": {
-            "type": "integer",
-            "title": "Start",
-            "description": "Start position in document"
-          },
-          "end": {
-            "type": "integer",
-            "title": "End",
-            "description": "End position in document"
-          }
-        },
-        "type": "object",
-        "required": [
-          "document_id",
-          "start",
-          "end"
-        ],
-        "title": "EntitySourceSpan"
-      },
-      "ExtractAndIngestResponse": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "overall_status": {
-            "type": "string",
-            "title": "Overall Status"
-          },
-          "extraction_status": {
-            "type": "string",
-            "title": "Extraction Status"
-          },
-          "ingestion_status": {
-            "type": "string",
-            "title": "Ingestion Status"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "overall_status",
-          "extraction_status",
-          "ingestion_status",
-          "message"
-        ],
-        "title": "ExtractAndIngestResponse",
-        "description": "Response for combined extract-and-ingest endpoint."
-      },
-      "ExtractRequest": {
-        "properties": {
-          "content_id": {
-            "type": "string",
-            "title": "Content Id",
-            "description": "ID of content to extract from (from Layer 1)"
-          },
-          "source_url": {
-            "type": "string",
-            "title": "Source Url",
-            "description": "URL of source document"
-          },
-          "markdown_content": {
-            "type": "string",
-            "title": "Markdown Content",
-            "description": "Markdown content to extract from"
-          },
-          "extraction_config": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Extraction Config"
-          }
-        },
-        "type": "object",
-        "required": [
-          "content_id",
-          "source_url",
-          "markdown_content"
-        ],
-        "title": "ExtractRequest",
-        "description": "Request body for extraction endpoint."
-      },
-      "ExtractResponse": {
-        "properties": {
-          "extraction_job_id": {
-            "type": "string",
-            "title": "Extraction Job Id"
-          },
-          "status": {
-            "type": "string",
-            "title": "Status"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "type": "object",
-        "required": [
-          "extraction_job_id",
-          "status",
-          "message"
-        ],
-        "title": "ExtractResponse",
-        "description": "Response from extraction endpoint."
-      },
-      "ExtractedEntity": {
-        "properties": {
-          "entity_id": {
-            "type": "string",
-            "title": "Entity Id"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type"
-          },
-          "name": {
-            "type": "string",
-            "title": "Name"
-          },
-          "confidence": {
-            "type": "number",
-            "maximum": 1.0,
-            "minimum": 0.0,
-            "title": "Confidence"
-          },
-          "source_span": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EntitySourceSpan"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "provenance": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/EntityProvenance"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "attributes": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Attributes"
-          }
-        },
-        "type": "object",
-        "required": [
-          "entity_id",
-          "type",
-          "name",
-          "confidence"
-        ],
-        "title": "ExtractedEntity"
-      },
-      "ExtractionResultSummary": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "total_entities": {
-            "type": "integer",
-            "title": "Total Entities"
-          },
-          "returned_entities": {
-            "type": "integer",
-            "title": "Returned Entities"
-          },
-          "page": {
-            "type": "integer",
-            "title": "Page"
-          },
-          "page_size": {
-            "type": "integer",
-            "title": "Page Size"
-          },
-          "total_pages": {
-            "type": "integer",
-            "title": "Total Pages"
-          },
-          "mode": {
-            "type": "string",
-            "enum": [
-              "summary",
-              "full"
-            ],
-            "title": "Mode"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "total_entities",
-          "returned_entities",
-          "page",
-          "page_size",
-          "total_pages",
-          "mode"
-        ],
-        "title": "ExtractionResultSummary"
-      },
-      "ExtractionResultsResponse": {
-        "properties": {
-          "summary": {
-            "$ref": "#/components/schemas/ExtractionResultSummary"
-          },
-          "entities": {
-            "items": {
-              "$ref": "#/components/schemas/ExtractedEntity"
-            },
-            "type": "array",
-            "title": "Entities"
-          }
-        },
-        "type": "object",
-        "required": [
-          "summary"
-        ],
-        "title": "ExtractionResultsResponse"
-      },
-      "ExtractionStatusResponse": {
-        "properties": {
-          "job_id": {
-            "type": "string",
-            "title": "Job Id"
-          },
-          "overall_status": {
-            "type": "string",
-            "title": "Overall Status"
-          },
-          "extraction_status": {
-            "type": "string",
-            "title": "Extraction Status"
-          },
-          "ingestion_status": {
-            "type": "string",
-            "title": "Ingestion Status"
-          },
-          "entities_extracted": {
-            "type": "integer",
-            "title": "Entities Extracted"
-          },
-          "relationships_extracted": {
-            "type": "integer",
-            "title": "Relationships Extracted"
-          },
-          "retry_count": {
-            "type": "integer",
-            "title": "Retry Count",
-            "default": 0
-          },
-          "last_error": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Last Error"
-          },
-          "next_retry_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Next Retry At"
-          },
-          "started_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Started At"
-          },
-          "completed_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Completed At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "job_id",
-          "overall_status",
-          "extraction_status",
-          "ingestion_status",
-          "entities_extracted",
-          "relationships_extracted",
-          "completed_at"
-        ],
-        "title": "ExtractionStatusResponse",
-        "description": "Status of a combined extraction + ingestion pipeline job."
-      },
       "HTTPValidationError": {
         "type": "object",
         "title": "HTTPValidationError",
@@ -1881,199 +267,77 @@
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
       },
-      "ImportSchemaRequest": {
+      "OperationalSignalLifecycleRecord": {
         "properties": {
-          "schema_json": {
+          "signal_id": {
             "type": "string",
-            "title": "Schema Json"
-          }
-        },
-        "type": "object",
-        "required": [
-          "schema_json"
-        ],
-        "title": "ImportSchemaRequest"
-      },
-      "OntologyProperty": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 255,
             "minLength": 1,
-            "title": "Name"
+            "title": "Signal Id"
           },
-          "type": {
-            "$ref": "#/components/schemas/PropertyType"
+          "tenant_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Tenant Id"
           },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Account Id"
           },
-          "required": {
-            "type": "boolean",
-            "title": "Required",
-            "default": false
+          "status": {
+            "$ref": "#/components/schemas/SignalLifecycleStatus",
+            "default": "active"
           },
-          "default_value": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "integer"
-              },
-              {
-                "type": "number"
-              },
-              {
-                "type": "boolean"
-              },
-              {
-                "items": {},
-                "type": "array"
-              },
-              {
-                "additionalProperties": true,
-                "type": "object"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Default Value"
+          "lineage": {
+            "$ref": "#/components/schemas/SignalLineage"
           },
-          "constraints": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/PropertyConstraints"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "lifecycle": {
+            "$ref": "#/components/schemas/SignalLifecycleMetadata"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "name",
-          "type"
+          "signal_id",
+          "tenant_id",
+          "account_id",
+          "lifecycle"
         ],
-        "title": "OntologyProperty",
-        "description": "A property definition for an ontology type.\n\nSchema-level: defines what properties a type should have.\nInstance-level: extracted entities have actual values for these properties.\n\nAttributes:\n    id: Unique identifier for this property definition\n    name: Property name (snake_case recommended)\n    type: Data type of the property\n    description: Human-readable description\n    required: Whether this property is required\n    default_value: Default value if not specified\n    constraints: Validation constraints"
+        "title": "OperationalSignalLifecycleRecord"
       },
-      "OntologySchema": {
+      "SignalLifecycleActor": {
         "properties": {
-          "types": {
-            "items": {
-              "$ref": "#/components/schemas/OntologyType"
-            },
-            "type": "array",
-            "title": "Types"
-          },
-          "relationships": {
-            "items": {
-              "$ref": "#/components/schemas/TypeRelationship"
-            },
-            "type": "array",
-            "title": "Relationships"
-          },
-          "version": {
+          "actor_id": {
             "type": "string",
-            "title": "Version",
-            "default": "1.0.0"
+            "minLength": 1,
+            "title": "Actor Id"
           },
-          "published_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Published At"
-          },
-          "published_by": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Published By"
+          "account_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Account Id"
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "OntologySchema",
-        "description": "Complete ontology schema definition.\n\nContains all type definitions and their relationships.\nThis is the authoritative schema used to guide extraction.\n\nAttributes:\n    types: All ontology type definitions\n    relationships: All type relationship definitions\n    version: Schema version identifier\n    published_at: When this version was published\n    published_by: Who published this version"
+        "required": [
+          "actor_id",
+          "account_id"
+        ],
+        "title": "SignalLifecycleActor"
       },
-      "OntologyType": {
+      "SignalLifecycleMetadata": {
         "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "name": {
-            "type": "string",
-            "maxLength": 255,
-            "minLength": 1,
-            "title": "Name"
-          },
-          "description": {
-            "type": "string",
-            "maxLength": 2000,
-            "title": "Description",
-            "default": ""
-          },
-          "properties": {
-            "items": {
-              "$ref": "#/components/schemas/OntologyProperty"
-            },
-            "type": "array",
-            "title": "Properties"
-          },
-          "parent_type_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Parent Type Id"
-          },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
-          },
-          "version": {
-            "type": "integer",
-            "title": "Version",
-            "default": 1
+          "created_by": {
+            "$ref": "#/components/schemas/SignalLifecycleActor"
           },
           "created_at": {
             "type": "string",
             "format": "date-time",
             "title": "Created At"
+          },
+          "updated_by": {
+            "$ref": "#/components/schemas/SignalLifecycleActor"
           },
           "updated_at": {
             "type": "string",
@@ -2084,58 +348,37 @@
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "name"
+          "created_by",
+          "updated_by"
         ],
-        "title": "OntologyType",
-        "description": "An ontology type definition (schema-level).\n\nDefines the structure for a category of entities that can be extracted.\nFor example, \"Capability\" type defines that all capabilities have:\n- name (required string)\n- description (required string)\n- technical_features (optional array)\n\nAttributes:\n    id: Unique type identifier (e.g., \"capability\", \"use_case\")\n    name: Human-readable type name\n    description: Type description\n    properties: Property definitions for this type\n    parent_type_id: Parent type for inheritance (optional)\n    is_active: Whether this type is currently active\n    version: Schema version number\n    created_at: Creation timestamp\n    updated_at: Last update timestamp"
+        "title": "SignalLifecycleMetadata"
       },
-      "PropertyConstraints": {
+      "SignalLifecycleStatus": {
+        "type": "string",
+        "enum": [
+          "active",
+          "superseded",
+          "merged"
+        ],
+        "title": "SignalLifecycleStatus"
+      },
+      "SignalLineage": {
         "properties": {
-          "min_length": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min Length"
+          "supersedes": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supersedes"
           },
-          "max_length": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max Length"
+          "superseded_by": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Superseded By"
           },
-          "min": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Min"
-          },
-          "max": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Max"
-          },
-          "pattern": {
+          "merged_into": {
             "anyOf": [
               {
                 "type": "string"
@@ -2144,499 +387,26 @@
                 "type": "null"
               }
             ],
-            "title": "Pattern"
-          },
-          "enum": {
-            "anyOf": [
-              {
-                "items": {
-                  "type": "string"
-                },
-                "type": "array"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Enum"
-          },
-          "reference_type_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Reference Type Id"
+            "title": "Merged Into"
           }
         },
         "additionalProperties": false,
         "type": "object",
-        "title": "PropertyConstraints",
-        "description": "Constraints for ontology property definitions.\n\nAttributes:\n    min_length: Minimum length for string properties\n    max_length: Maximum length for string properties\n    min: Minimum value for numeric properties\n    max: Maximum value for numeric properties\n    pattern: Regex pattern for string validation\n    enum: Allowed values for enumerated properties\n    reference_type_id: Type ID for reference properties"
+        "title": "SignalLineage"
       },
-      "PropertyType": {
-        "type": "string",
-        "enum": [
-          "string",
-          "number",
-          "boolean",
-          "date",
-          "array",
-          "object",
-          "reference"
-        ],
-        "title": "PropertyType",
-        "description": "Valid property types for ontology type definitions."
-      },
-      "ProspectDataInput": {
+      "TransitionRequest": {
         "properties": {
-          "account_id": {
+          "target_signal_id": {
             "type": "string",
-            "title": "Account Id",
-            "description": "Account identifier"
-          },
-          "company_name": {
-            "type": "string",
-            "title": "Company Name",
-            "description": "Company name"
-          },
-          "industry": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Industry",
-            "description": "Industry vertical"
-          },
-          "business_pains": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Business Pains",
-            "description": "Business pains"
-          },
-          "friction_points": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Friction Points",
-            "description": "Friction points"
-          },
-          "desired_outcomes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Desired Outcomes",
-            "description": "Desired outcomes"
-          },
-          "prompt_text": {
-            "type": "string",
-            "title": "Prompt Text",
-            "description": "Freeform prompt text"
-          },
-          "prompt_id": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Prompt Id",
-            "description": "Prompt identifier"
-          },
-          "attachments": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Attachments",
-            "description": "Attachments"
-          }
-        },
-        "type": "object",
-        "required": [
-          "account_id",
-          "company_name",
-          "prompt_text"
-        ],
-        "title": "ProspectDataInput",
-        "description": "Prospect data for signal extraction."
-      },
-      "ProvenanceResponse": {
-        "properties": {
-          "activity_id": {
-            "type": "string",
-            "title": "Activity Id"
-          },
-          "source": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Source"
-          },
-          "extraction": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Extraction"
-          },
-          "steps": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Steps"
-          },
-          "output": {
-            "additionalProperties": true,
-            "type": "object",
-            "title": "Output"
-          }
-        },
-        "type": "object",
-        "required": [
-          "activity_id",
-          "source",
-          "extraction",
-          "steps",
-          "output"
-        ],
-        "title": "ProvenanceResponse",
-        "description": "Provenance chain for an entity or output."
-      },
-      "PublishSchemaRequest": {
-        "properties": {
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "comment": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Comment"
-          }
-        },
-        "type": "object",
-        "required": [
-          "version"
-        ],
-        "title": "PublishSchemaRequest"
-      },
-      "PublishSchemaResponse": {
-        "properties": {
-          "version": {
-            "type": "string",
-            "title": "Version"
-          },
-          "published_at": {
-            "type": "string",
-            "title": "Published At"
-          },
-          "published_by": {
-            "type": "string",
-            "title": "Published By"
-          }
-        },
-        "type": "object",
-        "required": [
-          "version",
-          "published_at",
-          "published_by"
-        ],
-        "title": "PublishSchemaResponse"
-      },
-      "RelationshipType": {
-        "type": "string",
-        "enum": [
-          "depends_on",
-          "extends",
-          "relates_to",
-          "contains"
-        ],
-        "title": "RelationshipType",
-        "description": "Valid relationship types between ontology types."
-      },
-      "SignalExtractionRequest": {
-        "properties": {
-          "prospect_data": {
-            "$ref": "#/components/schemas/ProspectDataInput",
-            "description": "Prospect information"
-          },
-          "extraction_type": {
-            "type": "string",
-            "title": "Extraction Type",
-            "description": "Extraction type",
-            "default": "operational_signals"
-          },
-          "category": {
-            "type": "string",
-            "title": "Category",
-            "description": "Signal category",
-            "default": "Operational"
-          }
-        },
-        "type": "object",
-        "required": [
-          "prospect_data"
-        ],
-        "title": "SignalExtractionRequest",
-        "description": "Request for operational signal extraction."
-      },
-      "SignalExtractionResponse": {
-        "properties": {
-          "signals": {
-            "items": {
-              "$ref": "#/components/schemas/SignalExtractionResult"
-            },
-            "type": "array",
-            "title": "Signals",
-            "description": "Extracted signals"
-          },
-          "duration_ms": {
-            "type": "integer",
-            "title": "Duration Ms",
-            "description": "Processing duration",
-            "default": 0
-          },
-          "model_version": {
-            "type": "string",
-            "title": "Model Version",
-            "description": "LLM model used",
-            "default": "gpt-4o-2024-08-06"
-          },
-          "prompt_version": {
-            "type": "string",
-            "title": "Prompt Version",
-            "description": "Prompt version",
-            "default": "1.0.0"
-          }
-        },
-        "type": "object",
-        "title": "SignalExtractionResponse",
-        "description": "Response from signal extraction."
-      },
-      "SignalExtractionResult": {
-        "properties": {
-          "name": {
-            "type": "string",
-            "title": "Name",
-            "description": "Signal name"
-          },
-          "category": {
-            "type": "string",
-            "title": "Category",
-            "description": "Signal category",
-            "default": "Operational"
-          },
-          "description": {
-            "type": "string",
-            "title": "Description",
-            "description": "Signal description"
-          },
-          "confidence_score": {
-            "type": "number",
-            "title": "Confidence Score",
-            "description": "Confidence 0.0-1.0"
-          },
-          "confidence_explanation": {
-            "type": "string",
-            "title": "Confidence Explanation",
-            "description": "Why this confidence",
-            "default": ""
-          },
-          "impact_indicators": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Impact Indicators",
-            "description": "Impact clues"
-          },
-          "trend_direction": {
-            "type": "string",
-            "title": "Trend Direction",
-            "description": "increasing|decreasing|stable|new",
-            "default": "new"
-          },
-          "trend_explanation": {
-            "type": "string",
-            "title": "Trend Explanation",
-            "description": "Why this trend",
-            "default": ""
-          },
-          "stakeholder_quotes": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Stakeholder Quotes",
-            "description": "Evidence quotes"
-          },
-          "likely_value_drivers": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Likely Value Drivers",
-            "description": "Mapped value drivers"
-          }
-        },
-        "type": "object",
-        "required": [
-          "name",
-          "description",
-          "confidence_score"
-        ],
-        "title": "SignalExtractionResult",
-        "description": "Single extracted signal result."
-      },
-      "TypeRelationship": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "source_type_id": {
-            "type": "string",
-            "title": "Source Type Id"
-          },
-          "target_type_id": {
-            "type": "string",
-            "title": "Target Type Id"
-          },
-          "relationship_type": {
-            "$ref": "#/components/schemas/RelationshipType"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          },
-          "cardinality": {
-            "$ref": "#/components/schemas/Cardinality",
-            "default": "many_to_many"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
+            "title": "Target Signal Id"
           }
         },
         "additionalProperties": false,
         "type": "object",
         "required": [
-          "source_type_id",
-          "target_type_id",
-          "relationship_type"
+          "target_signal_id"
         ],
-        "title": "TypeRelationship",
-        "description": "A relationship definition between two ontology types.\n\nSchema-level: defines that type A can relate to type B via relationship R.\nInstance-level: extracted entities have actual relationships.\n\nAttributes:\n    id: Unique relationship identifier\n    source_type_id: Source type ID\n    target_type_id: Target type ID\n    relationship_type: Type of relationship\n    description: Relationship description\n    cardinality: Cardinality constraint\n    created_at: Creation timestamp"
-      },
-      "UpdateTypeRequest": {
-        "properties": {
-          "name": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Name"
-          },
-          "description": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Description"
-          }
-        },
-        "type": "object",
-        "title": "UpdateTypeRequest"
-      },
-      "ValidateSchemaRequest": {
-        "properties": {
-          "types": {
-            "items": {
-              "$ref": "#/components/schemas/OntologyType"
-            },
-            "type": "array",
-            "title": "Types"
-          },
-          "relationships": {
-            "items": {
-              "$ref": "#/components/schemas/TypeRelationship"
-            },
-            "type": "array",
-            "title": "Relationships"
-          }
-        },
-        "type": "object",
-        "required": [
-          "types",
-          "relationships"
-        ],
-        "title": "ValidateSchemaRequest"
-      },
-      "ValidateSchemaResponse": {
-        "properties": {
-          "valid": {
-            "type": "boolean",
-            "title": "Valid"
-          },
-          "errors": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationError"
-            },
-            "type": "array",
-            "title": "Errors"
-          },
-          "warnings": {
-            "items": {
-              "$ref": "#/components/schemas/ValidationWarning"
-            },
-            "type": "array",
-            "title": "Warnings"
-          }
-        },
-        "type": "object",
-        "required": [
-          "valid",
-          "errors",
-          "warnings"
-        ],
-        "title": "ValidateSchemaResponse"
+        "title": "TransitionRequest"
       },
       "ValidationError": {
         "properties": {
@@ -2678,25 +448,51 @@
         ],
         "title": "ValidationError"
       },
-      "ValidationWarning": {
-        "properties": {
-          "field": {
-            "type": "string",
-            "title": "Field"
-          },
-          "message": {
-            "type": "string",
-            "title": "Message"
-          }
-        },
-        "additionalProperties": false,
+      "ErrorEnvelope": {
         "type": "object",
+        "title": "ErrorEnvelope",
         "required": [
-          "field",
-          "message"
+          "error"
         ],
-        "title": "ValidationWarning",
-        "description": "Validation warning for ontology schema."
+        "additionalProperties": false,
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": [
+              "code",
+              "message",
+              "request_id"
+            ],
+            "properties": {
+              "code": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Machine-readable error code"
+              },
+              "message": {
+                "type": "string",
+                "description": "Human-readable error message"
+              },
+              "request_id": {
+                "type": "string",
+                "minLength": 1,
+                "description": "Request ID for support correlation"
+              },
+              "details": {
+                "anyOf": [
+                  {
+                    "type": "object",
+                    "additionalProperties": true
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "description": "Optional sanitized error details"
+              }
+            }
+          }
+        }
       },
       "ErrorResponse": {
         "type": "object",
@@ -2744,52 +540,6 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
-      },
-      "ErrorEnvelope": {
-        "type": "object",
-        "title": "ErrorEnvelope",
-        "required": [
-          "error"
-        ],
-        "additionalProperties": false,
-        "properties": {
-          "error": {
-            "type": "object",
-            "required": [
-              "code",
-              "message",
-              "request_id"
-            ],
-            "properties": {
-              "code": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Machine-readable error code"
-              },
-              "message": {
-                "type": "string",
-                "description": "Human-readable error message"
-              },
-              "request_id": {
-                "type": "string",
-                "minLength": 1,
-                "description": "Request ID for support correlation"
-              },
-              "details": {
-                "anyOf": [
-                  {
-                    "type": "object",
-                    "additionalProperties": true
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "description": "Optional sanitized error details"
-              }
-            }
-          }
-        }
       }
     }
   }

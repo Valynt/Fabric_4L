@@ -343,6 +343,7 @@ async def _snapshot_entity(
                 "MATCH (n:Entity {id: $entity_id, tenant_id: $tenant_id}) RETURN properties(n) as props",
                 {"entity_id": entity_id, "tenant_id": tenant_id},
                 tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
                 query_name="analytics.snapshot_entity",
             )
             record = await result.single()

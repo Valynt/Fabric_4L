@@ -239,7 +239,14 @@ class EntityResolutionService:
         LIMIT {_CANDIDATE_LIMIT}
         """
         
-        result = await run_validated_query(session, query, params)
+        result = await run_validated_query(
+            session,
+            query,
+            params,
+            tenant_id=request.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="entity_resolution.find_exact_candidates",
+        )
         records = await result.data()
         return records
 
@@ -259,9 +266,14 @@ class EntityResolutionService:
         LIMIT {_CANDIDATE_LIMIT * 5}
         """
 
-        result = await run_validated_query(session, query, {
-            "tenant_id": request.tenant_id,
-        })
+        result = await run_validated_query(
+            session,
+            query,
+            {"tenant_id": request.tenant_id},
+            tenant_id=request.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="entity_resolution.find_fuzzy_candidates",
+        )
         records = await result.data()
         threshold = float(request.query_attributes.get("fuzzy_threshold", _DEFAULT_FUZZY_THRESHOLD))
         filtered: list[dict[str, Any]] = []
@@ -319,6 +331,9 @@ class EntityResolutionService:
                 "tenant_id": request.tenant_id,
                 "threshold": threshold,
             },
+            tenant_id=request.tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="entity_resolution.find_vector_candidates",
         )
         records = await result.data()
         for record in records:

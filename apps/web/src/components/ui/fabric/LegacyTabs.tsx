@@ -23,7 +23,7 @@ export function Tabs({ tabs, active, onChange }: LegacyTabsProps) {
           role="tab"
           aria-selected={active === tab}
           className={cn(
-            "px-4 py-2 text-[12px] font-semibold border-b-2 -mb-px transition-colors",
+            "px-4 py-2 vf-text-body-s font-semibold border-b-2 -mb-px transition-colors",
             active === tab
               ? "border-primary text-primary"
               : "border-transparent text-muted-foreground hover:text-foreground"

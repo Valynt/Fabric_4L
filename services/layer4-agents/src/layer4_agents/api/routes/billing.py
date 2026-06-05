@@ -9,9 +9,11 @@ Layer 4 retains this stub for backward compatibility during the migration.
 
 import logging
 import os
+import sys
+from datetime import datetime
 from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, Header, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -169,7 +171,7 @@ class reconcile_invoiceResult(TypedDictModel):
 
 import os
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Header, Query, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -612,10 +614,20 @@ async def get_customer_balance(
 # ---------------------------------------------------------------------------
 # Re-export adjacent route modules (also stubbed)
 # ---------------------------------------------------------------------------
-from .billing_overages import router as billing_overages_router
-from .billing_usage import router as billing_usage_router
-from .billing_webhooks import router as billing_webhooks_router
+def _is_adjacent_billing_route_initializing(name: str) -> bool:
+    module = sys.modules.get(f"{__package__}.{name}")
+    spec = getattr(module, "__spec__", None)
+    return bool(getattr(spec, "_initializing", False))
 
-router.include_router(billing_overages_router)
-router.include_router(billing_usage_router)
-router.include_router(billing_webhooks_router)
+
+if not any(
+    _is_adjacent_billing_route_initializing(name)
+    for name in ("billing_overages", "billing_usage", "billing_webhooks")
+):
+    from .billing_overages import router as billing_overages_router
+    from .billing_usage import router as billing_usage_router
+    from .billing_webhooks import router as billing_webhooks_router
+
+    router.include_router(billing_overages_router)
+    router.include_router(billing_usage_router)
+    router.include_router(billing_webhooks_router)

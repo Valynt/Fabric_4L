@@ -18,6 +18,7 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 
 | ADR | Title | Status | Date |
 |-----|-------|--------|------|
+| [ADR-001](./ADR-001-fabric-harness-as-the-governed-execution-spine-for-agentic-value-workflows.md) | Fabric Harness as the Governed Execution Spine for Agentic Value Workflows | ✅ Accepted | — |
 | [ADR-002](./ADR-002-six-layer-architecture.md) | Six-Layer Architecture | ✅ Accepted | 2025-01-15 |
 | [ADR-003](./ADR-003-neo4j-pgvector-hybrid-graph-database.md) | Neo4j + pgvector Hybrid Graph Database | ✅ Accepted | 2025-02-01 |
 | [ADR-004](./ADR-004-jwt-api-key-authentication-strategy.md) | JWT + API Key Authentication Strategy | ✅ Accepted | 2025-02-15 |
@@ -37,6 +38,11 @@ related: ["../why-knowledge-graph", "../../core-concepts/architecture", "../../c
 | [ADR-018](./ADR-018-layer-5-canonical-source.md) | Layer 5 Canonical Source | ✅ Accepted | — |
 | [ADR-019](./ADR-019-replayability-event-envelope-and-layer-4-replay-harness.md) | Replayability Event Envelope and Layer 4 Replay Harness | ✅ Accepted | — |
 | [ADR-020](./ADR-020-layer-2-5-signal-refinery.md) | Layer 2.5 Signal Refinery | ✅ Accepted | 2026-05-22 |
+| [ADR-021](./ADR-021-layer-3-canonical-runtime-path.md) | Layer 3 Canonical Runtime Path | ✅ Accepted | 2026-05-13 |
+| [ADR-022](./ADR-022-layer4-internal-decomposition.md) | Layer 4 Internal Decomposition | Proposed | 2026-05-22 |
+| [ADR-023](./ADR-023-billing-service-extraction.md) | Billing Service Extraction | ✅ Accepted | 2026-05-29 |
+| [ADR-025](./ADR-025-layer-25-signal-refinery.md) | Layer 2.5 Signal Refinery as Official Architecture Extension | ✅ Accepted | 2026-06-10 |
+| [ADR-027](./ADR-027-shim-removal.md) | Namespace Shim Removal | ✅ Accepted | 2026-06-04 |
 
 ---
 

@@ -13,6 +13,11 @@ down_revision = "036_add_billing_customer_sync_state"
 branch_labels = None
 depends_on = None
 
+MIGRATION_REVIEW_REQUIRED = (
+    "Tenant-safety migration intentionally replaces customer-only foreign keys "
+    "with tenant-scoped composite foreign keys during upgrade."
+)
+
 
 def upgrade() -> None:
     # Backfill tenant IDs before tightening constraints.

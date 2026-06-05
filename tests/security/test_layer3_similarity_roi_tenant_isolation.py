@@ -47,10 +47,7 @@ def test_similarity_queries_are_tenant_scoped_across_traversals() -> None:
 def test_roi_queries_are_tenant_scoped_across_traversals() -> None:
     """Cypher queries in ROICalculationAgent must carry tenant_id predicates."""
     content = (_L3_SRC / "agents" / "roi_calculation.py").read_text(encoding="utf-8")
-    assert (
-        "MATCH (uc:UseCase {id: $use_case_id, tenant_id: $_tenant_id})"
-        "-[:delivers]->(vd:ValueDriver {tenant_id: $_tenant_id})"
-    ) in content
-    assert (
-        "OPTIONAL MATCH (vd)-[:measuredBy|calculatedBy]->(f:Formula {tenant_id: $_tenant_id})"
-    ) in content
+    assert "MATCH (uc:UseCase {id: $use_case_id})-[:delivers]->(vd:ValueDriver)" in content
+    assert "WHERE uc.tenant_id = $_tenant_id AND vd.tenant_id = $_tenant_id" in content
+    assert "OPTIONAL MATCH (vd)-[:measuredBy|calculatedBy]->(f:Formula)" in content
+    assert "WHERE f.tenant_id = $_tenant_id" in content

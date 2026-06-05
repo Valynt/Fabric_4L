@@ -11,9 +11,9 @@ import uuid
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from fastapi import HTTPException
+from value_fabric.shared.error_handling.exceptions import ValidationError
 
-from api.routes.value_packs import (
+from src.api.routes.value_packs import (
     PackExecuteRequest,
     PackForkRequest,
     PackUpdateRequest,
@@ -47,16 +47,15 @@ class TestValidatePackId:
 
     def test_invalid_pack_id(self):
         """Should raise HTTPException 400 for invalid pack ID."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             _validate_pack_id("not@valid#id")
-        assert exc_info.value.status_code == 400
-        assert "Invalid pack_id format" in exc_info.value.detail
+        assert "Invalid pack_id format" in str(exc_info.value)
 
     def test_empty_pack_id(self):
         """Should raise HTTPException for empty string."""
-        with pytest.raises(HTTPException) as exc_info:
+        with pytest.raises(ValidationError) as exc_info:
             _validate_pack_id("")
-        assert exc_info.value.status_code == 400
+        assert "pack_id is required" in str(exc_info.value)
 
 
 class TestMergeVariables:
@@ -223,17 +222,23 @@ class TestGetPackFormulas:
     """Tests for getting pack formulas from Neo4j."""
 
     @pytest.mark.asyncio
-    async def test_get_pack_formulas_success(self):
+    async def test_get_pack_formulas_success(self, monkeypatch):
         """Should return list of formula dicts."""
         mock_driver = MagicMock()
         mock_session = AsyncMock()
         mock_result = AsyncMock()
+        observed = {}
+
+        async def fake_run_validated_query(session, query, params, *, tenant_id=None, **kwargs):
+            observed.update(
+                {"session": session, "params": params, "tenant_id": tenant_id, "kwargs": kwargs}
+            )
+            return mock_result
 
         mock_driver.session.return_value.__aenter__ = AsyncMock(
             return_value=mock_session
         )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_session.run.return_value = mock_result
         mock_result.data.return_value = [
             {
                 "formula_id": "roi_basic",
@@ -242,16 +247,22 @@ class TestGetPackFormulas:
                 "name": "ROI Formula",
             }
         ]
+        monkeypatch.setattr("src.api.routes.value_packs.run_validated_query", fake_run_validated_query)
 
-        result = await _get_pack_formulas(mock_driver, "pack_123")
+        result = await _get_pack_formulas(mock_driver, "pack_123", "tenant-secure")
 
         assert len(result) == 1
         assert result[0]["formula_id"] == "roi_basic"
         assert result[0]["expression"] == "(a - b) / c * 100"
-        mock_session.run.assert_called_once()
+        assert observed["tenant_id"] == "tenant-secure"
+        assert observed["params"] == {"pack_id": "pack_123", "tenant_id": "tenant-secure"}
+        assert observed["kwargs"] == {
+            "require_explicit_tenant_id": True,
+            "query_name": "value_packs.get_pack_formulas",
+        }
 
     @pytest.mark.asyncio
-    async def test_get_pack_formulas_empty(self):
+    async def test_get_pack_formulas_empty(self, monkeypatch):
         """Should return empty list when pack has no formulas."""
         mock_driver = MagicMock()
         mock_session = AsyncMock()
@@ -261,10 +272,13 @@ class TestGetPackFormulas:
             return_value=mock_session
         )
         mock_driver.session.return_value.__aexit__ = AsyncMock(return_value=False)
-        mock_session.run.return_value = mock_result
         mock_result.data.return_value = []
+        monkeypatch.setattr(
+            "src.api.routes.value_packs.run_validated_query",
+            AsyncMock(return_value=mock_result),
+        )
 
-        result = await _get_pack_formulas(mock_driver, "pack_123")
+        result = await _get_pack_formulas(mock_driver, "pack_123", "tenant-secure")
 
         assert result == []
 
@@ -307,19 +321,21 @@ class TestExecutePackErrorHandling:
         pack_id = str(uuid.uuid4())
 
         with patch(
-            "api.routes.value_packs._get_pack_formulas",
+            "src.api.routes.value_packs._get_pack_formulas",
             return_value=[],
+        ), patch(
+            "src.api.routes.value_packs._tenant_id_from_api_key",
+            return_value="tenant-secure",
         ):
             # Create a minimal mock driver
             mock_driver = MagicMock()
 
             request = PackExecuteRequest(workspace_id="ws_123", variables={})
 
-            with pytest.raises(HTTPException) as exc_info:
+            with pytest.raises(ValidationError) as exc_info:
                 await execute_pack(pack_id, request, mock_driver)
 
-            assert exc_info.value.status_code == 400
-            assert "no formulas" in exc_info.value.detail.lower()
+            assert "no formulas" in str(exc_info.value).lower()
 
 
 class TestUpdatePackSemantics:
@@ -391,4 +407,3 @@ class TestForkPackSemantics:
 
         # Version should be incremented
         assert params["version"] == "1.2.4"
-

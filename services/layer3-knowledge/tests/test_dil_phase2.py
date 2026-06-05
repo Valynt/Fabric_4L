@@ -25,13 +25,13 @@ import pytest
 # Import services directly (no conftest dependency)
 # ---------------------------------------------------------------------------
 
-from services.competitive_intel_service import (
+from src.services.competitive_intel_service import (
     BattlecardCreate,
     CompetitorCreate,
     CompetitiveIntelService,
     WinLossRecord,
 )
-from services.roi_calculator_service import (
+from src.services.roi_calculator_service import (
     ROICalculatorService,
     ROIInputs,
     ROIOutputs,
@@ -747,4 +747,3 @@ class TestROIBenchmarks:
         assert result["has_benchmarks"] is False
         assert "defaults" in result
         assert result["defaults"]["productivity_gain_pct"] == 0.10
-

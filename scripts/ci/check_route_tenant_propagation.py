@@ -20,15 +20,32 @@ class RouteTenantVisitor(ast.NodeVisitor):
             return
         tenant_vars = {"tenant_id", "effective_tenant_id"}
         tenant_vars |= {a.arg for a in node.args.args if "tenant" in a.arg and "id" in a.arg}
+        context_vars = {
+            a.arg
+            for a in node.args.args
+            if a.arg in {"auth", "context", "ctx", "_ctx", "current_user"}
+            or self._annotation_name(a.annotation) in {"RequestContext", "TokenPayload", "User"}
+        }
+        tenant_bound_owners = self._tenant_bound_owners(node, tenant_vars, context_vars)
+        tenant_bound_values = self._tenant_bound_values(node, tenant_vars, context_vars)
         for call in [n for n in ast.walk(node) if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute)]:
             owner = self._owner_name(call.func.value)
             if owner not in {"service", "repo", "repository", "manager"}:
                 continue
+            if owner in tenant_bound_owners:
+                continue
             if call.func.attr.startswith("_"):
                 continue
-            has_tenant_kw = any(kw.arg == "tenant_id" and isinstance(kw.value, ast.Name) and kw.value.id in tenant_vars for kw in call.keywords if kw.arg)
-            has_tenant_pos = any(isinstance(arg, ast.Name) and arg.id in tenant_vars for arg in call.args)
-            if not (has_tenant_kw or has_tenant_pos):
+            has_tenant_bound_value = any(
+                isinstance(arg, ast.Name) and arg.id in tenant_bound_values for arg in call.args
+            )
+            has_tenant_kw = any(
+                kw.arg == "tenant_id" and self._is_tenant_expr(kw.value, tenant_vars, context_vars)
+                for kw in call.keywords
+                if kw.arg
+            )
+            has_tenant_pos = any(self._is_tenant_expr(arg, tenant_vars, context_vars) for arg in call.args)
+            if not (has_tenant_kw or has_tenant_pos or has_tenant_bound_value):
                 self.violations.append({
                     "file": str(self.path),
                     "line": call.lineno,
@@ -43,6 +60,79 @@ class RouteTenantVisitor(ast.NodeVisitor):
         if isinstance(node, ast.Attribute):
             return node.attr
         return None
+
+    def _annotation_name(self, node: ast.AST | None) -> str | None:
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            return node.attr
+        if isinstance(node, ast.Subscript):
+            return self._annotation_name(node.value)
+        return None
+
+    def _is_tenant_expr(
+        self,
+        node: ast.AST,
+        tenant_vars: set[str],
+        context_vars: set[str],
+    ) -> bool:
+        if isinstance(node, ast.Name):
+            return node.id in tenant_vars
+        if isinstance(node, ast.Attribute):
+            return (
+                node.attr == "tenant_id"
+                and isinstance(node.value, ast.Name)
+                and node.value.id in context_vars
+            )
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id == "str":
+            return len(node.args) == 1 and self._is_tenant_expr(node.args[0], tenant_vars, context_vars)
+        return False
+
+    def _tenant_bound_owners(
+        self,
+        node: ast.AsyncFunctionDef,
+        tenant_vars: set[str],
+        context_vars: set[str],
+    ) -> set[str]:
+        owners: set[str] = set()
+        for stmt in ast.walk(node):
+            if not isinstance(stmt, ast.Assign) or not isinstance(stmt.value, ast.Call):
+                continue
+            target_names = [target.id for target in stmt.targets if isinstance(target, ast.Name)]
+            if not target_names:
+                continue
+            has_tenant_arg = any(self._is_tenant_expr(arg, tenant_vars, context_vars) for arg in stmt.value.args)
+            has_tenant_kw = any(
+                kw.arg == "tenant_id" and self._is_tenant_expr(kw.value, tenant_vars, context_vars)
+                for kw in stmt.value.keywords
+                if kw.arg
+            )
+            if has_tenant_arg or has_tenant_kw:
+                owners.update(name for name in target_names if name in {"service", "repo", "repository", "manager"})
+        return owners
+
+    def _tenant_bound_values(
+        self,
+        node: ast.AsyncFunctionDef,
+        tenant_vars: set[str],
+        context_vars: set[str],
+    ) -> set[str]:
+        values: set[str] = set()
+        for stmt in ast.walk(node):
+            if not isinstance(stmt, ast.Assign) or not isinstance(stmt.value, ast.Call):
+                continue
+            target_names = [target.id for target in stmt.targets if isinstance(target, ast.Name)]
+            if not target_names:
+                continue
+            has_tenant_arg = any(self._is_tenant_expr(arg, tenant_vars, context_vars) for arg in stmt.value.args)
+            has_tenant_kw = any(
+                kw.arg == "tenant_id" and self._is_tenant_expr(kw.value, tenant_vars, context_vars)
+                for kw in stmt.value.keywords
+                if kw.arg
+            )
+            if has_tenant_arg or has_tenant_kw:
+                values.update(target_names)
+        return values
 
     def _is_route_handler(self, node: ast.AsyncFunctionDef) -> bool:
         for deco in node.decorator_list:
@@ -91,11 +181,21 @@ def changed_lines(base_ref: str) -> dict[str, set[int]]:
     return out
 
 
-def main() -> int:
+def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser()
     parser.add_argument("--base-ref")
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Scan all route files, ignoring --base-ref line scoping.",
+    )
+    return parser
+
+
+def main() -> int:
+    parser = build_parser()
     args = parser.parse_args()
-    touched = changed_lines(args.base_ref) if args.base_ref else None
+    touched = changed_lines(args.base_ref) if args.base_ref and not args.strict else None
     violations: list[dict[str, object]] = []
     scanned = 0
     for path in iter_route_files():
@@ -127,7 +227,7 @@ def main() -> int:
     if violations:
         print(f"FAIL: {len(violations)} route tenant propagation violations")
         return 1
-    print("✓ Route tenant propagation static checks passed")
+    print("PASS: Route tenant propagation static checks passed")
     return 0
 
 if __name__ == "__main__":

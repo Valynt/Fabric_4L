@@ -271,8 +271,13 @@ class ValueTreeProjectionAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
-                query, {"start_id": start_node_id, "max_hops": max_hops, "tenant_id": tenant_id}
+            result = await run_validated_query(
+                session,
+                query,
+                {"start_id": start_node_id, "max_hops": max_hops, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="value_tree_projection.upward_traversal",
             )
             records = [record async for record in result]
 
@@ -294,6 +299,7 @@ class ValueTreeProjectionAgent(BaseAgent):
             "outcomes": [{"id": o[0], "name": o[1]} for o in outcomes],
             "traversal_direction": "upward",
             "start_node": start_node_id,
+            "error": "",
         })
 
 
@@ -326,8 +332,13 @@ class ValueTreeProjectionAgent(BaseAgent):
         """
 
         async with self._driver.session() as session:
-            result = await run_validated_query(session,
-                query, {"start_id": start_node_id, "max_hops": max_hops, "tenant_id": tenant_id}
+            result = await run_validated_query(
+                session,
+                query,
+                {"start_id": start_node_id, "max_hops": max_hops, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="value_tree_projection.downward_traversal",
             )
             records = [record async for record in result]
 
@@ -349,6 +360,7 @@ class ValueTreeProjectionAgent(BaseAgent):
             "capabilities": [{"id": c[0], "name": c[1]} for c in capabilities],
             "traversal_direction": "downward",
             "start_node": start_node_id,
+            "error": "",
         })
 
 

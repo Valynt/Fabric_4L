@@ -135,6 +135,11 @@ def main() -> int:
         default=None,
         help="Write violations as JSON to this path.",
     )
+    parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="Run the full V1 compatibility drift check. Kept for CI/register parity.",
+    )
     args = parser.parse_args()
 
     for label, path in [("snapshot", args.snapshot), ("current", args.current)]:

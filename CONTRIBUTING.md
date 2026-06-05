@@ -53,6 +53,8 @@ The Makefile is the canonical build, test, migration, contract, and release gate
 Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases. Use
 [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for command hierarchy and
 [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
+Use [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) before implementation
+to route the change to canonical files, drift checks, validation commands, and evidence locations.
 
 ---
 

@@ -56,7 +56,7 @@ def main(argv: list[str] | None = None) -> int:
         for item in drifted:
             print(f" - {item}", file=sys.stderr)
         print(
-            "Keep canonical runtime logic in value_fabric/layer3/ and preserve service wrappers as thin forwarders.",
+            "Keep canonical runtime logic in services/layer3-knowledge/src/ and preserve value_fabric/layer3 as a placeholder/shim namespace.",
             file=sys.stderr,
         )
         return 1

@@ -246,7 +246,7 @@ def _decode_signed_state(state: str) -> dict[str, Any]:
     padding = "=" * (-len(encoded_payload) % 4)
     payload_bytes = base64.urlsafe_b64decode((encoded_payload + padding).encode("utf-8"))
     payload = json.loads(payload_bytes.decode("utf-8"))
-    tenant_id = payload.get("tenant_id")
+    tenant_id = payload["tenant_id"] if "tenant_id" in payload else None
     return_to = payload.get("return_to")
     oauth_base_url = payload.get("oauth_base_url")
     if not tenant_id or not isinstance(tenant_id, str):
@@ -383,7 +383,7 @@ async def create_or_update_integration(
         # Build webhook URL with token for one-time display
         response_data = integration.to_dict()
         try:
-            decrypted = await service.decrypt_credentials(integration)
+            decrypted = await service.decrypt_credentials(integration, tenant_id=tenant_id)
             webhook_token = decrypted.get("webhook_token")
             if webhook_token:
                 # SECURITY: Only include token in create/update response, never in list/get
@@ -610,13 +610,15 @@ async def complete_salesforce_oauth(
 
     try:
         decoded_state = _decode_signed_state(state)
+        tenant_id = decoded_state["tenant_id"]
         token_data = await service.exchange_salesforce_oauth_code(
             code=code,
             redirect_uri=_salesforce_redirect_uri(),
             oauth_base_url=decoded_state["oauth_base_url"],
+            tenant_id=tenant_id,
         )
         await service.upsert_salesforce_oauth_integration(
-            tenant_id=decoded_state["tenant_id"],
+            tenant_id=tenant_id,
             user_id=decoded_state.get("user_id"),
             token_data=token_data,
         )

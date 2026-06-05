@@ -1,0 +1,30 @@
+{
+  "version": "1.0",
+  "skill": "format_currency",
+  "traces": [
+    {
+      "id": "fc-001",
+      "description": "Format a USD business-case value with two decimals",
+      "input": {
+        "amount": 1250000.5,
+        "currency": "USD",
+        "decimals": 2
+      },
+      "assertions": {
+        "expected": "$1,250,000.50"
+      }
+    },
+    {
+      "id": "fc-002",
+      "description": "Format a JPY value without decimals",
+      "input": {
+        "amount": 900000,
+        "currency": "JPY",
+        "decimals": 0
+      },
+      "assertions": {
+        "expected": "JPY 900,000"
+      }
+    }
+  ]
+}

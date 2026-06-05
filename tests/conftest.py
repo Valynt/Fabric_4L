@@ -19,6 +19,9 @@ from __future__ import annotations
 import os
 import sys
 import time
+import importlib
+import importlib.util
+import types
 from pathlib import Path
 from typing import Any, Callable, Dict, Generator, Optional
 from uuid import UUID
@@ -142,6 +145,86 @@ _PATHS_TO_ADD = [
 for p in _PATHS_TO_ADD:
     if p not in sys.path:
         sys.path.insert(0, p)
+
+
+def _prepend_namespace_path(module: types.ModuleType, paths: list[Path]) -> None:
+    namespace_paths = list(getattr(module, "__path__", []))
+    for path in reversed([str(path) for path in paths]):
+        if path not in namespace_paths:
+            namespace_paths.insert(0, path)
+    module.__path__ = namespace_paths  # type: ignore[attr-defined]
+
+
+def _ensure_namespace_module(name: str, paths: list[Path]) -> types.ModuleType:
+    module = sys.modules.get(name)
+    if module is None:
+        module = types.ModuleType(name)
+        sys.modules[name] = module
+    _prepend_namespace_path(module, paths)
+    return module
+
+
+def _install_legacy_collection_import_aliases() -> None:
+    """Stabilize legacy test import paths during repo-wide collection.
+
+    Several historical tests still import bare ``src.*`` modules or the
+    underscore service path ``services.layer4_agents.src.*``. Keep those imports
+    collection-compatible without changing runtime source-of-truth modules.
+    """
+    layer3_src = _PROJECT_ROOT / "services" / "layer3-knowledge" / "src"
+    layer4_src = _PROJECT_ROOT / "services" / "layer4-agents" / "src"
+
+    src_module = _ensure_namespace_module("src", [layer3_src, layer4_src])
+    _ensure_namespace_module("src.agents", [layer3_src / "agents", layer4_src / "agents"])
+    _ensure_namespace_module("src.api", [layer3_src / "api", layer4_src / "api"])
+    _ensure_namespace_module("src.analytics", [layer3_src / "analytics"])
+    src_models_module = _ensure_namespace_module("src.models", [layer3_src / "models", layer4_src / "models"])
+    _ensure_namespace_module("src.retrieval", [layer3_src / "retrieval"])
+    _ensure_namespace_module("src.services", [layer3_src / "services", layer4_src / "services"])
+    src_tools_module = _ensure_namespace_module("src.tools", [layer4_src / "tools"])
+    setattr(src_module, "models", src_models_module)
+    setattr(src_module, "tools", src_tools_module)
+
+    services_module = _ensure_namespace_module("services", [_PROJECT_ROOT / "services"])
+
+    layer4_alias = _ensure_namespace_module(
+        "services.layer4_agents",
+        [_PROJECT_ROOT / "services" / "layer4-agents"],
+    )
+    setattr(services_module, "layer4_agents", layer4_alias)
+
+    layer4_src_alias = _ensure_namespace_module("services.layer4_agents.src", [layer4_src])
+    setattr(layer4_alias, "src", layer4_src_alias)
+
+    # Layer 3 still has runtime modules that use top-level ``from config``.
+    # Pin that bare name to the Layer 3 config surface so later sys.path
+    # mutations from service-specific tests cannot redirect it to Layer 4.
+    config_init = layer3_src / "config" / "__init__.py"
+    config_spec = importlib.util.spec_from_file_location(
+        "src.config",
+        config_init,
+        submodule_search_locations=[str(layer3_src / "config")],
+    )
+    if config_spec is None or config_spec.loader is None:
+        raise RuntimeError(f"Cannot load Layer 3 config compatibility module from {config_init}")
+    layer3_config = importlib.util.module_from_spec(config_spec)
+    sys.modules["src.config"] = layer3_config
+    config_spec.loader.exec_module(layer3_config)
+    sys.modules["config"] = layer3_config
+    setattr(src_module, "config", layer3_config)
+
+    if "value_fabric.shared.testing" not in sys.modules:
+        testing_module = types.ModuleType("value_fabric.shared.testing")
+        testing_module.mark = pytest.mark
+        sys.modules["value_fabric.shared.testing"] = testing_module
+
+
+_install_legacy_collection_import_aliases()
+
+
+def pytest_collect_file(file_path: Path, parent: pytest.Collector) -> None:
+    _install_legacy_collection_import_aliases()
+    return None
 
 
 # ---------------------------------------------------------------------------

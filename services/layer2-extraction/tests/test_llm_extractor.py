@@ -45,6 +45,15 @@ def _response_with_tool_args(payload: dict):
     )
 
 
+TELEMETRY_CONTEXT = {
+    "tenant_id": "tenant-a",
+    "schema_version": "2026-05",
+    "model_version": "gpt-4o",
+    "value_pack_id": "default",
+    "extraction_version": "v1",
+}
+
+
 def test_logprob_confidence_from_response_calculates_expected_value():
     response = _response_with_logprobs([-0.2, -0.4])
     expected = math.exp((-0.2 + -0.4) / 2)
@@ -112,7 +121,11 @@ async def test_entity_extractor_uses_structured_output():
         return_value=(mock_response, None),
     ) as mock_structured:
         result = await extractor._extract_capabilities(
-            "test text", "http://test.com", "job-123", 0.8
+            "test text",
+            "http://test.com",
+            "job-123",
+            0.8,
+            telemetry_context=TELEMETRY_CONTEXT,
         )
 
         # Verify structured output method was called
@@ -120,12 +133,14 @@ async def test_entity_extractor_uses_structured_output():
         call_kwargs = mock_structured.call_args.kwargs
         assert call_kwargs["response_format"] == CapabilityExtractionResponse
         assert call_kwargs["endpoint"] == "extract_capabilities"
+        assert isinstance(call_kwargs["messages"][1]["content"], str)
 
         # Verify result
         assert len(result) == 1
         assert result[0].name == "Test Capability"
         assert result[0].confidence == 0.95
         assert result[0].extraction_job_id == "job-123"
+        assert result[0].prompt_version_id
 
 
 @pytest.mark.asyncio
@@ -189,7 +204,11 @@ async def test_entity_extractor_filters_by_confidence_threshold():
         extractor.client, "chat_completion_structured", return_value=(mock_response, None)
     ):
         result = await extractor._extract_capabilities(
-            "test text", "http://test.com", "job-123", confidence_threshold=0.8
+            "test text",
+            "http://test.com",
+            "job-123",
+            confidence_threshold=0.8,
+            telemetry_context=TELEMETRY_CONTEXT,
         )
 
         # Only high confidence should remain
@@ -210,7 +229,13 @@ async def test_entity_extractor_handles_validation_error():
         ),
     ):
         with pytest.raises(LLMExtractionError) as exc_info:
-            await extractor._extract_capabilities("test", "http://test.com", "job-123", 0.8)
+            await extractor._extract_capabilities(
+                "test",
+                "http://test.com",
+                "job-123",
+                0.8,
+                telemetry_context=TELEMETRY_CONTEXT,
+            )
 
         assert "schema validation error" in str(exc_info.value)
 
@@ -243,14 +268,22 @@ async def test_relationship_extractor_uses_structured_output():
     ) as mock_structured:
         entities = {"capabilities": [SimpleNamespace(id=source_id), SimpleNamespace(id=target_id)]}
         result = await extractor.extract_relationships(
-            "test text", entities, "http://test.com", "job-123", 0.8
+            "test text",
+            entities,
+            "http://test.com",
+            "job-123",
+            0.8,
+            telemetry_context=TELEMETRY_CONTEXT,
         )
 
         # Verify structured output method was called
         mock_structured.assert_called_once()
+        call_kwargs = mock_structured.call_args.kwargs
+        assert isinstance(call_kwargs["messages"][1]["content"], str)
         assert len(result) == 1
         assert result[0].source_id == source_id
         assert result[0].extraction_job_id == "job-123"
+        assert result[0].prompt_version_id
 
 
 @pytest.mark.asyncio
@@ -289,4 +322,10 @@ async def test_entity_extractor_blocks_privileged_output_payloads():
 
     with patch.object(extractor.client, "chat_completion_structured", return_value=(mock_response, None)):
         with pytest.raises(LLMExtractionError):
-            await extractor._extract_capabilities("test", "http://test.com", "job-123", 0.8)
+            await extractor._extract_capabilities(
+                "test",
+                "http://test.com",
+                "job-123",
+                0.8,
+                telemetry_context=TELEMETRY_CONTEXT,
+            )

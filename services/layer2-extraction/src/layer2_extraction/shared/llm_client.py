@@ -10,6 +10,7 @@ from enum import Enum
 from typing import Any
 
 from layer2_extraction.metrics.prometheus_metrics import get_metrics
+from layer2_extraction.shared.llm_output_parser import parse_llm_json
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +129,28 @@ class LLMClient:
             return resp.content[0].text if resp.content else ""
         raise ValueError(f"Unsupported provider: {self.provider}")
     
+    async def chat_completion_structured(
+        self,
+        *,
+        messages: list[dict[str, str]],
+        response_format: type[Any],
+        extraction_job_id: str = "",
+        endpoint: str = "extraction",
+        temperature: float = 0.0,
+        **kwargs: Any,
+    ) -> tuple[Any, None]:
+        """Return a validated structured response using the existing completion client."""
+        content = await self.complete(
+            messages,
+            temperature=temperature,
+            call_type=endpoint,
+            **kwargs,
+        )
+        payload = parse_llm_json(
+            content,
+            call_site=f"llm_client.{endpoint}",
+        )
+        return response_format.model_validate(payload), None
 
     def _extract_openai_usage(self, response: Any) -> tuple[int, int, int]:
         usage = getattr(response, "usage", None)

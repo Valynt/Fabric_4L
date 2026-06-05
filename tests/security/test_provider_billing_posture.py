@@ -2,7 +2,7 @@
 
 Verifies:
   S5-R6  Billing routes fail closed with billing_not_configured when Stripe absent
-  S5-R7  Anthropic raises ProviderNotImplementedError
+  S5-R7  Anthropic is wired through a provider adapter
          Enrichment fails closed without ENRICHMENT_MOCK_MODE=true
          Enrichment returns mock-tagged data with ENRICHMENT_MOCK_MODE=true
 
@@ -24,12 +24,12 @@ L4_SRC = pathlib.Path("services/layer4-agents/src/layer4_agents")
 
 
 # ---------------------------------------------------------------------------
-# S5-R7.1/7.2 — Anthropic raises ProviderNotImplementedError (source checks)
+# S5-R7.1/7.2 — Anthropic provider adapter wiring (source checks)
 # ---------------------------------------------------------------------------
 
 
 class TestAnthropicProviderPosture:
-    """Anthropic adapter raises typed ProviderNotImplementedError."""
+    """Anthropic adapter is wired through the provider registry."""
 
     def test_provider_not_implemented_error_defined(self) -> None:
         """ProviderNotImplementedError is defined in llm_adapter_interfaces.py."""
@@ -48,8 +48,8 @@ class TestAnthropicProviderPosture:
             "ProviderNotImplementedError must store provider_name"
         )
 
-    def test_anthropic_branch_raises_provider_not_implemented_error(self) -> None:
-        """llm_provider.py raises ProviderNotImplementedError for anthropic."""
+    def test_anthropic_branch_uses_provider_adapter(self) -> None:
+        """llm_provider.py routes anthropic through the Anthropic provider adapter."""
         source = (L4_SRC / "services/llm_provider.py").read_text()
         tree = ast.parse(source)
 
@@ -60,8 +60,8 @@ class TestAnthropicProviderPosture:
                 node_src = ast.get_source_segment(source, node) or ""
                 if '"anthropic"' in node_src or "'anthropic'" in node_src:
                     found_anthropic = True
-                    assert "ProviderNotImplementedError" in node_src, (
-                        "Anthropic branch must raise ProviderNotImplementedError"
+                    assert "get_anthropic_provider" in node_src, (
+                        "Anthropic branch must use the Anthropic provider adapter"
                     )
                     assert "NotImplementedError(" not in node_src or \
                            "ProviderNotImplementedError(" in node_src, (
@@ -69,6 +69,15 @@ class TestAnthropicProviderPosture:
                     )
 
         assert found_anthropic, "Anthropic branch not found in llm_provider.py"
+
+    def test_anthropic_provider_adapter_exists(self) -> None:
+        """anthropic_provider.py defines the adapter and optional-SDK fail-closed path."""
+        source = (L4_SRC / "services/anthropic_provider.py").read_text()
+        assert "class AnthropicProvider" in source
+        assert "CompletionAdapter" in source
+        assert "ToolCallingAdapter" in source
+        assert "StructuredOutputAdapter" in source
+        assert "ProviderNotImplementedError" in source
 
     def test_llm_provider_imports_provider_not_implemented_error(self) -> None:
         """llm_provider.py imports ProviderNotImplementedError from llm_adapter_interfaces."""

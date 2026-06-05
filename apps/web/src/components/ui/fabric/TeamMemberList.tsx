@@ -34,14 +34,14 @@ export function TeamMemberList({ members, className, onMemberClick, actions }: T
             {member.avatar ? (
               <OptimizedImage src={member.avatar} alt={member.name} />
             ) : (
-              <AvatarFallback className="text-[12px] font-medium bg-muted text-muted-foreground">
+              <AvatarFallback className="vf-text-body-s font-medium bg-muted text-muted-foreground">
                 {member.name.split(" ").map(n => n[0]).join("").toUpperCase()}
               </AvatarFallback>
             )}
           </Avatar>
           <div className="flex-1 min-w-0">
-            <p className="text-[14px] font-medium text-foreground truncate">{member.name}</p>
-            <p className="text-[12px] text-muted-foreground truncate">{member.email}</p>
+            <p className="vf-text-body-l font-medium text-foreground truncate">{member.name}</p>
+            <p className="vf-text-body-s text-muted-foreground truncate">{member.email}</p>
           </div>
           <StatusBadge variant="secondary">{member.role}</StatusBadge>
           {actions && <div className="flex-shrink-0">{actions(member)}</div>}

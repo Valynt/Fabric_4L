@@ -82,6 +82,8 @@ Root `pnpm` scripts are stable package-manager, frontend, or CI-parity aliases; 
 runners are reserved for reproducing workflow behavior. See
 [`docs/development/BUILD_SYSTEM.md`](docs/development/BUILD_SYSTEM.md) for the hierarchy and
 [`docs/development/COMMANDS.md`](docs/development/COMMANDS.md) for the complete command map.
+Use [`docs/development/DISCOVERY_MAP.md`](docs/development/DISCOVERY_MAP.md) to route an issue to
+the right source-of-truth files, drift checks, validation commands, and evidence locations.
 
 ## Quickstart (5 minutes)
 

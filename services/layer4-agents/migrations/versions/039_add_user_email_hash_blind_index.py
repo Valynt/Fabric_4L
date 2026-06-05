@@ -19,6 +19,11 @@ down_revision = "038_add_billing_webhook_inbox_fields"
 branch_labels = None
 depends_on = None
 
+MIGRATION_REVIEW_REQUIRED = (
+    "Privacy migration intentionally replaces the tenant/email uniqueness "
+    "constraint and plaintext email index with tenant/email_hash equivalents."
+)
+
 
 def upgrade() -> None:
     # Add the blind-index column (nullable initially for migration safety)

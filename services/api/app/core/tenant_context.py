@@ -31,7 +31,7 @@ class TenantRequired:
         jwt_tenant = auth.tenant_id
 
         # Optional header — must match the JWT claim if provided
-        header_tenant = request.headers.get("X-Tenant-ID")
+        header_tenant = request.headers["X-Tenant-ID"] if "X-Tenant-ID" in request.headers else None
         if header_tenant and header_tenant != jwt_tenant:
             raise HTTPException(
                 status_code=403,

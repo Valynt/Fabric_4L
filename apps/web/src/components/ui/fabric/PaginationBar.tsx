@@ -87,7 +87,7 @@ export function PaginationBar({
   const renderSummary = () => {
     if (summaryVariant === "page") {
       return (
-        <span className="text-[12px] text-muted-foreground">
+        <span className="vf-text-body-s text-muted-foreground">
           Page {clampedPage} of {calculatedTotalPages}
         </span>
       );
@@ -96,7 +96,7 @@ export function PaginationBar({
     // range variant
     if (safeTotalItems > 0) {
       return (
-        <span className="text-[12px] text-muted-foreground">
+        <span className="vf-text-body-s text-muted-foreground">
           Showing {startIndex}–{endIndex} of {safeTotalItems} {itemLabel}
         </span>
       );

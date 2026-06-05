@@ -288,7 +288,7 @@ async def get_filter_options(
 ) -> AccountFilterOptionsResponse:
     """Get available filter options for account list."""
     service = AccountService(db)
-    options = await service.get_filter_options()
+    options = await service.get_filter_options(tenant_id=str(_ctx.tenant_id))
 
     return AccountFilterOptionsResponse(
         industries=options["industries"],

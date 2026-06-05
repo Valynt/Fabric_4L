@@ -24,14 +24,14 @@ export function MetricCard({ label, value, trend, trendUp, className }: MetricCa
       : trend;
   return (
     <FabricCard padding="normal" shadow="sm" className={cn("h-full", className)}>
-      <p className="text-[12px] font-medium text-muted-foreground uppercase tracking-wider">
+      <p className="vf-text-body-s font-medium text-muted-foreground uppercase tracking-wider">
         {label}
       </p>
-      <p className="text-[28px] font-bold tracking-[-0.02em] text-foreground mt-1 leading-[1.1]">
+      <p className="vf-display-l font-bold text-foreground mt-1">
         {value}
       </p>
       {resolvedTrend && (
-        <div className={cn("flex items-center gap-1 mt-2 text-[12px] font-medium",
+        <div className={cn("flex items-center gap-1 mt-2 vf-text-body-s font-medium",
           resolvedTrend.positive === true && "text-emerald-600 dark:text-emerald-400",
           resolvedTrend.positive === false && "text-red-600 dark:text-red-400",
           resolvedTrend.positive === null && "text-muted-foreground"

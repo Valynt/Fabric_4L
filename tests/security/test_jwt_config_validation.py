@@ -12,6 +12,7 @@ Date: 2026-04-29
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -25,6 +26,19 @@ pytestmark = [
 
 class TestProductionJWTSecretValidation:
     """P0: Production requires strong JWT secrets."""
+
+    def test_layer1_configs_do_not_default_jwt_secret_to_changeme(self):
+        """P0: L1 canonical and compatibility configs must not ship weak JWT defaults."""
+        repo_root = Path(__file__).parents[2]
+        config_paths = [
+            repo_root / "services/layer1-ingestion/src/layer1_ingestion/shared/config.py",
+            repo_root / "services/layer1-ingestion/src/shared/config.py",
+        ]
+
+        for config_path in config_paths:
+            source = config_path.read_text(encoding="utf-8")
+            assert 'jwt_secret: str = Field(default="changeme"' not in source
+            assert "jwt_secret: str = Field(description=" in source
 
     def test_production_requires_jwt_secret(self):
         """P0: Production startup fails without JWT_SECRET."""

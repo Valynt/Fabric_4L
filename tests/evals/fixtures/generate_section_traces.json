@@ -1,0 +1,19 @@
+{
+  "version": "1.0",
+  "skill": "generate_section",
+  "traces": [
+    {
+      "id": "gs-001",
+      "description": "Generate an executive summary section for a value case",
+      "input": {
+        "section_type": "executive_summary",
+        "context_artifact_id": "artifact-business-case-001",
+        "tone": "executive",
+        "max_length": 750
+      },
+      "assertions": {
+        "must_include": ["business impact", "evidence", "next step"]
+      }
+    }
+  ]
+}

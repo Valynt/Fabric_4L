@@ -707,16 +707,20 @@ class IntegrationService:
                 )
 
     async def decrypt_credentials(
-        self, integration: Integration
+        self, integration: Integration, *, tenant_id: str | None = None
     ) -> dict[str, str]:
         """Decrypt credentials for internal service use.
 
         Args:
             integration: Integration with encrypted credentials
+            tenant_id: Optional authenticated tenant for ownership verification
 
         Returns:
             Decrypted credentials dict
         """
+        if tenant_id is not None and str(integration.tenant_id) != str(tenant_id):
+            raise IntegrationValidationError("Integration tenant does not match authenticated tenant")
+
         creds_json = await EncryptionService.decrypt(
             integration.credentials_encrypted, integration.encryption_key_id
         )
@@ -823,9 +827,13 @@ class IntegrationService:
         *,
         code: str,
         redirect_uri: str,
+        tenant_id: str,
         oauth_base_url: str | None = None,
     ) -> dict[str, Any]:
         """Exchange a Salesforce authorization code for OAuth tokens."""
+        if not tenant_id:
+            raise IntegrationValidationError("tenant_id is required for Salesforce OAuth exchange")
+
         client_id = os.getenv("SALESFORCE_CLIENT_ID")
         client_secret = os.getenv("SALESFORCE_CLIENT_SECRET")
         if not client_id or not client_secret:

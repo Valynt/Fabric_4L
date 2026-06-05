@@ -290,12 +290,16 @@ class SignalQuantificationService:
             LIMIT 1
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "formula_ids": candidate_ids,
                     "tenant_id": tenant_id,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="signal_quantification.select_formula",
             )
             record = await result.single()
 
@@ -473,6 +477,7 @@ class SignalQuantificationService:
                 "success": True,
                 "value": result,
                 "expression": expression,
+                "error": "",
             })
 
 

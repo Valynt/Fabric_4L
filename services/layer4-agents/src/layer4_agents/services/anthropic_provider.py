@@ -92,6 +92,39 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
                 anthropic_messages.append({"role": role, "content": content})
         return system, anthropic_messages
 
+    async def _create_message(self, **kwargs: Any) -> Any:
+        client = self._get_client()
+        if hasattr(client, "messages"):
+            return await client.messages.create(**kwargs)
+        if hasattr(client, "chat") and hasattr(client.chat, "completions"):
+            return await client.chat.completions.create(**kwargs)
+        return await client.create(**kwargs)
+
+    @staticmethod
+    def _response_text(response: Any, default: str = "") -> str:
+        choices = getattr(response, "choices", None)
+        if choices:
+            message = getattr(choices[0], "message", None)
+            return str(getattr(message, "content", default) or default)
+        content_blocks = getattr(response, "content", None)
+        if content_blocks and len(content_blocks) > 0:
+            return str(getattr(content_blocks[0], "text", default) or default)
+        return default
+
+    @staticmethod
+    def _response_usage(response: Any) -> dict[str, int]:
+        usage = getattr(response, "usage", None)
+        if usage is None:
+            return {"prompt_tokens": 0, "completion_tokens": 0}
+        return {
+            "prompt_tokens": int(
+                getattr(usage, "input_tokens", getattr(usage, "prompt_tokens", 0)) or 0
+            ),
+            "completion_tokens": int(
+                getattr(usage, "output_tokens", getattr(usage, "completion_tokens", 0)) or 0
+            ),
+        }
+
     async def complete(self, request: CompletionRequest) -> CompletionResult | AdapterError:
         try:
             system, messages = self._build_anthropic_messages(request.messages)
@@ -103,17 +136,12 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
             }
             if system is not None:
                 kwargs["system"] = system
-            response = await self._get_client().messages.create(**kwargs)
-            content = ""
-            if response.content and len(response.content) > 0:
-                content = response.content[0].text or ""
-            usage = response.usage
+            response = await self._create_message(**kwargs)
+            content = self._response_text(response)
+            usage = self._response_usage(response)
             return CompletionResult(
                 content=content.strip(),
-                usage_metadata={
-                    "prompt_tokens": usage.input_tokens if usage else 0,
-                    "completion_tokens": usage.output_tokens if usage else 0,
-                },
+                usage_metadata=usage,
             )
         except Exception as exc:  # pragma: no cover - defensive normalization
             return self._normalize_error(exc)
@@ -183,10 +211,25 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
             }
             if system is not None:
                 kwargs["system"] = system
-            response = await self._get_client().messages.create(**kwargs)
+            response = await self._create_message(**kwargs)
             content = ""
             tool_calls: tuple[ToolCall, ...] = ()
-            if response.content and len(response.content) > 0:
+            choices = getattr(response, "choices", None)
+            if choices:
+                message = getattr(choices[0], "message", None)
+                content = str(getattr(message, "content", "") or "")
+                tc_list = []
+                for tool_call in getattr(message, "tool_calls", None) or []:
+                    function = getattr(tool_call, "function", None)
+                    tc_list.append(
+                        ToolCall(
+                            id=getattr(tool_call, "id", ""),
+                            name=getattr(function, "name", ""),
+                            arguments_json=str(getattr(function, "arguments", "")),
+                        )
+                    )
+                tool_calls = tuple(tc_list)
+            elif response.content and len(response.content) > 0:
                 blocks = response.content
                 text_parts: list[str] = []
                 tc_list: list[ToolCall] = []
@@ -241,10 +284,8 @@ class AnthropicProvider(CompletionAdapter, ToolCallingAdapter, StructuredOutputA
             }
             if system is not None:
                 kwargs["system"] = system
-            response = await self._get_client().messages.create(**kwargs)
-            content = ""
-            if response.content and len(response.content) > 0:
-                content = response.content[0].text or "{}"
+            response = await self._create_message(**kwargs)
+            content = self._response_text(response, "{}")
             # Strip markdown code fences if present
             content = content.strip()
             if content.startswith("```json"):

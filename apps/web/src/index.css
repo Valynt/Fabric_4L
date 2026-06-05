@@ -186,6 +186,16 @@
     .container { max-width: 1536px; }
   }
 
+  /* Fabric typography tokens from DESIGN.md. */
+  .vf-text-micro { font-size: 10px; line-height: 1.3; letter-spacing: normal; }
+  .vf-text-caption { font-size: 11px; line-height: 1.4; letter-spacing: normal; }
+  .vf-text-body-s { font-size: 12px; line-height: 1.5; letter-spacing: normal; }
+  .vf-text-body-m { font-size: 13px; line-height: 1.6; letter-spacing: -0.01em; }
+  .vf-text-body-l { font-size: 14px; line-height: 1.6; letter-spacing: normal; }
+  .vf-heading-l { font-size: 18px; line-height: 1.4; letter-spacing: normal; }
+  .vf-display-m { font-size: 24px; line-height: 1.3; letter-spacing: -0.01em; }
+  .vf-display-l { font-size: 28px; line-height: 1.25; letter-spacing: -0.015em; }
+
   /* Entity type badges */
   .badge-cap  { @apply bg-violet-100 text-violet-800 border border-violet-200; }
   .badge-uc   { @apply bg-cyan-100   text-cyan-800   border border-cyan-200; }

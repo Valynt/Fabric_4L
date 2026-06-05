@@ -11,14 +11,23 @@
 | I need to... | Go to |
 |--------------|-------|
 | Get started quickly | [`/getting-started/quickstart.md`](./getting-started/quickstart.md) |
+| Route an issue to implementation and validation | [`development/DISCOVERY_MAP.md`](./development/DISCOVERY_MAP.md) |
+| Find local commands and gates | [`development/COMMANDS.md`](./development/COMMANDS.md) |
+| Find CI workflow ownership and local validation | [`../.github/workflows/WORKFLOW_REGISTRY.md`](../.github/workflows/WORKFLOW_REGISTRY.md) |
 | Understand the architecture | [`core-concepts/architecture.md`](./core-concepts/architecture.md) |
 | Look up an API | [`reference/api-overview.md`](./reference/api-overview.md) |
 | Solve a specific problem | [`/how-to-guides/`](./how-to-guides/) |
 | Run / operate the platform | [`how-to-guides/operators.md`](./how-to-guides/operators.md) |
+| Respond to incidents and runbooks | [`operations/runbooks/README.md`](./operations/runbooks/README.md) |
 | Look up API/config details | [`/reference/`](./reference/) |
 | Frontend query / state rules | [`reference/frontend-query-patterns.md`](./reference/frontend-query-patterns.md) |
 | Testing strategy | [`reference/testing-strategy.md`](./reference/testing-strategy.md) |
+| Find test inventory and quality posture | [`testing/test-inventory.md`](./testing/test-inventory.md) |
+| Find validation and release evidence | [`validation/master_workflow_traceability_matrix.md`](./validation/master_workflow_traceability_matrix.md) |
 | Where new code must live | [`reference/layer-runtime-path-governance.md`](./reference/layer-runtime-path-governance.md) |
+| Review governance policy | [`governance.md`](./governance.md) |
+| Review security policy | [`security/multi-tenancy.md`](./security/multi-tenancy.md) |
+| Review supply chain policy | [`supply-chain/SUPPLY_CHAIN_SECURITY.md`](./supply-chain/SUPPLY_CHAIN_SECURITY.md) |
 | Fix something that's broken | [`/troubleshooting/`](./troubleshooting/) |
 | Understand design decisions | [`/explanations/adr/`](./explanations/adr/) |
 | Contribute to the project | [`../CONTRIBUTING.md`](../CONTRIBUTING.md) |

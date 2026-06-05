@@ -1,0 +1,20 @@
+{
+  "version": "1.0",
+  "skill": "calculate_roi",
+  "traces": [
+    {
+      "id": "roi-001",
+      "description": "Three-year ROI from automation savings",
+      "input": {
+        "investment": 250000,
+        "returns": [120000, 180000, 240000],
+        "discount_rate": 0.1,
+        "time_periods": 3
+      },
+      "assertions": {
+        "roi_positive": true,
+        "payback_period_lte": 3
+      }
+    }
+  ]
+}

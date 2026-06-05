@@ -6,6 +6,7 @@ from __future__ import annotations
 import json
 import os
 import sys
+import types
 from collections.abc import AsyncGenerator, Iterator
 from importlib import import_module
 from pathlib import Path
@@ -29,6 +30,27 @@ _LAYER3_SRC = Path(__file__).resolve().parents[1] / "src"
 if str(_LAYER3_SRC) not in sys.path:
     sys.path.insert(0, str(_LAYER3_SRC))
 os.environ["PYTHONPATH"] = str(_LAYER3_SRC) + os.pathsep + os.environ.get("PYTHONPATH", "")
+
+_src_module = sys.modules.get("src")
+if _src_module is None or not hasattr(_src_module, "__path__"):
+    _src_module = types.ModuleType("src")
+    sys.modules["src"] = _src_module
+_src_paths = list(getattr(_src_module, "__path__", []))
+if str(_LAYER3_SRC) not in _src_paths:
+    _src_paths.insert(0, str(_LAYER3_SRC))
+_src_module.__path__ = _src_paths  # type: ignore[attr-defined]
+for _subpackage in ("agents", "analytics", "api", "db", "models", "retrieval", "services"):
+    _module_name = f"src.{_subpackage}"
+    _module = sys.modules.get(_module_name)
+    if _module is None or not hasattr(_module, "__path__"):
+        _module = types.ModuleType(_module_name)
+        sys.modules[_module_name] = _module
+    _paths = list(getattr(_module, "__path__", []))
+    _path = str(_LAYER3_SRC / _subpackage)
+    if _path not in _paths:
+        _paths.insert(0, _path)
+    _module.__path__ = _paths  # type: ignore[attr-defined]
+    setattr(_src_module, _subpackage, _module)
 
 _TEST_ENV_DEFAULTS = {
     "ENVIRONMENT": "test",
@@ -54,6 +76,9 @@ from httpx import ASGITransport, AsyncClient
 from api.dependencies import AppState  # type: ignore[import-untyped]
 
 _config_module = import_module("config")
+if not hasattr(_config_module, "get_settings"):
+    sys.modules.pop("config", None)
+    _config_module = import_module("config")
 get_settings = cast(Callable[[], Any], getattr(_config_module, "get_settings"))
 
 

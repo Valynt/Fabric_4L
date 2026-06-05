@@ -37,7 +37,7 @@ Layer 6 note: when compatibility wrappers are present under `services/layer6-ben
 
 ### Allowed imports in production/runtime code
 
-- Runtime-to-runtime imports within canonical roots (for example `value_fabric/layerX/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
+- Runtime-to-runtime imports within canonical roots (for example `services/layer3-knowledge/src/*`, `value_fabric.shared.identity.*` via `packages/shared/src/value_fabric/shared/identity/*`, and `services/layer5-ground-truth/src/layer5_ground_truth/*`).
 - Compatibility imports that remain inside approved compatibility wrappers documented in this matrix.
 
 ### Forbidden imports in production/runtime code
@@ -68,27 +68,27 @@ Before opening a PR with backend runtime changes:
 
 ## Layer 3 settings module ownership
 
-- **Canonical settings module:** `value_fabric/layer3/config/settings.py`.
-- **Compatibility-only shim:** `value_fabric/layer3/config.py` (must only re-export `Settings` and `get_settings`).
+- **Canonical settings module:** `services/layer3-knowledge/src/config/settings.py`.
+- **Compatibility namespace:** `value_fabric/layer3/` is a namespace placeholder only; do not add a duplicate settings shim there.
 - **CI drift guardrail:** `scripts/ci/check_layer3_settings_shim_drift.py` via `.github/workflows/layer3-wrapper-drift.yml`.
 
 ## Layer 3 app_monolith ownership note
 
-- Canonical implementation: `value_fabric/layer3/api/app_monolith.py`.
-- Compatibility shim only: `services/layer3-knowledge/src/api/app_monolith.py` (must remain a thin re-export of the canonical module with no local endpoint logic).
-- CI guardrail: `services/layer3-knowledge/scripts/check_app_monolith_shim_drift.py` (fails when compatibility shim drifts from the approved re-export template).
+- Canonical runtime route modules: `services/layer3-knowledge/src/api/routes/`.
+- Legacy compatibility surface: `services/layer3-knowledge/src/api/app_monolith.py` may expose only approved compatibility delegates such as tenant-resolution helpers; do not add route handlers or endpoint logic there.
+- CI guardrails: `scripts/ci/check_l3_monolith_freeze.py` and `services/layer3-knowledge/scripts/check_runtime_shim_drift.py`.
 
 ## Layer 3 API model ownership note
 
-- Canonical implementation: `value_fabric/layer3/api/models.py`.
-- Compatibility shim only: `services/layer3-knowledge/src/api/models.py` (must only re-export canonical models; no local Pydantic model implementations).
+- Canonical implementation: `services/layer3-knowledge/src/api/models.py`.
+- Compatibility namespace: `value_fabric/layer3/` must not grow a duplicate `api/models.py`; the service tree owns Layer 3 Pydantic model implementations.
 
 
 ## Layer 3 backup ownership boundary
 
-- Canonical implementation: `value_fabric/layer3/backup/`.
-- Compatibility wrappers only: `services/layer3-knowledge/src/backup/`.
-- CI guardrail: `services/layer3-knowledge/scripts/check_backup_shim_drift.py` (fails when compatibility wrappers diverge from explicit forwarders).
+- Canonical implementation: `services/layer3-knowledge/src/backup/`.
+- Compatibility namespace: `value_fabric/layer3/` must not grow duplicate backup modules.
+- CI guardrail: `services/layer3-knowledge/scripts/check_runtime_shim_drift.py`.
 
 
 ## Required parity checkpoints (CI-enforced)

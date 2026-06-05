@@ -43,32 +43,30 @@ POLICY_FILE := .fabric/prod-gates.policy.yaml
 ARTIFACT_DIR := artifacts/release
 DB_MIGRATION_DATABASE_URL ?=
 
-PYTHON ?= $(shell for candidate in python3.11 python3 python; do \
-	if command -v $$candidate >/dev/null 2>&1 && $$candidate -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)' >/dev/null 2>&1; then \
-		command -v $$candidate; exit 0; \
-	fi; \
-done; printf python3.11)
+PYTHON_BOOTSTRAP ?= python
+PYTHON ?= $(shell $(PYTHON_BOOTSTRAP) scripts/ci/resolve_python.py)
 PIP    := $(PYTHON) -m pip install -e
 # Use python -m pytest to ensure pytest is available via the selected Python 3.11+ interpreter.
 PYTEST := $(PYTHON) -m pytest -v --tb=short
 
 # Ensure mypy is available before running typecheck targets
-MYPY_VERSION_CHECK := $(shell mypy --version 2>/dev/null || echo "mypy_not_found")
+MYPY_VERSION_CHECK := $(shell $(PYTHON) -c "import shutil; print('mypy_found' if shutil.which('mypy') else 'mypy_not_found')")
 
 help: ## Show this help
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | \
-		awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@$(PYTHON) scripts/ci/render_make_help.py $(MAKEFILE_LIST)
 
 # ─── Verification ────────────────────────────────────────────────────────────
 
-verify: check-conflict-markers check-no-nul-bytes check-migration-heads \
+VERIFY_CHECKS := check-conflict-markers check-no-nul-bytes check-migration-heads \
 	check-keycloak-realm-seed-security check-manifest-secret-hygiene check-path-env-hygiene \
 	lint typecheck test contract-tests security-smoke \
 	check-deprecations check-tool-contracts check-deprecated-tracer-imports \
 	platform-contract-lint check-ui-duplicates check-readiness-consistency \
 	check-workflow-matrix check-test-skip-register-uniqueness \
 	check-pytest-skip-governance check-layer3-legacy-tenant-dependency-imports \
-	check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness ## Run all checks before PR
+	check-value-fabric-public-imports check-legacy-debt verify-structure docs-harness
+
+verify: $(VERIFY_CHECKS) ## Run all checks before PR
 	@echo "✅  All checks passed"
 
 verify-structure: ## Run structural preflight and Python contract lint checks
@@ -159,9 +157,6 @@ gate-database: check-migration-heads check-migration-entrypoints check-migration
 	timeout $(GATE_TIMEOUT_SECONDS)s $(GATE_PYTEST) tests/production_readiness -m "contract_static" --junitxml=$(GATE_JUNIT_DIR)/gate-database-static.xml
 	@$(PYTHON) scripts/ci/assert_no_pytest_skips.py $(GATE_JUNIT_DIR)/gate-database-static.xml
 	@echo "✅  gate-database passed"
-
-db-production-readiness-gate: gate-database ## Alias for the static local database readiness gate
-	@echo "✅  db-production-readiness-gate alias passed"
 
 gate-database-live: check-migration-postgres-roundtrip ## Live/destructive database drills requiring isolated PostgreSQL/backup environments
 	@echo "→ Gate: Database Readiness — live isolated checks"
@@ -970,7 +965,7 @@ clean-root-debris: ## Remove root-level temp artifacts, caches, and generated fi
 	@echo "✅  Root debris clean complete"
 
 # Platform Contract Lint
-platform-contract-lint:
+platform-contract-lint: ## Run platform contract lint
 	@echo Running platform contract lint...
 	@$(PYTHON) scripts/ci/platform_contract_lint.py
 
@@ -994,7 +989,7 @@ docs-harness: ## Validate harness documentation artifacts (endpoints, models, ru
 	@$(PYTHON) scripts/generate_harness_docs.py --check
 
 
-check-value-fabric-public-imports:
+check-value-fabric-public-imports: ## Enforce public import policy
 	@$(PYTHON) scripts/ci/check_value_fabric_public_imports.py
 
 

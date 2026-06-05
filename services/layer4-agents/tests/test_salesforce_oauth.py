@@ -131,6 +131,14 @@ class TestSalesforceTokenRefresh:
         assert "No refresh token available" in str(exc.value)
 
     @pytest.mark.asyncio
+    async def test_decrypt_credentials_rejects_tenant_mismatch(self, mock_db, sample_integration):
+        """Credential decryption must verify authenticated tenant ownership when provided."""
+        service = IntegrationService(mock_db)
+
+        with pytest.raises(IntegrationValidationError, match="tenant"):
+            await service.decrypt_credentials(sample_integration, tenant_id="tenant-b")
+
+    @pytest.mark.asyncio
     async def test_refresh_salesforce_token_http_401(self, mock_db, sample_integration):
         """Test that 401 response marks integration as degraded."""
         service = IntegrationService(mock_db)
@@ -184,6 +192,7 @@ class TestSalesforceTokenRefresh:
                 },
             ):
                 token_data = await service.exchange_salesforce_oauth_code(
+                    tenant_id="11111111-1111-4111-8111-111111111111",
                     code="auth-code",
                     redirect_uri="https://api.example.com/v1/integrations/salesforce/oauth/callback",
                 )

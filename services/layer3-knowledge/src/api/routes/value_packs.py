@@ -26,7 +26,7 @@ from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
 from logging_config import get_logger
-from models.valuepack import (
+from ...models.valuepack import (
     DEFAULT_VALUEPACKS,
     ComposableTemplateLibraryResponse,
     OntologyMapResponse,
@@ -34,6 +34,7 @@ from models.valuepack import (
     ValuePackComparisonResponse,
     ValuePackCreate,
     ValuePackListResponse,
+    ValuePackResponse,
     ValuePackUpdate,
 )
 
@@ -121,6 +122,9 @@ REL_HAS_BENCHMARK = "hasBenchmark"
 REL_HAS_WORKFLOW = "hasWorkflow"
 REL_SUPERSEDES = "SUPERSEDES"
 REL_HAS_EXECUTION = "HAS_EXECUTION"
+REL_SEED_HAS_DRIVER = "HAS_DRIVER"
+REL_SEED_HAS_USE_CASE = "HAS_USE_CASE"
+REL_SEED_HAS_MODEL_TYPE = "HAS_MODEL_TYPE"
 
 # Default version for new packs
 DEFAULT_VERSION = "1.0.0"
@@ -367,7 +371,14 @@ async def _update_relationships(
         if tenant_id:
             params["tenant_id"] = tenant_id
         # strict-scoped-query-execution: helper requires tenant_id on every target node match
-        result = await run_validated_query(tx, check_query, params)
+        result = await run_validated_query(
+            tx,
+            check_query,
+            params,
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.validate_relationship_targets",
+        )
         record = await result.single()
         found_ids = set(record["found_ids"]) if record else set()
         missing = set(target_ids) - found_ids
@@ -397,7 +408,12 @@ async def _update_relationships(
     RETURN t.id as target_id
     """
     existing_result = await run_validated_query(
-        tx, existing_query, pack_id=pack_id, tenant_id=tenant_id
+        tx,
+        existing_query,
+        {"pack_id": pack_id, "tenant_id": tenant_id},
+        tenant_id=tenant_id,
+        require_explicit_tenant_id=True,
+        query_name="value_packs.list_existing_relationship_targets",
     )
     existing_records = await existing_result.data()
     for record in existing_records:
@@ -433,7 +449,12 @@ async def _get_pack_detail(
 
     async with driver.session() as session:
         result = await run_validated_query(
-            session, query, pack_id=pack_id, tenant_id=tenant_id
+            session,
+            query,
+            {"pack_id": pack_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.get_pack_detail",
         )
         record = await result.single()
 
@@ -500,7 +521,14 @@ async def list_packs(
     """
 
     async with driver.session() as session:
-        result = await run_validated_query(session, query, **params)
+        result = await run_validated_query(
+            session,
+            query,
+            params,
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.list_packs",
+        )
         records = await result.data()
 
         return [
@@ -553,123 +581,33 @@ async def create_pack(
     pack_id = str(uuid.uuid4())
     now = datetime.now(UTC).isoformat()
 
-    query = """
-    // strict-scoped-query-execution: all created and linked tenant-owned nodes carry tenant_id
-    CREATE (vp:ValuePack {
-        id: $pack_id,
-        tenant_id: $tenant_id,
-        name: $name,
-        description: $description,
-        industry: $industry,
-        segment: $segment,
-        status: $status,
-        version: $default_version,
-        createdAt: $created_at,
-        createdBy: $created_by
-    })
-    WITH vp
-    OPTIONAL MATCH (vd:ValueDriver {tenant_id: $tenant_id}) WHERE vd.id IN $driver_ids
-    FOREACH (d IN CASE WHEN vd IS NOT NULL THEN [vd] ELSE [] END |
-        CREATE (vp)-[:hasDriver]->(d)
-    )
-    WITH vp
-    OPTIONAL MATCH (f:Formula {tenant_id: $tenant_id}) WHERE f.id IN $formula_ids
-    FOREACH (formula IN CASE WHEN f IS NOT NULL THEN [f] ELSE [] END |
-        CREATE (vp)-[:hasFormula]->(formula)
-    )
-    WITH vp
-    OPTIONAL MATCH (b:BenchmarkDataset {tenant_id: $tenant_id}) WHERE b.id IN $benchmark_ids
-    FOREACH (benchmark IN CASE WHEN b IS NOT NULL THEN [b] ELSE [] END |
-        CREATE (vp)-[:hasBenchmark]->(benchmark)
-    )
-    WITH vp
-    OPTIONAL MATCH (vp)-[:hasDriver]->(vd2:ValueDriver {tenant_id: $tenant_id})
-    OPTIONAL MATCH (vp)-[:hasFormula]->(f2:Formula {tenant_id: $tenant_id})
-    OPTIONAL MATCH (vp)-[:hasBenchmark]->(b2:BenchmarkDataset {tenant_id: $tenant_id})
-    RETURN vp,
-           collect(DISTINCT vd2) as drivers,
-           collect(DISTINCT f2) as formulas,
-           collect(DISTINCT b2) as benchmarks
-    """
-
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
-            result = await run_validated_query(
-                tx,
-                query,
-                pack_id=pack_id,
-                name=request.name,
-                description=request.description,
-                industry=request.industry,
-                segment=request.segment,
-                status=request.status,
-                created_at=now,
-                created_by=request.created_by,
-                driver_ids=request.driver_ids,
-                formula_ids=request.formula_ids,
-                benchmark_ids=request.benchmark_ids,
-                default_version=DEFAULT_VERSION,
+            mutation = AuditedGraphMutation(
                 tenant_id=tenant_id,
+                session=tx,
+                operation_source="value_packs.create_pack",
             )
-            record = await result.single()
-            if not record:
-                raise ServiceUnavailableError(message="Failed to create pack")
-
-            vp = record["vp"]
-
-            # Build relationship summaries from returned data
-            drivers = [
-                ValueDriverSummary(
-                    driver_id=d["id"],
-                    name=d.get("name", ""),
-                    category=d.get("category", ""),
-                    weight=1.0,
-                )
-                for d in record["drivers"]
-                if d
-            ]
-
-            formulas = [
-                FormulaSummary(
-                    formula_id=f["id"],
-                    name=f.get("name", ""),
-                    version=f.get("version", DEFAULT_VERSION),
-                    variables=f.get("variables", []),
-                )
-                for f in record["formulas"]
-                if f
-            ]
-
-            benchmarks = [
-                BenchmarkSummary(
-                    dataset_id=b["id"],
-                    metric=b.get("metric", ""),
-                    industry=b.get("industry", ""),
-                )
-                for b in record["benchmarks"]
-                if b
-            ]
-
-            return PackDetail(
-                pack_id=vp["id"],
-                name=vp.get("name", request.name),
-                description=vp.get("description", request.description),
-                industry=vp.get("industry", request.industry),
-                segment=vp.get("segment", request.segment),
-                status=vp.get("status", request.status),
-                version=vp.get("version", DEFAULT_VERSION),
-                drivers=drivers,
-                formulas=formulas,
-                benchmarks=benchmarks,
-                created_at=vp.get("createdAt", now),
-                updated_at=vp.get("updatedAt"),
-                created_by=vp.get("createdBy", request.created_by),
-                workspace_id=vp.get("workspaceId"),
-                is_loaded=False,
-                workflow_count=0,
-                scope=vp.get("scope", "global"),
-                category=vp.get("category"),
+            await mutation.write_node(
+                "ValuePack",
+                pack_id,
+                {
+                    "name": request.name,
+                    "description": request.description,
+                    "industry": request.industry,
+                    "segment": request.segment,
+                    "status": request.status,
+                    "version": DEFAULT_VERSION,
+                    "createdAt": now,
+                    "createdBy": request.created_by,
+                },
             )
+            await _update_pack_relationships(tx, pack_id, request, tenant_id)
+
+    pack = await _get_pack_detail(driver, pack_id, tenant_id)
+    if not pack:
+        raise ServiceUnavailableError(message="Failed to create pack")
+    return pack
 
 
 def _build_update_params(
@@ -771,23 +709,35 @@ async def update_pack(
     check_query = "MATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id}) RETURN vp"
     async with driver.session() as session:
         result = await run_validated_query(
-            session, check_query, pack_id=pack_id, tenant_id=tenant_id
+            session,
+            check_query,
+            {"pack_id": pack_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.update_pack.exists",
         )
         if not await result.single():
             raise NotFoundError(message="Pack not found")
 
     # Build and execute update
-    set_clauses, params = _build_update_params(request, pack_id)
-    update_query = f"""
-    MATCH (vp:ValuePack {{id: $pack_id, tenant_id: $tenant_id}})
-    SET {", ".join(set_clauses)}  # cypher-dynamic-safe: set_clauses are hardcoded literals from _build_update_params
-    RETURN vp
-    """
-    params["tenant_id"] = tenant_id
+    _, params = _build_update_params(request, pack_id)
+    update_props = {
+        "updatedAt": params["updated_at"],
+        **{
+            key: params[key]
+            for key in ("name", "description", "industry", "segment", "status")
+            if key in params
+        },
+    }
 
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
-            await run_validated_query(tx, update_query, **params)
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=tx,
+                operation_source="value_packs.update_pack",
+            )
+            await mutation.write_node("ValuePack", pack_id, update_props)
             # Phase 1 hardening: Pass request context for audit trail
             request_id = (
                 getattr(fastapi_request.state, "request_id", None)
@@ -832,7 +782,12 @@ async def _get_pack_formulas(
     """
     async with driver.session() as session:
         result = await run_validated_query(
-            session, query, pack_id=pack_id, tenant_id=tenant_id
+            session,
+            query,
+            {"pack_id": pack_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.get_pack_formulas",
         )
         records = await result.data()
         return records
@@ -917,38 +872,30 @@ async def execute_pack(
     if not pack_formulas:
         raise ValidationError(message=str(f"Pack {pack_id} has no formulas to execute"))
 
-    # Create execution record
-    create_query = """
-    // strict-scoped-query-execution: execution record is attached to a tenant-scoped pack
-    MATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id})
-    CREATE (pe:PackExecution {
-        tenant_id: $tenant_id,
-        id: $execution_id,
-        packId: $pack_id,
-        workspaceId: $workspace_id,
-        status: 'running',
-        variables: $variables,
-        userId: $user_id,
-        startedAt: $started_at
-    })
-    CREATE (vp)-[:HAS_EXECUTION]->(pe)
-    RETURN pe
-    """
-
     async with driver.session() as session:
-        result = await run_validated_query(
-            session,
-            create_query,
-            pack_id=pack_id,
-            execution_id=execution_id,
-            workspace_id=request.workspace_id,
-            variables=request.variables,
-            user_id=request.user_id,
-            started_at=now,
+        mutation = AuditedGraphMutation(
             tenant_id=tenant_id,
+            session=session,
+            operation_source="value_packs.execute_pack.start",
         )
-        if not await result.single():
-            raise ServiceUnavailableError(message="Failed to create execution record")
+        await mutation.write_node(
+            "PackExecution",
+            execution_id,
+            {
+                "packId": pack_id,
+                "workspaceId": request.workspace_id,
+                "status": "running",
+                "variables": request.variables,
+                "userId": request.user_id,
+                "startedAt": now,
+            },
+        )
+        await mutation.write_relationship(
+            pack_id,
+            REL_HAS_EXECUTION,
+            execution_id,
+            versioned=False,
+        )
 
     # Execute formulas
     outputs: dict[str, Any] = {"pack_id": pack_id, "formulas_evaluated": 0}
@@ -994,27 +941,22 @@ async def execute_pack(
     elif errors:
         execution_status = "partial"
 
-    # Update execution record with results
-    complete_query = """
-    // strict-scoped-query-execution: completion update requires execution tenant_id
-    MATCH (pe:PackExecution {id: $execution_id, tenant_id: $tenant_id})
-    SET pe.status = $status,
-        pe.outputs = $outputs,
-        pe.errors = $errors,
-        pe.completedAt = $completed_at
-    """
-
     async with driver.session() as session:
         async with session.begin_transaction() as tx:
-            await run_validated_query(
-                tx,
-                complete_query,
-                execution_id=execution_id,
-                status=execution_status,
-                outputs=outputs,
-                errors=errors,
-                completed_at=datetime.now(UTC).isoformat(),
+            mutation = AuditedGraphMutation(
                 tenant_id=tenant_id,
+                session=tx,
+                operation_source="value_packs.execute_pack.complete",
+            )
+            await mutation.write_node(
+                "PackExecution",
+                execution_id,
+                {
+                    "status": execution_status,
+                    "outputs": outputs,
+                    "errors": errors,
+                    "completedAt": datetime.now(UTC).isoformat(),
+                },
             )
 
     return PackExecuteResponse(
@@ -1037,7 +979,12 @@ async def _get_original_pack(
     query = "// strict-scoped-query-execution: fork source pack is tenant-scoped\nMATCH (vp:ValuePack {id: $pack_id, tenant_id: $tenant_id}) RETURN vp"
     async with driver.session() as session:
         result = await run_validated_query(
-            session, query, pack_id=pack_id, tenant_id=tenant_id
+            session,
+            query,
+            {"pack_id": pack_id, "tenant_id": tenant_id},
+            tenant_id=tenant_id,
+            require_explicit_tenant_id=True,
+            query_name="value_packs.get_original_pack",
         )
         record = await result.single()
         if not record:
@@ -1082,49 +1029,90 @@ async def _execute_fork(driver: AsyncDriver, params: dict[str, Any]) -> dict[str
 
     Raises HTTPException on failure.
     """
-    fork_query = """
-    // strict-scoped-query-execution: fork source and copied relationships remain inside tenant boundary
+    relationship_query = """
+    // strict-scoped-query-execution: fork relationship targets are copied only within tenant boundary
     MATCH (old:ValuePack {id: $old_pack_id, tenant_id: $tenant_id})
-    CREATE (new:ValuePack {
-        tenant_id: $tenant_id,
-        id: $new_pack_id,
-        name: $name,
-        description: $description,
-        industry: $industry,
-        segment: $segment,
-        status: $status,
-        version: $version,
-        workspaceId: $workspace_id,
-        isLoaded: true,
-        createdAt: $created_at,
-        createdBy: $created_by,
-        forkedFrom: $old_pack_id
-    })
-    CREATE (new)-[:SUPERSEDES {type: 'fork'}]->(old)
-    WITH new, old
     OPTIONAL MATCH (old)-[:hasDriver]->(vd:ValueDriver {tenant_id: $tenant_id})
-    FOREACH (d IN CASE WHEN vd IS NOT NULL THEN [vd] ELSE [] END |
-        CREATE (new)-[:hasDriver]->(d)
-    )
-    WITH new, old
     OPTIONAL MATCH (old)-[:hasFormula]->(f:Formula {tenant_id: $tenant_id})
-    FOREACH (formula IN CASE WHEN f IS NOT NULL THEN [f] ELSE [] END |
-        CREATE (new)-[:hasFormula]->(formula)
-    )
-    WITH new, old
     OPTIONAL MATCH (old)-[:hasBenchmark]->(b:BenchmarkDataset {tenant_id: $tenant_id})
-    FOREACH (benchmark IN CASE WHEN b IS NOT NULL THEN [b] ELSE [] END |
-        CREATE (new)-[:hasBenchmark]->(benchmark)
-    )
-    RETURN new
+    RETURN collect(DISTINCT vd.id) as driver_ids,
+           collect(DISTINCT f.id) as formula_ids,
+           collect(DISTINCT b.id) as benchmark_ids
     """
 
     async with driver.session() as session:
-        result = await run_validated_query(session, fork_query, **params)
-        record = await result.single()
-        if not record:
+        relationship_result = await run_validated_query(
+            session,
+            relationship_query,
+            {"old_pack_id": params["old_pack_id"], "tenant_id": params["tenant_id"]},
+            tenant_id=params["tenant_id"],
+            require_explicit_tenant_id=True,
+            query_name="value_packs.fork.relationship_targets",
+        )
+        relationship_record = await relationship_result.single()
+        if not relationship_record:
             raise ServiceUnavailableError(message="Failed to fork pack")
-        return record["new"]
+
+        async with session.begin_transaction() as tx:
+            mutation = AuditedGraphMutation(
+                tenant_id=params["tenant_id"],
+                session=tx,
+                operation_source="value_packs.fork_pack",
+            )
+            await mutation.write_node(
+                "ValuePack",
+                params["new_pack_id"],
+                {
+                    "name": params["name"],
+                    "description": params["description"],
+                    "industry": params["industry"],
+                    "segment": params["segment"],
+                    "status": params["status"],
+                    "version": params["version"],
+                    "workspaceId": params["workspace_id"],
+                    "isLoaded": True,
+                    "createdAt": params["created_at"],
+                    "createdBy": params["created_by"],
+                    "forkedFrom": params["old_pack_id"],
+                },
+            )
+            await mutation.write_relationship(
+                params["new_pack_id"],
+                REL_SUPERSEDES,
+                params["old_pack_id"],
+                {"type": "fork"},
+                versioned=False,
+            )
+            for target_id in relationship_record["driver_ids"]:
+                if target_id:
+                    await mutation.write_relationship(
+                        params["new_pack_id"], REL_HAS_DRIVER, target_id
+                    )
+            for target_id in relationship_record["formula_ids"]:
+                if target_id:
+                    await mutation.write_relationship(
+                        params["new_pack_id"], REL_HAS_FORMULA, target_id
+                    )
+            for target_id in relationship_record["benchmark_ids"]:
+                if target_id:
+                    await mutation.write_relationship(
+                        params["new_pack_id"], REL_HAS_BENCHMARK, target_id
+                    )
+
+        return {
+            "id": params["new_pack_id"],
+            "name": params["name"],
+            "description": params["description"],
+            "industry": params["industry"],
+            "segment": params["segment"],
+            "status": params["status"],
+            "version": params["version"],
+            "workspaceId": params["workspace_id"],
+            "isLoaded": True,
+            "createdAt": params["created_at"],
+            "createdBy": params["created_by"],
+            "forkedFrom": params["old_pack_id"],
+        }
 
 
 async def fork_pack(
@@ -1484,64 +1472,61 @@ async def seed_valuepack_data(
     vp = _valuepack_db[industry_id]
     tenant_id = _tenant_id_from_api_key(api_key)
 
-    # Build Cypher query to create ValuePack graph
-    cypher = """
-    MERGE (vp:ValuePack {industry_id: $industry_id, tenant_id: $tenant_id})
-    SET vp.display_name = $display_name,
-        vp.tier = $tier,
-        vp.description = $description,
-        vp.version = $version,
-        vp.is_active = $is_active
-    
-    WITH vp
-    UNWIND $drivers as driver
-    MERGE (d:ValueDriver {id: driver.id, tenant_id: $tenant_id})
-    SET d.name = driver.name,
-        d.description = driver.description,
-        d.typical_impact = driver.typical_impact,
-        d.measurement_approach = driver.measurement_approach
-    MERGE (vp)-[:HAS_DRIVER]->(d)
-    
-    WITH vp
-    UNWIND $use_cases as uc
-    MERGE (u:UseCase {id: uc.id, tenant_id: $tenant_id})
-    SET u.name = uc.name,
-        u.description = uc.description,
-        u.target_persona = uc.target_persona,
-        u.business_problem = uc.business_problem
-    MERGE (vp)-[:HAS_USE_CASE]->(u)
-    
-    WITH vp
-    UNWIND $model_types as mt
-    MERGE (m:EconomicModel {id: mt.id, tenant_id: $tenant_id})
-    SET m.name = mt.name,
-        m.formula_shape = mt.formula_shape,
-        m.inputs = mt.inputs,
-        m.output_unit = mt.output_unit
-    MERGE (vp)-[:HAS_MODEL_TYPE]->(m)
-    
-    RETURN vp.industry_id as seeded_id
-    """
-
-    params = {
-        "industry_id": vp.industry_id,
-        "tenant_id": tenant_id,
-        "display_name": vp.display_name,
-        "tier": vp.tier.value,
-        "description": vp.description,
-        "version": vp.version,
-        "is_active": vp.is_active,
-        "drivers": [d.model_dump() for d in vp.primary_value_drivers],
-        "use_cases": [uc.model_dump() for uc in vp.core_use_cases],
-        "model_types": [mt.model_dump() for mt in vp.economic_model_types],
-    }
-
     async with driver.session() as session:
-        # strict-scoped-query-execution: seeding cypher MERGEs all tenant-owned nodes with tenant_id
-        result = await run_validated_query(session, cypher, **params)
-        record = await result.single()
-        if not record:
-            raise ServiceUnavailableError(message="Failed to seed ValuePack data")
+        async with session.begin_transaction() as tx:
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=tx,
+                operation_source="value_packs.seed_valuepack_data",
+            )
+            await mutation.write_node(
+                "ValuePack",
+                vp.industry_id,
+                {
+                    "industry_id": vp.industry_id,
+                    "display_name": vp.display_name,
+                    "tier": vp.tier.value,
+                    "description": vp.description,
+                    "version": vp.version,
+                    "is_active": vp.is_active,
+                },
+            )
+            for driver_node in vp.primary_value_drivers:
+                await mutation.write_node(
+                    "ValueDriver",
+                    driver_node.id,
+                    driver_node.model_dump(),
+                )
+                await mutation.write_relationship(
+                    vp.industry_id,
+                    REL_SEED_HAS_DRIVER,
+                    driver_node.id,
+                    versioned=False,
+                )
+            for use_case in vp.core_use_cases:
+                await mutation.write_node(
+                    "UseCase",
+                    use_case.id,
+                    use_case.model_dump(),
+                )
+                await mutation.write_relationship(
+                    vp.industry_id,
+                    REL_SEED_HAS_USE_CASE,
+                    use_case.id,
+                    versioned=False,
+                )
+            for model_type in vp.economic_model_types:
+                await mutation.write_node(
+                    "EconomicModel",
+                    model_type.id,
+                    model_type.model_dump(),
+                )
+                await mutation.write_relationship(
+                    vp.industry_id,
+                    REL_SEED_HAS_MODEL_TYPE,
+                    model_type.id,
+                    versioned=False,
+                )
 
     logger.info(f"Seeded ValuePack data to Neo4j: {industry_id}")
     return seed_valuepack_dataResult.model_validate(

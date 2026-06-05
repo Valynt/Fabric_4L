@@ -18,7 +18,7 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, className }:
   return (
     <div className={cn("pb-6 mb-6 border-b border-border", className)}>
       {breadcrumbs && breadcrumbs.length > 0 && (
-        <nav className="flex items-center gap-1.5 text-[12px] text-muted-foreground mb-3" aria-label="Breadcrumb">
+        <nav className="flex items-center gap-1.5 vf-text-body-s text-muted-foreground mb-3" aria-label="Breadcrumb">
           <Home className="h-3.5 w-3.5" />
           {breadcrumbs.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1.5">
@@ -36,11 +36,11 @@ export function PageHeader({ title, subtitle, actions, breadcrumbs, className }:
       )}
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
-          <h1 className="text-[24px] font-semibold tracking-[-0.01em] text-foreground leading-[1.2]">
+          <h1 className="vf-display-m font-semibold text-foreground">
             {title}
           </h1>
           {subtitle && (
-            <p className="text-[13px] text-muted-foreground mt-1 leading-relaxed">
+            <p className="vf-text-body-m text-muted-foreground mt-1">
               {subtitle}
             </p>
           )}

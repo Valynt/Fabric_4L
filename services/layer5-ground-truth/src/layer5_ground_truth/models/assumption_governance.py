@@ -65,6 +65,8 @@ class PolicyRule(Base):
 
 class ApprovalRequest(Base):
     __tablename__ = "approval_requests"
+    __table_args__ = {"extend_existing": True}
+
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID, nullable=False, index=True)
     assumption_id = Column(UUID, ForeignKey("assumption_records.id", ondelete="CASCADE"), nullable=False)
@@ -76,6 +78,8 @@ class ApprovalRequest(Base):
 
 class ApprovalDecision(Base):
     __tablename__ = "approval_decisions"
+    __table_args__ = {"extend_existing": True}
+
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID, nullable=False, index=True)
     approval_request_id = Column(UUID, ForeignKey("approval_requests.id", ondelete="CASCADE"), nullable=False)

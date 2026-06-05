@@ -203,7 +203,8 @@ docker compose logs layer2-5-signal-refinery
 
 | Goal | Next Tutorial |
 |------|---------------|
-| Run an agent workflow | [Agent Workflows](./agent-workflows.md) (coming soon) |
+| Run an agent workflow | [Run an Agent Workflow](./agent-workflow-run.md) |
+| Validate generated claims | [Validate a Business Case](./validate-business-case.md) |
 | Create a custom ontology | See [Value Packs](../../packs/) |
 | Deploy to production | [Kubernetes Deployment](../../k8s/README.md) |
 

@@ -133,7 +133,14 @@ class EvidenceSearchService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.find_matching_evidence",
+            )
             records = await result.data()
 
             # Transform to match schema and add reasoning
@@ -217,7 +224,14 @@ class EvidenceSearchService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.search_by_keywords",
+            )
             records = await result.data()
 
             return [
@@ -260,9 +274,13 @@ class EvidenceSearchService:
             } as evidence
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {"evidence_id": evidence_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.get_evidence_details",
             )
             record = await result.single()
             return record["evidence"] if record else None
@@ -300,7 +318,8 @@ class EvidenceSearchService:
             RETURN e.id as evidence_id
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {
                     "evidence_id": evidence_id,
@@ -313,6 +332,9 @@ class EvidenceSearchService:
                     "source_url": evidence_data.get("source_url"),
                     "embedding": content_embedding,
                 },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence_search.index_evidence",
             )
             record = await result.single()
             return record["evidence_id"] if record else evidence_id

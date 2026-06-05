@@ -23,7 +23,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Validate Layer3 wrappers
+      - name: Validate Layer3 compatibility namespace
         run: python scripts/ci/check_layer3_wrapper_drift.py
 
       - name: Validate Layer3 settings shim

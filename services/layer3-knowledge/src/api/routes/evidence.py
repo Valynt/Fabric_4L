@@ -144,7 +144,7 @@ async def create_case_study(
         tags=request.tags,
     )
 
-    result = await service.create(case_study)
+    result = await service.create(case_study, tenant_id=tenant_id)
     return result
 
 
@@ -410,11 +410,18 @@ async def unlink_evidence_from_driver(
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {
-                "evidence_id": evidence_id,
-                "driver_id": driver_id,
-                "tenant_id": tenant_id,
-            })
+            result = await run_validated_query(
+                session,
+                query,
+                {
+                    "evidence_id": evidence_id,
+                    "driver_id": driver_id,
+                    "tenant_id": tenant_id,
+                },
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence.unlink_evidence_from_driver",
+            )
             record = await result.single()
             deleted = record["deleted"] if record else 0
             return {"evidence_id": evidence_id, "driver_id": driver_id, "deleted": deleted}
@@ -437,7 +444,14 @@ async def list_evidence_links(
     """
     try:
         async with driver.session() as session:
-            result = await run_validated_query(session, query, {"driver_id": driver_id, "tenant_id": tenant_id})
+            result = await run_validated_query(
+                session,
+                query,
+                {"driver_id": driver_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="evidence.list_driver_evidence_links",
+            )
             records = await result.data()
             return {
                 "driver_id": driver_id,

@@ -44,6 +44,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 | `.github/workflows/chaos-smoke.yml` | `@value-fabric/sre-leads` | yes | `pull_request, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob chaos-smoke.yml` |
 | `.github/workflows/chaos-testing.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_call, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob chaos-testing.yml` |
 | `.github/workflows/ci-failure-backlog.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob ci-failure-backlog.yml` |
+| `.github/workflows/cleanup-branches.yml` | `@value-fabric/sre-leads` | no | `push, schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob cleanup-branches.yml` |
 | `.github/workflows/codeql-analysis.yml` | `@value-fabric/security-leads` | yes | `pull_request, push, schedule` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob codeql-analysis.yml` |
 | `.github/workflows/codeql.yml` | `@value-fabric/security-leads` | yes | `pull_request, push, schedule` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob codeql.yml` |
 | `.github/workflows/compliance-evidence-integrity.yml` | `@value-fabric/compliance-team` | yes | `pull_request, schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob compliance-evidence-integrity.yml` |
@@ -93,6 +94,7 @@ The verifier fails closed when workflow files, registry entries, triggers, secre
 | `.github/workflows/security-gates.yml` | `@value-fabric/security-leads` | yes | `pull_request, push, schedule` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob security-gates.yml` |
 | `.github/workflows/security-validation.yml` | `@value-fabric/security-leads` | yes | `pull_request, schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob security-validation.yml` |
 | `.github/workflows/smoke-gate.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob smoke-gate.yml` |
+| `.github/workflows/stale.yml` | `@value-fabric/sre-leads` | no | `schedule, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob stale.yml` |
 | `.github/workflows/supply-chain.yml` | `@value-fabric/security-leads` | yes | `pull_request, push, workflow_call, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob supply-chain.yml` |
 | `.github/workflows/terraform-cd.yml` | `@value-fabric/sre-leads` | yes | `pull_request, push, workflow_dispatch` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob terraform-cd.yml` |
 | `.github/workflows/test-mandatory.yml` | `@value-fabric/qa-leads` | yes | `pull_request, push` | `python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob test-mandatory.yml` |

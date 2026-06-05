@@ -8,33 +8,32 @@
 
 Layer 3 consumes ontology-guided outputs from Layer 2 and exposes graph retrieval, evidence traversal, and semantic APIs for downstream workflows.
 
-## Architecture ownership (canonical runtime vs service wrapper)
+## Architecture ownership (canonical runtime vs compatibility namespace)
 
-### Canonical runtime code (`value_fabric/layer3/`)
+### Canonical runtime code (`services/layer3-knowledge/src/`)
 
-All net-new Layer 3 runtime logic belongs in `value_fabric/layer3/` per path governance.
+All net-new Layer 3 runtime logic belongs in `services/layer3-knowledge/src/` per path governance.
 
 Primary responsibilities:
 
-- Route handler logic under `value_fabric/layer3/api/routes/` (entities, value trees, formulas, evidence, products, benchmarks, calculators, tenant resolution, compatibility aliases).
-- FastAPI runtime composition and route-group registration under `value_fabric/layer3/api/`.
+- Route handler logic under `services/layer3-knowledge/src/api/routes/` (entities, value trees, formulas, evidence, products, benchmarks, calculators, tenant resolution, compatibility aliases).
+- FastAPI runtime composition and route-group registration under `services/layer3-knowledge/src/api/`.
 - Layer 3 domain services (knowledge graph, retrieval, provenance, analytics, pack-aware semantics).
 - Canonical models/schemas used by the Layer 3 runtime contract.
 
-### Deployable service wrapper (`services/layer3-knowledge/src/`)
+### Compatibility namespace (`value_fabric/layer3/`)
 
-`services/layer3-knowledge/src/` exists as a deployable wrapper and compatibility boundary, **not** the place for net-new business logic.
+`value_fabric/layer3/` is retained as a namespace placeholder during the shim-removal window. It is **not** the place for net-new business logic.
 
-Wrapper responsibilities:
+Allowed content:
 
-- Service entrypoint/wiring for deployment packaging.
-- Compatibility re-exports/shims that forward to canonical runtime modules.
-- Environment/bootstrap glue needed to run Layer 3 in service form.
+- Namespace placeholder files needed for transitional imports.
+- Explicit compatibility shims only when approved in the compatibility debt registry.
 
 Contributor rule of thumb:
 
-- New endpoint behavior/model logic → `value_fabric/layer3/`.
-- Wrapper edits in `services/layer3-knowledge/src/` should remain thin, explicit, and wiring-only.
+- New endpoint behavior/model logic -> `services/layer3-knowledge/src/`.
+- Edits in `value_fabric/layer3/` should remain placeholder-only or explicitly registered compatibility shims.
 
 ## Quick start (routing-aligned)
 
@@ -84,7 +83,7 @@ The prior README examples used outdated routes/ports (for example `:8001/v1/quer
 For current behavior, use the OpenAPI contract as source of truth:
 
 - Contract file: `contracts/openapi/layer3-knowledge.json`
-- Runtime route modules: `value_fabric/layer3/api/routes/`
+- Runtime route modules: `services/layer3-knowledge/src/api/routes/`
 
 ### Current route families (by canonical module)
 

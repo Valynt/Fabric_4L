@@ -48,7 +48,7 @@ export function DataTable<T>({
               {legacyColumns.map((col, idx) => (
                 <TableHead
                   key={idx}
-                  className="h-10 px-4 text-[12px] font-medium text-muted-foreground uppercase tracking-wider"
+                  className="h-10 px-4 vf-text-body-s font-medium text-muted-foreground uppercase tracking-wider"
                 >
                   {col}
                 </TableHead>
@@ -69,7 +69,7 @@ export function DataTable<T>({
                   className="h-12 border-t border-border hover:bg-muted/30 transition-colors"
                 >
                   {row.map((cell, cellIdx) => (
-                    <TableCell key={cellIdx} className="px-4 text-[13px] text-foreground">
+                    <TableCell key={cellIdx} className="px-4 vf-text-body-m text-foreground">
                       {cell}
                     </TableCell>
                   ))}
@@ -102,7 +102,7 @@ export function DataTable<T>({
             {typedColumns.map((col) => (
               <TableHead
                 key={String(col.key)}
-                className={cn("h-10 px-4 text-[12px] font-medium text-muted-foreground uppercase tracking-wider", col.className)}
+                className={cn("h-10 px-4 vf-text-body-s font-medium text-muted-foreground uppercase tracking-wider", col.className)}
               >
                 {col.header}
               </TableHead>
@@ -131,7 +131,7 @@ export function DataTable<T>({
                 )}
               >
                 {typedColumns.map((col) => (
-                  <TableCell key={String(col.key)} className={cn("px-4 text-[13px] text-foreground", col.className)}>
+                  <TableCell key={String(col.key)} className={cn("px-4 vf-text-body-m text-foreground", col.className)}>
                     {col.render ? col.render(item) : String((item as Record<string, unknown>)[col.key as string] ?? "")}
                   </TableCell>
                 ))}

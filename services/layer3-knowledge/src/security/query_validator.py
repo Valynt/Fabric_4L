@@ -407,7 +407,7 @@ class ValidatedNeo4jSession:
         Raises:
             UnscopedQueryError: If query fails tenant isolation validation
         """
-        from db.query_execution import (
+        from ..db.query_execution import (
             TenantExecutionContext,
             TenantQueryExecutor,
             TenantQueryValidationError,

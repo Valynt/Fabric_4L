@@ -44,6 +44,7 @@ from .cypher_scope_guard import (
     validate_tenant_scoped_cypher,
 )
 
+from ..db.audited_mutation import AuditedGraphMutation
 from ..db.query_execution import run_validated_query
 
 
@@ -173,12 +174,19 @@ class CompetitiveIntelService:
     ) -> Any:
         """Execute Cypher through mandatory validation gateway."""
         params = parameters or {}
-        tenant_id = params.get("tenant_id")
+        tenant_id = params["tenant_id"] if "tenant_id" in params else None
         if not tenant_id:
             raise RuntimeError("tenant_id is required for CompetitiveIntelService cypher execution")
         self._validate_query_scope(query)
         validated_session = ValidatedNeo4jSession(session, tenant_id=str(tenant_id), strict=True)
-        return await run_validated_query(validated_session, query, params)
+        return await run_validated_query(
+            validated_session,
+            query,
+            params,
+            tenant_id=str(tenant_id),
+            require_explicit_tenant_id=True,
+            query_name="competitive_intel_service.run_cypher",
+        )
 
     # ------------------------------------------------------------------
     # Competitor CRUD
@@ -193,48 +201,36 @@ class CompetitiveIntelService:
         competitor_id = str(uuid.uuid4())
         now = datetime.now(UTC).isoformat()
 
-        query = """
-        CREATE (c:Competitor {
-            id: $id,
-            tenant_id: $tenant_id,
-            name: $name,
-            description: $description,
-            domain: $domain,
-            founded_year: $founded_year,
-            strengths: $strengths,
-            weaknesses: $weaknesses,
-            market_position: $market_position,
-            pricing_tier: $pricing_tier,
-            target_segments: $target_segments,
-            entity_type: 'Competitor',
-            created_at: $now,
-            updated_at: $now
-        })
-        RETURN c {.*} AS competitor
-        """
+        competitor_props = {
+            "id": competitor_id,
+            "tenant_id": tenant_id,
+            "name": competitor.name,
+            "description": competitor.description,
+            "domain": competitor.domain or "",
+            "founded_year": competitor.founded_year,
+            "strengths": competitor.strengths,
+            "weaknesses": competitor.weaknesses,
+            "market_position": competitor.market_position,
+            "pricing_tier": competitor.pricing_tier,
+            "target_segments": competitor.target_segments,
+            "entity_type": "Competitor",
+            "created_at": now,
+            "updated_at": now,
+        }
         async with self._driver.session() as session:
-            result = await self._run_cypher(session, query, {
-                "id": competitor_id,
-                "tenant_id": tenant_id,
-                "name": competitor.name,
-                "description": competitor.description,
-                "domain": competitor.domain or "",
-                "founded_year": competitor.founded_year,
-                "strengths": competitor.strengths,
-                "weaknesses": competitor.weaknesses,
-                "market_position": competitor.market_position,
-                "pricing_tier": competitor.pricing_tier,
-                "target_segments": competitor.target_segments,
-                "now": now,
-            })
-            record = await result.single()
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="competitive_intel_service.add_competitor",
+            )
+            await mutation.write_node("Competitor", competitor_id, competitor_props)
 
         logger.info(
             "competitor_created",
             competitor_id=competitor_id,
             name=competitor.name,
         )
-        return CompetitiveIntelService_add_competitorResult.model_validate({"id": competitor_id, **(record["competitor"] if record else {})})
+        return CompetitiveIntelService_add_competitorResult.model_validate(competitor_props)
 
     async def get_competitor(
         self,
@@ -369,19 +365,58 @@ class CompetitiveIntelService:
         competitor_id: str,
     ) -> bool:
         """Delete a competitor and all related battlecards."""
-        query = """
+        exists_query = """
         MATCH (c:Competitor {id: $competitor_id, tenant_id: $tenant_id})
-        OPTIONAL MATCH (bc:Battlecard {competitor_id: $competitor_id, tenant_id: $tenant_id})
-        DETACH DELETE c, bc
-        RETURN count(c) AS deleted
+        RETURN count(c) AS found
+        """
+        battlecards_query = """
+        MATCH (bc:Battlecard {competitor_id: $competitor_id, tenant_id: $tenant_id})
+        RETURN collect(bc.id) AS battlecard_ids
         """
         async with self._driver.session() as session:
-            result = await self._run_cypher(session, query, {
-                "competitor_id": competitor_id,
-                "tenant_id": tenant_id,
-            })
+            result = await self._run_cypher(
+                session,
+                exists_query,
+                {
+                    "competitor_id": competitor_id,
+                    "tenant_id": tenant_id,
+                },
+            )
             record = await result.single()
-        return record["deleted"] > 0 if record else False
+            found_count = 0
+            if record:
+                try:
+                    found_count = record["found"]
+                except KeyError:
+                    found_count = record["deleted"]
+            if found_count <= 0:
+                return False
+
+            battlecard_result = await self._run_cypher(
+                session,
+                battlecards_query,
+                {
+                    "competitor_id": competitor_id,
+                    "tenant_id": tenant_id,
+                },
+            )
+            battlecard_record = await battlecard_result.single()
+            battlecard_ids = []
+            if battlecard_record:
+                try:
+                    battlecard_ids = battlecard_record["battlecard_ids"]
+                except KeyError:
+                    battlecard_ids = []
+
+            mutation = AuditedGraphMutation(
+                tenant_id=tenant_id,
+                session=session,
+                operation_source="competitive_intel_service.delete_competitor",
+            )
+            await mutation.delete_node("Competitor", competitor_id)
+            for battlecard_id in battlecard_ids:
+                await mutation.delete_node("Battlecard", battlecard_id)
+        return True
 
     # ------------------------------------------------------------------
     # Battlecard Management

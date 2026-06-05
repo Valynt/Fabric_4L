@@ -59,7 +59,7 @@ async def create_dsar(
                     request_fingerprint=fingerprint,
                 )
 
-                replay = service.check_replay(idem_request)
+                replay = service.check_replay(idem_request, tenant_id=tenant_id)
                 if replay is not None:
                     logger.info("DSAR request replayed from idempotency cache", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", idempotency_key=idempotency_key)
                     return replay.body
@@ -88,7 +88,8 @@ async def create_dsar(
                     status_code=202,
                     body=response,
                     headers={},
-                )
+                ),
+                tenant_id=tenant_id,
             )
         except Exception as e:
             logger.warning("Failed to store idempotency response", tenant_id=tenant_id, user_id=auth.sub, operation="dsar_create", route="/privacy/dsar", error=repr(e))

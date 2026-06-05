@@ -237,6 +237,11 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--json", action="store_true", help="emit machine-readable JSON summary")
     parser.add_argument(
+        "--strict",
+        action="store_true",
+        help="accepted for parity with other CI gates; duplicate source-tree findings always fail",
+    )
+    parser.add_argument(
         "--layers",
         nargs="+",
         choices=[m.layer for m in LAYER_MAP],

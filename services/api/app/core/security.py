@@ -385,7 +385,7 @@ def decode_token(token: str) -> TokenPayload | None:
         )
         if not isinstance(data.get("sub"), str) or not data["sub"].strip():
             return None
-        tenant_id = data.get("tenant_id")
+        tenant_id = data["tenant_id"] if "tenant_id" in data else None
         if not isinstance(tenant_id, str) or not tenant_id.strip():
             return None
         jti = data.get("jti")

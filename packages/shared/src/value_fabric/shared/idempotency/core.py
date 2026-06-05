@@ -39,7 +39,13 @@ class IdempotencyService:
         self._store = store
         self._ttl_seconds = ttl_seconds
 
-    def check_replay(self, request: IdempotencyRequest) -> IdempotencyRecord | None:
+    @staticmethod
+    def _validate_request_tenant(request: IdempotencyRequest, tenant_id: str | None) -> None:
+        if tenant_id is not None and str(request.tenant_id) != str(tenant_id):
+            raise IdempotencyConflictError("Idempotency request tenant does not match authenticated tenant")
+
+    def check_replay(self, request: IdempotencyRequest, *, tenant_id: str | None = None) -> IdempotencyRecord | None:
+        self._validate_request_tenant(request, tenant_id)
         existing = self._store.get(request.tenant_id, request.endpoint_key, request.idempotency_key)
         if existing is None:
             return None
@@ -51,7 +57,14 @@ class IdempotencyService:
             headers=existing.headers,
         )
 
-    def store_response(self, request: IdempotencyRequest, response: IdempotencyRecord) -> None:
+    def store_response(
+        self,
+        request: IdempotencyRequest,
+        response: IdempotencyRecord,
+        *,
+        tenant_id: str | None = None,
+    ) -> None:
+        self._validate_request_tenant(request, tenant_id)
         self._store.set(
             StoredIdempotencyRecord(
                 tenant_id=request.tenant_id,

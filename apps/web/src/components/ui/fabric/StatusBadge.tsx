@@ -149,7 +149,7 @@ export function StatusBadge({ children, variant = "default", status, className }
   return (
     <Badge
       variant={isCustom ? "secondary" : resolvedVariant as "default" | "secondary" | "outline" | "destructive"}
-      className={cn("text-[11px] px-2 py-0.5 rounded-full font-medium", isCustom && variantStyles[resolvedVariant], className)}
+      className={cn("vf-text-caption px-2 py-0.5 rounded-full font-medium", isCustom && variantStyles[resolvedVariant], className)}
     >
       {resolvedChildren}
     </Badge>

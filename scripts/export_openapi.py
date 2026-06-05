@@ -63,7 +63,7 @@ EXPORT_SPECS: tuple[OpenApiExportSpec, ...] = (
     OpenApiExportSpec("Layer 1", "layer1-ingestion", "layer1_ingestion", "api/app_monolith.py", "layer1-ingestion.json"),
     OpenApiExportSpec("Layer 2", "layer2-extraction", "layer2_extraction", "layer2_extraction/api/main.py", "layer2-extraction.json"),
     OpenApiExportSpec("Layer 3", "layer3-knowledge", "layer3_knowledge", "api/main.py", "layer3-knowledge.json"),
-    OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "api/main.py", "layer4-agents.json"),
+    OpenApiExportSpec("Layer 4", "layer4-agents", "layer4_agents", "layer4_agents/api/main.py", "layer4-agents.json"),
     OpenApiExportSpec("Layer 5", "layer5-ground-truth", "layer5_ground_truth", "layer5_ground_truth/api/main.py", "layer5-ground-truth.json"),
     OpenApiExportSpec(
         "Layer 6",
@@ -84,6 +84,7 @@ EXPORT_ENV: dict[str, str] = {
     "ENVIRONMENT": "development",
     "ENV": "development",
     "APP_ENV": "development",
+    "DEBUG": "false",
     "OPENAPI_EXPORT": "1",
     "ALLOW_INSECURE_SERVICE_HTTP_IN_DEVELOPMENT": "true",
     "LAYER1_ENVIRONMENT": "development",

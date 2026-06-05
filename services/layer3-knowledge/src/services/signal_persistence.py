@@ -246,7 +246,14 @@ class SignalPersistenceService:
                     "limit": limit,
                 }
 
-            result = await run_validated_query(session, query, params)
+            result = await run_validated_query(
+                session,
+                query,
+                params,
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="signal_persistence.get_signals_for_account",
+            )
             records = await result.data()
             return [r["signal"] for r in records]
 
@@ -282,9 +289,13 @@ class SignalPersistenceService:
             } as signal
             """
 
-            result = await run_validated_query(session,
+            result = await run_validated_query(
+                session,
                 query,
                 {"signal_id": signal_id, "tenant_id": tenant_id},
+                tenant_id=tenant_id,
+                require_explicit_tenant_id=True,
+                query_name="signal_persistence.get_signal_by_id",
             )
             record = await result.single()
             return record["signal"] if record else None

@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-"""LLMIntentClassifier — OpenAI-based intent classification for ValuePilot.
+"""LLMIntentClassifier — provider-agnostic intent classification for ValuePilot.
 
 Replaces brittle keyword matching with a lightweight structured LLM call.
 Uses the GovernedLLMClient adapter infrastructure for provider-agnostic
-completion, with fallback to direct AsyncOpenAI when no adapter is injected.
+completion, with fallback to the configured Layer 4 provider adapter when no
+adapter is injected.
 
 Output schema:
   {"intent": "...", "confidence": 0.0-1.0, "entities": {"account_name": "...", ...}}
@@ -17,7 +18,6 @@ Intents:
 
 
 import logging
-import os
 from typing import TYPE_CHECKING, Any
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
@@ -104,9 +104,10 @@ class LLMIntentClassifier:
     Parameters
     ----------
     api_key:
-        OpenAI API key (fallback when no adapter/client is injected).
+        Provider API key passed into the configured adapter, primarily for
+        OpenAI-compatible local test wiring.
     model:
-        Model name for fallback direct-OpenAI mode.
+        Model name for adapter completion mode.
     adapter:
         Optional ``CompletionAdapter`` for provider-agnostic completion.
         When provided, takes precedence over direct OpenAI calls.
@@ -123,18 +124,22 @@ class LLMIntentClassifier:
         adapter: CompletionAdapter | None = None,
         governed_client: GovernedLLMClient | None = None,
     ) -> None:
-        self._api_key = api_key or os.getenv("OPENAI_API_KEY")
+        self._api_key = api_key
         self._model = model
         self._adapter = adapter
         self._governed_client = governed_client
-        self._direct_client: Any | None = None
+        self._default_adapter: CompletionAdapter | None = None
 
-    def _get_direct_client(self) -> Any:
-        """Lazy-load the direct OpenAI client (fallback mode only)."""
-        if self._direct_client is None:
-            from openai import AsyncOpenAI
-            self._direct_client = AsyncOpenAI(api_key=self._api_key)
-        return self._direct_client
+    def _get_default_adapter(self) -> CompletionAdapter:
+        """Resolve the configured Layer 4 provider adapter lazily."""
+        if self._default_adapter is None:
+            from .llm_provider import get_llm_provider
+
+            config: dict[str, Any] = {}
+            if self._api_key:
+                config["openai_api_key"] = self._api_key
+            self._default_adapter = get_llm_provider(config)
+        return self._default_adapter
 
     async def classify(self, message: str) -> dict[str, Any]:
         """Classify a user message into intent, confidence, and entities."""
@@ -153,25 +158,9 @@ class LLMIntentClassifier:
                     max_tokens=MAX_TOKENS,
                     call_id="intent_classifier",
                 )
-            elif self._adapter is not None:
-                from .llm_adapter_interfaces import CompletionRequest, RetryPolicy
-                result = await self._adapter.complete(
-                    CompletionRequest(
-                        model=self._model,
-                        messages=messages,
-                        temperature=DEFAULT_TEMPERATURE,
-                        max_tokens=MAX_TOKENS,
-                        retry_policy=RetryPolicy(timeout_seconds=30, max_attempts=2),
-                    ),
-                )
-                if hasattr(result, "content"):
-                    raw = result.content
-                else:
-                    logger.warning("Adapter returned error-like result: %s", result)
-                    return self._fallback(message)
-                parsed = parse_llm_json(raw, call_site="llm_intent_classifier")
             else:
-                parsed = await self._classify_via_direct_openai(messages)
+                adapter = self._adapter or self._get_default_adapter()
+                parsed = await self._classify_via_adapter(adapter, messages)
 
             return self._validate_and_build(parsed)
 
@@ -179,21 +168,27 @@ class LLMIntentClassifier:
             logger.warning("LLM intent classification failed: %s", e)
             return self._fallback(message)
 
-    async def _classify_via_direct_openai(self, messages: list[dict[str, str]]) -> dict[str, Any]:
-        """Fallback: direct OpenAI call when no adapter/client is injected."""
-        if not self._api_key:
-            logger.info("OPENAI_API_KEY not set — LLM intent classification unavailable")
-            return {}
+    async def _classify_via_adapter(
+        self,
+        adapter: CompletionAdapter,
+        messages: list[dict[str, str]],
+    ) -> dict[str, Any]:
+        """Classify through the provider-agnostic completion adapter."""
+        from .llm_adapter_interfaces import CompletionRequest, RetryPolicy
 
-        client = self._get_direct_client()
-        response = await client.chat.completions.create(
-            model=self._model,
-            messages=messages,
-            temperature=DEFAULT_TEMPERATURE,
-            max_tokens=MAX_TOKENS,
-            response_format={"type": "json_object"},
+        result = await adapter.complete(
+            CompletionRequest(
+                model=self._model,
+                messages=messages,
+                temperature=DEFAULT_TEMPERATURE,
+                max_tokens=MAX_TOKENS,
+                retry_policy=RetryPolicy(timeout_seconds=30, max_attempts=2),
+            ),
         )
-        raw = response.choices[0].message.content or "{}"
+        if not hasattr(result, "content"):
+            logger.warning("Adapter returned error-like result: %s", result)
+            return {}
+        raw = result.content
         return parse_llm_json(raw, call_site="llm_intent_classifier")
 
     def _validate_and_build(self, parsed: dict[str, Any]) -> dict[str, Any]:

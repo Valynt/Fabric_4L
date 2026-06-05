@@ -341,3 +341,145 @@ export default async function Page({
 - **Docs**: https://www.fumadocs.dev/docs
 - **UI Components**: https://www.fumadocs.dev/docs/ui/components
 - **GitHub**: https://github.com/fuma-nama/fumadocs
+
+
+---
+
+# Extracted Workflow Reference
+
+### 8. Produce Remediation Pack
+
+Deliver structured findings with actionable fixes.
+
+**Required Deliverables:**
+
+#### A. Executive Summary
+- Total drift instances found: N
+- Drift categories: [component|routing|navigation|theme|build|content]
+- Risk level: [Critical|High|Medium|Low]
+- Estimated effort to remediate: [hours/days]
+
+#### B. Prioritized Findings
+
+**Stale Commands:**
+| Command | Doc Location | Current Behavior | Fix |
+|---------|--------------|------------------|-----|
+| | | | |
+
+**Stale Component Names:**
+| Documented Name | Actual Name | File | Fix |
+|-------------------|-------------|------|-----|
+| | | | |
+
+**Stale File Paths:**
+| Documented Path | Actual Path | References | Fix |
+|-----------------|-------------|------------|-----|
+| | | | |
+
+**Moved Routes:**
+| Old Route | New Route | Redirect Needed? | Docs Updated? |
+|-----------|-----------|------------------|---------------|
+| | | | |
+
+**Hidden Prerequisites:**
+| Requirement | Where Required | Currently Documented? | Action |
+|-------------|----------------|----------------------|--------|
+| | | | |
+
+**Incomplete Examples:**
+| Example Location | Issue | Missing | Fix |
+|------------------|-------|---------|-----|
+| | | | |
+
+**Duplicate/Overlapping Docs:**
+| Documents | Overlap Area | Recommendation |
+|-----------|--------------|----------------|
+| | | |
+
+**Content/UI Mismatch:**
+| Doc Description | Actual UI | Location | Fix |
+|-----------------|-----------|----------|-----|
+| | | | |
+
+#### C. Exact Files to Update
+
+| Priority | File | Change Type | Effort |
+|----------|------|-------------|--------|
+| P0 | | | |
+| P1 | | | |
+| P2 | | | |
+
+#### D. Draft Markdown for Top 3 Fixes
+
+Provide ready-to-paste markdown updates for highest-value fixes.
+
+---
+
+## Output Format
+
+### Changed File Impact Table
+
+```markdown
+| File | Change Type | Impact Area | Doc Action |
+|------|-------------|-------------|------------|
+| `app/docs/layout.tsx` | Modified | Layout | Check layout docs, sidebar config |
+| `lib/source.ts` | Modified | Source Loading | Update content source documentation |
+| `components/mdx.tsx` | Added | MDX Components | Document new components |
+| `content/docs/api/*.mdx` | Deleted | Content | Remove or redirect broken links |
+```
+
+### Topic-Doc Inventory
+
+```markdown
+| Topic | Docs Found | Coverage | Status |
+|-------|------------|----------|--------|
+| Layout customization | `docs/layouts.mdx`, `README.md` | Partial | Needs update |
+| MDX components | `docs/components/*.mdx` | Complete | Current |
+| API documentation | `docs/api/*.mdx` | Missing | Create |
+```
+
+### Stale/Missing/Duplicate List
+
+```markdown
+## Stale Documentation
+1. `docs/components/accordion.mdx` - Props table outdated (P1)
+2. `docs/quickstart.md` - Uses old CLI command (P0)
+
+## Missing Documentation
+1. New `Tabs` component usage (P1)
+2. `meta.json` advanced configuration (P2)
+
+## Duplicate Documentation
+1. `docs/layout.mdx` and `docs/theme.mdx` overlap on customization (P2)
+```
+
+### Top 10 Fixes Ranked
+
+```markdown
+| Rank | Issue | User Impact | Effort | File |
+|------|-------|-------------|--------|------|
+| 1 | Quickstart uses deprecated command | High | 5 min | `docs/quickstart.md` |
+| 2 | Component props outdated | High | 30 min | `docs/components/*.mdx` |
+| 3 | Missing navigation docs | Medium | 2 hrs | `docs/navigation.mdx` |
+```
+
+### Diátaxis-Fumadocs Alignment Report
+
+```markdown
+## Alignment Status
+
+| Diátaxis Type | Content Count | Presentation | Issues |
+|---------------|---------------|--------------|--------|
+| **Tutorials** | 5 | Ordered nav, next-links | ✅ Aligned |
+| **How-to Guides** | 12 | Task-grouped, searchable | ⚠️ Mixed with tutorials |
+| **Reference** | 8 | Dense layout, API tables | ❌ Using blog spacing |
+| **Explanation** | 3 | Essay layout | ❌ Heavy sidebar chrome |
+
+## Critical Misalignments
+
+1. **Reference docs use tutorial layout** — Switch to dense `DocsLayout` variant
+2. **Tutorials lack explicit ordering** — Add `order` frontmatter + `meta.json`
+3. **How-to guides not searchable** — Add search weighting for `/how-to/` prefix
+```
+
+---

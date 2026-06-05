@@ -288,6 +288,23 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/cleanup-branches.yml",
+      "name": "Cleanup Stale Branches",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "push",
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "cleanup_branches governs Cleanup Stale Branches via push, schedule, workflow_dispatch",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob cleanup-branches.yml",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/codeql-analysis.yml",
       "name": "CodeQL Analysis",
       "owner": "@value-fabric/security-leads",
@@ -875,6 +892,7 @@
         "artifacts/performance/k6-summary.json",
         "artifacts/performance/logs/",
         "artifacts/performance/slo-evaluation.json",
+        "artifacts/performance/slo-window-history.json",
         "artifacts/performance/slo-report.md"
       ],
       "runtime_budget_minutes": 40,
@@ -917,6 +935,7 @@
         "artifacts/legacy-debt-report.json",
         "artifacts/logs/",
         "artifacts/observability/**",
+        "artifacts/production-readiness/**",
         "artifacts/pytest-collection.txt",
         "artifacts/pytest-skip-governance.json",
         "artifacts/python-contract-lint.json",
@@ -1318,6 +1337,22 @@
       "deprecation_status": "active"
     },
     {
+      "path": ".github/workflows/stale.yml",
+      "name": "Close Stale PRs",
+      "owner": "@value-fabric/sre-leads",
+      "trigger": [
+        "schedule",
+        "workflow_dispatch"
+      ],
+      "trigger_purpose": "stale governs Close Stale PRs via schedule, workflow_dispatch",
+      "blocking": false,
+      "required_secrets": [],
+      "produced_artifacts": [],
+      "runtime_budget_minutes": 30,
+      "local_validation_command": "python scripts/ci/check_workflow_targets_and_artifacts.py --workflow-glob stale.yml",
+      "deprecation_status": "active"
+    },
+    {
       "path": ".github/workflows/supply-chain.yml",
       "name": "Supply Chain Integrity",
       "owner": "@value-fabric/security-leads",
@@ -1338,6 +1373,7 @@
         "${{ matrix.layer }}-vulns.sarif",
         "*-audit.json",
         "*.intoto.jsonl",
+        "license-reports/",
         "source-${{ matrix.layer }}-sbom.cdx.json",
         "source-${{ matrix.layer }}-vulns.sarif",
         "supply-chain-report.md"

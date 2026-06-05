@@ -280,6 +280,7 @@ class ApprovalRequest(Base):
             "ix_approval_requests_requested_by",
             "requested_by",
         ),
+        {"extend_existing": True},
     )
 
 
@@ -393,6 +394,7 @@ class ApprovalDecision(Base):
             "ix_approval_decisions_decided_by",
             "decided_by",
         ),
+        {"extend_existing": True},
     )
 
 

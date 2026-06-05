@@ -71,5 +71,6 @@ pnpm test:isolation
 ## Related Documentation
 
 - [Command Inventory](./COMMANDS.md) - Stable command map, Makefile target categories, and CI-to-local mappings.
+- [Development Discovery Map](./DISCOVERY_MAP.md) - Issue-to-implementation routing by work type, source of truth, drift checks, validation, and evidence.
 - [Contributing](../../CONTRIBUTING.md) - Contributor setup and PR process.
 - [Agent Reference](../../AGENTS.md) - AI agent command and governance reference.

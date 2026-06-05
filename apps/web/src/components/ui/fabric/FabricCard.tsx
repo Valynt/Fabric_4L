@@ -39,9 +39,9 @@ export function FabricCard({
       {(title || description || headerActions) && (
         <CardHeader className={cn("flex flex-row items-start justify-between", padding !== "none" && paddingMap[padding])}>
           <div className="flex-1 min-w-0">
-            {title && <CardTitle className="text-[16px] font-semibold">{title}</CardTitle>}
+            {title && <CardTitle className="text-base font-semibold">{title}</CardTitle>}
             {description && (
-              <CardDescription className="text-[13px] mt-1">{description}</CardDescription>
+              <CardDescription className="vf-text-body-m mt-1">{description}</CardDescription>
             )}
           </div>
           {headerActions && <div className="flex items-center gap-2 flex-shrink-0">{headerActions}</div>}

@@ -594,7 +594,7 @@ class Layer3Client:
                 tenant_id=tenant_id,
             )
 
-        response_tenant = data.get("tenant_id")
+        response_tenant = data["tenant_id"] if "tenant_id" in data else None
         properties = data.get("properties")
         if response_tenant is None and isinstance(properties, dict):
             response_tenant = properties.get("tenant_id")
@@ -765,7 +765,7 @@ class Layer3Client:
                     ),
                 )
                 return None
-            response_tenant = data.get("tenant_id")
+            response_tenant = data["tenant_id"] if "tenant_id" in data else None
             if response_tenant is not None and str(response_tenant) != str(tenant_id):
                 logger.error(
                     "layer3_entity_context_tenant_mismatch",

@@ -14,6 +14,25 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/ready": {
+      "get": {
+        "tags": [
+          "health"
+        ],
+        "summary": "Readiness Handler",
+        "operationId": "readiness_handler_ready_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "tags": [
@@ -258,29 +277,11 @@
         },
         "responses": {
           "200": {
-            "description": "Formula evaluated successfully",
+            "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/FormulaEvaluateResponse"
-                },
-                "example": {
-                  "result": 245.5,
-                  "unit": "percent",
-                  "confidence": 0.92,
-                  "calculation_steps": [
-                    {
-                      "step": 1,
-                      "operation": "annual_benefit - annual_cost",
-                      "result": "245500.0"
-                    },
-                    {
-                      "step": 2,
-                      "operation": "divide by implementation_cost",
-                      "result": "245.5"
-                    }
-                  ],
-                  "formula_used": "(annual_benefit - annual_cost) / implementation_cost * 100"
                 }
               }
             }
@@ -290,6 +291,51 @@
           },
           "422": {
             "description": "Validation error"
+          }
+        }
+      }
+    },
+    "/v1/formulas/scenario": {
+      "post": {
+        "tags": [
+          "Formulas"
+        ],
+        "summary": "Calculate What-If Scenario",
+        "description": "Calculate new business case metrics based on variable adjustments.",
+        "operationId": "calculate_scenario_v1_formulas_scenario_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScenarioRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ScenarioResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid adjustments or missing base case data"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
           }
         }
       }
@@ -591,77 +637,6 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/formulas/scenario": {
-      "post": {
-        "tags": [
-          "Formulas"
-        ],
-        "summary": "Calculate What-If Scenario",
-        "description": "Calculate new business case metrics based on variable adjustments.",
-        "operationId": "calculate_scenario_v1_formulas_scenario_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ScenarioRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Scenario calculated successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ScenarioResponse"
-                },
-                "example": {
-                  "scenario_id": "scenario_abc123",
-                  "original_value": 500000,
-                  "adjusted_value": 600000,
-                  "delta_percentage": 20.0,
-                  "new_roi": 2.5,
-                  "new_payback_months": 8.5,
-                  "formula_used": "(total_value - implementation_cost) / implementation_cost",
-                  "calculation_steps": [
-                    {
-                      "step": 1,
-                      "operation": "Base case values",
-                      "details": {
-                        "total_value": 500000
-                      }
-                    },
-                    {
-                      "step": 2,
-                      "operation": "Adjust implementation_cost",
-                      "details": {
-                        "from": 200000,
-                        "to": 180000
-                      }
-                    }
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid adjustments or missing base case data"
           },
           "422": {
             "description": "Validation Error",
@@ -4312,7 +4287,7 @@
           "evidence"
         ],
         "summary": "Link evidence to a value driver",
-        "description": "Create a graph relationship between Evidence and ValueDriver.\n\nEstablishes `HAS_EVIDENCE` from ValueDriver to Evidence node,\nenabling value traceability from driver tree back to proof points.",
+        "description": "Create a graph relationship between Evidence and ValueDriver.\n\nEstablishes `HAS_EVIDENCE` from ValueDriver to Evidence node,\nenabling value traceability from driver tree back to proof points.\nPhase 1 hardening: Uses AuditedGraphMutation for audit trail.",
         "operationId": "link_evidence_to_driver_v1_evidence_links_post",
         "requestBody": {
           "required": true,
@@ -5338,6 +5313,247 @@
         }
       }
     },
+    "/v1/graph/signals": {
+      "post": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Persist Signal",
+        "description": "Persist a ValueSignal as a Neo4j node and link to its Account.\n\nCalled by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).\nPhase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.",
+        "operationId": "persist_signal_v1_graph_signals_post",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Body"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalNode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "List Graph Signals",
+        "operationId": "list_graph_signals_v1_graph_signals_get",
+        "parameters": [
+          {
+            "name": "account_id",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Account Id"
+            }
+          },
+          {
+            "name": "lifecycle_states",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Lifecycle States"
+            }
+          },
+          {
+            "name": "types",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Types"
+            }
+          },
+          {
+            "name": "min_confidence",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 1.0,
+              "minimum": 0.0,
+              "default": 0.0,
+              "title": "Min Confidence"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalListResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph/signals/{signal_id}": {
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Get Graph Signal",
+        "operationId": "get_graph_signal_v1_graph_signals__signal_id__get",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalNode"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/graph/signals/{signal_id}/related": {
+      "get": {
+        "tags": [
+          "signals"
+        ],
+        "summary": "Get Signal Related",
+        "operationId": "get_signal_related_v1_graph_signals__signal_id__related_get",
+        "parameters": [
+          {
+            "name": "signal_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Signal Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignalRelatedResponse"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/roi/benchmarks": {
       "get": {
         "summary": "List Benchmarks",
@@ -5632,7 +5848,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/LeverConfigRequest"
+                "$ref": "#/components/schemas/Body_get_value_levers_v1_calculators_levers_get"
               }
             }
           },
@@ -5674,7 +5890,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValueCaseRequest"
+                "$ref": "#/components/schemas/Body_create_value_case_v1_calculators_value_cases_post"
               }
             }
           },
@@ -5723,6 +5939,23 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/RequestContext"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Context"
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "Successful Response",
@@ -5769,7 +6002,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ValueCaseRequest"
+                "$ref": "#/components/schemas/Body_update_value_case_v1_calculators_value_cases__case_id__put"
               }
             }
           }
@@ -7203,247 +7436,6 @@
         },
         "deprecated": true
       }
-    },
-    "/v1/graph/signals": {
-      "post": {
-        "tags": [
-          "signals"
-        ],
-        "summary": "Persist Signal",
-        "description": "Persist a ValueSignal as a Neo4j node and link to its Account.\n\nCalled by L2.5 after refinement. Idempotent via MERGE on (id, tenant_id).\nPhase 4 hardening: Enforces account authorization for account-scoped PainSignal entities.",
-        "operationId": "persist_signal_v1_graph_signals_post",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "title": "Body"
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignalNode"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "get": {
-        "tags": [
-          "signals"
-        ],
-        "summary": "List Graph Signals",
-        "operationId": "list_graph_signals_v1_graph_signals_get",
-        "parameters": [
-          {
-            "name": "account_id",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Account Id"
-            }
-          },
-          {
-            "name": "lifecycle_states",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Lifecycle States"
-            }
-          },
-          {
-            "name": "types",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "Types"
-            }
-          },
-          {
-            "name": "min_confidence",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 1.0,
-              "minimum": 0.0,
-              "default": 0.0,
-              "title": "Min Confidence"
-            }
-          },
-          {
-            "name": "limit",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 200,
-              "minimum": 1,
-              "default": 50,
-              "title": "Limit"
-            }
-          },
-          {
-            "name": "offset",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 0,
-              "default": 0,
-              "title": "Offset"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignalListResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/graph/signals/{signal_id}": {
-      "get": {
-        "tags": [
-          "signals"
-        ],
-        "summary": "Get Graph Signal",
-        "operationId": "get_graph_signal_v1_graph_signals__signal_id__get",
-        "parameters": [
-          {
-            "name": "signal_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Signal Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignalNode"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/v1/graph/signals/{signal_id}/related": {
-      "get": {
-        "tags": [
-          "signals"
-        ],
-        "summary": "Get Signal Related",
-        "operationId": "get_signal_related_v1_graph_signals__signal_id__related_get",
-        "parameters": [
-          {
-            "name": "signal_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Signal Id"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SignalRelatedResponse"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
     }
   },
   "components": {
@@ -8257,6 +8249,28 @@
         ],
         "title": "Body_create_pack_v1_packs_post"
       },
+      "Body_create_value_case_v1_calculators_value_cases_post": {
+        "properties": {
+          "case_data": {
+            "$ref": "#/components/schemas/ValueCaseRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_data"
+        ],
+        "title": "Body_create_value_case_v1_calculators_value_cases_post"
+      },
       "Body_create_variable_v1_variables_post": {
         "properties": {
           "request": {
@@ -8323,6 +8337,28 @@
         ],
         "title": "Body_fork_pack_v1_packs__pack_id__fork_post"
       },
+      "Body_get_value_levers_v1_calculators_levers_get": {
+        "properties": {
+          "request": {
+            "$ref": "#/components/schemas/LeverConfigRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "request"
+        ],
+        "title": "Body_get_value_levers_v1_calculators_levers_get"
+      },
       "Body_resolve_variable_v1_variables__variable_id__resolve_post": {
         "properties": {
           "request": {
@@ -8388,6 +8424,28 @@
           "request"
         ],
         "title": "Body_update_pack_v1_packs__pack_id__put"
+      },
+      "Body_update_value_case_v1_calculators_value_cases__case_id__put": {
+        "properties": {
+          "case_data": {
+            "$ref": "#/components/schemas/ValueCaseRequest"
+          },
+          "context": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RequestContext"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "case_data"
+        ],
+        "title": "Body_update_value_case_v1_calculators_value_cases__case_id__put"
       },
       "Body_update_variable_v1_variables__variable_id__put": {
         "properties": {
@@ -15362,6 +15420,37 @@
         "title": "Settings",
         "description": "Application settings loaded from environment variables."
       },
+      "SignalListResponse": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/SignalNode"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "SignalListResponse"
+      },
       "SignalMatchResponse": {
         "properties": {
           "product": {
@@ -15395,6 +15484,125 @@
         ],
         "title": "SignalMatchResponse",
         "description": "Signal-to-product match result."
+      },
+      "SignalNode": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "tenant_id": {
+            "type": "string",
+            "title": "Tenant Id"
+          },
+          "account_id": {
+            "type": "string",
+            "title": "Account Id"
+          },
+          "type": {
+            "type": "string",
+            "title": "Type"
+          },
+          "content": {
+            "type": "string",
+            "title": "Content"
+          },
+          "confidence": {
+            "type": "number",
+            "title": "Confidence"
+          },
+          "trust_score": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Trust Score"
+          },
+          "lifecycle_state": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Lifecycle State"
+          },
+          "impact_area": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Impact Area"
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Created At"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "tenant_id",
+          "account_id",
+          "type",
+          "content",
+          "confidence"
+        ],
+        "title": "SignalNode"
+      },
+      "SignalRelatedResponse": {
+        "properties": {
+          "value_drivers": {
+            "items": {},
+            "type": "array",
+            "title": "Value Drivers"
+          },
+          "personas": {
+            "items": {},
+            "type": "array",
+            "title": "Personas"
+          },
+          "accounts": {
+            "items": {},
+            "type": "array",
+            "title": "Accounts"
+          }
+        },
+        "type": "object",
+        "required": [
+          "value_drivers",
+          "personas",
+          "accounts"
+        ],
+        "title": "SignalRelatedResponse"
       },
       "SimilarityRequest": {
         "properties": {
@@ -18301,156 +18509,6 @@
           }
         },
         "description": "Deprecated compatibility alias for ErrorEnvelope. Use ErrorEnvelope for new clients."
-      },
-      "SignalListResponse": {
-        "properties": {
-          "items": {
-            "items": {
-              "$ref": "#/components/schemas/SignalNode"
-            },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": {
-            "type": "integer",
-            "title": "Total"
-          },
-          "limit": {
-            "type": "integer",
-            "title": "Limit"
-          },
-          "offset": {
-            "type": "integer",
-            "title": "Offset"
-          }
-        },
-        "type": "object",
-        "required": [
-          "items",
-          "total",
-          "limit",
-          "offset"
-        ],
-        "title": "SignalListResponse"
-      },
-      "SignalNode": {
-        "properties": {
-          "id": {
-            "type": "string",
-            "title": "Id"
-          },
-          "tenant_id": {
-            "type": "string",
-            "title": "Tenant Id"
-          },
-          "account_id": {
-            "type": "string",
-            "title": "Account Id"
-          },
-          "type": {
-            "type": "string",
-            "title": "Type"
-          },
-          "content": {
-            "type": "string",
-            "title": "Content"
-          },
-          "confidence": {
-            "type": "number",
-            "title": "Confidence"
-          },
-          "trust_score": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Trust Score"
-          },
-          "lifecycle_state": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Lifecycle State"
-          },
-          "impact_area": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Impact Area"
-          },
-          "created_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Created At"
-          },
-          "updated_at": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Updated At"
-          }
-        },
-        "type": "object",
-        "required": [
-          "id",
-          "tenant_id",
-          "account_id",
-          "type",
-          "content",
-          "confidence"
-        ],
-        "title": "SignalNode"
-      },
-      "SignalRelatedResponse": {
-        "properties": {
-          "value_drivers": {
-            "items": {},
-            "type": "array",
-            "title": "Value Drivers"
-          },
-          "personas": {
-            "items": {},
-            "type": "array",
-            "title": "Personas"
-          },
-          "accounts": {
-            "items": {},
-            "type": "array",
-            "title": "Accounts"
-          }
-        },
-        "type": "object",
-        "required": [
-          "value_drivers",
-          "personas",
-          "accounts"
-        ],
-        "title": "SignalRelatedResponse"
       }
     },
     "securitySchemes": {
