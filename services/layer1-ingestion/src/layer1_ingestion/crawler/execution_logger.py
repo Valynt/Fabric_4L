@@ -8,6 +8,7 @@ and performance monitoring without full cost tracking implementation.
 
 
 import json
+import os
 from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from enum import Enum
@@ -432,6 +433,11 @@ class NoOpExecutionLogger(ExecutionLogger):
     WARNING: This is an intentional null object for testing/dev use only.
     Never bind to this implementation in production.
     """
+
+    def __init__(self) -> None:
+        if os.getenv("ENVIRONMENT", "").strip().lower() == "production":
+            raise RuntimeError("NoOpExecutionLogger must not be used in production")
+        super().__init__()
 
     def _write_log(self, entry: ExecutionLogEntry, event_type: str) -> None:
         """Do nothing - log entry is intentionally discarded for test scenarios."""

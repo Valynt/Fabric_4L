@@ -111,12 +111,19 @@ def close_db() -> None:
 redis_client = None
 # Async Redis client (used by rate limiter)
 redis_client_async = None
+REDIS_AVAILABLE = False
 try:
     import redis
-    redis_client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    _redis_client = redis.Redis.from_url(settings.redis_url, decode_responses=True)
+    _redis_client.ping()
+    redis_client = _redis_client
     import redis.asyncio as redis_async
     redis_client_async = redis_async.Redis.from_url(settings.redis_url, decode_responses=True)
+    REDIS_AVAILABLE = True
 except Exception:
+    redis_client = None
+    redis_client_async = None
+    REDIS_AVAILABLE = False
     pass
 
 

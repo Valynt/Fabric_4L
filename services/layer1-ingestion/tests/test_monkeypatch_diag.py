@@ -1,5 +1,7 @@
 import pytest
 
+pytestmark = pytest.mark.requires_postgres
+
 @pytest.fixture
 def diag(postgres_db):
     import layer1_ingestion.shared.database as db_module

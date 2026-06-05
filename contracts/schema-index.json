@@ -76,6 +76,11 @@
       "title": "Value Fabric - Extraction Pipeline"
     },
     {
+      "path": "contracts/openapi/layer2-5-signal-refinery.json",
+      "id": "openapi:contracts/openapi/layer2-5-signal-refinery.json",
+      "title": "Layer 2.5: Signal Refinery"
+    },
+    {
       "path": "contracts/openapi/layer3-knowledge.json",
       "id": "openapi:contracts/openapi/layer3-knowledge.json",
       "title": "Value Fabric - Knowledge Graph & Semantic Layer"

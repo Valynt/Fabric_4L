@@ -10,7 +10,7 @@
 # ============================================
 
 # Authentication and authorization
-value_fabric/shared/identity/ @value-fabric/security-leads @value-fabric/maintainers
+packages/shared/src/value_fabric/shared/identity/ @value-fabric/security-leads @value-fabric/maintainers
 contracts/tool-manifests/ @value-fabric/security-leads @value-fabric/maintainers
 **/*auth* @value-fabric/security-leads @value-fabric/backend-leads
 **/*rbac* @value-fabric/security-leads @value-fabric/backend-leads
@@ -74,7 +74,7 @@ services/layer5-ground-truth/ @value-fabric/backend-leads @value-fabric/data-eng
 services/layer6-benchmarks/ @value-fabric/backend-leads @value-fabric/qa-leads
 
 # Shared libraries
-value_fabric/shared/ @value-fabric/backend-leads @value-fabric/architects
+packages/shared/src/value_fabric/shared/ @value-fabric/backend-leads @value-fabric/architects
 
 # ============================================
 # FRONTEND PATHS

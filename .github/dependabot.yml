@@ -17,6 +17,38 @@ updates:
       patterns:
       - '*'
 - package-ecosystem: pip
+  directory: /services/billing
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-billing
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
+  directory: /services/layer7-billing
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - python
+  - service-layer7
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  groups:
+    pip-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: pip
   directory: /services/layer1-ingestion
   schedule:
     interval: weekly
@@ -254,6 +286,57 @@ updates:
     prefix: chore(deps)
   reviewers:
   - value-fabric/frontend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/api
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-api
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/billing
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-billing
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
+  - value-fabric/sre-leads
+  groups:
+    docker-dependencies:
+      patterns:
+      - '*'
+- package-ecosystem: docker
+  directory: /services/layer7-billing
+  schedule:
+    interval: weekly
+  labels:
+  - dependencies
+  - docker
+  - service-layer7
+  commit-message:
+    prefix: chore(deps)
+  reviewers:
+  - value-fabric/backend-leads
   - value-fabric/sre-leads
   groups:
     docker-dependencies:

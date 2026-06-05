@@ -35,6 +35,7 @@ PACKAGE_PATTERNS = {
 EXCLUDE_DIRS = {
     ".git",
     ".github",
+    ".tmp",
     ".vscode",
     "__pycache__",
     ".pytest_cache",
