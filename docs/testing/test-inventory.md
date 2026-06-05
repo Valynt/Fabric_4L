@@ -330,7 +330,7 @@ Use this table as the maintained path from a test-related issue to the canonical
 | Gate | Workflow | Trigger |
 |------|----------|---------|
 | Integration Tests | `integration-tests.yml` | Schedule/Manual |
-| Smoke Tests | `smoke-gate.yml` | PR (optional) |
+| Smoke Tests | `pr-checks.yml` / `integration-checks` (`make test-backend-integrated-release-smoke`) | PR validation |
 | Performance Tests | `performance-load-tests.yml` | Schedule/Manual |
 | Contract Drift | `contract-drift-check.yml` | Schedule |
 | AI Evals | `ai-evals-pipeline.yml` | PR/Schedule |

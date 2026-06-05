@@ -734,7 +734,7 @@ frontend/client/src/components/ui/    # shadcn components
 **Evidence:** Smoke gate tested and operational. JSON report generated at `artifacts/smoke-report-*.json`. All 6 stages execute with retry logic.
 
 **Acceptance Criteria:**
-- [x] Single command `python scripts/smoke/production_smoke.py` runs cross-layer checks
+- [x] Single command `make test-backend-integrated-release-smoke` runs cross-layer checks
 - [x] Validates: L2 extract → L3 ingest → Graph query → Hybrid search happy path
 - [x] Fails CI on contract/status code regressions (exit code 1 on failure)
 - [x] Produces JSON artifact with pass/fail + timing per stage
@@ -742,7 +742,7 @@ frontend/client/src/components/ui/    # shadcn components
 
 **Implementation:** ✅ COMPLETE
 - ✅ `.github/workflows/smoke-gate.yml` - CI workflow with Docker Compose
-- ✅ `scripts/smoke/production_smoke.py` - Python script (cross-platform, 436 lines, 6 stages)
+- ✅ `make test-backend-integrated-release-smoke` - maintained release-smoke validation target
 - ✅ `docs/archive/legacy-docs/archive/legacy-services/README.md` - Smoke gate usage documented (lines 165-230)
 
 ---
@@ -1265,7 +1265,7 @@ version_compatibility.register_migration_handler("v1", "v2", migrate_v1_to_v2_in
 **Implementation:**
 - Modified: `.github/workflows/pr-checks.yml` — Added `integration-checks` job (lines 417-505)
 - Services: Starts neo4j, redis, postgres, layer2-extraction, layer3-knowledge, layer4-agents
-- Tests: Runs `scripts/smoke/production_smoke.py` against all layers
+- Tests: Runs `make test-backend-integrated-release-smoke` against all layers
 - Artifacts: Uploads smoke reports and logs on failure
 - Timeout: 20 minutes with 3-minute health check wait
 - Condition: Skips on fork PRs (no secrets available)
@@ -3585,7 +3585,7 @@ Task 85 (Cost metrics) ──► Task 70 (Model Registry)
   - Monitoring stack (prometheus, alertmanager)
   - Network policies, HPA, Pod Disruption Budgets
   - Secrets management note (external-secrets operator)
-- ✅ `scripts/smoke/production_smoke.py` exists with 6-stage validation:
+- ✅ `make test-backend-integrated-release-smoke` exists as the maintained release-smoke validation target:
   - Stage 1: Layer 2 health check
   - Stage 2: Layer 3 health check
   - Stage 3: Layer 4 health check
@@ -3604,7 +3604,7 @@ Task 85 (Cost metrics) ──► Task 70 (Model Registry)
 **Implementation:**
 - Verified: `docker-compose.full.yml`
 - Verified: `k8s/base/kustomization.yaml`
-- Verified: `scripts/smoke/production_smoke.py`
+- Verified: `make test-backend-integrated-release-smoke`
 
 ---
 
@@ -4098,7 +4098,7 @@ The platform has achieved substantial production readiness. All Phase 1 (Tasks 2
 - **Acceptance Criteria:**
   - [ ] `docker-compose up` starts all 6 layers + infrastructure
   - [ ] All health checks return 200
-  - [ ] `python scripts/smoke/production_smoke.py` passes 6/6 stages
+  - [ ] `make test-backend-integrated-release-smoke` passes 6/6 stages
   - [ ] K8s manifests render: `kubectl kustomize k8s/deployments/dev-nginx`
 - **Implementation:**
   - Verify: `docker-compose.full.yml`

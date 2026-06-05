@@ -1655,7 +1655,10 @@ jobs:
           identity-id: ${{ secrets.INFISICAL_IDENTITY_ID }}
           secret-path: /layer2-extraction
 
-      - name: Start core services
+      - name: Run release smoke gate
+        run: make test-backend-integrated-release-smoke
+
+      - name: Start core services for integration tests
         run: |
           export NEO4J_PASSWORD=valuefabric
           docker compose up -d neo4j redis postgres
@@ -1681,15 +1684,6 @@ jobs:
           docker compose -f docker-compose.full.yml ps
         timeout-minutes: 3
 
-      - name: Run smoke tests
-        run: |
-          pip install httpx
-          python scripts/smoke/production_smoke.py \
-            --l2-url http://localhost:8002 \
-            --l3-url http://localhost:8003 \
-            --l4-url http://localhost:8004 \
-            --output-dir artifacts
-
       - name: Run integration test suite
         run: |
           pip install pytest httpx pytest-asyncio
@@ -1712,7 +1706,7 @@ jobs:
         uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4
         with:
           name: smoke-report-pr
-          path: artifacts/smoke-report-*.json
+          path: artifacts/release_smoke/**
           retention-days: 7
 
       - name: Upload logs on failure
