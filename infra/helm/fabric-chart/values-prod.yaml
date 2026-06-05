@@ -3,6 +3,8 @@ global:
 
 image:
   pullPolicy: Always
+  # Non-deployable placeholder; production releases must provide the signed image digest.
+  digest: "sha256:REQUIRED_SIGNED_IMAGE_DIGEST"
 
 services:
   layer1:

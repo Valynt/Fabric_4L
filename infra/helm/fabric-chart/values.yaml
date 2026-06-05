@@ -11,7 +11,10 @@ global:
 image:
   repository: ghcr.io/bmsull560/fabric_4l
   pullPolicy: IfNotPresent
-  tag: "latest"
+  # Non-deployable placeholder. Override with an immutable release tag for dev/test.
+  tag: "REQUIRED_IMAGE_TAG"
+  # Production should prefer digest pinning; when set, this takes precedence over tag.
+  digest: ""
 
 # ─── Ingress ────────────────────────────────────────────────────────────────
 ingress:
