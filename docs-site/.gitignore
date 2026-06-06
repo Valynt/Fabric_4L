@@ -1,0 +1,5 @@
+# MkDocs build output
+site/
+
+# Generated OpenAPI spec copied from contracts/openapi at build time
+docs/api/openapi/

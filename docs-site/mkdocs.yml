@@ -1,0 +1,257 @@
+site_name: ValuePact Documentation
+site_description: User, administrator, API, and engineering documentation for ValuePact and Fabric4L.
+site_url: https://docs.valuepact.ai/
+repo_name: Fabric_4L
+repo_url: https://github.com/bmsullivan560/Fabric_4L
+
+theme:
+  name: material
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.indexes
+    - navigation.top
+    - navigation.path
+    - content.code.copy
+    - content.action.edit
+    - search.highlight
+    - search.suggest
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+  font:
+    text: Inter
+    code: JetBrains Mono
+
+plugins:
+  - search
+  - swagger-ui-tag
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - def_list
+  - footnotes
+  - md_in_html
+  - toc:
+      permalink: true
+  - tables
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.highlight:
+      anchor_linenums: true
+
+strict: true
+
+nav:
+  - Home: index.md
+
+  - Getting Started:
+      - Overview: getting-started/index.md
+      - What is ValuePact?: getting-started/what-is-valuepact.md
+      - Quick Start Guide: getting-started/quick-start-guide.md
+      - User Roles: getting-started/user-roles.md
+      - Navigating the Platform: getting-started/navigating-the-platform.md
+
+  - Core Concepts:
+      - Overview: core-concepts/index.md
+      - Value Realization: core-concepts/value-realization.md
+      - Business Cases: core-concepts/business-cases.md
+      - ROI Calculations: core-concepts/roi-calculations.md
+      - Benefits Tracking: core-concepts/benefits-tracking.md
+      - Stakeholders: core-concepts/stakeholders.md
+      - Opportunities: core-concepts/opportunities.md
+      - Projects: core-concepts/projects.md
+      - Initiatives: core-concepts/initiatives.md
+      - Value Metrics: core-concepts/value-metrics.md
+      - Outcomes: core-concepts/outcomes.md
+      - Forecasts: core-concepts/forecasts.md
+      - Actuals: core-concepts/actuals.md
+
+  - User Guides:
+      - Overview: end-user-guides/index.md
+      - Creating a Value Initiative: end-user-guides/creating-a-value-initiative.md
+      - Building a Business Case: end-user-guides/building-a-business-case.md
+      - Tracking Benefits: end-user-guides/tracking-benefits.md
+      - Managing Stakeholders: end-user-guides/managing-stakeholders.md
+      - Collaboration: end-user-guides/collaboration.md
+
+  - Dashboards & Reporting:
+      - Overview: dashboards-reporting/index.md
+      - Executive Dashboard: dashboards-reporting/executive-dashboard.md
+      - Portfolio Dashboard: dashboards-reporting/portfolio-dashboard.md
+      - Team Dashboard: dashboards-reporting/team-dashboard.md
+      - Individual Dashboard: dashboards-reporting/individual-dashboard.md
+      - Exporting & Sharing Reports: dashboards-reporting/exporting-sharing-reports.md
+
+  - Analytics:
+      - Overview: analytics/index.md
+      - ROI Analytics: analytics/roi-analytics.md
+      - Forecast Analytics: analytics/forecast-analytics.md
+      - Value Realization Analytics: analytics/value-realization-analytics.md
+      - Trend Analysis: analytics/trend-analysis.md
+      - Benchmarking: analytics/benchmarking.md
+      - Interpreting Analytics: analytics/interpreting-analytics.md
+
+  - Workflow Management:
+      - Overview: workflow-management/index.md
+      - Statuses: workflow-management/statuses.md
+      - Lifecycle Management: workflow-management/lifecycle-management.md
+      - Approval Workflows: workflow-management/approval-workflows.md
+      - Escalations: workflow-management/escalations.md
+      - Automation: workflow-management/automation.md
+      - Workflow Diagrams: workflow-management/workflow-diagrams.md
+
+  - Administration:
+      - Overview: administration/index.md
+      - User Management:
+          - Overview: administration/user-management/index.md
+          - Invite Users: administration/user-management/invite-users.md
+          - Remove Users: administration/user-management/remove-users.md
+          - Permissions: administration/user-management/permissions.md
+          - Groups: administration/user-management/groups.md
+      - Role Management:
+          - Overview: administration/role-management/index.md
+          - Role Creation: administration/role-management/role-creation.md
+          - Permission Assignment: administration/role-management/permission-assignment.md
+      - Configuration:
+          - Overview: administration/configuration/index.md
+          - Branding: administration/configuration/branding.md
+          - Custom Fields: administration/configuration/custom-fields.md
+          - Workflows: administration/configuration/workflows.md
+          - Notifications: administration/configuration/notifications.md
+      - Security:
+          - Overview: administration/security/index.md
+          - Authentication: administration/security/authentication.md
+          - SSO: administration/security/sso.md
+          - MFA: administration/security/mfa.md
+          - Audit Logs: administration/security/audit-logs.md
+
+  - Integrations:
+      - Overview: integrations/index.md
+      - Salesforce: integrations/salesforce.md
+      - HubSpot: integrations/hubspot.md
+      - Slack: integrations/slack.md
+      - Microsoft Teams: integrations/teams.md
+      - Jira: integrations/jira.md
+      - ServiceNow: integrations/servicenow.md
+      - APIs: integrations/apis.md
+      - Webhooks: integrations/webhooks.md
+
+  - API:
+      - Overview: api/index.md
+      - API Overview: api/overview.md
+      - Authentication: api/authentication.md
+      - Rate Limits: api/rate-limits.md
+      - Errors: api/errors.md
+      - Pagination: api/pagination.md
+      - Generated API Docs: api/generated.md
+      - Endpoints:
+          - Overview: api/endpoints/index.md
+          - Initiatives: api/endpoints/initiatives.md
+          - Business Cases: api/endpoints/business-cases.md
+          - Benefits: api/endpoints/benefits.md
+          - Stakeholders: api/endpoints/stakeholders.md
+          - Dashboards: api/endpoints/dashboards.md
+          - Analytics: api/endpoints/analytics.md
+          - Users: api/endpoints/users.md
+          - Roles: api/endpoints/roles.md
+          - Integrations: api/endpoints/integrations.md
+          - Webhooks: api/endpoints/webhooks.md
+
+  - Troubleshooting:
+      - Overview: troubleshooting/index.md
+      - Login Issues: troubleshooting/login-issues.md
+      - Permission Issues: troubleshooting/permission-issues.md
+      - Missing Data: troubleshooting/missing-data.md
+      - Sync Failures: troubleshooting/sync-failures.md
+      - Report Discrepancies: troubleshooting/report-discrepancies.md
+      - Notification Issues: troubleshooting/notification-issues.md
+
+  - FAQ:
+      - Overview: faq/index.md
+      - Executive FAQ: faq/executive-faq.md
+      - User FAQ: faq/user-faq.md
+      - Admin FAQ: faq/admin-faq.md
+      - Integration FAQ: faq/integration-faq.md
+      - Security FAQ: faq/security-faq.md
+
+  - Best Practices:
+      - Overview: best-practices/index.md
+      - Executive Adoption: best-practices/executive-adoption.md
+      - Measuring Value: best-practices/measuring-value.md
+      - Data Quality: best-practices/data-quality.md
+      - Governance: best-practices/governance.md
+      - Stakeholder Engagement: best-practices/stakeholder-engagement.md
+      - Reporting Cadence: best-practices/reporting-cadence.md
+      - Portfolio Reviews: best-practices/portfolio-reviews.md
+
+  - Training:
+      - Overview: training/index.md
+      - Beginner Learning Path: training/beginner-learning-path.md
+      - Intermediate Learning Path: training/intermediate-learning-path.md
+      - Advanced Learning Path: training/advanced-learning-path.md
+      - Certification Checklists: training/certification-checklists.md
+
+  - Release Notes:
+      - Overview: release-notes/index.md
+      - Framework: release-notes/framework.md
+      - Templates:
+          - Overview: release-notes/templates/index.md
+          - New Feature Template: release-notes/templates/new-feature-template.md
+          - Enhancement Template: release-notes/templates/enhancement-template.md
+          - Fix Template: release-notes/templates/fix-template.md
+          - Deprecation Template: release-notes/templates/deprecation-template.md
+
+  - Support:
+      - Overview: support/index.md
+      - KB Article Template: support/kb-article-template.md
+      - Ticket Response Templates: support/ticket-response-templates.md
+      - Escalation Guides: support/escalation-guides.md
+      - Severity Matrix: support/severity-matrix.md
+
+  - Fabric4L Engineering:
+      - Overview: fabric4l/index.md
+      - Architecture:
+          - Overview: fabric4l/architecture/index.md
+          - System Overview: fabric4l/architecture/system-overview.md
+          - Service Map: fabric4l/architecture/service-map.md
+          - Data Flow: fabric4l/architecture/data-flow.md
+          - Tenancy: fabric4l/architecture/tenancy.md
+          - Authentication: fabric4l/architecture/auth.md
+          - Observability: fabric4l/architecture/observability.md
+      - ADRs:
+          - Overview: fabric4l/adr/index.md
+          - Template: fabric4l/adr/template.md
+      - Security:
+          - Overview: fabric4l/security/index.md
+          - Readiness Gates: fabric4l/security/readiness-gates.md
+          - Tenant Isolation: fabric4l/security/tenant-isolation.md
+          - Auth Boundaries: fabric4l/security/auth-boundaries.md
+          - Secret Management: fabric4l/security/secret-management.md
+          - Threat Model: fabric4l/security/threat-model.md
+      - Behavior Contracts:
+          - Overview: fabric4l/behavior-contracts/index.md
+          - Critical Behaviors: fabric4l/behavior-contracts/critical-behaviors.md
+          - Test Strategy: fabric4l/behavior-contracts/test-strategy.md
+          - Gate Registry: fabric4l/behavior-contracts/gate-registry.md
+      - Operations:
+          - Overview: fabric4l/operations/index.md
+          - Deployment: fabric4l/operations/deployment.md
+          - Runbooks: fabric4l/operations/runbooks.md
+          - Monitoring: fabric4l/operations/monitoring.md
+          - Incident Response: fabric4l/operations/incident-response.md
+      - Development:
+          - Overview: fabric4l/development/index.md
+          - Repo Strategy: fabric4l/development/repo-strategy.md
+          - Testing: fabric4l/development/testing.md
+          - Coding Standards: fabric4l/development/coding-standards.md
+          - Contribution Guide: fabric4l/development/contribution-guide.md
+      - Reference:
+          - Overview: fabric4l/reference/index.md
+          - Glossary: fabric4l/reference/glossary.md
+          - Documentation Rules: fabric4l/reference/documentation-rules.md
+          - Links: fabric4l/reference/links.md
