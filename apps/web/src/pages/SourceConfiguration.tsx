@@ -54,10 +54,10 @@ const TYPE_CONFIG: Record<SourceType, {
   bgColor: string;
 }> = {
   crm: { icon: <Globe size={16} />, label: 'CRM', bgColor: 'bg-primary/10 text-primary' },
-  database: { icon: <Database size={16} />, label: 'Database', bgColor: 'bg-violet-50 text-violet-600' },
+  database: { icon: <Database size={16} />, label: 'Database', bgColor: 'bg-primary/10 text-primary' },
   file: { icon: <FileText size={16} />, label: 'File', bgColor: 'bg-warning/10 text-warning' },
   api: { icon: <Server size={16} />, label: 'API', bgColor: 'bg-success/10 text-success' },
-  cloud_storage: { icon: <Cloud size={16} />, label: 'Cloud', bgColor: 'bg-cyan-50 text-cyan-600' },
+  cloud_storage: { icon: <Cloud size={16} />, label: 'Cloud', bgColor: 'bg-info/10 text-info' },
 };
 
 const STATUS_CONFIG: Record<ConnectionStatus, {
@@ -329,7 +329,7 @@ function CreateSourceModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
-        <h3 className="text-[16px] font-semibold text-foreground">Add Source</h3>
+        <h3 className="text-base font-semibold text-foreground">Add Source</h3>
         <p className="mt-1 vf-text-body-s text-muted-foreground">Create a new data source target for ingestion.</p>
 
         <form className="mt-4 space-y-3" onSubmit={onSubmit}>
@@ -518,28 +518,28 @@ function SourceConfigurationContent() {
             <Database size={14} className="text-primary" />
             <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Sources</span>
           </div>
-          <p className="text-[22px] font-extrabold text-foreground">{stats?.total ?? '—'}</p>
+          <p className="text-2xl font-extrabold text-foreground">{stats?.total ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <Plug size={14} className="text-success" />
             <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Connected</span>
           </div>
-          <p className="text-[22px] font-extrabold text-success">{stats?.connected ?? '—'}</p>
+          <p className="text-2xl font-extrabold text-success">{stats?.connected ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <AlertTriangle size={14} className="text-destructive" />
             <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Errors</span>
           </div>
-          <p className="text-[22px] font-extrabold text-destructive">{stats?.error ?? '—'}</p>
+          <p className="text-2xl font-extrabold text-destructive">{stats?.error ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <FileText size={14} className="text-violet-500" />
+            <FileText size={14} className="text-primary" />
             <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Records</span>
           </div>
-          <p className="text-[22px] font-extrabold text-violet-600">
+          <p className="text-2xl font-extrabold text-primary">
             {stats?.totalRecords ? `${(stats.totalRecords / 1000).toFixed(0)}K` : '—'}
           </p>
         </div>

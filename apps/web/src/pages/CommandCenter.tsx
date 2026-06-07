@@ -257,7 +257,7 @@ export default function CommandCenter() {
         {/* Recent maps table — spans 2 cols */}
         <div className="col-span-1 md:col-span-2 bg-card border border-border rounded-lg shadow-sm">
           <div className="px-4 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
-            <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
+            <h2 className="vf-text-body-l font-bold text-foreground">Recent Maps</h2>
             <button className="vf-text-caption text-primary hover:underline">
               View all
             </button>
@@ -281,7 +281,7 @@ export default function CommandCenter() {
                 id: job.id,
                 domain: (
                   <span className="flex items-center gap-2">
-                    <span className="text-muted-foreground/40 text-[14px]">🏢</span>
+                    <span className="text-muted-foreground/40 vf-text-body-l">🏢</span>
                     <span className="font-medium text-foreground">
                       {job.domain}
                     </span>

@@ -48,6 +48,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell, ErrorState, EmptyState } from '@/components';
 
@@ -314,20 +321,14 @@ export default function IngestionJobs() {
             <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground">Filter Controls</span>
             <div className="flex items-center gap-2">
               <label className="vf-text-caption text-muted-foreground">Status:</label>
-              <select
-                value={filters.status}
-                onChange={(e) => {
-                  setStatusFilter(e.target.value as JobStatusFilter);
-                  paginationState.setPage(1);
-                }}
-                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
-              >
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={filters.status} onValueChange={(v) => { setStatusFilter(v as JobStatusFilter); paginationState.setPage(1); }}>
+                <SelectTrigger className="w-[140px] vf-text-body-s"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {STATUS_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center gap-2">
               <label className="vf-text-caption text-muted-foreground">From:</label>

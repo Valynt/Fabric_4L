@@ -538,17 +538,14 @@ export default function MyModels() {
 
             <div className="flex items-center gap-1.5">
               <Filter size={12} className="text-muted-foreground" />
-              <select
-                value={industryFilter}
-                onChange={(e) => setIndustryFilter(e.target.value)}
-                className="px-2 py-1.5 vf-text-caption border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {INDUSTRY_OPTIONS.map((ind) => (
-                  <option key={ind} value={ind}>
-                    {ind}
-                  </option>
-                ))}
-              </select>
+              <Select value={industryFilter} onValueChange={(v) => setIndustryFilter(v)}>
+                <SelectTrigger className="w-[140px] vf-text-caption"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {INDUSTRY_OPTIONS.map((ind) => (
+                    <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {(searchQuery || industryFilter !== "All Industries") && (

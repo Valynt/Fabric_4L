@@ -461,16 +461,20 @@ function ComparisonPanel({ packs }: { packs: ValuePack[] }) {
         <GitCompare size={12} /> Compare Packs
       </h4>
       <div className="space-y-2 mb-3">
-        <select value={packA} onChange={e => setPackA(e.target.value)}
-          className="w-full vf-text-caption bg-muted/20 border border-border rounded-md px-2 py-1.5 outline-none">
-          <option value="">Select Pack A</option>
-          {packs.map(p => <option key={p.pack_id} value={p.pack_id}>{p.name}</option>)}
-        </select>
-        <select value={packB} onChange={e => setPackB(e.target.value)}
-          className="w-full vf-text-caption bg-muted/20 border border-border rounded-md px-2 py-1.5 outline-none">
-          <option value="">Select Pack B</option>
-          {packs.map(p => <option key={p.pack_id} value={p.pack_id}>{p.name}</option>)}
-        </select>
+        <Select value={packA} onValueChange={v => setPackA(v)}>
+          <SelectTrigger className="w-full vf-text-caption"><SelectValue placeholder="Select Pack A" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Pack A</SelectItem>
+            {packs.map(p => <SelectItem key={p.pack_id} value={p.pack_id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select value={packB} onValueChange={v => setPackB(v)}>
+          <SelectTrigger className="w-full vf-text-caption"><SelectValue placeholder="Select Pack B" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">Select Pack B</SelectItem>
+            {packs.map(p => <SelectItem key={p.pack_id} value={p.pack_id}>{p.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
       </div>
       <Btn variant="outline" className="w-full" disabled={!packA || !packB || comparison.isPending}
         onClick={handleCompare}>

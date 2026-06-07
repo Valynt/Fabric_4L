@@ -20,6 +20,13 @@ import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, DataTable, Btn } from "@/components/ui/fabric";
 import { EntityBadge } from "@/lib/entity-colors";
 import { PageShell, ErrorState, EmptyState } from '@/components';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const CONF_COLORS = (c: number) =>
   c >= 0.9 ? "text-success font-semibold" : c >= 0.7 ? "text-warning" : "text-destructive";
@@ -151,38 +158,35 @@ export default function EntityBrowser() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <select
-          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
-          value={selectedType || ''}
-          onChange={(e) => setSelectedType(e.target.value as EntityType || null)}
-        >
-          <option value="">All Types</option>
-          <option value="capability">Capability</option>
-          <option value="usecase">Use Case</option>
-          <option value="persona">Persona</option>
-          <option value="valuedriver">Value Driver</option>
-        </select>
-        <select
-          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
-          value={''}
-          onChange={() => {}}
-        >
-          <option value="">All Domains</option>
-          {entityList?.availableDomains?.map(d => (
-            <option key={d} value={d}>{d}</option>
-          ))}
-        </select>
-        <select
-          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
-          value={''}
-          onChange={() => {}}
-        >
-          <option value="">All Status</option>
-          <option value="validated">Validated</option>
-          <option value="pending">Pending</option>
-          <option value="draft">Draft</option>
-          <option value="deprecated">Deprecated</option>
-        </select>
+        <Select value={selectedType || ''} onValueChange={(v) => setSelectedType(v as EntityType || null)}>
+          <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Types</SelectItem>
+            <SelectItem value="capability">Capability</SelectItem>
+            <SelectItem value="usecase">Use Case</SelectItem>
+            <SelectItem value="persona">Persona</SelectItem>
+            <SelectItem value="valuedriver">Value Driver</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={''} onValueChange={() => {}}>
+          <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Domains" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Domains</SelectItem>
+            {entityList?.availableDomains?.map(d => (
+              <SelectItem key={d} value={d}>{d}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <Select value={''} onValueChange={() => {}}>
+          <SelectTrigger className="h-8 w-[140px] vf-text-body-s"><SelectValue placeholder="All Status" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="">All Status</SelectItem>
+            <SelectItem value="validated">Validated</SelectItem>
+            <SelectItem value="pending">Pending</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="deprecated">Deprecated</SelectItem>
+          </SelectContent>
+        </Select>
         <Btn variant="ghost" onClick={clearFilters}>Clear Filters</Btn>
       </Toolbar>
 

@@ -75,14 +75,14 @@ export default function ValueNarrativeHome() {
         <div className="grid grid-cols-3 gap-4">
           <div className="col-span-2 bg-card border border-border rounded-lg shadow-sm">
             <div className="px-4 pt-4 pb-3 border-b border-border/60 flex items-center justify-between">
-              <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
+              <h2 className="vf-text-body-l font-bold text-foreground">Recent Maps</h2>
               <button className="vf-text-caption text-primary hover:underline">View all</button>
             </div>
             <DataTable
               columns={["Domain", "Pages", "Status", "Updated"]}
               rows={recentJobs.map((job) => [
                 <span key={`d-${job.id}`} className="flex items-center gap-2">
-                  <span className="text-muted-foreground text-[14px]">🏢</span>
+                  <span className="text-muted-foreground vf-text-body-l">🏢</span>
                   <span className="font-medium text-foreground">{job.domain}</span>
                 </span>,
                 <span key={`p-${job.id}`} className="text-muted-foreground">{job.pagesProcessed || 0}</span>,

@@ -449,7 +449,7 @@ export default function BusinessCase() {
       {/* Hero ROI card */}
       <div className="bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl p-6 mb-6 text-white shadow-lg">
         <div className="vf-text-caption font-bold uppercase tracking-wider opacity-70 mb-1">Total Estimated Value</div>
-        <div className="text-[48px] font-extrabold leading-none mb-1">
+        <div className="text-5xl font-extrabold leading-none mb-1">
           ${businessCase.total_value.toLocaleString()}
         </div>
         <div className="vf-text-body-m opacity-80">
@@ -458,15 +458,15 @@ export default function BusinessCase() {
         <div className="flex gap-6 mt-4">
           <div>
             <div className="vf-text-micro uppercase tracking-wider opacity-60">Confidence</div>
-            <div className="text-[18px] font-bold">{Math.round(businessCase.confidence_score * 100)}%</div>
+            <div className="text-lg font-bold">{Math.round(businessCase.confidence_score * 100)}%</div>
           </div>
           <div>
             <div className="vf-text-micro uppercase tracking-wider opacity-60">Implementation Cost</div>
-            <div className="text-[18px] font-bold">${businessCase.implementation_cost.toLocaleString()}</div>
+            <div className="text-lg font-bold">${businessCase.implementation_cost.toLocaleString()}</div>
           </div>
           <div>
             <div className="vf-text-micro uppercase tracking-wider opacity-60">Pages</div>
-            <div className="text-[18px] font-bold">{businessCase.page_count}</div>
+            <div className="text-lg font-bold">{businessCase.page_count}</div>
           </div>
         </div>
       </div>

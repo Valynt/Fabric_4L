@@ -473,17 +473,17 @@ export default function ValueTreeExplorer() {
             <div className="flex items-center gap-4 vf-text-body-s">
               <div>
                 <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Nodes</span>
-                <p className="font-bold text-foreground text-[18px]">{stats.totalNodes}</p>
+                <p className="font-bold text-foreground text-lg">{stats.totalNodes}</p>
               </div>
               <div className="w-px h-8 bg-border" />
               <div>
                 <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Edges</span>
-                <p className="font-bold text-foreground text-[18px]">{stats.totalEdges}</p>
+                <p className="font-bold text-foreground text-lg">{stats.totalEdges}</p>
               </div>
               <div className="w-px h-8 bg-border" />
               <div>
                 <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Max Depth</span>
-                <p className="font-bold text-foreground text-[18px]">{stats.maxDepth}</p>
+                <p className="font-bold text-foreground text-lg">{stats.maxDepth}</p>
               </div>
               <div className="ml-auto flex gap-2">
                 {Object.entries(stats.byLayer).map(([layer, count]) => (
@@ -559,7 +559,7 @@ export default function ValueTreeExplorer() {
       {!entityId && !treeLoading && !treeError && (
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
           <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Entity Selected</h3>
+          <h3 className="vf-text-body-l font-semibold text-muted-foreground mb-2">No Entity Selected</h3>
           <p className="vf-text-body-s text-muted-foreground mb-4 max-w-md mx-auto">
             Select a root entity (Value Driver, Persona, or Capability) to visualize its value hierarchy.
           </p>
@@ -573,7 +573,7 @@ export default function ValueTreeExplorer() {
       {entityId && !treeLoading && !treeError && !tree && (
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
           <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Value Tree Found</h3>
+          <h3 className="vf-text-body-l font-semibold text-muted-foreground mb-2">No Value Tree Found</h3>
           <p className="vf-text-body-s text-muted-foreground mb-4 max-w-md mx-auto">
             This entity doesn&apos;t have any connected value relationships. Try selecting a different entity or create relationships in the knowledge graph.
           </p>

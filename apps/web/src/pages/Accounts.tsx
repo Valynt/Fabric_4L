@@ -389,28 +389,28 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
             <DollarSign size={12} />
             <span className="vf-text-micro uppercase tracking-wide">Pipeline</span>
           </div>
-          <p className="text-[16px] font-bold">{formatCurrency(totalOpportunityValue)}</p>
+          <p className="text-base font-bold">{formatCurrency(totalOpportunityValue)}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <Briefcase size={12} />
             <span className="vf-text-micro uppercase tracking-wide">Opportunities</span>
           </div>
-          <p className="text-[16px] font-bold">{account.opportunities?.length || 0}</p>
+          <p className="text-base font-bold">{account.opportunities?.length || 0}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <Users size={12} />
             <span className="vf-text-micro uppercase tracking-wide">Employees</span>
           </div>
-          <p className="text-[16px] font-bold">{account.employees?.toLocaleString() || "—"}</p>
+          <p className="text-base font-bold">{account.employees?.toLocaleString() || "—"}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <DollarSign size={12} />
             <span className="vf-text-micro uppercase tracking-wide">Revenue</span>
           </div>
-          <p className="text-[16px] font-bold">{formatCurrency(account.annual_revenue)}</p>
+          <p className="text-base font-bold">{formatCurrency(account.annual_revenue)}</p>
         </div>
       </div>
 
