@@ -434,7 +434,7 @@ function TemplateLibraryPanel() {
             <div key={template.template_id} className="p-2 bg-muted/10 rounded-md hover:bg-muted/20 cursor-pointer">
               <div className="vf-text-caption font-semibold text-foreground">{template.template_name}</div>
               {template.formula_pattern && <div className="vf-text-micro text-muted-foreground mt-0.5 line-clamp-1">{template.formula_pattern}</div>}
-              <div className="text-[9px] text-muted-foreground/60 mt-0.5">{template.applicable_industries[0] || "General"}</div>
+              <div className="vf-text-micro text-muted-foreground/60 mt-0.5">{template.applicable_industries[0] || "General"}</div>
             </div>
           ))}
         </div>

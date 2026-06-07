@@ -21,7 +21,7 @@ interface Props {
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <div className="mb-5">
-      <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">{title}</p>
+      <p className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-2">{title}</p>
       {children}
     </div>
   );
@@ -29,7 +29,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Field({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-start justify-between gap-3 py-1.5 text-[13px]">
+    <div className="flex items-start justify-between gap-3 py-1.5 vf-text-body-m">
       <span className="text-muted-foreground shrink-0 w-36">{label}</span>
       <span className="text-foreground text-right break-all">{value ?? '—'}</span>
     </div>
@@ -37,10 +37,10 @@ function Field({ label, value }: { label: string; value: React.ReactNode }) {
 }
 
 function JobStatusIcon({ status }: { status: string }) {
-  if (status === 'COMPLETED') return <CheckCircle2 size={13} className="text-emerald-500" />;
-  if (status === 'FAILED') return <XCircle size={13} className="text-red-500" />;
+  if (status === 'COMPLETED') return <CheckCircle2 size={13} className="text-success" />;
+  if (status === 'FAILED') return <XCircle size={13} className="text-destructive" />;
   if (['PENDING', 'QUEUED', 'RUNNING', 'NAVIGATING', 'EXTRACTING'].includes(status))
-    return <Loader2 size={13} className="text-blue-500 animate-spin" />;
+    return <Loader2 size={13} className="text-primary animate-spin" />;
   return <Clock size={13} className="text-muted-foreground" />;
 }
 
@@ -76,7 +76,7 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
   }
 
   if (!target) {
-    return <p className="text-[13px] text-muted-foreground">Target not found.</p>;
+    return <p className="vf-text-body-m text-muted-foreground">Target not found.</p>;
   }
 
   const schedule = target.schedule as Record<string, unknown> | null;
@@ -89,17 +89,17 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
     <div className="space-y-1">
       {/* Actions */}
       <div className="flex items-center gap-2 mb-4">
-        <Button size="sm" variant="outline" onClick={onEdit} className="h-7 text-[12px]">
+        <Button size="sm" variant="outline" onClick={onEdit} className="h-7 vf-text-body-s">
           <Edit3 size={12} className="mr-1.5" />Edit
         </Button>
         {target.status === 'ACTIVE' && (
-          <Button size="sm" variant="outline" onClick={handleRun} disabled={executeTarget.isPending} className="h-7 text-[12px]">
+          <Button size="sm" variant="outline" onClick={handleRun} disabled={executeTarget.isPending} className="h-7 vf-text-body-s">
             {executeTarget.isPending ? <Loader2 size={12} className="mr-1.5 animate-spin" /> : <Play size={12} className="mr-1.5" />}
             Run now
           </Button>
         )}
         <a href={target.url} target="_blank" rel="noopener noreferrer" className="ml-auto">
-          <Button size="sm" variant="ghost" className="h-7 text-[12px]">
+          <Button size="sm" variant="ghost" className="h-7 vf-text-body-s">
             <ExternalLink size={12} className="mr-1.5" />Open URL
           </Button>
         </a>
@@ -111,15 +111,15 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
       <Section title="Identity">
         <Field label="Name" value={target.name} />
         <Field label="Description" value={target.description} />
-        <Field label="URL" value={<span className="font-mono text-[11px] break-all">{target.url}</span>} />
-        {target.urlPattern && <Field label="URL Pattern" value={<span className="font-mono text-[11px]">{target.urlPattern}</span>} />}
-        <Field label="Type" value={<Badge variant="outline" className="text-[11px]">{target.targetType}</Badge>} />
+        <Field label="URL" value={<span className="font-mono vf-text-caption break-all">{target.url}</span>} />
+        {target.urlPattern && <Field label="URL Pattern" value={<span className="font-mono vf-text-caption">{target.urlPattern}</span>} />}
+        <Field label="Type" value={<Badge variant="outline" className="vf-text-caption">{target.targetType}</Badge>} />
         <Field label="Category" value={target.sourceCategory} />
         <Field label="Crawl Path" value={target.crawlPath} />
         <Field label="Status" value={target.status} />
         <Field label="Tags" value={
           target.tags.length > 0
-            ? <div className="flex flex-wrap gap-1 justify-end">{target.tags.map(t => <Badge key={t} variant="secondary" className="text-[10px]">{t}</Badge>)}</div>
+            ? <div className="flex flex-wrap gap-1 justify-end">{target.tags.map(t => <Badge key={t} variant="secondary" className="vf-text-micro">{t}</Badge>)}</div>
             : '—'
         } />
         <Field label="Created" value={new Date(target.createdAt).toLocaleDateString()} />
@@ -133,7 +133,7 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
         <Field label="Enabled" value={scheduleEnabled ? 'Yes' : 'No'} />
         {scheduleEnabled && (
           <>
-            <Field label="Cron" value={<span className="font-mono text-[11px]">{String(schedule?.cron_expression ?? '—')}</span>} />
+            <Field label="Cron" value={<span className="font-mono vf-text-caption">{String(schedule?.cron_expression ?? '—')}</span>} />
             <Field label="Timezone" value={String(schedule?.timezone ?? 'UTC')} />
           </>
         )}
@@ -172,18 +172,18 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
       <Section title="Recent Jobs">
         <div className="flex items-center justify-between mb-2">
           <span />
-          <Button size="sm" variant="ghost" onClick={() => refetchJobs()} className="h-6 text-[11px] px-2">
+          <Button size="sm" variant="ghost" onClick={() => refetchJobs()} className="h-6 vf-text-caption px-2">
             <RefreshCw size={11} className={cn('mr-1', jobsLoading && 'animate-spin')} />Refresh
           </Button>
         </div>
         {jobsLoading ? (
           <div className="space-y-1.5">{[...Array(3)].map((_, i) => <Skeleton key={i} className="h-8 rounded" />)}</div>
         ) : jobs.length === 0 ? (
-          <p className="text-[12px] text-muted-foreground py-2">No jobs yet.</p>
+          <p className="vf-text-body-s text-muted-foreground py-2">No jobs yet.</p>
         ) : (
           <div className="space-y-1">
             {jobs.map((job, i) => (
-              <div key={String(job.id ?? i)} className="flex items-center gap-2 py-1.5 text-[12px]">
+              <div key={String(job.id ?? i)} className="flex items-center gap-2 py-1.5 vf-text-body-s">
                 <JobStatusIcon status={String(job.status)} />
                 <span className="text-muted-foreground capitalize">{String(job.status).toLowerCase().replace(/_/g, ' ')}</span>
                 <span className="ml-auto text-muted-foreground">
@@ -200,7 +200,7 @@ export function TargetDetailPanel({ targetId, onEdit, onClose }: Props) {
         <>
           <Separator className="my-3" />
           <Section title="Live Run Status">
-            <div className="flex items-center gap-2 text-[13px] text-blue-600">
+            <div className="flex items-center gap-2 vf-text-body-m text-primary">
               <Loader2 size={14} className="animate-spin" />
               <span>Crawl in progress — polling every 5s</span>
             </div>

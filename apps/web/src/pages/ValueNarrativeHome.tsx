@@ -76,7 +76,7 @@ export default function ValueNarrativeHome() {
           <div className="col-span-2 bg-card border border-border rounded-lg shadow-sm">
             <div className="px-4 pt-4 pb-3 border-b border-border/60 flex items-center justify-between">
               <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
-              <button className="text-[11px] text-primary hover:underline">View all</button>
+              <button className="vf-text-caption text-primary hover:underline">View all</button>
             </div>
             <DataTable
               columns={["Domain", "Pages", "Status", "Updated"]}
@@ -87,7 +87,7 @@ export default function ValueNarrativeHome() {
                 </span>,
                 <span key={`p-${job.id}`} className="text-muted-foreground">{job.pagesProcessed || 0}</span>,
                 <StatusBadge key={`s-${job.id}`} status={job.status} />,
-                <span key={`u-${job.id}`} className="text-muted-foreground text-[11px]">
+                <span key={`u-${job.id}`} className="text-muted-foreground vf-text-caption">
                   {job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : "-"}
                 </span>,
               ])}
@@ -97,7 +97,7 @@ export default function ValueNarrativeHome() {
           <div className="bg-card border border-border rounded-lg shadow-sm">
             <div className="px-4 pt-4 pb-3 border-b border-border/60 flex items-center gap-2">
               <Clock size={13} className="text-muted-foreground" />
-              <h2 className="text-[13px] font-bold text-foreground">Recent Activity</h2>
+              <h2 className="vf-text-body-m font-bold text-foreground">Recent Activity</h2>
             </div>
             <div className="divide-y divide-border/60">
               {recentJobs.slice(0, 4).map((job: IngestionJob) => (
@@ -114,17 +114,17 @@ export default function ValueNarrativeHome() {
                     )}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-foreground leading-snug">
+                    <p className="vf-text-caption text-foreground leading-snug">
                       {job.domain} — {job.status} ({job.progress}%)
                     </p>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
+                    <p className="vf-text-micro text-muted-foreground mt-0.5">
                       {job.updatedAt ? new Date(job.updatedAt).toLocaleDateString() : "Just now"}
                     </p>
                   </div>
                 </div>
               ))}
               {recentJobs.length === 0 && !jobsLoading && (
-                <div className="px-4 py-8 text-center text-muted-foreground text-[11px]">
+                <div className="px-4 py-8 text-center text-muted-foreground vf-text-caption">
                   No recent activity
                 </div>
               )}

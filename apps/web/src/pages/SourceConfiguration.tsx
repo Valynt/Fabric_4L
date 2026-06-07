@@ -36,6 +36,15 @@ import {
   type SourceFilters,
 } from "@/hooks/useSources";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Config ──────────────────────────────────────────────────────────────────
 
@@ -44,10 +53,10 @@ const TYPE_CONFIG: Record<SourceType, {
   label: string;
   bgColor: string;
 }> = {
-  crm: { icon: <Globe size={16} />, label: 'CRM', bgColor: 'bg-blue-50 text-blue-600' },
+  crm: { icon: <Globe size={16} />, label: 'CRM', bgColor: 'bg-primary/10 text-primary' },
   database: { icon: <Database size={16} />, label: 'Database', bgColor: 'bg-violet-50 text-violet-600' },
-  file: { icon: <FileText size={16} />, label: 'File', bgColor: 'bg-amber-50 text-amber-600' },
-  api: { icon: <Server size={16} />, label: 'API', bgColor: 'bg-emerald-50 text-emerald-600' },
+  file: { icon: <FileText size={16} />, label: 'File', bgColor: 'bg-warning/10 text-warning' },
+  api: { icon: <Server size={16} />, label: 'API', bgColor: 'bg-success/10 text-success' },
   cloud_storage: { icon: <Cloud size={16} />, label: 'Cloud', bgColor: 'bg-cyan-50 text-cyan-600' },
 };
 
@@ -59,8 +68,8 @@ const STATUS_CONFIG: Record<ConnectionStatus, {
 }> = {
   connected: {
     icon: <CheckCircle2 size={14} />,
-    color: 'text-emerald-600',
-    bgColor: 'bg-emerald-50',
+    color: 'text-success',
+    bgColor: 'bg-success/10',
     label: 'Connected',
   },
   disconnected: {
@@ -71,14 +80,14 @@ const STATUS_CONFIG: Record<ConnectionStatus, {
   },
   error: {
     icon: <AlertTriangle size={14} />,
-    color: 'text-red-600',
-    bgColor: 'bg-red-50',
+    color: 'text-destructive',
+    bgColor: 'bg-destructive/10',
     label: 'Error',
   },
   testing: {
     icon: <Loader2 size={14} className="animate-spin" />,
-    color: 'text-blue-600',
-    bgColor: 'bg-blue-50',
+    color: 'text-primary',
+    bgColor: 'bg-primary/10',
     label: 'Testing...',
   },
 };
@@ -131,37 +140,37 @@ function SourceCard({
         {/* Name + Endpoint */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
-            <h3 className="text-[13px] font-semibold text-foreground truncate">{source.name}</h3>
-            <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium", status.bgColor, status.color)}>
+            <h3 className="vf-text-body-m font-semibold text-foreground truncate">{source.name}</h3>
+            <div className={cn("flex items-center gap-1 px-2 py-0.5 rounded-full vf-text-micro font-medium", status.bgColor, status.color)}>
               {status.icon}
               {status.label}
             </div>
           </div>
-          <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">
+          <p className="vf-text-caption text-muted-foreground/60 truncate mt-0.5">
             {source.endpoint || 'No endpoint configured'}
           </p>
         </div>
         {/* Metrics */}
         <div className="flex items-center gap-4 text-right">
           <div>
-            <p className="text-[12px] font-medium text-muted-foreground">
+            <p className="vf-text-body-s font-medium text-muted-foreground">
               {source.recordCount ? source.recordCount.toLocaleString() : '—'}
             </p>
-            <p className="text-[10px] text-muted-foreground/60">records</p>
+            <p className="vf-text-micro text-muted-foreground/60">records</p>
           </div>
           <div>
             <p className={cn(
-              "text-[14px] font-bold",
-              source.healthScore >= 90 ? "text-emerald-600" :
-              source.healthScore >= 70 ? "text-amber-600" : "text-red-600"
+              "vf-text-body-l font-bold",
+              source.healthScore >= 90 ? "text-success" :
+              source.healthScore >= 70 ? "text-warning" : "text-destructive"
             )}>
               {source.healthScore}%
             </p>
-            <p className="text-[10px] text-muted-foreground/60">health</p>
+            <p className="vf-text-micro text-muted-foreground/60">health</p>
           </div>
           <div>
-            <p className="text-[12px] font-medium text-muted-foreground">{FREQUENCY_LABELS[source.syncFrequency]}</p>
-            <p className="text-[10px] text-muted-foreground/60">sync</p>
+            <p className="vf-text-body-s font-medium text-muted-foreground">{FREQUENCY_LABELS[source.syncFrequency]}</p>
+            <p className="vf-text-micro text-muted-foreground/60">sync</p>
           </div>
         </div>
         {/* Actions */}
@@ -169,7 +178,7 @@ function SourceCard({
           <button
             onClick={(e) => { e.stopPropagation(); onExecute(); }}
             disabled={isExecuting}
-            className="p-2 rounded hover:bg-emerald-50 text-muted-foreground/60 hover:text-emerald-600 disabled:opacity-50"
+            className="p-2 rounded hover:bg-success/10 text-muted-foreground/60 hover:text-success disabled:opacity-50"
             title="Run ingestion"
           >
             {isExecuting ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}
@@ -184,7 +193,7 @@ function SourceCard({
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onDelete(); }}
-            className="p-2 rounded hover:bg-red-50 text-muted-foreground/60 hover:text-red-500"
+            className="p-2 rounded hover:bg-destructive/10 text-muted-foreground/60 hover:text-destructive"
             title="Delete source"
           >
             <Trash2 size={14} />
@@ -193,7 +202,7 @@ function SourceCard({
       </div>
       {/* Error Message */}
       {source.status === 'error' && source.errorMessage && (
-        <div className="mx-4 mb-3 p-2 bg-red-50 border border-red-100 rounded-lg text-[11px] text-red-600 flex items-start gap-2">
+        <div className="mx-4 mb-3 p-2 bg-destructive/10 border border-destructive/20 rounded-lg vf-text-caption text-destructive flex items-start gap-2">
           <AlertTriangle size={12} className="shrink-0 mt-0.5" />
           {source.errorMessage}
         </div>
@@ -202,7 +211,7 @@ function SourceCard({
       {isExpanded && (
         <div className="px-4 pb-4 border-t border-border/50 pt-3">
           {/* Sync Info */}
-          <div className="flex items-center gap-6 mb-4 text-[11px] text-muted-foreground">
+          <div className="flex items-center gap-6 mb-4 vf-text-caption text-muted-foreground">
             {source.lastSyncAt && (
               <span className="flex items-center gap-1">
                 <Clock size={12} />
@@ -224,26 +233,26 @@ function SourceCard({
           {/* Performance Stats */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             <div className="bg-muted/20 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Success Runs</p>
-              <p className="text-[14px] font-bold text-emerald-600">{source.successCount}</p>
+              <p className="vf-text-micro text-muted-foreground/60 uppercase">Success Runs</p>
+              <p className="vf-text-body-l font-bold text-success">{source.successCount}</p>
             </div>
             <div className="bg-muted/20 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Error Runs</p>
-              <p className="text-[14px] font-bold text-red-600">{source.errorCount}</p>
+              <p className="vf-text-micro text-muted-foreground/60 uppercase">Error Runs</p>
+              <p className="vf-text-body-l font-bold text-destructive">{source.errorCount}</p>
             </div>
             <div className="bg-muted/20 rounded-lg px-3 py-2">
-              <p className="text-[10px] text-muted-foreground/60 uppercase">Avg Exec Time</p>
-              <p className="text-[14px] font-bold text-foreground">{(source.averageExecutionTimeMs / 1000).toFixed(1)}s</p>
+              <p className="vf-text-micro text-muted-foreground/60 uppercase">Avg Exec Time</p>
+              <p className="vf-text-body-l font-bold text-foreground">{(source.averageExecutionTimeMs / 1000).toFixed(1)}s</p>
             </div>
           </div>
           {/* Field Mappings */}
           {source.fieldMappings.length > 0 && (
             <div>
-              <h4 className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+              <h4 className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                 Field Mappings ({source.fieldMappings.length})
               </h4>
               <div className="bg-muted/20 rounded-lg border border-border overflow-hidden">
-                <table className="w-full text-[11px]">
+                <table className="w-full vf-text-caption">
                   <thead className="bg-muted/30">
                     <tr>
                       <th className="px-3 py-2 text-left font-medium text-muted-foreground">Source Field</th>
@@ -260,9 +269,9 @@ function SourceCard({
                         <td className="px-3 py-2 font-mono text-muted-foreground">{mapping.targetField}</td>
                         <td className="px-3 py-2 text-center">
                           {mapping.isRequired ? (
-                            <span className="text-emerald-600">●</span>
+                            <span className="text-success">●</span>
                           ) : (
-                            <span className="text-neutral-300">○</span>
+                            <span className="text-muted">○</span>
                           )}
                         </td>
                       </tr>
@@ -321,51 +330,52 @@ function CreateSourceModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
       <div className="w-full max-w-lg rounded-xl border border-border bg-card p-5 shadow-lg">
         <h3 className="text-[16px] font-semibold text-foreground">Add Source</h3>
-        <p className="mt-1 text-[12px] text-muted-foreground">Create a new data source target for ingestion.</p>
+        <p className="mt-1 vf-text-body-s text-muted-foreground">Create a new data source target for ingestion.</p>
 
         <form className="mt-4 space-y-3" onSubmit={onSubmit}>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Name</label>
+            <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">Name</label>
             <input
               value={form.name}
               onChange={(e) => onChange({ name: e.target.value })}
               placeholder="Salesforce Accounts API"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
               required
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">URL</label>
+            <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">URL</label>
             <input
               type="url"
               value={form.url}
               onChange={(e) => onChange({ url: e.target.value })}
               placeholder="https://api.example.com/accounts"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
               required
             />
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Type</label>
-            <select
-              value={form.targetType}
-              onChange={(e) => onChange({ targetType: e.target.value as SourceType })}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none"
-            >
-              <option value="api">API</option>
-              <option value="crm">CRM</option>
-              <option value="database">Database</option>
-              <option value="cloud_storage">Cloud Storage</option>
-              <option value="file">File</option>
-            </select>
+            <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">Type</label>
+            <Select value={form.targetType} onValueChange={(v) => onChange({ targetType: v as SourceType })}>
+              <SelectTrigger className="w-full vf-text-body-m">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="api">API</SelectItem>
+                <SelectItem value="crm">CRM</SelectItem>
+                <SelectItem value="database">Database</SelectItem>
+                <SelectItem value="cloud_storage">Cloud Storage</SelectItem>
+                <SelectItem value="file">File</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="mb-1 block text-[11px] font-medium text-muted-foreground">Description (optional)</label>
+            <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">Description (optional)</label>
             <textarea
               value={form.description ?? ""}
               onChange={(e) => onChange({ description: e.target.value || undefined })}
               rows={3}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-[13px] outline-none"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
             />
           </div>
 
@@ -374,14 +384,14 @@ function CreateSourceModal({
               type="button"
               onClick={onClose}
               disabled={isSubmitting}
-              className="rounded-md border border-border px-3 py-2 text-[12px] font-medium text-foreground hover:bg-muted disabled:opacity-50"
+              className="rounded-md border border-border px-3 py-2 vf-text-body-s font-medium text-foreground hover:bg-muted disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isSubmitting}
-              className="inline-flex items-center rounded-md bg-primary px-3 py-2 text-[12px] font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
+              className="inline-flex items-center rounded-md bg-primary px-3 py-2 vf-text-body-s font-medium text-primary-foreground hover:opacity-90 disabled:opacity-50"
             >
               {isSubmitting ? <Loader2 size={14} className="mr-1 animate-spin" /> : <Plus size={14} className="mr-1" />}
               Create Source
@@ -477,23 +487,19 @@ function SourceConfigurationContent() {
   // Error state
   if (error) {
     return (
-      <div className="p-6 max-w-5xl">
+      <PageShell className="max-w-5xl">
         <PageHeader title="Source Configuration" subtitle="Manage data source connections" />
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6 text-center">
-          <AlertCircle size={32} className="mx-auto mb-3 text-red-500" />
-          <p className="text-[14px] font-medium text-red-700">Failed to load sources</p>
-          <p className="text-[12px] text-red-600 mt-1">{error.message}</p>
-          <Btn variant="outline" className="mt-4" onClick={() => refetch()}>
-            <RefreshCw size={14} className="mr-1" />
-            Retry
-          </Btn>
-        </div>
-      </div>
+        <ErrorState
+          title="Failed to load sources"
+          error={error}
+          onRetry={() => refetch()}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell className="max-w-5xl">
       <div className="flex items-center justify-between mb-6">
         <PageHeader
           title="Source Configuration"
@@ -509,29 +515,29 @@ function SourceConfigurationContent() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <Database size={14} className="text-blue-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Sources</span>
+            <Database size={14} className="text-primary" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Sources</span>
           </div>
           <p className="text-[22px] font-extrabold text-foreground">{stats?.total ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <Plug size={14} className="text-emerald-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Connected</span>
+            <Plug size={14} className="text-success" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Connected</span>
           </div>
-          <p className="text-[22px] font-extrabold text-emerald-600">{stats?.connected ?? '—'}</p>
+          <p className="text-[22px] font-extrabold text-success">{stats?.connected ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <AlertTriangle size={14} className="text-red-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Errors</span>
+            <AlertTriangle size={14} className="text-destructive" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Errors</span>
           </div>
-          <p className="text-[22px] font-extrabold text-red-600">{stats?.error ?? '—'}</p>
+          <p className="text-[22px] font-extrabold text-destructive">{stats?.error ?? '—'}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <FileText size={14} className="text-violet-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Records</span>
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Records</span>
           </div>
           <p className="text-[22px] font-extrabold text-violet-600">
             {stats?.totalRecords ? `${(stats.totalRecords / 1000).toFixed(0)}K` : '—'}
@@ -548,32 +554,34 @@ function SourceConfigurationContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sources..."
-            className="flex-1 text-[13px] bg-transparent outline-none text-muted-foreground"
+            className="flex-1 vf-text-body-m bg-transparent outline-none text-muted-foreground"
           />
         </div>
-        <select
-          value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as SourceType | 'all')}
-          className="text-[12px] px-3 py-2 border border-border rounded-lg bg-card outline-none"
-        >
-          <option value="all">All Types</option>
-          <option value="crm">CRM</option>
-          <option value="database">Database</option>
-          <option value="api">API</option>
-          <option value="cloud_storage">Cloud Storage</option>
-          <option value="file">File</option>
-        </select>
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as ConnectionStatus | 'all')}
-          className="text-[12px] px-3 py-2 border border-border rounded-lg bg-card outline-none"
-        >
-          <option value="all">All Status</option>
-          <option value="connected">Connected</option>
-          <option value="disconnected">Disconnected</option>
-          <option value="error">Error</option>
-        </select>
-        <Btn variant="ghost" onClick={() => refetch()} className="text-[12px]">
+        <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as SourceType | 'all')}>
+          <SelectTrigger className="vf-text-body-s">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="crm">CRM</SelectItem>
+            <SelectItem value="database">Database</SelectItem>
+            <SelectItem value="api">API</SelectItem>
+            <SelectItem value="cloud_storage">Cloud Storage</SelectItem>
+            <SelectItem value="file">File</SelectItem>
+          </SelectContent>
+        </Select>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as ConnectionStatus | 'all')}>
+          <SelectTrigger className="vf-text-body-s">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Status</SelectItem>
+            <SelectItem value="connected">Connected</SelectItem>
+            <SelectItem value="disconnected">Disconnected</SelectItem>
+            <SelectItem value="error">Error</SelectItem>
+          </SelectContent>
+        </Select>
+        <Btn variant="ghost" onClick={() => refetch()} className="vf-text-body-s">
           <RefreshCw size={14} className="mr-1" />
           Refresh
         </Btn>
@@ -604,9 +612,9 @@ function SourceConfigurationContent() {
       {/* Empty State */}
       {!isLoading && sources.length === 0 && (
         <div className="text-center py-12 text-muted-foreground/60">
-          <Database size={48} className="mx-auto mb-4 text-neutral-300" />
-          <p className="text-[14px] font-medium">No sources found</p>
-          <p className="text-[12px] mt-1">
+          <Database size={48} className="mx-auto mb-4 text-muted" />
+          <p className="vf-text-body-l font-medium">No sources found</p>
+          <p className="vf-text-body-s mt-1">
             {search || typeFilter !== 'all' || statusFilter !== 'all'
               ? 'Try adjusting your filters'
               : 'Add a data source to start ingesting data'}
@@ -620,7 +628,7 @@ function SourceConfigurationContent() {
 
       {/* Pagination */}
       {sourceData && sourceData.pagination.totalPages > 1 && (
-        <div className="flex items-center justify-center gap-2 mt-6 text-[12px] text-muted-foreground">
+        <div className="flex items-center justify-center gap-2 mt-6 vf-text-body-s text-muted-foreground">
           <span>
             Page {sourceData.pagination.page} of {sourceData.pagination.totalPages}
             {' '}({sourceData.pagination.total} total)
@@ -636,7 +644,7 @@ function SourceConfigurationContent() {
         onChange={(updates) => setCreateForm(prev => ({ ...prev, ...updates }))}
         onSubmit={handleCreateSubmit}
       />
-    </div>
+    </PageShell>
   );
 }
 

@@ -400,21 +400,21 @@ export default function BusinessCase() {
       <SectionCard title="Business Case Lifecycle" className="mb-5">
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <FileText size={13} />
               Business Case
             </div>
-            <p className="mt-2 text-[13px] text-foreground">{businessCase.case_id}</p>
+            <p className="mt-2 vf-text-body-m text-foreground">{businessCase.case_id}</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <CheckCircle2 size={13} />
               Approval Status
             </div>
-            <p className="mt-2 text-[13px] font-semibold text-foreground">{isApproved ? "Approved" : "Draft"}</p>
+            <p className="mt-2 vf-text-body-m font-semibold text-foreground">{isApproved ? "Approved" : "Draft"}</p>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <CheckCircle2 size={13} />
               Claim Validation
             </div>
@@ -426,46 +426,46 @@ export default function BusinessCase() {
                 return overallState ? (
                   <Badge
                     variant="outline"
-                    className={cn("text-[11px]", validationBadgeClass(overallState))}
+                    className={cn("vf-text-caption", validationBadgeClass(overallState))}
                   >
                     {validationBadgeLabel(overallState)}
                   </Badge>
                 ) : (
-                  <p className="text-[13px] text-muted-foreground">Not validated</p>
+                  <p className="vf-text-body-m text-muted-foreground">Not validated</p>
                 );
               })()}
             </div>
           </div>
           <div className="rounded-lg border border-border bg-card p-3">
-            <div className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            <div className="flex items-center gap-2 vf-text-caption font-semibold uppercase tracking-wide text-muted-foreground">
               <Download size={13} />
               Export Gate
             </div>
-            <p className="mt-2 text-[13px] text-foreground">{exportState}</p>
+            <p className="mt-2 vf-text-body-m text-foreground">{exportState}</p>
           </div>
         </div>
       </SectionCard>
 
       {/* Hero ROI card */}
       <div className="bg-gradient-to-br from-blue-700 to-blue-900 rounded-xl p-6 mb-6 text-white shadow-lg">
-        <div className="text-[11px] font-bold uppercase tracking-wider opacity-70 mb-1">Total Estimated Value</div>
+        <div className="vf-text-caption font-bold uppercase tracking-wider opacity-70 mb-1">Total Estimated Value</div>
         <div className="text-[48px] font-extrabold leading-none mb-1">
           ${businessCase.total_value.toLocaleString()}
         </div>
-        <div className="text-[13px] opacity-80">
+        <div className="vf-text-body-m opacity-80">
           ROI Ratio: {businessCase.roi_ratio.toFixed(2)}x · Payback: {businessCase.payback_months} months
         </div>
         <div className="flex gap-6 mt-4">
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Confidence</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Confidence</div>
             <div className="text-[18px] font-bold">{Math.round(businessCase.confidence_score * 100)}%</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Implementation Cost</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Implementation Cost</div>
             <div className="text-[18px] font-bold">${businessCase.implementation_cost.toLocaleString()}</div>
           </div>
           <div>
-            <div className="text-[10px] uppercase tracking-wider opacity-60">Pages</div>
+            <div className="vf-text-micro uppercase tracking-wider opacity-60">Pages</div>
             <div className="text-[18px] font-bold">{businessCase.page_count}</div>
           </div>
         </div>
@@ -481,13 +481,13 @@ export default function BusinessCase() {
                 idx,
               );
               return (
-                <li key={idx} className="flex items-start gap-2 text-[13px] text-foreground">
+                <li key={idx} className="flex items-start gap-2 vf-text-body-m text-foreground">
                   <span className="text-primary font-bold shrink-0">{idx + 1}.</span>
                   <span className="flex-1">{rec}</span>
                   {claimState && (
                     <Badge
                       variant="outline"
-                      className={cn("text-[10px] shrink-0 self-start mt-0.5", validationBadgeClass(claimState))}
+                      className={cn("vf-text-micro shrink-0 self-start mt-0.5", validationBadgeClass(claimState))}
                     >
                       {validationBadgeLabel(claimState)}
                     </Badge>
@@ -501,18 +501,18 @@ export default function BusinessCase() {
 
       {/* Executive Summary */}
       <SectionCard title="Executive Summary">
-        <div className="prose prose-sm max-w-none text-foreground text-[13px] leading-relaxed whitespace-pre-wrap">
+        <div className="prose prose-sm max-w-none text-foreground vf-text-body-m leading-relaxed whitespace-pre-wrap">
           {businessCase.summary}
         </div>
       </SectionCard>
       <SectionCard title="Post-Approval Actions" className="mt-5">
         <div className="grid gap-3 md:grid-cols-2">
           <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <div className="flex items-center gap-2 vf-text-body-s font-semibold text-foreground">
               <Send size={14} />
               CRM Push
             </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 vf-text-body-s leading-relaxed text-muted-foreground">
               {crmReady
                 ? "Approved case is ready to push to CRM as a renewal or expansion proof package."
                 : "CRM push is held until the business case is approved and export metadata is ready."}
@@ -522,11 +522,11 @@ export default function BusinessCase() {
             </Btn>
           </div>
           <div className="rounded-lg border border-border bg-card p-4">
-            <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+            <div className="flex items-center gap-2 vf-text-body-s font-semibold text-foreground">
               <TrendingUp size={14} />
               Value Realization
             </div>
-            <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+            <p className="mt-2 vf-text-body-s leading-relaxed text-muted-foreground">
               {realizationReady
                 ? "Convert this approved business case into post-sale realization tracking for baseline, actuals, outcomes, and renewal narrative."
                 : "Realization conversion becomes available after approval and case handoff metadata are ready."}
@@ -545,7 +545,7 @@ export default function BusinessCase() {
       {/* Claim Traceability — evidence, benchmarks, assumptions */}
       {businessCase.truth_references && businessCase.truth_references.length > 0 && (
         <SectionCard title="Claim Traceability" className="mt-5">
-          <p className="text-[11px] text-muted-foreground mb-3">
+          <p className="vf-text-caption text-muted-foreground mb-3">
             Every claim in this business case is traceable to a source: evidence, benchmark, or assumption.
           </p>
           <ul className="space-y-2">
@@ -554,7 +554,7 @@ export default function BusinessCase() {
               const refType = String(r.type ?? 'reference');
               const typeLabel = refType === 'evidence' ? 'Evidence' : refType === 'benchmark' ? 'Benchmark' : 'Assumption';
               return (
-                <li key={idx} className="flex items-start gap-2 text-[12px] border-l-2 border-primary/30 pl-3">
+                <li key={idx} className="flex items-start gap-2 vf-text-body-s border-l-2 border-primary/30 pl-3">
                   <span className="font-semibold text-primary shrink-0">{typeLabel}:</span>
                   <span className="text-foreground">{String(r.claim ?? r.text ?? '')}</span>
                   {r.source != null && (
@@ -568,12 +568,12 @@ export default function BusinessCase() {
       )}
       {businessCase.diff_summary && (
         <SectionCard title="Regeneration Diff Summary" className="mt-5">
-          <pre className="text-[12px] whitespace-pre-wrap">{JSON.stringify(businessCase.diff_summary, null, 2)}</pre>
+          <pre className="vf-text-body-s whitespace-pre-wrap">{JSON.stringify(businessCase.diff_summary, null, 2)}</pre>
         </SectionCard>
       )}
       {businessCase.revision_history && businessCase.revision_history.length > 0 && (
         <SectionCard title="Revision History" className="mt-5">
-          <ul className="space-y-1 text-[12px]">
+          <ul className="space-y-1 vf-text-body-s">
             {businessCase.revision_history.map((entry, idx) => (
               <li key={idx}>{String(entry.case_id)} · {String(entry.created_at ?? "unknown")}</li>
             ))}

@@ -40,6 +40,14 @@ import {
 } from "@/hooks/useNarratives";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard, Btn } from "@/components/ui/fabric";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ──────────────────────────────────────────────────────────────────────
 interface NarrativeVersion {
@@ -216,14 +224,22 @@ export default function NarrativeTab() {
   }
   if (error || generateMutation.isError) {
     return (
-      <div className="p-6 text-sm text-destructive">
-        Failed to load narratives.
-      </div>
+      <ErrorState
+        title="Failed to load narratives"
+        description="An error occurred while loading narrative data."
+        error={error || generateMutation.error}
+        onRetry={() => window.location.reload()}
+      />
     );
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return (
+      <ErrorState
+        title="Account not found"
+        description="The requested account could not be found."
+      />
+    );
   }
 
   const readyCount = narratives.filter((n) => n.status === "ready").length;
@@ -325,33 +341,35 @@ export default function NarrativeTab() {
           <div className="grid grid-cols-2 gap-4 mb-3">
             <div>
               <label className="vf-text-caption font-medium block mb-1">Tone</label>
-              <select
-                value={genTone}
-                onChange={(e) => setGenTone(e.target.value)}
-                className="w-full text-xs border border-border rounded-md px-2 py-1.5"
-              >
-                {TONE_OPTIONS.map((t) => (
-                  <option key={t} value={t}>
-                    {t.charAt(0).toUpperCase() + t.slice(1)}
-                  </option>
-                ))}
-              </select>
+              <Select value={genTone} onValueChange={setGenTone}>
+                <SelectTrigger className="w-full vf-text-body-s">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TONE_OPTIONS.map((t) => (
+                    <SelectItem key={t} value={t}>
+                      {t.charAt(0).toUpperCase() + t.slice(1)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="vf-text-caption font-medium block mb-1">
                 Audience
               </label>
-              <select
-                value={genAudience}
-                onChange={(e) => setGenAudience(e.target.value)}
-                className="w-full text-xs border border-border rounded-md px-2 py-1.5"
-              >
-                {AUDIENCE_OPTIONS.map((a) => (
-                  <option key={a} value={a}>
-                    {a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
-                  </option>
-                ))}
-              </select>
+              <Select value={genAudience} onValueChange={setGenAudience}>
+                <SelectTrigger className="w-full vf-text-body-s">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {AUDIENCE_OPTIONS.map((a) => (
+                    <SelectItem key={a} value={a}>
+                      {a.replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <div className="flex gap-2">

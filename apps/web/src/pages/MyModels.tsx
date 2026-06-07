@@ -147,12 +147,12 @@ function ModelCard({
       className="bg-card border border-border rounded-lg p-4 text-left hover:border-primary/30 hover:shadow-sm transition-all group w-full"
     >
       <div className="flex items-start justify-between gap-2 mb-2">
-        <h3 className="text-[13px] font-bold text-foreground leading-snug line-clamp-1 group-hover:text-primary transition-colors">
+        <h3 className="vf-text-body-m font-bold text-foreground leading-snug line-clamp-1 group-hover:text-primary transition-colors">
           {model.name}
         </h3>
         <span
           className={cn(
-            "inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-semibold border shrink-0",
+            "inline-flex items-center px-1.5 py-0.5 rounded vf-text-micro font-semibold border shrink-0",
             STATUS_STYLES[model.status] || STATUS_STYLES.draft
           )}
         >
@@ -160,11 +160,11 @@ function ModelCard({
         </span>
       </div>
 
-      <p className="text-[11px] text-muted-foreground leading-relaxed line-clamp-2 mb-3">
+      <p className="vf-text-caption text-muted-foreground leading-relaxed line-clamp-2 mb-3">
         {model.description}
       </p>
 
-      <div className="flex items-center gap-3 text-[10px] text-muted-foreground mb-3">
+      <div className="flex items-center gap-3 vf-text-micro text-muted-foreground mb-3">
         <span className="flex items-center gap-1">
           <GitBranch size={10} />
           {model.driverCount} drivers
@@ -185,7 +185,7 @@ function ModelCard({
             <Badge
               key={tag}
               variant="secondary"
-              className="text-[9px] px-1.5 py-0 h-4"
+              className="vf-text-micro px-1.5 py-0 h-4"
             >
               {tag}
             </Badge>
@@ -221,33 +221,33 @@ function ModelListRow({
     >
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <span className="text-[12px] font-bold text-foreground truncate">{model.name}</span>
+          <span className="vf-text-body-s font-bold text-foreground truncate">{model.name}</span>
           <span
             className={cn(
-              "inline-flex items-center px-1.5 py-0 rounded text-[9px] font-semibold border shrink-0",
+              "inline-flex items-center px-1.5 py-0 rounded vf-text-micro font-semibold border shrink-0",
               STATUS_STYLES[model.status] || STATUS_STYLES.draft
             )}
           >
             {model.status}
           </span>
           {model.isShared && (
-            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-0.5 vf-text-micro text-muted-foreground">
               <Share2 size={10} /> {model.owner}
             </span>
           )}
         </div>
-        <p className="text-[11px] text-muted-foreground truncate">{model.description}</p>
+        <p className="vf-text-caption text-muted-foreground truncate">{model.description}</p>
       </div>
 
       <div className="flex items-center gap-1.5 shrink-0">
         {model.tags.slice(0, 2).map((tag) => (
-          <Badge key={tag} variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+          <Badge key={tag} variant="secondary" className="vf-text-micro px-1.5 py-0 h-4">
             {tag}
           </Badge>
         ))}
       </div>
 
-      <div className="flex items-center gap-4 text-[10px] text-muted-foreground shrink-0 w-[180px] justify-end">
+      <div className="flex items-center gap-4 vf-text-micro text-muted-foreground shrink-0 w-[180px] justify-end">
         <span>{model.formulaCount} formulas</span>
         <span>{model.entityCount} entities</span>
         <span>{formatRelativeDate(model.updatedAt)}</span>
@@ -291,7 +291,7 @@ function EmptyState({
       <h3 className="text-[14px] font-bold text-foreground mb-1">
         {search ? "No models match your search" : "No models yet"}
       </h3>
-      <p className="text-[12px] text-muted-foreground max-w-[300px] mb-4">
+      <p className="vf-text-body-s text-muted-foreground max-w-[300px] mb-4">
         {search
           ? `Try adjusting your search term or clearing filters.`
           : folder === "shared"
@@ -341,29 +341,29 @@ function NewModelDialog({
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
         <h2 className="text-[16px] font-extrabold text-foreground mb-1">New Value Model</h2>
-        <p className="text-[11px] text-muted-foreground mb-5">
+        <p className="vf-text-caption text-muted-foreground mb-5">
           Create a new model to organize value drivers, formulas, and entities.
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Name</label>
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Name</label>
             <input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. SaaS Revenue Optimization"
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               autoFocus
             />
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Industry</label>
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Industry</label>
             <select
               value={industry}
               onChange={(e) => setIndustry(e.target.value)}
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
             >
               {INDUSTRY_OPTIONS.filter((i) => i !== "All Industries").map((ind) => (
                 <option key={ind} value={ind}>
@@ -374,13 +374,13 @@ function NewModelDialog({
           </div>
 
           <div>
-            <label className="block text-[11px] font-bold text-foreground mb-1">Description</label>
+            <label className="block vf-text-caption font-bold text-foreground mb-1">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this value model..."
               rows={3}
-              className="w-full px-3 py-2 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
             />
           </div>
 
@@ -388,14 +388,14 @@ function NewModelDialog({
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-[12px] font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
+              className="px-4 py-2 vf-text-body-s font-medium text-muted-foreground hover:text-foreground transition-colors rounded-md"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!name.trim() || isCreating}
-              className="px-4 py-2 text-[12px] font-bold text-white bg-primary rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+              className="px-4 py-2 vf-text-body-s font-bold text-white bg-primary rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
             >
               {isCreating && <Loader2 size={12} className="animate-spin" />}
               Create Model
@@ -515,7 +515,7 @@ export default function MyModels() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search models..."
-                className="w-full pl-8 pr-3 py-1.5 text-[12px] border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full pl-8 pr-3 py-1.5 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
               />
             </div>
 
@@ -526,7 +526,7 @@ export default function MyModels() {
                 onChange={(e) =>
                   setSortBy(e.target.value as "updatedAt" | "name" | "createdAt")
                 }
-                className="px-2 py-1.5 text-[11px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="px-2 py-1.5 vf-text-caption border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 {SORT_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -541,7 +541,7 @@ export default function MyModels() {
               <select
                 value={industryFilter}
                 onChange={(e) => setIndustryFilter(e.target.value)}
-                className="px-2 py-1.5 text-[11px] border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
+                className="px-2 py-1.5 vf-text-caption border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
               >
                 {INDUSTRY_OPTIONS.map((ind) => (
                   <option key={ind} value={ind}>
@@ -557,7 +557,7 @@ export default function MyModels() {
                   setSearchQuery("");
                   setIndustryFilter("All Industries");
                 }}
-                className="text-[10px] text-muted-foreground hover:text-foreground transition-colors"
+                className="vf-text-micro text-muted-foreground hover:text-foreground transition-colors"
               >
                 Clear
               </button>
@@ -571,7 +571,7 @@ export default function MyModels() {
             ) : isError ? (
               <div className="flex flex-col items-center justify-center py-16 text-center">
                 <AlertCircle size={20} className="text-destructive mb-2" />
-                <p className="text-[12px] text-destructive">Failed to load models</p>
+                <p className="vf-text-body-s text-destructive">Failed to load models</p>
               </div>
             ) : !models || models.length === 0 ? (
               <EmptyState

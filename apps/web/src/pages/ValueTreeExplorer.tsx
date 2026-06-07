@@ -34,8 +34,10 @@ import { ValueTreeResponseSchema } from "@/lib/schemas";
 import { Tabs } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
-import { EntityBadge } from "@/lib/entity-colors";
-import { PageShell } from "@/components";
+import { EntityBadge } from "@/lib/entity-colors";
+
+import { PageShell } from "@/components";
+
 import { ErrorState } from "@/components/states/ErrorState";
 
 // Types for UI tree rendering
@@ -116,13 +118,13 @@ function TreeNodeView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
   return (
     <div className="flex flex-col items-center">
       <div
-        className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg border text-[11px] font-semibold cursor-pointer select-none min-w-[120px] max-w-[140px] text-center ${TYPE_COLORS[node.type]}`}
+        className={`flex flex-col items-center gap-1 px-3 py-2 rounded-lg border vf-text-caption font-semibold cursor-pointer select-none min-w-[120px] max-w-[140px] text-center ${TYPE_COLORS[node.type]}`}
         onClick={() => setOpen(o => !o)}
       >
         <EntityBadge type={node.type}/>
         <span className="leading-tight">{node.label}</span>
         {hasChildren && (
-          <span className="text-[9px] opacity-50">{open ? "▲" : "▼"}</span>
+          <span className="vf-text-micro opacity-50">{open ? "▲" : "▼"}</span>
         )}
       </div>
       {hasChildren && open && (
@@ -149,14 +151,14 @@ function OutlineNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
   return (
     <div>
       <div
-        className="flex items-center gap-1.5 py-1 text-[12px] hover:bg-muted/30 rounded px-1 cursor-pointer"
+        className="flex items-center gap-1.5 py-1 vf-text-body-s hover:bg-muted/30 rounded px-1 cursor-pointer"
         style={{ paddingLeft: `${depth * 16 + 4}px` }}
         onClick={() => setOpen(o => !o)}
       >
         {hasChildren ? (
           open ? <ChevronDown size={11} className="text-muted-foreground/60"/> : <ChevronRight size={11} className="text-muted-foreground/60"/>
         ) : (
-          <span className="w-[11px] text-muted-foreground/30 text-[10px]">─</span>
+          <span className="w-[11px] text-muted-foreground/30 vf-text-micro">─</span>
         )}
         <EntityBadge type={node.type}/>
         <span className="text-muted-foreground">{node.label}</span>
@@ -378,19 +380,19 @@ export default function ValueTreeExplorer() {
               {showEntitySelector && (
                 <div className="absolute top-full right-0 mt-1 w-80 bg-card border border-border rounded-lg shadow-lg z-50">
                   <div className="p-3 border-b border-border/50">
-                    <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+                    <div className="flex items-center gap-2 vf-text-body-s text-muted-foreground">
                       <Search size={12} />
                       <span>Select root entity</span>
                     </div>
                   </div>
                   <div className="max-h-64 overflow-y-auto p-2 space-y-1">
                     {entitiesLoading ? (
-                      <div className="p-4 text-center text-muted-foreground text-[12px]">
+                      <div className="p-4 text-center text-muted-foreground vf-text-body-s">
                         <Loader2 size={14} className="animate-spin inline mr-2" />
                         Loading entities...
                       </div>
                     ) : rootCandidates.length === 0 ? (
-                      <div className="p-4 text-center text-muted-foreground text-[12px]">
+                      <div className="p-4 text-center text-muted-foreground vf-text-body-s">
                         No entities available. 
                         <a href="/discover/knowledge/entities" className="text-primary hover:underline ml-1">
                           Browse entities
@@ -401,7 +403,7 @@ export default function ValueTreeExplorer() {
                         <button
                           key={entity.id}
                           onClick={() => handleSelectEntity(entity.id)}
-                          className={`w-full text-left px-3 py-2 rounded-lg text-[12px] transition-colors ${
+                          className={`w-full text-left px-3 py-2 rounded-lg vf-text-body-s transition-colors ${
                             entityId === entity.id 
                               ? "bg-primary/10 text-primary" 
                               : "hover:bg-muted/20 text-muted-foreground"
@@ -411,7 +413,7 @@ export default function ValueTreeExplorer() {
                             <EntityBadge type={mapEntityType(entity.type)} />
                             <span className="font-medium truncate">{entity.name}</span>
                           </div>
-                          <div className="text-[10px] text-muted-foreground/60 mt-1">
+                          <div className="vf-text-micro text-muted-foreground/60 mt-1">
                             {entity.id.slice(0, ENTITY_ID_LIST_LENGTH)}...
                           </div>
                         </button>
@@ -468,25 +470,25 @@ export default function ValueTreeExplorer() {
       {stats && (
         <div className="flex gap-4 mb-4">
           <SectionCard className="flex-1 py-3">
-            <div className="flex items-center gap-4 text-[12px]">
+            <div className="flex items-center gap-4 vf-text-body-s">
               <div>
-                <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Nodes</span>
+                <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Nodes</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.totalNodes}</p>
               </div>
               <div className="w-px h-8 bg-border" />
               <div>
-                <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Edges</span>
+                <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Edges</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.totalEdges}</p>
               </div>
               <div className="w-px h-8 bg-border" />
               <div>
-                <span className="text-muted-foreground/60 uppercase tracking-wider text-[10px]">Max Depth</span>
+                <span className="text-muted-foreground/60 uppercase tracking-wider vf-text-micro">Max Depth</span>
                 <p className="font-bold text-foreground text-[18px]">{stats.maxDepth}</p>
               </div>
               <div className="ml-auto flex gap-2">
                 {Object.entries(stats.byLayer).map(([layer, count]) => (
                   <div key={layer} className="text-center px-2 py-1 bg-muted/20 rounded">
-                    <span className="text-[10px] text-muted-foreground/60">L{layer}</span>
+                    <span className="vf-text-micro text-muted-foreground/60">L{layer}</span>
                     <p className="font-semibold text-muted-foreground">{count}</p>
                   </div>
                 ))}
@@ -526,7 +528,7 @@ export default function ValueTreeExplorer() {
         {tree && (
           <Btn
             variant="ghost"
-            className="ml-auto text-[11px]"
+            className="ml-auto vf-text-caption"
             onClick={() => {
               safeAsync(refetchTree(), "valueTree.refetchTree");
               if (view === "paths") {
@@ -558,7 +560,7 @@ export default function ValueTreeExplorer() {
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
           <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Entity Selected</h3>
-          <p className="text-[12px] text-muted-foreground mb-4 max-w-md mx-auto">
+          <p className="vf-text-body-s text-muted-foreground mb-4 max-w-md mx-auto">
             Select a root entity (Value Driver, Persona, or Capability) to visualize its value hierarchy.
           </p>
           <Btn variant="primary" onClick={() => setShowEntitySelector(true)}>
@@ -572,7 +574,7 @@ export default function ValueTreeExplorer() {
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
           <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Value Tree Found</h3>
-          <p className="text-[12px] text-muted-foreground mb-4 max-w-md mx-auto">
+          <p className="vf-text-body-s text-muted-foreground mb-4 max-w-md mx-auto">
             This entity doesn&apos;t have any connected value relationships. Try selecting a different entity or create relationships in the knowledge graph.
           </p>
           <Btn variant="outline" onClick={() => setShowEntitySelector(true)}>
@@ -596,18 +598,18 @@ export default function ValueTreeExplorer() {
         ) : (
           <div className="bg-card border border-border rounded-lg p-4 shadow-sm">
             {pathsLoading && (
-              <div className="text-[12px] text-muted-foreground p-2">
+              <div className="vf-text-body-s text-muted-foreground p-2">
                 <Loader2 size={14} className="animate-spin inline mr-2" />
                 Loading paths...
               </div>
             )}
             {!pathsLoading && pathsError && (
-              <div className="text-[12px] text-destructive p-2">
+              <div className="vf-text-body-s text-destructive p-2">
                 Failed to load path exploration data: {pathsError.message}
               </div>
             )}
             {!pathsLoading && !pathsError && (pathData?.length ?? 0) === 0 && (
-              <div className="text-[12px] text-muted-foreground p-2">
+              <div className="vf-text-body-s text-muted-foreground p-2">
                 No paths found for this entity and direction.
               </div>
             )}
@@ -616,9 +618,9 @@ export default function ValueTreeExplorer() {
                 {(pathData ?? []).map((path, pathIndex) => (
                   <div
                     key={`${pathIndex}-${path.length}`}
-                    className="border border-border/60 rounded-md p-2 text-[12px]"
+                    className="border border-border/60 rounded-md p-2 vf-text-body-s"
                   >
-                    <div className="text-[10px] text-muted-foreground mb-1">
+                    <div className="vf-text-micro text-muted-foreground mb-1">
                       Path {pathIndex + 1} · length {path.length}
                     </div>
                     <div className="flex flex-wrap items-center gap-1.5">

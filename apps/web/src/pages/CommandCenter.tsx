@@ -115,7 +115,7 @@ export default function CommandCenter() {
             value={domainInput}
             onChange={(e) => setDomainInput(e.target.value)}
             placeholder="Enter company domain to synthesize (e.g., https://example.com)…"
-            className="flex-1 text-[13px] text-muted-foreground bg-transparent outline-none placeholder:text-muted-foreground/60"
+            className="flex-1 vf-text-body-m text-muted-foreground bg-transparent outline-none placeholder:text-muted-foreground/60"
             aria-label="Company domain to synthesize"
           />
           <Btn
@@ -137,7 +137,7 @@ export default function CommandCenter() {
         {submissionNotice && (
           <div
             role="status"
-            className="mx-4 mb-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 text-[12px] text-success"
+            className="mx-4 mb-3 rounded-lg border border-success/30 bg-success/10 px-3 py-2 vf-text-body-s text-success"
           >
             Ingestion job submitted for{" "}
             <span className="font-semibold">{submissionNotice.domain}</span>.
@@ -152,7 +152,7 @@ export default function CommandCenter() {
         {/* Advanced config toggle */}
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className="w-full flex items-center gap-2 px-4 py-2 border-t border-border/50 text-[11px] text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/20 transition-colors"
+          className="w-full flex items-center gap-2 px-4 py-2 border-t border-border/50 vf-text-caption text-muted-foreground/60 hover:text-muted-foreground hover:bg-muted/20 transition-colors"
           aria-expanded={showAdvanced}
           aria-controls="advanced-config-panel"
         >
@@ -172,7 +172,7 @@ export default function CommandCenter() {
             className="px-4 py-4 bg-muted/20 border-t border-border/50 grid grid-cols-1 sm:grid-cols-3 gap-4"
           >
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
+              <label className="block vf-text-micro uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Extraction Profile
               </label>
               <Select value={profile} onValueChange={setProfile}>
@@ -187,7 +187,7 @@ export default function CommandCenter() {
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
+              <label className="block vf-text-micro uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Ontology Target
               </label>
               <Select value={ontology} onValueChange={setOntology}>
@@ -202,7 +202,7 @@ export default function CommandCenter() {
               </Select>
             </div>
             <div>
-              <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
+              <label className="block vf-text-micro uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Crawl Depth
               </label>
               <Select value={depth} onValueChange={setDepth}>
@@ -217,7 +217,7 @@ export default function CommandCenter() {
               </Select>
             </div>
             <div className="col-span-1 sm:col-span-3 pt-1">
-              <p className="text-[11px] text-muted-foreground/60">
+              <p className="vf-text-caption text-muted-foreground/60">
                 Value Pack context:{" "}
                 <span className="font-medium text-muted-foreground">
                   SaaS / B2B — Enterprise Security
@@ -258,7 +258,7 @@ export default function CommandCenter() {
         <div className="col-span-1 md:col-span-2 bg-card border border-border rounded-lg shadow-sm">
           <div className="px-4 pt-4 pb-3 border-b border-border/50 flex items-center justify-between">
             <h2 className="text-[14px] font-bold text-foreground">Recent Maps</h2>
-            <button className="text-[11px] text-primary hover:underline">
+            <button className="vf-text-caption text-primary hover:underline">
               View all
             </button>
           </div>
@@ -294,7 +294,7 @@ export default function CommandCenter() {
                 ),
                 status: <StatusBadge status={job.status} />,
                 updated: (
-                  <span className="text-muted-foreground/60 text-[11px]">
+                  <span className="text-muted-foreground/60 vf-text-caption">
                     {job.updatedAt
                       ? new Date(job.updatedAt).toLocaleDateString()
                       : "-"}
@@ -310,7 +310,7 @@ export default function CommandCenter() {
         <div className="bg-card border border-border rounded-lg shadow-sm">
           <div className="px-4 pt-4 pb-3 border-b border-border/50 flex items-center gap-2">
             <Clock size={13} className="text-muted-foreground/60" />
-            <h2 className="text-[13px] font-bold text-foreground">
+            <h2 className="vf-text-body-m font-bold text-foreground">
               Recent Activity
             </h2>
           </div>
@@ -355,10 +355,10 @@ export default function CommandCenter() {
                     )}
                   </span>
                   <div className="flex-1 min-w-0">
-                    <p className="text-[11px] text-muted-foreground leading-snug">
+                    <p className="vf-text-caption text-muted-foreground leading-snug">
                       {job.domain} — {job.status} ({job.progress}%)
                     </p>
-                    <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+                    <p className="vf-text-micro text-muted-foreground/60 mt-0.5">
                       {job.updatedAt
                         ? new Date(job.updatedAt).toLocaleDateString()
                         : "Just now"}
