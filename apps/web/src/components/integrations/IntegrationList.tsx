@@ -37,7 +37,7 @@ export function IntegrationList({
   }
 
   return (
-    <div className="bg-white border border-border rounded-xl overflow-hidden mt-6">
+    <div className="bg-background border border-border rounded-xl overflow-hidden mt-6">
       <div className="px-6 py-4 border-b border-border">
         <h3 className="text-sm font-semibold text-foreground">Active Integrations</h3>
       </div>

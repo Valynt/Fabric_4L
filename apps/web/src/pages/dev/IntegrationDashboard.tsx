@@ -104,27 +104,27 @@ export default function IntegrationDashboard() {
 
       {/* KPI Row */}
       <div className="grid grid-cols-5 gap-3 mt-6">
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
+        <div className="p-4 bg-card border border-border rounded-xl text-center">
           <Layers size={16} className="mx-auto text-primary mb-1" />
           <div className="text-2xl font-extrabold text-foreground">{HOOK_REGISTRY.length}</div>
           <div className="vf-text-micro text-muted-foreground uppercase">Hook Families</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
+        <div className="p-4 bg-card border border-border rounded-xl text-center">
           <Database size={16} className="mx-auto text-primary mb-1" />
           <div className="text-2xl font-extrabold text-foreground">{totalHooks}</div>
           <div className="vf-text-micro text-muted-foreground uppercase">Total Hooks</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
+        <div className="p-4 bg-card border border-border rounded-xl text-center">
           <Wifi size={16} className="mx-auto text-success mb-1" />
           <div className="text-2xl font-extrabold text-foreground">{totalEndpoints}</div>
           <div className="vf-text-micro text-muted-foreground uppercase">Endpoints</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
+        <div className="p-4 bg-card border border-border rounded-xl text-center">
           <CheckCircle2 size={16} className="mx-auto text-success mb-1" />
           <div className="text-2xl font-extrabold text-success">{greenCount}</div>
           <div className="vf-text-micro text-muted-foreground uppercase">Fully Wired</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
+        <div className="p-4 bg-card border border-border rounded-xl text-center">
           <Activity size={16} className="mx-auto text-primary mb-1" />
           <div className="text-2xl font-extrabold text-foreground">
             {healthLoading ? "…" : health?.overall_status === "healthy" ? "OK" : health?.overall_status ?? "—"}
@@ -173,7 +173,7 @@ export default function IntegrationDashboard() {
             </thead>
             <tbody>
               {filtered.map(f => (
-                <tr key={f.family} className="border-b border-neutral-100 hover:bg-muted/50/50">
+                <tr key={f.family} className="border-b border-border hover:bg-muted/50/50">
                   <td className="py-2.5 px-3 font-semibold text-foreground">{f.family}</td>
                   <td className="py-2.5 px-3">
                     <span className="px-2 py-0.5 bg-muted rounded vf-text-micro font-mono">{f.layer}</span>

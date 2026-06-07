@@ -407,7 +407,7 @@ function TierSwitcher({
             >
               <span
                 className={cn(
-                  "absolute top-0.5 w-4 h-4 bg-white rounded-full transition-transform",
+                  "absolute top-0.5 w-4 h-4 bg-background rounded-full transition-transform",
                   isAdvancedModeEnabled ? "translate-x-5" : "translate-x-0.5"
                 )}
               />

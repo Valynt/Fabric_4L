@@ -88,7 +88,7 @@ export function TeamMembersScreen() {
           </div>
         )}
       </div>
-      <div className="rounded-xl border border-border overflow-hidden bg-white">
+      <div className="rounded-xl border border-border overflow-hidden bg-background">
         <TeamUsersTable users={users} showRoleActions={canMutateTeam} />
       </div>
     </div>
@@ -109,13 +109,13 @@ export function TeamRolesScreen() {
       <PageHeader title="Team Roles" subtitle="Define roles and assign role-based access to members." />
       <div className="grid gap-3 md:grid-cols-3">
         {Object.entries(roleCounts).map(([r, count]) => (
-          <div key={r} className="rounded-lg border border-border bg-white p-4">
+          <div key={r} className="rounded-lg border border-border bg-background p-4">
             <div className="text-xs text-muted-foreground uppercase">{r.replace("_", " ")}</div>
             <div className="text-xl font-semibold">{count}</div>
           </div>
         ))}
       </div>
-      <div className="rounded-xl border border-border overflow-hidden bg-white">
+      <div className="rounded-xl border border-border overflow-hidden bg-background">
         <TeamUsersTable users={users} showRoleActions={canAssignRoles} />
       </div>
     </div>
@@ -131,7 +131,7 @@ export function TeamPermissionsScreen() {
   return (
     <div className="p-6 max-w-6xl space-y-4">
       <PageHeader title="Team Permissions" subtitle="Review permission matrix and assign policy controls." />
-      <div className="rounded-xl border border-border bg-white overflow-hidden">
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-muted border-b border-border text-muted-foreground uppercase tracking-wide text-xs">
             <tr><th className="px-4 py-2 text-left">Policy surface</th><th className="px-4 py-2 text-left">Capability</th><th className="px-4 py-2 text-right">Action</th></tr>
@@ -143,7 +143,7 @@ export function TeamPermissionsScreen() {
           </tbody>
         </table>
       </div>
-      <div className="rounded-xl border border-border bg-white overflow-hidden">
+      <div className="rounded-xl border border-border bg-background overflow-hidden">
         <table className="w-full text-xs">
           <thead className="bg-muted border-b border-border"><tr><th className="px-4 py-2 text-left">API Key</th><th className="px-4 py-2 text-left">Last used</th><th className="px-4 py-2 text-right">Mutation</th></tr></thead>
           <tbody>

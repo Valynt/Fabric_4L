@@ -86,7 +86,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
           value={baseCaseId}
           onChange={(e) => setBaseCaseId(e.target.value)}
           placeholder="e.g. case-abc123"
-          className="w-full border border-border rounded-md px-3 py-1.5 vf-text-body-s bg-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full border border-border rounded-md px-3 py-1.5 vf-text-body-s bg-background outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
       </div>
 
@@ -101,21 +101,21 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
                 value={adj.name}
                 onChange={(e) => updateAdjustment(idx, "name", e.target.value)}
                 placeholder="Variable"
-                className="flex-1 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="flex-1 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
               />
               <input
                 type="number"
                 value={adj.original_value || ""}
                 onChange={(e) => updateAdjustment(idx, "original_value", e.target.value)}
                 placeholder="Original"
-                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
               />
               <input
                 type="number"
                 value={adj.value || ""}
                 onChange={(e) => updateAdjustment(idx, "value", e.target.value)}
                 placeholder="New"
-                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
               />
               {adjustments.length > 1 && (
                 <button
