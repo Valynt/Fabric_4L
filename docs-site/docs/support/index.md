@@ -1,39 +1,56 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
 # Support
 
-## Purpose
+Resources for support teams and customers seeking help.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Support</span>
+<span class="vp-badge vp-badge--role">Admin</span>
+<span class="vp-badge vp-badge--role">End User</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Support resources
 
-## What belongs here
+| Resource | Purpose |
+|----------|---------|
+| [KB Article Template](kb-article-template.md) | Standard format for knowledge base articles |
+| [Ticket Response Templates](ticket-response-templates.md) | Canned responses for common issues |
+| [Escalation Guides](escalation-guides.md) | When and how to escalate issues |
+| [Severity Matrix](severity-matrix.md) | Classifying issue severity and response times |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## Support channels
 
-## What does not belong here
+| Channel | Response Time | Best For |
+|---------|--------------|----------|
+| Email (support@valuepact.ai) | 4 hours | Non-urgent issues, questions |
+| In-app chat | 1 hour | Quick questions, guidance |
+| Phone (Enterprise) | 15 minutes | P1 production issues |
+| Community forum | 1 business day | Best practices, feature requests |
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+## Before contacting support
+
+1. Search this documentation using the search bar.
+2. Check [Troubleshooting](../troubleshooting/index.md) for your issue.
+3. Review [FAQ](../faq/index.md) for common questions.
+4. Check [status.valuepact.ai](https://status.valuepact.ai) for known incidents.
+
+## Information to provide
+
+- Organization name and tenant ID
+- User email and role
+- Exact error message or screenshot
+- Steps to reproduce
+- Browser and OS (for UI issues)
+- API request ID (for API issues)
+- Timestamp with timezone
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Troubleshooting](../troubleshooting/index.md)
+- [FAQ](../faq/index.md)
+- [Training](../training/index.md)

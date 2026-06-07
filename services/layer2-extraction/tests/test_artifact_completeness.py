@@ -14,7 +14,7 @@ from layer2_extraction.validation.artifact_validator import (
     validate_relationship_for_persistence,
     ArtifactValidationError,
 )
-from layer2_extraction.models.extraction_response import ExtractionResult
+from layer2_extraction.models.extraction_api import ExtractionResult
 from layer2_extraction.api.main import ExtractionArtifacts
 
 

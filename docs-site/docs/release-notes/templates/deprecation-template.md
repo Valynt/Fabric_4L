@@ -1,39 +1,42 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Deprecation Template
+# Deprecation Release Note Template
 
-## Purpose
+```markdown
+## [Version] — [Date]
 
-Explain what this page helps the reader accomplish.
+### ⚠️ Deprecation: [Feature/API/Integration]
 
-## Audience
+**Impact:** Significant  
+**Affected Areas:** [UI/API/Integrations/Security]  
+**Sunset Date:** [YYYY-MM-DD]
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+#### What is being deprecated
 
-## What belongs here
+[Description of the feature or endpoint being phased out.]
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+#### Why
 
-## What does not belong here
+[Reason for deprecation (replaced by, technical debt, low usage, etc.).]
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+#### Migration path
 
-## Related pages
+[Step-by-step instructions to migrate to the replacement.]
 
-- Add links after related pages exist.
+#### Timeline
+
+| Milestone | Date |
+|-----------|------|
+| Announcement | [Date] |
+| Migration period begins | [Date] |
+| End of support | [Date] |
+| Complete removal | [Date] |
+
+#### Support
+
+Contact support@valuepact.ai for migration assistance.
+```

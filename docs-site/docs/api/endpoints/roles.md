@@ -1,39 +1,75 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Roles
+# Roles API
 
-## Purpose
+Query and manage roles and permission assignments.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Developer</span>
+<span class="vp-badge vp-badge--role">Admin</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Endpoints
 
-## What belongs here
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/v1/roles` | List roles |
+| GET | `/v1/roles/{id}` | Get a role |
+| GET | `/v1/roles/{id}/permissions` | Get role permissions |
+| POST | `/v1/roles/{id}/assign` | Assign role to user |
+| DELETE | `/v1/roles/{id}/assign` | Remove role from user |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## List roles
 
-## What does not belong here
+```http
+GET /v1/roles
+```
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+Response includes system roles and custom roles:
+
+```json
+{
+  "data": [
+    {
+      "id": "role_viewer",
+      "name": "Viewer",
+      "type": "system",
+      "permissions": ["initiatives:read", "business_cases:read"]
+    },
+    {
+      "id": "role_custom_1",
+      "name": "Analyst",
+      "type": "custom",
+      "permissions": ["initiatives:read", "analytics:read", "benefits:write"]
+    }
+  ]
+}
+```
+
+## Assign role to user
+
+```http
+POST /v1/roles/role_admin/assign
+Content-Type: application/json
+
+{
+  "user_id": "usr_abc123"
+}
+```
+
+## Permissions
+
+| Action | Required Permission |
+|--------|---------------------|
+| List | `admin:roles` |
+| Get | `admin:roles` |
+| Assign | `admin:roles` |
 
 ## Related pages
 
-- Add links after related pages exist.
+- [API Overview](../overview.md)
+- [Administration → Role Management](../../administration/role-management/index.md)

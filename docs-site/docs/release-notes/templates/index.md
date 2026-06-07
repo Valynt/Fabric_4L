@@ -1,39 +1,35 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Templates
+# Release Note Templates
 
-## Purpose
+Standard templates for documenting different types of changes.
 
-Explain what this page helps the reader accomplish.
+## Templates
 
-## Audience
+| Template | Use For |
+|----------|---------|
+| [New Feature](new-feature-template.md) | Major new capabilities |
+| [Enhancement](enhancement-template.md) | Improvements to existing features |
+| [Fix](fix-template.md) | Bug fixes and issue resolutions |
+| [Deprecation](deprecation-template.md) | Features being phased out |
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Template structure
 
-## What belongs here
+All templates include:
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
-
-## What does not belong here
-
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+- Version and date
+- Change category
+- Impact level (breaking, significant, minor)
+- Affected areas
+- Description
+- Migration steps (if applicable)
+- Known issues
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Release Notes Overview](../index.md)
+- [Release Framework](../framework.md)

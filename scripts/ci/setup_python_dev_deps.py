@@ -14,7 +14,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[2]
 
 INSTALL_TARGETS = (
-    ("pytest support packages", None, ("pytest-timeout", "pytest-randomly"), False),
+    ("pytest support packages", None, ("pytest-timeout", "pytest-randomly", "pytest-env"), False),
     ("shared package", REPO_ROOT, ("-e", "packages/shared/src"), True),
     ("platform contract package", REPO_ROOT, ("-e", "packages/platform-contract/src/python"), True),
     ("API service dev dependencies", REPO_ROOT / "services/api", ("-e", ".[dev]"), False),

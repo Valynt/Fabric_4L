@@ -9,8 +9,9 @@ import pytest
 import layer6_benchmarks.api.main as main_module
 from httpx import ASGITransport, AsyncClient
 from layer6_benchmarks.api.main import app
+from layer6_benchmarks.api.deps import get_request_context
 from layer6_benchmarks.models.benchmark_dataset import BenchmarkDataset, BenchmarkMetric, StatisticalProfile
-from value_fabric.shared.identity.context import RequestContext, get_request_context
+from value_fabric.shared.identity.context import RequestContext
 
 
 @pytest.fixture(autouse=True)
@@ -155,7 +156,7 @@ async def test_route_matrix_happy_and_hostile_paths(client: AsyncClient):
             "POST",
             "/v1/benchmarks/validate",
             {"dataset_id": "tenant-a-throughput", "metric": "throughput", "value": "bad", "tolerance_percent": 10},
-            400,
+            422,
         ),
     ]
     for method, path, payload, expected_status in hostile_cases:

@@ -1,39 +1,35 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Enhancement Template
+# Enhancement Release Note Template
 
-## Purpose
+```markdown
+## [Version] — [Date]
 
-Explain what this page helps the reader accomplish.
+### ✨ Enhancement: [Enhancement Name]
 
-## Audience
+**Impact:** Minor  
+**Affected Areas:** [UI/API/Integrations/Security]  
+**Documentation:** [Link to docs]
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+#### What improved
 
-## What belongs here
+[Description of the improvement and the previous behavior.]
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+#### Why it matters
 
-## What does not belong here
+[User benefit and context.]
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+#### Before / After
 
-## Related pages
+| Before | After |
+|--------|-------|
+| [Old behavior] | [New behavior] |
 
-- Add links after related pages exist.
+#### Who is affected
+
+[Which users will notice the change.]
+```

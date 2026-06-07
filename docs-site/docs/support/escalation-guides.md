@@ -1,39 +1,71 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
 # Escalation Guides
 
-## Purpose
+When and how to escalate customer issues to ensure timely resolution.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Support</span>
+<span class="vp-badge vp-badge--role">Admin</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Escalation tiers
 
-## What belongs here
+| Tier | Handles | Response |
+|------|---------|----------|
+| L1 — Support | General questions, how-to, common issues | 4 hours |
+| L2 — Technical Support | Complex bugs, API issues, integration failures | 1 hour |
+| L3 — Engineering | Defects requiring code changes, performance issues | 4 hours |
+| L4 — Engineering Lead | Critical outages, security incidents, data loss | 1 hour |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## When to escalate
 
-## What does not belong here
+### Escalate to L2 immediately
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+- Issue affects multiple users in the same tenant
+- API returning 500 errors consistently
+- Integration sync failing for >24 hours
+- User cannot access platform due to auth issues
+
+### Escalate to L3 immediately
+
+- Confirmed bug with no workaround
+- Performance degradation affecting workflows
+- Data inconsistency requiring investigation
+- Security concern (not active breach)
+
+### Escalate to L4 immediately
+
+- Complete platform outage
+- Suspected security breach
+- Data loss or corruption
+- Compliance violation
+
+## Escalation process
+
+1. **Document** the issue with all relevant details (tenant, user, timestamps, errors).
+2. **Attempt resolution** at current tier using runbooks.
+3. **Escalate** via the internal ticket system with severity label.
+4. **Notify** the customer of escalation and expected timeline.
+5. **Track** progress and communicate updates every 2 hours for P1/P2.
+
+## Handoff checklist
+
+When escalating, include:
+
+- [ ] Customer name and tenant ID
+- [ ] Issue summary and business impact
+- [ ] Steps already attempted
+- [ ] Relevant logs, screenshots, or request IDs
+- [ ] Severity classification
+- [ ] Customer expectations and timeline
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Severity Matrix](severity-matrix.md)
+- [Ticket Response Templates](ticket-response-templates.md)
+- [Troubleshooting](../troubleshooting/index.md)

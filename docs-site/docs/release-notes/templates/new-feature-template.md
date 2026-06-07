@@ -1,39 +1,41 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# New Feature Template
+# New Feature Release Note Template
 
-## Purpose
+```markdown
+## [Version] — [Date]
 
-Explain what this page helps the reader accomplish.
+### 🚀 New Feature: [Feature Name]
 
-## Audience
+**Impact:** Significant  
+**Affected Areas:** [UI/API/Integrations/Security]  
+**Documentation:** [Link to docs]
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+#### What changed
 
-## What belongs here
+[Clear description of the new capability and what problem it solves.]
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+#### Who benefits
 
-## What does not belong here
+[Which roles and use cases benefit most.]
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+#### How to use it
 
-## Related pages
+[Step-by-step instructions or link to guide.]
 
-- Add links after related pages exist.
+#### Prerequisites
+
+[Any setup or permissions required.]
+
+#### Migration
+
+[If applicable: steps to enable or configure the feature.]
+
+#### Known issues
+
+[Any known limitations or follow-up work.]
+```

@@ -1,38 +1,60 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# API
+# API Documentation
 
-The ValuePact API lets integrators and developers work with platform data and workflows
-programmatically.
+Complete reference for the ValuePact REST API. Use these guides to authenticate, handle errors, paginate results, and integrate programmatically.
 
-## Purpose
+## Who this is for
 
-Orient developers to ValuePact's API surface and reference material.
+<span class="vp-badge vp-badge--role">Developer</span>
+<span class="vp-badge vp-badge--role">Admin</span>
 
-## Audience
+## API guides
 
-- Developer
-- Integrator
+| Guide | What you'll learn |
+|-------|-----------------|
+| [API Overview](overview.md) | Base URL, request format, status codes, idempotency |
+| [Authentication](authentication.md) | JWT tokens, SSO, MFA, API keys, permission claims |
+| [Rate Limits](rate-limits.md) | Tiered limits, burst behavior, backoff strategies |
+| [Errors](errors.md) | Error codes, retry behavior, request IDs |
+| [Pagination](pagination.md) | Offset and cursor pagination, sorting, filtering |
 
-## In this section
+## Endpoint reference
 
-- [API Overview](overview.md) — structure and conventions.
-- [Authentication](authentication.md) — how requests are authorized.
-- [Rate Limits](rate-limits.md), [Errors](errors.md), [Pagination](pagination.md) — request mechanics.
-- [Generated API Docs](generated.md) — the interactive, always-current reference.
-- [Endpoints](endpoints/index.md) — per-resource documentation.
+| Domain | Description |
+|--------|-------------|
+| [Initiatives](endpoints/initiatives.md) | Strategic programs |
+| [Business Cases](endpoints/business-cases.md) | Value arguments and deliverables |
+| [Benefits](endpoints/benefits.md) | Benefit tracking |
+| [Stakeholders](endpoints/stakeholders.md) | Stakeholder management |
+| [Dashboards](endpoints/dashboards.md) | Dashboard data |
+| [Analytics](endpoints/analytics.md) | Analytics and insights |
+| [Users](endpoints/users.md) | User profiles |
+| [Roles](endpoints/roles.md) | Role and permission management |
+| [Integrations](endpoints/integrations.md) | Connector configuration |
+| [Webhooks](endpoints/webhooks.md) | Webhook subscriptions |
 
-## Source of truth
+## Interactive documentation
 
-The interactive reference on [Generated API Docs](generated.md) is rendered directly from the
-platform's OpenAPI specification and is the authoritative description of request and response
-shapes. Hand-written pages in this section provide narrative context and should not contradict
-the generated reference.
+The [Generated API Docs](generated.md) renders the canonical OpenAPI specification with interactive Swagger UI. You can execute requests directly from the browser.
+
+## SDKs and tools
+
+- **OpenAPI spec**: `/openapi.json` on any service
+- **Postman**: Import the OpenAPI spec
+- **Swagger UI**: `/docs` on each service
+
+## Getting help
+
+- Check [Errors](errors.md) for error code explanations
+- Review [Troubleshooting → Login Issues](../troubleshooting/login-issues.md) for auth problems
+- Contact support@valuepact.ai with your `request_id`
 
 ## Related pages
 
-- [Integrations](../integrations/index.md)
+- [Integrations → APIs](../integrations/apis.md)
+- [Administration → Security → Authentication](../administration/security/authentication.md)

@@ -25,6 +25,7 @@ import {
   useRegenerateBusinessCase,
 } from "@/hooks/useDocuments";
 import { useNavigation } from "@/hooks";
+import { ErrorState } from "@/components/states/ErrorState";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
@@ -62,10 +63,10 @@ function deriveOverallValidationState(
 
 function validationBadgeClass(state: ValidationState): string {
   return {
-    validated: "border-green-300 bg-green-50 text-green-700",
-    pending: "border-yellow-300 bg-yellow-50 text-yellow-700",
-    failed: "border-red-300 bg-red-50 text-red-700",
-    partial: "border-blue-300 bg-blue-50 text-blue-700",
+    validated: "border-success/30 bg-success/10 text-success",
+    pending: "border-warning/30 bg-warning/10 text-warning",
+    failed: "border-destructive/30 bg-destructive/10 text-destructive",
+    partial: "border-info/30 bg-info/10 text-info",
   }[state];
 }
 
@@ -143,31 +144,31 @@ const TRUST_CONFIG: Record<
 > = {
   degraded: {
     label: "Degraded",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-destructive/10 text-destructive border-destructive/20",
     showDraftBadge: true,
     tooltip: "LLM, validation, or evidence enrichment was incomplete. Human review required.",
   },
   pending_review: {
     label: "Pending Review",
-    badgeClass: "bg-yellow-100 text-yellow-700 border-yellow-200",
+    badgeClass: "bg-warning/10 text-warning border-warning/20",
     showDraftBadge: true,
     tooltip: "Claims require validation or human approval before export.",
   },
   validated: {
     label: "Validated",
-    badgeClass: "bg-green-100 text-green-700 border-green-200",
+    badgeClass: "bg-success/10 text-success border-success/20",
     showDraftBadge: false,
     tooltip: "Business case has been validated. Generate a document to enable export.",
   },
   export_blocked: {
     label: "Export Blocked",
-    badgeClass: "bg-red-100 text-red-700 border-red-200",
+    badgeClass: "bg-destructive/10 text-destructive border-destructive/20",
     showDraftBadge: false,
     tooltip: "Export is blocked due to a failed or rejected status.",
   },
   export_ready: {
     label: "Export Ready",
-    badgeClass: "bg-blue-100 text-blue-700 border-blue-200",
+    badgeClass: "bg-primary/10 text-primary border-primary/20",
     showDraftBadge: false,
     tooltip: "Business case is validated and a document is ready for export.",
   },
@@ -186,7 +187,7 @@ function TrustStatusRow({ trustState }: { trustState: BusinessCaseTrustState }) 
         {config.label}
       </span>
       {config.showDraftBadge && (
-        <span className="inline-flex items-center rounded-full border border-gray-200 bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-600">
+        <span className="inline-flex items-center rounded-full border border-muted bg-muted px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
           Internal draft only
         </span>
       )}
@@ -207,11 +208,15 @@ export default function BusinessCase() {
   // Handle missing ID gracefully
   if (!businessCaseId) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700">
-          No business case ID provided. Please select a business case to view.
+      <PageShell>
+        <PageHeader title="Business Case" />
+        <div className="rounded-lg border border-warning/30 bg-warning/10 p-4 text-warning">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4" />
+            <span>No business case ID provided. Please select a business case to view.</span>
+          </div>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
@@ -245,7 +250,7 @@ export default function BusinessCase() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl">
+      <PageShell>
         {/* Header skeleton */}
         <div className="mb-5">
           <Skeleton className="h-4 w-48 mb-2" />
@@ -262,7 +267,7 @@ export default function BusinessCase() {
         </div>
 
         {/* Hero ROI card skeleton */}
-        <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-blue-700/20 to-blue-900/20 border border-blue-200">
+        <div className="rounded-xl p-6 mb-6 bg-gradient-to-br from-primary/20 to-primary/40 border border-primary/20">
           <Skeleton className="h-3 w-32 mb-1" />
           <Skeleton className="h-12 w-48 mb-1" />
           <Skeleton className="h-4 w-64 mb-4" />
@@ -304,20 +309,22 @@ export default function BusinessCase() {
             <Skeleton className="h-4 w-full" />
           </div>
         </SectionCard>
-      </div>
+      </PageShell>
     );
   }
 
   if (error || !businessCase) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-          <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
-            <span>{error instanceof Error ? error.message : 'Failed to load business case. Please try again.'}</span>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load business case"
+          description="The business case could not be loaded. It may have been deleted or you may not have permission to view it."
+          error={error}
+          onRetry={() => window.location.reload()}
+          retryLabel="Refresh"
+          fullPage
+        />
+      </PageShell>
     );
   }
 
@@ -355,7 +362,7 @@ export default function BusinessCase() {
             <Btn
               variant="ghost"
               onClick={handleExploreInteractive}
-              className="text-purple-600 hover:text-purple-700 hover:bg-purple-50"
+              className="text-primary hover:text-primary hover:bg-primary/5"
             >
               <Sparkles size={12} className="mr-1" />
               Explore
@@ -384,7 +391,7 @@ export default function BusinessCase() {
 
       {/* Export error */}
       {exportMutation.error && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-center gap-2 text-red-700 text-sm">
+        <div className="bg-destructive/5 border border-destructive/20 rounded-lg p-3 mb-4 flex items-center gap-2 text-destructive text-sm">
           <AlertCircle className="w-4 h-4" />
           <span>{exportMutation.error.message}</span>
         </div>
@@ -474,8 +481,8 @@ export default function BusinessCase() {
                 idx,
               );
               return (
-                <li key={idx} className="flex items-start gap-2 text-[13px] text-neutral-700">
-                  <span className="text-blue-600 font-bold shrink-0">{idx + 1}.</span>
+                <li key={idx} className="flex items-start gap-2 text-[13px] text-foreground">
+                  <span className="text-primary font-bold shrink-0">{idx + 1}.</span>
                   <span className="flex-1">{rec}</span>
                   {claimState && (
                     <Badge
@@ -494,7 +501,7 @@ export default function BusinessCase() {
 
       {/* Executive Summary */}
       <SectionCard title="Executive Summary">
-        <div className="prose prose-sm max-w-none text-neutral-700 text-[13px] leading-relaxed whitespace-pre-wrap">
+        <div className="prose prose-sm max-w-none text-foreground text-[13px] leading-relaxed whitespace-pre-wrap">
           {businessCase.summary}
         </div>
       </SectionCard>

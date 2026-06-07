@@ -1,39 +1,42 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
 # Best Practices
 
-## Purpose
+Proven patterns and recommendations for getting the most value from ValuePact across your organization.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Executive</span>
+<span class="vp-badge vp-badge--role">Admin</span>
+<span class="vp-badge vp-badge--role">End User</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Practice areas
 
-## What belongs here
+| Topic | Focus |
+|-------|-------|
+| [Executive Adoption](executive-adoption.md) | Driving organizational change and executive sponsorship |
+| [Measuring Value](measuring-value.md) | KPI selection, baselines, and attribution |
+| [Data Quality](data-quality.md) | Validation, credibility, freshness, and lineage |
+| [Governance](governance.md) | Approval gates, audit readiness, and standards |
+| [Stakeholder Engagement](stakeholder-engagement.md) | Communication cadence and feedback loops |
+| [Reporting Cadence](reporting-cadence.md) | Weekly, monthly, and quarterly rhythms |
+| [Portfolio Reviews](portfolio-reviews.md) | Review structure and re-prioritization frameworks |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## Quick wins
 
-## What does not belong here
-
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+1. **Start with one initiative** — Prove value with a single well-scoped initiative before scaling.
+2. **Define metrics early** — Establish baselines and targets before execution begins.
+3. **Engage stakeholders weekly** — Regular updates prevent surprises and maintain alignment.
+4. **Review monthly** — Monthly portfolio reviews catch issues early and enable course correction.
+5. **Use business cases for decisions** — Require a business case for any initiative over $50K expected value.
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Getting Started](../getting-started/index.md)
+- [Core Concepts](../core-concepts/index.md)
+- [FAQ](../faq/index.md)
+- [Training](../training/index.md)

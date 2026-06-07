@@ -1,39 +1,67 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Framework
+# Release Notes Framework
 
-## Purpose
+How ValuePact versions, communicates, and documents releases.
 
-Explain what this page helps the reader accomplish.
+## Versioning
 
-## Audience
+ValuePact follows [Semantic Versioning](https://semver.org/):
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+```
+MAJOR.MINOR.PATCH
+```
 
-## What belongs here
+| Component | When it increments | Example |
+|-----------|-------------------|---------|
+| MAJOR | Breaking changes | 1.0.0 → 2.0.0 |
+| MINOR | New features, backward compatible | 1.1.0 → 1.2.0 |
+| PATCH | Bug fixes, backward compatible | 1.2.0 → 1.2.1 |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## Release types
 
-## What does not belong here
+### Major releases
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+- Quarterly cadence
+- 30-day advance notice
+- May include breaking API changes
+- Requires migration planning for admins
+
+### Minor releases
+
+- Bi-weekly cadence
+- New features and enhancements
+- Backward compatible
+- Announced via in-app notification
+
+### Patch releases
+
+- As needed
+- Bug fixes and security patches
+- No advance notice
+- Deployed automatically
+
+### Hotfix releases
+
+- Emergency fixes
+- Bypass normal release process
+- Deployed immediately
+- Documented retroactively
+
+## Communication channels
+
+| Audience | Channel | Timing |
+|----------|---------|--------|
+| All users | In-app notification | Release day |
+| Admins | Email + in-app | 7 days before major |
+| Developers | API changelog + email | 30 days before breaking API changes |
+| Enterprise | Account manager call | 14 days before major |
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Release Notes Overview](index.md)
+- [Templates](templates/index.md)

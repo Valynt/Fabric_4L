@@ -1,39 +1,63 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
 # Severity Matrix
 
-## Purpose
+Classify issues by severity to ensure appropriate response times.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Support</span>
+<span class="vp-badge vp-badge--role">Admin</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Severity levels
 
-## What belongs here
+| Level | Description | Examples | Response | Resolution |
+|-------|-------------|----------|----------|------------|
+| **P1 — Critical** | Production down, no workaround | Complete outage, data loss, security breach | 15 min | 4 hours |
+| **P2 — High** | Major feature impaired, limited workaround | Core functionality broken, significant performance issue | 1 hour | 24 hours |
+| **P3 — Medium** | Minor feature issue, workaround exists | Non-core feature broken, UI issue | 4 hours | 72 hours |
+| **P4 — Low** | Question, enhancement, cosmetic | How-to, feature request, typo | 1 business day | Next sprint |
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## Classification criteria
 
-## What does not belong here
+### P1 indicators
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+- Cannot access platform
+- Data loss or corruption
+- Security incident
+- Compliance violation
+
+### P2 indicators
+
+- Critical workflow blocked
+- API completely failing for endpoint
+- Integration down with no workaround
+- Performance unusable (>30s response times)
+
+### P3 indicators
+
+- Feature partially broken
+- Workaround exists but is inconvenient
+- Reporting inconsistency
+- Sync delays <24 hours
+
+### P4 indicators
+
+- General questions
+- Feature requests
+- Documentation improvements
+- Cosmetic issues
+
+## Escalation
+
+See [Escalation Guides](escalation-guides.md) for the escalation process.
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Support Overview](index.md)
+- [Escalation Guides](escalation-guides.md)
+- [Ticket Response Templates](ticket-response-templates.md)

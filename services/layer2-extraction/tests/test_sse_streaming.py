@@ -16,12 +16,29 @@ from datetime import UTC, datetime
 import httpx
 import pytest
 
+from fastapi import Request
+from types import SimpleNamespace
+
 from layer2_extraction.api import main as api_main
 from layer2_extraction.integration.job_store import PipelineJob
 
+
 # Attach the test-tenant middleware once, before the app starts, so that
 # X-Test-Tenant headers are resolved to a governance context in all tests.
-api_main._attach_test_tenant_middleware(api_main.app)
+def _attach_test_tenant_middleware(app):
+    @app.middleware("http")
+    async def _test_tenant_middleware(request: Request, call_next):
+        tenant_id = request.headers.get("X-Test-Tenant")
+        if tenant_id:
+            request.state.governance_context = SimpleNamespace(
+                tenant_id=tenant_id,
+                user_id="test-user",
+                roles=["analyst"],
+            )
+        return await call_next(request)
+
+
+_attach_test_tenant_middleware(api_main.app)
 
 # Test defaults for job creation
 DEFAULT_ENTITIES_EXTRACTED = 5

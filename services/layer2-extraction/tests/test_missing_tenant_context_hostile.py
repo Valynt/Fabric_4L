@@ -2,7 +2,7 @@ import pytest
 from fastapi import BackgroundTasks, HTTPException
 
 from layer2_extraction.api import main
-from layer2_extraction.models.extraction_api import ExtractRequest
+from layer2_extraction.models.extraction_api import ExtractionRequest
 
 
 class _Ctx:
@@ -21,7 +21,7 @@ async def test_extract_rejects_missing_tenant_before_job_write(monkeypatch):
 
     monkeypatch.setattr(main.job_store, "set", _forbidden_set)
 
-    req = ExtractRequest(source_url="https://example.com", markdown_content="# demo")
+    req = ExtractionRequest(source_url="https://example.com", markdown_content="# demo")
     with pytest.raises(HTTPException) as exc:
         await main.extract(req, BackgroundTasks(), _Ctx(None))
 
@@ -80,7 +80,7 @@ async def test_extract_and_ingest_rejects_missing_tenant_before_job_or_idempoten
     monkeypatch.setattr(main.job_store, "set", _set)
     monkeypatch.setattr(main.job_store, "set_job_id_for_idempotency_key", _set_idem)
 
-    req = ExtractRequest(source_url="https://example.com", markdown_content="# demo")
+    req = ExtractionRequest(source_url="https://example.com", markdown_content="# demo")
     with pytest.raises(HTTPException) as exc:
         await main.extract_and_ingest(req, BackgroundTasks(), _Ctx(""))
 

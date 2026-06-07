@@ -7,7 +7,8 @@ import pytest
 import layer6_benchmarks.api.main as main_module
 from httpx import ASGITransport, AsyncClient
 from layer6_benchmarks.api.main import app
-from value_fabric.shared.identity.context import RequestContext, get_request_context
+from layer6_benchmarks.api.deps import get_request_context
+from value_fabric.shared.identity.context import RequestContext
 from layer6_benchmarks.models.benchmark_dataset import (
     BenchmarkDataset,
     BenchmarkMetric,

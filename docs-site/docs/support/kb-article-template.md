@@ -1,39 +1,64 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
 # KB Article Template
 
-## Purpose
+Standard format for knowledge base articles.
 
-Explain what this page helps the reader accomplish.
+## Who this is for
 
-## Audience
+<span class="vp-badge vp-badge--role">Support</span>
+<span class="vp-badge vp-badge--role">Admin</span>
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+## Article structure
 
-## What belongs here
+```markdown
+# Article Title
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+## Problem
 
-## What does not belong here
+Clear description of the issue or question.
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+## Environment
+
+- ValuePact version
+- Browser / OS
+- Integration (if applicable)
+
+## Cause
+
+Root cause or explanation.
+
+## Resolution
+
+Step-by-step fix:
+
+1. Step one
+2. Step two
+3. Step three
+
+## Verification
+
+How to confirm the fix worked.
+
+## Related articles
+
+- [Link to related article]
+```
+
+## Writing guidelines
+
+- Use clear, concise language
+- Include screenshots where helpful
+- Provide both quick fix and detailed steps
+- Link to related articles
+- Update articles when product changes
+- Tag with relevant keywords
 
 ## Related pages
 
-- Add links after related pages exist.
+- [Support Overview](index.md)
+- [Escalation Guides](escalation-guides.md)

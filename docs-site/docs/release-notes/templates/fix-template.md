@@ -1,39 +1,33 @@
 ---
 owner: docs-team
-status: draft
-last_reviewed: 2026-06-06
+status: active
+last_reviewed: 2026-06-07
 ---
 
-# Fix Template
+# Fix Release Note Template
 
-## Purpose
+```markdown
+## [Version] — [Date]
 
-Explain what this page helps the reader accomplish.
+### 🔧 Fix: [Issue Summary]
 
-## Audience
+**Impact:** Minor  
+**Affected Areas:** [UI/API/Integrations/Security]  
+**Ticket:** [Support ticket ID]
 
-- End user
-- Admin
-- Executive
-- Developer
-- Support
-- Operator
+#### What was fixed
 
-## What belongs here
+[Description of the bug and its impact.]
 
-- Verified product behavior
-- Step-by-step instructions
-- Screenshots or diagrams when available
-- Edge cases and warnings
-- Links to related pages
+#### Root cause
 
-## What does not belong here
+[Brief technical explanation.]
 
-- Unverified roadmap claims
-- Internal-only implementation notes
-- Temporary chat notes
-- Duplicated content from another section
+#### Who was affected
 
-## Related pages
+[Scope of users impacted by the bug.]
 
-- Add links after related pages exist.
+#### Verification
+
+[How users can confirm the fix.]
+```
