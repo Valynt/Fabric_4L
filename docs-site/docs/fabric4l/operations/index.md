@@ -96,8 +96,8 @@ pnpm ops:incident:check
 
 ## Related Documentation
 
-- [`docs/development/BUILD_SYSTEM.md`](../../../docs/development/BUILD_SYSTEM.md) — Build system hierarchy and command precedence
-- [`docs/development/COMMANDS.md`](../../../docs/development/COMMANDS.md) — Full command inventory for local contributors and CI
-- [`AGENTS.md`](../../../AGENTS.md) — Architecture rules, tenant isolation, and layer responsibilities
-- [`k8s/README.md`](../../../k8s/README.md) — Kubernetes deployment guide and security hardening
-- [`ops/incident/README.md`](../../../ops/incident/README.md) — Incident response workflow source of truth
+- `docs/development/BUILD_SYSTEM.md` — Build system hierarchy and command precedence
+- `docs/development/COMMANDS.md` — Full command inventory for local contributors and CI
+- `AGENTS.md` — Architecture rules, tenant isolation, and layer responsibilities
+- `k8s/README.md` — Kubernetes deployment guide and security hardening
+- `ops/incident/README.md` — Incident response workflow source of truth
