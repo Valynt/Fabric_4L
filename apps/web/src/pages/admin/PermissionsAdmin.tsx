@@ -60,7 +60,7 @@ const STATUS_STYLES: Record<string, string> = {
 
 function RoleBadge({ role }: { role: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ROLE_STYLES[role] || ROLE_STYLES.viewer}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${ROLE_STYLES[role] || ROLE_STYLES.viewer}`}>
       <Shield size={10} /> {role.replace("_", " ")}
     </span>
   );
@@ -68,7 +68,7 @@ function RoleBadge({ role }: { role: string }) {
 
 function StatusChip({ status }: { status: string }) {
   return (
-    <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status] || STATUS_STYLES.deactivated}`}>
+    <span className={`inline-flex items-center vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status] || STATUS_STYLES.deactivated}`}>
       {status}
     </span>
   );
@@ -189,13 +189,13 @@ function PermissionsContent() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">Failed to load permissions data</h3>
-              <p className="text-[12px] text-destructive/80">
+              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load permissions data</h3>
+              <p className="vf-text-body-s text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button
                 onClick={() => { refetchUsers(); refetchKeys(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -228,15 +228,15 @@ function PermissionsContent() {
       {showInvite && (
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
           <div className="bg-card rounded-xl shadow-xl p-6 w-[400px]">
-            <h3 className="text-[15px] font-bold text-foreground mb-4">Invite User</h3>
+            <h3 className="vf-text-body-l font-bold text-foreground mb-4">Invite User</h3>
             <div className="space-y-3">
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Email</label>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Email</label>
                 <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="user@company.com" className="w-full text-[12px] border border-border rounded-lg px-3 py-2 outline-none focus:border-primary" />
+                  placeholder="user@company.com" className="w-full vf-text-body-s border border-border rounded-lg px-3 py-2 outline-none focus:border-primary" />
               </div>
               <div>
-                <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Role</label>
+                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Role</label>
                 <Select value={inviteRole} onValueChange={setInviteRole}>
                   <SelectTrigger className="w-full vf-text-body-s">
                     <SelectValue />
@@ -249,7 +249,7 @@ function PermissionsContent() {
                 </Select>
               </div>
               {inviteMutation.error && (
-                <p className="text-[11px] text-destructive">{inviteMutation.error instanceof Error ? inviteMutation.error.message : "Invite failed"}</p>
+                <p className="vf-text-caption text-destructive">{inviteMutation.error instanceof Error ? inviteMutation.error.message : "Invite failed"}</p>
               )}
             </div>
             <div className="flex justify-end gap-2 mt-5">
@@ -271,7 +271,7 @@ function PermissionsContent() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
+              "px-4 py-2.5 vf-text-body-s font-medium transition-colors relative",
               activeTab === tab.id
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -280,7 +280,7 @@ function PermissionsContent() {
             <span className="flex items-center gap-2">
               {tab.icon} {tab.label}
               <span className={cn(
-                "px-1.5 py-0.5 rounded text-[10px]",
+                "px-1.5 py-0.5 rounded vf-text-micro",
                 activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
               )}>
                 {tab.count}
@@ -300,18 +300,18 @@ function PermissionsContent() {
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={activeTab === "users" ? "Search users..." : "Search API keys..."}
-          className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+          className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {activeTab === "users" ? (
         /* Users Table */
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-[12px]">
+          <table className="w-full vf-text-body-s">
             <thead>
               <tr className="border-b border-border bg-muted">
                 {["User", "Role", "Status", "Created", "Last Login", ""].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                     {h}
                   </th>
                 ))}
@@ -323,7 +323,7 @@ function PermissionsContent() {
                   <td className="px-4 py-3">
                     <div>
                       <span className="font-medium text-foreground block">{u.display_name || u.email}</span>
-                      {u.display_name && <span className="text-[10px] text-muted-foreground">{u.email}</span>}
+                      {u.display_name && <span className="vf-text-micro text-muted-foreground">{u.email}</span>}
                     </div>
                   </td>
                   <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
@@ -342,7 +342,7 @@ function PermissionsContent() {
             </tbody>
           </table>
           {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-[12px]">
+            <div className="text-center py-12 text-muted-foreground vf-text-body-s">
               <Users size={32} className="mx-auto mb-3 text-muted-foreground/50" />
               No users match your search.
             </div>
@@ -351,11 +351,11 @@ function PermissionsContent() {
       ) : (
         /* API Keys Table */
         <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-[12px]">
+          <table className="w-full vf-text-body-s">
             <thead>
               <tr className="border-b border-border bg-muted">
                 {["Key Name", "Prefix", "Enabled", "Created", "Last Used", ""].map(h => (
-                  <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                  <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                     {h}
                   </th>
                 ))}
@@ -365,7 +365,7 @@ function PermissionsContent() {
               {filteredKeys.map(k => (
                 <tr key={k.id} className="hover:bg-muted transition-colors group">
                   <td className="px-4 py-3 font-medium text-foreground">{k.name}</td>
-                  <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{k.prefix}•••</td>
+                  <td className="px-4 py-3 font-mono vf-text-caption text-muted-foreground">{k.prefix}•••</td>
                   <td className="px-4 py-3">
                     {k.is_enabled
                       ? <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 size={12} /> Active</span>
@@ -391,7 +391,7 @@ function PermissionsContent() {
             </tbody>
           </table>
           {filteredKeys.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground text-[12px]">
+            <div className="text-center py-12 text-muted-foreground vf-text-body-s">
               <Key size={32} className="mx-auto mb-3 text-muted-foreground/50" />
               No API keys found.
             </div>

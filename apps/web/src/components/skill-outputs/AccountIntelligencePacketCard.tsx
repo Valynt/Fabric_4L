@@ -34,8 +34,8 @@ function confidenceLabel(high: number, total: number): string {
 function confidenceClasses(high: number, total: number): string {
   if (total === 0) return 'text-muted-foreground';
   const ratio = high / total;
-  if (ratio >= 0.7) return 'text-emerald-500';
-  if (ratio >= 0.4) return 'text-amber-500';
+  if (ratio >= 0.7) return 'text-success';
+  if (ratio >= 0.4) return 'text-warning';
   return 'text-muted-foreground';
 }
 

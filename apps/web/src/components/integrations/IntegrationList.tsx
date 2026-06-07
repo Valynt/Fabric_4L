@@ -74,7 +74,7 @@ export function IntegrationList({
                 <tr
                   key={integration.id}
                   className={`hover:bg-muted cursor-pointer transition-colors ${
-                    isSelected ? 'bg-blue-50/30' : ''
+                    isSelected ? 'bg-primary/10/30' : ''
                   }`}
                   onClick={() => onSelect(provider)}
                 >
@@ -84,19 +84,19 @@ export function IntegrationList({
                         <Cloud size={16} />
                       </div>
                       <div className="ml-3">
-                        <div className="text-[13px] font-medium text-neutral-900">
+                        <div className="vf-text-body-m font-medium text-foreground">
                           {PROVIDER_NAMES[provider]}
                         </div>
                       </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium ${
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full vf-text-caption font-medium ${
                       status === 'failed'
-                        ? 'bg-red-100 text-red-700'
+                        ? 'bg-destructive/10 text-destructive'
                         : status === 'running'
-                        ? 'bg-amber-100 text-amber-700'
-                        : 'bg-emerald-100 text-emerald-700'
+                        ? 'bg-warning/10 text-warning'
+                        : 'bg-success/10 text-success'
                     }`}>
                       {status === 'failed' ? (
                         <>
@@ -117,12 +117,12 @@ export function IntegrationList({
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-[13px] text-neutral-700">
+                    <div className="vf-text-body-m text-foreground">
                       {formatLastSync(integration.last_successful_sync_at)}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-[13px] text-neutral-700">
+                    <div className="vf-text-body-m text-foreground">
                       {formatRecordCount(integration.records_synced)}
                     </div>
                   </td>
@@ -131,7 +131,7 @@ export function IntegrationList({
                       <Btn
                         variant="ghost"
                         onClick={() => onSelect(provider)}
-                        className="px-2 py-1 text-[12px]"
+                        className="px-2 py-1 vf-text-body-s"
                       >
                         <Settings size={14} className="mr-1" />
                         Configure
@@ -140,7 +140,7 @@ export function IntegrationList({
                         variant={isThisSyncing ? 'ghost' : 'outline'}
                         onClick={() => onSync(provider)}
                         disabled={isThisSyncing}
-                        className="px-2 py-1 text-[12px]"
+                        className="px-2 py-1 vf-text-body-s"
                       >
                         {isThisSyncing ? (
                           <>

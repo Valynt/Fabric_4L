@@ -55,11 +55,11 @@ function formatCurrency(val: number | undefined): string {
 
 function readinessColor(label: string): string {
   switch (label) {
-    case "deal_ready": return "text-green-600";
-    case "strong": return "text-emerald-600";
-    case "developing": return "text-amber-600";
-    case "early": return "text-orange-600";
-    case "not_ready": return "text-red-600";
+    case "deal_ready": return "text-success";
+    case "strong": return "text-success";
+    case "developing": return "text-warning";
+    case "early": return "text-warning";
+    case "not_ready": return "text-destructive";
     default: return "text-muted-foreground";
   }
 }
@@ -83,22 +83,22 @@ function ReadinessGauge({ readiness }: { readiness: DealReadiness }) {
       <div className="w-full bg-muted rounded-full h-2">
         <div
           className={cn("h-2 rounded-full transition-all", {
-            "bg-green-500": pct >= 80,
-            "bg-emerald-500": pct >= 60 && pct < 80,
-            "bg-amber-500": pct >= 40 && pct < 60,
-            "bg-orange-500": pct >= 20 && pct < 40,
-            "bg-red-500": pct < 20,
+            "bg-success": pct >= 80,
+            "bg-success/80": pct >= 60 && pct < 80,
+            "bg-warning": pct >= 40 && pct < 60,
+            "bg-warning/80": pct >= 20 && pct < 40,
+            "bg-destructive": pct < 20,
           })}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className={cn("text-[10px] font-semibold", readinessColor(readiness.label))}>
+      <span className={cn("vf-text-micro font-semibold", readinessColor(readiness.label))}>
         {readinessLabel(readiness.label)}
       </span>
       {/* Component breakdown */}
       <div className="grid grid-cols-2 gap-2 mt-2">
         {Object.entries(readiness.components).map(([key, val]) => (
-          <div key={key} className="flex items-center justify-between text-[10px]">
+          <div key={key} className="flex items-center justify-between vf-text-micro">
             <span className="text-muted-foreground truncate">{key.replace(/_/g, " ")}</span>
             <span className="font-semibold">{Math.round(val * 100)}%</span>
           </div>
@@ -107,10 +107,10 @@ function ReadinessGauge({ readiness }: { readiness: DealReadiness }) {
       {/* Recommendations */}
       {readiness.recommendations.length > 0 && (
         <div className="mt-3 space-y-1">
-          <span className="text-[10px] font-semibold text-muted-foreground">Recommendations</span>
+          <span className="vf-text-micro font-semibold text-muted-foreground">Recommendations</span>
           {readiness.recommendations.map((rec, i) => (
-            <div key={i} className="flex items-start gap-1.5 text-[10px] text-muted-foreground">
-              <AlertTriangle size={10} className="mt-0.5 text-amber-500 shrink-0" />
+            <div key={i} className="flex items-start gap-1.5 vf-text-micro text-muted-foreground">
+              <AlertTriangle size={10} className="mt-0.5 text-warning shrink-0" />
               <span>{rec}</span>
             </div>
           ))}
@@ -130,25 +130,25 @@ function FinancialsSection({ financials }: { financials: EnrichmentFinancials })
     <SectionCard title="Financials">
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">Revenue</span>
+          <span className="vf-text-micro text-muted-foreground">Revenue</span>
           <div className="text-sm font-semibold flex items-center gap-1">
             <DollarSign size={12} />
             {formatCurrency(revenue)}
           </div>
         </div>
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">Employees</span>
+          <span className="vf-text-micro text-muted-foreground">Employees</span>
           <div className="text-sm font-semibold">{employees?.toLocaleString() ?? "N/A"}</div>
         </div>
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">Growth Rate</span>
-          <div className={cn("text-sm font-semibold flex items-center gap-1", growthRate && growthRate > 0 ? "text-green-600" : "text-red-600")}>
+          <span className="vf-text-micro text-muted-foreground">Growth Rate</span>
+          <div className={cn("text-sm font-semibold flex items-center gap-1", growthRate && growthRate > 0 ? "text-success" : "text-destructive")}>
             <TrendingUp size={12} />
             {growthRate != null ? `${(growthRate * 100).toFixed(1)}%` : "N/A"}
           </div>
         </div>
         <div className="space-y-1">
-          <span className="text-[10px] text-muted-foreground">Fiscal Year</span>
+          <span className="vf-text-micro text-muted-foreground">Fiscal Year</span>
           <div className="text-sm font-semibold">{fiscalYear ?? "N/A"}</div>
         </div>
       </div>
@@ -164,7 +164,7 @@ function TechStackSection({ techStack }: { techStack: string[] }) {
         {techStack.map((tech) => (
           <span
             key={tech}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary vf-text-micro font-medium"
           >
             <Cpu size={10} />
             {tech}
@@ -296,13 +296,13 @@ export default function EnrichmentTab() {
           Force Re-enrich
         </button>
         {enrichment?.last_enriched_at && (
-          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+          <span className="vf-text-micro text-muted-foreground flex items-center gap-1">
             <Clock size={10} />
             Last enriched: {new Date(enrichment.last_enriched_at).toLocaleDateString()}
           </span>
         )}
         {enrichAccount.isSuccess && (
-          <span className="text-[10px] text-green-600 flex items-center gap-1">
+          <span className="vf-text-micro text-success flex items-center gap-1">
             <CheckCircle2 size={10} />
             Enrichment complete
           </span>
@@ -332,10 +332,10 @@ export default function EnrichmentTab() {
                 key={signal.id}
                 className="flex items-center gap-3 px-3 py-2 rounded-md hover:bg-muted/50"
               >
-                <AlertTriangle size={12} className="text-amber-500 shrink-0" />
+                <AlertTriangle size={12} className="text-warning shrink-0" />
                 <div className="flex-1 min-w-0">
                   <div className="text-xs font-medium truncate">{signal.text}</div>
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="vf-text-micro text-muted-foreground">
                     {signal.category} · {new Date(signal.detected_at).toLocaleDateString()}
                   </div>
                 </div>
@@ -356,14 +356,14 @@ export default function EnrichmentTab() {
               >
                 <span className="text-xs font-medium">{comp.name}</span>
                 <div className="flex items-center gap-3">
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="vf-text-micro text-muted-foreground">
                     Win rate: {Math.round(comp.win_rate * 100)}%
                   </span>
                   <span
-                    className={cn("text-[10px] font-semibold", {
-                      "text-red-600": comp.threat_level === "high",
-                      "text-amber-600": comp.threat_level === "medium",
-                      "text-green-600": comp.threat_level === "low",
+                    className={cn("vf-text-micro font-semibold", {
+                      "text-destructive": comp.threat_level === "high",
+                      "text-warning": comp.threat_level === "medium",
+                      "text-success": comp.threat_level === "low",
                     })}
                   >
                     {comp.threat_level}

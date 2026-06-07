@@ -163,14 +163,14 @@ function PackManagementContent() {
           { label: "Total Packs", value: stats.total, icon: <FolderKanban size={14} /> },
           { label: "Published", value: stats.published, icon: <CheckCircle2 size={14} />, color: "text-success" },
           { label: "Drafts", value: stats.draft, icon: <Clock size={14} />, color: "text-warning" },
-          { label: "Total Drivers", value: stats.totalDrivers, icon: <ListChecks size={14} />, color: "text-violet-600" },
+          { label: "Total Drivers", value: stats.totalDrivers, icon: <ListChecks size={14} />, color: "text-primary" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
               <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
+            <p className={`text-2xl font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>

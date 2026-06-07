@@ -217,7 +217,7 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
             {alert.service_name}
           </span>
           <span className={cn(
-            "text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase",
+            "vf-text-micro px-1.5 py-0.5 rounded font-semibold uppercase",
             severity.bgColor, severity.color
           )}>
             {alert.severity}
@@ -260,7 +260,7 @@ function SummaryCard({
           {label}
         </span>
       </div>
-      <p className={cn("text-[22px] font-extrabold", config.color)}>
+      <p className={cn("text-2xl font-extrabold", config.color)}>
         {value}
       </p>
     </div>
@@ -409,7 +409,7 @@ function HealthMonitorContent() {
           {overallStatus.icon}
         </div>
         <div className="flex-1">
-          <h3 className={cn("text-[16px] font-bold", overallStatus.color)}>
+          <h3 className={cn("text-base font-bold", overallStatus.color)}>
             System {overallStatus.label}
           </h3>
           <p className="vf-text-body-s text-muted-foreground">

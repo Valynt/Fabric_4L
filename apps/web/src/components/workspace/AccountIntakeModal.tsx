@@ -115,10 +115,10 @@ type AnalysisDepth = "fast" | "balanced" | "deep";
 // ── Constants ────────────────────────────────────────────────────────────────────
 
 const INPUT_BASE_CLASSES =
-  "w-full h-9 px-3 text-[12px] rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
+  "w-full h-9 px-3 vf-text-body-s rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary";
 
 const TEXTAREA_CLASSES =
-  "w-full px-3 py-2 text-[12px] rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none";
+  "w-full px-3 py-2 vf-text-body-s rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary resize-none";
 
 const DEPTH_OPTIONS: {
   key: AnalysisDepth;
@@ -228,7 +228,7 @@ export default function AccountIntakeModal({
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-primary" />
-            <h2 className="text-[16px] font-bold text-foreground">
+            <h2 className="text-base font-bold text-foreground">
               New Value Case
             </h2>
           </div>
@@ -244,7 +244,7 @@ export default function AccountIntakeModal({
         <div className="px-6 py-5 space-y-5">
           {/* Company */}
           <div>
-            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground mb-1.5">
+            <label className="flex items-center gap-1.5 vf-text-body-s font-semibold text-foreground mb-1.5">
               <Building2 size={13} className="text-muted-foreground" />
               Company Name <span className="text-destructive">*</span>
             </label>
@@ -266,7 +266,7 @@ export default function AccountIntakeModal({
           {/* Industry + Revenue */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="text-[12px] font-semibold text-foreground mb-1.5 block">
+              <label className="vf-text-body-s font-semibold text-foreground mb-1.5 block">
                 Industry
               </label>
               <input
@@ -278,7 +278,7 @@ export default function AccountIntakeModal({
               />
             </div>
             <div>
-              <label className="text-[12px] font-semibold text-foreground mb-1.5 block">
+              <label className="vf-text-body-s font-semibold text-foreground mb-1.5 block">
                 Revenue
               </label>
               <input
@@ -293,7 +293,7 @@ export default function AccountIntakeModal({
 
           {/* Primary Contact */}
           <div>
-            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground mb-1.5">
+            <label className="flex items-center gap-1.5 vf-text-body-s font-semibold text-foreground mb-1.5">
               <User size={13} className="text-muted-foreground" />
               Primary Contact
             </label>
@@ -317,10 +317,10 @@ export default function AccountIntakeModal({
 
           {/* Known Pain Points */}
           <div>
-            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground mb-1.5">
+            <label className="flex items-center gap-1.5 vf-text-body-s font-semibold text-foreground mb-1.5">
               <AlertTriangle size={13} className="text-muted-foreground" />
               Known Pain Points
-              <span className="text-[10px] text-muted-foreground font-normal">
+              <span className="vf-text-micro text-muted-foreground font-normal">
                 (optional)
               </span>
             </label>
@@ -335,7 +335,7 @@ export default function AccountIntakeModal({
 
           {/* Analysis Depth */}
           <div>
-            <label className="flex items-center gap-1.5 text-[12px] font-semibold text-foreground mb-2">
+            <label className="flex items-center gap-1.5 vf-text-body-s font-semibold text-foreground mb-2">
               <Gauge size={13} className="text-muted-foreground" />
               Analysis Depth
             </label>
@@ -351,8 +351,8 @@ export default function AccountIntakeModal({
                       : "border-border text-muted-foreground hover:border-foreground/20"
                   )}
                 >
-                  <span className="text-[12px] font-semibold">{opt.label}</span>
-                  <span className="text-[10px] mt-0.5 leading-tight">
+                  <span className="vf-text-body-s font-semibold">{opt.label}</span>
+                  <span className="vf-text-micro mt-0.5 leading-tight">
                     {opt.description}
                   </span>
                 </button>
@@ -364,7 +364,7 @@ export default function AccountIntakeModal({
         {/* Error Display */}
         {error && (
           <div className="px-6 pb-4">
-            <div className="p-3 rounded-md bg-destructive/10 text-destructive text-[12px]">
+            <div className="p-3 rounded-md bg-destructive/10 text-destructive vf-text-body-s">
               {error}
             </div>
           </div>

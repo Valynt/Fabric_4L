@@ -35,7 +35,7 @@ function KPI({ icon: Icon, label, value, sub, accent }: {
         </div>
         <span className="vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider">{label}</span>
       </div>
-      <div className="text-[28px] font-extrabold text-foreground">{value}</div>
+      <div className="text-2xl font-extrabold text-foreground">{value}</div>
       {sub && <div className="vf-text-caption text-muted-foreground mt-1">{sub}</div>}
     </div>
   );

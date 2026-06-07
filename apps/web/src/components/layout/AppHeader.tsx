@@ -105,7 +105,7 @@ function UserMenu() {
           aria-label="User menu"
         >
           <Avatar className="h-6 w-6">
-            <AvatarFallback className="text-[10px] bg-primary/10 text-primary">
+            <AvatarFallback className="vf-text-micro bg-primary/10 text-primary">
               {initials}
             </AvatarFallback>
           </Avatar>

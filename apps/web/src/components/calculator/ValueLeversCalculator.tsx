@@ -61,7 +61,7 @@ export function ValueLeversCalculator({ accountId, industry, companySize, initia
   }, [accountId, createCase, initialCaseId, leverConfig, leverValues, onSaved, totals.A, totals.B, updateCase]);
 
   if (!industry || !companySize) {
-    return <div className="rounded border border-amber-400/40 bg-amber-50 p-3 text-sm text-amber-800">Select an account with industry and company size before loading value levers.</div>;
+    return <div className="rounded border border-amber-400/40 bg-warning/10 p-3 text-sm text-warning">Select an account with industry and company size before loading value levers.</div>;
   }
 
   return <SectionCard title="Value Levers">

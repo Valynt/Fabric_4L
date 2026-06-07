@@ -203,7 +203,7 @@ export function IntegrationConfigPanel({
               <div key={field.key}>
                 <label className="text-xs font-medium text-foreground mb-1.5 block">
                   {field.label}
-                  {field.required && <span className="text-red-500 ml-1">*</span>}
+                  {field.required && <span className="text-destructive ml-1">*</span>}
                 </label>
                 <input
                   type={field.type}
@@ -216,7 +216,7 @@ export function IntegrationConfigPanel({
             ))}
 
             {isSalesforce && (
-              <div className="rounded-lg border border-blue-200 bg-blue-50 px-3 py-3 text-xs text-blue-800">
+              <div className="rounded-lg border border-primary/20 bg-primary/10 px-3 py-3 text-xs text-primary">
                 Salesforce credentials are managed through OAuth. This panel only updates operational sync settings.
               </div>
             )}
@@ -268,7 +268,7 @@ export function IntegrationConfigPanel({
                 />
                 <div className={`w-11 h-6 rounded-full peer peer-focus:ring-2 ${providerInfo.toggleFocus} ${
                   editConfig.enabled ? providerInfo.toggleBg : "bg-muted"
-                } peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
+                } peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-border after:border after:rounded-full after:h-5 after:w-5 after:transition-all`}></div>
                 <span className="ml-3 text-sm text-foreground">Enable integration</span>
               </label>
             </div>
@@ -299,7 +299,7 @@ export function IntegrationConfigPanel({
                   Status
                 </div>
                 <p className={`text-sm font-semibold ${
-                  isConnected ? "text-emerald-600" : "text-muted-foreground"
+                  isConnected ? "text-success" : "text-muted-foreground"
                 }`}>
                   {isConnected ? "Active" : "Not Connected"}
                 </p>
@@ -328,24 +328,24 @@ export function IntegrationConfigPanel({
 
             {/* Error Message */}
             {errorMessage && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+              <div className="p-3 bg-destructive/10 border border-destructive/20 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={14} className="text-red-500 mt-0.5" />
+                  <AlertCircle size={14} className="text-destructive mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-medium text-red-800">Sync Error</p>
-                    <p className="text-[10px] text-red-600 mt-0.5">{errorMessage}</p>
+                    <p className="vf-text-caption font-medium text-destructive">Sync Error</p>
+                    <p className="vf-text-micro text-destructive mt-0.5">{errorMessage}</p>
                   </div>
                 </div>
               </div>
             )}
 
             {requiresReconnect && (
-              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+              <div className="p-3 bg-warning/10 border border-warning/20 rounded-lg">
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={14} className="text-amber-600 mt-0.5" />
+                  <AlertCircle size={14} className="text-warning mt-0.5" />
                   <div>
-                    <p className="text-[11px] font-medium text-amber-900">Reconnect Required</p>
-                    <p className="text-[10px] text-amber-700 mt-0.5">
+                    <p className="vf-text-caption font-medium text-amber-900">Reconnect Required</p>
+                    <p className="vf-text-micro text-warning mt-0.5">
                       This Salesforce connection is missing a refresh token or is currently degraded. Reconnect to restore automatic token refresh.
                     </p>
                   </div>
@@ -420,7 +420,7 @@ export function IntegrationConfigPanel({
                   <Btn
                     variant="outline"
                     onClick={onDelete}
-                    className="flex-1 text-red-600 hover:bg-red-50"
+                    className="flex-1 text-destructive hover:bg-destructive/10"
                   >
                     <Trash2 size={14} className="mr-1" />
                     Disconnect

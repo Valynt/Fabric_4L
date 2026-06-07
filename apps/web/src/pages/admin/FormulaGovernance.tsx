@@ -62,7 +62,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
 }> = {
   active: { 
     label: "Active",      
-    color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", 
+    color: "bg-success/100/10 text-success border-emerald-500/20", 
     icon: <CheckCircle2 size={11}/>,
     description: "Approved and available for use",
   },
@@ -74,7 +74,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
   },
   pending: { 
     label: "Pending",     
-    color: "bg-amber-500/10 text-amber-600 border-amber-500/20", 
+    color: "bg-warning/100/10 text-warning border-amber-500/20", 
     icon: <AlertCircle size={11}/>,
     description: "Awaiting approval review",
   },
@@ -97,23 +97,23 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
 function FormulaStatusChip({ status }: { status: FormulaStatus }) {
   const config = FORMULA_STATUS_CONFIG[status];
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${config.color}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${config.color}`}>
       {config.icon} {config.label}
     </span>
   );
 }
 
 function GovernanceScoreBadge({ score }: { score?: number }) {
-  if (!score) return <span className="text-muted-foreground text-[11px]">—</span>;
+  if (!score) return <span className="text-muted-foreground vf-text-caption">—</span>;
   
-  const color = score >= 90 ? "text-emerald-600" : 
-                score >= 75 ? "text-blue-600" : 
-                score >= 60 ? "text-amber-600" : "text-red-600";
+  const color = score >= 90 ? "text-success" : 
+                score >= 75 ? "text-primary" : 
+                score >= 60 ? "text-warning" : "text-destructive";
   
   return (
     <div className="flex items-center gap-1">
       <Shield size={12} className={color} />
-      <span className={`text-[11px] font-semibold ${color}`}>{score}</span>
+      <span className={`vf-text-caption font-semibold ${color}`}>{score}</span>
     </div>
   );
 }
@@ -127,17 +127,17 @@ function ApprovalQueueCard({ request, onAction }: {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-amber-500/10 text-amber-600 text-[10px] font-semibold px-2 py-0.5 rounded">
+            <span className="bg-warning/100/10 text-warning vf-text-micro font-semibold px-2 py-0.5 rounded">
               Pending Approval
             </span>
-            <span className="text-[11px] text-muted-foreground">
+            <span className="vf-text-caption text-muted-foreground">
               Submitted {new Date(request.submitted_at).toLocaleDateString()}
             </span>
           </div>
-          <h3 className="text-[14px] font-semibold text-foreground">{request.formula_name}</h3>
-          <p className="text-[12px] text-muted-foreground mt-1">{request.change_summary}</p>
+          <h3 className="vf-text-body-l font-semibold text-foreground">{request.formula_name}</h3>
+          <p className="vf-text-body-s text-muted-foreground mt-1">{request.change_summary}</p>
         </div>
-        <div className="text-[11px] text-muted-foreground text-right">
+        <div className="vf-text-caption text-muted-foreground text-right">
           <p>By {request.submitted_by}</p>
           <p>v{request.previous_version} → new version</p>
         </div>
@@ -146,19 +146,19 @@ function ApprovalQueueCard({ request, onAction }: {
       <div className="flex items-center gap-2">
         <button 
           onClick={() => onAction(request.id, "approve")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white text-[11px] font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white vf-text-caption font-medium rounded-lg hover:bg-emerald-700 transition-colors"
         >
           <Check size={12}/> Approve
         </button>
         <button 
           onClick={() => onAction(request.id, "request_changes")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-border text-foreground text-[11px] font-medium rounded-lg hover:bg-muted transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-border text-foreground vf-text-caption font-medium rounded-lg hover:bg-muted transition-colors"
         >
           <MessageSquare size={12}/> Request Changes
         </button>
         <button 
           onClick={() => onAction(request.id, "reject")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-destructive/20 text-destructive text-[11px] font-medium rounded-lg hover:bg-destructive/10 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-card border border-destructive/20 text-destructive vf-text-caption font-medium rounded-lg hover:bg-destructive/10 transition-colors"
         >
           <X size={12}/> Reject
         </button>
@@ -287,13 +287,13 @@ function FormulaGovernanceContent() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">Failed to load formula governance</h3>
-              <p className="text-[12px] text-destructive/80">
+              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load formula governance</h3>
+              <p className="vf-text-body-s text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button 
                 onClick={() => { refetchFormulas(); refetchApprovals(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -319,17 +319,17 @@ function FormulaGovernanceContent() {
       <div className="grid grid-cols-5 gap-4 mb-6">
         {[
           { label: "Total Formulas", value: stats.total, icon: <FlaskConical size={14}/> },
-          { label: "Active", value: stats.active, icon: <CheckCircle2 size={14}/>, color: "text-emerald-600" },
-          { label: "Pending Review", value: stats.pending, icon: <AlertCircle size={14}/>, color: "text-amber-600" },
+          { label: "Active", value: stats.active, icon: <CheckCircle2 size={14}/>, color: "text-success" },
+          { label: "Pending Review", value: stats.pending, icon: <AlertCircle size={14}/>, color: "text-warning" },
           { label: "Deprecated", value: stats.deprecated, icon: <History size={14}/>, color: "text-destructive" },
-          { label: "Avg Gov Score", value: avgGovernanceScore, icon: <Shield size={14}/>, color: "text-blue-600" },
+          { label: "Avg Gov Score", value: avgGovernanceScore, icon: <Shield size={14}/>, color: "text-primary" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
+              <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
+            <p className={`text-2xl font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -337,8 +337,8 @@ function FormulaGovernanceContent() {
       {/* Pending Approvals Callout */}
       {pendingApprovals.length > 0 && (
         <div className="mb-6">
-          <h3 className="text-[13px] font-semibold text-foreground mb-3 flex items-center gap-2">
-            <AlertCircle size={14} className="text-amber-600"/> 
+          <h3 className="vf-text-body-m font-semibold text-foreground mb-3 flex items-center gap-2">
+            <AlertCircle size={14} className="text-warning"/> 
             Pending Approvals ({pendingApprovals.length})
           </h3>
           {pendingApprovals.map((req: ApprovalRequest) => (
@@ -364,7 +364,7 @@ function FormulaGovernanceContent() {
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
+              "px-4 py-2.5 vf-text-body-s font-medium transition-colors relative",
               activeTab === tab.id
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -374,7 +374,7 @@ function FormulaGovernanceContent() {
               {tab.label}
               {tab.count !== undefined && (
                 <span className={cn(
-                  "px-1.5 py-0.5 rounded text-[10px]",
+                  "px-1.5 py-0.5 rounded vf-text-micro",
                   activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                 )}>
                   {tab.count}
@@ -397,7 +397,7 @@ function FormulaGovernanceContent() {
             onChange={e => setSearch(e.target.value)}
             placeholder="Search formulas by name, pack, or owner..."
             aria-label="Search formulas"
-            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+            className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div className="flex items-center gap-1.5">
@@ -406,7 +406,7 @@ function FormulaGovernanceContent() {
               key={s}
               onClick={() => setStatusFilter(s)}
               aria-pressed={statusFilter === s}
-              className={`text-[11px] px-2.5 py-1.5 rounded-full border capitalize transition-colors font-medium ${
+              className={`vf-text-caption px-2.5 py-1.5 rounded-full border capitalize transition-colors font-medium ${
                 statusFilter === s
                   ? "bg-primary text-primary-foreground border-primary"
                   : "bg-card text-muted-foreground border-border hover:border-primary"
@@ -417,10 +417,10 @@ function FormulaGovernanceContent() {
           ))}
         </div>
         <div className="ml-auto flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
             <Download size={12}/> Export
           </button>
-          <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+          <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
             <Filter size={12}/> More Filters
           </button>
         </div>
@@ -428,7 +428,7 @@ function FormulaGovernanceContent() {
 
       {/* Formula Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-[12px]">
+        <table className="w-full vf-text-body-s">
           <thead>
             <tr className="border-b border-border bg-muted">
               <th className="w-10 px-3 py-3">
@@ -440,7 +440,7 @@ function FormulaGovernanceContent() {
                 />
               </th>
               {["Formula Name", "Value Pack", "Version", "Status", "Owner", "Gov Score", "Used In", "Updated", ""].map(h => (
-                <th key={h} className="text-left px-3 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <th key={h} className="text-left px-3 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                   {h === "Gov Score" ? <span className="flex items-center gap-1"><Shield size={10}/> Score</span> : h}
                 </th>
               ))}
@@ -459,11 +459,11 @@ function FormulaGovernanceContent() {
                 </td>
                 <td className="px-3 py-3">
                   <div className="flex items-center gap-2">
-                    <FlaskConical size={14} className="text-violet-500 shrink-0"/>
+                    <FlaskConical size={14} className="text-primary shrink-0"/>
                     <div>
                       <span className="font-medium text-foreground block">{f.name}</span>
                       {f.description && (
-                        <span className="text-[10px] text-muted-foreground block truncate max-w-[200px]">{f.description}</span>
+                        <span className="vf-text-micro text-muted-foreground block truncate max-w-[200px]">{f.description}</span>
                       )}
                     </div>
                   </div>
@@ -504,7 +504,7 @@ function FormulaGovernanceContent() {
           </tbody>
         </table>
         {formulas.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-[12px]">
+          <div className="text-center py-12 text-muted-foreground vf-text-body-s">
             <FlaskConical size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
             No formulas match your filters.
           </div>
@@ -515,22 +515,22 @@ function FormulaGovernanceContent() {
       {selectedFormulas.size > 0 && (
         <div className="fixed bottom-6 left-[260px] right-6 bg-card border border-border rounded-xl shadow-lg px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className="text-[12px] font-medium text-foreground">
+            <span className="vf-text-body-s font-medium text-foreground">
               {selectedFormulas.size} selected
             </span>
             <div className="h-4 w-px bg-border" />
-            <button className="text-[11px] text-muted-foreground hover:text-foreground" onClick={() => setSelectedFormulas(new Set())}>
+            <button className="vf-text-caption text-muted-foreground hover:text-foreground" onClick={() => setSelectedFormulas(new Set())}>
               Clear
             </button>
           </div>
           <div className="flex items-center gap-2">
-            <button className="px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+            <button className="px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
               Export
             </button>
-            <button className="px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+            <button className="px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
               Archive
             </button>
-            <button className="px-3 py-1.5 text-[11px] font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
+            <button className="px-3 py-1.5 vf-text-caption font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors">
               Delete
             </button>
           </div>

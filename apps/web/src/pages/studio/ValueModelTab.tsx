@@ -63,32 +63,32 @@ function ROISummaryCard({ result }: { result: ROICalculationResult }) {
     <SectionCard title="ROI Analysis" className="mt-4">
       <div className="flex items-center gap-2 mb-3">
         <Calculator size={13} className="text-primary" />
-        <span className="text-[11px] text-muted-foreground">
+        <span className="vf-text-caption text-muted-foreground">
           Calculated by the DIL ROI Engine
         </span>
       </div>
       <div className="grid grid-cols-4 gap-3">
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">NPV</p>
-          <p className="text-[14px] font-bold text-primary">
+          <p className="vf-text-micro text-muted-foreground">NPV</p>
+          <p className="vf-text-body-l font-bold text-primary">
             {formatCurrency(result.npv)}
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">IRR</p>
-          <p className="text-[14px] font-bold text-green-600">
+          <p className="vf-text-micro text-muted-foreground">IRR</p>
+          <p className="vf-text-body-l font-bold text-success">
             {formatPercent(result.irr)}
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">Payback</p>
-          <p className="text-[14px] font-bold">
+          <p className="vf-text-micro text-muted-foreground">Payback</p>
+          <p className="vf-text-body-l font-bold">
             {result.payback_months} mo
           </p>
         </div>
         <div className="text-center p-3 bg-muted/50 rounded-md">
-          <p className="text-[10px] text-muted-foreground">3-Year ROI</p>
-          <p className="text-[14px] font-bold text-primary">
+          <p className="vf-text-micro text-muted-foreground">3-Year ROI</p>
+          <p className="vf-text-body-l font-bold text-primary">
             {formatPercent(result.total_roi_pct / 100)}
           </p>
         </div>
@@ -103,22 +103,22 @@ function BenchmarkCard({ benchmark }: { benchmark: IndustryBenchmark | null }) {
   return (
     <SectionCard title="Industry Benchmarks" className="mt-4">
       <div className="flex items-center gap-2 mb-3">
-        <BarChart3 size={13} className="text-amber-500" />
-        <span className="text-[11px] text-muted-foreground">
+        <BarChart3 size={13} className="text-warning" />
+        <span className="vf-text-caption text-muted-foreground">
           Sourced from the DIL Evidence Library — {benchmark.industry} (n={benchmark.sample_size})
         </span>
       </div>
       <div className="grid grid-cols-3 gap-3">
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg ROI</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg ROI</span>
           <span className="font-bold">{benchmark.avg_roi_pct.toFixed(1)}%</span>
         </div>
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg Payback</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg Payback</span>
           <span className="font-bold">{benchmark.avg_payback_months} mo</span>
         </div>
-        <div className="px-3 py-2 border border-border rounded-md text-[12px]">
-          <span className="text-[10px] text-muted-foreground block">Avg NPV</span>
+        <div className="px-3 py-2 border border-border rounded-md vf-text-body-s">
+          <span className="vf-text-micro text-muted-foreground block">Avg NPV</span>
           <span className="font-bold">${(benchmark.avg_npv / 1000).toFixed(0)}K</span>
         </div>
       </div>
@@ -304,7 +304,7 @@ export default function ValueModelTab() {
                   key={s}
                   onClick={() => setScenario(s)}
                   className={cn(
-                    "px-3 py-1.5 text-[11px] font-semibold rounded-md",
+                    "px-3 py-1.5 vf-text-caption font-semibold rounded-md",
                     scenario === s
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -340,7 +340,7 @@ export default function ValueModelTab() {
 
           {/* Value breakdown table */}
           <SectionCard title="Value Breakdown">
-            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-2 text-[10px] font-semibold text-muted-foreground border-b border-border">
+            <div className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-2 vf-text-micro font-semibold text-muted-foreground border-b border-border">
               <span>Driver</span>
               <span>Conservative</span>
               <span>Expected</span>
@@ -350,7 +350,7 @@ export default function ValueModelTab() {
             {visibleLines.map((line) => (
               <div
                 key={line.id}
-                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-3 text-[12px] border-b border-border"
+                className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 px-3 py-3 vf-text-body-s border-b border-border"
               >
                 <span>{line.driver}</span>
                 <span
@@ -374,7 +374,7 @@ export default function ValueModelTab() {
                 >
                   {formatCurrency(line.optimistic)}
                 </span>
-                <span className="text-[10px] text-muted-foreground">
+                <span className="vf-text-micro text-muted-foreground">
                   {line.source}
                 </span>
               </div>

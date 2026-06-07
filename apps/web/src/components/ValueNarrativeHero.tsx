@@ -196,7 +196,7 @@ export default function ValueNarrativeHero() {
 
         {/* Success / error feedback */}
         {generateNarrative.isSuccess && (
-          <p className="mt-4 vf-text-body-s text-emerald-400/80">
+          <p className="mt-4 vf-text-body-s text-success/80">
             ✓ Workflow started — ID: {generateNarrative.data.workflow_id}
           </p>
         )}

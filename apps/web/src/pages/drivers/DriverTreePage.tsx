@@ -157,7 +157,7 @@ export default function DriverTreePage() {
                           </span>
                         ))}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
+                      <p className="vf-text-micro text-muted-foreground mt-1">
                         {path.length} hops · {path.nodes.length} nodes
                       </p>
                     </div>

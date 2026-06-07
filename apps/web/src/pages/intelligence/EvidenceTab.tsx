@@ -14,7 +14,7 @@ import { MetricCard, Btn } from "@/components/ui/fabric";
 
 type VerificationState = "verified" | "partial" | "unverified";
 interface EvidenceItem { id: string; title: string; type: string; source: string; matchScore: number; verification: VerificationState; linkedSignals: string[]; excerpt: string }
-const VERIFICATION_CONFIG: Record<VerificationState, { icon: typeof CheckCircle2; color: string }> = { verified: { icon: CheckCircle2, color: "text-green-600" }, partial: { icon: AlertCircle, color: "text-orange-600" }, unverified: { icon: AlertCircle, color: "text-muted-foreground" } };
+const VERIFICATION_CONFIG: Record<VerificationState, { icon: typeof CheckCircle2; color: string }> = { verified: { icon: CheckCircle2, color: "text-success" }, partial: { icon: AlertCircle, color: "text-warning" }, unverified: { icon: AlertCircle, color: "text-muted-foreground" } };
 
 function useEvidenceTabState() {
   const { accountId } = useParams<{ accountId: string }>();
@@ -91,9 +91,9 @@ export function EvidenceTabContent() {
                     <FileText size={14} />
                     <div className="flex-1">
                       <div className="text-xs font-medium">{item.title}</div>
-                      <div className="text-[10px] text-muted-foreground">{item.linkedSignals.join(" · ")}</div>
+                      <div className="vf-text-micro text-muted-foreground">{item.linkedSignals.join(" · ")}</div>
                     </div>
-                    <span className={cn("flex items-center gap-1 text-[10px] font-semibold", vc.color)}>
+                    <span className={cn("flex items-center gap-1 vf-text-micro font-semibold", vc.color)}>
                       <Icon size={10} />{pendingDecisions[item.id] ? `${pendingDecisions[item.id]}` : `${item.matchScore}%`}
                     </span>
                     <ChevronRight size={12} />

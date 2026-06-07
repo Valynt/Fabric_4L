@@ -33,7 +33,7 @@ export function PersonalPreferences() {
               <div key={capability} className="rounded border p-2 text-xs">
                 <div className="flex items-center justify-between">
                   <span className="font-medium uppercase">{capability.replace("_", " ")}</span>
-                  <span className={decision.allowed ? "text-emerald-700" : "text-amber-700"}>{decision.allowed ? "Allowed" : "Denied"}</span>
+                  <span className={decision.allowed ? "text-success" : "text-warning"}>{decision.allowed ? "Allowed" : "Denied"}</span>
                 </div>
                 {!decision.allowed && decision.reasons.length > 0 && (
                   <p className="mt-1 text-muted-foreground">{decision.reasons.map(describeDenialReason).join(", ")}</p>

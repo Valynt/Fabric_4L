@@ -56,16 +56,16 @@ const LIFECYCLE_BADGE: Record<ValueSignalLifecycleState, { label: string; classN
 };
 
 const TYPE_DOT: Record<string, string> = {
-  Pain:               "bg-red-500",
-  Opportunity:        "bg-emerald-500",
-  Risk:               "bg-orange-500",
-  Expansion:          "bg-blue-500",
-  Renewal:            "bg-yellow-500",
-  "Cost Saving":      "bg-teal-500",
-  "Revenue Uplift":   "bg-purple-500",
-  Efficiency:         "bg-cyan-500",
-  Compliance:         "bg-pink-500",
-  "Strategic Priority": "bg-indigo-500",
+  Pain:               "bg-destructive/100",
+  Opportunity:        "bg-success/100",
+  Risk:               "bg-warning/100",
+  Expansion:          "bg-primary/100",
+  Renewal:            "bg-warning/100",
+  "Cost Saving":      "bg-success/100",
+  "Revenue Uplift":   "bg-primary/100",
+  Efficiency:         "bg-info/100",
+  Compliance:         "bg-primary/100",
+  "Strategic Priority": "bg-primary/100",
 };
 
 // ---------------------------------------------------------------------------
@@ -75,7 +75,7 @@ const TYPE_DOT: Record<string, string> = {
 function LifecycleBadge({ state }: { state: ValueSignalLifecycleState }) {
   const cfg = LIFECYCLE_BADGE[state] ?? { label: state, className: "bg-muted text-muted-foreground" };
   return (
-    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium", cfg.className)}>
+    <span className={cn("inline-flex items-center rounded-full px-2 py-0.5 vf-text-micro font-medium", cfg.className)}>
       {cfg.label}
     </span>
   );
@@ -83,25 +83,25 @@ function LifecycleBadge({ state }: { state: ValueSignalLifecycleState }) {
 
 function TrustBar({ score }: { score: number }) {
   const pct = Math.round(score);
-  const color = pct >= 70 ? "bg-emerald-500" : pct >= 40 ? "bg-yellow-500" : "bg-red-400";
+  const color = pct >= 70 ? "bg-success/100" : pct >= 40 ? "bg-warning/100" : "bg-red-400";
   return (
     <div className="flex items-center gap-1.5">
       <div className="h-1.5 w-16 rounded-full bg-muted overflow-hidden">
         <div className={cn("h-full rounded-full", color)} style={{ width: `${pct}%` }} />
       </div>
-      <span className="text-[10px] text-muted-foreground">{pct}%</span>
+      <span className="vf-text-micro text-muted-foreground">{pct}%</span>
     </div>
   );
 }
 
 function EvidenceList({ evidence }: { evidence: ValueSignal["evidence"] }) {
   if (!evidence.length) {
-    return <p className="text-[11px] text-muted-foreground italic">No evidence attached.</p>;
+    return <p className="vf-text-caption text-muted-foreground italic">No evidence attached.</p>;
   }
   return (
     <div className="space-y-2">
       {evidence.map((item) => (
-        <div key={item.id} className="rounded-md border border-border bg-muted/30 p-2 text-[11px]">
+        <div key={item.id} className="rounded-md border border-border bg-muted/30 p-2 vf-text-caption">
           <div className="flex items-start justify-between gap-2">
             <span className="font-medium text-foreground truncate">{item.source_ref}</span>
             <span className="shrink-0 text-muted-foreground">{Math.round(item.confidence * 100)}%</span>
@@ -121,7 +121,7 @@ function EvidenceList({ evidence }: { evidence: ValueSignal["evidence"] }) {
 
 function ProvenanceBlock({ provenance }: { provenance: ValueSignal["provenance"] }) {
   return (
-    <div className="rounded-md border border-border bg-muted/20 p-2 text-[11px] space-y-1">
+    <div className="rounded-md border border-border bg-muted/20 p-2 vf-text-caption space-y-1">
       <div className="flex items-center gap-1.5 font-medium text-foreground">
         <ShieldCheck size={11} className="text-muted-foreground" /> Provenance
       </div>
@@ -214,23 +214,23 @@ export default function SignalsTab() {
       <div>
         <div className="flex items-center gap-2 mb-1">
           <LifecycleBadge state={selectedSignal.lifecycle_state} />
-          <span className="text-[10px] text-muted-foreground">{selectedCard.category}</span>
+          <span className="vf-text-micro text-muted-foreground">{selectedCard.category}</span>
         </div>
-        <h3 className="text-[13px] font-semibold text-foreground leading-snug">{selectedCard.name}</h3>
+        <h3 className="vf-text-body-m font-semibold text-foreground leading-snug">{selectedCard.name}</h3>
       </div>
       {/* Scores */}
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-md bg-muted/50 p-2 text-center">
-          <div className="text-[10px] text-muted-foreground mb-0.5">Confidence</div>
-          <div className="text-[14px] font-bold">{selectedCard.confidence}%</div>
+          <div className="vf-text-micro text-muted-foreground mb-0.5">Confidence</div>
+          <div className="vf-text-body-l font-bold">{selectedCard.confidence}%</div>
         </div>
         <div className="rounded-md bg-muted/50 p-2">
-          <div className="text-[10px] text-muted-foreground mb-0.5">Trust</div>
+          <div className="vf-text-micro text-muted-foreground mb-0.5">Trust</div>
           <TrustBar score={selectedCard.trust_score} />
         </div>
       </div>
       {selectedSignal.impact_area && (
-        <div className="text-[11px] text-muted-foreground">
+        <div className="vf-text-caption text-muted-foreground">
           Impact: <span className="text-foreground font-medium">{selectedCard.impact}</span>
         </div>
       )}
@@ -247,7 +247,7 @@ export default function SignalsTab() {
       </div>
       {/* Promote */}
       <div className="space-y-2 pt-1">
-        <label className="text-[11px] font-medium text-muted-foreground">Value Path</label>
+        <label className="vf-text-caption font-medium text-muted-foreground">Value Path</label>
         <Select value={selectedValuePath} onValueChange={setSelectedValuePath}>
           <SelectTrigger className="w-full">
             <SelectValue placeholder="Select value path…" />
@@ -272,7 +272,7 @@ export default function SignalsTab() {
       </div>
       {/* Evidence */}
       <div className="space-y-2 pt-1">
-        <div className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground">
+        <div className="flex items-center gap-1.5 vf-text-caption font-medium text-muted-foreground">
           <Zap size={11} /> Evidence ({selectedSignal.evidence.length})
         </div>
         <EvidenceList evidence={selectedSignal.evidence} />
@@ -280,7 +280,7 @@ export default function SignalsTab() {
       {/* Provenance */}
       <ProvenanceBlock provenance={selectedSignal.provenance} />
       {selectedSignal.validation_notes && (
-        <div className="text-[11px] text-muted-foreground border-t border-border pt-2">
+        <div className="vf-text-caption text-muted-foreground border-t border-border pt-2">
           Notes: {selectedSignal.validation_notes}
         </div>
       )}
@@ -365,7 +365,7 @@ export default function SignalsTab() {
 
           <SectionCard title="Value Signals">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-[11px] text-muted-foreground">{signals.length} detected</span>
+              <span className="vf-text-caption text-muted-foreground">{signals.length} detected</span>
               <Btn variant="outline" className="gap-1.5">
                 <Filter size={12} /> Filters
               </Btn>
@@ -379,7 +379,7 @@ export default function SignalsTab() {
                   onClick={() => { setSelectedSignal(signal); setRailMode("detail"); }}
                   className={cn(
                     "w-full text-left px-3 py-3 border-b border-border last:border-0",
-                    "grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 items-center text-[12px]",
+                    "grid grid-cols-[auto_1fr_auto_auto_auto_auto] gap-3 items-center vf-text-body-s",
                     isSelected ? "bg-primary/5" : "hover:bg-muted/50",
                   )}
                 >
@@ -391,7 +391,7 @@ export default function SignalsTab() {
                   <LifecycleBadge state={card.lifecycle_state} />
                   <span className="w-12 text-right text-muted-foreground">{card.confidence}%</span>
                   <TrustBar score={card.trust_score} />
-                  <span className="w-14 text-right text-muted-foreground text-[10px]">{card.evidence_count} ev.</span>
+                  <span className="w-14 text-right text-muted-foreground vf-text-micro">{card.evidence_count} ev.</span>
                 </button>
               );
             })}

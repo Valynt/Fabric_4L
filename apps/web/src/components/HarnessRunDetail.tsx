@@ -53,39 +53,39 @@ const STATE_ORDER = [
 
 function statusColor(status: string): string {
   switch (status) {
-    case "completed": return "bg-emerald-500/15 text-emerald-700 border-emerald-200";
-    case "running":   return "bg-blue-500/15 text-blue-700 border-blue-200";
-    case "failed":    return "bg-red-500/15 text-red-700 border-red-200";
+    case "completed": return "bg-success/100/15 text-success border-success/20";
+    case "running":   return "bg-primary/100/15 text-primary border-primary/20";
+    case "failed":    return "bg-destructive/100/15 text-destructive border-destructive/20";
     case "cancelled": return "bg-muted/15 text-muted-foreground border-border";
-    case "waiting_for_human": return "bg-amber-500/15 text-amber-700 border-amber-200";
+    case "waiting_for_human": return "bg-warning/100/15 text-warning border-warning/20";
     default:          return "bg-muted text-muted-foreground border-border";
   }
 }
 
 function gateStatusColor(status: string): string {
   switch (status) {
-    case "approved": return "bg-emerald-500/15 text-emerald-700";
-    case "rejected": return "bg-red-500/15 text-red-700";
+    case "approved": return "bg-success/100/15 text-success";
+    case "rejected": return "bg-destructive/100/15 text-destructive";
     case "expired":  return "bg-muted/15 text-muted-foreground";
-    case "modified": return "bg-blue-500/15 text-blue-700";
-    default:         return "bg-amber-500/15 text-amber-700"; // pending
+    case "modified": return "bg-primary/100/15 text-primary";
+    default:         return "bg-warning/100/15 text-warning"; // pending
   }
 }
 
 function validationStateColor(state: ValidationState): string {
   switch (state) {
-    case "passed":               return "text-emerald-600";
-    case "failed":               return "text-red-600";
-    case "needs_review":         return "text-amber-600";
-    case "insufficient_evidence": return "text-slate-500";
+    case "passed":               return "text-success";
+    case "failed":               return "text-destructive";
+    case "needs_review":         return "text-warning";
+    case "insufficient_evidence": return "text-muted-foreground";
   }
 }
 
 function validationStateBadgeClass(state: ValidationState): string {
   switch (state) {
-    case "passed":               return "bg-emerald-500/15 text-emerald-700 border-emerald-200";
-    case "failed":               return "bg-red-500/15 text-red-700 border-red-200";
-    case "needs_review":         return "bg-amber-500/15 text-amber-700 border-amber-200";
+    case "passed":               return "bg-success/100/15 text-success border-success/20";
+    case "failed":               return "bg-destructive/100/15 text-destructive border-destructive/20";
+    case "needs_review":         return "bg-warning/100/15 text-warning border-warning/20";
     case "insufficient_evidence": return "bg-muted text-muted-foreground border-border";
   }
 }
@@ -166,12 +166,12 @@ function ValidationSection({
               className="rounded border border-border bg-muted/30 px-3 py-2 text-xs"
             >
               <div className="flex items-center justify-between gap-2 mb-0.5">
-                <span className="font-mono truncate text-[11px] text-muted-foreground">
+                <span className="font-mono truncate vf-text-caption text-muted-foreground">
                   {r.claim_id}
                 </span>
                 <Badge
                   variant="outline"
-                  className={cn("text-[10px] shrink-0", validationStateBadgeClass(r.validation_state))}
+                  className={cn("vf-text-micro shrink-0", validationStateBadgeClass(r.validation_state))}
                 >
                   {validationStateLabel(r.validation_state)}
                 </Badge>
@@ -203,15 +203,15 @@ function StateProgress({ currentState, status }: { currentState: string; status:
             <div
               className={cn(
                 "h-2 w-2 rounded-full",
-                done   && "bg-emerald-500",
-                active && "bg-blue-500 animate-pulse",
-                failed && "bg-red-500",
-                !done && !active && !failed && "bg-slate-200",
+                done   && "bg-success/100",
+                active && "bg-primary/100 animate-pulse",
+                failed && "bg-destructive/100",
+                !done && !active && !failed && "bg-muted",
               )}
               title={state}
             />
             {idx < STATE_ORDER.length - 1 && (
-              <div className={cn("h-px w-3", done ? "bg-emerald-300" : "bg-slate-200")} />
+              <div className={cn("h-px w-3", done ? "bg-emerald-300" : "bg-muted")} />
             )}
           </div>
         );
@@ -247,7 +247,7 @@ function GateRow({ gate, runId }: { gate: HumanGate; runId: string }) {
           <Button
             size="sm"
             variant="outline"
-            className="h-7 text-xs text-emerald-700 border-emerald-200 hover:bg-emerald-50"
+            className="h-7 text-xs text-success border-success/20 hover:bg-success/10"
             disabled={decide.isPending}
             onClick={() => decide.mutate({ gateId: gate.id, runId, decision: "approved" })}
           >
@@ -256,7 +256,7 @@ function GateRow({ gate, runId }: { gate: HumanGate; runId: string }) {
           <Button
             size="sm"
             variant="outline"
-            className="h-7 text-xs text-red-700 border-red-200 hover:bg-red-50"
+            className="h-7 text-xs text-destructive border-destructive/20 hover:bg-destructive/10"
             disabled={decide.isPending}
             onClick={() => decide.mutate({ gateId: gate.id, runId, decision: "rejected" })}
           >
@@ -416,7 +416,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                       <ShieldCheck className="h-3.5 w-3.5" />
                       Human Gates
                       {pendingGates.length > 0 && (
-                        <Badge className="ml-1 h-4 px-1.5 text-[10px] bg-amber-500">
+                        <Badge className="ml-1 h-4 px-1.5 vf-text-micro bg-warning/100">
                           {pendingGates.length} pending
                         </Badge>
                       )}
@@ -446,7 +446,7 @@ export function HarnessRunDetail({ runId, isOpen, onClose }: HarnessRunDetailPro
                           className="flex items-center justify-between text-sm py-1"
                         >
                           <div className="flex items-center gap-2">
-                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500 shrink-0" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-success shrink-0" />
                             <span className="font-mono text-xs">{chk.state_name}</span>
                           </div>
                           <span className="text-xs text-muted-foreground">

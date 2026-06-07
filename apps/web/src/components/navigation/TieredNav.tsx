@@ -394,7 +394,7 @@ function TierSwitcher({
           <div className="flex items-center justify-between py-2 px-2 bg-muted/50 rounded-lg">
             <div className="flex items-center gap-2">
               <Wrench size={12} className="text-accent" />
-              <span className="text-[11px] font-medium text-foreground">
+              <span className="vf-text-caption font-medium text-foreground">
                 Advanced Mode
               </span>
             </div>

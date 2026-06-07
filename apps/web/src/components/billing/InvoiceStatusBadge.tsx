@@ -18,13 +18,13 @@ const statusConfig: Record<
   paid: {
     label: 'Paid',
     variant: 'default',
-    className: 'bg-green-100 text-green-800 hover:bg-green-100 border-green-200',
+    className: 'bg-success/10 text-success hover:bg-success/10 border-success/20',
     icon: CheckCircle,
   },
   open: {
     label: 'Open',
     variant: 'default',
-    className: 'bg-blue-100 text-blue-800 hover:bg-blue-100 border-blue-200',
+    className: 'bg-primary/10 text-primary hover:bg-primary/10 border-primary/20',
     icon: Clock,
   },
   draft: {
@@ -42,7 +42,7 @@ const statusConfig: Record<
   uncollectible: {
     label: 'Uncollectible',
     variant: 'destructive',
-    className: 'bg-red-100 text-red-800 hover:bg-red-100 border-red-200',
+    className: 'bg-destructive/10 text-destructive hover:bg-destructive/10 border-destructive/20',
     icon: AlertCircle,
   },
 };

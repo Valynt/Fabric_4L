@@ -52,7 +52,7 @@ export default function DriversTab() {
         <MetricCard label="Top Contributor" value={`${Math.max(...drivers.map((d) => d.contribution))}%`} />
         <MetricCard label="Signals Analyzed" value={String(Object.keys(grouped).length)} />
       </div>
-      {Object.entries(grouped).map(([signal, list]) => <SectionCard key={signal} title={signal} className="mb-4"><div className="space-y-1">{list.map((driver) => <button key={driver.id} onClick={() => setSelectedDriver(driver)} className={cn("flex items-center gap-4 w-full px-3 py-3 rounded-md text-left", selectedDriver?.id === driver.id ? "bg-primary/5" : "hover:bg-muted/50")}><GitBranch size={14} /><div className="flex-1"><div className="text-xs font-medium">{driver.name}</div><div className="text-[10px] text-muted-foreground">{driver.subDrivers.join(" · ")}</div></div><span className="text-xs">{driver.contribution}%</span><ChevronRight size={12} /></button>)}</div></SectionCard>)}
+      {Object.entries(grouped).map(([signal, list]) => <SectionCard key={signal} title={signal} className="mb-4"><div className="space-y-1">{list.map((driver) => <button key={driver.id} onClick={() => setSelectedDriver(driver)} className={cn("flex items-center gap-4 w-full px-3 py-3 rounded-md text-left", selectedDriver?.id === driver.id ? "bg-primary/5" : "hover:bg-muted/50")}><GitBranch size={14} /><div className="flex-1"><div className="text-xs font-medium">{driver.name}</div><div className="vf-text-micro text-muted-foreground">{driver.subDrivers.join(" · ")}</div></div><span className="text-xs">{driver.contribution}%</span><ChevronRight size={12} /></button>)}</div></SectionCard>)}
     </>}
   </IntelligenceShell>;
 }

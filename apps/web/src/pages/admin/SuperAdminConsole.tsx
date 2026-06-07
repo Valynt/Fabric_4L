@@ -47,9 +47,9 @@ function TenantTable({ items }: { items: TenantOverviewItem[] }) {
                   className={cn(
                     "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                     item.status === "active"
-                      ? "bg-emerald-500/10 text-emerald-600"
+                      ? "bg-success/100/10 text-success"
                       : item.status === "pending"
-                        ? "bg-amber-500/10 text-amber-600"
+                        ? "bg-warning/100/10 text-warning"
                         : "bg-muted text-muted-foreground",
                   )}
                 >

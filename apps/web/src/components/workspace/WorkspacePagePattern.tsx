@@ -34,7 +34,7 @@ export default function WorkspacePagePattern({
 }: WorkspacePagePatternProps) {
   return (
     <div className="flex flex-col h-full overflow-hidden">
-      <div className="h-11 bg-muted/50 border-b border-border flex items-center px-6 gap-3 text-[12px] shrink-0">
+      <div className="h-11 bg-muted/50 border-b border-border flex items-center px-6 gap-3 vf-text-body-s shrink-0">
         <Building2 size={14} className="text-muted-foreground shrink-0" />
         <span className="font-semibold text-foreground">{account.accountName}</span>
         <span className="text-muted-foreground">·</span>
@@ -52,7 +52,7 @@ export default function WorkspacePagePattern({
                 role="tab"
                 aria-selected={activeTab === tab.key}
                 className={cn(
-                  "px-4 py-2.5 text-[12px] font-semibold border-b-2 -mb-px transition-colors",
+                  "px-4 py-2.5 vf-text-body-s font-semibold border-b-2 -mb-px transition-colors",
                   activeTab === tab.key
                     ? "border-primary text-primary"
                     : "border-transparent text-muted-foreground hover:text-foreground"

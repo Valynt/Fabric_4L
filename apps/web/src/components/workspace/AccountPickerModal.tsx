@@ -98,10 +98,10 @@ export default function AccountPickerModal({
         onInteractOutside={preventDismiss}
       >
         <DialogHeader className="px-6 pt-6 pb-3">
-          <DialogTitle className="text-[18px] font-semibold">
+          <DialogTitle className="text-lg font-semibold">
             Select an Account
           </DialogTitle>
-          <DialogDescription className="text-[13px]">
+          <DialogDescription className="vf-text-body-m">
             Choose an account to continue to the{" "}
             <span className="font-medium text-foreground capitalize">
               {workspace}

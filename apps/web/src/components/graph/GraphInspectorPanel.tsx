@@ -74,7 +74,7 @@ export function GraphInspectorPanel({
           <CardTitle className="text-base font-semibold truncate">{node.name}</CardTitle>
           <span
             className={cn(
-              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-medium border shrink-0",
+              "inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full vf-text-micro font-medium border shrink-0",
               badgeClasses.bg,
               badgeClasses.text,
               "border-current/20"
@@ -110,7 +110,7 @@ export function GraphInspectorPanel({
         {/* Properties */}
         {node.properties && Object.keys(node.properties).length > 0 && (
           <div className="space-y-1.5">
-            <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+            <div className="vf-text-micro font-semibold text-muted-foreground/60 uppercase tracking-wider">
               Properties
             </div>
             <dl className="space-y-1">
@@ -126,10 +126,10 @@ export function GraphInspectorPanel({
 
         {/* ID */}
         <div className="space-y-1.5">
-          <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+          <div className="vf-text-micro font-semibold text-muted-foreground/60 uppercase tracking-wider">
             ID
           </div>
-          <div className="text-[11px] font-mono text-muted-foreground truncate">
+          <div className="vf-text-caption font-mono text-muted-foreground truncate">
             {node.id.slice(0, 16)}...
           </div>
         </div>
@@ -138,12 +138,12 @@ export function GraphInspectorPanel({
         {(onFocus || onReset) && (
           <div className="flex flex-col gap-1.5 pt-3 border-t border-border/50">
             {onFocus && (
-              <Btn variant="ghost" className="text-[11px] justify-center" onClick={() => onFocus(node.id)}>
+              <Btn variant="ghost" className="vf-text-caption justify-center" onClick={() => onFocus(node.id)}>
                 <MousePointer2 className="w-3 h-3 mr-1" /> Focus
               </Btn>
             )}
             {onReset && (
-              <Btn variant="outline" className="text-[11px] justify-center" onClick={onReset}>
+              <Btn variant="outline" className="vf-text-caption justify-center" onClick={onReset}>
                 <RotateCcw className="w-3 h-3 mr-1" /> Reset View
               </Btn>
             )}
@@ -160,7 +160,7 @@ export function GraphInspectorPanel({
 function ConfidenceBar({ value }: { value: number }) {
   const percentage = Math.round(value * 100);
   const colorClass =
-    value >= 0.8 ? "bg-green-500" : value >= 0.6 ? "bg-amber-500" : "bg-red-500";
+    value >= 0.8 ? "bg-success/100" : value >= 0.6 ? "bg-warning/100" : "bg-destructive/100";
 
   return (
     <div className="space-y-1">

@@ -36,9 +36,9 @@ interface ValuePackDetailProps {
 }
 
 const tierConfig = {
-  1: { label: "Tier 1: Immediate Traction", color: "bg-green-100 text-green-800 border-green-200" },
-  2: { label: "Tier 2: High ROI, Underserved", color: "bg-blue-100 text-blue-800 border-blue-200" },
-  3: { label: "Tier 3: Complex but Powerful", color: "bg-purple-100 text-purple-800 border-purple-200" },
+  1: { label: "Tier 1: Immediate Traction", color: "bg-success/10 text-success border-success/20" },
+  2: { label: "Tier 2: High ROI, Underserved", color: "bg-primary/10 text-primary border-primary/20" },
+  3: { label: "Tier 3: Complex but Powerful", color: "bg-primary/10 text-primary border-primary/20" },
 };
 
 export function ValuePackDetail({
@@ -266,8 +266,8 @@ function UseCaseCard({ useCase }: { useCase: ValuePackFrameworkData["core_use_ca
   return (
     <div className="border rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-          <Target className="w-4 h-4 text-blue-600" />
+        <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <Target className="w-4 h-4 text-primary" />
         </div>
         <div className="flex-1">
           <h4 className="font-medium text-foreground">{useCase.name}</h4>
@@ -291,8 +291,8 @@ function EconomicModelCard({ model }: { model: ValuePackFrameworkData["economic_
   return (
     <div className="border rounded-lg p-4">
       <div className="flex items-start gap-3">
-        <div className="w-8 h-8 rounded-full bg-green-100 flex items-center justify-center shrink-0">
-          <Calculator className="w-4 h-4 text-green-600" />
+        <div className="w-8 h-8 rounded-full bg-success/10 flex items-center justify-center shrink-0">
+          <Calculator className="w-4 h-4 text-success" />
         </div>
         <div className="flex-1">
           <h4 className="font-medium text-foreground">{model.name}</h4>
@@ -336,8 +336,8 @@ function TemplateCard({
     <div className="border rounded-lg p-4">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-start gap-3">
-          <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center shrink-0">
-            <Network className="w-4 h-4 text-purple-600" />
+          <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+            <Network className="w-4 h-4 text-primary" />
           </div>
           <div className="flex-1">
             <h4 className="font-medium text-foreground">{template.template_name}</h4>

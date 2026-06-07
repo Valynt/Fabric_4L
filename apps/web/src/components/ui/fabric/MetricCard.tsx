@@ -32,8 +32,8 @@ export function MetricCard({ label, value, trend, trendUp, className }: MetricCa
       </p>
       {resolvedTrend && (
         <div className={cn("flex items-center gap-1 mt-2 vf-text-body-s font-medium",
-          resolvedTrend.positive === true && "text-emerald-600 dark:text-emerald-400",
-          resolvedTrend.positive === false && "text-red-600 dark:text-red-400",
+          resolvedTrend.positive === true && "text-success dark:text-success",
+          resolvedTrend.positive === false && "text-destructive dark:text-destructive",
           resolvedTrend.positive === null && "text-muted-foreground"
         )}>
           {resolvedTrend.positive === true && <TrendingUp className="h-3.5 w-3.5" />}

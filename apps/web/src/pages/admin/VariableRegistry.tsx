@@ -49,21 +49,21 @@ import { PageHeader, Btn } from "@/components/ui/fabric";
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const TYPE_CONFIG: Record<VariableType, { label: string; color: string; icon: React.ReactNode }> = {
-  rate:     { label: "Rate",     color: "bg-cyan-50 text-cyan-700",     icon: <Percent size={10}/> },
+  rate:     { label: "Rate",     color: "bg-info/10 text-info",     icon: <Percent size={10}/> },
   currency: { label: "Currency", color: "bg-success/10 text-success", icon: <DollarSign size={10}/> },
   integer:  { label: "Integer",  color: "bg-primary/10 text-primary",     icon: <Hash size={10}/> },
-  float:    { label: "Float",    color: "bg-violet-50 text-violet-700",  icon: <Code2 size={10}/> },
+  float:    { label: "Float",    color: "bg-primary/10 text-primary",  icon: <Code2 size={10}/> },
   boolean:  { label: "Boolean",  color: "bg-warning/10 text-warning",    icon: <Check size={10}/> },
   string:   { label: "String",   color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
 };
 
 const SOURCE_CONFIG: Record<SourceType, { color: string; icon: React.ReactNode }> = {
   CRM:      { color: "bg-primary/10 text-primary", icon: <Database size={10}/> },
-  Billing:  { color: "bg-violet-50 text-violet-700", icon: <DollarSign size={10}/> },
-  ERP:      { color: "bg-indigo-50 text-indigo-700", icon: <Database size={10}/> },
+  Billing:  { color: "bg-primary/10 text-primary", icon: <DollarSign size={10}/> },
+  ERP:      { color: "bg-primary/10 text-primary", icon: <Database size={10}/> },
   Manual:   { color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
   Model:    { color: "bg-warning/10 text-warning", icon: <Code2 size={10}/> },
-  API:      { color: "bg-cyan-50 text-cyan-700", icon: <ExternalLink size={10}/> },
+  API:      { color: "bg-info/10 text-info", icon: <ExternalLink size={10}/> },
   Database: { color: "bg-success/10 text-success", icon: <Database size={10}/> },
 };
 
@@ -321,7 +321,7 @@ function VariableRegistryContent() {
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
               <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
+            <p className={`text-2xl font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -434,7 +434,7 @@ function VariableRegistryContent() {
                       </td>
                       <td className="px-3 py-3">
                         <div className="flex items-center gap-2">
-                          <ListChecks size={14} className="text-violet-500 shrink-0"/>
+                          <ListChecks size={14} className="text-primary shrink-0"/>
                           <div>
                             <span className="font-mono font-medium text-foreground block">{v.name}</span>
                             <span className="vf-text-micro text-muted-foreground">{v.display_name}</span>
@@ -586,21 +586,21 @@ function VariableRegistryContent() {
               <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg">
                 <CheckCircle2 size={20} className="text-success"/>
                 <div>
-                  <p className="text-[18px] font-bold text-success">{bindings.filter(b => b.status === "connected").length}</p>
+                  <p className="text-lg font-bold text-success">{bindings.filter(b => b.status === "connected").length}</p>
                   <p className="vf-text-caption text-success">Connected</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg">
                 <X size={20} className="text-destructive"/>
                 <div>
-                  <p className="text-[18px] font-bold text-destructive">{bindings.filter(b => b.status === "error").length}</p>
+                  <p className="text-lg font-bold text-destructive">{bindings.filter(b => b.status === "error").length}</p>
                   <p className="vf-text-caption text-destructive">Errors</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <RefreshCw size={20} className="text-muted-foreground"/>
                 <div>
-                  <p className="text-[18px] font-bold text-foreground">
+                  <p className="text-lg font-bold text-foreground">
                     {bindings.filter(b => b.last_sync).length}
                   </p>
                   <p className="vf-text-caption text-muted-foreground">Synced Today</p>

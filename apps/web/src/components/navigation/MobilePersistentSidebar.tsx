@@ -93,7 +93,7 @@ function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavIte
     return (
       <Link to={resolvedPath}>
         <div className={cn(
-          "flex items-center gap-2 px-2 py-1.5 rounded-md text-[10px] font-medium transition-colors select-none cursor-pointer",
+          "flex items-center gap-2 px-2 py-1.5 rounded-md vf-text-micro font-medium transition-colors select-none cursor-pointer",
           isActive ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-sidebar-foreground/60 hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         )}>
           <span className="truncate">{item.label}</span>
@@ -120,11 +120,11 @@ function MobileNavItem({ item, currentTier, accountId, depth = 0 }: MobileNavIte
           <span className={cn("shrink-0", isActive ? "text-sidebar-primary" : "text-sidebar-foreground/60")}>
             {item.icon || <div className="size-4" />}
           </span>
-          <span className="text-[9px] font-medium leading-tight text-center px-0.5 truncate max-w-full">
+          <span className="vf-text-micro font-medium leading-tight text-center px-0.5 truncate max-w-full">
             {item.label}
           </span>
           {hasVisibleChildren && (
-            <span className="text-[9px] text-sidebar-foreground/40">
+            <span className="vf-text-micro text-sidebar-foreground/40">
               {open ? <ChevronDown size={8} /> : <ChevronRight size={8} />}
             </span>
           )}
@@ -212,7 +212,7 @@ export function MobilePersistentSidebar({
             <button
               onClick={handleAdvancedToggle}
               className={cn(
-                "flex items-center justify-center w-full py-1.5 rounded-md text-[9px] font-medium transition-colors",
+                "flex items-center justify-center w-full py-1.5 rounded-md vf-text-micro font-medium transition-colors",
                 isAdvancedModeEnabled
                   ? "bg-accent/10 text-accent"
                   : "bg-muted text-muted-foreground hover:bg-sidebar-accent"
@@ -234,7 +234,7 @@ export function MobilePersistentSidebar({
                 aria-label={`User menu for ${user.name || user.email}`}
               >
                 <Avatar className="size-7">
-                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground text-[10px] font-bold">
+                  <AvatarFallback className="bg-sidebar-primary text-sidebar-primary-foreground vf-text-micro font-bold">
                     {user.name?.charAt(0)?.toUpperCase() || <User size={12} />}
                   </AvatarFallback>
                 </Avatar>

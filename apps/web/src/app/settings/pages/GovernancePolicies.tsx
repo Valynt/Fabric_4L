@@ -18,7 +18,7 @@ export function GovernancePolicies() {
                 <button type="button" className="text-xs font-medium text-primary hover:underline">Edit policy</button>
               </div>
               <p className="mt-1 text-xs text-muted-foreground">{p.description}</p>
-              <p className="mt-2 text-[10px] text-muted-foreground">Scope: {p.scope} • Last updated {p.lastUpdated}</p>
+              <p className="mt-2 vf-text-micro text-muted-foreground">Scope: {p.scope} • Last updated {p.lastUpdated}</p>
             </div>
           ))}
         </div>

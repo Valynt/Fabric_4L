@@ -95,19 +95,19 @@ export default function ExecutiveView() {
         <div className="grid grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
           <div className="text-center">
             <Target size={16} className="mx-auto text-primary mb-1" />
-            <div className="text-[20px] font-extrabold text-foreground">{bc.roi_ratio.toFixed(1)}x</div>
+            <div className="text-xl font-extrabold text-foreground">{bc.roi_ratio.toFixed(1)}x</div>
             <div className="vf-text-micro text-muted-foreground uppercase">ROI</div>
           </div>
           <div className="text-center">
             <TrendingUp size={16} className="mx-auto text-success mb-1" />
-            <div className="text-[20px] font-extrabold text-foreground">
+            <div className="text-xl font-extrabold text-foreground">
               ${bc.total_value >= 1_000_000 ? `${(bc.total_value / 1_000_000).toFixed(1)}M` : `${(bc.total_value / 1_000).toFixed(0)}K`}
             </div>
             <div className="vf-text-micro text-muted-foreground uppercase">Total Value</div>
           </div>
           <div className="text-center">
             <Zap size={16} className="mx-auto text-warning mb-1" />
-            <div className="text-[20px] font-extrabold text-foreground">{bc.payback_months} mo</div>
+            <div className="text-xl font-extrabold text-foreground">{bc.payback_months} mo</div>
             <div className="vf-text-micro text-muted-foreground uppercase">Payback</div>
           </div>
         </div>

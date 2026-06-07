@@ -195,14 +195,14 @@ function BenchmarkPoliciesContent() {
           { label: "Total Benchmarks", value: stats.total, icon: <BarChart3 size={14}/> },
           { label: "High Confidence", value: stats.highConfidence, icon: <CheckCircle2 size={14}/>, color: "text-success" },
           { label: "Active", value: stats.active, icon: <TrendingUp size={14}/>, color: "text-primary" },
-          { label: "Total Usage", value: stats.totalUsage, icon: <Database size={14}/>, color: "text-violet-600" },
+          { label: "Total Usage", value: stats.totalUsage, icon: <Database size={14}/>, color: "text-primary" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
               <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
-            <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
+            <p className={`text-2xl font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
         ))}
       </div>
@@ -270,7 +270,7 @@ function BenchmarkPoliciesContent() {
                           {b.tags.length > 0 && (
                             <div className="flex items-center gap-1 mt-1">
                               {b.tags.map(tag => (
-                                <span key={tag} className="text-[9px] px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
+                                <span key={tag} className="vf-text-micro px-1.5 py-0.5 bg-muted text-muted-foreground rounded">
                                   {tag}
                                 </span>
                               ))}

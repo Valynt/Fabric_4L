@@ -45,8 +45,8 @@ import { MetricCard, Btn } from "@/components/ui/fabric";
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: typeof Lightbulb }> = {
   draft:     { label: "Draft",     color: "text-muted-foreground", icon: Lightbulb },
-  validated: { label: "Validated", color: "text-green-600",        icon: CheckCircle2 },
-  rejected:  { label: "Rejected",  color: "text-red-500",          icon: XCircle },
+  validated: { label: "Validated", color: "text-success",        icon: CheckCircle2 },
+  rejected:  { label: "Rejected",  color: "text-destructive",          icon: XCircle },
   converted: { label: "Converted", color: "text-primary",          icon: ArrowRight },
 };
 
@@ -57,14 +57,14 @@ function confidenceBar(score: number) {
       <div className="w-16 bg-muted rounded-full h-1.5">
         <div
           className={cn("h-1.5 rounded-full", {
-            "bg-green-500": pct >= 70,
-            "bg-amber-500": pct >= 40 && pct < 70,
-            "bg-red-500": pct < 40,
+            "bg-success/100": pct >= 70,
+            "bg-warning/100": pct >= 40 && pct < 70,
+            "bg-destructive/100": pct < 40,
           })}
           style={{ width: `${pct}%` }}
         />
       </div>
-      <span className="text-[10px] font-semibold">{pct}%</span>
+      <span className="vf-text-micro font-semibold">{pct}%</span>
     </div>
   );
 }
@@ -103,18 +103,18 @@ function HypothesisCard({
         <Icon size={14} className={cn("mt-0.5 shrink-0", cfg.color)} />
         <div className="flex-1 min-w-0">
           <div className="text-xs font-semibold">{hypothesis.capability_name ?? "Value Hypothesis"}</div>
-          <div className="text-[10px] text-muted-foreground mt-0.5 line-clamp-2">
+          <div className="vf-text-micro text-muted-foreground mt-0.5 line-clamp-2">
             {hypothesis.hypothesis_text}
           </div>
         </div>
         <div className="flex flex-col items-end gap-1 shrink-0">
           {confidenceBar(hypothesis.confidence)}
-          <span className={cn("text-[10px] font-semibold", cfg.color)}>{cfg.label}</span>
+          <span className={cn("vf-text-micro font-semibold", cfg.color)}>{cfg.label}</span>
         </div>
       </div>
 
       {/* Signal → Product mapping */}
-      <div className="flex items-center gap-1.5 ml-7 text-[10px] text-muted-foreground">
+      <div className="flex items-center gap-1.5 ml-7 vf-text-micro text-muted-foreground">
         <Target size={10} />
         <span className="truncate">{hypothesis.signal_id ? "1 signal" : "0 signals"}</span>
         <ArrowRight size={8} />
@@ -127,14 +127,14 @@ function HypothesisCard({
           <button
             onClick={(e) => { e.stopPropagation(); onStatusChange("validated"); }}
             disabled={isUpdating}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-green-50 text-green-700 hover:bg-green-100 disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-success/10 text-success hover:bg-success/10 disabled:opacity-50"
           >
             <CheckCircle2 size={10} /> Validate
           </button>
           <button
             onClick={(e) => { e.stopPropagation(); onStatusChange("rejected"); }}
             disabled={isUpdating}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-red-50 text-red-700 hover:bg-red-100 disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-destructive/10 text-destructive hover:bg-destructive/10 disabled:opacity-50"
           >
             <XCircle size={10} /> Reject
           </button>
@@ -145,7 +145,7 @@ function HypothesisCard({
           <button
             onClick={(e) => { e.stopPropagation(); onConvert(); }}
             disabled={isConverting}
-            className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded vf-text-micro font-semibold bg-primary/10 text-primary hover:bg-primary/20 disabled:opacity-50"
           >
             {isConverting ? <Loader2 size={10} className="animate-spin" /> : <ArrowRight size={10} />}
             Convert to Driver Tree
@@ -232,7 +232,7 @@ export default function HypothesesTab() {
               <div className="space-y-3">
                 <h3 className="text-sm font-bold">{selected.capability_name ?? "Value Hypothesis"}</h3>
                 <p className="text-xs text-muted-foreground">{selected.hypothesis_text}</p>
-                <div className="space-y-2 text-[10px]">
+                <div className="space-y-2 vf-text-micro">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Confidence</span>
                     <span className="font-semibold">{Math.round(selected.confidence * 100)}%</span>
@@ -247,12 +247,12 @@ export default function HypothesesTab() {
                   </div>
                 </div>
                 {selected.evidence_ids && selected.evidence_ids.length > 0 && (
-                  <div className="text-[10px] text-muted-foreground">
+                  <div className="vf-text-micro text-muted-foreground">
                     {selected.evidence_ids.length} evidence item(s) linked
                   </div>
                 )}
                 {selected.feedback && (
-                  <div className="text-[10px] text-muted-foreground border-t pt-2">
+                  <div className="vf-text-micro text-muted-foreground border-t pt-2">
                     <span className="font-semibold">Notes:</span> {selected.feedback}
                   </div>
                 )}
@@ -324,7 +324,7 @@ export default function HypothesesTab() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "px-2 py-0.5 rounded text-[10px] font-semibold transition-colors",
+                "px-2 py-0.5 rounded vf-text-micro font-semibold transition-colors",
                 statusFilter === s
                   ? "bg-primary/10 text-primary"
                   : "text-muted-foreground hover:text-foreground"

@@ -25,10 +25,10 @@ export default function WorkspaceProgressRail() {
     <div className="flex items-center gap-1 px-6 py-1.5 border-b border-border bg-muted/30">
       {CATEGORIES.map((cat, i) => (
         <div key={cat.id} className="flex items-center gap-1">
-          {i > 0 && <span className="text-muted-foreground/40 text-[10px]">→</span>}
+          {i > 0 && <span className="text-muted-foreground/40 vf-text-micro">→</span>}
           <span
             className={cn(
-              "text-[10px] font-medium px-2 py-0.5 rounded-full transition-colors",
+              "vf-text-micro font-medium px-2 py-0.5 rounded-full transition-colors",
               activeCategory === cat.id
                 ? "bg-primary/10 text-primary"
                 : "text-muted-foreground/60"

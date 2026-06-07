@@ -22,7 +22,7 @@ export default function IntelligenceWorkspaceTabs() {
             role="tab"
             aria-selected={activeTab === tab.id}
             className={cn(
-              "px-3 py-2.5 text-[11px] font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
+              "px-3 py-2.5 vf-text-caption font-semibold border-b-2 -mb-px transition-colors whitespace-nowrap",
               activeTab === tab.id
                 ? "border-primary text-primary"
                 : "border-transparent text-muted-foreground hover:text-foreground"

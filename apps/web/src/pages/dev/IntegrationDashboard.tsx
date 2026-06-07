@@ -47,9 +47,9 @@ const HOOK_REGISTRY: Array<{
 ];
 
 const STATUS_COLORS = {
-  green: "bg-emerald-100 text-emerald-700 border-emerald-200",
-  partial: "bg-amber-100 text-amber-700 border-amber-200",
-  stub: "bg-red-100 text-red-700 border-red-200",
+  green: "bg-success/10 text-success border-success/20",
+  partial: "bg-warning/10 text-warning border-warning/20",
+  stub: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
 const STATUS_ICONS = {
@@ -61,7 +61,7 @@ const STATUS_ICONS = {
 function StatusBadge({ status }: { status: "green" | "partial" | "stub" }) {
   const Icon = STATUS_ICONS[status];
   return (
-    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border", STATUS_COLORS[status])}>
+    <span className={cn("inline-flex items-center gap-1 px-2 py-0.5 rounded-full vf-text-micro font-semibold border", STATUS_COLORS[status])}>
       <Icon size={10} />
       {status === "green" ? "Wired" : status === "partial" ? "Partial" : "Stub"}
     </span>
@@ -105,51 +105,51 @@ export default function IntegrationDashboard() {
       {/* KPI Row */}
       <div className="grid grid-cols-5 gap-3 mt-6">
         <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
-          <Layers size={16} className="mx-auto text-blue-500 mb-1" />
-          <div className="text-[22px] font-extrabold text-neutral-900">{HOOK_REGISTRY.length}</div>
-          <div className="text-[10px] text-neutral-500 uppercase">Hook Families</div>
+          <Layers size={16} className="mx-auto text-primary mb-1" />
+          <div className="text-2xl font-extrabold text-foreground">{HOOK_REGISTRY.length}</div>
+          <div className="vf-text-micro text-muted-foreground uppercase">Hook Families</div>
         </div>
         <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
-          <Database size={16} className="mx-auto text-violet-500 mb-1" />
-          <div className="text-[22px] font-extrabold text-neutral-900">{totalHooks}</div>
-          <div className="text-[10px] text-neutral-500 uppercase">Total Hooks</div>
+          <Database size={16} className="mx-auto text-primary mb-1" />
+          <div className="text-2xl font-extrabold text-foreground">{totalHooks}</div>
+          <div className="vf-text-micro text-muted-foreground uppercase">Total Hooks</div>
         </div>
         <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
-          <Wifi size={16} className="mx-auto text-emerald-500 mb-1" />
-          <div className="text-[22px] font-extrabold text-neutral-900">{totalEndpoints}</div>
-          <div className="text-[10px] text-neutral-500 uppercase">Endpoints</div>
+          <Wifi size={16} className="mx-auto text-success mb-1" />
+          <div className="text-2xl font-extrabold text-foreground">{totalEndpoints}</div>
+          <div className="vf-text-micro text-muted-foreground uppercase">Endpoints</div>
         </div>
         <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
-          <CheckCircle2 size={16} className="mx-auto text-emerald-500 mb-1" />
-          <div className="text-[22px] font-extrabold text-emerald-600">{greenCount}</div>
-          <div className="text-[10px] text-neutral-500 uppercase">Fully Wired</div>
+          <CheckCircle2 size={16} className="mx-auto text-success mb-1" />
+          <div className="text-2xl font-extrabold text-success">{greenCount}</div>
+          <div className="vf-text-micro text-muted-foreground uppercase">Fully Wired</div>
         </div>
         <div className="p-4 bg-white border border-neutral-100 rounded-xl text-center">
-          <Activity size={16} className="mx-auto text-blue-500 mb-1" />
-          <div className="text-[22px] font-extrabold text-neutral-900">
+          <Activity size={16} className="mx-auto text-primary mb-1" />
+          <div className="text-2xl font-extrabold text-foreground">
             {healthLoading ? "…" : health?.overall_status === "healthy" ? "OK" : health?.overall_status ?? "—"}
           </div>
-          <div className="text-[10px] text-neutral-500 uppercase">System Health</div>
+          <div className="vf-text-micro text-muted-foreground uppercase">System Health</div>
         </div>
       </div>
 
       {/* Filter Bar */}
       <div className="flex items-center gap-3 mt-6 mb-4">
-        <div className="flex items-center gap-2 flex-1 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2">
-          <Search size={14} className="text-neutral-400" />
+        <div className="flex items-center gap-2 flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2">
+          <Search size={14} className="text-muted-foreground" />
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search hooks or families…"
-            className="flex-1 text-[12px] bg-transparent outline-none"
+            className="flex-1 vf-text-body-s bg-transparent outline-none"
           />
         </div>
         <div className="flex gap-1">
           {layers.map(l => (
             <button key={l} onClick={() => setLayerFilter(l)}
               className={cn(
-                "px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors",
-                layerFilter === l ? "bg-blue-100 text-blue-700" : "bg-neutral-50 text-neutral-600 hover:bg-neutral-100"
+                "px-3 py-1.5 rounded-md vf-text-caption font-medium transition-colors",
+                layerFilter === l ? "bg-primary/10 text-primary" : "bg-muted/50 text-muted-foreground hover:bg-muted"
               )}>
               {l}
             </button>
@@ -160,25 +160,25 @@ export default function IntegrationDashboard() {
       {/* Hook Family Table */}
       <SectionCard>
         <div className="overflow-x-auto">
-          <table className="w-full text-[12px]">
+          <table className="w-full vf-text-body-s">
             <thead>
-              <tr className="border-b border-neutral-200">
-                <th className="text-left py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">Family</th>
-                <th className="text-left py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">Layer</th>
-                <th className="text-left py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">File</th>
-                <th className="text-center py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">Hooks</th>
-                <th className="text-center py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">Endpoints</th>
-                <th className="text-center py-2 px-3 font-semibold text-neutral-500 uppercase text-[10px]">Status</th>
+              <tr className="border-b border-border">
+                <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">Family</th>
+                <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">Layer</th>
+                <th className="text-left py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">File</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">Hooks</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">Endpoints</th>
+                <th className="text-center py-2 px-3 font-semibold text-muted-foreground uppercase vf-text-micro">Status</th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(f => (
-                <tr key={f.family} className="border-b border-neutral-100 hover:bg-neutral-50/50">
-                  <td className="py-2.5 px-3 font-semibold text-neutral-800">{f.family}</td>
+                <tr key={f.family} className="border-b border-neutral-100 hover:bg-muted/50/50">
+                  <td className="py-2.5 px-3 font-semibold text-foreground">{f.family}</td>
                   <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 bg-neutral-100 rounded text-[10px] font-mono">{f.layer}</span>
+                    <span className="px-2 py-0.5 bg-muted rounded vf-text-micro font-mono">{f.layer}</span>
                   </td>
-                  <td className="py-2.5 px-3 font-mono text-neutral-500 text-[11px]">{f.file}</td>
+                  <td className="py-2.5 px-3 font-mono text-muted-foreground vf-text-caption">{f.file}</td>
                   <td className="py-2.5 px-3 text-center font-bold">{f.hooks.length}</td>
                   <td className="py-2.5 px-3 text-center font-bold">{f.endpoints}</td>
                   <td className="py-2.5 px-3 text-center"><StatusBadge status={f.status} /></td>
@@ -192,34 +192,34 @@ export default function IntegrationDashboard() {
       {/* Live System Metrics */}
       <div className="grid grid-cols-2 gap-4 mt-4">
         <SectionCard>
-          <h3 className="text-[13px] font-bold text-neutral-800 mb-3">Health Alerts</h3>
+          <h3 className="vf-text-body-m font-bold text-foreground mb-3">Health Alerts</h3>
           {alerts && alerts.length > 0 ? (
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {alerts.map((alert: { id: string; severity: string; message: string; timestamp?: string }, i: number) => (
                 <div key={alert.id || i} className={cn(
-                  "p-2 rounded-md border text-[11px]",
-                  alert.severity === "critical" ? "bg-red-50 border-red-200 text-red-700" :
-                  alert.severity === "warning" ? "bg-amber-50 border-amber-200 text-amber-700" :
-                  "bg-blue-50 border-blue-200 text-blue-700"
+                  "p-2 rounded-md border vf-text-caption",
+                  alert.severity === "critical" ? "bg-destructive/10 border-destructive/20 text-destructive" :
+                  alert.severity === "warning" ? "bg-warning/10 border-warning/20 text-warning" :
+                  "bg-primary/10 border-primary/20 text-primary"
                 )}>
-                  <span className="font-semibold uppercase text-[9px]">{alert.severity}</span>
+                  <span className="font-semibold uppercase vf-text-micro">{alert.severity}</span>
                   <span className="ml-2">{alert.message}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-[12px] text-neutral-400 text-center py-4">No active alerts.</p>
+            <p className="vf-text-body-s text-muted-foreground text-center py-4">No active alerts.</p>
           )}
         </SectionCard>
 
         <SectionCard>
-          <h3 className="text-[13px] font-bold text-neutral-800 mb-3">Ingestion Stats</h3>
+          <h3 className="vf-text-body-m font-bold text-foreground mb-3">Ingestion Stats</h3>
           {ingestionStats ? (
             <div className="grid grid-cols-2 gap-2">
               {Object.entries(ingestionStats).map(([key, value]) => (
-                <div key={key} className="flex justify-between p-2 bg-neutral-50 rounded-md">
-                  <span className="text-[11px] text-neutral-500">{key.replace(/_/g, ' ')}</span>
-                  <span className="text-[11px] font-bold text-neutral-700">{String(value)}</span>
+                <div key={key} className="flex justify-between p-2 bg-muted/50 rounded-md">
+                  <span className="vf-text-caption text-muted-foreground">{key.replace(/_/g, ' ')}</span>
+                  <span className="vf-text-caption font-bold text-foreground">{String(value)}</span>
                 </div>
               ))}
             </div>

@@ -42,7 +42,7 @@ export function BillingSubscription() {
                   {subscription.current_period_end ? ` • Renews ${new Date(subscription.current_period_end).toLocaleDateString()}` : ""}
                 </p>
               </div>
-              <span className="rounded-full border px-2 py-1 text-[11px] font-medium uppercase tracking-wide">
+              <span className="rounded-full border px-2 py-1 vf-text-caption font-medium uppercase tracking-wide">
                 {subscription.status}
               </span>
             </div>

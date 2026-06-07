@@ -34,7 +34,7 @@ export function IntegrationGrid({
               <button
                 key={provider}
                 onClick={() => onSelect(provider)}
-                className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-colors text-center"
+                className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-primary/30 hover:bg-primary/10/30 transition-colors text-center"
               >
                 <div className={`w-12 h-12 rounded-xl ${style.iconBg} ${style.iconText} flex items-center justify-center mb-3`}>
                   <Plus size={24} />
@@ -68,22 +68,22 @@ export function IntegrationGrid({
               onClick={() => onSelect(provider)}
               className={`relative flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
                 isSelected
-                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50/30'
-                  : 'border-neutral-200 hover:border-neutral-300 bg-white'
+                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-primary/10/30'
+                  : 'border-border hover:border-border bg-white'
               }`}
             >
               {/* Status indicator */}
               <div className="absolute top-3 right-3">
                 {isConnected ? (
                   status === 'failed' ? (
-                    <AlertCircle size={16} className="text-red-500" />
+                    <AlertCircle size={16} className="text-destructive" />
                   ) : status === 'running' ? (
-                    <Loader2 size={16} className="text-amber-500 animate-spin" />
+                    <Loader2 size={16} className="text-warning animate-spin" />
                   ) : (
-                    <CheckCircle2 size={16} className="text-emerald-500" />
+                    <CheckCircle2 size={16} className="text-success" />
                   )
                 ) : (
-                  <CloudOff size={16} className="text-neutral-400" />
+                  <CloudOff size={16} className="text-muted-foreground" />
                 )}
               </div>
 
@@ -93,16 +93,16 @@ export function IntegrationGrid({
               </div>
 
               {/* Name */}
-              <span className="text-[14px] font-semibold text-neutral-800">{PROVIDER_NAMES[provider]}</span>
+              <span className="vf-text-body-l font-semibold text-foreground">{PROVIDER_NAMES[provider]}</span>
 
               {/* Status label */}
-              <span className={`text-[11px] mt-1 ${getStatusTextColor(status, isConnected)}`}>
+              <span className={`vf-text-caption mt-1 ${getStatusTextColor(status, isConnected)}`}>
                 {getStatusText(status, isConnected)}
               </span>
 
               {/* Records synced hint */}
               {integration && integration.records_synced > 0 && (
-                <span className="text-[10px] text-neutral-400 mt-2">
+                <span className="vf-text-micro text-muted-foreground mt-2">
                   {integration.records_synced.toLocaleString()} records synced
                 </span>
               )}
@@ -119,10 +119,10 @@ export function IntegrationGrid({
               );
               if (unconfigured) onSelect(unconfigured);
             }}
-            className="flex flex-col items-center justify-center p-4 border border-dashed border-neutral-300 rounded-xl hover:border-blue-300 hover:bg-blue-50/30 transition-colors min-h-[120px]"
+            className="flex flex-col items-center justify-center p-4 border border-dashed border-border rounded-xl hover:border-primary/30 hover:bg-primary/10/30 transition-colors min-h-[120px]"
           >
-            <Plus size={24} className="text-neutral-400 mb-2" />
-            <span className="text-[12px] text-neutral-500">Add integration</span>
+            <Plus size={24} className="text-muted-foreground mb-2" />
+            <span className="vf-text-body-s text-muted-foreground">Add integration</span>
           </button>
         )}
       </div>

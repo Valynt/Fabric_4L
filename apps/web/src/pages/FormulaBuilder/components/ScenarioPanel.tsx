@@ -79,19 +79,19 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
   return (
     <div className="space-y-4">
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">
+        <label className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">
           Base Case ID
         </label>
         <input
           value={baseCaseId}
           onChange={(e) => setBaseCaseId(e.target.value)}
           placeholder="e.g. case-abc123"
-          className="w-full border border-border rounded-md px-3 py-1.5 text-[12px] bg-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full border border-border rounded-md px-3 py-1.5 vf-text-body-s bg-white outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
         />
       </div>
 
       <div>
-        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">
+        <label className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">
           Variable Adjustments
         </label>
         <div className="space-y-2">
@@ -101,27 +101,27 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
                 value={adj.name}
                 onChange={(e) => updateAdjustment(idx, "name", e.target.value)}
                 placeholder="Variable"
-                className="flex-1 border border-border rounded-md px-2 py-1 text-[11px] bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="flex-1 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
               />
               <input
                 type="number"
                 value={adj.original_value || ""}
                 onChange={(e) => updateAdjustment(idx, "original_value", e.target.value)}
                 placeholder="Original"
-                className="w-20 border border-border rounded-md px-2 py-1 text-[11px] bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
               />
               <input
                 type="number"
                 value={adj.value || ""}
                 onChange={(e) => updateAdjustment(idx, "value", e.target.value)}
                 placeholder="New"
-                className="w-20 border border-border rounded-md px-2 py-1 text-[11px] bg-white outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-white outline-none focus:ring-1 focus:ring-primary/20"
               />
               {adjustments.length > 1 && (
                 <button
                   type="button"
                   onClick={() => removeAdjustment(idx)}
-                  className="text-red-400 hover:text-red-600 text-[14px] w-6 h-6 flex items-center justify-center rounded hover:bg-red-50"
+                  className="text-destructive hover:text-destructive vf-text-body-l w-6 h-6 flex items-center justify-center rounded hover:bg-destructive/10"
                   aria-label="Remove adjustment"
                 >
                   &times;
@@ -133,7 +133,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
         <button
           type="button"
           onClick={addAdjustment}
-          className="mt-2 text-[11px] text-primary hover:text-primary/80 border border-dashed border-primary/30 rounded-md px-2 py-1"
+          className="mt-2 vf-text-caption text-primary hover:text-primary/80 border border-dashed border-primary/30 rounded-md px-2 py-1"
           aria-label="Add variable adjustment"
         >
           + Add adjustment
@@ -154,14 +154,14 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
       </Btn>
 
       {error && (
-        <div className="p-2 bg-red-50 border border-red-200 rounded text-[11px] text-red-700 flex items-center gap-1.5">
+        <div className="p-2 bg-destructive/10 border border-destructive/20 rounded vf-text-caption text-destructive flex items-center gap-1.5">
           <AlertCircle size={12} /> {error.message}
         </div>
       )}
 
       {result && (
-        <div className="p-3 bg-secondary/30 rounded-lg space-y-2 text-[12px]">
-          <div className="font-semibold text-[13px]">Scenario Results</div>
+        <div className="p-3 bg-secondary/30 rounded-lg space-y-2 vf-text-body-s">
+          <div className="font-semibold vf-text-body-m">Scenario Results</div>
           <div className="grid grid-cols-2 gap-2">
             <div>
               <span className="text-muted-foreground">Original</span>
@@ -173,7 +173,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
             </div>
             <div>
               <span className="text-muted-foreground">Delta</span>
-              <div className={`font-bold ${result.delta_percentage >= 0 ? "text-emerald-700" : "text-red-600"}`}>
+              <div className={`font-bold ${result.delta_percentage >= 0 ? "text-success" : "text-destructive"}`}>
                 {result.delta_percentage >= 0 ? "+" : ""}{result.delta_percentage.toFixed(1)}%
               </div>
             </div>
@@ -187,7 +187,7 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
             </div>
           </div>
           {result.warnings && result.warnings.length > 0 && (
-            <div className="mt-2 text-[11px] text-amber-700 bg-amber-50 p-2 rounded">
+            <div className="mt-2 vf-text-caption text-warning bg-warning/10 p-2 rounded">
               {result.warnings.map((w, i) => <div key={`warning-${i}`}>{w}</div>)}
             </div>
           )}

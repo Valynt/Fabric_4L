@@ -72,7 +72,7 @@ export function SearchResultItem({ result, tenantSlug, onSelect }: SearchResultI
           <div className="flex items-center gap-2">
             <span className="text-sm font-medium truncate">{result.title}</span>
             {result.source_layer && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
+              <span className="vf-text-micro px-1.5 py-0.5 rounded bg-muted text-muted-foreground">
                 {result.source_layer.toUpperCase()}
               </span>
             )}
@@ -94,11 +94,11 @@ export function SearchResultItem({ result, tenantSlug, onSelect }: SearchResultI
 
           {/* Type label */}
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-[10px] text-muted-foreground uppercase tracking-wide">
+            <span className="vf-text-micro text-muted-foreground uppercase tracking-wide">
               {typeLabel}
             </span>
             {result.score !== undefined && (
-              <span className="text-[10px] text-muted-foreground">
+              <span className="vf-text-micro text-muted-foreground">
                 {Math.round(result.score * 100)}% match
               </span>
             )}

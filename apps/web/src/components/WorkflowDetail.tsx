@@ -83,7 +83,7 @@ export function WorkflowDetail({
           <div className="flex items-start justify-between">
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-base font-semibold flex items-center gap-2">
-                <Bot size={18} className="text-blue-500" />
+                <Bot size={18} className="text-primary" />
                 <span className="truncate">{workflow.name}</span>
               </SheetTitle>
               <div className="flex items-center gap-2 mt-1">
@@ -98,7 +98,7 @@ export function WorkflowDetail({
                 <Button 
                   variant="ghost" 
                   size="sm" 
-                  className="h-8 text-red-600 hover:text-red-700"
+                  className="h-8 text-destructive hover:text-destructive"
                   onClick={() => onCancel(workflow.id)}
                 >
                   <Pause size={14} className="mr-1" />
@@ -253,7 +253,7 @@ function StepRow({ step, isLast }: { step: WorkflowStep; isLast: boolean }) {
           <p className="text-xs text-muted-foreground mt-0.5">{step.detail}</p>
         )}
         {step.elapsedMs && step.status === "completed" && (
-          <span className="text-[10px] text-muted-foreground">
+          <span className="vf-text-micro text-muted-foreground">
             {(step.elapsedMs / 1000).toFixed(1)}s
           </span>
         )}
@@ -266,9 +266,9 @@ function StepIcon({ status }: { status: WorkflowStep["status"] }) {
   const icons = {
     pending: <CircleIcon className="text-muted-foreground/50" />,
     running: <Loader2 size={16} className="animate-spin text-primary" />,
-    completed: <CheckCircle2 size={16} className="text-green-500" />,
-    error: <AlertTriangle size={16} className="text-red-500" />,
-    waiting: <Pause size={16} className="text-amber-500" />,
+    completed: <CheckCircle2 size={16} className="text-success" />,
+    error: <AlertTriangle size={16} className="text-destructive" />,
+    waiting: <Pause size={16} className="text-warning" />,
   };
   return <div className="w-5 h-5 flex items-center justify-center">{icons[status]}</div>;
 }
@@ -289,10 +289,10 @@ function LogEntry({
   timestamp: string;
 }) {
   const colors = {
-    info: "text-blue-600 bg-blue-50",
-    success: "text-green-600 bg-green-50",
-    warning: "text-amber-600 bg-amber-50",
-    error: "text-red-600 bg-red-50",
+    info: "text-primary bg-primary/10",
+    success: "text-success bg-success/10",
+    warning: "text-warning bg-warning/10",
+    error: "text-destructive bg-destructive/10",
   };
 
   return (
@@ -300,7 +300,7 @@ function LogEntry({
       <span className="text-xs text-muted-foreground font-mono w-16 shrink-0">
         {timestamp}
       </span>
-      <Badge variant="secondary" className={cn("text-[10px] px-1.5 py-0 h-5", colors[level])}>
+      <Badge variant="secondary" className={cn("vf-text-micro px-1.5 py-0 h-5", colors[level])}>
         {level}
       </Badge>
       <span className="text-muted-foreground">{message}</span>
@@ -314,8 +314,8 @@ function ToolCallRow({ call }: { call: ToolCall }) {
   const statusIcons = {
     pending: <CircleIcon className="text-muted-foreground/50" />,
     running: <Loader2 size={14} className="animate-spin text-primary" />,
-    success: <CheckCircle2 size={14} className="text-green-500" />,
-    error: <AlertTriangle size={14} className="text-red-500" />,
+    success: <CheckCircle2 size={14} className="text-success" />,
+    error: <AlertTriangle size={14} className="text-destructive" />,
   };
 
   return (
@@ -362,10 +362,10 @@ function ToolCallRow({ call }: { call: ToolCall }) {
 
 function StatusBadge({ status }: { status: string }) {
   const variants: Record<string, { color: string; label: string }> = {
-    running: { color: "bg-blue-100 text-blue-700", label: "Running" },
-    pending: { color: "bg-amber-100 text-amber-700", label: "Pending" },
-    completed: { color: "bg-green-100 text-green-700", label: "Completed" },
-    failed: { color: "bg-red-100 text-red-700", label: "Failed" },
+    running: { color: "bg-primary/10 text-primary", label: "Running" },
+    pending: { color: "bg-warning/10 text-warning", label: "Pending" },
+    completed: { color: "bg-success/10 text-success", label: "Completed" },
+    failed: { color: "bg-destructive/10 text-destructive", label: "Failed" },
     cancelled: { color: "bg-muted text-muted-foreground", label: "Cancelled" },
   };
 

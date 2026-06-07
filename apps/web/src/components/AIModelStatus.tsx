@@ -68,9 +68,9 @@ export interface AIModelStatusProps {
 // ---------------------------------------------------------------------------
 
 const PROVIDER_CONFIG: Record<string, { label: string; colour: string }> = {
-  together:  { label: "Together.ai",  colour: "text-violet-400 bg-violet-400/10" },
-  openai:    { label: "OpenAI",       colour: "text-emerald-400 bg-emerald-400/10" },
-  anthropic: { label: "Anthropic",    colour: "text-amber-400 bg-amber-400/10" },
+  together:  { label: "Together.ai",  colour: "text-primary bg-violet-400/10" },
+  openai:    { label: "OpenAI",       colour: "text-success bg-emerald-400/10" },
+  anthropic: { label: "Anthropic",    colour: "text-warning bg-amber-400/10" },
 };
 
 const TASK_LABELS: Record<keyof AIModelAssignments, string> = {
@@ -166,7 +166,7 @@ export function AIModelStatus({
         </div>
         <span
           className={cn(
-            "text-[10px] font-semibold px-2 py-0.5 rounded-full",
+            "vf-text-micro font-semibold px-2 py-0.5 rounded-full",
             providerCfg.colour,
           )}
         >
@@ -177,7 +177,7 @@ export function AIModelStatus({
       {/* Model assignments */}
       {taskEntries.length > 0 && (
         <div>
-          <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
+          <p className="vf-text-micro font-semibold text-muted-foreground uppercase tracking-wide mb-1.5 flex items-center gap-1">
             <Cpu className="w-3 h-3" /> Model Assignments
           </p>
           <div className="bg-muted/30 rounded-lg px-3 py-1">
@@ -204,28 +204,28 @@ export function AIModelStatus({
               icon={enrichment.llm_enrichment ? CheckCircle2 : XCircle}
               label="LLM Enriched"
               active={enrichment.llm_enrichment}
-              activeClass="bg-emerald-500/10 text-emerald-500"
+              activeClass="bg-success/100/10 text-success"
               inactiveClass="bg-muted text-muted-foreground"
             />
             <GovernanceFlag
               icon={enrichment.customer_facing_allowed ? Eye : EyeOff}
               label="Customer-Facing"
               active={enrichment.customer_facing_allowed}
-              activeClass="bg-emerald-500/10 text-emerald-500"
-              inactiveClass="bg-amber-500/10 text-amber-500"
+              activeClass="bg-success/100/10 text-success"
+              inactiveClass="bg-warning/100/10 text-warning"
             />
             <GovernanceFlag
               icon={enrichment.human_review_required ? AlertTriangle : CheckCircle2}
               label="Human Review"
               active={enrichment.human_review_required}
-              activeClass="bg-amber-500/10 text-amber-500"
+              activeClass="bg-warning/100/10 text-warning"
               inactiveClass="bg-muted text-muted-foreground"
             />
           </div>
 
           {/* Degraded reason */}
           {enrichment.degraded_reason && (
-            <p className="text-[10px] text-amber-500 bg-amber-500/5 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
+            <p className="vf-text-micro text-warning bg-warning/100/5 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
               ⚠ {enrichment.degraded_reason}
             </p>
           )}
@@ -234,7 +234,7 @@ export function AIModelStatus({
           {(enrichment.model_used ||
             enrichment.prompt_tokens != null ||
             enrichment.confidence != null) && (
-            <div className="flex items-center gap-3 text-[10px] text-muted-foreground pt-0.5">
+            <div className="flex items-center gap-3 vf-text-micro text-muted-foreground pt-0.5">
               {enrichment.model_used && (
                 <span className="font-mono truncate max-w-[140px]" title={enrichment.model_used}>
                   {enrichment.model_used.includes("/")

@@ -13,15 +13,15 @@ import {
 import { useSettingsAccess } from "../access";
 
 const ROLE_STYLES: Record<string, string> = {
-  super_admin: "bg-red-50 text-red-700 border-red-200",
-  tenant_admin: "bg-amber-50 text-amber-700 border-amber-200",
-  member: "bg-blue-50 text-blue-700 border-blue-200",
+  super_admin: "bg-destructive/10 text-destructive border-destructive/20",
+  tenant_admin: "bg-warning/10 text-warning border-warning/20",
+  member: "bg-primary/10 text-primary border-primary/20",
   viewer: "bg-muted text-muted-foreground border-border",
 };
 
 function RoleBadge({ role }: { role: string }) {
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${ROLE_STYLES[role] || ROLE_STYLES.viewer}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${ROLE_STYLES[role] || ROLE_STYLES.viewer}`}>
       <Shield size={10} /> {role.replace("_", " ")}
     </span>
   );
@@ -58,7 +58,7 @@ function TeamUsersTable({ users, showRoleActions }: { users: User[]; showRoleAct
                   {u.status === "active" ? <Btn variant="ghost" size="sm">Deactivate</Btn> : <Btn variant="ghost" size="sm">Reactivate</Btn>}
                 </div>
               ) : (
-                <span className="text-neutral-400">Read only</span>
+                <span className="text-muted-foreground">Read only</span>
               )}
             </td>
           </tr>
@@ -81,14 +81,14 @@ export function TeamMembersScreen() {
       <div className="flex justify-end">
         {canMutateTeam && (
           <div className="flex items-center gap-2">
-            <input className="border border-neutral-200 rounded px-2 py-1 text-xs" placeholder="user@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
+            <input className="border border-border rounded px-2 py-1 text-xs" placeholder="user@company.com" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} />
             <Btn variant="primary" onClick={() => inviteEmail && inviteMutation.mutate({ email: inviteEmail, role: "member" })}>
               <UserPlus size={13} className="mr-1" />Invite member
             </Btn>
           </div>
         )}
       </div>
-      <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white">
+      <div className="rounded-xl border border-border overflow-hidden bg-white">
         <TeamUsersTable users={users} showRoleActions={canMutateTeam} />
       </div>
     </div>
@@ -109,13 +109,13 @@ export function TeamRolesScreen() {
       <PageHeader title="Team Roles" subtitle="Define roles and assign role-based access to members." />
       <div className="grid gap-3 md:grid-cols-3">
         {Object.entries(roleCounts).map(([r, count]) => (
-          <div key={r} className="rounded-lg border border-neutral-200 bg-white p-4">
-            <div className="text-xs text-neutral-500 uppercase">{r.replace("_", " ")}</div>
+          <div key={r} className="rounded-lg border border-border bg-white p-4">
+            <div className="text-xs text-muted-foreground uppercase">{r.replace("_", " ")}</div>
             <div className="text-xl font-semibold">{count}</div>
           </div>
         ))}
       </div>
-      <div className="rounded-xl border border-neutral-200 overflow-hidden bg-white">
+      <div className="rounded-xl border border-border overflow-hidden bg-white">
         <TeamUsersTable users={users} showRoleActions={canAssignRoles} />
       </div>
     </div>

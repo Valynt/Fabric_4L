@@ -19,11 +19,11 @@ interface TypeTreeProps {
 }
 
 const TYPE_ICONS: Record<string, React.ReactNode> = {
-  capability: <Box size={14} className="text-violet-500" />,
-  feature: <Puzzle size={14} className="text-violet-400" />,
-  usecase: <Layers size={14} className="text-cyan-500" />,
-  persona: <Users size={14} className="text-amber-500" />,
-  valuedriver: <TrendingUp size={14} className="text-emerald-500" />,
+  capability: <Box size={14} className="text-primary" />,
+  feature: <Puzzle size={14} className="text-primary" />,
+  usecase: <Layers size={14} className="text-info" />,
+  persona: <Users size={14} className="text-warning" />,
+  valuedriver: <TrendingUp size={14} className="text-success" />,
 };
 
 function getTypeIcon(typeId: string): React.ReactNode {
@@ -31,7 +31,7 @@ function getTypeIcon(typeId: string): React.ReactNode {
   for (const [key, icon] of Object.entries(TYPE_ICONS)) {
     if (normalizedId.includes(key)) return icon;
   }
-  return <Box size={14} className="text-neutral-400" />;
+  return <Box size={14} className="text-muted-foreground" />;
 }
 
 export function TypeTree({ types, className }: TypeTreeProps) {
@@ -74,7 +74,7 @@ export function TypeTree({ types, className }: TypeTreeProps) {
   return (
     <div className={cn("flex flex-col h-full", className)}>
       <div className="px-3 py-2 border-b border-border">
-        <h3 className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
+        <h3 className="vf-text-caption font-bold uppercase tracking-wider text-muted-foreground">
           Type Tree
         </h3>
       </div>
@@ -159,14 +159,14 @@ function TypeTreeNode({
 
         <span
           className={cn(
-            "text-[12px] truncate",
+            "vf-text-body-s truncate",
             isSelected ? "font-semibold text-primary" : "text-foreground"
           )}
         >
           {type.name}
         </span>
 
-        <span className="ml-auto text-[10px] text-muted-foreground">
+        <span className="ml-auto vf-text-micro text-muted-foreground">
           {type.properties.length}
         </span>
       </button>

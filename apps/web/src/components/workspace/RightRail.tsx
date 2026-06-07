@@ -108,7 +108,7 @@ function ModeToggle({
         <button
           onClick={() => onModeChange("detail")}
           className={cn(
-            "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
+            "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
             mode === "detail"
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:text-foreground"
@@ -120,7 +120,7 @@ function ModeToggle({
         <button
           onClick={() => onModeChange("agent")}
           className={cn(
-            "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
+            "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
             mode === "agent"
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:text-foreground"
@@ -132,7 +132,7 @@ function ModeToggle({
         <button
           onClick={() => onModeChange("audit")}
           className={cn(
-            "px-3 py-1 text-[11px] font-semibold rounded-md transition-colors",
+            "px-3 py-1 vf-text-caption font-semibold rounded-md transition-colors",
             mode === "audit"
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:text-foreground"
@@ -200,7 +200,7 @@ function AgentStream({
         {messages.length === 0 && (
           <div className="text-center py-8">
             <MessageSquare size={24} className="mx-auto text-muted-foreground/50 mb-2" />
-            <p className="text-[12px] text-muted-foreground">
+            <p className="vf-text-body-s text-muted-foreground">
               Ask me anything about this {activeTab} view.
             </p>
           </div>
@@ -209,15 +209,15 @@ function AgentStream({
           <div key={msg.id}>
             <div
               className={cn(
-                "text-[12px] leading-relaxed",
+                "vf-text-body-s leading-relaxed",
                 msg.role === "agent" ? "text-foreground" : "text-foreground"
               )}
             >
               <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-[11px]">
+                <span className="font-semibold vf-text-caption">
                   {msg.role === "agent" ? "ValuePilot" : "You"}
                 </span>
-                <span className="text-[10px] text-muted-foreground">{msg.timestamp}</span>
+                <span className="vf-text-micro text-muted-foreground">{msg.timestamp}</span>
               </div>
               <div
                 className={cn(
@@ -230,7 +230,7 @@ function AgentStream({
                 {msg.content}
               </div>
               {msg.role === "agent" && msg.metadata && (
-                <div className="mt-1 text-[10px] text-muted-foreground">
+                <div className="mt-1 vf-text-micro text-muted-foreground">
                   {msg.metadata.traceId && <span className="mr-2">Trace: {msg.metadata.traceId}</span>}
                   {msg.metadata.workflowId && <span className="mr-2">Workflow: {msg.metadata.workflowId}</span>}
                   {msg.metadata.tenantId && <span className="mr-2">Tenant: {msg.metadata.tenantId}</span>}
@@ -240,7 +240,7 @@ function AgentStream({
               {msg.actions && msg.actions.length > 0 && (
                 <div className="flex flex-wrap gap-2 mt-2">
                   {msg.actions.map((action, j) => (
-                    <Btn key={j} variant="outline" onClick={action.onClick} className="text-[11px]">
+                    <Btn key={j} variant="outline" onClick={action.onClick} className="vf-text-caption">
                       {action.icon}
                       {action.label}
                     </Btn>
@@ -258,7 +258,7 @@ function AgentStream({
         ))}
 
         {isStreaming && (!steps || steps.length === 0) && (
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-2 vf-text-body-s text-muted-foreground">
             <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             <span>ValuePilot is thinking…</span>
           </div>
@@ -266,7 +266,7 @@ function AgentStream({
       </div>
 
       {runMetadata && (runMetadata.traceId || runMetadata.workflowId) && (
-        <div className="px-4 py-1.5 border-t border-border/50 flex items-center gap-3 text-[9px] text-muted-foreground/60">
+        <div className="px-4 py-1.5 border-t border-border/50 flex items-center gap-3 vf-text-micro text-muted-foreground/60">
           {runMetadata.traceId && <span>Trace: {runMetadata.traceId}</span>}
           {runMetadata.workflowId && <span>Workflow: {runMetadata.workflowId}</span>}
         </div>
@@ -275,10 +275,10 @@ function AgentStream({
       {suggestedActions && suggestedActions.length > 0 && (
         <div className="px-4 py-2 border-t border-border flex flex-wrap gap-2">
           {!isActionContextReady && missingActionContextMessage && (
-            <p className="w-full text-[11px] text-muted-foreground">{missingActionContextMessage}</p>
+            <p className="w-full vf-text-caption text-muted-foreground">{missingActionContextMessage}</p>
           )}
           {suggestedActions.map((action, i) => (
-            <Btn key={i} variant="outline" onClick={action.onClick} disabled={!isActionContextReady} className="text-[11px]">
+            <Btn key={i} variant="outline" onClick={action.onClick} disabled={!isActionContextReady} className="vf-text-caption">
               {action.icon}
               {action.label}
             </Btn>
@@ -296,7 +296,7 @@ function AgentStream({
             placeholder="Ask a follow-up…"
             disabled={isStreaming}
             className={cn(
-              "flex-1 h-8 px-3 text-[12px] rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary",
+              "flex-1 h-8 px-3 vf-text-body-s rounded-md border border-border bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary",
               isStreaming && "opacity-50 cursor-not-allowed",
             )}
           />
@@ -314,7 +314,7 @@ function AgentStream({
             <Send size={14} />
           </button>
         </div>
-        <p className="text-[9px] text-muted-foreground mt-1 text-center">
+        <p className="vf-text-micro text-muted-foreground mt-1 text-center">
           AI can make mistakes. Verify critical data.
         </p>
       </div>
@@ -352,7 +352,7 @@ export default function RightRail({
 
       {mode === "detail" && !detailContent && (
         <div className="flex-1 flex items-center justify-center p-4">
-          <p className="text-[12px] text-muted-foreground text-center">
+          <p className="vf-text-body-s text-muted-foreground text-center">
             Select an item to view details.
           </p>
         </div>
@@ -360,14 +360,14 @@ export default function RightRail({
 
       {mode === "audit" && (
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          <p className="text-[12px] font-semibold text-foreground">Workflow history</p>
+          <p className="vf-text-body-s font-semibold text-foreground">Workflow history</p>
           {!auditEntries?.length ? (
-            <p className="text-[12px] text-muted-foreground">No workflow mutations recorded yet.</p>
+            <p className="vf-text-body-s text-muted-foreground">No workflow mutations recorded yet.</p>
           ) : (
             auditEntries.map((entry) => (
               <div key={entry.id} className="rounded-md border border-border p-2">
-                <p className="text-[11px] text-foreground">{entry.summary}</p>
-                <p className="text-[10px] text-muted-foreground">{entry.kind} • {entry.actor} • {new Date(entry.created_at).toLocaleString()}</p>
+                <p className="vf-text-caption text-foreground">{entry.summary}</p>
+                <p className="vf-text-micro text-muted-foreground">{entry.kind} • {entry.actor} • {new Date(entry.created_at).toLocaleString()}</p>
               </div>
             ))
           )}

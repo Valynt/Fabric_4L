@@ -205,7 +205,7 @@ export function SettingsLayout() {
                     {access.allowedRoles.map((role) => (
                       <span
                         key={role}
-                        className="inline-flex rounded-full border px-2 py-0.5 text-[10px] font-medium capitalize"
+                        className="inline-flex rounded-full border px-2 py-0.5 vf-text-micro font-medium capitalize"
                       >
                         {role.replace("_", " ")}
                       </span>
@@ -217,17 +217,17 @@ export function SettingsLayout() {
 
             {/* Warnings */}
             {access && access.restrictions.length > 0 && (
-              <div className="rounded-lg border border-yellow-200 bg-yellow-50 p-3 dark:border-yellow-900 dark:bg-yellow-950">
+              <div className="rounded-lg border border-warning/20 bg-warning/10 p-3 dark:border-yellow-900 dark:bg-yellow-950">
                 <div className="flex items-start gap-2">
-                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-yellow-600 dark:text-yellow-400" />
+                  <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning dark:text-warning" />
                   <div className="space-y-1">
-                    <h3 className="text-xs font-semibold text-yellow-800 dark:text-yellow-200">
+                    <h3 className="text-xs font-semibold text-warning dark:text-yellow-200">
                       Restrictions
                     </h3>
                     {access.restrictions.map((r: string, i: number) => (
                       <p
                         key={i}
-                        className="text-[11px] text-yellow-700 dark:text-yellow-300"
+                        className="vf-text-caption text-warning dark:text-yellow-300"
                       >
                         • {r}
                       </p>
