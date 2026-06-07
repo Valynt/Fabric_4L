@@ -20,20 +20,22 @@ This repository uses tests as the **executable contract** for intended behavior.
 
 The goal is not just to add more tests. The goal is to make the test suite the executable definition of how the system is supposed to behave.
 
-Every major repo domain must have a clear behavioral contract:
+Every major repo domain must have a clear behavioral contract. The canonical registry lives in `contracts/behavior-contract.yaml` and is enforced by `make check-behavior-contract`:
 
-| Domain | Contract Location | What It Proves |
-|---|---|---|
-| Auth behavior | `tests/security/`, `tests/contract/` | Allowed auth paths succeed; invalid paths fail closed |
-| Tenant isolation | `tests/security/`, `tests/integration/` | Cross-tenant access is denied; same-tenant access succeeds |
-| API access rules | `tests/contract/`, `contracts/openapi/` | Endpoints enforce authentication, authorization, and shape |
-| Configuration validity | `tests/ci/`, `tests/arch/` | Invalid config is rejected at startup or in gates |
-| Environment safety | `tests/contract/test_startup_bypass_guard_contract.py` | Dev bypass flags cannot activate in production |
-| Data boundaries | `tests/security/`, `tests/integration/` | Data is scoped to tenant, user, and role |
-| Failure behavior | `tests/chaos/`, `tests/contract/` | Degradation is graceful; errors are safe and structured |
-| Frontend user flows | `apps/web/src/**/*.behavior.test.*` | UI states match intended allowed and denied paths |
-| Service-to-service permissions | `tests/contract/`, `tests/integration/` | Internal calls carry and validate tenant context |
-| Production readiness gates | `tests/ci/`, `make production-readiness-gate` | Every release proves required invariants before deploy |
+| Domain | Contract Location | What It Proves | Capabilities |
+|---|---|---|---|
+| Auth behavior | `tests/security/`, `tests/contract/`, `apps/web/src/auth/`, `apps/web/src/contexts/`, `apps/web/src/hooks/` | Allowed auth paths succeed; invalid paths fail closed | 6 |
+| Tenant isolation | `tests/security/`, `services/*/tests/test_cross_tenant_hostile_behavioral.py` | Cross-tenant access is denied; same-tenant access succeeds | 5 |
+| API access rules | `tests/contract/`, `contracts/openapi/` | Endpoints enforce authentication, authorization, and shape | 1 |
+| Configuration validity | `tests/ci/`, `tests/arch/` | Invalid config is rejected at startup or in gates | 1 |
+| Environment safety | `tests/contract/test_startup_bypass_guard_contract.py`, `tests/security/test_dev_bypass.py` | Dev bypass flags cannot activate in production | 2 |
+| Data boundaries | `tests/security/`, `tests/integration/` | Data is scoped to tenant, user, and role | 1 |
+| Failure behavior | `services/layer2-extraction/tests/test_sse_streaming_behavior.py`, `tests/contract/` | Degradation is graceful; errors are safe and structured | 2 |
+| Frontend user flows | `apps/web/src/**/*.behavior.test.*`, `apps/web/e2e/behaviors/` | UI states match intended allowed and denied paths | 8 |
+| Service-to-service permissions | `tests/contract/`, `tests/integration/` | Internal calls carry and validate tenant context | 1 |
+| Production readiness gates | `tests/ci/`, `tests/k8s/`, `make production-readiness-gate` | Every release proves required invariants before deploy | 1 |
+
+**Total: 32 capabilities** across 10 domains. Each capability declares an `allowed` test, a `denied` test, and an explicit `expected_failure_mode`. The ratchet baseline is stored in `config/ci/behavior_contract_baseline.json`.
 
 ---
 
@@ -90,13 +92,15 @@ Examples:
 
 Behavior-first tests should be discoverable by name:
 
-| Pattern | Use For |
-|---|---|
-| `test_*_behavior.py` | Backend behavior contracts |
-| `*.behavior.test.ts` | Frontend behavior contracts |
-| `test_*_contract.py` | API and schema contracts |
-| `test_*_hostile.py` | Negative security and isolation tests |
-| `test_*_gate.py` | CI and release gates |
+| Pattern | Use For | Examples |
+|---|---|---|
+| `test_*_behavior.py` | Backend behavior contracts | `services/layer2-extraction/tests/test_sse_streaming_behavior.py` |
+| `test_*_hostile_behavioral.py` | Runtime hostile behavior contracts | `services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py` |
+| `*.behavior.test.ts` | Frontend component/hook behavior contracts | `apps/web/src/hooks/useAuth.behavior.test.ts` |
+| `*.behavior.spec.ts` | E2E journey behavior contracts | `apps/web/e2e/behaviors/j1-ingestion.behavior.spec.ts` |
+| `test_*_contract.py` | API and schema contracts | `tests/contract/test_error_envelope_consistency.py` |
+| `test_*_hostile.py` | Negative security and isolation tests | `tests/security/test_hostile_tenant_endpoint_family_contracts.py` |
+| `test_*_gate.py` | CI and release gates | `tests/k8s/test_production_blockers.py` |
 
 Tests that assert allowed paths should use names like:
 

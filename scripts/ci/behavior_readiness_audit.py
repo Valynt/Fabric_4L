@@ -73,6 +73,9 @@ CRITICAL_BEHAVIOR_SUITES = [
     "tests/security/test_tenant_boundary_fails_closed.py",
     "tests/security/test_billing_tenant_boundary.py",
     "tests/security/test_hostile_tenant_endpoint_family_contracts.py",
+    "services/layer2-extraction/tests/test_sse_streaming_behavior.py",
+    "services/layer2-extraction/tests/test_cross_tenant_hostile_behavioral.py",
+    "services/layer3-knowledge/tests/test_cross_tenant_hostile_behavioral.py",
 ]
 
 

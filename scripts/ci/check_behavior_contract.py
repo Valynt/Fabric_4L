@@ -62,7 +62,7 @@ CANONICAL_DOMAINS = {
     "production_readiness",
 }
 
-FRONTEND_TITLE_RE_TMPL = r"""(?:it|test)\s*\(\s*['"`].*{needle}.*['"`]"""
+FRONTEND_TITLE_RE_TMPL = r"""(?:it|test|journeyTest)(?:\.each\([^)]*\))?\s*\(\s*['"`].*{needle}.*['"`]"""
 
 
 @dataclass
