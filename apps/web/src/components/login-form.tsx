@@ -78,9 +78,9 @@ function getPasswordStrength(pw: string): { score: number; label: string; color:
   if (/[^a-zA-Z0-9]/.test(pw)) score++
 
   if (score <= 1) return { score, label: "Weak", color: "bg-destructive" }
-  if (score <= 2) return { score, label: "Fair", color: "bg-amber-500" }
-  if (score <= 3) return { score, label: "Good", color: "bg-yellow-500" }
-  return { score, label: "Strong", color: "bg-emerald-500" }
+  if (score <= 2) return { score, label: "Fair", color: "bg-warning" }
+  if (score <= 3) return { score, label: "Good", color: "bg-warning" }
+  return { score, label: "Strong", color: "bg-success" }
 }
 
 function PasswordStrength({ password }: { password: string }) {
@@ -183,8 +183,8 @@ export function LoginForm({
 
               {/* Success message */}
               {successMessage && (
-                <Alert variant="default" className="bg-emerald-500/10 text-emerald-700 border-emerald-500/20" role="status">
-                  <CheckCircle className="h-4 w-4 text-emerald-500" aria-hidden="true" />
+                <Alert variant="default" className="bg-success/10 text-success border-success/20" role="status">
+                  <CheckCircle className="h-4 w-4 text-success" aria-hidden="true" />
                   <AlertDescription>{successMessage}</AlertDescription>
                 </Alert>
               )}
