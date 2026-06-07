@@ -31,8 +31,8 @@ import { PageHeader, Btn } from "@/components/ui/fabric";
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<PackStatus, { color: string; icon: React.ReactNode; label: string }> = {
-  published: { color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: <CheckCircle2 size={11}/>, label: "Published" },
-  active:    { color: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20", icon: <CheckCircle2 size={11}/>, label: "Active" },
+  published: { color: "bg-success/10 text-success border-success/20", icon: <CheckCircle2 size={11}/>, label: "Published" },
+  active:    { color: "bg-success/10 text-success border-success/20", icon: <CheckCircle2 size={11}/>, label: "Active" },
   draft:     { color: "bg-muted text-muted-foreground border-border", icon: <Clock size={11}/>, label: "Draft" },
   archived:  { color: "bg-destructive/10 text-destructive border-destructive/20", icon: <Archive size={11}/>, label: "Archived" },
 };
@@ -42,7 +42,7 @@ const STATUS_CONFIG: Record<PackStatus, { color: string; icon: React.ReactNode; 
 function PackStatusChip({ status }: { status: PackStatus }) {
   const cfg = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft;
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>
       {cfg.icon} {cfg.label}
     </span>
   );
@@ -125,13 +125,13 @@ function PackManagementContent() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">Failed to load packs</h3>
-              <p className="text-[12px] text-destructive/80">
+              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load packs</h3>
+              <p className="vf-text-body-s text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button
                 onClick={() => refetch()}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -157,14 +157,14 @@ function PackManagementContent() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Packs", value: stats.total, icon: <FolderKanban size={14} /> },
-          { label: "Published", value: stats.published, icon: <CheckCircle2 size={14} />, color: "text-emerald-600" },
-          { label: "Drafts", value: stats.draft, icon: <Clock size={14} />, color: "text-amber-600" },
+          { label: "Published", value: stats.published, icon: <CheckCircle2 size={14} />, color: "text-success" },
+          { label: "Drafts", value: stats.draft, icon: <Clock size={14} />, color: "text-warning" },
           { label: "Total Drivers", value: stats.totalDrivers, icon: <ListChecks size={14} />, color: "text-violet-600" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
+              <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
             <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
@@ -179,7 +179,7 @@ function PackManagementContent() {
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search packs..."
-            className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+            className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
           />
         </div>
         <div className="flex items-center gap-1.5">
@@ -188,7 +188,7 @@ function PackManagementContent() {
               key={s}
               onClick={() => setStatusFilter(s)}
               className={cn(
-                "text-[11px] px-2.5 py-1 rounded-full border capitalize transition-colors font-medium",
+                "vf-text-caption px-2.5 py-1 rounded-full border capitalize transition-colors font-medium",
                 statusFilter === s
                   ? "bg-foreground text-background border-foreground"
                   : "bg-card text-muted-foreground border-border hover:border-primary"
@@ -201,7 +201,7 @@ function PackManagementContent() {
         <select
           value={industryFilter}
           onChange={e => setIndustryFilter(e.target.value)}
-          className="px-3 py-2 text-[11px] border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
+          className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
         >
           <option value="all">All Industries</option>
           {industries.map(ind => (
@@ -212,11 +212,11 @@ function PackManagementContent() {
 
       {/* Pack Table */}
       <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-[12px]">
+        <table className="w-full vf-text-body-s">
           <thead>
             <tr className="border-b border-border bg-muted">
               {["Pack", "Industry", "Status", "Drivers", "Formulas", "Benchmarks", "Version", "Updated", ""].map(h => (
-                <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                   {h}
                 </th>
               ))}
@@ -231,7 +231,7 @@ function PackManagementContent() {
                     <div>
                       <span className="font-medium text-foreground block">{p.name}</span>
                       {p.description && (
-                        <span className="text-[10px] text-muted-foreground line-clamp-1">{p.description}</span>
+                        <span className="vf-text-micro text-muted-foreground line-clamp-1">{p.description}</span>
                       )}
                     </div>
                   </div>
@@ -247,7 +247,7 @@ function PackManagementContent() {
                 <td className="px-4 py-3 text-foreground">
                   <span className="flex items-center gap-1"><BarChart3 size={11} /> {p.benchmark_count || 0}</span>
                 </td>
-                <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{p.version || "—"}</td>
+                <td className="px-4 py-3 font-mono vf-text-caption text-muted-foreground">{p.version || "—"}</td>
                 <td className="px-4 py-3 text-muted-foreground">{formatDate(p.updated_at)}</td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -267,7 +267,7 @@ function PackManagementContent() {
           </tbody>
         </table>
         {filteredPacks.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground text-[12px]">
+          <div className="text-center py-12 text-muted-foreground vf-text-body-s">
             <FolderKanban size={32} className="mx-auto mb-3 text-muted-foreground/50" />
             No packs match your filters.
           </div>

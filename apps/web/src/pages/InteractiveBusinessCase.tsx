@@ -363,8 +363,8 @@ export default function InteractiveBusinessCase() {
               </p>
               <ol className="text-sm list-decimal list-inside space-y-1">
                 <li>Get an API key from <a href="https://thesys.dev" className="underline">thesys.dev</a></li>
-                <li>Add <code className="bg-amber-100 px-1 rounded">VITE_THESYS_API_KEY</code> to your environment</li>
-                <li>Set <code className="bg-amber-100 px-1 rounded">VITE_ENABLE_C1_REPORTS=true</code></li>
+                <li>Add <code className="bg-warning/10 px-1 rounded">VITE_THESYS_API_KEY</code> to your environment</li>
+                <li>Set <code className="bg-warning/10 px-1 rounded">VITE_ENABLE_C1_REPORTS=true</code></li>
               </ol>
             </div>
           </div>

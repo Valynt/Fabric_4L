@@ -44,14 +44,14 @@ const STATUS_CONFIG: Record<ServiceStatus, {
 }> = {
   healthy: {
     label: "Healthy",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-500/10",
+    color: "text-success",
+    bgColor: "bg-success/10",
     icon: <CheckCircle2 size={16} />,
   },
   degraded: {
     label: "Degraded",
-    color: "text-amber-600",
-    bgColor: "bg-amber-500/10",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
     icon: <AlertTriangle size={16} />,
   },
   unhealthy: {
@@ -79,8 +79,8 @@ const ALERT_SEVERITY_CONFIG: Record<HealthAlert['severity'], {
     icon: <XCircle size={14} />,
   },
   warning: {
-    color: "text-amber-600",
-    bgColor: "bg-amber-500/10",
+    color: "text-warning",
+    bgColor: "bg-warning/10",
     icon: <AlertTriangle size={14} />,
   },
   info: {
@@ -141,21 +141,21 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
             {icon}
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-foreground">
+            <h4 className="vf-text-body-m font-semibold text-foreground">
               {service.name.replace(/-/g, ' ').replace(/^l\d-/, 'L$1 ')}
             </h4>
-            <p className="text-[11px] text-muted-foreground">v{service.version}</p>
+            <p className="vf-text-caption text-muted-foreground">v{service.version}</p>
           </div>
         </div>
         <span className={cn(
-          "inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full",
+          "inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full",
           status.bgColor, status.color
         )}>
           {status.icon} {status.label}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-3 text-[11px]">
+      <div className="grid grid-cols-2 gap-3 vf-text-caption">
         <div className="bg-muted rounded-lg p-2">
           <span className="text-muted-foreground block">Uptime</span>
           <span className="text-foreground font-medium">
@@ -166,7 +166,7 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
           <span className="text-muted-foreground block">Response</span>
           <span className={cn(
             "font-medium",
-            service.response_time_ms > 1000 ? "text-amber-600" : "text-foreground"
+            service.response_time_ms > 1000 ? "text-warning" : "text-foreground"
           )}>
             {service.response_time_ms}ms
           </span>
@@ -174,12 +174,12 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
       </div>
 
       {service.error_message && (
-        <div className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded-lg text-[11px] text-destructive">
+        <div className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded-lg vf-text-caption text-destructive">
           {service.error_message}
         </div>
       )}
 
-      <div className="mt-3 flex items-center justify-between text-[10px] text-muted-foreground">
+      <div className="mt-3 flex items-center justify-between vf-text-micro text-muted-foreground">
         <span>Last check: {formatTimeAgo(service.last_check_at)}</span>
         <button className="text-primary hover:underline flex items-center gap-0.5">
           Details <ExternalLink size={10} />
@@ -204,7 +204,7 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
       </span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className="text-[12px] font-medium text-foreground">
+          <span className="vf-text-body-s font-medium text-foreground">
             {alert.service_name}
           </span>
           <span className={cn(
@@ -214,13 +214,13 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
             {alert.severity}
           </span>
         </div>
-        <p className="text-[11px] text-muted-foreground mt-0.5 truncate">
+        <p className="vf-text-caption text-muted-foreground mt-0.5 truncate">
           {alert.message}
         </p>
-        <div className="flex items-center gap-3 mt-1.5 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-3 mt-1.5 vf-text-micro text-muted-foreground">
           <span>Started: {formatTimeAgo(alert.started_at)}</span>
           {alert.resolved_at && (
-            <span className="text-emerald-600">
+            <span className="text-success">
               Resolved: {formatTimeAgo(alert.resolved_at)}
             </span>
           )}
@@ -247,7 +247,7 @@ function SummaryCard({
     <div className="bg-card border border-border rounded-xl px-4 py-3">
       <div className="flex items-center gap-2 mb-1">
         <span className={config.color}>{icon}</span>
-        <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+        <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
           {label}
         </span>
       </div>
@@ -347,15 +347,15 @@ function HealthMonitorContent() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">
+              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">
                 Failed to load health data
               </h3>
-              <p className="text-[12px] text-destructive/80">
+              <p className="vf-text-body-s text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button
                 onClick={handleRefresh}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -369,9 +369,9 @@ function HealthMonitorContent() {
   if (!health) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl p-6">
-          <h3 className="text-[14px] font-semibold text-amber-900 dark:text-amber-100">No Health Data</h3>
-          <p className="text-[12px] text-amber-700 dark:text-amber-300 mt-1">
+        <div className="bg-warning/10 border border-warning/20 rounded-xl p-6">
+          <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Health Data</h3>
+          <p className="vf-text-body-s text-warning dark:text-warning mt-1">
             System health information is unavailable. Please check the API status.
           </p>
         </div>
@@ -390,7 +390,7 @@ function HealthMonitorContent() {
           subtitle="Monitor real-time status of all platform services"
         />
         <div className="flex items-center gap-2">
-          <span className="text-[11px] text-muted-foreground">
+          <span className="vf-text-caption text-muted-foreground">
             Updated {lastUpdated}
           </span>
           <Btn variant="outline" onClick={handleRefresh}>
@@ -412,15 +412,15 @@ function HealthMonitorContent() {
           <h3 className={cn("text-[16px] font-bold", overallStatus.color)}>
             System {overallStatus.label}
           </h3>
-          <p className="text-[12px] text-muted-foreground">
+          <p className="vf-text-body-s text-muted-foreground">
             {health.summary.healthy} of {health.summary.total} services operating normally
             {health.summary.degraded > 0 && ` • ${health.summary.degraded} degraded`}
             {health.summary.unhealthy > 0 && ` • ${health.summary.unhealthy} unhealthy`}
           </p>
         </div>
         <div className="text-right">
-          <p className="text-[11px] text-muted-foreground">Last check</p>
-          <p className="text-[12px] font-medium text-foreground">
+          <p className="vf-text-caption text-muted-foreground">Last check</p>
+          <p className="vf-text-body-s font-medium text-foreground">
             {formatTimeAgo(health.checked_at)}
           </p>
         </div>
@@ -457,13 +457,13 @@ function HealthMonitorContent() {
       {/* Services Section */}
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] font-semibold text-foreground">Services</h3>
+          <h3 className="vf-text-body-l font-semibold text-foreground">Services</h3>
           <div className="flex items-center gap-2">
             <Filter size={14} className="text-muted-foreground" />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value as FilterStatus)}
-              className="text-[11px] px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
+              className="vf-text-caption px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
             >
               <option value="all">All Status</option>
               <option value="healthy">Healthy</option>
@@ -480,7 +480,7 @@ function HealthMonitorContent() {
         </div>
 
         {filteredServices.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-[12px]">
+          <div className="text-center py-8 text-muted-foreground vf-text-body-s">
             <Server size={32} className="mx-auto mb-2 text-muted-foreground/50" />
             No services match the selected filter.
           </div>
@@ -490,11 +490,11 @@ function HealthMonitorContent() {
       {/* Alerts Section */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-[14px] font-semibold text-foreground">
+          <h3 className="vf-text-body-l font-semibold text-foreground">
             Active Alerts {filteredAlerts.length > 0 && `(${filteredAlerts.length})`}
           </h3>
           <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <label className="flex items-center gap-1.5 vf-text-caption text-muted-foreground">
               <input
                 type="checkbox"
                 checked={showResolved}
@@ -506,7 +506,7 @@ function HealthMonitorContent() {
             <select
               value={severityFilter}
               onChange={(e) => setSeverityFilter(e.target.value as AlertSeverity)}
-              className="text-[11px] px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
+              className="vf-text-caption px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
             >
               <option value="all">All Severities</option>
               <option value="critical">Critical</option>
@@ -523,7 +523,7 @@ function HealthMonitorContent() {
         </div>
 
         {filteredAlerts.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground text-[12px]">
+          <div className="text-center py-8 text-muted-foreground vf-text-body-s">
             <Bell size={32} className="mx-auto mb-2 text-muted-foreground/50" />
             {showResolved ? "No alerts found." : "No active alerts. Great!"}
           </div>

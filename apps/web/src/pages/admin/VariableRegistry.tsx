@@ -41,27 +41,27 @@ import { PageHeader, Btn } from "@/components/ui/fabric";
 
 const TYPE_CONFIG: Record<VariableType, { label: string; color: string; icon: React.ReactNode }> = {
   rate:     { label: "Rate",     color: "bg-cyan-50 text-cyan-700",     icon: <Percent size={10}/> },
-  currency: { label: "Currency", color: "bg-emerald-50 text-emerald-700", icon: <DollarSign size={10}/> },
-  integer:  { label: "Integer",  color: "bg-blue-50 text-blue-700",     icon: <Hash size={10}/> },
+  currency: { label: "Currency", color: "bg-success/10 text-success", icon: <DollarSign size={10}/> },
+  integer:  { label: "Integer",  color: "bg-primary/10 text-primary",     icon: <Hash size={10}/> },
   float:    { label: "Float",    color: "bg-violet-50 text-violet-700",  icon: <Code2 size={10}/> },
-  boolean:  { label: "Boolean",  color: "bg-amber-50 text-amber-700",    icon: <Check size={10}/> },
+  boolean:  { label: "Boolean",  color: "bg-warning/10 text-warning",    icon: <Check size={10}/> },
   string:   { label: "String",   color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
 };
 
 const SOURCE_CONFIG: Record<SourceType, { color: string; icon: React.ReactNode }> = {
-  CRM:      { color: "bg-blue-50 text-blue-700", icon: <Database size={10}/> },
+  CRM:      { color: "bg-primary/10 text-primary", icon: <Database size={10}/> },
   Billing:  { color: "bg-violet-50 text-violet-700", icon: <DollarSign size={10}/> },
   ERP:      { color: "bg-indigo-50 text-indigo-700", icon: <Database size={10}/> },
   Manual:   { color: "bg-muted text-muted-foreground", icon: <Type size={10}/> },
-  Model:    { color: "bg-amber-50 text-amber-700", icon: <Code2 size={10}/> },
+  Model:    { color: "bg-warning/10 text-warning", icon: <Code2 size={10}/> },
   API:      { color: "bg-cyan-50 text-cyan-700", icon: <ExternalLink size={10}/> },
-  Database: { color: "bg-emerald-50 text-emerald-700", icon: <Database size={10}/> },
+  Database: { color: "bg-success/10 text-success", icon: <Database size={10}/> },
 };
 
 const VALIDATION_CONFIG: Record<ValidationStatus, { color: string; icon: React.ReactNode; label: string }> = {
-  validated:  { color: "text-emerald-500", icon: <CheckCircle2 size={14}/>, label: "Validated" },
-  pending:    { color: "text-amber-500", icon: <AlertCircle size={14}/>, label: "Pending" },
-  failed:     { color: "text-red-500", icon: <X size={14}/>, label: "Failed" },
+  validated:  { color: "text-success", icon: <CheckCircle2 size={14}/>, label: "Validated" },
+  pending:    { color: "text-warning", icon: <AlertCircle size={14}/>, label: "Pending" },
+  failed:     { color: "text-destructive", icon: <X size={14}/>, label: "Failed" },
   deprecated: { color: "text-muted-foreground", icon: <AlertCircle size={14}/>, label: "Deprecated" },
 };
 
@@ -70,7 +70,7 @@ const VALIDATION_CONFIG: Record<ValidationStatus, { color: string; icon: React.R
 function TypeBadge({ type }: { type: VariableType }) {
   const config = TYPE_CONFIG[type];
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${config.color}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full ${config.color}`}>
       {config.icon} {config.label}
     </span>
   );
@@ -79,7 +79,7 @@ function TypeBadge({ type }: { type: VariableType }) {
 function SourceBadge({ source }: { source: SourceType }) {
   const config = SOURCE_CONFIG[source];
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${config.color}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full ${config.color}`}>
       {config.icon} {source}
     </span>
   );
@@ -92,9 +92,9 @@ function ValidationIcon({ status }: { status: ValidationStatus }) {
 
 function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id: string) => void }) {
   const statusColors: Record<string, string> = {
-    connected: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    connected: "bg-success/10 text-success border-success/20",
     disconnected: "bg-muted text-muted-foreground border-border",
-    error: "bg-red-50 text-red-600 border-red-200",
+    error: "bg-destructive/10 text-destructive border-destructive/20",
   };
 
   return (
@@ -105,16 +105,16 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
             <Database size={18}/>
           </div>
           <div>
-            <h4 className="text-[13px] font-semibold text-foreground">{binding.name}</h4>
-            <p className="text-[11px] text-muted-foreground font-mono">{binding.connection_string || "—"}</p>
+            <h4 className="vf-text-body-m font-semibold text-foreground">{binding.name}</h4>
+            <p className="vf-text-caption text-muted-foreground font-mono">{binding.connection_string || "—"}</p>
           </div>
         </div>
-        <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${statusColors[binding.status]}`}>
+        <span className={`vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${statusColors[binding.status]}`}>
           {binding.status}
         </span>
       </div>
       
-      <div className="flex items-center justify-between text-[11px]">
+      <div className="flex items-center justify-between vf-text-caption">
         <div className="flex items-center gap-4">
           <span className="text-muted-foreground">
             <span className="font-semibold text-foreground">{binding.variables_bound}</span> variables bound
@@ -128,7 +128,7 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
         <div className="flex items-center gap-2">
           <button
             onClick={() => onTest(binding.id)}
-            className="flex items-center gap-1 px-2.5 py-1 text-[10px] font-medium text-muted-foreground hover:bg-muted rounded transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 vf-text-micro font-medium text-muted-foreground hover:bg-muted rounded transition-colors"
           >
             <RefreshCw size={10}/> Test
           </button>
@@ -139,7 +139,7 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
       </div>
       
       {binding.error_message && (
-        <div className="mt-3 p-2 bg-red-50 border border-red-100 rounded-lg text-[11px] text-red-600">
+        <div className="mt-3 p-2 bg-destructive/10 border border-destructive/20 rounded-lg vf-text-caption text-destructive">
           {binding.error_message}
         </div>
       )}
@@ -270,17 +270,17 @@ function VariableRegistryContent() {
   if (error) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
+        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 shrink-0 mt-0.5" />
+            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-red-800 mb-1">Failed to load variable registry</h3>
-              <p className="text-[12px] text-red-600">
+              <h3 className="vf-text-body-l font-semibold text-destructive mb-1">Failed to load variable registry</h3>
+              <p className="vf-text-body-s text-destructive">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button 
                 onClick={() => { refetchVariables(); refetchBindings(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 text-[12px] font-medium rounded-lg hover:bg-red-200 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-red-200 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -309,15 +309,15 @@ function VariableRegistryContent() {
       <div className="grid grid-cols-5 gap-4 mb-6">
         {[
           { label: "Total Variables", value: stats?.total ?? variables.length, icon: <ListChecks size={14}/> },
-          { label: "Validated", value: stats?.validated ?? variables.filter(v => v.validation_status === "validated").length, icon: <CheckCircle2 size={14}/>, color: "text-emerald-600" },
-          { label: "Pending", value: stats?.pending ?? variables.filter(v => v.validation_status === "pending").length, icon: <AlertCircle size={14}/>, color: "text-amber-600" },
-          { label: "Failed", value: stats?.failed ?? variables.filter(v => v.validation_status === "failed").length, icon: <X size={14}/>, color: "text-red-600" },
-          { label: "Total Usage", value: stats?.avg_usage ?? variables.reduce((s, v) => s + (v.used_in_count || 0), 0), icon: <Link2 size={14}/>, color: "text-blue-600" },
+          { label: "Validated", value: stats?.validated ?? variables.filter(v => v.validation_status === "validated").length, icon: <CheckCircle2 size={14}/>, color: "text-success" },
+          { label: "Pending", value: stats?.pending ?? variables.filter(v => v.validation_status === "pending").length, icon: <AlertCircle size={14}/>, color: "text-warning" },
+          { label: "Failed", value: stats?.failed ?? variables.filter(v => v.validation_status === "failed").length, icon: <X size={14}/>, color: "text-destructive" },
+          { label: "Total Usage", value: stats?.avg_usage ?? variables.reduce((s, v) => s + (v.used_in_count || 0), 0), icon: <Link2 size={14}/>, color: "text-primary" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
+              <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
             <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
@@ -336,9 +336,9 @@ function VariableRegistryContent() {
             aria-selected={activeTab === tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={cn(
-              "px-4 py-2.5 text-[12px] font-medium transition-colors relative",
+              "px-4 py-2.5 vf-text-body-s font-medium transition-colors relative",
               activeTab === tab.id
-                ? "text-blue-700"
+                ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
             )}
           >
@@ -346,7 +346,7 @@ function VariableRegistryContent() {
               {tab.label}
               {tab.count !== undefined && (
                 <span className={cn(
-                  "px-1.5 py-0.5 rounded text-[10px]",
+                  "px-1.5 py-0.5 rounded vf-text-micro",
                   activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
                 )}>
                   {tab.count}
@@ -354,7 +354,7 @@ function VariableRegistryContent() {
               )}
             </span>
             {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 rounded-t-full" />
+              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
             )}
           </button>
         ))}
@@ -371,7 +371,7 @@ function VariableRegistryContent() {
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search variables..."
                 aria-label="Search variables"
-                className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <select
@@ -381,7 +381,7 @@ function VariableRegistryContent() {
                 setTypeFilter(value === "all" ? "all" : value as VariableType);
               }}
               aria-label="Filter by variable type"
-              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
+              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Types</option>
               {Object.keys(TYPE_CONFIG).map(t => (
@@ -395,7 +395,7 @@ function VariableRegistryContent() {
                 setSourceFilter(value === "all" ? "all" : value as SourceType);
               }}
               aria-label="Filter by source"
-              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
+              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Sources</option>
               {Object.keys(SOURCE_CONFIG).map(s => (
@@ -403,7 +403,7 @@ function VariableRegistryContent() {
               ))}
             </select>
             <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
               </button>
             </div>
@@ -411,12 +411,12 @@ function VariableRegistryContent() {
 
           {/* Variable Table */}
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-[12px]">
+            <table className="w-full vf-text-body-s">
               <thead>
                 <tr className="border-b border-border bg-muted/50">
                   <th className="w-8 px-3 py-3"></th>
                   {["Variable Name", "Type", "Unit", "Source", "Binding", "Used In", "Status", ""].map(h => (
-                    <th key={h} className="text-left px-3 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    <th key={h} className="text-left px-3 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                       {h}
                     </th>
                   ))}
@@ -441,14 +441,14 @@ function VariableRegistryContent() {
                           <ListChecks size={14} className="text-violet-500 shrink-0"/>
                           <div>
                             <span className="font-mono font-medium text-foreground block">{v.name}</span>
-                            <span className="text-[10px] text-muted-foreground">{v.display_name}</span>
+                            <span className="vf-text-micro text-muted-foreground">{v.display_name}</span>
                           </div>
                         </div>
                       </td>
                       <td className="px-3 py-3"><TypeBadge type={v.type}/></td>
                       <td className="px-3 py-3 text-muted-foreground">{v.unit}</td>
                       <td className="px-3 py-3"><SourceBadge source={v.source}/></td>
-                      <td className="px-3 py-3 font-mono text-[11px] text-muted-foreground">{v.binding}</td>
+                      <td className="px-3 py-3 font-mono vf-text-caption text-muted-foreground">{v.binding}</td>
                       <td className="px-3 py-3 text-muted-foreground">{v.used_in_count} formulas</td>
                       <td className="px-3 py-3"><ValidationIcon status={v.validation_status}/></td>
                       <td className="px-3 py-3">
@@ -482,19 +482,19 @@ function VariableRegistryContent() {
                         <td colSpan={9} className="px-3 py-4">
                           <div className="grid grid-cols-3 gap-4">
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Description</p>
-                              <p className="text-[12px] text-foreground">{v.description || "—"}</p>
+                              <p className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold mb-1">Description</p>
+                              <p className="vf-text-body-s text-foreground">{v.description || "—"}</p>
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Binding Details</p>
-                              <p className="text-[11px] font-mono text-muted-foreground">{v.binding_path || v.binding}</p>
+                              <p className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold mb-1">Binding Details</p>
+                              <p className="vf-text-caption font-mono text-muted-foreground">{v.binding_path || v.binding}</p>
                               {v.default_value && (
-                                <p className="text-[11px] text-muted-foreground mt-1">Default: {v.default_value}</p>
+                                <p className="vf-text-caption text-muted-foreground mt-1">Default: {v.default_value}</p>
                               )}
                             </div>
                             <div>
-                              <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">Metadata</p>
-                              <div className="space-y-1 text-[11px] text-muted-foreground">
+                              <p className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold mb-1">Metadata</p>
+                              <div className="space-y-1 vf-text-caption text-muted-foreground">
                                 <p>Version: {v.version}</p>
                                 <p>Created: {new Date(v.created_at).toLocaleDateString()}</p>
                                 <p>Updated: {new Date(v.updated_at).toLocaleDateString()}</p>
@@ -505,14 +505,14 @@ function VariableRegistryContent() {
                             </div>
                           </div>
                           {v.validation_message && (
-                            <div className={`mt-3 p-2 rounded-lg text-[11px] ${
-                              v.validation_status === "failed" ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-700"
+                            <div className={`mt-3 p-2 rounded-lg vf-text-caption ${
+                              v.validation_status === "failed" ? "bg-destructive/10 text-destructive" : "bg-warning/10 text-warning"
                             }`}>
                               {v.validation_message}
                             </div>
                           )}
                           {testResultsByVariable[v.variable_id] && (
-                            <div className={`mt-3 p-3 rounded-lg border text-[11px] ${testResultsByVariable[v.variable_id].pass ? "bg-emerald-50 border-emerald-100 text-emerald-700" : "bg-red-50 border-red-100 text-red-700"}`}>
+                            <div className={`mt-3 p-3 rounded-lg border vf-text-caption ${testResultsByVariable[v.variable_id].pass ? "bg-success/10 border-success/20 text-success" : "bg-destructive/10 border-destructive/20 text-destructive"}`}>
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="font-semibold">{testResultsByVariable[v.variable_id].pass ? "Binding test passed" : "Binding test failed"}</p>
@@ -521,7 +521,7 @@ function VariableRegistryContent() {
                                   </p>
                                 </div>
                                 <button
-                                  className="text-[10px] underline"
+                                  className="vf-text-micro underline"
                                   onClick={() => setExpandedDiagnosticsByVariable(prev => ({ ...prev, [v.variable_id]: !prev[v.variable_id] }))}
                                 >
                                   {expandedDiagnosticsByVariable[v.variable_id] ? "Hide diagnostics" : "Show diagnostics"}
@@ -557,7 +557,7 @@ function VariableRegistryContent() {
               </tbody>
             </table>
             {filteredVariables.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground text-[12px]">
+              <div className="text-center py-12 text-muted-foreground vf-text-body-s">
                 <ListChecks size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
                 No variables match your filters.
               </div>
@@ -569,7 +569,7 @@ function VariableRegistryContent() {
           {/* Source Bindings */}
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[14px] font-semibold text-foreground">Connected Data Sources</h3>
+              <h3 className="vf-text-body-l font-semibold text-foreground">Connected Data Sources</h3>
               <Btn variant="outline"><Plus size={12} className="mr-1"/> Add Connection</Btn>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -585,20 +585,20 @@ function VariableRegistryContent() {
 
           {/* Binding Health Summary */}
           <div className="bg-card border border-border rounded-xl p-4">
-            <h3 className="text-[14px] font-semibold text-foreground mb-4">Connection Health</h3>
+            <h3 className="vf-text-body-l font-semibold text-foreground mb-4">Connection Health</h3>
             <div className="grid grid-cols-3 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-emerald-50 rounded-lg">
-                <CheckCircle2 size={20} className="text-emerald-600"/>
+              <div className="flex items-center gap-3 p-3 bg-success/10 rounded-lg">
+                <CheckCircle2 size={20} className="text-success"/>
                 <div>
-                  <p className="text-[18px] font-bold text-emerald-700">{bindings.filter(b => b.status === "connected").length}</p>
-                  <p className="text-[11px] text-emerald-600">Connected</p>
+                  <p className="text-[18px] font-bold text-success">{bindings.filter(b => b.status === "connected").length}</p>
+                  <p className="vf-text-caption text-success">Connected</p>
                 </div>
               </div>
-              <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
-                <X size={20} className="text-red-600"/>
+              <div className="flex items-center gap-3 p-3 bg-destructive/10 rounded-lg">
+                <X size={20} className="text-destructive"/>
                 <div>
-                  <p className="text-[18px] font-bold text-red-700">{bindings.filter(b => b.status === "error").length}</p>
-                  <p className="text-[11px] text-red-600">Errors</p>
+                  <p className="text-[18px] font-bold text-destructive">{bindings.filter(b => b.status === "error").length}</p>
+                  <p className="vf-text-caption text-destructive">Errors</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
@@ -607,7 +607,7 @@ function VariableRegistryContent() {
                   <p className="text-[18px] font-bold text-foreground">
                     {bindings.filter(b => b.last_sync).length}
                   </p>
-                  <p className="text-[11px] text-muted-foreground">Synced Today</p>
+                  <p className="vf-text-caption text-muted-foreground">Synced Today</p>
                 </div>
               </div>
             </div>

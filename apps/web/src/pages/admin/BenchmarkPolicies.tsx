@@ -28,13 +28,13 @@ import { PageHeader, Btn } from "@/components/ui/fabric";
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const CONFIDENCE_STYLES: Record<ConfidenceLevel, { color: string; bg: string; icon: React.ReactNode }> = {
-  High:   { color: "text-emerald-600", bg: "bg-emerald-500/10", icon: <CheckCircle2 size={12}/> },
-  Medium: { color: "text-amber-600", bg: "bg-amber-500/10", icon: <Info size={12}/> },
+  High:   { color: "text-success", bg: "bg-success/10", icon: <CheckCircle2 size={12}/> },
+  Medium: { color: "text-warning", bg: "bg-warning/10", icon: <Info size={12}/> },
   Low:    { color: "text-destructive", bg: "bg-destructive/10", icon: <AlertTriangle size={12}/> },
 };
 
 const STATUS_STYLES: Record<BenchmarkStatus, string> = {
-  active: "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+  active: "bg-success/10 text-success border-success/20",
   draft: "bg-muted text-muted-foreground border-border",
   deprecated: "bg-destructive/10 text-destructive border-destructive/20",
 };
@@ -44,7 +44,7 @@ const STATUS_STYLES: Record<BenchmarkStatus, string> = {
 function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
   const style = CONFIDENCE_STYLES[level];
   return (
-    <span className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.color}`}>
+    <span className={`inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full ${style.bg} ${style.color}`}>
       {style.icon} {level}
     </span>
   );
@@ -52,7 +52,7 @@ function ConfidenceBadge({ level }: { level: ConfidenceLevel }) {
 
 function StatusBadge({ status }: { status: BenchmarkStatus }) {
   return (
-    <span className={`inline-flex items-center text-[10px] font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status]}`}>
+    <span className={`inline-flex items-center vf-text-micro font-semibold px-2 py-0.5 rounded-full border ${STATUS_STYLES[status]}`}>
       {status}
     </span>
   );
@@ -67,7 +67,7 @@ function StaleWarningBadge({ lastVerified }: { lastVerified?: string }) {
   if (lastVerifiedDate > oneYearAgo) return null;
   
   return (
-    <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-600 border border-amber-500/20 ml-2">
+    <span className="inline-flex items-center gap-1 vf-text-micro font-semibold px-2 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/20 ml-2">
       <AlertTriangle size={10}/> Stale — Last verified {lastVerifiedDate.getFullYear()}
     </span>
   );
@@ -159,13 +159,13 @@ function BenchmarkPoliciesContent() {
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
             <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-destructive-foreground mb-1">Failed to load benchmark policies</h3>
-              <p className="text-[12px] text-destructive/80">
+              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load benchmark policies</h3>
+              <p className="vf-text-body-s text-destructive/80">
                 {error instanceof Error ? error.message : "An unexpected error occurred"}
               </p>
               <button 
                 onClick={() => { refetchBenchmarks(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive text-[12px] font-medium rounded-lg hover:bg-destructive/30 transition-colors"
+                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
               >
                 <RefreshCw size={14} /> Try again
               </button>
@@ -191,14 +191,14 @@ function BenchmarkPoliciesContent() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         {[
           { label: "Total Benchmarks", value: stats.total, icon: <BarChart3 size={14}/> },
-          { label: "High Confidence", value: stats.highConfidence, icon: <CheckCircle2 size={14}/>, color: "text-emerald-600" },
-          { label: "Active", value: stats.active, icon: <TrendingUp size={14}/>, color: "text-blue-600" },
+          { label: "High Confidence", value: stats.highConfidence, icon: <CheckCircle2 size={14}/>, color: "text-success" },
+          { label: "Active", value: stats.active, icon: <TrendingUp size={14}/>, color: "text-primary" },
           { label: "Total Usage", value: stats.totalUsage, icon: <Database size={14}/>, color: "text-violet-600" },
         ].map(s => (
           <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
             <div className="flex items-center gap-2 mb-1">
               <span className={s.color || "text-muted-foreground"}>{s.icon}</span>
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
+              <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">{s.label}</span>
             </div>
             <p className={`text-[22px] font-extrabold ${s.color || "text-foreground"}`}>{s.value}</p>
           </div>
@@ -213,7 +213,7 @@ function BenchmarkPoliciesContent() {
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search benchmarks..."
-                className="flex-1 text-[12px] bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
             <select
@@ -222,7 +222,7 @@ function BenchmarkPoliciesContent() {
                 const value = e.target.value;
                 setConfidenceFilter(value === "all" ? "all" : value as ConfidenceLevel);
               }}
-              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
+              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Confidence</option>
               <option value="High">High</option>
@@ -232,7 +232,7 @@ function BenchmarkPoliciesContent() {
             <select
               value={industryFilter}
               onChange={e => setIndustryFilter(e.target.value)}
-              className="px-3 py-2 text-[11px] border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
+              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
             >
               <option value="all">All Industries</option>
               {industries.map(ind => (
@@ -240,7 +240,7 @@ function BenchmarkPoliciesContent() {
               ))}
             </select>
             <div className="ml-auto flex items-center gap-2">
-              <button className="flex items-center gap-1.5 px-3 py-1.5 text-[11px] font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
+              <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
               </button>
             </div>
@@ -248,22 +248,22 @@ function BenchmarkPoliciesContent() {
 
           {/* Benchmark Table */}
           <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-[12px]">
+            <table className="w-full vf-text-body-s">
               <thead>
                 <tr className="border-b border-border bg-muted">
                   {["Benchmark", "Industry", "Value Range", "Confidence", "Source", "Status", "Usage", ""].map(h => (
-                    <th key={h} className="text-left px-4 py-3 text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
                       {h}
                     </th>
                   ))}
                 </tr>
               </thead>
-              <tbody className="divide-y divide-neutral-100">
+              <tbody className="divide-y divide-border">
                 {filteredBenchmarks.map(b => (
                   <tr key={b.id} className="hover:bg-muted transition-colors group">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2">
-                        <BarChart3 size={14} className="text-blue-500 shrink-0"/>
+                        <BarChart3 size={14} className="text-primary shrink-0"/>
                         <div>
                           <span className="font-medium text-foreground block">{b.name}</span>
                           {b.tags.length > 0 && (
@@ -282,7 +282,7 @@ function BenchmarkPoliciesContent() {
                       {b.industry}
                       {b.vertical && <span className="text-muted-foreground"> / {b.vertical}</span>}
                     </td>
-                    <td className="px-4 py-3 font-mono text-[11px] text-foreground">{b.value_range}</td>
+                    <td className="px-4 py-3 font-mono vf-text-caption text-foreground">{b.value_range}</td>
                     <td className="px-4 py-3">
                       <div className="flex items-center">
                         <ConfidenceBadge level={b.confidence}/>
@@ -315,7 +315,7 @@ function BenchmarkPoliciesContent() {
               </tbody>
             </table>
             {filteredBenchmarks.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground text-[12px]">
+              <div className="text-center py-12 text-muted-foreground vf-text-body-s">
                 <BarChart3 size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
                 No benchmarks match your filters.
               </div>
