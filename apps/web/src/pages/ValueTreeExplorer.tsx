@@ -34,7 +34,9 @@ import { ValueTreeResponseSchema } from "@/lib/schemas";
 import { Tabs } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
-import { EntityBadge } from "@/lib/entity-colors";
+import { EntityBadge } from "@/lib/entity-colors";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 // Types for UI tree rendering
 interface TreeNode {
@@ -101,10 +103,10 @@ function buildTree(nodes: ValueTreeNode[], edges: ValueTreeEdge[], rootId: strin
 }
 
 const TYPE_COLORS: Record<EntityType, string> = {
-  valuedriver: "bg-emerald-50 border-emerald-200 text-emerald-900",
-  persona:     "bg-amber-50  border-amber-200  text-amber-900",
-  usecase:     "bg-cyan-50   border-cyan-200   text-cyan-900",
-  capability:  "bg-violet-50 border-violet-200 text-violet-900",
+  valuedriver: "bg-success/10 border-success/20 text-success",
+  persona:     "bg-warning/10 border-warning/20 text-warning",
+  usecase:     "bg-info/10    border-info/20    text-info",
+  capability:  "bg-primary/10 border-primary/20 text-primary",
 };
 
 function TreeNodeView({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
@@ -154,7 +156,7 @@ function OutlineNode({ node, depth = 0 }: { node: TreeNode; depth?: number }) {
         {hasChildren ? (
           open ? <ChevronDown size={11} className="text-muted-foreground/60"/> : <ChevronRight size={11} className="text-muted-foreground/60"/>
         ) : (
-          <span className="w-[11px] text-neutral-300 text-[10px]">─</span>
+          <span className="w-[11px] text-muted-foreground/30 text-[10px]">─</span>
         )}
         <EntityBadge type={node.type}/>
         <span className="text-muted-foreground">{node.label}</span>
@@ -390,7 +392,7 @@ export default function ValueTreeExplorer() {
                     ) : rootCandidates.length === 0 ? (
                       <div className="p-4 text-center text-muted-foreground text-[12px]">
                         No entities available. 
-                        <a href="/discover/knowledge/entities" className="text-blue-600 hover:underline ml-1">
+                        <a href="/discover/knowledge/entities" className="text-primary hover:underline ml-1">
                           Browse entities
                         </a>
                       </div>
@@ -401,7 +403,7 @@ export default function ValueTreeExplorer() {
                           onClick={() => handleSelectEntity(entity.id)}
                           className={`w-full text-left px-3 py-2 rounded-lg text-[12px] transition-colors ${
                             entityId === entity.id 
-                              ? "bg-blue-50 text-blue-700" 
+                              ? "bg-primary/10 text-primary" 
                               : "hover:bg-muted/20 text-muted-foreground"
                           }`}
                         >
@@ -542,24 +544,19 @@ export default function ValueTreeExplorer() {
 
       {/* Error State */}
       {!treeLoading && treeError && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-3" />
-          <h3 className="text-[14px] font-semibold text-red-800 mb-1">Failed to load value tree</h3>
-          <p className="text-[12px] text-red-600 mb-4">
-            {treeError instanceof Error ? treeError.message : 'An unexpected error occurred'}
-          </p>
-          <div className="flex justify-center gap-2">
-            <Btn variant="outline" onClick={() => refetchTree()}>
-              <RefreshCw size={12} className="mr-1" /> Retry
-            </Btn>
-          </div>
-        </div>
+        <ErrorState
+          title="Failed to load value tree"
+          description="The value tree could not be loaded. The entity may not exist or the service may be degraded."
+          error={treeError}
+          onRetry={() => refetchTree()}
+          retryLabel="Retry"
+        />
       )}
 
       {/* Empty State - No entity selected */}
       {!entityId && !treeLoading && !treeError && (
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
-          <TreeDeciduous className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+          <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Entity Selected</h3>
           <p className="text-[12px] text-muted-foreground mb-4 max-w-md mx-auto">
             Select a root entity (Value Driver, Persona, or Capability) to visualize its value hierarchy.
@@ -573,7 +570,7 @@ export default function ValueTreeExplorer() {
       {/* Empty State - No tree data */}
       {entityId && !treeLoading && !treeError && !tree && (
         <div className="bg-muted/20 border border-border rounded-lg p-12 text-center">
-          <TreeDeciduous className="w-12 h-12 text-neutral-300 mx-auto mb-4" />
+          <TreeDeciduous className="w-12 h-12 text-muted-foreground/30 mx-auto mb-4" />
           <h3 className="text-[14px] font-semibold text-muted-foreground mb-2">No Value Tree Found</h3>
           <p className="text-[12px] text-muted-foreground mb-4 max-w-md mx-auto">
             This entity doesn&apos;t have any connected value relationships. Try selecting a different entity or create relationships in the knowledge graph.
@@ -605,7 +602,7 @@ export default function ValueTreeExplorer() {
               </div>
             )}
             {!pathsLoading && pathsError && (
-              <div className="text-[12px] text-red-600 p-2">
+              <div className="text-[12px] text-destructive p-2">
                 Failed to load path exploration data: {pathsError.message}
               </div>
             )}
