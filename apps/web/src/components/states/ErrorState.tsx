@@ -73,7 +73,7 @@ export function ErrorState({
             {showDetails ? "Hide details" : "Show details"}
           </button>
           {showDetails && (
-            <div className="mt-2 p-2 bg-muted/50 rounded text-[10px] text-muted-foreground font-mono max-w-sm text-left overflow-auto">
+            <div className="mt-2 p-2 bg-muted/50 rounded vf-text-micro text-muted-foreground font-mono max-w-sm text-left overflow-auto">
               {String(errorMessage)}
             </div>
           )}

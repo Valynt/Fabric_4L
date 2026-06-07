@@ -71,7 +71,7 @@ export default function ValueNarrativeHero() {
 
       <div className="relative max-w-3xl mx-auto px-6 pt-14 pb-10 text-center">
         {/* Badge */}
-        <Badge variant="outline" className="mb-6 px-4 py-1.5 text-[11px] font-semibold tracking-widest uppercase border-primary/30 bg-primary/10 text-primary">
+        <Badge variant="outline" className="mb-6 px-4 py-1.5 vf-text-caption font-semibold tracking-widest uppercase border-primary/30 bg-primary/10 text-primary">
           AI-Powered Value Intelligence
         </Badge>
 
@@ -81,7 +81,7 @@ export default function ValueNarrativeHero() {
         </h1>
 
         {/* Subtitle */}
-        <p className="text-[14px] leading-relaxed text-blue-200/70 max-w-xl mx-auto mb-8">
+        <p className="vf-text-body-l leading-relaxed text-blue-200/70 max-w-xl mx-auto mb-8">
           Paste a company, CRM URL, earnings report, or describe the business case you want to build.
           Start with intent, then move directly into narrative, ROI, and evidence-backed strategy.
         </p>
@@ -93,7 +93,7 @@ export default function ValueNarrativeHero() {
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Paste company, CRM URL, or earnings report… or describe the value narrative you want to create"
-            className="w-full bg-transparent text-[14px] text-blue-100/90 placeholder:text-blue-300/40 px-5 pt-5 pb-3 resize-none outline-none"
+            className="w-full bg-transparent vf-text-body-l text-blue-100/90 placeholder:text-blue-300/40 px-5 pt-5 pb-3 resize-none outline-none"
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey) {
                 e.preventDefault();
@@ -112,7 +112,7 @@ export default function ValueNarrativeHero() {
                   key={id}
                   onClick={() => setOutputType(id)}
                   className={cn(
-                    "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border transition-colors",
+                    "inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full vf-text-body-s font-semibold border transition-colors",
                     outputType === id
                       ? "bg-background text-foreground border-background"
                       : "bg-background/5 text-primary-foreground/80 border-background/10 hover:bg-background/10 hover:border-background/20"
@@ -127,7 +127,7 @@ export default function ValueNarrativeHero() {
               {INPUT_METHODS.map(({ id, label, icon: Icon }) => (
                 <button
                   key={id}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border bg-background/5 text-primary-foreground/80 border-background/10 hover:bg-background/10 hover:border-background/20 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full vf-text-body-s font-semibold border bg-background/5 text-primary-foreground/80 border-background/10 hover:bg-background/10 hover:border-background/20 transition-colors"
                 >
                   <Icon size={13} />
                   {label}
@@ -141,9 +141,9 @@ export default function ValueNarrativeHero() {
               <div className="relative">
                 <button
                   onClick={() => setShowIndustryPicker((v) => !v)}
-                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-semibold border bg-background/5 text-primary-foreground/80 border-background/10 hover:bg-background/10 hover:border-background/20 transition-colors"
+                  className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full vf-text-body-s font-semibold border bg-background/5 text-primary-foreground/80 border-background/10 hover:bg-background/10 hover:border-background/20 transition-colors"
                 >
-                  <span className="text-primary-foreground/60 text-[11px]">Industry:</span>
+                  <span className="text-primary-foreground/60 vf-text-caption">Industry:</span>
                   <span>{industry}</span>
                 </button>
 
@@ -158,7 +158,7 @@ export default function ValueNarrativeHero() {
                           setShowIndustryPicker(false);
                         }}
                         className={cn(
-                          "w-full text-left px-3 py-1.5 text-[12px] transition-colors",
+                          "w-full text-left px-3 py-1.5 vf-text-body-s transition-colors",
                           industry === ind
                             ? "bg-primary/30 text-primary-foreground font-semibold"
                             : "text-muted-foreground hover:bg-muted/50"
@@ -176,7 +176,7 @@ export default function ValueNarrativeHero() {
                 onClick={handleGenerate}
                 disabled={!prompt.trim() || isGenerating}
                 className={cn(
-                  "inline-flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-bold transition-all",
+                  "inline-flex items-center gap-2 px-5 py-2 rounded-full vf-text-body-m font-bold transition-all",
                   "bg-background text-foreground hover:bg-muted",
                   "disabled:opacity-40 disabled:cursor-not-allowed"
                 )}
@@ -196,12 +196,12 @@ export default function ValueNarrativeHero() {
 
         {/* Success / error feedback */}
         {generateNarrative.isSuccess && (
-          <p className="mt-4 text-[12px] text-emerald-400/80">
+          <p className="mt-4 vf-text-body-s text-emerald-400/80">
             ✓ Workflow started — ID: {generateNarrative.data.workflow_id}
           </p>
         )}
         {generateNarrative.isError && (
-          <p className="mt-4 text-[12px] text-destructive">
+          <p className="mt-4 vf-text-body-s text-destructive">
             {generateNarrative.error.message}
           </p>
         )}

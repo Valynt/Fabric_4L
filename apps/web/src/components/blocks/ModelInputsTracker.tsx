@@ -52,9 +52,9 @@ const statusConfig: Record<
   InputStatus,
   { icon: typeof CheckCircle2; iconClass: string; label: string }
 > = {
-  complete: { icon: CheckCircle2,  iconClass: "text-emerald-500", label: "Complete" },
+  complete: { icon: CheckCircle2,  iconClass: "text-success", label: "Complete" },
   inferred: { icon: BrainCircuit,  iconClass: "text-primary",     label: "Inferred" },
-  missing:  { icon: AlertTriangle, iconClass: "text-amber-500",   label: "Missing" },
+  missing:  { icon: AlertTriangle, iconClass: "text-warning",   label: "Missing" },
 };
 
 export function ModelInputsTracker({ inputs, className }: ModelInputsTrackerProps) {
@@ -79,19 +79,19 @@ export function ModelInputsTracker({ inputs, className }: ModelInputsTrackerProp
           <span className="text-sm font-semibold text-foreground">Value Model Inputs</span>
           <div className="flex items-center gap-2">
             {completeCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-emerald-500 font-medium">
+              <span className="flex items-center gap-1 vf-text-micro text-success font-medium">
                 <CheckCircle2 className="w-3 h-3" />
                 {completeCount}
               </span>
             )}
             {inferredCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-primary font-medium">
+              <span className="flex items-center gap-1 vf-text-micro text-primary font-medium">
                 <BrainCircuit className="w-3 h-3" />
                 {inferredCount}
               </span>
             )}
             {missingCount > 0 && (
-              <span className="flex items-center gap-1 text-[10px] text-amber-500 font-medium">
+              <span className="flex items-center gap-1 vf-text-micro text-warning font-medium">
                 <AlertTriangle className="w-3 h-3" />
                 {missingCount}
               </span>
@@ -126,16 +126,16 @@ export function ModelInputsTracker({ inputs, className }: ModelInputsTrackerProp
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-medium text-foreground">{input.label}</span>
                     {input.value && (
-                      <span className="text-[10px] text-muted-foreground truncate">
+                      <span className="vf-text-micro text-muted-foreground truncate">
                         {input.value}
                       </span>
                     )}
                   </div>
                   {input.source && (
-                    <span className="text-[10px] text-muted-foreground/60">{input.source}</span>
+                    <span className="vf-text-micro text-muted-foreground/60">{input.source}</span>
                   )}
                 </div>
-                <span className={cn("text-[10px] font-medium shrink-0", config.iconClass)}>
+                <span className={cn("vf-text-micro font-medium shrink-0", config.iconClass)}>
                   {config.label}
                 </span>
               </button>
