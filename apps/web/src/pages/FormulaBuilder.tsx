@@ -31,6 +31,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 import { useVariables, type Variable, type VariableType, type SourceType } from "@/hooks/useVariables";
 import {
   useFormula,
@@ -121,10 +123,10 @@ interface TestInput {
 // Constants
 // ============================================================================
 const SOURCE_TYPE_COLOR: Record<VariableSource, string> = {
-  CRM: "bg-blue-50 text-blue-700",
-  Billing: "bg-emerald-50 text-emerald-700",
+  CRM: "bg-primary/10 text-primary",
+  Billing: "bg-success/10 text-success",
   Model: "bg-violet-50 text-violet-700",
-  Manual: "bg-amber-50 text-amber-700",
+  Manual: "bg-warning/10 text-warning",
 };
 
 const DEFAULT_FORMULA_EXPRESSION = `({Customer_Count} *
@@ -249,7 +251,8 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
   const {
     data: apiVariables,
     isLoading: variablesLoading,
-    isError: variablesError,
+    isError: variablesIsError,
+    error: variablesError,
   } = useVariables({ status: "validated" });
 
   const availableVariables = useMemo(() => {
@@ -356,18 +359,18 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
 
   if (isLoadingFormula) {
     return (
-      <div className="p-6">
+      <PageShell>
         <div className="flex items-center justify-center h-64">
           <Loader2 size={32} className="animate-spin text-muted-foreground/60" />
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6">
+    <PageShell>
       {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-[11px] text-muted-foreground mb-2">
+      <div className="flex items-center gap-2 vf-text-caption text-muted-foreground mb-2">
         <span>Value Trees</span>
         <ChevronRight size={12} />
         <span>Formulas</span>
@@ -378,15 +381,17 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-foreground mb-1">Formula Builder</h1>
-        <p className="text-sm text-muted-foreground">
+        <p className="vf-text-body-l text-muted-foreground">
           Create mathematical formulas for value driver calculations.
         </p>
       </div>
 
       {saveError && (
-        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-[13px] text-red-700 flex items-center gap-2">
-          <AlertCircle size={14} /> {saveError.message}
-        </div>
+        <ErrorState
+          title="Failed to save formula"
+          error={saveError}
+          className="mb-4 py-4"
+        />
       )}
 
       {/* Navigation Tabs */}
@@ -401,7 +406,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
               if (tab === "Tree Explorer") navigateTo('value-trees');
               if (tab === "Normalization") navigateTo('normalization');
             }}
-            className={`pb-3 text-sm font-medium transition-colors relative ${
+            className={`pb-3 vf-text-body-l font-medium transition-colors relative ${
               tab === "Formulas"
                 ? "text-primary"
                 : "text-muted-foreground hover:text-foreground"
@@ -422,7 +427,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
           <SectionCard title="Formula Definition">
             <div className="space-y-4">
               <div>
-                <label htmlFor="formula-name" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
+                <label htmlFor="formula-name" className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
                   Name
                 </label>
                 <input
@@ -431,18 +436,18 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   onChange={(e) => setFormulaName(e.target.value)}
                   placeholder="Enter formula name..."
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 text-[13px] text-foreground bg-background outline-none focus:ring-2 focus:ring-primary/20",
-                    validationErrors.name ? "border-red-300 focus:border-red-400" : "border-border focus:border-primary"
+                    "w-full border rounded-md px-3 py-2 vf-text-body-m text-foreground bg-background outline-none focus:ring-2 focus:ring-primary/20",
+                    validationErrors.name ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"
                   )}
                   aria-invalid={!!validationErrors.name}
                   aria-describedby={validationErrors.name ? "name-error" : undefined}
                 />
                 {validationErrors.name && (
-                  <p id="name-error" className="text-[11px] text-red-600 mt-1">{validationErrors.name}</p>
+                  <p id="name-error" className="vf-text-caption text-destructive mt-1">{validationErrors.name}</p>
                 )}
               </div>
               <div>
-                <label htmlFor="formula-description" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
+                <label htmlFor="formula-description" className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
                   Description
                 </label>
                 <textarea
@@ -452,22 +457,22 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   placeholder="Describe what this formula calculates..."
                   rows={2}
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 text-[12px] text-foreground bg-background outline-none resize-none focus:ring-2 focus:ring-primary/20",
-                    validationErrors.description ? "border-red-300 focus:border-red-400" : "border-border focus:border-primary"
+                    "w-full border rounded-md px-3 py-2 vf-text-body-s text-foreground bg-background outline-none resize-none focus:ring-2 focus:ring-primary/20",
+                    validationErrors.description ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"
                   )}
                   aria-invalid={!!validationErrors.description}
                   aria-describedby={validationErrors.description ? "description-error" : undefined}
                 />
                 {validationErrors.description && (
-                  <p id="description-error" className="text-[11px] text-red-600 mt-1">{validationErrors.description}</p>
+                  <p id="description-error" className="vf-text-caption text-destructive mt-1">{validationErrors.description}</p>
                 )}
               </div>
               <div>
-                <label htmlFor="value-driver" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
+                <label htmlFor="value-driver" className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
                   Associated Value Driver
                 </label>
                 <Select value={valueDriver} onValueChange={setValueDriver}>
-                  <SelectTrigger id="value-driver" className="w-full text-[13px] h-9">
+                  <SelectTrigger id="value-driver" className="w-full vf-text-body-m h-9">
                     <SelectValue placeholder="Select a value driver..." />
                   </SelectTrigger>
                   <SelectContent>
@@ -490,10 +495,10 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                 onChange={(e) => setFormulaExpression(e.target.value)}
                 placeholder="Enter formula expression using {variable_name} syntax..."
                 className={cn(
-                  "w-full h-40 rounded-lg p-4 font-mono text-[13px] leading-relaxed outline-none resize-none focus:ring-2 focus:ring-primary/20",
+                  "w-full h-40 rounded-lg p-4 font-mono vf-text-body-m leading-relaxed outline-none resize-none focus:ring-2 focus:ring-primary/20",
                   validationErrors.expression
-                    ? "bg-red-950 text-red-100 border border-red-700"
-                    : "bg-slate-900 text-slate-100"
+                    ? "bg-destructive/10 text-destructive border border-destructive/20"
+                    : "bg-foreground text-background"
                 )}
                 spellCheck={false}
                 aria-label="Formula expression"
@@ -501,7 +506,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                 aria-describedby={validationErrors.expression ? "expression-error" : undefined}
               />
               {validationErrors.expression && (
-                <p id="expression-error" className="text-[11px] text-red-400 mt-1">{validationErrors.expression}</p>
+                <p id="expression-error" className="vf-text-caption text-destructive mt-1">{validationErrors.expression}</p>
               )}
               <div className="absolute bottom-3 left-4 flex gap-2">
                 <Btn
@@ -525,7 +530,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
             <SectionCard title="Test Results">
               <div className="space-y-1.5 mb-3">
                 {testInputs.map((input, idx) => (
-                  <div key={input.label} className="flex justify-between text-[12px]">
+                  <div key={input.label} className="flex justify-between vf-text-body-s">
                     <span className="text-muted-foreground font-mono">{input.label}:</span>
                     <input
                       type="text"
@@ -543,26 +548,26 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
               </div>
               <div className="border-t border-border/50 pt-3 flex items-center gap-6">
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60">
                     Result
                   </span>
-                  <div className="text-[20px] font-extrabold text-emerald-700">
+                  <div className="text-xl font-extrabold text-success">
                     ${evaluationResult.result.toLocaleString()}
                   </div>
                 </div>
                 <div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60">
                     ROI
                   </span>
-                  <div className="text-[20px] font-extrabold text-emerald-700">
+                  <div className="text-xl font-extrabold text-success">
                     {evaluationResult.roiPercent.toFixed(0)}%
                   </div>
                 </div>
                 <div className="ml-auto">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60">
+                  <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60">
                     Confidence
                   </span>
-                  <div className="text-[14px] font-bold text-foreground">
+                  <div className="vf-text-body-l font-bold text-foreground">
                     High ({evaluationResult.confidence.toFixed(2)})
                   </div>
                 </div>
@@ -580,19 +585,23 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
           {rightTab === "Variables" && (
             <SectionCard title="Available Variables">
               {variablesLoading && (
-                <div className="flex items-center gap-2 p-3 text-muted-foreground text-[11px]">
+                <div className="flex items-center gap-2 p-3 text-muted-foreground vf-text-caption">
                   <Loader2 size={12} className="animate-spin" />
                   <span>Loading variables...</span>
                 </div>
               )}
-              {variablesError && (
-                <div className="p-3 text-[11px] text-red-600">Failed to load variables</div>
+              {variablesIsError && (
+                <ErrorState
+                  title="Failed to load variables"
+                  error={variablesError}
+                  className="py-4"
+                />
               )}
               <div className="space-y-1">
                 {availableVariables.map((variable) => (
                   <div
                     key={variable.name}
-                    className="flex items-center gap-2 p-2.5 bg-secondary/30 rounded-md text-[12px] font-mono text-foreground hover:bg-secondary/50 cursor-pointer transition-colors group"
+                    className="flex items-center gap-2 p-2.5 bg-secondary/30 rounded-md vf-text-body-s font-mono text-foreground hover:bg-secondary/50 cursor-pointer transition-colors group"
                     onClick={() => {
                       setFormulaExpression(formulaExpression + `{${variable.name}}`);
                     }}
@@ -615,7 +624,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-3 py-2 text-[11px] text-muted-foreground hover:text-foreground border border-dashed border-border rounded-md hover:border-muted-foreground/50 transition-colors">
+              <button className="w-full mt-3 py-2 vf-text-caption text-muted-foreground hover:text-foreground border border-dashed border-border rounded-md hover:border-muted-foreground/50 transition-colors">
                 + Add Custom Variable
               </button>
             </SectionCard>
@@ -644,7 +653,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
 
           {/* Draft Indicator */}
           {draftSavedAt && (
-            <p className="text-[10px] text-muted-foreground/70 text-center">
+            <p className="vf-text-micro text-muted-foreground/70 text-center">
               Draft saved {formatRelativeTime(draftSavedAt)}
             </p>
           )}
@@ -670,6 +679,6 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
           </Btn>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

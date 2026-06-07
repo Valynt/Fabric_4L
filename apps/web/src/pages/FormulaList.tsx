@@ -34,6 +34,8 @@ import { useNavigation } from "@/hooks";
 import { formatRelativeTime } from "@/lib/formatters";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -48,7 +50,7 @@ type StatusFilter = "all" | FormulaStatus;
 const STATUS_CONFIG: Record<FormulaStatus, { label: string; color: string; icon: React.ReactNode }> = {
   active: {
     label: "Active",
-    color: "bg-emerald-50 text-emerald-700 border-emerald-200",
+    color: "bg-success/10 text-success border-success/20",
     icon: <CheckCircle2 size={14} />,
   },
   draft: {
@@ -58,12 +60,12 @@ const STATUS_CONFIG: Record<FormulaStatus, { label: string; color: string; icon:
   },
   pending: {
     label: "Pending",
-    color: "bg-amber-50 text-amber-700 border-amber-200",
+    color: "bg-warning/10 text-warning border-warning/20",
     icon: <AlertCircle size={14} />,
   },
   deprecated: {
     label: "Deprecated",
-    color: "bg-orange-50 text-orange-700 border-orange-200",
+    color: "bg-warning/10 text-warning border-warning/20",
     icon: <AlertCircle size={14} />,
   },
   archived: {
@@ -89,26 +91,26 @@ function FormulaRow({ formula, onEdit, onDelete, isDeleting }: FormulaRowProps) 
   const { navigateTo } = useNavigation();
 
   return (
-    <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border hover:border-neutral-300 hover:shadow-sm transition-all group">
+    <div className="flex items-center gap-4 p-4 bg-card rounded-lg border border-border hover:border-border hover:shadow-sm transition-all group">
       {/* Status Badge */}
-      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium border ${status.color}`}>
+      <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full vf-text-caption font-medium border ${status.color}`}>
         {status.icon}
         {status.label}
       </div>
 
       {/* Formula Info */}
       <div className="flex-1 min-w-0">
-        <h3 className="text-[13px] font-semibold text-foreground truncate">
+        <h3 className="vf-text-body-m font-semibold text-foreground truncate">
           {formula.name}
         </h3>
-        <p className="text-[11px] text-muted-foreground truncate">
+        <p className="vf-text-caption text-muted-foreground truncate">
           {formula.description || "No description"}
           {formula.pack_name && ` • ${formula.pack_name}`}
         </p>
       </div>
 
       {/* Metadata */}
-      <div className="hidden sm:flex items-center gap-6 text-[11px] text-muted-foreground">
+      <div className="hidden sm:flex items-center gap-6 vf-text-caption text-muted-foreground">
         <div className="text-right">
           <div className="font-medium text-muted-foreground">v{formula.version}</div>
           <div>Version</div>
@@ -129,14 +131,14 @@ function FormulaRow({ formula, onEdit, onDelete, isDeleting }: FormulaRowProps) 
       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
         <button
           onClick={() => navigateTo('formula-builder', { formulaId: formula.id })}
-          className="p-2 text-muted-foreground hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
+          className="p-2 text-muted-foreground hover:text-primary hover:bg-primary/10 rounded-md transition-colors"
           title="Edit"
         >
           <Edit3 size={16} />
         </button>
         <button
           onClick={() => onEdit(formula.id)}
-          className="p-2 text-muted-foreground hover:text-emerald-600 hover:bg-emerald-50 rounded-md transition-colors"
+          className="p-2 text-muted-foreground hover:text-success hover:bg-success/10 rounded-md transition-colors"
           title="Test"
         >
           <Play size={16} />
@@ -144,14 +146,14 @@ function FormulaRow({ formula, onEdit, onDelete, isDeleting }: FormulaRowProps) 
         <button
           onClick={() => onDelete(formula.id)}
           disabled={isDeleting}
-          className="p-2 text-muted-foreground hover:text-red-600 hover:bg-red-50 rounded-md transition-colors disabled:opacity-50"
+          className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-md transition-colors disabled:opacity-50"
           title="Delete"
         >
           <Trash2 size={16} />
         </button>
       </div>
 
-      <ChevronRight size={16} className="text-neutral-300" />
+      <ChevronRight size={16} className="text-muted-foreground/40" />
     </div>
   );
 }
@@ -195,7 +197,7 @@ export default function FormulaList() {
   };
 
   return (
-    <div className="p-6">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -218,7 +220,7 @@ export default function FormulaList() {
             placeholder="Search formulas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg vf-text-body-m focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
           />
         </div>
 
@@ -229,9 +231,9 @@ export default function FormulaList() {
             <button
               key={status}
               onClick={() => setStatusFilter(status)}
-              className={`px-3 py-1.5 rounded-md text-[12px] font-medium transition-colors ${
+              className={`px-3 py-1.5 rounded-md vf-text-body-s font-medium transition-colors ${
                 statusFilter === status
-                  ? "bg-neutral-800 text-white"
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted/30"
               }`}
             >
@@ -245,27 +247,17 @@ export default function FormulaList() {
       <SectionCard title={`${filteredFormulas?.length || 0} Formulas`} className="min-h-[400px]">
         {isLoading && (
           <div className="flex items-center justify-center py-12">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-neutral-800"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-foreground"></div>
           </div>
         )}
 
         {isError && (
-          <div className="flex flex-col items-center justify-center py-12 text-center">
-            <AlertCircle size={32} className="text-red-400 mb-3" />
-            <h3 className="text-[14px] font-semibold text-foreground mb-1">
-              Failed to load formulas
-            </h3>
-            <p className="text-[13px] text-muted-foreground max-w-sm">
-              {error?.message || "An error occurred while loading formulas. Please try again."}
-            </p>
-            <Btn
-              variant="ghost"
-              className="mt-4"
-              onClick={() => window.location.reload()}
-            >
-              Retry
-            </Btn>
-          </div>
+          <ErrorState
+            title="Failed to load formulas"
+            description={error?.message || "An error occurred while loading formulas. Please try again."}
+            error={error}
+            onRetry={() => window.location.reload()}
+          />
         )}
 
         {!isLoading && !isError && filteredFormulas?.length === 0 && (
@@ -273,10 +265,10 @@ export default function FormulaList() {
             <div className="w-12 h-12 bg-muted/30 rounded-full flex items-center justify-center mb-3">
               <Filter size={20} className="text-muted-foreground/60" />
             </div>
-            <h3 className="text-[14px] font-semibold text-foreground mb-1">
+            <h3 className="vf-text-body-l font-semibold text-foreground mb-1">
               No formulas found
             </h3>
-            <p className="text-[13px] text-muted-foreground max-w-sm">
+            <p className="vf-text-body-m text-muted-foreground max-w-sm">
               {searchQuery
                 ? `No formulas matching "${searchQuery}". Try a different search term.`
                 : statusFilter !== "all"
@@ -319,10 +311,10 @@ export default function FormulaList() {
       {showDeleteConfirm && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-card rounded-lg p-6 max-w-sm w-full mx-4">
-            <h3 className="text-[16px] font-semibold text-foreground mb-2">
+            <h3 className="text-base font-semibold text-foreground mb-2">
               Delete Formula?
             </h3>
-            <p className="text-[13px] text-muted-foreground mb-6">
+            <p className="vf-text-body-m text-muted-foreground mb-6">
               This action cannot be undone. The formula will be permanently removed from the system.
             </p>
             <div className="flex justify-end gap-3">
@@ -330,8 +322,7 @@ export default function FormulaList() {
                 Cancel
               </Btn>
               <Btn
-                variant="primary"
-                className="bg-red-600 hover:bg-red-700"
+                variant="danger"
                 onClick={() => handleDelete(showDeleteConfirm)}
                 disabled={isDeleting}
               >
@@ -341,6 +332,6 @@ export default function FormulaList() {
           </div>
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

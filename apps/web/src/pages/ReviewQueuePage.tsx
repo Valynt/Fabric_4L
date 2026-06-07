@@ -11,6 +11,8 @@ import {
 } from "@/hooks/useGates";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 export default function ReviewQueuePage() {
   const { accountId: paramAccountId } = useParams<{ accountId: string }>();
@@ -19,29 +21,48 @@ export default function ReviewQueuePage() {
   const [commentText, setCommentText] = useState("");
   const [activeReviewId, setActiveReviewId] = useState<string | null>(null);
 
-  const { data: reviews, isLoading } = useReviewRequests(accountId);
+  const {
+    data: reviews,
+    isLoading,
+    isError,
+    error,
+  } = useReviewRequests(accountId);
   const createReview = useCreateReviewRequest();
   const updateReview = useUpdateReviewRequest();
   const addComment = useAddReviewComment();
 
   if (!accountId) {
     return (
-      <div className="p-6 max-w-5xl">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 text-yellow-700">
+      <PageShell className="max-w-5xl">
+        <div className="bg-warning/10 border border-warning/20 rounded-lg p-4 text-warning">
           No account selected. Please select an account to view its review queue.
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-5xl space-y-4">
-        <Skeleton className="h-8 w-64" />
-        {[1, 2, 3].map((i) => (
-          <Skeleton key={i} className="h-24 w-full" />
-        ))}
-      </div>
+      <PageShell className="max-w-5xl">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-64" />
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-24 w-full" />
+          ))}
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (isError) {
+    return (
+      <PageShell className="max-w-5xl">
+        <ErrorState
+          title="Failed to load review queue"
+          description={error?.message || "Could not load review requests for this account."}
+          error={error}
+        />
+      </PageShell>
     );
   }
 
@@ -68,7 +89,7 @@ export default function ReviewQueuePage() {
   };
 
   return (
-    <div className="p-6 max-w-5xl">
+    <PageShell className="max-w-5xl">
       <PageHeader title="Review Queue" subtitle={`Account: ${accountId}`} />
 
       <div className="mb-4 flex items-center justify-between">
@@ -90,13 +111,13 @@ export default function ReviewQueuePage() {
           <SectionCard key={review.id} title={`Review: ${review.scope}`}>
             <div className="flex items-center gap-2 mb-2">
               {review.status === "pending" && (
-                <Clock className="h-4 w-4 text-amber-500" />
+                <Clock className="h-4 w-4 text-warning" />
               )}
               {review.status === "approved" && (
-                <CheckCircle className="h-4 w-4 text-green-500" />
+                <CheckCircle className="h-4 w-4 text-success" />
               )}
               {review.status === "rejected" && (
-                <XCircle className="h-4 w-4 text-red-500" />
+                <XCircle className="h-4 w-4 text-destructive" />
               )}
               <span className="text-sm font-medium capitalize">{review.status}</span>
               <span className="text-xs text-muted-foreground ml-auto">
@@ -119,19 +140,19 @@ export default function ReviewQueuePage() {
               <div className="flex items-center gap-2 mb-3">
                 <button
                   onClick={() => handleStatusChange(review.id, "approved")}
-                  className="inline-flex items-center gap-1 rounded-md bg-green-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-green-700"
+                  className="inline-flex items-center gap-1 rounded-md bg-success px-3 py-1.5 text-xs font-medium text-success-foreground hover:bg-success/90"
                 >
                   <CheckCircle className="h-3 w-3" /> Approve
                 </button>
                 <button
                   onClick={() => handleStatusChange(review.id, "changes_requested")}
-                  className="inline-flex items-center gap-1 rounded-md bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700"
+                  className="inline-flex items-center gap-1 rounded-md bg-warning px-3 py-1.5 text-xs font-medium text-warning-foreground hover:bg-warning/90"
                 >
                   <MessageCircle className="h-3 w-3" /> Request Changes
                 </button>
                 <button
                   onClick={() => handleStatusChange(review.id, "rejected")}
-                  className="inline-flex items-center gap-1 rounded-md bg-red-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-red-700"
+                  className="inline-flex items-center gap-1 rounded-md bg-destructive px-3 py-1.5 text-xs font-medium text-destructive-foreground hover:bg-destructive/90"
                 >
                   <XCircle className="h-3 w-3" /> Reject
                 </button>
@@ -168,6 +189,6 @@ export default function ReviewQueuePage() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
