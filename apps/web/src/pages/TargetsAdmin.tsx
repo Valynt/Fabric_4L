@@ -11,6 +11,9 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { PageShell } from '@/components';
+import { ErrorState } from '@/components/states/ErrorState';
+import { EmptyState } from '@/components/states';
 import { PageHeader } from '@/components/ui/fabric/PageHeader';
 import { MetricCard } from '@/components/ui/fabric/MetricCard';
 import { SidePanel } from '@/components/ui/fabric/SidePanel';
@@ -59,16 +62,25 @@ const TYPE_LABELS: Record<string, string> = {
   API_ENDPOINT: 'API Endpoint',
 };
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function handleDivKeyDown(e: React.KeyboardEvent, callback: () => void) {
+  if (e.key === 'Enter' || e.key === ' ') {
+    e.preventDefault();
+    callback();
+  }
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function HealthBar({ score }: { score: number }) {
-  const color = score >= 80 ? 'bg-emerald-500' : score >= 50 ? 'bg-amber-500' : 'bg-red-500';
+  const color = score >= 80 ? 'bg-success' : score >= 50 ? 'bg-warning' : 'bg-destructive';
   return (
     <div className="flex items-center gap-2">
       <div className="w-16 h-1.5 bg-muted rounded-full overflow-hidden">
         <div className={cn('h-full rounded-full transition-all', color)} style={{ width: `${score}%` }} />
       </div>
-      <span className="text-[11px] text-muted-foreground tabular-nums">{score}%</span>
+      <span className="vf-text-caption text-muted-foreground tabular-nums">{score}%</span>
     </div>
   );
 }
@@ -134,23 +146,23 @@ function TargetRow({ target, selected, onSelect, onRowClick, onRun, onPause, onR
       </td>
       <td className="px-4 py-3">
         <div className="flex flex-col gap-0.5">
-          <span className="text-[13px] font-medium text-foreground truncate max-w-[220px]">{target.name}</span>
-          <span className="text-[11px] text-muted-foreground truncate max-w-[220px]">{target.url}</span>
+          <span className="vf-text-body-m font-medium text-foreground truncate max-w-[220px]">{target.name}</span>
+          <span className="vf-text-caption text-muted-foreground truncate max-w-[220px]">{target.url}</span>
         </div>
       </td>
       <td className="px-4 py-3 hidden sm:table-cell">
-        <Badge variant="outline" className="text-[11px]">{TYPE_LABELS[target.targetType] ?? target.targetType}</Badge>
+        <Badge variant="outline" className="vf-text-caption">{TYPE_LABELS[target.targetType] ?? target.targetType}</Badge>
       </td>
       <td className="px-4 py-3">
         <TargetStatusBadge status={target.status} />
       </td>
-      <td className="px-4 py-3 hidden md:table-cell text-[12px] text-muted-foreground">
+      <td className="px-4 py-3 hidden md:table-cell vf-text-body-s text-muted-foreground">
         {target.lastSuccessAt ? new Date(target.lastSuccessAt).toLocaleDateString() : '—'}
       </td>
       <td className="px-4 py-3 hidden lg:table-cell">
-        <div className="flex items-center gap-3 text-[12px] text-muted-foreground">
-          <span className="text-emerald-600">{target.successCount}✓</span>
-          <span className="text-red-500">{target.errorCount}✗</span>
+        <div className="flex items-center gap-3 vf-text-body-s text-muted-foreground">
+          <span className="text-success">{target.successCount}✓</span>
+          <span className="text-destructive">{target.errorCount}✗</span>
         </div>
       </td>
       <td className="px-4 py-3 hidden xl:table-cell">
@@ -159,9 +171,9 @@ function TargetRow({ target, selected, onSelect, onRowClick, onRun, onPause, onR
       <td className="px-4 py-3 hidden lg:table-cell">
         <div className="flex flex-wrap gap-1">
           {target.tags.slice(0, 2).map(tag => (
-            <Badge key={tag} variant="secondary" className="text-[10px] px-1.5 py-0">{tag}</Badge>
+            <Badge key={tag} variant="secondary" className="vf-text-micro px-1.5 py-0">{tag}</Badge>
           ))}
-          {target.tags.length > 2 && <span className="text-[10px] text-muted-foreground">+{target.tags.length - 2}</span>}
+          {target.tags.length > 2 && <span className="vf-text-micro text-muted-foreground">+{target.tags.length - 2}</span>}
         </div>
       </td>
       <td className="px-4 py-3 w-10" onClick={e => e.stopPropagation()}>
@@ -232,11 +244,11 @@ function TargetTable({ targets, isLoading, selectedIds, onSelectOne, onSelectAll
 
   if (targets.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-16 text-center">
-        <Target size={32} className="text-muted-foreground mb-3" />
-        <p className="text-[14px] font-medium text-foreground mb-1">No targets found</p>
-        <p className="text-[13px] text-muted-foreground">Targets define what Layer 1 should crawl and research.</p>
-      </div>
+      <EmptyState
+        icon={Target}
+        title="No targets found"
+        description="Targets define what Layer 1 should crawl and research."
+      />
     );
   }
 
@@ -253,13 +265,13 @@ function TargetTable({ targets, isLoading, selectedIds, onSelectOne, onSelectAll
                 data-state={someSelected && !allSelected ? 'indeterminate' : undefined}
               />
             </th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Name / URL</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Type</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Last Run</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Runs</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Health</th>
-            <th className="px-4 py-2.5 text-left text-[11px] font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Tags</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider">Name / URL</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider hidden sm:table-cell">Type</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider">Status</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider hidden md:table-cell">Last Run</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Runs</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider hidden xl:table-cell">Health</th>
+            <th className="px-4 py-2.5 text-left vf-text-caption font-semibold text-muted-foreground uppercase tracking-wider hidden lg:table-cell">Tags</th>
             <th className="px-4 py-2.5 w-10" />
           </tr>
         </thead>
@@ -299,19 +311,19 @@ function BulkToolbar({ selectedIds, onClear, onBulkRun, onBulkPause, onBulkArchi
   if (selectedIds.size === 0) return null;
   return (
     <div className="flex items-center gap-3 px-4 py-2.5 bg-primary/5 border-b border-primary/20">
-      <span className="text-[13px] font-medium text-primary">{selectedIds.size} selected</span>
+      <span className="vf-text-body-m font-medium text-primary">{selectedIds.size} selected</span>
       <div className="flex items-center gap-2 ml-2">
-        <Button size="sm" variant="outline" onClick={onBulkRun} disabled={isBusy} className="h-7 text-[12px]">
+        <Button size="sm" variant="outline" onClick={onBulkRun} disabled={isBusy} className="h-7 vf-text-body-s">
           <Play size={12} className="mr-1.5" />Run
         </Button>
-        <Button size="sm" variant="outline" onClick={onBulkPause} disabled={isBusy} className="h-7 text-[12px]">
+        <Button size="sm" variant="outline" onClick={onBulkPause} disabled={isBusy} className="h-7 vf-text-body-s">
           <Pause size={12} className="mr-1.5" />Pause
         </Button>
-        <Button size="sm" variant="outline" onClick={onBulkArchive} disabled={isBusy} className="h-7 text-[12px] text-destructive hover:text-destructive">
+        <Button size="sm" variant="outline" onClick={onBulkArchive} disabled={isBusy} className="h-7 vf-text-body-s text-destructive hover:text-destructive">
           <Archive size={12} className="mr-1.5" />Archive
         </Button>
       </div>
-      <Button size="sm" variant="ghost" onClick={onClear} className="ml-auto h-7 text-[12px]">Clear</Button>
+      <Button size="sm" variant="ghost" onClick={onClear} className="ml-auto h-7 vf-text-body-s">Clear</Button>
     </div>
   );
 }
@@ -334,11 +346,11 @@ function TargetFilterBar({ filters, onChange, onRefresh, isRefreshing }: FilterB
           placeholder="Search targets…"
           value={filters.search ?? ''}
           onChange={e => onChange({ search: e.target.value || undefined, page: 1 })}
-          className="pl-8 h-8 text-[13px]"
+          className="pl-8 h-8 vf-text-body-m"
         />
       </div>
       <Select value={filters.status ?? 'all'} onValueChange={v => onChange({ status: v === 'all' ? undefined : v as TargetStatus, page: 1 })}>
-        <SelectTrigger className="h-8 w-32 text-[13px]" aria-label="Status filter"><SelectValue placeholder="Status" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-32 vf-text-body-m" aria-label="Status filter"><SelectValue placeholder="Status" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All statuses</SelectItem>
           <SelectItem value="ACTIVE">Active</SelectItem>
@@ -348,7 +360,7 @@ function TargetFilterBar({ filters, onChange, onRefresh, isRefreshing }: FilterB
         </SelectContent>
       </Select>
       <Select value={filters.targetType ?? 'all'} onValueChange={v => onChange({ targetType: v === 'all' ? undefined : v as TargetFilters['targetType'], page: 1 })}>
-        <SelectTrigger className="h-8 w-36 text-[13px]"><SelectValue placeholder="Type" /></SelectTrigger>
+        <SelectTrigger className="h-8 w-36 vf-text-body-m"><SelectValue placeholder="Type" /></SelectTrigger>
         <SelectContent>
           <SelectItem value="all">All types</SelectItem>
           <SelectItem value="SINGLE_PAGE">Single Page</SelectItem>
@@ -373,16 +385,23 @@ function ScheduledTab({ onRowClick }: { onRowClick: (t: TargetSummary) => void }
   if (scheduled.length === 0) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
       <Calendar size={32} className="text-muted-foreground mb-3" />
-      <p className="text-[14px] font-medium">No scheduled targets</p>
-      <p className="text-[13px] text-muted-foreground mt-1">Enable a schedule on a target to see it here.</p>
+      <p className="vf-text-body-l font-medium">No scheduled targets</p>
+      <p className="vf-text-body-m text-muted-foreground mt-1">Enable a schedule on a target to see it here.</p>
     </div>
   );
   return (
     <div className="divide-y divide-border overflow-auto">
       {scheduled.map(t => (
-        <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" onClick={() => onRowClick(t)}>
+        <div
+          key={t.id}
+          role="button"
+          tabIndex={0}
+          className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer"
+          onClick={() => onRowClick(t)}
+          onKeyDown={(e) => handleDivKeyDown(e, () => onRowClick(t))}
+        >
           <Calendar size={14} className="text-muted-foreground shrink-0" />
-          <span className="font-medium text-[13px] flex-1 truncate">{t.name}</span>
+          <span className="font-medium vf-text-body-m flex-1 truncate">{t.name}</span>
           <TargetStatusBadge status={t.status} />
           <ChevronRight size={14} className="text-muted-foreground" />
         </div>
@@ -399,22 +418,29 @@ function ComplianceFailuresTab({ onRowClick }: { onRowClick: (t: TargetSummary) 
   if (isLoading) return <div className="p-4 space-y-2">{[...Array(4)].map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}</div>;
   if (failures.length === 0) return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <CheckCircle2 size={32} className="text-emerald-500 mb-3" />
-      <p className="text-[14px] font-medium">No compliance failures</p>
-      <p className="text-[13px] text-muted-foreground mt-1">All targets are operating within compliance bounds.</p>
+      <CheckCircle2 size={32} className="text-success mb-3" />
+      <p className="vf-text-body-l font-medium">No compliance failures</p>
+      <p className="vf-text-body-m text-muted-foreground mt-1">All targets are operating within compliance bounds.</p>
     </div>
   );
   return (
     <div className="divide-y divide-border overflow-auto">
       {failures.map(t => (
-        <div key={t.id} className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer" onClick={() => onRowClick(t)}>
+        <div
+          key={t.id}
+          role="button"
+          tabIndex={0}
+          className="flex items-center gap-3 px-4 py-3 hover:bg-muted/30 cursor-pointer"
+          onClick={() => onRowClick(t)}
+          onKeyDown={(e) => handleDivKeyDown(e, () => onRowClick(t))}
+        >
           <AlertTriangle size={14} className="text-destructive shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-[13px] truncate">{t.name}</p>
-            <p className="text-[11px] text-muted-foreground truncate">{t.url}</p>
+            <p className="font-medium vf-text-body-m truncate">{t.name}</p>
+            <p className="vf-text-caption text-muted-foreground truncate">{t.url}</p>
           </div>
           <TargetStatusBadge status={t.status} />
-          <span className="text-[12px] text-muted-foreground hidden sm:block">{t.errorCount} errors</span>
+          <span className="vf-text-body-s text-muted-foreground hidden sm:block">{t.errorCount} errors</span>
           <ChevronRight size={14} className="text-muted-foreground" />
         </div>
       ))}
@@ -429,19 +455,19 @@ function EventsTab() {
   const jobs = data?.jobs ?? [];
   if (isLoading) return <div className="p-4 space-y-2">{[...Array(5)].map((_, i) => <Skeleton key={i} className="h-10 rounded" />)}</div>;
   if (jobs.length === 0) return (
-    <div className="py-12 text-center text-[13px] text-muted-foreground">No recent events.</div>
+    <div className="py-12 text-center vf-text-body-m text-muted-foreground">No recent events.</div>
   );
   return (
     <div className="divide-y divide-border overflow-auto">
       {jobs.map(job => (
-        <div key={job.id} className="flex items-center gap-3 px-4 py-3 text-[13px]">
+        <div key={job.id} className="flex items-center gap-3 px-4 py-3 vf-text-body-m">
           <Activity size={14} className="text-muted-foreground shrink-0" />
           <span className="font-medium truncate flex-1">{job.domain}</span>
           <StatusBadge status={job.status} />
           {job.pagesProcessed != null && (
-            <span className="text-muted-foreground text-[12px] hidden sm:block">{job.pagesProcessed} pages</span>
+            <span className="text-muted-foreground vf-text-body-s hidden sm:block">{job.pagesProcessed} pages</span>
           )}
-          <span className="text-muted-foreground text-[12px] hidden sm:block">
+          <span className="text-muted-foreground vf-text-body-s hidden sm:block">
             {new Date(job.createdAt).toLocaleString()}
           </span>
         </div>
@@ -460,8 +486,8 @@ export default function TargetsAdmin() {
   const updateFilters = useCallback((patch: Partial<TargetFilters>) => setFilters(f => ({ ...f, ...patch })), []);
 
   // Data — declared before selection handlers that depend on `data`
-  const { data, isLoading, isFetching, refetch } = useTargets(filters);
-  const { data: stats, isLoading: statsLoading } = useTargetStats();
+  const { data, isLoading, isFetching, refetch, error } = useTargets(filters);
+  const { data: stats, isLoading: statsLoading, error: statsError } = useTargetStats();
 
   // Selection
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -547,29 +573,62 @@ export default function TargetsAdmin() {
 
   const pagination = data?.pagination;
 
-  return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 pt-6">
+  if (isLoading) {
+    return (
+      <PageShell className="flex flex-col h-full" fullWidth>
         <PageHeader
           title="Targets"
           subtitle="Define and manage what Layer 1 crawls, monitors, and researches."
           breadcrumbs={[{ label: 'Context Engine', href: '/context' }, { label: 'Targets' }]}
-          actions={
-            <>
-              <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="h-8">
-                <RefreshCw size={14} className={cn('mr-1.5', isFetching && 'animate-spin')} />Refresh
-              </Button>
-              <Button size="sm" onClick={() => { setSelectedTarget(null); setPanelMode('create'); }} className="h-8">
-                <Plus size={14} className="mr-1.5" />New Target
-              </Button>
-            </>
-          }
         />
-        <StatsStrip stats={stats} isLoading={statsLoading} />
-      </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          {[...Array(4)].map((_, i) => <Skeleton key={i} className="h-20 rounded-lg" />)}
+        </div>
+        <div className="space-y-2">
+          {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-12 rounded" />)}
+        </div>
+      </PageShell>
+    );
+  }
+
+  if (error || statsError) {
+    return (
+      <PageShell className="flex flex-col h-full" fullWidth>
+        <PageHeader
+          title="Targets"
+          subtitle="Define and manage what Layer 1 crawls, monitors, and researches."
+          breadcrumbs={[{ label: 'Context Engine', href: '/context' }, { label: 'Targets' }]}
+        />
+        <ErrorState
+          title="Failed to load targets"
+          description={error instanceof Error ? error.message : statsError instanceof Error ? statsError.message : "An unexpected error occurred"}
+          onRetry={() => refetch()}
+        />
+      </PageShell>
+    );
+  }
+
+  return (
+    <PageShell className="flex flex-col h-full" fullWidth>
+      <PageHeader
+        title="Targets"
+        subtitle="Define and manage what Layer 1 crawls, monitors, and researches."
+        breadcrumbs={[{ label: 'Context Engine', href: '/context' }, { label: 'Targets' }]}
+        actions={
+          <>
+            <Button size="sm" variant="outline" onClick={() => refetch()} disabled={isFetching} className="h-8">
+              <RefreshCw size={14} className={cn('mr-1.5', isFetching && 'animate-spin')} />Refresh
+            </Button>
+            <Button size="sm" onClick={() => { setSelectedTarget(null); setPanelMode('create'); }} className="h-8">
+              <Plus size={14} className="mr-1.5" />New Target
+            </Button>
+          </>
+        }
+      />
+      <StatsStrip stats={stats} isLoading={statsLoading} />
 
       <Tabs defaultValue="all" className="flex-1 flex flex-col min-h-0">
-        <div className="px-6 border-b border-border">
+        <div className="border-b border-border">
           <TabsList className="h-9 bg-transparent p-0 gap-1">
             {[
               { value: 'all', label: 'All Targets', icon: <Target size={13} /> },
@@ -577,7 +636,7 @@ export default function TargetsAdmin() {
               { value: 'failures', label: 'Compliance Failures', icon: <AlertCircle size={13} /> },
               { value: 'events', label: 'Events', icon: <Activity size={13} /> },
             ].map(tab => (
-              <TabsTrigger key={tab.value} value={tab.value} className="h-9 px-3 text-[13px] data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
+              <TabsTrigger key={tab.value} value={tab.value} className="h-9 px-3 vf-text-body-m data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none">
                 <span className="flex items-center gap-1.5">{tab.icon}{tab.label}</span>
               </TabsTrigger>
             ))}
@@ -695,6 +754,6 @@ export default function TargetsAdmin() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </PageShell>
   );
 }

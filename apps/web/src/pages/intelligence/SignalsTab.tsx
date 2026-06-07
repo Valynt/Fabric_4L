@@ -33,6 +33,13 @@ import {
 } from "@/types/valueSignal";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Btn, MetricCard } from "@/components/ui/fabric";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ---------------------------------------------------------------------------
 // Constants
@@ -40,12 +47,12 @@ import { Btn, MetricCard } from "@/components/ui/fabric";
 
 const LIFECYCLE_BADGE: Record<ValueSignalLifecycleState, { label: string; className: string }> = {
   draft:      { label: "Draft",      className: "bg-muted text-muted-foreground" },
-  extracted:  { label: "Extracted",  className: "bg-blue-100 text-blue-700" },
-  validated:  { label: "Validated",  className: "bg-emerald-100 text-emerald-700" },
-  rejected:   { label: "Rejected",   className: "bg-red-100 text-red-600" },
-  promoted:   { label: "Promoted",   className: "bg-purple-100 text-purple-700" },
-  expired:    { label: "Expired",    className: "bg-yellow-100 text-yellow-700" },
-  superseded: { label: "Superseded", className: "bg-gray-100 text-gray-500" },
+  extracted:  { label: "Extracted",  className: "bg-info/10 text-info" },
+  validated:  { label: "Validated",  className: "bg-success/10 text-success" },
+  rejected:   { label: "Rejected",   className: "bg-destructive/10 text-destructive" },
+  promoted:   { label: "Promoted",   className: "bg-primary/10 text-primary" },
+  expired:    { label: "Expired",    className: "bg-warning/10 text-warning" },
+  superseded: { label: "Superseded", className: "bg-muted text-muted-foreground" },
 };
 
 const TYPE_DOT: Record<string, string> = {
@@ -241,14 +248,17 @@ export default function SignalsTab() {
       {/* Promote */}
       <div className="space-y-2 pt-1">
         <label className="text-[11px] font-medium text-muted-foreground">Value Path</label>
-        <select className="w-full h-8 px-2 text-[12px] rounded-md border border-border bg-background text-foreground"
-          value={selectedValuePath} onChange={(e) => setSelectedValuePath(e.target.value)}>
-          <option value="">Select value path…</option>
-          <option value="revenue_uplift">Revenue Uplift</option>
-          <option value="cost_savings">Cost Savings</option>
-          <option value="risk_reduction">Risk Reduction</option>
-          <option value="blended">Blended</option>
-        </select>
+        <Select value={selectedValuePath} onValueChange={setSelectedValuePath}>
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select value path…" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="revenue_uplift">Revenue Uplift</SelectItem>
+            <SelectItem value="cost_savings">Cost Savings</SelectItem>
+            <SelectItem value="risk_reduction">Risk Reduction</SelectItem>
+            <SelectItem value="blended">Blended</SelectItem>
+          </SelectContent>
+        </Select>
         <Btn variant="primary" className="w-full"
           disabled={!["validated","extracted"].includes(selectedSignal.lifecycle_state) || !selectedValuePath || promoteMutation.isPending}
           onClick={handlePromote}>

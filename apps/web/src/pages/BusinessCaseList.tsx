@@ -17,10 +17,12 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
   Plus, Search, Filter, Archive, ArrowUpRight, Clock,
-  CheckCircle2, TrendingUp, Users, Building2, Loader2, AlertCircle
+  CheckCircle2, TrendingUp, Users, Building2, Loader2,
 } from "lucide-react";
 import { useNavigation, useRoutePrefetch } from "@/hooks";
 import { EmptyState } from "@/components/states";
+import { ErrorState } from "@/components/states/ErrorState";
+import { PageShell } from "@/components";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualList } from "@/components/ui/virtual-list";
 import {
@@ -70,14 +72,14 @@ const STATUS_CONFIG: Record<BusinessCaseListItem['status'], {
   },
   active: {
     label: "Active",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    color: "text-success",
+    bgColor: "bg-success/10",
     icon: <CheckCircle2 size={12} />,
   },
   approved: {
     label: "Approved",
-    color: "text-emerald-700",
-    bgColor: "bg-emerald-50",
+    color: "text-success",
+    bgColor: "bg-success/10",
     icon: <CheckCircle2 size={12} />,
   },
   archived: {
@@ -113,66 +115,66 @@ function CaseCard({
 
   return (
     <div
-      className="bg-card border border-border rounded-xl p-4 hover:border-neutral-300 transition-colors group"
+      className="bg-card border border-border rounded-xl p-4 hover:border-border transition-colors group"
       onMouseEnter={() => prefetchBusinessCaseDetail(caseItem.id)}
       onFocus={() => prefetchBusinessCaseDetail(caseItem.id)}
     >
       <div className="flex items-start justify-between mb-3">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="text-[14px] font-semibold text-foreground truncate">
+            <h3 className="vf-text-body-l font-semibold text-foreground truncate">
               {caseItem.name}
             </h3>
             <span className={cn(
-              "inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full",
+              "inline-flex items-center gap-1 vf-text-micro font-medium px-2 py-0.5 rounded-full",
               status.bgColor, status.color
             )}>
               {status.icon} {status.label}
             </span>
           </div>
-          <div className="flex items-center gap-2 text-[12px] text-muted-foreground">
+          <div className="flex items-center gap-2 vf-text-body-s text-muted-foreground">
             <Building2 size={12} />
             <span>{caseItem.company}</span>
-            <span className="text-neutral-300">·</span>
+            <span className="text-border">·</span>
             <Users size={12} />
             <span>{caseItem.useCaseCount} use cases</span>
           </div>
         </div>
         <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button
+          <Btn
+            variant="ghost"
             onClick={() => navigateTo('business-case-detail', { caseId: caseItem.id })}
-            className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground/60 hover:text-muted-foreground"
-            title="View details"
+            className="p-1.5 h-auto text-muted-foreground/60 hover:text-muted-foreground"
             aria-label="View details"
           >
             <ArrowUpRight size={14} />
-          </button>
+          </Btn>
           {caseItem.status !== 'archived' && (
-            <button
+            <Btn
+              variant="ghost"
               onClick={() => onArchive(caseItem.id)}
               disabled={isArchiving}
-              className="p-1.5 rounded hover:bg-red-50 text-muted-foreground/60 hover:text-red-500 disabled:opacity-50"
-              title="Archive"
+              className="p-1.5 h-auto text-muted-foreground/60 hover:text-destructive disabled:opacity-50"
               aria-label="Archive"
             >
               <Archive size={14} />
-            </button>
+            </Btn>
           )}
         </div>
       </div>
 
       <div className="grid grid-cols-3 gap-3 mt-4">
         <div className="bg-muted/20 rounded-lg p-2">
-          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Total Value</p>
-          <p className="text-[16px] font-bold text-emerald-600">{caseItem.totalValue}</p>
+          <p className="vf-text-micro text-muted-foreground/60 uppercase tracking-wider">Total Value</p>
+          <p className="text-base font-bold text-success">{caseItem.totalValue}</p>
         </div>
         <div className="bg-muted/20 rounded-lg p-2">
-          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Confidence</p>
-          <p className="text-[16px] font-bold text-muted-foreground">{caseItem.confidence}%</p>
+          <p className="vf-text-micro text-muted-foreground/60 uppercase tracking-wider">Confidence</p>
+          <p className="text-base font-bold text-muted-foreground">{caseItem.confidence}%</p>
         </div>
         <div className="bg-muted/20 rounded-lg p-2">
-          <p className="text-[10px] text-muted-foreground/60 uppercase tracking-wider">Updated</p>
-          <p className="text-[12px] font-medium text-muted-foreground">
+          <p className="vf-text-micro text-muted-foreground/60 uppercase tracking-wider">Updated</p>
+          <p className="vf-text-body-s font-medium text-muted-foreground">
             {new Date(caseItem.updatedAt).toLocaleDateString()}
           </p>
         </div>
@@ -329,40 +331,28 @@ function BusinessCaseListContent() {
 
   if (isLoading) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="flex items-start justify-between mb-6">
-          <Skeleton className="h-8 w-48" />
-          <Skeleton className="h-9 w-32" />
-        </div>
+      <PageShell>
+        <PageHeader title="Business Cases" />
         <CaseListSkeleton />
-      </div>
+      </PageShell>
     );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-red-50 border border-red-200 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-red-500 shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="text-[14px] font-semibold text-red-800 mb-1">Failed to load business cases</h3>
-              <p className="text-[12px] text-red-600">{error instanceof Error ? error.message : "An unexpected error occurred"}</p>
-              <button
-                onClick={() => refetch()}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-red-100 text-red-700 text-[12px] font-medium rounded-lg hover:bg-red-200"
-              >
-                Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <PageHeader title="Business Cases" />
+        <ErrorState
+          title="Failed to load business cases"
+          description={error instanceof Error ? error.message : "An unexpected error occurred"}
+          onRetry={() => refetch()}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -379,31 +369,31 @@ function BusinessCaseListContent() {
       <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <TrendingUp size={14} className="text-emerald-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Value</span>
+            <TrendingUp size={14} className="text-success" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Total Value</span>
           </div>
-          <p className="text-[22px] font-extrabold text-emerald-600">${(stats.totalValue / 1000000).toFixed(1)}M</p>
+          <p className="text-2xl font-extrabold text-success">${(stats.totalValue / 1000000).toFixed(1)}M</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <CheckCircle2 size={14} className="text-emerald-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Active</span>
+            <CheckCircle2 size={14} className="text-success" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Active</span>
           </div>
-          <p className="text-[22px] font-extrabold text-foreground">{stats.active}</p>
+          <p className="text-2xl font-extrabold text-foreground">{stats.active}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
             <Clock size={14} className="text-muted-foreground/60" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Drafts</span>
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Drafts</span>
           </div>
-          <p className="text-[22px] font-extrabold text-foreground">{stats.draft}</p>
+          <p className="text-2xl font-extrabold text-foreground">{stats.draft}</p>
         </div>
         <div className="bg-card border border-border rounded-xl px-4 py-3">
           <div className="flex items-center gap-2 mb-1">
-            <Building2 size={14} className="text-blue-500" />
-            <span className="text-[10px] uppercase tracking-wider text-muted-foreground/60 font-semibold">Companies</span>
+            <Building2 size={14} className="text-primary" />
+            <span className="vf-text-micro uppercase tracking-wider text-muted-foreground/60 font-semibold">Companies</span>
           </div>
-          <p className="text-[22px] font-extrabold text-foreground">{new Set(cases.map(c => c.company)).size}</p>
+          <p className="text-2xl font-extrabold text-foreground">{new Set(cases.map(c => c.company)).size}</p>
         </div>
       </div>
 
@@ -416,7 +406,7 @@ function BusinessCaseListContent() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cases or companies..."
-            className="flex-1 text-[13px] bg-transparent outline-none text-muted-foreground"
+            className="flex-1 vf-text-body-m bg-transparent outline-none text-muted-foreground"
           />
         </div>
 
@@ -426,7 +416,7 @@ function BusinessCaseListContent() {
             value={statusFilter}
             onValueChange={(value) => setStatusFilter(value as BusinessCaseFilters['status'])}
           >
-            <SelectTrigger className="text-[12px] h-9 w-[130px] bg-card border-border">
+            <SelectTrigger className="vf-text-body-s h-9 w-[130px] bg-card border-border">
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
             <SelectContent>
@@ -440,12 +430,12 @@ function BusinessCaseListContent() {
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-[12px] text-muted-foreground">Sort by:</span>
+          <span className="vf-text-body-s text-muted-foreground">Sort by:</span>
           <Select
             value={sortField}
             onValueChange={(value) => handleSort(value as SortField)}
           >
-            <SelectTrigger className="text-[12px] h-9 w-[140px] bg-card border-border">
+            <SelectTrigger className="vf-text-body-s h-9 w-[140px] bg-card border-border">
               <SelectValue placeholder="Last Updated" />
             </SelectTrigger>
             <SelectContent>
@@ -456,13 +446,14 @@ function BusinessCaseListContent() {
               <SelectItem value="confidence">Confidence</SelectItem>
             </SelectContent>
           </Select>
-          <button
+          <Btn
+            variant="ghost"
             onClick={() => setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')}
-            className="text-[12px] px-2 py-2 border border-border rounded-lg hover:bg-muted/20"
+            className="vf-text-body-s px-2 py-2"
             aria-label={`Sort ${sortDirection === 'asc' ? 'descending' : 'ascending'}`}
           >
             {sortDirection === 'asc' ? '↑' : '↓'}
-          </button>
+          </Btn>
         </div>
       </div>
 
@@ -509,7 +500,7 @@ function BusinessCaseListContent() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div>
-              <label htmlFor="new-case-name" className="block text-[12px] font-medium text-muted-foreground mb-1">
+              <label htmlFor="new-case-name" className="block vf-text-body-s font-medium text-muted-foreground mb-1">
                 Case Name
               </label>
               <input
@@ -518,11 +509,11 @@ function BusinessCaseListContent() {
                 value={newCaseName}
                 onChange={(e) => setNewCaseName(e.target.value)}
                 placeholder="e.g., Q2 Expansion Analysis"
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 border border-border rounded-lg vf-text-body-m outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
-              <label htmlFor="new-case-company" className="block text-[12px] font-medium text-muted-foreground mb-1">
+              <label htmlFor="new-case-company" className="block vf-text-body-s font-medium text-muted-foreground mb-1">
                 Company
               </label>
               <input
@@ -531,7 +522,7 @@ function BusinessCaseListContent() {
                 value={newCaseCompany}
                 onChange={(e) => setNewCaseCompany(e.target.value)}
                 placeholder="e.g., Acme Corporation"
-                className="w-full px-3 py-2 border border-border rounded-lg text-[13px] outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full px-3 py-2 border border-border rounded-lg vf-text-body-m outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>
@@ -561,7 +552,7 @@ function BusinessCaseListContent() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageShell>
   );
 }
 

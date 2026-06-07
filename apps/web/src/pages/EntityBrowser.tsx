@@ -19,15 +19,16 @@ import { Toolbar, SearchInput } from "@/components/ui/fabric";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, DataTable, Btn } from "@/components/ui/fabric";
 import { EntityBadge } from "@/lib/entity-colors";
+import { PageShell, ErrorState, EmptyState } from '@/components';
 
 const CONF_COLORS = (c: number) =>
-  c >= 0.9 ? "text-emerald-700 font-semibold" : c >= 0.7 ? "text-amber-700" : "text-red-600";
+  c >= 0.9 ? "text-success font-semibold" : c >= 0.7 ? "text-warning" : "text-destructive";
 
 const STATUS_COLORS: Record<Entity['status'], string> = {
-  validated: "text-emerald-700",
-  pending: "text-amber-600",
+  validated: "text-success",
+  pending: "text-warning",
   draft: "text-muted-foreground",
-  deprecated: "text-red-600",
+  deprecated: "text-destructive",
 };
 
 const mapEntityType = (type: string): EntityType => {
@@ -126,7 +127,8 @@ export default function EntityBrowser() {
   };
 
   return (
-    <div className="p-6 h-full flex flex-col">
+    <PageShell>
+    <div className="h-full flex flex-col">
       <PageHeader
         breadcrumbs={[{ label: "Discover" }, { label: "Knowledge Model" }, { label: "Entity Browser" }]}
         title="Entity Browser"
@@ -142,16 +144,6 @@ export default function EntityBrowser() {
         }
       />
 
-      {/* Error display */}
-      {errorMessage && (
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
-          <div className="flex items-center justify-between">
-            <span className="text-red-700 text-sm">{errorMessage}</span>
-            <Btn variant="ghost" className="text-[11px]" onClick={() => refetch()}>Retry</Btn>
-          </div>
-        </div>
-      )}
-
       {/* Filter toolbar */}
       <Toolbar>
         <SearchInput
@@ -160,7 +152,7 @@ export default function EntityBrowser() {
           onChange={(e) => setSearchQuery(e.target.value)}
         />
         <select
-          className="h-8 px-3 bg-card border border-border rounded-md text-[12px] text-foreground"
+          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
           value={selectedType || ''}
           onChange={(e) => setSelectedType(e.target.value as EntityType || null)}
         >
@@ -171,7 +163,7 @@ export default function EntityBrowser() {
           <option value="valuedriver">Value Driver</option>
         </select>
         <select
-          className="h-8 px-3 bg-card border border-border rounded-md text-[12px] text-foreground"
+          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
           value={''}
           onChange={() => {}}
         >
@@ -181,7 +173,7 @@ export default function EntityBrowser() {
           ))}
         </select>
         <select
-          className="h-8 px-3 bg-card border border-border rounded-md text-[12px] text-foreground"
+          className="h-8 px-3 bg-card border border-border rounded-md vf-text-body-s text-foreground"
           value={''}
           onChange={() => {}}
         >
@@ -214,9 +206,21 @@ export default function EntityBrowser() {
           <SectionCard noPad className="h-full">
             {isLoading ? (
               <div className="flex items-center justify-center p-12 h-full">
-                <Loader2 size={24} className="animate-spin text-blue-600" />
+                <Loader2 size={24} className="animate-spin text-primary" />
                 <span className="ml-2 text-muted-foreground">Loading entities...</span>
               </div>
+            ) : error ? (
+              <ErrorState
+                title="Failed to load entities"
+                description="Something went wrong while fetching the entity catalog."
+                error={error}
+                onRetry={() => refetch()}
+              />
+            ) : entities.length === 0 ? (
+              <EmptyState
+                title={searchQuery || selectedType ? 'No entities match your filters' : 'No entities found'}
+                description={searchQuery || selectedType ? 'Try adjusting your search or filters' : 'Get started by creating a new entity'}
+              />
             ) : (
               <DataTable
                 columns={["Entity Name", "Type", "Domain", "Confidence", "Status", "Actions"]}
@@ -224,30 +228,25 @@ export default function EntityBrowser() {
                   const isSelected = e.id === selectedEntityId;
                   const statusColor = STATUS_COLORS[e.status];
                   return [
-                    <span className={`font-semibold ${isSelected ? 'text-blue-700' : 'text-foreground'}`}>{e.name}</span>,
+                    <span className={`font-semibold ${isSelected ? 'text-primary' : 'text-foreground'}`}>{e.name}</span>,
                     <EntityBadge type={mapEntityType(e.type)}/>,
-                    <span className="text-muted-foreground text-[11px] font-mono">{e.domain || '—'}</span>,
-                    <span className={`text-[12px] ${CONF_COLORS(e.confidence)}`}>{Math.round(e.confidence * 100)}%</span>,
-                    <span className={`text-[11px] font-semibold ${statusColor}`}>
+                    <span className="text-muted-foreground vf-text-caption font-mono">{e.domain || '—'}</span>,
+                    <span className={`vf-text-body-s ${CONF_COLORS(e.confidence)}`}>{Math.round(e.confidence * 100)}%</span>,
+                    <span className={`vf-text-caption font-semibold ${statusColor}`}>
                       ● {e.status.charAt(0).toUpperCase() + e.status.slice(1)}
                     </span>,
                     <div className="flex gap-2">
                       <button
                         onClick={() => setSelectedEntityId(e.id)}
-                        className={`text-[11px] hover:underline ${isSelected ? 'text-blue-700 font-semibold' : 'text-blue-600'}`}
+                        className={`vf-text-caption hover:underline ${isSelected ? 'text-primary font-semibold' : 'text-primary'}`}
                       >
                         {isSelected ? 'Selected' : 'View'}
                       </button>
-                      <button className="text-muted-foreground/60 text-[11px] hover:underline">Edit</button>
+                      <button className="text-muted-foreground/60 vf-text-caption hover:underline">Edit</button>
                     </div>,
                   ];
                 })}
               />
-            )}
-            {entities.length === 0 && !isLoading && (
-              <div className="text-center p-8 text-muted-foreground">
-                {searchQuery || selectedType ? 'No entities match your filters.' : 'No entities found.'}
-              </div>
             )}
           </SectionCard>
         </div>
@@ -257,14 +256,14 @@ export default function EntityBrowser() {
           <div className="absolute top-[180px] right-6 w-[320px] bottom-6 bg-card border border-border rounded-lg shadow-lg z-10 flex flex-col overflow-hidden">
             {isLoadingEntity ? (
               <div className="flex items-center justify-center p-8 flex-1">
-                <Loader2 size={20} className="animate-spin text-blue-600" />
+                <Loader2 size={20} className="animate-spin text-primary" />
               </div>
             ) : selectedEntity ? (
               <>
                 {/* Drawer header */}
                 <div className="flex items-start justify-between p-4 border-b border-border/50">
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-bold text-foreground truncate">{selectedEntity.name}</div>
+                    <div className="vf-text-body-l font-bold text-foreground truncate">{selectedEntity.name}</div>
                     <div className="flex items-center gap-2 mt-1">
                       <EntityBadge type={mapEntityType(selectedEntity.type)}/>
                     </div>
@@ -278,7 +277,7 @@ export default function EntityBrowser() {
                 </div>
 
                 {/* Status bar */}
-                <div className="flex items-center gap-4 px-4 py-2 bg-muted/20 border-b border-border/50 text-[11px]">
+                <div className="flex items-center gap-4 px-4 py-2 bg-muted/20 border-b border-border/50 vf-text-caption">
                   <span className="text-muted-foreground">
                     Status: <span className={`${STATUS_COLORS[selectedEntity.status]} font-semibold`}>● {selectedEntity.status.charAt(0).toUpperCase() + selectedEntity.status.slice(1)}</span>
                   </span>
@@ -298,8 +297,8 @@ export default function EntityBrowser() {
                     <button
                       key={tab}
                       onClick={() => setDrawerTab(tab)}
-                      className={`px-3 py-2.5 text-[11px] font-semibold border-b-2 -mb-px transition-colors ${
-                        drawerTab === tab ? "border-blue-600 text-blue-700" : "border-transparent text-muted-foreground hover:text-foreground"
+                      className={`px-3 py-2.5 vf-text-caption font-semibold border-b-2 -mb-px transition-colors ${
+                        drawerTab === tab ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {tab}
@@ -312,21 +311,21 @@ export default function EntityBrowser() {
                   {drawerTab === "Details" && (
                     <>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Description</div>
-                        <p className="text-[12px] text-muted-foreground leading-relaxed">
+                        <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Description</div>
+                        <p className="vf-text-body-s text-muted-foreground leading-relaxed">
                           {selectedEntity.description || "No description available."}
                         </p>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Entity ID</div>
-                        <div className="text-[11px] text-muted-foreground font-mono break-all">{selectedEntity.id}</div>
+                        <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Entity ID</div>
+                        <div className="vf-text-caption text-muted-foreground font-mono break-all">{selectedEntity.id}</div>
                       </div>
                       {selectedEntity.properties && Object.keys(selectedEntity.properties).length > 0 && (
                         <div>
-                          <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Properties</div>
+                          <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-2">Properties</div>
                           <ul className="space-y-1">
                             {Object.entries(selectedEntity.properties).slice(0, 5).map(([key, value]) => (
-                              <li key={key} className="flex items-start gap-2 text-[11px] text-muted-foreground">
+                              <li key={key} className="flex items-start gap-2 vf-text-caption text-muted-foreground">
                                 <span className="text-muted-foreground/60 shrink-0">{key}:</span>
                                 <span className="font-mono truncate">{String(value)}</span>
                               </li>
@@ -337,34 +336,34 @@ export default function EntityBrowser() {
                     </>
                   )}
                   {drawerTab === "Relationships" && (
-                    <div className="text-[12px] text-muted-foreground italic">
+                    <div className="vf-text-body-s text-muted-foreground italic">
                       Relationships will be displayed here. Connect to graph API for related entities.
                     </div>
                   )}
                   {drawerTab === "Source" && (
                     <div className="space-y-3">
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Source System</div>
-                        <div className="text-[12px] text-muted-foreground">
+                        <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Source System</div>
+                        <div className="vf-text-body-s text-muted-foreground">
                           {selectedEntity.sourceName || "Unknown source"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Domain</div>
-                        <div className="text-[12px] text-muted-foreground">
+                        <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Domain</div>
+                        <div className="vf-text-body-s text-muted-foreground">
                           {selectedEntity.domain || "Unclassified"}
                         </div>
                       </div>
                       <div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Extraction Job</div>
-                        <div className="text-[11px] text-muted-foreground font-mono">
+                        <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">Extraction Job</div>
+                        <div className="vf-text-caption text-muted-foreground font-mono">
                           {selectedEntity.extractionJobId || "N/A"}
                         </div>
                       </div>
                     </div>
                   )}
                   {drawerTab === "History" && (
-                    <div className="text-[12px] text-muted-foreground italic">
+                    <div className="vf-text-body-s text-muted-foreground italic">
                       {selectedEntity.createdAt
                         ? `Created: ${new Date(selectedEntity.createdAt).toLocaleString()}`
                         : "No creation timestamp available."
@@ -375,16 +374,16 @@ export default function EntityBrowser() {
 
                 {/* Drawer actions */}
                 <div className="p-4 border-t border-border/50 space-y-2">
-                  <Btn variant="primary" className="w-full text-[11px] justify-center">
+                  <Btn variant="primary" className="w-full vf-text-caption justify-center">
                     Edit Entity
                   </Btn>
                   <div className="flex gap-2">
-                    <Btn variant="ghost" className="flex-1 text-[11px]">View Provenance</Btn>
-                    <Btn variant="danger" className="text-[11px]">Delete</Btn>
+                    <Btn variant="ghost" className="flex-1 vf-text-caption">View Provenance</Btn>
+                    <Btn variant="danger" className="vf-text-caption">Delete</Btn>
                   </div>
                   <Btn
                     variant="outline"
-                    className="w-full text-[11px] justify-center"
+                    className="w-full vf-text-caption justify-center"
                     onClick={handleExport}
                   >
                     <Download size={12} className="mr-1" />
@@ -393,7 +392,7 @@ export default function EntityBrowser() {
                 </div>
               </>
             ) : (
-              <div className="flex items-center justify-center p-8 text-muted-foreground text-[12px]">
+              <div className="flex items-center justify-center p-8 text-muted-foreground vf-text-body-s">
                 Entity not found
               </div>
             )}
@@ -401,5 +400,6 @@ export default function EntityBrowser() {
         )}
       </div>
     </div>
+    </PageShell>
   );
 }

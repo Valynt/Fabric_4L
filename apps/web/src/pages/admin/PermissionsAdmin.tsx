@@ -31,19 +31,28 @@ import {
   type ApiKey,
 } from "@/hooks/useGovernance";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
 const ROLE_STYLES: Record<string, string> = {
   super_admin:  "bg-destructive/10 text-destructive border-destructive/20",
-  tenant_admin: "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  tenant_admin: "bg-warning/10 text-warning border-warning/20",
   member:       "bg-primary/10 text-primary border-primary/20",
   viewer:       "bg-muted text-muted-foreground border-border",
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  active:      "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-  invited:     "bg-amber-500/10 text-amber-600 border-amber-500/20",
+  active:      "bg-success/10 text-success border-success/20",
+  invited:     "bg-warning/10 text-warning border-warning/20",
   deactivated: "bg-destructive/10 text-destructive border-destructive/20",
 };
 
@@ -68,24 +77,26 @@ function StatusChip({ status }: { status: string }) {
 
 function PermissionsSkeleton() {
   return (
-    <div className="p-6 max-w-6xl">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <Skeleton className="h-9 w-32" />
-      </div>
-      <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-        {[1, 2, 3, 4, 5].map(i => (
-          <div key={i} className="px-4 py-4 border-b border-border flex gap-4">
-            <Skeleton className="h-4 w-48" />
-            <Skeleton className="h-4 w-24" />
-            <Skeleton className="h-4 w-16" />
+    <PageShell fullWidth>
+      <div className="max-w-6xl">
+        <div className="flex items-start justify-between mb-6">
+          <div>
+            <Skeleton className="h-8 w-48 mb-2" />
+            <Skeleton className="h-4 w-72" />
           </div>
-        ))}
+          <Skeleton className="h-9 w-32" />
+        </div>
+        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
+          {[1, 2, 3, 4, 5].map(i => (
+            <div key={i} className="px-4 py-4 border-b border-border flex gap-4">
+              <Skeleton className="h-4 w-48" />
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-4 w-16" />
+            </div>
+          ))}
+        </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -172,7 +183,8 @@ function PermissionsContent() {
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
+      <PageShell fullWidth>
+      <div className="max-w-6xl">
         <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
           <div className="flex items-start gap-3">
             <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
@@ -191,11 +203,13 @@ function PermissionsContent() {
           </div>
         </div>
       </div>
+    </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell fullWidth>
+      <div className="max-w-6xl">
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -223,12 +237,16 @@ function PermissionsContent() {
               </div>
               <div>
                 <label className="text-[11px] font-semibold text-muted-foreground block mb-1">Role</label>
-                <select value={inviteRole} onChange={e => setInviteRole(e.target.value)}
-                  className="w-full text-[12px] border border-border rounded-lg px-3 py-2 outline-none">
-                  <option value="member">Member</option>
-                  <option value="tenant_admin">Tenant Admin</option>
-                  <option value="viewer">Viewer</option>
-                </select>
+                <Select value={inviteRole} onValueChange={setInviteRole}>
+                  <SelectTrigger className="w-full vf-text-body-s">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="member">Member</SelectItem>
+                    <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                    <SelectItem value="viewer">Viewer</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               {inviteMutation.error && (
                 <p className="text-[11px] text-destructive">{inviteMutation.error instanceof Error ? inviteMutation.error.message : "Invite failed"}</p>
@@ -350,7 +368,7 @@ function PermissionsContent() {
                   <td className="px-4 py-3 font-mono text-[11px] text-muted-foreground">{k.prefix}•••</td>
                   <td className="px-4 py-3">
                     {k.is_enabled
-                      ? <span className="inline-flex items-center gap-1 text-emerald-600"><CheckCircle2 size={12} /> Active</span>
+                      ? <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 size={12} /> Active</span>
                       : <span className="inline-flex items-center gap-1 text-muted-foreground"><EyeOff size={12} /> Disabled</span>
                     }
                   </td>
@@ -381,6 +399,7 @@ function PermissionsContent() {
         </div>
       )}
     </div>
+    </PageShell>
   );
 }
 

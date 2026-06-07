@@ -22,7 +22,7 @@ import {
   Skeleton,
   ErrorBoundary,
 } from "@/components";
-import { EmptyState } from "@/components/states";
+import { EmptyState, ErrorState } from "@/components/states";
 import {
   useAccounts,
   useAccount,
@@ -62,8 +62,8 @@ import { PageHeader, Btn, StatusBadge } from "@/components/ui/fabric";
 import { PageShell, RightRailPanel } from "@/components";
 
 const PROVIDER_COLORS: Record<CRMProvider, { bg: string; text: string; border: string }> = {
-  salesforce: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
-  hubspot: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+  salesforce: { bg: "bg-primary/10", text: "text-primary", border: "border-primary/20" },
+  hubspot: { bg: "bg-warning/10", text: "text-warning", border: "border-warning/20" },
   manual: { bg: "bg-muted", text: "text-foreground", border: "border-border" },
 };
 
@@ -108,7 +108,7 @@ function FilterChip({ label, options, value, onChange }: FilterChipProps) {
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
-          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-medium border transition-colors",
+          "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full vf-text-body-s font-medium border transition-colors",
           value
             ? "bg-primary/10 text-primary border-primary/20"
             : "bg-card text-muted-foreground border-border hover:bg-muted"
@@ -136,7 +136,7 @@ function FilterChip({ label, options, value, onChange }: FilterChipProps) {
                   setIsOpen(false);
                 }}
                 className={cn(
-                  "w-full px-3 py-2 text-left text-[12px] hover:bg-muted transition-colors",
+                  "w-full px-3 py-2 text-left vf-text-body-s hover:bg-muted transition-colors",
                   value === option.value || (!value && option.value === "all") ? "text-primary font-medium" : "text-foreground"
                 )}
               >
@@ -224,7 +224,7 @@ function FilterChipBar({ filters, filterOptions, onChange }: FilterChipBarProps)
               industry: undefined,
             })
           }
-          className="text-[12px] text-muted-foreground hover:text-foreground flex items-center gap-1 ml-2"
+          className="vf-text-body-s text-muted-foreground hover:text-foreground flex items-center gap-1 ml-2"
         >
           <X size={12} aria-hidden="true" />
           Clear
@@ -252,7 +252,7 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
       >
         <div className="h-full flex flex-col items-center justify-center text-muted-foreground p-8">
           <Building2 size={48} className="mb-4 opacity-20" />
-          <p className="text-[14px]">Select an account to view details</p>
+          <p className="vf-text-body-l">Select an account to view details</p>
         </div>
       </RightRailPanel>
     );
@@ -278,7 +278,7 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
       >
         <div className="text-center">
           <AlertCircle size={32} className="mx-auto mb-2 text-destructive" />
-          <p className="text-[12px] text-muted-foreground">Failed to load account details</p>
+          <p className="vf-text-body-s text-muted-foreground">Failed to load account details</p>
         </div>
       </RightRailPanel>
     );
@@ -291,7 +291,7 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
   const status = (
     <div className="flex items-center gap-2">
       <StatusBadge status={getSyncStatusBadge(account.sync_status)} />
-      <span className="text-[12px] text-muted-foreground">Synced {formatDate(account.last_synced_at)}</span>
+      <span className="vf-text-body-s text-muted-foreground">Synced {formatDate(account.last_synced_at)}</span>
     </div>
   );
 
@@ -334,7 +334,7 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
       <div className="mb-4">
         <span
           className={cn(
-            "inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium border",
+            "inline-flex items-center px-2 py-0.5 rounded-full vf-text-micro font-medium border",
             providerStyle.bg,
             providerStyle.text,
             providerStyle.border
@@ -342,37 +342,37 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
         >
           {getProviderLabel(account.provider)}
         </span>
-        <p className="text-[12px] text-muted-foreground mt-1">{account.domain}</p>
+        <p className="vf-text-body-s text-muted-foreground mt-1">{account.domain}</p>
       </div>
 
       {/* Metadata */}
       <div className="space-y-3 mb-4">
         {account.industry && (
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between vf-text-body-s">
             <span className="text-muted-foreground">Industry</span>
             <span className="font-medium">{account.industry}</span>
           </div>
         )}
         {account.region && (
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between vf-text-body-s">
             <span className="text-muted-foreground">Region</span>
             <span className="font-medium uppercase">{account.region}</span>
           </div>
         )}
         {account.segment && (
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between vf-text-body-s">
             <span className="text-muted-foreground">Segment</span>
             <span className="font-medium">{account.segment}</span>
           </div>
         )}
         {account.stage && (
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between vf-text-body-s">
             <span className="text-muted-foreground">Stage</span>
             <span className="font-medium">{account.stage}</span>
           </div>
         )}
         {account.headquarters && (
-          <div className="flex items-center justify-between text-[12px]">
+          <div className="flex items-center justify-between vf-text-body-s">
             <span className="text-muted-foreground flex items-center gap-1">
               <Globe size={12} />
               Location
@@ -387,28 +387,28 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <DollarSign size={12} />
-            <span className="text-[10px] uppercase tracking-wide">Pipeline</span>
+            <span className="vf-text-micro uppercase tracking-wide">Pipeline</span>
           </div>
           <p className="text-[16px] font-bold">{formatCurrency(totalOpportunityValue)}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <Briefcase size={12} />
-            <span className="text-[10px] uppercase tracking-wide">Opportunities</span>
+            <span className="vf-text-micro uppercase tracking-wide">Opportunities</span>
           </div>
           <p className="text-[16px] font-bold">{account.opportunities?.length || 0}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <Users size={12} />
-            <span className="text-[10px] uppercase tracking-wide">Employees</span>
+            <span className="vf-text-micro uppercase tracking-wide">Employees</span>
           </div>
           <p className="text-[16px] font-bold">{account.employees?.toLocaleString() || "—"}</p>
         </div>
         <div className="bg-muted/50 rounded-lg p-3">
           <div className="flex items-center gap-1 text-muted-foreground mb-1">
             <DollarSign size={12} />
-            <span className="text-[10px] uppercase tracking-wide">Revenue</span>
+            <span className="vf-text-micro uppercase tracking-wide">Revenue</span>
           </div>
           <p className="text-[16px] font-bold">{formatCurrency(account.annual_revenue)}</p>
         </div>
@@ -417,27 +417,27 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
       {/* Owner */}
       {account.owner_name && (
         <div className="mb-4">
-          <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Account Owner</p>
+          <p className="vf-text-caption text-muted-foreground uppercase tracking-wide mb-2">Account Owner</p>
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-              <span className="text-[12px] font-semibold text-primary">
+              <span className="vf-text-body-s font-semibold text-primary">
                 {account.owner_name.charAt(0).toUpperCase()}
               </span>
             </div>
-            <span className="text-[13px] font-medium">{account.owner_name}</span>
+            <span className="vf-text-body-m font-medium">{account.owner_name}</span>
           </div>
         </div>
       )}
 
       <div className="rounded-lg border border-border bg-card p-4 mb-4">
-        <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+        <div className="flex items-center gap-2 vf-text-body-s font-semibold text-foreground">
           <Activity size={14} />
           Value Realization
         </div>
-        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+        <p className="mt-2 vf-text-body-s leading-relaxed text-muted-foreground">
           {account.name} is ready for baseline metrics, outcome tracking, actual value capture, and renewal narrative planning once an approved business case is converted.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
+        <div className="mt-3 grid grid-cols-2 gap-2 vf-text-caption">
           <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Baseline metrics</span>
           <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Outcomes</span>
           <span className="rounded-md bg-muted/40 px-2 py-1 text-muted-foreground">Actual value</span>
@@ -448,19 +448,19 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
       {/* Opportunities List */}
       {account.opportunities && account.opportunities.length > 0 && (
         <div>
-          <p className="text-[11px] text-muted-foreground uppercase tracking-wide mb-2">Opportunities</p>
+          <p className="vf-text-caption text-muted-foreground uppercase tracking-wide mb-2">Opportunities</p>
           <div className="space-y-2">
             {account.opportunities.slice(0, 3).map((opp) => (
               <div key={opp.provider_opportunity_id} className="bg-muted/30 rounded-lg p-3">
-                <p className="text-[12px] font-medium truncate">{opp.name}</p>
+                <p className="vf-text-body-s font-medium truncate">{opp.name}</p>
                 <div className="flex items-center justify-between mt-1">
-                  <span className="text-[11px] text-muted-foreground">{opp.stage}</span>
-                  <span className="text-[12px] font-semibold">{formatCurrency(opp.value)}</span>
+                  <span className="vf-text-caption text-muted-foreground">{opp.stage}</span>
+                  <span className="vf-text-body-s font-semibold">{formatCurrency(opp.value)}</span>
                 </div>
               </div>
             ))}
             {account.opportunities.length > 3 && (
-              <p className="text-[11px] text-muted-foreground text-center">
+              <p className="vf-text-caption text-muted-foreground text-center">
                 +{account.opportunities.length - 3} more
               </p>
             )}
@@ -509,7 +509,7 @@ function Accounts() {
     }
   }, [urlAccountId, setGlobalAccountId]);
 
-  const { data, isLoading, error } = useAccounts(filters);
+  const { data, isLoading, error, refetch } = useAccounts(filters);
   const { data: filterOptions } = useAccountFilterOptions();
   const { data: syncStatusList } = useAccountSyncStatus();
   const syncAccounts = useSyncAccounts();
@@ -612,7 +612,7 @@ function Accounts() {
                   placeholder="Search accounts by name, domain, or owner..."
                   value={filters.search}
                   onChange={(e) => updateFilters({ search: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg vf-text-body-m focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
             </div>
@@ -626,11 +626,12 @@ function Accounts() {
                   ))}
                 </div>
               ) : error ? (
-                <div className="p-8 text-center">
-                  <AlertCircle size={32} className="mx-auto mb-3 text-destructive" />
-                  <h3 className="text-[14px] font-semibold mb-1">Failed to load accounts</h3>
-                  <p className="text-[12px] text-muted-foreground">{error.message}</p>
-                </div>
+                <ErrorState
+                  title="Failed to load accounts"
+                  description={error.message}
+                  error={error}
+                  onRetry={refetch}
+                />
               ) : accounts.length === 0 ? (
                 <EmptyState
                   title="No accounts found"
@@ -691,18 +692,18 @@ function Accounts() {
                                   <Building2 size={14} />
                                 </div>
                                 <div>
-                                  <p className="font-medium text-[13px]">{account.name}</p>
-                                  <p className="text-[11px] text-muted-foreground">{account.domain}</p>
+                                  <p className="font-medium vf-text-body-m">{account.name}</p>
+                                  <p className="vf-text-caption text-muted-foreground">{account.domain}</p>
                                 </div>
                               </div>
                             </TableCell>
-                            <TableCell className="text-[12px]">{account.industry || "—"}</TableCell>
-                            <TableCell className="text-[12px] uppercase">{account.region || "—"}</TableCell>
-                            <TableCell className="text-[12px]">{account.segment || "—"}</TableCell>
+                            <TableCell className="vf-text-body-s">{account.industry || "—"}</TableCell>
+                            <TableCell className="vf-text-body-s uppercase">{account.region || "—"}</TableCell>
+                            <TableCell className="vf-text-body-s">{account.segment || "—"}</TableCell>
                             <TableCell>
                               <StatusBadge status={getSyncStatusBadge(account.sync_status)} />
                             </TableCell>
-                            <TableCell className="text-right text-[13px] font-medium">
+                            <TableCell className="text-right vf-text-body-m font-medium">
                               {formatCurrency(
                                 account.opportunities?.reduce((sum, o) => sum + (o.value || 0), 0) || 0
                               )}

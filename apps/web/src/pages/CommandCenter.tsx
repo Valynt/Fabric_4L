@@ -33,6 +33,13 @@ import {
 } from "@/components/ui/fabric";
 import { PageShell } from "@/components/layout/PageShell";
 import { QueryState } from "@/components/QueryState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const EXTRACTION_PROFILES = ["Default", "Deep Crawl", "Financial Focus", "Technical Focus"];
 const ONTOLOGY_TARGETS = ["General", "SaaS / B2B", "Financial Services", "Healthcare"];
@@ -168,46 +175,46 @@ export default function CommandCenter() {
               <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Extraction Profile
               </label>
-              <select
-                value={profile}
-                onChange={(e) => setProfile(e.target.value)}
-                className="w-full text-[12px] border border-border rounded-md px-2.5 py-1.5 bg-card text-muted-foreground outline-none"
-                aria-label="Extraction profile"
-              >
-                {EXTRACTION_PROFILES.map((p) => (
-                  <option key={p}>{p}</option>
-                ))}
-              </select>
+              <Select value={profile} onValueChange={setProfile}>
+                <SelectTrigger className="w-full vf-text-body-s" aria-label="Extraction profile">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {EXTRACTION_PROFILES.map((p) => (
+                    <SelectItem key={p} value={p}>{p}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Ontology Target
               </label>
-              <select
-                value={ontology}
-                onChange={(e) => setOntology(e.target.value)}
-                className="w-full text-[12px] border border-border rounded-md px-2.5 py-1.5 bg-card text-muted-foreground outline-none"
-                aria-label="Ontology target"
-              >
-                {ONTOLOGY_TARGETS.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
+              <Select value={ontology} onValueChange={setOntology}>
+                <SelectTrigger className="w-full vf-text-body-s" aria-label="Ontology target">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ONTOLOGY_TARGETS.map((o) => (
+                    <SelectItem key={o} value={o}>{o}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div>
               <label className="block text-[10px] uppercase tracking-widest text-muted-foreground/60 font-semibold mb-1.5">
                 Crawl Depth
               </label>
-              <select
-                value={depth}
-                onChange={(e) => setDepth(e.target.value)}
-                className="w-full text-[12px] border border-border rounded-md px-2.5 py-1.5 bg-card text-muted-foreground outline-none"
-                aria-label="Crawl depth"
-              >
-                {["1", "2", "3", "4", "5"].map((d) => (
-                  <option key={d}>{d}</option>
-                ))}
-              </select>
+              <Select value={depth} onValueChange={setDepth}>
+                <SelectTrigger className="w-full vf-text-body-s" aria-label="Crawl depth">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {["1", "2", "3", "4", "5"].map((d) => (
+                    <SelectItem key={d} value={d}>{d}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="col-span-1 sm:col-span-3 pt-1">
               <p className="text-[11px] text-muted-foreground/60">
@@ -231,20 +238,17 @@ export default function CommandCenter() {
           value={kpiData.totalDomains.toLocaleString()}
           trend="+12%"
           trendUp
-          isLoading={kpiLoading}
         />
         <MetricCard
           label="Verified Relationships"
           value={kpiData.pagesSynthesized.toLocaleString()}
           trend="+5%"
           trendUp
-          isLoading={kpiLoading}
         />
         <MetricCard
           label="Sources Analyzed"
           value={kpiData.sourcesAnalyzed.toString()}
           trend="Active"
-          isLoading={kpiLoading}
         />
       </div>
 

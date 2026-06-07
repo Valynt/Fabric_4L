@@ -49,6 +49,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell, ErrorState, EmptyState } from '@/components';
 
 const log = createFeatureLogger('IngestionJobs');
 const PAGE_SIZE = 15;
@@ -65,9 +66,9 @@ const STATUS_OPTIONS: { value: JobStatusFilter; label: string }[] = [
 ];
 
 const STAGE_STATUS_COLORS = {
-  COMPLETED: 'text-emerald-600',
+  COMPLETED: 'text-success',
   FAILED: 'text-destructive',
-  RUNNING: 'text-amber-600',
+  RUNNING: 'text-warning',
   DEFAULT: 'text-muted-foreground',
 } as const;
 
@@ -216,7 +217,7 @@ export default function IngestionJobs() {
   // Table columns definition using fabric DataTable format
   const columns: DataTableColumn<IngestionJob>[] = [
     { key: 'id', header: 'Job ID', render: (job) => (
-      <span className="font-mono text-[11px] text-muted-foreground">
+      <span className="font-mono vf-text-caption text-muted-foreground">
         {truncateId(job.id, JOB_ID_TRUNCATE_TABLE)}
       </span>
     )},
@@ -238,19 +239,20 @@ export default function IngestionJobs() {
             style={{ width: `${job.progress}%` }}
           />
         </div>
-        <span className="text-[11px] text-muted-foreground">{job.progress}%</span>
+        <span className="vf-text-caption text-muted-foreground">{job.progress}%</span>
       </div>
     )},
     { key: 'createdAt', header: 'Created', render: (job) => (
-      <span className="text-[11px] text-muted-foreground">
+      <span className="vf-text-caption text-muted-foreground">
         {new Date(job.createdAt).toLocaleDateString()}
       </span>
     )},
   ];
 
   return (
+    <PageShell>
     <TooltipProvider>
-    <div className="p-6 h-full flex flex-col">
+    <div className="h-full flex flex-col">
       {/* Page Header */}
       <PageHeader
         title="Ingestion Jobs"
@@ -293,7 +295,7 @@ export default function IngestionJobs() {
           {latestJob && (
             <div className="bg-card border border-border rounded-lg px-3 py-2 flex items-center gap-2">
               <Info size={14} className="text-primary shrink-0" />
-              <p className="text-[12px] text-muted-foreground">
+              <p className="vf-text-body-s text-muted-foreground">
                 Latest ingestion job:
                 {' '}<span className="font-semibold text-foreground">{latestJob.domain}</span>
                 {' '}is
@@ -309,16 +311,16 @@ export default function IngestionJobs() {
 
           {/* Filter Controls */}
           <div className="bg-card border border-border rounded-lg p-3 flex items-center gap-3 flex-wrap">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Filter Controls</span>
+            <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground">Filter Controls</span>
             <div className="flex items-center gap-2">
-              <label className="text-[11px] text-muted-foreground">Status:</label>
+              <label className="vf-text-caption text-muted-foreground">Status:</label>
               <select
                 value={filters.status}
                 onChange={(e) => {
                   setStatusFilter(e.target.value as JobStatusFilter);
                   paginationState.setPage(1);
                 }}
-                className="text-[12px] border border-border rounded px-2 py-1 bg-background"
+                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
               >
                 {STATUS_OPTIONS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -328,7 +330,7 @@ export default function IngestionJobs() {
               </select>
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[11px] text-muted-foreground">From:</label>
+              <label className="vf-text-caption text-muted-foreground">From:</label>
               <input
                 type="date"
                 value={filters.dateFrom}
@@ -336,11 +338,11 @@ export default function IngestionJobs() {
                   setDateFrom(e.target.value);
                   paginationState.setPage(1);
                 }}
-                className="text-[12px] border border-border rounded px-2 py-1 bg-background"
+                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
               />
             </div>
             <div className="flex items-center gap-2">
-              <label className="text-[11px] text-muted-foreground">To:</label>
+              <label className="vf-text-caption text-muted-foreground">To:</label>
               <input
                 type="date"
                 value={filters.dateTo}
@@ -348,7 +350,7 @@ export default function IngestionJobs() {
                   setDateTo(e.target.value);
                   paginationState.setPage(1);
                 }}
-                className="text-[12px] border border-border rounded px-2 py-1 bg-background"
+                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
               />
             </div>
             {(filters.status !== 'all' || filters.dateFrom || filters.dateTo) && (
@@ -357,7 +359,7 @@ export default function IngestionJobs() {
                   resetFilters();
                   paginationState.setPage(1);
                 }}
-                className="text-[11px] text-primary hover:underline ml-auto"
+                className="vf-text-caption text-primary hover:underline ml-auto"
               >
                 Reset filters
               </button>
@@ -367,23 +369,31 @@ export default function IngestionJobs() {
           {/* Job Queue Table */}
           <div className="bg-card border border-border rounded-lg flex-1 flex flex-col min-h-0 overflow-hidden">
             <div className="px-4 pt-3 pb-2 border-b border-border flex items-center justify-between">
-              <span className="text-[13px] font-bold text-foreground">Job Queue</span>
-              <span className="text-[11px] text-muted-foreground">
+              <span className="vf-text-body-m font-bold text-foreground">Job Queue</span>
+              <span className="vf-text-caption text-muted-foreground">
                 {apiPagination.total} total jobs
               </span>
             </div>
             <div className="flex-1 overflow-auto">
-              {listError ? (
-                <div className="p-8 text-center">
-                  <AlertCircle size={24} className="text-destructive mx-auto mb-2" />
-                  <p className="text-[12px] text-muted-foreground mb-2">Failed to load jobs</p>
-                  <button
-                    onClick={handleRefresh}
-                    className="text-[12px] text-primary hover:underline"
-                  >
-                    Try again
-                  </button>
+              {listLoading ? (
+                <div className="p-4 space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <Skeleton key={i} className="h-8 w-full" />
+                  ))}
                 </div>
+              ) : listError ? (
+                <ErrorState
+                  title="Failed to load jobs"
+                  description="Something went wrong while fetching the job queue."
+                  error={listError}
+                  onRetry={handleRefresh}
+                />
+              ) : jobs.length === 0 ? (
+                <EmptyState
+                  title={filters.status !== 'all' || filters.dateFrom || filters.dateTo ? 'No jobs match your filters' : 'No jobs found'}
+                  description={filters.status !== 'all' || filters.dateFrom || filters.dateTo ? 'Try adjusting your filter criteria' : 'Create a new job to get started'}
+                  icon={List}
+                />
               ) : (
                 <DataTable
                   data={jobs}
@@ -391,18 +401,7 @@ export default function IngestionJobs() {
                   keyExtractor={(job) => job.id}
                   onRowClick={handleRowClick}
                   selectedKey={selectedJobId ?? undefined}
-                  emptyMessage={listLoading ? '' : (filters.status !== 'all' || filters.dateFrom || filters.dateTo)
-                    ? 'No jobs match your filters'
-                    : 'No jobs found — create a new job to get started'
-                  }
                 />
-              )}
-              {listLoading && (
-                <div className="p-4 space-y-2">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Skeleton key={i} className="h-8 w-full" />
-                  ))}
-                </div>
               )}
             </div>
             {/* Pagination */}
@@ -424,7 +423,7 @@ export default function IngestionJobs() {
         <div className="flex flex-col gap-4 min-h-0">
           {/* Actions Panel */}
           <div className="bg-card border border-border rounded-lg p-3">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground block mb-2">
+            <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground block mb-2">
               Actions
             </span>
             <div className="flex items-center gap-2">
@@ -445,7 +444,7 @@ export default function IngestionJobs() {
                   </Btn>
                 </TooltipTrigger>
                 <TooltipContent side="bottom">
-                  <p className="text-[11px]">Batch Pause — coming in future release</p>
+                  <p className="vf-text-caption">Batch Pause — coming in future release</p>
                 </TooltipContent>
               </Tooltip>
             </div>
@@ -454,11 +453,11 @@ export default function IngestionJobs() {
           {/* Job Detail Panel */}
           <div className="bg-card border border-border rounded-lg flex-1 flex flex-col min-h-0">
             <div className="px-4 pt-3 pb-2 border-b border-border">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Job Detail</span>
+              <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground">Job Detail</span>
             </div>
             <div className="flex-1 overflow-auto p-4">
               {!selectedJobId ? (
-                <p data-testid="job-detail-empty-state" className="text-[12px] text-muted-foreground text-center py-8">
+                <p data-testid="job-detail-empty-state" className="vf-text-body-s text-muted-foreground text-center py-8">
                   Select a job from the queue to view details
                 </p>
               ) : detailLoading ? (
@@ -468,10 +467,10 @@ export default function IngestionJobs() {
                   <Skeleton className="h-4 w-2/3" />
                 </div>
               ) : detailData ? (
-                <div className="space-y-3 text-[12px]">
+                <div className="space-y-3 vf-text-body-s">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">ID:</span>
-                    <span className="font-mono text-[11px]">{truncateId(detailData.id, JOB_ID_TRUNCATE_DETAIL)}</span>
+                    <span className="font-mono vf-text-caption">{truncateId(detailData.id, JOB_ID_TRUNCATE_DETAIL)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Status:</span>
@@ -490,7 +489,7 @@ export default function IngestionJobs() {
                     </span>
                   </div>
                   <div className="border-t border-border pt-2 mt-2">
-                    <span className="text-[10px] font-semibold uppercase text-muted-foreground block mb-1">
+                    <span className="vf-text-micro font-semibold uppercase text-muted-foreground block mb-1">
                       Progress
                     </span>
                     <div className="flex items-center gap-2 mb-1">
@@ -500,20 +499,20 @@ export default function IngestionJobs() {
                           style={{ width: `${detailData.progress?.percentComplete ?? 0}%` }}
                         />
                       </div>
-                      <span className="text-[11px]">{detailData.progress?.percentComplete ?? 0}%</span>
+                      <span className="vf-text-caption">{detailData.progress?.percentComplete ?? 0}%</span>
                     </div>
-                    <div className="text-[11px] text-muted-foreground">
+                    <div className="vf-text-caption text-muted-foreground">
                       {detailData.progress?.processedPages ?? 0} / {detailData.progress?.totalPages ?? '?'} pages
                     </div>
                   </div>
                   {detailData.stages && detailData.stages.length > 0 && (
                     <div className="border-t border-border pt-2">
-                      <span className="text-[10px] font-semibold uppercase text-muted-foreground block mb-1">
+                      <span className="vf-text-micro font-semibold uppercase text-muted-foreground block mb-1">
                         Stages
                       </span>
                       <div className="space-y-1">
                         {detailData.stages.map((stage, i) => (
-                          <div key={i} className="flex items-center justify-between text-[11px]">
+                          <div key={i} className="flex items-center justify-between vf-text-caption">
                             <span className="truncate">{stage.stage}</span>
                             <span
                               className={
@@ -530,12 +529,12 @@ export default function IngestionJobs() {
                   )}
                   {detailData.errors && detailData.errors.length > 0 && (
                     <div className="border-t border-border pt-2">
-                      <span className="text-[10px] font-semibold uppercase text-destructive block mb-1">
+                      <span className="vf-text-micro font-semibold uppercase text-destructive block mb-1">
                         Errors ({detailData.errors.length})
                       </span>
                       <div className="space-y-1 max-h-24 overflow-auto">
                         {detailData.errors.map((err) => (
-                          <div key={err.id} className="text-[11px] text-destructive p-1 bg-destructive/5 rounded">
+                          <div key={err.id} className="vf-text-caption text-destructive p-1 bg-destructive/5 rounded">
                             <div className="font-semibold">{err.errorCode}</div>
                             <div className="truncate">{err.errorMessage}</div>
                           </div>
@@ -563,7 +562,7 @@ export default function IngestionJobs() {
                   </div>
                   {/* Mutation Error Display */}
                   {(retryJob.error || cancelJob.error) && (
-                    <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded text-[11px] text-destructive">
+                    <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded vf-text-caption text-destructive">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle size={12} className="mt-0.5 shrink-0" />
                         <div>
@@ -577,7 +576,7 @@ export default function IngestionJobs() {
                   )}
                 </div>
               ) : (
-                <p className="text-[12px] text-muted-foreground text-center py-8">Job not found</p>
+                <p className="vf-text-body-s text-muted-foreground text-center py-8">Job not found</p>
               )}
             </div>
           </div>
@@ -585,13 +584,13 @@ export default function IngestionJobs() {
           {/* Logs / Output Panel */}
           <div className="bg-card border border-border rounded-lg h-48 flex flex-col">
             <div className="px-4 pt-3 pb-2 border-b border-border">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+              <span className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground">
                 Logs / Output
               </span>
             </div>
             <div className="flex-1 overflow-auto p-3">
               {!selectedJobId ? (
-                <p className="text-[11px] text-muted-foreground text-center py-4">
+                <p className="vf-text-caption text-muted-foreground text-center py-4">
                   Select a job to view logs
                 </p>
               ) : logsLoading ? (
@@ -603,14 +602,14 @@ export default function IngestionJobs() {
               ) : logsData && logsData.length > 0 ? (
                 <div className="space-y-1" data-testid="job-logs-list-state">
                   {logsData.map((log) => (
-                    <div key={log.id} className="text-[11px] border-b border-border/50 pb-1">
+                    <div key={log.id} className="vf-text-caption border-b border-border/50 pb-1">
                       <div className="flex items-center gap-2">
                         <span
                           className={
                             log.severity === 'ERROR'
                               ? 'text-destructive font-semibold'
                               : log.severity === 'WARNING'
-                              ? 'text-amber-600'
+                              ? 'text-warning'
                               : 'text-muted-foreground'
                           }
                         >
@@ -624,7 +623,7 @@ export default function IngestionJobs() {
                         {log.eventType}
                       </div>
                       {log.requestUrl && (
-                        <div className="text-muted-foreground truncate text-[10px]" title={log.requestUrl}>
+                        <div className="text-muted-foreground truncate vf-text-micro" title={log.requestUrl}>
                           {log.requestUrl}
                         </div>
                       )}
@@ -632,7 +631,7 @@ export default function IngestionJobs() {
                   ))}
                 </div>
               ) : (
-                <p data-testid="job-logs-empty-state" className="text-[11px] text-muted-foreground text-center py-4">No logs available</p>
+                <p data-testid="job-logs-empty-state" className="vf-text-caption text-muted-foreground text-center py-4">No logs available</p>
               )}
             </div>
           </div>
@@ -641,6 +640,7 @@ export default function IngestionJobs() {
       )}
     </div>
     </TooltipProvider>
+    </PageShell>
   );
 }
 
