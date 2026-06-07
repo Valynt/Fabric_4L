@@ -21,9 +21,9 @@ import pytest
 
 
 try:
-    from fastapi import FastAPI, HTTPException, Request
+    from fastapi import FastAPI, Request
     from fastapi.testclient import TestClient
-    from pydantic import BaseModel, ConfigDict, Field, ValidationError
+    from pydantic import BaseModel, ConfigDict, ValidationError
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False

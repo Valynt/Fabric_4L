@@ -59,6 +59,8 @@ neo4j>=5.15.0
 # Layer 4 — PostgreSQL driver and email validation
 # ---------------------------------------------------------------------------
 psycopg[binary]>=3.1.0     # Required by testcontainers postgres integration tests
+asyncpg>=0.29.0            # SQLAlchemy asyncpg dialect imported at collection time by contract/chaos tests
+passlib[bcrypt]>=1.7.4     # API gateway CryptContext imported at collection time by contract tests
 email-validator>=2.1.0     # Required by pydantic[email] in tenant API tests
 numpy>=2.1.0               # Required by Layer 4 calculation tools at mandatory test collection
 pandas>=2.2.0              # Required by Layer 4 workflow/tooling imports in mandatory gates

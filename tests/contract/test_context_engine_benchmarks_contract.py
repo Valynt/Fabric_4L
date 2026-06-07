@@ -1,3 +1,14 @@
+import pytest
+
+try:
+    import passlib  # noqa: F401
+except ModuleNotFoundError as exc:  # pragma: no cover
+    pytest.skip(
+        f"{exc.name} is not installed; install test deps with "
+        "`pip install -r tests/requirements-test.txt`",
+        allow_module_level=True,
+    )
+
 from app.models.schemas import ContextEngineItem
 from app.main import app
 

@@ -1,6 +1,17 @@
 import sys
 from pathlib import Path
 
+import pytest
+
+try:
+    import asyncpg  # noqa: F401
+except ModuleNotFoundError as exc:  # pragma: no cover
+    pytest.skip(
+        f"{exc.name} is not installed; install test deps with "
+        "`pip install -r tests/requirements-test.txt`",
+        allow_module_level=True,
+    )
+
 from fastapi.testclient import TestClient
 
 sys.path.append(str(Path(__file__).resolve().parents[2] / "services/layer7-billing/src"))
