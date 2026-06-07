@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
-import { CheckCircle, XCircle, MessageCircle, Clock, Send } from "lucide-react";
+import { CheckCircle, XCircle, MessageCircle, Clock, Send, Inbox } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { useAccountContextStore } from "@/stores/accountContextStore";
 import {
   useReviewRequests,
@@ -12,7 +13,7 @@ import {
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
-import { ErrorState } from "@/components/states/ErrorState";
+import { ErrorState, EmptyState } from "@/components/states";
 
 export default function ReviewQueuePage() {
   const { accountId: paramAccountId } = useParams<{ accountId: string }>();
@@ -161,7 +162,7 @@ export default function ReviewQueuePage() {
 
             {review.status === "pending" && (
               <div className="flex items-center gap-2">
-                <input
+                <Input
                   type="text"
                   value={activeReviewId === review.id ? commentText : ""}
                   onChange={(e) => {
@@ -169,7 +170,7 @@ export default function ReviewQueuePage() {
                     setCommentText(e.target.value);
                   }}
                   placeholder="Add a comment..."
-                  className="flex-1 rounded-md border border-input bg-background px-3 py-1.5 text-sm"
+                  className="flex-1"
                 />
                 <button
                   onClick={handleAddComment}
@@ -184,9 +185,21 @@ export default function ReviewQueuePage() {
         ))}
 
         {(!reviews || reviews.length === 0) && (
-          <div className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-            No review requests yet. Submit this account for review to start the approval workflow.
-          </div>
+          <EmptyState
+            icon={Inbox}
+            title="No review requests yet"
+            description="Submit this account for review to start the approval workflow."
+            action={
+              <button
+                onClick={handleSubmitForReview}
+                disabled={createReview.isPending}
+                className="inline-flex items-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:opacity-50"
+              >
+                <Send className="h-4 w-4" />
+                Submit for Review
+              </button>
+            }
+          />
         )}
       </div>
     </PageShell>

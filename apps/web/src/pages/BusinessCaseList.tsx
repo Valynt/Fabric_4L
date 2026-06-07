@@ -24,6 +24,7 @@ import { EmptyState } from "@/components/states";
 import { ErrorState } from "@/components/states/ErrorState";
 import { PageShell } from "@/components";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Input } from "@/components/ui/input";
 import { VirtualList } from "@/components/ui/virtual-list";
 import {
   Dialog,
@@ -401,12 +402,12 @@ function BusinessCaseListContent() {
       <div className="flex items-center gap-3 mb-6">
         <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 flex-1 max-w-sm">
           <Search size={14} className="text-muted-foreground/60" />
-          <input
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search cases or companies..."
-            className="flex-1 vf-text-body-m bg-transparent outline-none text-muted-foreground"
+            className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
           />
         </div>
 
@@ -503,26 +504,24 @@ function BusinessCaseListContent() {
               <label htmlFor="new-case-name" className="block vf-text-body-s font-medium text-muted-foreground mb-1">
                 Case Name
               </label>
-              <input
+              <Input
                 id="new-case-name"
                 type="text"
                 value={newCaseName}
                 onChange={(e) => setNewCaseName(e.target.value)}
                 placeholder="e.g., Q2 Expansion Analysis"
-                className="w-full px-3 py-2 border border-border rounded-lg vf-text-body-m outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
             <div>
               <label htmlFor="new-case-company" className="block vf-text-body-s font-medium text-muted-foreground mb-1">
                 Company
               </label>
-              <input
+              <Input
                 id="new-case-company"
                 type="text"
                 value={newCaseCompany}
                 onChange={(e) => setNewCaseCompany(e.target.value)}
                 placeholder="e.g., Acme Corporation"
-                className="w-full px-3 py-2 border border-border rounded-lg vf-text-body-m outline-none focus:ring-2 focus:ring-primary/20"
               />
             </div>
           </div>

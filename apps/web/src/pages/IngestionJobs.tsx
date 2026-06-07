@@ -25,6 +25,7 @@ import {
 } from '@/hooks/useSkillJobs';
 import { toast } from 'sonner';
 import { PaginationBar } from '@/components/ui/fabric/PaginationBar';
+import { LoadingState } from '@/components/states';
 import { useNavigation, usePaginatedList } from '@/hooks';
 import { DataTable, type DataTableColumn } from '@/components/ui/fabric/DataTable';
 import { StatusBadge } from '@/components/ui/fabric/StatusBadge';
@@ -682,13 +683,13 @@ function SkillOutputsWorkspace({ selectedJobId, onSelectJob }: SkillOutputsWorks
         <div className="flex-1 overflow-y-auto p-3 space-y-2">
           {activeSubTab === 'corpora' && (
             <>
-              {corporaLoading && (
-                <p className="text-xs text-muted-foreground text-center py-8">Loading corpora…</p>
-              )}
+              {corporaLoading && <LoadingState message="Loading corpora…" />}
               {!corporaLoading && !corporaData?.items.length && (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No source corpora yet. Launch a licensing company intake job to create one.
-                </p>
+                <EmptyState
+                  icon={List}
+                  title="No source corpora yet"
+                  description="Launch a licensing company intake job to create one."
+                />
               )}
               {corporaData?.items.map((corpus) => (
                 <SourceCorpusCard
@@ -703,13 +704,13 @@ function SkillOutputsWorkspace({ selectedJobId, onSelectJob }: SkillOutputsWorks
 
           {activeSubTab === 'packets' && (
             <>
-              {packetsLoading && (
-                <p className="text-xs text-muted-foreground text-center py-8">Loading packets…</p>
-              )}
+              {packetsLoading && <LoadingState message="Loading packets…" />}
               {!packetsLoading && !packetsData?.items.length && (
-                <p className="text-xs text-muted-foreground text-center py-8">
-                  No account intelligence packets yet. Launch a prospect research job to create one.
-                </p>
+                <EmptyState
+                  icon={Sparkles}
+                  title="No account intelligence packets yet"
+                  description="Launch a prospect research job to create one."
+                />
               )}
               {packetsData?.items.map((packet) => (
                 <AccountIntelligencePacketCard
