@@ -19,7 +19,16 @@ import {
   ChevronDown, ChevronUp, Filter
 } from "lucide-react";
 import { Skeleton, ErrorBoundary } from "@/components";
+import { PageShell } from "@/components";
 import { cn } from "@/lib/utils";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useSystemHealth,
   useHealthAlerts,
@@ -260,7 +269,7 @@ function SummaryCard({
 
 function HealthMonitorSkeleton() {
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <div className="flex items-start justify-between mb-6">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />
@@ -282,7 +291,7 @@ function HealthMonitorSkeleton() {
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -337,52 +346,43 @@ function HealthMonitorContent() {
   };
 
   if (isLoading) {
-    return <HealthMonitorSkeleton />;
+    return (
+      <PageShell>
+        <HealthMonitorSkeleton />
+      </PageShell>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">
-                Failed to load health data
-              </h3>
-              <p className="vf-text-body-s text-destructive/80">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button
-                onClick={handleRefresh}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load health data"
+          description="An error occurred while loading system health information."
+          error={error}
+          onRetry={handleRefresh}
+        />
+      </PageShell>
     );
   }
 
   if (!health) {
     return (
-      <div className="p-6 max-w-6xl">
+      <PageShell>
         <div className="bg-warning/10 border border-warning/20 rounded-xl p-6">
           <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Health Data</h3>
           <p className="vf-text-body-s text-warning dark:text-warning mt-1">
             System health information is unavailable. Please check the API status.
           </p>
         </div>
-      </div>
+      </PageShell>
     );
   }
 
   const overallStatus = STATUS_CONFIG[health.overall_status];
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -460,16 +460,17 @@ function HealthMonitorContent() {
           <h3 className="vf-text-body-l font-semibold text-foreground">Services</h3>
           <div className="flex items-center gap-2">
             <Filter size={14} className="text-muted-foreground" />
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as FilterStatus)}
-              className="vf-text-caption px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
-            >
-              <option value="all">All Status</option>
-              <option value="healthy">Healthy</option>
-              <option value="degraded">Degraded</option>
-              <option value="unhealthy">Unhealthy</option>
-            </select>
+            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as FilterStatus)}>
+              <SelectTrigger className="w-full vf-text-caption">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="healthy">Healthy</SelectItem>
+                <SelectItem value="degraded">Degraded</SelectItem>
+                <SelectItem value="unhealthy">Unhealthy</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -503,16 +504,17 @@ function HealthMonitorContent() {
               />
               Show resolved
             </label>
-            <select
-              value={severityFilter}
-              onChange={(e) => setSeverityFilter(e.target.value as AlertSeverity)}
-              className="vf-text-caption px-2 py-1.5 border border-border rounded-lg bg-card text-foreground outline-none"
-            >
-              <option value="all">All Severities</option>
-              <option value="critical">Critical</option>
-              <option value="warning">Warning</option>
-              <option value="info">Info</option>
-            </select>
+            <Select value={severityFilter} onValueChange={(value) => setSeverityFilter(value as AlertSeverity)}>
+              <SelectTrigger className="w-full vf-text-caption">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Severities</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="warning">Warning</SelectItem>
+                <SelectItem value="info">Info</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
@@ -529,7 +531,7 @@ function HealthMonitorContent() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

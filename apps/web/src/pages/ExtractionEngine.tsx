@@ -20,6 +20,7 @@ import { createFeatureLogger } from "@/lib/telemetry";
 import { usePauseAllExtractions } from "@/hooks/usePauseAllExtractions";
 import { toast } from "sonner";
 import { SectionCard } from "@/components/blocks/SectionCard";
+import { PageShell } from "@/components";
 import { PageHeader, DataTable, Btn, StatusBadge } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('ExtractionEngine');
@@ -44,12 +45,12 @@ const LOG_LEVEL_MAP: Record<string, LogType> = {
 };
 
 const TYPE_COLORS: Record<string, string> = {
-  sys: 'text-neutral-400',
-  info: 'text-cyan-400',
-  warn: 'text-amber-400',
-  extract: 'text-neutral-300',
-  map: 'text-neutral-300',
-  plain: 'text-neutral-400',
+  sys: 'text-muted-foreground/60',
+  info: 'text-info',
+  warn: 'text-warning',
+  extract: 'text-foreground/70',
+  map: 'text-foreground/70',
+  plain: 'text-muted-foreground/60',
 };
 
 const TYPE_LABELS: Record<string, string> = {
@@ -145,15 +146,17 @@ export default function ExtractionEngine() {
   // Error state from stream
   if (streamError) {
     return (
-      <div className="flex flex-col h-full items-center justify-center">
-        <AlertCircle className="w-8 h-8 text-red-500 mb-3" />
-        <span className="text-sm text-red-600">{streamError.message || 'Failed to load job'}</span>
-      </div>
+      <PageShell>
+        <div className="flex flex-col h-full items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive mb-3" />
+          <span className="text-sm text-destructive">{streamError.message || 'Failed to load job'}</span>
+        </div>
+      </PageShell>
     );
   }
 
   return (
-    <div className="flex flex-col h-full bg-background">
+    <PageShell className="flex flex-col h-full">
       {/* Header */}
       <PageHeader
         title="Extraction Engine"
@@ -360,8 +363,8 @@ export default function ExtractionEngine() {
                   <span className="text-xs text-muted-foreground">Job:</span>
                   <span className="text-xs font-mono">{activeJobId.slice(0, 8)}...</span>
                   {isConnected && (
-                    <span className="flex items-center gap-1 text-xs text-emerald-600">
-                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                    <span className="flex items-center gap-1 text-xs text-success">
+                      <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
                       LIVE
                     </span>
                   )}
@@ -373,7 +376,7 @@ export default function ExtractionEngine() {
 
           {/* Live Stream / Log Output */}
           <SectionCard title="Live Stream / Log Output" className="flex-1 min-h-[200px]">
-            <div className="h-full overflow-y-auto font-mono text-[11px] leading-relaxed space-y-1 pr-2">
+            <div className="h-full overflow-y-auto font-mono vf-text-caption leading-relaxed space-y-1 pr-2">
               {liveLogs.length === 0 && !activeJobId && (
                 <div className="text-muted-foreground py-8 text-center">
                   Configure extraction settings and click "Run Extraction" to begin
@@ -420,7 +423,7 @@ export default function ExtractionEngine() {
                 </span>,
                 <span key={`src-${entity.name}`} className="text-xs text-muted-foreground">{entity.provenance?.source_url ?? entity.source_span?.document_id ?? "N/A"}</span>,
                 entity.confidence >= 0.5 
-                  ? <CheckCircle2 key={`status-${entity.name}`} size={14} className="text-emerald-500" />
+                  ? <CheckCircle2 key={`status-${entity.name}`} size={14} className="text-success" />
                   : <Loader2 key={`status-${entity.name}`} size={14} className="animate-spin text-muted-foreground" />,
               ]) || []}
               emptyMessage={activeJobId ? "No entities extracted yet..." : "Run an extraction to see results"}
@@ -428,14 +431,14 @@ export default function ExtractionEngine() {
           </SectionCard>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }
 
 /** Skeleton loader for the extraction engine loading state */
 function ExtractionEngineSkeleton() {
   return (
-    <div className="flex flex-col h-full bg-background">
+    <PageShell className="flex flex-col h-full">
       {/* Header skeleton */}
       <div className="px-6 py-4 border-b">
         <div className="flex items-start justify-between">
@@ -506,6 +509,6 @@ function ExtractionEngineSkeleton() {
           </div>
         </div>
       </div>
-    </div>
+    </PageShell>
   );
 }

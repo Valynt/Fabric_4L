@@ -22,7 +22,16 @@ import {
 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useVariables,
   useSourceBindings,
@@ -149,7 +158,7 @@ function BindingCard({ binding, onTest }: { binding: SourceBinding; onTest: (id:
 
 function VariableRegistrySkeleton() {
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <div className="flex items-start justify-between mb-6">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />
@@ -186,7 +195,7 @@ function VariableRegistrySkeleton() {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -264,35 +273,28 @@ function VariableRegistryContent() {
   };
 
   if (isLoading) {
-    return <VariableRegistrySkeleton />;
+    return (
+      <PageShell>
+        <VariableRegistrySkeleton />
+      </PageShell>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive mb-1">Failed to load variable registry</h3>
-              <p className="vf-text-body-s text-destructive">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button 
-                onClick={() => { refetchVariables(); refetchBindings(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/10 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-red-200 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load variable registry"
+          description="An error occurred while loading variable data."
+          error={error}
+          onRetry={() => { refetchVariables(); refetchBindings(); }}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -374,34 +376,28 @@ function VariableRegistryContent() {
                 className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <select
-              value={typeFilter}
-              onChange={e => {
-                const value = e.target.value;
-                setTypeFilter(value === "all" ? "all" : value as VariableType);
-              }}
-              aria-label="Filter by variable type"
-              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
-            >
-              <option value="all">All Types</option>
-              {Object.keys(TYPE_CONFIG).map(t => (
-                <option key={t} value={t}>{TYPE_CONFIG[t as VariableType].label}</option>
-              ))}
-            </select>
-            <select
-              value={sourceFilter}
-              onChange={e => {
-                const value = e.target.value;
-                setSourceFilter(value === "all" ? "all" : value as SourceType);
-              }}
-              aria-label="Filter by source"
-              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-background text-foreground outline-none focus:border-primary"
-            >
-              <option value="all">All Sources</option>
-              {Object.keys(SOURCE_CONFIG).map(s => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value === "all" ? "all" : value as VariableType)}>
+              <SelectTrigger className="w-full vf-text-caption" aria-label="Filter by variable type">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Types</SelectItem>
+                {Object.keys(TYPE_CONFIG).map(t => (
+                  <SelectItem key={t} value={t}>{TYPE_CONFIG[t as VariableType].label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Select value={sourceFilter} onValueChange={(value) => setSourceFilter(value === "all" ? "all" : value as SourceType)}>
+              <SelectTrigger className="w-full vf-text-caption" aria-label="Filter by source">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                {Object.keys(SOURCE_CONFIG).map(s => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="ml-auto flex items-center gap-2">
               <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
@@ -614,7 +610,7 @@ function VariableRegistryContent() {
           </div>
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 

@@ -23,7 +23,16 @@ import {
   type BenchmarkStatus,
 } from "@/hooks";
 import { formatDate } from "@/lib/formatters";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
@@ -75,7 +84,7 @@ function StaleWarningBadge({ lastVerified }: { lastVerified?: string }) {
 
 function BenchmarkPoliciesSkeleton() {
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <div className="flex items-start justify-between mb-6">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />
@@ -104,7 +113,7 @@ function BenchmarkPoliciesSkeleton() {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -149,35 +158,28 @@ function BenchmarkPoliciesContent() {
   const error = benchmarksError;
 
   if (isLoading) {
-    return <BenchmarkPoliciesSkeleton />;
+    return (
+      <PageShell>
+        <BenchmarkPoliciesSkeleton />
+      </PageShell>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load benchmark policies</h3>
-              <p className="vf-text-body-s text-destructive/80">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button 
-                onClick={() => { refetchBenchmarks(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load benchmark policies"
+          description="An error occurred while loading benchmark data."
+          error={error}
+          onRetry={() => refetchBenchmarks()}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -216,29 +218,28 @@ function BenchmarkPoliciesContent() {
                 className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
               />
             </div>
-            <select
-              value={confidenceFilter}
-              onChange={e => {
-                const value = e.target.value;
-                setConfidenceFilter(value === "all" ? "all" : value as ConfidenceLevel);
-              }}
-              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
-            >
-              <option value="all">All Confidence</option>
-              <option value="High">High</option>
-              <option value="Medium">Medium</option>
-              <option value="Low">Low</option>
-            </select>
-            <select
-              value={industryFilter}
-              onChange={e => setIndustryFilter(e.target.value)}
-              className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
-            >
-              <option value="all">All Industries</option>
-              {industries.map(ind => (
-                <option key={ind} value={ind}>{ind}</option>
-              ))}
-            </select>
+            <Select value={confidenceFilter} onValueChange={(value) => setConfidenceFilter(value === "all" ? "all" : value as ConfidenceLevel)}>
+              <SelectTrigger className="w-full vf-text-caption">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Confidence</SelectItem>
+                <SelectItem value="High">High</SelectItem>
+                <SelectItem value="Medium">Medium</SelectItem>
+                <SelectItem value="Low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={industryFilter} onValueChange={setIndustryFilter}>
+              <SelectTrigger className="w-full vf-text-caption">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Industries</SelectItem>
+                {industries.map(ind => (
+                  <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             <div className="ml-auto flex items-center gap-2">
               <button className="flex items-center gap-1.5 px-3 py-1.5 vf-text-caption font-medium text-muted-foreground hover:bg-muted rounded-lg transition-colors">
                 <Download size={12}/> Export
@@ -321,7 +322,7 @@ function BenchmarkPoliciesContent() {
               </div>
             )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 

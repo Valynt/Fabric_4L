@@ -20,7 +20,16 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useValuePacks,
   type ValuePack,
@@ -51,7 +60,7 @@ function PackStatusChip({ status }: { status: PackStatus }) {
 
 function PackManagementSkeleton() {
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <div className="flex items-start justify-between mb-6">
         <div>
           <Skeleton className="h-8 w-48 mb-2" />
@@ -76,7 +85,7 @@ function PackManagementSkeleton() {
           </div>
         ))}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
@@ -116,34 +125,29 @@ function PackManagementContent() {
     totalDrivers: packs.reduce((s, p) => s + (p.driver_count || 0), 0),
   }), [packs]);
 
-  if (isLoading) return <PackManagementSkeleton />;
+  if (isLoading) {
+    return (
+      <PageShell>
+        <PackManagementSkeleton />
+      </PageShell>
+    );
+  }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load packs</h3>
-              <p className="vf-text-body-s text-destructive/80">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <PageShell>
+        <ErrorState
+          title="Failed to load packs"
+          description="An error occurred while loading pack data."
+          error={error}
+          onRetry={() => refetch()}
+        />
+      </PageShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       {/* Header */}
       <div className="flex items-start justify-between mb-6">
         <PageHeader
@@ -198,16 +202,17 @@ function PackManagementContent() {
             </button>
           ))}
         </div>
-        <select
-          value={industryFilter}
-          onChange={e => setIndustryFilter(e.target.value)}
-          className="px-3 py-2 vf-text-caption border border-border rounded-lg bg-card text-foreground outline-none focus:border-primary"
-        >
-          <option value="all">All Industries</option>
-          {industries.map(ind => (
-            <option key={ind} value={ind}>{ind}</option>
-          ))}
-        </select>
+        <Select value={industryFilter} onValueChange={setIndustryFilter}>
+          <SelectTrigger className="w-full vf-text-caption">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Industries</SelectItem>
+            {industries.map(ind => (
+              <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Pack Table */}
@@ -273,7 +278,7 @@ function PackManagementContent() {
           </div>
         )}
       </div>
-    </div>
+    </PageShell>
   );
 }
 
