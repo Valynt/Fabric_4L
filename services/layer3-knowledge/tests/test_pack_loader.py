@@ -15,8 +15,8 @@ from unittest.mock import patch
 
 import pytest
 
-from api.routes import pack_loader
-from api.routes.pack_loader import (
+from src.api.routes import pack_loader
+from src.api.routes.pack_loader import (
     VALID_PACK_ID_PATTERN,
     VERSION_SUFFIX_PATTERN,
     _extract_pack_slug,

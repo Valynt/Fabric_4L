@@ -1,120 +1,210 @@
-"""
-SQLAlchemy models for Benchmark governance.
+import re
 
-Phase 3: Create Benchmark governance entity with metadata completeness
-Issue: Benchmark metadata completeness (source/version/effective date/scope/confidence in Layer 5)
+# Fix benchmark_governance.py
+path = 'services/layer5-ground-truth/src/layer5_ground_truth/models/benchmark_governance.py'
+with open(path, 'r', encoding='utf-8') as f:
+    text = f.read()
 
-Core entities:
-  - BenchmarkDataset    : Versioned benchmark datasets with full metadata
-  - BenchmarkVersion    : Individual benchmark versions
-  - BenchmarkScope      : Scope definition for benchmark applicability
+# Remove the standalone __table_args__ = {"extend_existing": True} for BenchmarkDataset
+# and add it to the tuple instead
+old_pattern = '''    __tablename__ = "benchmark_datasets"
+    __table_args__ = {"extend_existing": True}
 
-Design notes:
-  - Version-locked governance with approval workflow integration
-  - Complete metadata: source, version, effective date, scope, confidence
-  - Tenant-scoped with audit trail
-"""
+    # -------------------------------------------------------------------------
+    # Primary identifiers
+    # -------------------------------------------------------------------------
+    id = Column(
+        UUID,
+        primary_key=True,
+        default=lambda: uuid.uuid4(),
+        comment="Globally unique benchmark identifier",
+    )
+    tenant_id = Column(
+        UUID,
+        nullable=False,
+        index=True,
+        comment="Tenant isolation",
+    )
 
-import uuid
-from datetime import UTC, datetime
-from enum import Enum as PyEnum
+    # -------------------------------------------------------------------------
+    # Benchmark identification
+    # -------------------------------------------------------------------------
+    name = Column(
+        String(128),
+        nullable=False,
+        comment="Human-readable benchmark name",
+    )
+    slug = Column(
+        String(128),
+        nullable=False,
+        unique=True,
+        index=True,
+        comment="URL-safe slug for API references",
+    )
+    benchmark_type = Column(
+        String(32),
+        nullable=False,
+        index=True,
+        comment="Type of benchmark — see BenchmarkType enum",
+    )
+    description = Column(
+        Text,
+        nullable=True,
+        comment="Human-readable description of the benchmark",
+    )
 
-from sqlalchemy import (
-    Boolean,
-    Column,
-    DateTime,
-    ForeignKey,
-    Index,
-    Integer,
-    String,
-    Text,
-)
-from sqlalchemy.orm import Mapped, relationship
-from sqlalchemy.types import JSON
+    # -------------------------------------------------------------------------
+    # Version tracking
+    # -------------------------------------------------------------------------
+    current_version = Column(
+        String(64),
+        nullable=False,
+        default="1.0.0",
+        comment="Current approved version (semver)",
+    )
+    latest_version = Column(
+        String(64),
+        nullable=False,
+        default="1.0.0",
+        comment="Latest version (including pending)",
+    )
 
-# Import from truth_object to share the same Base and UUID type
-from .truth_object import UUID, Base
+    # -------------------------------------------------------------------------
+    # Source metadata
+    # -------------------------------------------------------------------------
+    source_name = Column(
+        String(128),
+        nullable=False,
+        comment="Name of the data source",
+    )
+    source_url = Column(
+        Text,
+        nullable=True,
+        comment="URL or reference to the source",
+    )
+    source_type = Column(
+        String(32),
+        nullable=False,
+        comment="Type of source (research, survey, internal, etc.)",
+    )
+    source_date = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="Date the source data was published or collected",
+    )
+    collection_methodology = Column(
+        Text,
+        nullable=True,
+        comment="Description of data collection methodology",
+    )
 
-# ---------------------------------------------------------------------------
-# Enumerations
-# ---------------------------------------------------------------------------
+    # -------------------------------------------------------------------------
+    # Confidence and quality
+    # -------------------------------------------------------------------------
+    confidence_level = Column(
+        String(32),
+        nullable=False,
+        default="medium",
+        comment="Confidence level in the data (high, medium, low)",
+    )
+    sample_size = Column(
+        Integer,
+        nullable=True,
+        comment="Sample size of the benchmark data",
+    )
+    margin_of_error = Column(
+        JSON,
+        nullable=True,
+        comment="Margin of error information",
+    )
+    data_quality_notes = Column(
+        Text,
+        nullable=True,
+        comment="Notes on data quality and limitations",
+    )
 
+    # -------------------------------------------------------------------------
+    # Lifecycle
+    # -------------------------------------------------------------------------
+    is_active = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Whether this benchmark is active",
+    )
+    deprecated_at = Column(
+        DateTime(timezone=True),
+        nullable=True,
+        comment="When the benchmark was deprecated",
+    )
+    deprecation_reason = Column(
+        Text,
+        nullable=True,
+        comment="Reason for deprecation",
+    )
 
-class BenchmarkType(str, PyEnum):
-    """Types of benchmark datasets."""
+    # -------------------------------------------------------------------------
+    # Approval workflow integration
+    # -------------------------------------------------------------------------
+    approval_request_id = Column(
+        UUID,
+        nullable=True,
+        index=True,
+        comment="Reference to current approval request (if pending)",
+    )
 
-    INDUSTRY_STANDARD = "industry_standard"
-    """Industry-wide standard benchmarks"""
+    # -------------------------------------------------------------------------
+    # Metadata
+    # -------------------------------------------------------------------------
+    created_by = Column(
+        String(255),
+        nullable=True,
+        comment="User who created the benchmark",
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+    )
 
-    COMPETITIVE = "competitive"
-    """Competitor benchmarks"""
+    # -------------------------------------------------------------------------
+    # Relationships
+    # -------------------------------------------------------------------------
+    versions: Mapped[list["BenchmarkVersion"]] = relationship(
+        "BenchmarkVersion",
+        back_populates="benchmark",
+        cascade="all, delete-orphan",
+        order_by="BenchmarkVersion.version",
+    )
+    scopes: Mapped[list["BenchmarkScope"]] = relationship(
+        "BenchmarkScope",
+        back_populates="benchmark",
+        cascade="all, delete-orphan",
+    )
 
-    HISTORICAL = "historical"
-    """Historical performance benchmarks"""
+    # -------------------------------------------------------------------------
+    # Indexes
+    # -------------------------------------------------------------------------
+    __table_args__ = (
+        Index(
+            "ix_benchmark_datasets_tenant_type",
+            "tenant_id",
+            "benchmark_type",
+        ),
+        Index(
+            "ix_benchmark_datasets_tenant_slug",
+            "tenant_id",
+            "slug",
+        ),
+    )'''
 
-    CUSTOMER_REFERENCE = "customer_reference"
-    """Customer reference benchmarks"""
-
-    INTERNAL = "internal"
-    """Internal organizational benchmarks"""
-
-    THIRD_PARTY = "third_party"
-    """Third-party research benchmarks"""
-
-
-class BenchmarkScopeEnum(str, PyEnum):
-    """Scope of benchmark applicability."""
-
-    GLOBAL = "global"
-    """Global applicability"""
-
-    INDUSTRY = "industry"
-    """Industry-specific"""
-
-    REGION = "region"
-    """Geographic region"""
-
-    SEGMENT = "segment"
-    """Market segment"""
-
-    ACCOUNT = "account"
-    """Account-specific"""
-
-
-class BenchmarkStatus(str, PyEnum):
-    """Status of a benchmark version."""
-
-    DRAFT = "draft"
-    """Draft version, not yet submitted"""
-
-    PENDING_APPROVAL = "pending_approval"
-    """Awaiting approval"""
-
-    APPROVED = "approved"
-    """Approved and available for use"""
-
-    DEPRECATED = "deprecated"
-    """Deprecated but kept for reference"""
-
-    ARCHIVED = "archived"
-    """Archived and no longer available"""
-
-
-# ---------------------------------------------------------------------------
-# BenchmarkDataset — versioned benchmark dataset
-# ---------------------------------------------------------------------------
-
-
-class BenchmarkDataset(Base):
-    """
-    A versioned benchmark dataset with complete metadata.
-
-    Benchmarks provide reference data for ROI calculations, competitive analysis,
-    and performance comparisons. Each dataset has multiple versions with full
-    provenance tracking.
-    """
-
-    __tablename__ = "benchmark_datasets"
+new_pattern = '''    __tablename__ = "benchmark_datasets"
 
     # -------------------------------------------------------------------------
     # Primary identifiers
@@ -309,23 +399,23 @@ class BenchmarkDataset(Base):
             "slug",
         ),
         {"extend_existing": True},
-    )
+    )'''
 
+if old_pattern in text:
+    text = text.replace(old_pattern, new_pattern, 1)
+    with open(path, 'w', encoding='utf-8', newline='') as f:
+        f.write(text)
+    print('Fixed benchmark_governance.py')
+else:
+    print('Pattern not found in benchmark_governance.py')
 
-# ---------------------------------------------------------------------------
-# BenchmarkVersion — individual benchmark version
-# ---------------------------------------------------------------------------
+# Fix policy_governance.py
+path2 = 'services/layer5-ground-truth/src/layer5_ground_truth/models/policy_governance.py'
+with open(path2, 'r', encoding='utf-8') as f:
+    text2 = f.read()
 
-
-class BenchmarkVersion(Base):
-    """
-    An individual version of a benchmark dataset.
-
-    Each version has its own data, effective dates, and approval status.
-    Only approved versions can be used in calculations.
-    """
-
-    __tablename__ = "benchmark_versions"
+old_policy = '''    __tablename__ = "policy_rules"
+    __table_args__ = {"extend_existing": True}
 
     # -------------------------------------------------------------------------
     # Primary identifiers
@@ -340,197 +430,72 @@ class BenchmarkVersion(Base):
         nullable=False,
         index=True,
     )
-    benchmark_id = Column(
+    policy_id = Column(
         UUID,
-        ForeignKey("benchmark_datasets.id", ondelete="CASCADE"),
+        ForeignKey("policies.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
 
     # -------------------------------------------------------------------------
-    # Version details
+    # Rule details
     # -------------------------------------------------------------------------
-    version = Column(
-        String(64),
+    rule_name = Column(
+        String(128),
         nullable=False,
-        comment="Semver version string (e.g., '1.0.0')",
+        comment="Human-readable rule name",
     )
-    data = Column(
-        JSON,
+    rule_order = Column(
+        Integer,
         nullable=False,
-        comment="Benchmark data (structure varies by type)",
+        default=0,
+        comment="Order of rule evaluation (lower = earlier)",
     )
-    data_schema = Column(
-        JSON,
+    target_field = Column(
+        String(128),
         nullable=False,
-        comment="JSON Schema for the data structure",
+        comment="Field to evaluate (e.g., 'confidence', 'sample_size')",
     )
-
-    # -------------------------------------------------------------------------
-    # Effective dates
-    # -------------------------------------------------------------------------
-    effective_from = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        comment="Date when this version becomes effective",
-    )
-    effective_until = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="Date when this version expires (if applicable)",
-    )
-
-    # -------------------------------------------------------------------------
-    # Validation
-    # -------------------------------------------------------------------------
-    status = Column(
+    operator = Column(
         String(32),
         nullable=False,
-        default=BenchmarkStatus.DRAFT.value,
-        index=True,
-        comment="Approval status — see BenchmarkStatus enum",
+        comment="Comparison operator — see RuleOperator enum",
     )
-    validation_errors = Column(
+    expected_value = Column(
         JSON,
-        nullable=True,
-        comment="Schema validation errors (if any)",
+        nullable=False,
+        comment="Expected value for comparison",
     )
-
-    # -------------------------------------------------------------------------
-    # Change tracking
-    # -------------------------------------------------------------------------
-    change_description = Column(
+    error_message = Column(
         Text,
         nullable=True,
-        comment="Description of changes in this version",
-    )
-    changed_by = Column(
-        String(255),
-        nullable=True,
-        comment="User who created this version",
+        comment="Error message when rule fails",
     )
 
     # -------------------------------------------------------------------------
-    # Approval workflow
+    # Rule configuration
     # -------------------------------------------------------------------------
-    approval_request_id = Column(
-        UUID,
-        nullable=True,
-        index=True,
-        comment="Reference to approval request",
+    is_blocking = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Whether this rule blocks the operation when it fails",
     )
-    approved_by = Column(
-        String(255),
-        nullable=True,
-        comment="User who approved this version",
-    )
-    approved_at = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        comment="When this version was approved",
+    severity = Column(
+        String(32),
+        nullable=False,
+        default="medium",
+        comment="Severity level for this rule",
     )
 
     # -------------------------------------------------------------------------
     # Metadata
     # -------------------------------------------------------------------------
-    created_at = Column(
-        DateTime(timezone=True),
-        nullable=False,
-        default=lambda: datetime.now(UTC),
-    )
-
-    # -------------------------------------------------------------------------
-    # Relationships
-    # -------------------------------------------------------------------------
-    benchmark: Mapped["BenchmarkDataset"] = relationship(
-        "BenchmarkDataset",
-        back_populates="versions",
-    )
-
-    # -------------------------------------------------------------------------
-    # Indexes
-    # -------------------------------------------------------------------------
-    __table_args__ = (
-        Index(
-            "ix_benchmark_versions_tenant_benchmark",
-            "tenant_id",
-            "benchmark_id",
-        ),
-        Index(
-            "ix_benchmark_versions_tenant_status",
-            "tenant_id",
-            "status",
-        ),
-        Index(
-            "ix_benchmark_versions_benchmark_version",
-            "benchmark_id",
-            "version",
-            unique=True,
-        ),
-        Index(
-            "ix_benchmark_versions_effective",
-            "effective_from",
-            "effective_until",
-        ),
-    )
-
-
-# ---------------------------------------------------------------------------
-# BenchmarkScope — scope definition
-# ---------------------------------------------------------------------------
-
-
-class BenchmarkScope(Base):
-    """
-    Scope definition for benchmark applicability.
-
-    Defines where and when a benchmark applies (industry, region, segment, etc.).
-    """
-
-    __tablename__ = "benchmark_scopes"
-
-    # -------------------------------------------------------------------------
-    # Primary identifiers
-    # -------------------------------------------------------------------------
-    id = Column(
-        UUID,
-        primary_key=True,
-        default=lambda: uuid.uuid4(),
-    )
-    tenant_id = Column(
-        UUID,
-        nullable=False,
-        index=True,
-    )
-    benchmark_id = Column(
-        UUID,
-        ForeignKey("benchmark_datasets.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
-    )
-
-    # -------------------------------------------------------------------------
-    # Scope details
-    # -------------------------------------------------------------------------
-    scope_type = Column(
-        String(32),
-        nullable=False,
-        comment="Type of scope — see BenchmarkScope enum",
-    )
-    scope_value = Column(
-        String(255),
-        nullable=False,
-        comment="Value of the scope (e.g., 'technology', 'north_america')",
-    )
     description = Column(
         Text,
         nullable=True,
-        comment="Description of the scope",
+        comment="Description of the rule",
     )
-
-    # -------------------------------------------------------------------------
-    # Metadata
-    # -------------------------------------------------------------------------
     created_at = Column(
         DateTime(timezone=True),
         nullable=False,
@@ -540,9 +505,9 @@ class BenchmarkScope(Base):
     # -------------------------------------------------------------------------
     # Relationships
     # -------------------------------------------------------------------------
-    benchmark: Mapped["BenchmarkDataset"] = relationship(
-        "BenchmarkDataset",
-        back_populates="scopes",
+    policy: Mapped["Policy"] = relationship(
+        "Policy",
+        back_populates="rules",
     )
 
     # -------------------------------------------------------------------------
@@ -550,14 +515,133 @@ class BenchmarkScope(Base):
     # -------------------------------------------------------------------------
     __table_args__ = (
         Index(
-            "ix_benchmark_scopes_tenant_benchmark",
+            "ix_policy_rules_tenant_policy",
             "tenant_id",
-            "benchmark_id",
+            "policy_id",
         ),
         Index(
-            "ix_benchmark_scopes_type_value",
-            "benchmark_id",
-            "scope_type",
-            "scope_value",
+            "ix_policy_rules_policy_order",
+            "policy_id",
+            "rule_order",
         ),
+    )'''
+
+new_policy = '''    __tablename__ = "policy_rules"
+
+    # -------------------------------------------------------------------------
+    # Primary identifiers
+    # -------------------------------------------------------------------------
+    id = Column(
+        UUID,
+        primary_key=True,
+        default=lambda: uuid.uuid4(),
     )
+    tenant_id = Column(
+        UUID,
+        nullable=False,
+        index=True,
+    )
+    policy_id = Column(
+        UUID,
+        ForeignKey("policies.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+
+    # -------------------------------------------------------------------------
+    # Rule details
+    # -------------------------------------------------------------------------
+    rule_name = Column(
+        String(128),
+        nullable=False,
+        comment="Human-readable rule name",
+    )
+    rule_order = Column(
+        Integer,
+        nullable=False,
+        default=0,
+        comment="Order of rule evaluation (lower = earlier)",
+    )
+    target_field = Column(
+        String(128),
+        nullable=False,
+        comment="Field to evaluate (e.g., 'confidence', 'sample_size')",
+    )
+    operator = Column(
+        String(32),
+        nullable=False,
+        comment="Comparison operator — see RuleOperator enum",
+    )
+    expected_value = Column(
+        JSON,
+        nullable=False,
+        comment="Expected value for comparison",
+    )
+    error_message = Column(
+        Text,
+        nullable=True,
+        comment="Error message when rule fails",
+    )
+
+    # -------------------------------------------------------------------------
+    # Rule configuration
+    # -------------------------------------------------------------------------
+    is_blocking = Column(
+        Boolean,
+        nullable=False,
+        default=True,
+        comment="Whether this rule blocks the operation when it fails",
+    )
+    severity = Column(
+        String(32),
+        nullable=False,
+        default="medium",
+        comment="Severity level for this rule",
+    )
+
+    # -------------------------------------------------------------------------
+    # Metadata
+    # -------------------------------------------------------------------------
+    description = Column(
+        Text,
+        nullable=True,
+        comment="Description of the rule",
+    )
+    created_at = Column(
+        DateTime(timezone=True),
+        nullable=False,
+        default=lambda: datetime.now(UTC),
+    )
+
+    # -------------------------------------------------------------------------
+    # Relationships
+    # -------------------------------------------------------------------------
+    policy: Mapped["Policy"] = relationship(
+        "Policy",
+        back_populates="rules",
+    )
+
+    # -------------------------------------------------------------------------
+    # Indexes
+    # -------------------------------------------------------------------------
+    __table_args__ = (
+        Index(
+            "ix_policy_rules_tenant_policy",
+            "tenant_id",
+            "policy_id",
+        ),
+        Index(
+            "ix_policy_rules_policy_order",
+            "policy_id",
+            "rule_order",
+        ),
+        {"extend_existing": True},
+    )'''
+
+if old_policy in text2:
+    text2 = text2.replace(old_policy, new_policy, 1)
+    with open(path2, 'w', encoding='utf-8', newline='') as f:
+        f.write(text2)
+    print('Fixed policy_governance.py')
+else:
+    print('Pattern not found in policy_governance.py')

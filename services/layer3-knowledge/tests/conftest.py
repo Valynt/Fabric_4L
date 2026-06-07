@@ -73,7 +73,7 @@ import pytest_asyncio
 from fastapi.testclient import TestClient
 from httpx import ASGITransport, AsyncClient
 
-from api.dependencies import AppState  # type: ignore[import-untyped]
+from src.api.dependencies import AppState  # type: ignore[import-untyped]
 
 _config_module = import_module("config")
 if not hasattr(_config_module, "get_settings"):

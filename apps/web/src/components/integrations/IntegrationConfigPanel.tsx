@@ -344,7 +344,7 @@ export function IntegrationConfigPanel({
                 <div className="flex items-start gap-2">
                   <AlertCircle size={14} className="text-warning mt-0.5" />
                   <div>
-                    <p className="vf-text-caption font-medium text-amber-900">Reconnect Required</p>
+                    <p className="vf-text-caption font-medium text-warning">Reconnect Required</p>
                     <p className="vf-text-micro text-warning mt-0.5">
                       This Salesforce connection is missing a refresh token or is currently degraded. Reconnect to restore automatic token refresh.
                     </p>

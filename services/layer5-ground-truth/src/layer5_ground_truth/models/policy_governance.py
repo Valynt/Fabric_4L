@@ -585,6 +585,7 @@ class PolicyRule(Base):
             "policy_id",
             "rule_order",
         ),
+        {"extend_existing": True},
     )
 
 

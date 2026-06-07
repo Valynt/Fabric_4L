@@ -219,7 +219,7 @@ function SecurityPanel({
       {/* 2FA Toggle */}
       <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-success/100/10 text-success flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
             <Shield size={16} />
           </div>
           <div>
@@ -237,7 +237,7 @@ function SecurityPanel({
       {/* Session Timeout */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-warning/100/10 text-warning flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center shrink-0">
             <Users size={16} />
           </div>
           <div>
@@ -522,9 +522,9 @@ function PlatformSettingsContent() {
   if (!settings) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-warning/100/10 border border-amber-500/20 rounded-xl p-6">
-          <h3 className="vf-text-body-l font-semibold text-amber-900 dark:text-amber-100">No Settings Available</h3>
-          <p className="vf-text-body-s text-warning dark:text-amber-300 mt-1">
+        <div className="bg-warning/10 border border-amber-500/20 rounded-xl p-6">
+          <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Settings Available</h3>
+          <p className="vf-text-body-s text-warning dark:text-warning mt-1">
             Platform settings could not be loaded. Please contact support.
           </p>
         </div>

@@ -1,4 +1,4 @@
-from services.compat_metrics import deprecation_ready_for_removal
+from src.services.compat_metrics import deprecation_ready_for_removal
 
 
 def test_deprecation_ready_for_removal_when_no_legacy_usage() -> None:

@@ -18,14 +18,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 
-from api.dependencies_tenant_secured import require_request_tenant_id
-from api.routes.graph_viz import (
+from src.api.dependencies_tenant_secured import require_request_tenant_id
+from src.api.routes.graph_viz import (
     _VALID_REL_TYPE,
     get_entity_subgraph,
     get_full_graph,
     get_query_subgraph,
 )
-from db.query_execution import MAX_QUERY_DEPTH
+from src.db.query_execution import MAX_QUERY_DEPTH
 from fastapi import HTTPException
 
 # Test constants

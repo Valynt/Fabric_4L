@@ -1,7 +1,7 @@
-from backup.backup_manager import BackupConfig as ServiceBackupConfig
-from backup.backup_manager import BackupManager as ServiceBackupManager
-from backup.backup_manager import LocalStorage as ServiceLocalStorage
-from backup.backup_manager import BackupConfig, BackupManager, LocalStorage
+from src.backup.backup_manager import BackupConfig as ServiceBackupConfig
+from src.backup.backup_manager import BackupManager as ServiceBackupManager
+from src.backup.backup_manager import LocalStorage as ServiceLocalStorage
+from src.backup.backup_manager import BackupConfig, BackupManager, LocalStorage
 
 
 def test_backup_manager_uses_concrete_storage(tmp_path):

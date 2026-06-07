@@ -36,8 +36,8 @@ from value_fabric.shared.identity.vault_check import is_vault_healthy
 from value_fabric.shared.security import validate_production_safety
 from value_fabric.shared.startup import reject_insecure_bypass_in_production
 
-from config import get_settings
-from logging_config import get_logger, setup_logging
+from src.config import get_settings
+from src.logging_config import get_logger, setup_logging
 
 from ..api.dependencies import close_app_state, init_app_state
 from ..api.exceptions import (
@@ -353,109 +353,118 @@ app.middleware("http")(VersionMiddleware(get_version_compatibility()))
 # Exception handlers
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Exception handlers (defined at module level for testability)
+# ---------------------------------------------------------------------------
+
+async def value_fabric_exception_handler(request: Request, exc: ValueFabricException):
+    from fastapi.responses import JSONResponse
+
+    status_code = 500
+    if isinstance(exc, ValidationError):
+        status_code = 400
+    elif isinstance(exc, AuthenticationError):
+        status_code = 401
+    elif isinstance(exc, AuthorizationError):
+        status_code = 403
+    elif exc.error_code == "NOT_FOUND":
+        status_code = 404
+    elif exc.error_code == "CONFLICT":
+        status_code = 409
+    elif isinstance(exc, RateLimitError):
+        status_code = 429
+    elif isinstance(exc, ServiceUnavailableError):
+        status_code = 503
+    response = JSONResponse(status_code=status_code, content=exc.to_dict())
+
+    logger.error(
+        "Value Fabric exception: %s at %s %s - %s",
+        exc.error_code,
+        request.method,
+        request.url.path,
+        exc.message,
+        exc_info=_exception_trace(exc),
+        extra={"trace_id": getattr(request.state, "trace_id", None)},
+    )
+    metrics = getattr(request.app.state, "metrics", None)
+    if metrics:
+        metrics.increment_errors(
+            error_type=exc.error_code, component="api", namespace="layer3"
+        )
+    return response
+
+
+async def http_exception_handler(request: Request, exc: HTTPException):
+    from fastapi.responses import JSONResponse
+
+    response = JSONResponse(status_code=exc.status_code, content=exc.detail)
+
+    logger.warning(
+        "HTTP exception %s at %s %s: %s",
+        exc.status_code,
+        request.method,
+        request.url.path,
+        exc.detail,
+        extra={"trace_id": getattr(request.state, "trace_id", None)},
+    )
+    return response
+
+
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    from fastapi.responses import JSONResponse
+
+    response = JSONResponse(
+        status_code=422,
+        content={"detail": exc.errors(), "body": exc.body},
+    )
+    logger.warning(
+        "Validation exception at %s %s",
+        request.method,
+        request.url.path,
+        extra={"trace_id": getattr(request.state, "trace_id", None)},
+    )
+    return response
+
+
+async def global_exception_handler(request: Request, exc: Exception):
+    from fastapi.responses import JSONResponse
+
+    response = JSONResponse(
+        status_code=500,
+        content={
+            "error": "INTERNAL_SERVER_ERROR",
+            "message": "An unexpected error occurred",
+            "type": type(exc).__name__,
+            "request_id": getattr(request.state, "request_id", None),
+        },
+    )
+
+    logger.error(
+        "Unhandled %s at %s %s",
+        type(exc).__name__,
+        request.method,
+        request.url.path,
+        exc_info=_exception_trace(exc),
+        extra={"trace_id": getattr(request.state, "trace_id", None)},
+    )
+    metrics = getattr(request.app.state, "metrics", None)
+    if metrics:
+        metrics.increment_errors(
+            error_type=type(exc).__name__, component="api", namespace="layer3"
+        )
+    return response
+
+
 # Register canonical error envelope handlers from shared package
 try:
     from value_fabric.shared.error_handling.handlers import register_exception_handlers
     register_exception_handlers(app)
 except ImportError:
     # Fallback to local handlers if shared package not available
-    @app.exception_handler(ValueFabricException)
-    async def value_fabric_exception_handler(request: Request, exc: ValueFabricException):
-        from fastapi.responses import JSONResponse
-
-        status_code = 500
-        if isinstance(exc, ValidationError):
-            status_code = 400
-        elif isinstance(exc, AuthenticationError):
-            status_code = 401
-        elif isinstance(exc, AuthorizationError):
-            status_code = 403
-        elif exc.error_code == "NOT_FOUND":
-            status_code = 404
-        elif exc.error_code == "CONFLICT":
-            status_code = 409
-        elif isinstance(exc, RateLimitError):
-            status_code = 429
-        elif isinstance(exc, ServiceUnavailableError):
-            status_code = 503
-        response = JSONResponse(status_code=status_code, content=exc.to_dict())
-
-        logger.error(
-            "Value Fabric exception: %s at %s %s - %s",
-            exc.error_code,
-            request.method,
-            request.url.path,
-            exc.message,
-            exc_info=_exception_trace(exc),
-            extra={"trace_id": getattr(request.state, "trace_id", None)},
-        )
-        metrics = getattr(request.app.state, "metrics", None)
-        if metrics:
-            metrics.increment_errors(
-                error_type=exc.error_code, component="api", namespace="layer3"
-            )
-        return response
-
-    @app.exception_handler(HTTPException)
-    async def http_exception_handler(request: Request, exc: HTTPException):
-        from fastapi.responses import JSONResponse
-
-        response = JSONResponse(status_code=exc.status_code, content=exc.detail)
-
-        logger.warning(
-            "HTTP exception %s at %s %s: %s",
-            exc.status_code,
-            request.method,
-            request.url.path,
-            exc.detail,
-            extra={"trace_id": getattr(request.state, "trace_id", None)},
-        )
-        return response
-
-    @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError):
-        from fastapi.responses import JSONResponse
-
-        response = JSONResponse(
-            status_code=422,
-            content={"detail": exc.errors(), "body": exc.body},
-        )
-        logger.warning(
-            "Validation exception at %s %s",
-            request.method,
-            request.url.path,
-            extra={"trace_id": getattr(request.state, "trace_id", None)},
-        )
-        return response
-
-    @app.exception_handler(Exception)
-    async def global_exception_handler(request: Request, exc: Exception):
-        from fastapi.responses import JSONResponse
-
-        response = JSONResponse(
-            status_code=500,
-            content={
-                "error": "INTERNAL_SERVER_ERROR",
-                "message": "An unexpected error occurred",
-                "type": type(exc).__name__,
-                "request_id": getattr(request.state, "request_id", None),
-            },
-        )
-
-        logger.error(
-            "Unhandled %s at %s %s",
-            type(exc).__name__,
-            request.method,
-            request.url.path,
-            exc_info=_exception_trace(exc),
-            extra={"trace_id": getattr(request.state, "trace_id", None)},
-        )
-        metrics = getattr(request.app.state, "metrics", None)
-        if metrics:
-            metrics.increment_errors(
-                error_type=type(exc).__name__, component="api", namespace="layer3"
-            )
-        return response
+    app.exception_handler(ValueFabricException)(value_fabric_exception_handler)
+    app.exception_handler(HTTPException)(http_exception_handler)
+    app.exception_handler(RequestValidationError)(validation_exception_handler)
+    app.exception_handler(Exception)(global_exception_handler)
 
 
 # ---------------------------------------------------------------------------

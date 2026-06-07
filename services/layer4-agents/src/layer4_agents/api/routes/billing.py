@@ -26,6 +26,29 @@ from value_fabric.shared.models.typed_dict import TypedDictModel
 from ..common.db import get_route_db
 
 logger = logging.getLogger(__name__)
+
+# Known Stripe webhook IPs (documented by Stripe) + loopback for local dev
+_STRIPE_WEBHOOK_IPS = {"3.18.12.63", "52.15.183.38", "54.187.174.170", "127.0.0.1", "::1"}
+
+
+def _is_stripe_webhook_ip(ip: str) -> bool:
+    """Return True if *ip* is a known Stripe webhook or loopback address."""
+    return ip in _STRIPE_WEBHOOK_IPS
+
+
+def _get_client_ip(request: Request) -> str:
+    """Extract the client IP from forwarded headers or the transport socket."""
+    x_forwarded = request.headers.get("X-Forwarded-For")
+    if x_forwarded:
+        return x_forwarded.split(",")[0].strip()
+    x_real = request.headers.get("X-Real-IP")
+    if x_real:
+        return x_real.strip()
+    if request.client is not None:
+        return request.client.host
+    return ""
+
+
 router = APIRouter(prefix="/billing", tags=["Billing"])
 
 

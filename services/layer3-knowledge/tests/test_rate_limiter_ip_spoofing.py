@@ -11,7 +11,7 @@ from unittest.mock import MagicMock
 import pytest
 from fastapi import Request
 
-from api.rate_limiter import RateLimiter
+from src.api.rate_limiter import RateLimiter
 
 
 class FakeClient:

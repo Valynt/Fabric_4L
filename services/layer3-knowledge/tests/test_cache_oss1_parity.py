@@ -11,7 +11,7 @@ from typing import Any
 
 import pytest
 
-from cache import (
+from src.cache import (
     AiocacheCacheAdapter,
     CacheConfig,
     CachePort,

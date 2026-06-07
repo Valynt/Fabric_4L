@@ -37,20 +37,20 @@ try:
 except ImportError:
     HAS_TESTCONTAINERS = False
 
-from api.dependencies import (
+from src.api.dependencies import (
     get_graph_rag,
     get_hybrid_search,
     get_schema_initializer,
     get_sync_manager,
 )
-from api.main import app
-from config import Settings
-from ingestion.neo4j_loader import Neo4jLoader
-from ingestion.sync_manager import SyncManager
-from retrieval.graph_rag import GraphRAGEngine
-from retrieval.hybrid_search import HybridSearch
-from retrieval.vector_store import VectorStore
-from schema.initializer import SchemaInitializer
+from src.api.main import app
+from src.config import Settings
+from src.ingestion.neo4j_loader import Neo4jLoader
+from src.ingestion.sync_manager import SyncManager
+from src.retrieval.graph_rag import GraphRAGEngine
+from src.retrieval.hybrid_search import HybridSearch
+from src.retrieval.vector_store import VectorStore
+from src.schema.initializer import SchemaInitializer
 
 # Skip entire module if testcontainers not installed
 pytestmark = [

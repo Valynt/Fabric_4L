@@ -17,7 +17,7 @@ from fastapi import Request, Response
 from fastapi.routing import APIRoute
 from pydantic import BaseModel, Field
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 

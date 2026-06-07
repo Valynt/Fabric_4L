@@ -12,7 +12,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import Response
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ..auth.api_keys import (
     APIKey,

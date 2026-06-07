@@ -13,7 +13,7 @@ Verifies:
 
 import pytest
 
-from config.manager import (
+from src.config.manager import (
     ConfigSource,
     ConfigurationManager,
     VaultSourceNotSupportedError,

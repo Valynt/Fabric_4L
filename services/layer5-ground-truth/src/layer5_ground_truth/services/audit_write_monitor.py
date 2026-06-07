@@ -18,6 +18,9 @@ logger = logging.getLogger(__name__)
 # List of roles that can bypass audit write restrictions
 ADMIN_ROLES = {"admin", "system", "auditor"}
 
+# Alias for backward compatibility with tests that import this name
+AgentPermissionError = PermissionError
+
 
 def is_admin_user(caller: "TokenClaims | None") -> bool:
     """Check if the caller has admin privileges for audit writes.

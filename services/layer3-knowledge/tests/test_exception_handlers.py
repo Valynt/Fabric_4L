@@ -5,8 +5,8 @@ from unittest.mock import MagicMock, patch
 import pytest
 from starlette.requests import Request
 
-from api.exceptions import ValueFabricException
-from api.main import (
+from src.api.exceptions import ValueFabricException
+from src.api.main import (
     global_exception_handler,
     value_fabric_exception_handler,
 )

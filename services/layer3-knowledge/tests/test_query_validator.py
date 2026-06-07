@@ -8,7 +8,7 @@ Validates that the query validator correctly identifies:
 
 import pytest
 
-from security.query_validator import (
+from src.security.query_validator import (
     QueryValidator,
     ValidationFinding,
     ValidationSeverity,

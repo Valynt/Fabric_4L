@@ -23,12 +23,12 @@ const statusConfig: Record<
   BlockStatus,
   { icon: typeof CheckCircle2; classes: string; label: string }
 > = {
-  connected:  { icon: CheckCircle2,  classes: "bg-success/100/10 text-success", label: "Connected" },
-  healthy:    { icon: CheckCircle2,  classes: "bg-success/100/10 text-success", label: "Healthy" },
-  active:     { icon: CheckCircle2,  classes: "bg-success/100/10 text-success", label: "Active" },
-  completed:  { icon: CheckCircle2,  classes: "bg-success/100/10 text-success", label: "Completed" },
-  warning:    { icon: AlertTriangle, classes: "bg-warning/100/10 text-warning",     label: "Delayed" },
-  degraded:   { icon: AlertTriangle, classes: "bg-warning/100/10 text-warning",     label: "Degraded" },
+  connected:  { icon: CheckCircle2,  classes: "bg-success/10 text-success", label: "Connected" },
+  healthy:    { icon: CheckCircle2,  classes: "bg-success/10 text-success", label: "Healthy" },
+  active:     { icon: CheckCircle2,  classes: "bg-success/10 text-success", label: "Active" },
+  completed:  { icon: CheckCircle2,  classes: "bg-success/10 text-success", label: "Completed" },
+  warning:    { icon: AlertTriangle, classes: "bg-warning/10 text-warning",     label: "Delayed" },
+  degraded:   { icon: AlertTriangle, classes: "bg-warning/10 text-warning",     label: "Degraded" },
   error:      { icon: XCircle,       classes: "bg-destructive/10 text-destructive",  label: "Failed" },
   failed:     { icon: XCircle,       classes: "bg-destructive/10 text-destructive",  label: "Failed" },
   paused:     { icon: Clock,         classes: "bg-muted text-muted-foreground",      label: "Paused" },
@@ -121,10 +121,10 @@ const STATUS_MAP: Record<string, { variant: StatusVariant; label: string }> = {
 };
 
 const variantStyles: Record<string, string> = {
-  success: "bg-success/10 text-success hover:bg-success/10 dark:bg-emerald-900/30 dark:text-emerald-300",
-  warning: "bg-warning/10 text-warning hover:bg-warning/10 dark:bg-amber-900/30 dark:text-amber-300",
+  success: "bg-success/10 text-success hover:bg-success/10 dark:bg-success/30 dark:text-success",
+  warning: "bg-warning/10 text-warning hover:bg-warning/10 dark:bg-warning/30 dark:text-warning",
   info: "bg-sky-100 text-sky-800 hover:bg-sky-100 dark:bg-sky-900/30 dark:text-sky-300",
-  pending: "bg-warning/10 text-warning hover:bg-warning/10 dark:bg-orange-900/30 dark:text-orange-300",
+  pending: "bg-warning/10 text-warning hover:bg-warning/10 dark:bg-warning/30 dark:text-warning",
 };
 
 export function StatusBadge({ children, variant = "default", status, className }: StatusBadgeProps) {

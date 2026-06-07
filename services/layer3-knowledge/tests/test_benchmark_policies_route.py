@@ -3,7 +3,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.routes.benchmarks import list_benchmark_policies
+from src.api.routes.benchmarks import list_benchmark_policies
 
 
 class _Result:

@@ -11,11 +11,11 @@ import pytest
 from fastapi import HTTPException
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from api.dependencies_tenant_secured import require_request_tenant_id
-from api.routes.graph_viz import get_entity_subgraph, get_full_graph, get_query_subgraph
-from api.routes.query_search import graph_rag_query_impl, hybrid_search_impl
-from api.models import GraphRAGQuery, SearchRequest, SearchType
-from api.routes.entities import list_entities
+from src.api.dependencies_tenant_secured import require_request_tenant_id
+from src.api.routes.graph_viz import get_entity_subgraph, get_full_graph, get_query_subgraph
+from src.api.routes.query_search import graph_rag_query_impl, hybrid_search_impl
+from src.api.models import GraphRAGQuery, SearchRequest, SearchType
+from src.api.routes.entities import list_entities
 
 
 class TestTenantIsolation:

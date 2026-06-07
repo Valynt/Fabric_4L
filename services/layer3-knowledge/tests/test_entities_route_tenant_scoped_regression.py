@@ -2,8 +2,8 @@ from unittest.mock import MagicMock
 
 import pytest
 
-from api.routes.entities import list_entities, query_entities
-from api.models import EntityFilterRequest
+from src.api.routes.entities import list_entities, query_entities
+from src.api.models import EntityFilterRequest
 
 
 class _Neo4jCapture:

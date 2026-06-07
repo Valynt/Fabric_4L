@@ -7,7 +7,7 @@ from typing import Any
 
 import pytest
 
-from cache.ports import CachePort, LegacyCacheAdapter, as_cache_port
+from src.cache.ports import CachePort, LegacyCacheAdapter, as_cache_port
 
 
 class SpyCache:

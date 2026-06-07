@@ -21,7 +21,7 @@ except ImportError:
 
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ..backup.interfaces import BackupStoragePort
 

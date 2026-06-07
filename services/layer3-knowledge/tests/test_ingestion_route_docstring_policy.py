@@ -1,6 +1,6 @@
 """Policy checks for Layer 3 ingestion route security documentation."""
 
-from api.routes import ingestion
+from src.api.routes import ingestion
 
 
 def test_ingestion_route_module_docstring_states_authenticated_tenant_source() -> None:

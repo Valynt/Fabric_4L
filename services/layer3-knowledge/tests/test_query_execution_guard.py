@@ -6,7 +6,7 @@ from __future__ import annotations
 import pytest
 from value_fabric.shared.identity.isolation import QueryScope
 
-from db.query_execution import (
+from src.db.query_execution import (
     CypherDepthLimitExceeded,
     MAX_QUERY_DEPTH,
     TenantExecutionContext,
@@ -15,7 +15,7 @@ from db.query_execution import (
     run_system_query,
     run_tenant_query,
 )
-from graph.query_guards import (
+from src.graph.query_guards import (
     DEFAULT_MAX_QUERY_DEPTH,
     DEFAULT_QUERY_TIMEOUT_SECONDS,
     sanitize_query_depth,

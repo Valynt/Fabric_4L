@@ -6,7 +6,7 @@ that Neo4j Enterprise Edition would enforce via property existence constraints.
 
 import pytest
 
-from ingestion.validators import RequiredFieldValidator, ValidationResult
+from src.ingestion.validators import RequiredFieldValidator, ValidationResult
 
 
 class TestRequiredFieldValidator:

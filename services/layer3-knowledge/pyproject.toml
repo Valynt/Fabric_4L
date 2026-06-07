@@ -265,7 +265,7 @@ disable_error_code = [
 testpaths = ["tests"]
 asyncio_mode = "auto"
 addopts = "-v --tb=short"
-pythonpath = ["src", "../..", "../../packages/shared/src"]
+pythonpath = [".", "../..", "../../packages/shared/src"]
 
 [tool.coverage.run]
 source = ["src"]

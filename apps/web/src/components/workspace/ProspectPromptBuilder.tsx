@@ -156,7 +156,7 @@ const UI_BUTTON_STYLES = {
   pill: "h-10 rounded-2xl border border-border/60 bg-background px-4 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-foreground",
   icon: "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-muted-foreground shadow-none transition-all hover:border-border/60 hover:bg-muted hover:text-foreground hover:shadow-sm",
   accentIcon:
-    "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-primary shadow-none transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary hover:shadow-sm dark:text-primary dark:hover:border-violet-500/40 dark:hover:bg-primary/100/10 dark:hover:text-violet-300",
+    "h-10 w-10 rounded-2xl border border-transparent bg-transparent text-primary shadow-none transition-all hover:border-primary/30 hover:bg-primary/10 hover:text-primary hover:shadow-sm dark:text-primary dark:hover:border-violet-500/40 dark:hover:bg-primary/10 dark:hover:text-violet-300",
   option:
     "h-10 rounded-2xl border border-border/60 bg-background px-3 text-sm font-medium shadow-sm transition-colors hover:bg-accent hover:text-foreground",
   primary:
@@ -1010,9 +1010,9 @@ const StatusBanner = React.memo(function StatusBanner({
       className={cn(
         "mx-5 mb-3 rounded-2xl border px-3 py-2 text-sm transition-all",
         tone === "error" &&
-          "border-red-500/30 bg-destructive/100/10 text-destructive dark:text-red-300",
+          "border-red-500/30 bg-destructive/10 text-destructive dark:text-destructive",
         tone === "success" &&
-          "border-emerald-500/30 bg-success/100/10 text-success dark:text-emerald-300",
+          "border-emerald-500/30 bg-success/10 text-success dark:text-success",
         tone === "info" && "border-border/60 bg-muted/40 text-foreground"
       )}
     >
@@ -1031,12 +1031,12 @@ const ValidationChecklist = React.memo(function ValidationChecklist({
 
   return (
     <div className="mx-5 mb-3 rounded-2xl border border-amber-500/20 bg-warning/100/5 px-3 py-2">
-      <p className="text-xs font-medium text-warning dark:text-amber-300 mb-1.5">
+      <p className="text-xs font-medium text-warning dark:text-warning mb-1.5">
         Finish these to launch:
       </p>
       <ul className="space-y-1">
         {unresolved.map((issue) => (
-          <li key={issue.id} className="flex items-start gap-2 text-xs text-warning dark:text-amber-200">
+          <li key={issue.id} className="flex items-start gap-2 text-xs text-warning dark:text-warning">
             <Circle className="h-3 w-3 mt-0.5 shrink-0 opacity-60" />
             <span>{issue.message}</span>
           </li>
@@ -1654,7 +1654,7 @@ export function ProspectPromptBuilder({
                 {state.complianceSensitive ? (
                   <Badge
                     variant="outline"
-                    className="rounded-2xl border border-amber-500/40 bg-warning/100/10 px-2.5 py-1 text-xs font-medium text-warning dark:text-amber-300"
+                    className="rounded-2xl border border-amber-500/40 bg-warning/10 px-2.5 py-1 text-xs font-medium text-warning dark:text-warning"
                   >
                     <Shield className="mr-1.5 h-3.5 w-3.5" />
                     Compliance-sensitive

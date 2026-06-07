@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from value_fabric.shared.identity import RequestContext
 
-from api.routes import signals
+from src.api.routes import signals
 
 
 class _FakeResult:

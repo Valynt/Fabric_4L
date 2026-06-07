@@ -62,7 +62,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
 }> = {
   active: { 
     label: "Active",      
-    color: "bg-success/100/10 text-success border-emerald-500/20", 
+    color: "bg-success/10 text-success border-emerald-500/20", 
     icon: <CheckCircle2 size={11}/>,
     description: "Approved and available for use",
   },
@@ -74,7 +74,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
   },
   pending: { 
     label: "Pending",     
-    color: "bg-warning/100/10 text-warning border-amber-500/20", 
+    color: "bg-warning/10 text-warning border-amber-500/20", 
     icon: <AlertCircle size={11}/>,
     description: "Awaiting approval review",
   },
@@ -127,7 +127,7 @@ function ApprovalQueueCard({ request, onAction }: {
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
-            <span className="bg-warning/100/10 text-warning vf-text-micro font-semibold px-2 py-0.5 rounded">
+            <span className="bg-warning/10 text-warning vf-text-micro font-semibold px-2 py-0.5 rounded">
               Pending Approval
             </span>
             <span className="vf-text-caption text-muted-foreground">
@@ -146,7 +146,7 @@ function ApprovalQueueCard({ request, onAction }: {
       <div className="flex items-center gap-2">
         <button 
           onClick={() => onAction(request.id, "approve")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 text-white vf-text-caption font-medium rounded-lg hover:bg-emerald-700 transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-white vf-text-caption font-medium rounded-lg hover:bg-success transition-colors"
         >
           <Check size={12}/> Approve
         </button>

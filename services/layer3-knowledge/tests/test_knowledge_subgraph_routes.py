@@ -19,7 +19,7 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from api.routes.knowledge import (
+from src.api.routes.knowledge import (
     get_benchmark_variables,
     get_value_driver_formulas,
 )

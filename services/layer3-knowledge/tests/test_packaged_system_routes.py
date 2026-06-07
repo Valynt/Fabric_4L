@@ -8,8 +8,8 @@ from typing import Any
 from fastapi.testclient import TestClient
 
 from conftest import TestUtils
-from api.routes import system as system_routes
-from api.models import ServiceMetrics
+from src.api.routes import system as system_routes
+from src.api.models import ServiceMetrics
 
 
 class TestPackagedSystemRoutes:

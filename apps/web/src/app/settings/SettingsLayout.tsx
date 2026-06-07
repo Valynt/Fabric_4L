@@ -217,17 +217,17 @@ export function SettingsLayout() {
 
             {/* Warnings */}
             {access && access.restrictions.length > 0 && (
-              <div className="rounded-lg border border-warning/20 bg-warning/10 p-3 dark:border-yellow-900 dark:bg-yellow-950">
+              <div className="rounded-lg border border-warning/20 bg-warning/10 p-3 dark:border-warning/30 dark:bg-warning/20">
                 <div className="flex items-start gap-2">
                   <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-warning dark:text-warning" />
                   <div className="space-y-1">
-                    <h3 className="text-xs font-semibold text-warning dark:text-yellow-200">
+                    <h3 className="text-xs font-semibold text-warning dark:text-warning">
                       Restrictions
                     </h3>
                     {access.restrictions.map((r: string, i: number) => (
                       <p
                         key={i}
-                        className="vf-text-caption text-warning dark:text-yellow-300"
+                        className="vf-text-caption text-warning dark:text-warning"
                       >
                         • {r}
                       </p>

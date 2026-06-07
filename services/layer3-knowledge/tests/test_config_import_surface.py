@@ -2,7 +2,7 @@
 
 import os
 
-from config import Settings, get_settings
+from src.config import Settings, get_settings
 
 
 def test_public_config_import_surface() -> None:

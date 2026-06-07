@@ -12,7 +12,7 @@ from typing import Any
 
 import pytest
 
-from cache.redis_cache import CacheManager, RequestDeduplicator
+from src.cache.redis_cache import CacheManager, RequestDeduplicator
 
 
 class FakeAsyncCache:

@@ -39,7 +39,7 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal, TypedDict
 
-from utils.cypher_security import (
+from src.utils.cypher_security import (
     TENANT_OWNED_LABELS,
     validate_tenant_scoped_cypher,
 )

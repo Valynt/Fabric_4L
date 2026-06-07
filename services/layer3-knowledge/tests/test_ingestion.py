@@ -5,8 +5,8 @@ from types import SimpleNamespace
 import pytest
 from rdflib import RDF, Graph, Literal, Namespace, URIRef
 
-from ingestion import Neo4jLoader, RDFLoadError
-from ingestion.neo4j_loader import (
+from src.ingestion import Neo4jLoader, RDFLoadError
+from src.ingestion.neo4j_loader import (
     TenantValidationError,
     validate_ingestion_tenant_id,
 )

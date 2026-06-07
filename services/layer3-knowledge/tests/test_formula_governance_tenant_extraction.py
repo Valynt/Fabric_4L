@@ -8,7 +8,7 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.routes.formula_governance import list_pending_approvals
+from src.api.routes.formula_governance import list_pending_approvals
 
 
 class _Result:

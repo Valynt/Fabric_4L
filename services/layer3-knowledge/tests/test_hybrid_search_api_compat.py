@@ -2,8 +2,8 @@
 
 import pytest
 
-from config import Settings
-from retrieval.hybrid_search import HybridSearch
+from src.config import Settings
+from src.retrieval.hybrid_search import HybridSearch
 
 
 @pytest.mark.asyncio

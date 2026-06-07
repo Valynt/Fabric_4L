@@ -8,6 +8,6 @@ Canonical implementation lives in ``api.routes.entities`` within
 ``services/layer3-knowledge/src``.
 """
 
-from api.routes.entities import router
+from src.api.routes.entities import router
 
 __all__ = ["router"]

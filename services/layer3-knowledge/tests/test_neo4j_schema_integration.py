@@ -26,8 +26,8 @@ except ImportError:
 
 from neo4j import AsyncGraphDatabase
 
-from config import Settings
-from schema.initializer import SchemaInitializer
+from src.config import Settings
+from src.schema.initializer import SchemaInitializer
 
 pytestmark = [
     pytest.mark.skipif(

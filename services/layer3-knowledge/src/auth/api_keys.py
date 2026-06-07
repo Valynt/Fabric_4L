@@ -21,7 +21,7 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 
 class APIKeyManager_get_usage_statisticsResult(TypedDictModel):

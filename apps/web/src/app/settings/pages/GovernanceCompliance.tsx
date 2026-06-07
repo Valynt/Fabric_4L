@@ -12,9 +12,9 @@ function formatDate(value?: string): string {
 function StatusBadge({ status }: { status: ComplianceFrameworkStatus["status"] }) {
   const styles: Record<ComplianceFrameworkStatus["status"], string> = {
     compliant: "bg-primary/10 text-primary",
-    in_progress: "bg-warning/10 text-warning dark:bg-yellow-950 dark:text-yellow-300",
-    non_compliant: "bg-destructive/10 text-destructive dark:bg-red-950 dark:text-red-300",
-    expired: "bg-destructive/10 text-destructive dark:bg-red-950 dark:text-red-300",
+    in_progress: "bg-warning/10 text-warning dark:bg-warning/20 dark:text-warning",
+    non_compliant: "bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive",
+    expired: "bg-destructive/10 text-destructive dark:bg-destructive/20 dark:text-destructive",
     not_applicable: "bg-muted text-muted-foreground",
   };
 
@@ -60,7 +60,7 @@ export function GovernanceCompliance() {
         )}
 
         {complianceQuery.isError && (
-          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive dark:border-red-900 dark:bg-red-950/50 dark:text-red-300">
+          <div className="mt-4 inline-flex items-center gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive dark:border-destructive/30 dark:bg-destructive/20/50 dark:text-destructive">
             <AlertCircle className="h-4 w-4" /> Could not load compliance status.
           </div>
         )}
@@ -96,7 +96,7 @@ export function GovernanceCompliance() {
         )}
 
         {complianceQuery.isStale && !complianceQuery.isLoading && (
-          <p className="mt-3 text-xs text-warning dark:text-yellow-300">
+          <p className="mt-3 text-xs text-warning dark:text-warning">
             This view may be stale while the latest tenant compliance snapshot is refreshed.
           </p>
         )}
@@ -129,7 +129,7 @@ export function GovernanceCompliance() {
             </p>
           )}
           {settingsQuery.isError && (
-            <p className="mt-2 text-xs text-destructive dark:text-red-300">Failed to load residency configuration.</p>
+            <p className="mt-2 text-xs text-destructive dark:text-destructive">Failed to load residency configuration.</p>
           )}
         </div>
       </section>

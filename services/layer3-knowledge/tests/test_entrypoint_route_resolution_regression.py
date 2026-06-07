@@ -1,4 +1,4 @@
-from api.main import app
+from src.api.main import app
 
 
 def test_layer3_entrypoint_exposes_expected_routes() -> None:

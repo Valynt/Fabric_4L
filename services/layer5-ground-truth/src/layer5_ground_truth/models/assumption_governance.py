@@ -45,6 +45,7 @@ class FormulaDefinition(Base):
 
 class BenchmarkDataset(Base):
     __tablename__ = "benchmark_datasets"
+    __table_args__ = {"extend_existing": True}
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID, nullable=False, index=True)
     name = Column(String(255), nullable=False)
@@ -54,6 +55,7 @@ class BenchmarkDataset(Base):
 
 class PolicyRule(Base):
     __tablename__ = "policy_rules"
+    __table_args__ = {"extend_existing": True}
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID, nullable=False, index=True)
     name = Column(String(255), nullable=False)

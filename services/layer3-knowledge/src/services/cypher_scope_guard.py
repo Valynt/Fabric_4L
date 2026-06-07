@@ -12,7 +12,7 @@ this shim once all consumers are updated.
 """
 
 
-from utils.cypher_security import (  # noqa: F401
+from src.utils.cypher_security import (  # noqa: F401
     ALLOWED_REL_TYPES,
     ALLOWED_TARGET_LABELS,
     TENANT_OWNED_LABELS,

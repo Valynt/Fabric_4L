@@ -1222,3 +1222,28 @@ class SubgraphResponse(BaseModel):
     edges: list[GraphEdge] = Field(..., description="Edges between returned nodes")
     depth: int = Field(..., ge=1, le=5, description="Traversal depth used")
     stats: GraphStats = Field(..., description="Subgraph statistics")
+
+
+# Private alias for test compatibility
+_include_legacy_graph_aliases = include_legacy_graph_aliases
+
+def _serialize_entity(entity, api_version='v2.3'):
+    """Serialize an entity dict with versioned alias policy."""
+    node = GraphNode.model_validate(entity)
+    return node.model_dump(api_version=api_version)
+
+def _serialize_relationship(rel, api_version='v2.3'):
+    """Serialize a relationship with versioned alias policy."""
+    data = {}
+    if isinstance(rel, dict):
+        data = dict(rel)
+    if hasattr(rel, 'type'):
+        data.setdefault('type', rel.type)
+    if hasattr(rel, 'start_node'):
+        sn = rel.start_node
+        data.setdefault('source', sn['id'] if isinstance(sn, dict) else getattr(sn, 'id', None))
+    if hasattr(rel, 'end_node'):
+        en = rel.end_node
+        data.setdefault('target', en['id'] if isinstance(en, dict) else getattr(en, 'id', None))
+    edge = GraphEdge.model_validate(data)
+    return edge.model_dump(api_version=api_version)

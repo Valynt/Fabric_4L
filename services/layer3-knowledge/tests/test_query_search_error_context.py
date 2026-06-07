@@ -3,9 +3,9 @@ from types import SimpleNamespace
 import pytest
 from fastapi import HTTPException
 
-from api.exceptions import SearchError
-from api.models import GraphRAGQuery, SearchRequest
-from api.routes import query_search
+from src.api.exceptions import SearchError
+from src.api.models import GraphRAGQuery, SearchRequest
+from src.api.routes import query_search
 from value_fabric.shared.identity import RequestContext
 
 

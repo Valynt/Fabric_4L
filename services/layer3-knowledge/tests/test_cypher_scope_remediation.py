@@ -5,8 +5,8 @@ from __future__ import annotations
 
 import pytest
 
-from db.tenant_queries import get_entity_context
-from retrieval.graph_rag import GraphRAGEngine
+from src.db.tenant_queries import get_entity_context
+from src.retrieval.graph_rag import GraphRAGEngine
 
 
 class _NoopSession:

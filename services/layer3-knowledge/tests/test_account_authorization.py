@@ -10,7 +10,7 @@ Tests verify:
 import pytest
 from fastapi import HTTPException, status
 
-from schema.entity_scope import (
+from src.schema.entity_scope import (
     EntityScope,
     get_account_scoped_entity_types,
     get_entity_scope,
@@ -19,7 +19,7 @@ from schema.entity_scope import (
     is_global,
     is_tenant_wide,
 )
-from security.account_authorization import (
+from src.security.account_authorization import (
     AccountAuthorizationError,
     check_account_access,
     check_account_scope_for_query,

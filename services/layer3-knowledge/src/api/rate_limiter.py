@@ -23,7 +23,7 @@ from value_fabric.shared.identity.authoritative_rate_limiter import (
 from value_fabric.shared.models.typed_dict import TypedDictModel
 from value_fabric.shared.rate_limiting.tenant_rate_limiter import SlidingWindowAdapter
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 logger = get_logger(__name__)
 

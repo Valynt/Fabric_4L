@@ -5,8 +5,8 @@ from typing import Any
 
 from fastapi.testclient import TestClient
 
-from api.dependencies import get_neo4j_driver
-from api.main import app
+from src.api.dependencies import get_neo4j_driver
+from src.api.main import app
 from value_fabric.shared.security.dil_auth import get_verified_tenant_id
 
 

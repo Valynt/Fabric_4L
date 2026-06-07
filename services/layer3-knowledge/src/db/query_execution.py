@@ -31,7 +31,7 @@ from typing import Any
 
 from value_fabric.shared.identity.isolation import QueryScope, ScopedQuery
 
-from utils.cypher_security import TENANT_OWNED_LABELS
+from src.utils.cypher_security import TENANT_OWNED_LABELS
 
 from ..graph.query_guards import (
     DEFAULT_MAX_QUERY_DEPTH,

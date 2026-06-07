@@ -204,21 +204,21 @@ export function AIModelStatus({
               icon={enrichment.llm_enrichment ? CheckCircle2 : XCircle}
               label="LLM Enriched"
               active={enrichment.llm_enrichment}
-              activeClass="bg-success/100/10 text-success"
+              activeClass="bg-success/10 text-success"
               inactiveClass="bg-muted text-muted-foreground"
             />
             <GovernanceFlag
               icon={enrichment.customer_facing_allowed ? Eye : EyeOff}
               label="Customer-Facing"
               active={enrichment.customer_facing_allowed}
-              activeClass="bg-success/100/10 text-success"
-              inactiveClass="bg-warning/100/10 text-warning"
+              activeClass="bg-success/10 text-success"
+              inactiveClass="bg-warning/10 text-warning"
             />
             <GovernanceFlag
               icon={enrichment.human_review_required ? AlertTriangle : CheckCircle2}
               label="Human Review"
               active={enrichment.human_review_required}
-              activeClass="bg-warning/100/10 text-warning"
+              activeClass="bg-warning/10 text-warning"
               inactiveClass="bg-muted text-muted-foreground"
             />
           </div>

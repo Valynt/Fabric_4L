@@ -2,7 +2,7 @@
 Tests for the Scenario Engine what-if analysis functionality.
 """
 
-from agents.scenario_engine import (
+from src.agents.scenario_engine import (
     VariableAdjustment,
     scenario_engine,
 )

@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi.testclient import TestClient
 
-from services.embedding_errors import EmbeddingProviderUnavailableError
+from src.services.embedding_errors import EmbeddingProviderUnavailableError
 
 
 def test_semantic_search_embedding_provider_failure_returns_503(

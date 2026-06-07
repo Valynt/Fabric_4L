@@ -3,7 +3,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 
-from ingestion.sync_manager import SyncManager
+from src.ingestion.sync_manager import SyncManager
 
 
 class _FakeResult:

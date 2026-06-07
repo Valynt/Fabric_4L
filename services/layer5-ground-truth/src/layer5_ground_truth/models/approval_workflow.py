@@ -109,6 +109,7 @@ class ApprovalRequest(Base):
     """
 
     __tablename__ = "approval_requests"
+    __table_args__ = {"extend_existing": True}
 
     # -------------------------------------------------------------------------
     # Primary identifiers
@@ -298,6 +299,7 @@ class ApprovalDecision(Base):
     """
 
     __tablename__ = "approval_decisions"
+    __table_args__ = {"extend_existing": True}
 
     # -------------------------------------------------------------------------
     # Primary identifiers

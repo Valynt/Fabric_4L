@@ -1,4 +1,4 @@
-from api.main import app
+from src.api.main import app
 
 
 def test_wrapper_main_exposes_fastapi_app() -> None:
