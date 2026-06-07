@@ -22,6 +22,7 @@ import {
   Skeleton,
   ErrorBoundary,
 } from "@/components";
+import { Input } from "@/components/ui/input";
 import { EmptyState, ErrorState } from "@/components/states";
 import {
   useAccounts,
@@ -276,10 +277,12 @@ function AccountDetailPanel({ accountId, onClose, onLaunchIntelligence }: Accoun
         title="Account Details"
         onClose={onClose}
       >
-        <div className="text-center">
-          <AlertCircle size={32} className="mx-auto mb-2 text-destructive" />
-          <p className="vf-text-body-s text-muted-foreground">Failed to load account details</p>
-        </div>
+        <ErrorState
+          title="Failed to load account"
+          description="The account details could not be retrieved. It may have been deleted or you may not have permission to view it."
+          onRetry={() => refreshAccount.mutate(accountId || "")}
+          retryLabel="Retry"
+        />
       </RightRailPanel>
     );
   }
@@ -606,13 +609,13 @@ function Accounts() {
               <div className="relative">
                 <label htmlFor="accounts-search" className="sr-only">Search accounts</label>
                 <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
-                <input
+                <Input
                   id="accounts-search"
                   type="text"
                   placeholder="Search accounts by name, domain, or owner..."
                   value={filters.search}
                   onChange={(e) => updateFilters({ search: e.target.value })}
-                  className="w-full pl-10 pr-4 py-2.5 bg-card border border-border rounded-lg vf-text-body-m focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                  className="pl-10"
                 />
               </div>
             </div>

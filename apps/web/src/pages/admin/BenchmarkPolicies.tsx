@@ -24,7 +24,8 @@ import {
 } from "@/hooks";
 import { formatDate } from "@/lib/formatters";
 import { PageShell } from "@/components";
-import { ErrorState } from "@/components/states/ErrorState";
+import { ErrorState, EmptyState } from "@/components/states";
+import { Input } from "@/components/ui/input";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import {
   Select,
@@ -211,11 +212,11 @@ function BenchmarkPoliciesContent() {
           <div className="flex items-center gap-3 mb-4">
             <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm flex-1">
               <Search size={12} className="text-muted-foreground shrink-0"/>
-              <input
+              <Input
                 value={search}
                 onChange={e => setSearch(e.target.value)}
                 placeholder="Search benchmarks..."
-                className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+                className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent"
               />
             </div>
             <Select value={confidenceFilter} onValueChange={(value) => setConfidenceFilter(value === "all" ? "all" : value as ConfidenceLevel)}>
@@ -316,10 +317,11 @@ function BenchmarkPoliciesContent() {
               </tbody>
             </table>
             {filteredBenchmarks.length === 0 && (
-              <div className="text-center py-12 text-muted-foreground vf-text-body-s">
-                <BarChart3 size={32} className="mx-auto mb-3 text-muted-foreground/50"/>
-                No benchmarks match your filters.
-              </div>
+              <EmptyState
+                icon={BarChart3}
+                title="No benchmarks match your filters"
+                description="Try adjusting your search or filter criteria."
+              />
             )}
       </div>
     </PageShell>
