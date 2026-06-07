@@ -125,7 +125,7 @@ interface TestInput {
 const SOURCE_TYPE_COLOR: Record<VariableSource, string> = {
   CRM: "bg-primary/10 text-primary",
   Billing: "bg-success/10 text-success",
-  Model: "bg-violet-50 text-violet-700",
+  Model: "bg-primary/10 text-primary",
   Manual: "bg-warning/10 text-warning",
 };
 
@@ -618,7 +618,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                   >
                     <span className="w-1.5 h-1.5 rounded-full bg-primary/60 shrink-0 group-hover:bg-primary" />
                     <span className="truncate">{variable.name}</span>
-                    <span className={`ml-auto text-[9px] px-1.5 py-0.5 rounded-full ${SOURCE_TYPE_COLOR[variable.source]}`}>
+                    <span className={`ml-auto vf-text-micro px-1.5 py-0.5 rounded-full ${SOURCE_TYPE_COLOR[variable.source]}`}>
                       {variable.source}
                     </span>
                   </div>

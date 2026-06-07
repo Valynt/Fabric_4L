@@ -525,7 +525,7 @@ export default function InteractiveBusinessCase() {
                 </div>
               </div>
 
-              <div className="bg-purple-50 rounded-lg p-4">
+              <div className="bg-primary/10 rounded-lg p-4">
                 <div className="vf-text-caption font-medium uppercase tracking-wider text-primary mb-1">
                   Payback Period
                 </div>

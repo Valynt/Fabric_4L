@@ -288,7 +288,7 @@ function EmptyState({
       <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
         <AlertCircle size={20} className="text-muted-foreground" />
       </div>
-      <h3 className="text-[14px] font-bold text-foreground mb-1">
+      <h3 className="vf-text-body-l font-bold text-foreground mb-1">
         {search ? "No models match your search" : "No models yet"}
       </h3>
       <p className="vf-text-body-s text-muted-foreground max-w-[300px] mb-4">
@@ -340,7 +340,7 @@ function NewModelDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/40" onClick={onClose} />
       <div className="relative bg-card border border-border rounded-xl shadow-xl w-full max-w-md p-6 mx-4">
-        <h2 className="text-[16px] font-extrabold text-foreground mb-1">New Value Model</h2>
+        <h2 className="text-base font-extrabold text-foreground mb-1">New Value Model</h2>
         <p className="vf-text-caption text-muted-foreground mb-5">
           Create a new model to organize value drivers, formulas, and entities.
         </p>
@@ -360,17 +360,16 @@ function NewModelDialog({
 
           <div>
             <label className="block vf-text-caption font-bold text-foreground mb-1">Industry</label>
-            <select
-              value={industry}
-              onChange={(e) => setIndustry(e.target.value)}
-              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
-            >
-              {INDUSTRY_OPTIONS.filter((i) => i !== "All Industries").map((ind) => (
-                <option key={ind} value={ind}>
-                  {ind}
-                </option>
-              ))}
-            </select>
+            <Select value={industry} onValueChange={(v) => setIndustry(v)}>
+              <SelectTrigger className="w-full vf-text-body-s">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {INDUSTRY_OPTIONS.filter((i) => i !== "All Industries").map((ind) => (
+                  <SelectItem key={ind} value={ind}>{ind}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div>
@@ -521,19 +520,14 @@ export default function MyModels() {
 
             <div className="flex items-center gap-1.5">
               <SortAsc size={12} className="text-muted-foreground" />
-              <select
-                value={sortBy}
-                onChange={(e) =>
-                  setSortBy(e.target.value as "updatedAt" | "name" | "createdAt")
-                }
-                className="px-2 py-1.5 vf-text-caption border border-border rounded-md bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30"
-              >
-                {SORT_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </select>
+              <Select value={sortBy} onValueChange={(v) => setSortBy(v as "updatedAt" | "name" | "createdAt")}>
+                <SelectTrigger className="w-[140px] vf-text-caption"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {SORT_OPTIONS.map((opt) => (
+                    <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="flex items-center gap-1.5">
