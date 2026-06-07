@@ -7,8 +7,8 @@
  *   - Legacy mode is a TRUE no-op: children render even if Clerk reports
  *     signed-out and no org. The legacy <UnifiedRouteGuard /> remains
  *     authoritative on that code path.
- *   - Clerk mode while loading shows a non-children fallback (so children
- *     do not flash content before auth resolves).
+ *   - Clerk mode while loading renders nothing (so children do not flash
+ *     content before auth resolves).
  *   - Clerk mode signed-out redirects to the configured sign-in URL with
  *     the intended destination preserved.
  *   - Clerk mode signed-in without org redirects to /select-organization.
@@ -21,6 +21,16 @@ import { render, screen, cleanup } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { setAuthProvider } from "@/test/utils/withAuthProvider";
+
+const mockNavigate = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual("react-router-dom");
+  return {
+    ...actual as object,
+    useNavigate: () => mockNavigate,
+  };
+});
 
 // Mutable mock state — flipped per test before render().
 const mockClerkState = {
@@ -96,6 +106,7 @@ describe("<RequireClerkAuth />", () => {
   beforeEach(() => {
     savedProvider = (import.meta.env as Record<string, unknown>)
       .VITE_AUTH_PROVIDER as string | undefined;
+    mockNavigate.mockClear();
     // Reset Clerk state to a known baseline.
     mockClerkState.authLoaded = true;
     mockClerkState.isSignedIn = false;
@@ -122,18 +133,20 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
     expect(screen.queryByText(SIGN_IN_LANDING)).not.toBeInTheDocument();
     expect(screen.queryByText(SELECT_ORG_LANDING)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it("legacy mode (default, unset provider): renders children", () => {
     setAuthProvider(undefined);
     renderAt("/protected");
     expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────
   // Clerk mode — loading state
   // ─────────────────────────────────────────────────────────────────────
-  it("clerk mode: shows loading fallback while auth not loaded", () => {
+  it("clerk mode: renders nothing while auth not loaded to prevent UI flash", () => {
     setAuthProvider("clerk");
     mockClerkState.authLoaded = false;
 
@@ -141,10 +154,11 @@ describe("<RequireClerkAuth />", () => {
 
     // Children must not render while we're still resolving auth.
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(document.body.textContent?.trim()).toBe("");
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("clerk mode: shows loading fallback while org not loaded (when org required)", () => {
+  it("clerk mode: renders nothing while org not loaded (when org required)", () => {
     setAuthProvider("clerk");
     mockClerkState.authLoaded = true;
     mockClerkState.isSignedIn = true;
@@ -153,7 +167,8 @@ describe("<RequireClerkAuth />", () => {
     renderAt("/protected", { requireOrganization: true });
 
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toBeInTheDocument();
+    expect(document.body.textContent?.trim()).toBe("");
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -165,8 +180,12 @@ describe("<RequireClerkAuth />", () => {
 
     renderAt("/protected/nested");
 
-    // We are redirected away from /protected/nested to /sign-in.
-    expect(screen.getByText(SIGN_IN_LANDING)).toBeInTheDocument();
+    // Navigation must be triggered with the correct redirect URL.
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith(
+      "/sign-in?redirect_url=%2Fprotected%2Fnested",
+      { replace: true },
+    );
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
@@ -180,7 +199,8 @@ describe("<RequireClerkAuth />", () => {
 
     renderAt("/protected");
 
-    expect(screen.getByText(SELECT_ORG_LANDING)).toBeInTheDocument();
+    expect(mockNavigate).toHaveBeenCalledTimes(1);
+    expect(mockNavigate).toHaveBeenCalledWith("/workspaces", { replace: true });
     expect(screen.queryByText(PROTECTED_CONTENT)).not.toBeInTheDocument();
   });
 
@@ -193,6 +213,7 @@ describe("<RequireClerkAuth />", () => {
 
     expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
     expect(screen.queryByText(SELECT_ORG_LANDING)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -208,6 +229,7 @@ describe("<RequireClerkAuth />", () => {
     expect(screen.getByText(PROTECTED_CONTENT)).toBeInTheDocument();
     expect(screen.queryByText(SIGN_IN_LANDING)).not.toBeInTheDocument();
     expect(screen.queryByText(SELECT_ORG_LANDING)).not.toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   // ─────────────────────────────────────────────────────────────────────
@@ -237,5 +259,6 @@ describe("<RequireClerkAuth />", () => {
     );
 
     expect(screen.getByText(SIGN_IN_LANDING)).toBeInTheDocument();
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 });
