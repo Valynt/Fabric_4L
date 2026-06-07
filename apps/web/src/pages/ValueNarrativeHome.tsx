@@ -12,6 +12,7 @@ import { ProspectPromptBuilder } from "@/components/workspace/ProspectPromptBuil
 import { useNavigation } from "@/hooks/useNavigation";
 import { useProspectSetupAccountCreate } from "@/hooks/useProspectSetupAccount";
 import { MetricCard, DataTable, StatusBadge } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
 
 export default function ValueNarrativeHome() {
   const { data: recentJobs = [], isLoading: jobsLoading } = useRecentIngestionJobs(5);
@@ -26,7 +27,8 @@ export default function ValueNarrativeHome() {
   };
 
   return (
-    <div className="min-h-full bg-background">
+    <PageShell fullWidth>
+      <div className="min-h-full bg-background">
       {/* Prompt Builder section */}
       <div className="px-6 pt-10 pb-6 max-w-3xl mx-auto">
         <div className="text-center mb-6">
@@ -102,13 +104,13 @@ export default function ValueNarrativeHome() {
                 <div key={job.id} className="px-4 py-3 flex items-start gap-2.5">
                   <span className="mt-0.5 shrink-0">
                     {job.status === "completed" ? (
-                      <CheckCircle2 size={13} className="text-emerald-500" />
+                      <CheckCircle2 size={13} className="text-success" />
                     ) : job.status === "processing" ? (
-                      <Loader2 size={13} className="text-blue-500 animate-spin" />
+                      <Loader2 size={13} className="text-info animate-spin" />
                     ) : job.status === "failed" ? (
-                      <AlertCircle size={13} className="text-red-400" />
+                      <AlertCircle size={13} className="text-destructive" />
                     ) : (
-                      <Zap size={13} className="text-violet-500" />
+                      <Zap size={13} className="text-primary" />
                     )}
                   </span>
                   <div className="flex-1 min-w-0">
@@ -130,6 +132,7 @@ export default function ValueNarrativeHome() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </PageShell>
   );
 }
