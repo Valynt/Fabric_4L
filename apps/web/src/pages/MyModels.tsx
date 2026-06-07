@@ -23,6 +23,15 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   useModels,
   useModelFolders,
@@ -57,8 +66,8 @@ const FOLDER_ICONS: Record<string, React.ReactNode> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
-  active: "bg-emerald-100 text-emerald-800 border-emerald-200",
-  draft: "bg-amber-100 text-amber-800 border-amber-200",
+  active: "bg-success/10 text-success border-success/20",
+  draft: "bg-warning/10 text-warning border-warning/20",
   archived: "bg-muted text-muted-foreground border-border",
 };
 
@@ -102,7 +111,7 @@ function FolderSidebar({
 
   return (
     <nav className="w-[200px] shrink-0 border-r border-border bg-muted/30 rounded-l-lg p-3 space-y-0.5">
-      <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground px-2 pb-2">
+      <div className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground px-2 pb-2">
         Folders
       </div>
       {folders.map((folder) => (
@@ -110,7 +119,7 @@ function FolderSidebar({
           key={folder.id}
           onClick={() => onSelect(folder.id)}
           className={cn(
-            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md text-[12px] font-medium transition-colors text-left",
+            "flex items-center gap-2 w-full px-2 py-1.5 rounded-md vf-text-body-s font-medium transition-colors text-left",
             activeFolder === folder.id
               ? "bg-primary/10 text-primary"
               : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -118,7 +127,7 @@ function FolderSidebar({
         >
           <span className="shrink-0">{FOLDER_ICONS[folder.id] || <Folder size={14} />}</span>
           <span className="truncate flex-1">{folder.name}</span>
-          <span className="text-[10px] text-muted-foreground tabular-nums">{folder.count}</span>
+          <span className="vf-text-micro text-muted-foreground tabular-nums">{folder.count}</span>
         </button>
       ))}
     </nav>
@@ -182,14 +191,14 @@ function ModelCard({
             </Badge>
           ))}
         </div>
-        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+        <span className="vf-text-micro text-muted-foreground flex items-center gap-1">
           <Clock size={10} />
           {formatRelativeDate(model.updatedAt)}
         </span>
       </div>
 
       {model.isShared && (
-        <div className="flex items-center gap-1 mt-2 text-[10px] text-muted-foreground">
+        <div className="flex items-center gap-1 mt-2 vf-text-micro text-muted-foreground">
           <Share2 size={10} />
           <span>Shared by {model.owner}</span>
         </div>
