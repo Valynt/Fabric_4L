@@ -236,8 +236,7 @@ class TenantResolvedDetails(BaseModel):
         description="HTTP method of the request"
     )
 
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 class TenantContextSetDetails(BaseModel):
     """Structured details for TENANT_CONTEXT_SET audit events (Task 3.1).

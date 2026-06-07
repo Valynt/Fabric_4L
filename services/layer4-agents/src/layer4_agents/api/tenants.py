@@ -18,7 +18,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
 from sqlalchemy.ext.asyncio import AsyncSession
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
@@ -48,8 +48,8 @@ class ProvisionTenantRequest(BaseModel):
     isolation_tier: str = Field("shared", description="Isolation tier: shared, schema, or database")
     metadata: dict[str, Any] | None = Field(None, description="Optional metadata")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "tenant_name": "acme-corp",
                 "admin_email": "admin@acme.com",
@@ -60,6 +60,7 @@ class ProvisionTenantRequest(BaseModel):
                 }
             }
         }
+    )
 
 
 class ProvisionTenantResponse(BaseModel):

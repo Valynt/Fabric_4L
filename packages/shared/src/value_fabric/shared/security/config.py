@@ -9,7 +9,7 @@ import warnings
 from typing import Any
 from urllib.parse import parse_qsl, urlparse
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 logger = logging.getLogger(__name__)
 
@@ -83,8 +83,7 @@ class SecurityConfig(BaseModel):
     strict_mode: bool = Field(default=True, description="Strict validation mode")
     validate_json_bodies: bool = Field(default=True, description="Validate JSON request bodies")
     
-    class Config:
-        extra = "allow"
+    model_config = ConfigDict(extra="allow")
 
 
 # ═══════════════════════════════════════════════════════════════════════════

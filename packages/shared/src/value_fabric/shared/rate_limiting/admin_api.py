@@ -17,7 +17,7 @@ try:
     from neo4j import AsyncDriver
 except ImportError:  # pragma: no cover - optional dependency for test/runtime variants
     AsyncDriver = Any  # type: ignore[misc,assignment]
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from value_fabric.shared.identity.context import RequestContext
 from value_fabric.shared.identity.dependencies import require_privileged_access
@@ -56,8 +56,8 @@ class RateLimitConfigRequest(BaseModel):
     requests_per_day: int = Field(..., gt=0, description="Requests per day")
     burst_allowance: int = Field(0, ge=0, description="Burst allowance")
     
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "requests_per_minute": 1000,
                 "requests_per_hour": 50000,
@@ -65,6 +65,7 @@ class RateLimitConfigRequest(BaseModel):
                 "burst_allowance": 200,
             }
         }
+    )
 
 
 class TenantQuotaResponse(BaseModel):

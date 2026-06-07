@@ -23,7 +23,7 @@ import pytest
 try:
     from fastapi import FastAPI, HTTPException, Request
     from fastapi.testclient import TestClient
-    from pydantic import BaseModel, Field, ValidationError
+    from pydantic import BaseModel, ConfigDict, Field, ValidationError
     FASTAPI_AVAILABLE = True
 except ImportError:
     FASTAPI_AVAILABLE = False
@@ -113,8 +113,7 @@ class TestUnknownFieldHandling:
             name: str
             value: int
             
-            class Config:
-                extra = "forbid"  # Reject unknown fields
+            model_config = ConfigDict(extra="forbid")  # Reject unknown fields
         
         # Valid data
         valid_data = {"name": "test", "value": 42}
@@ -140,8 +139,7 @@ class TestUnknownFieldHandling:
         class PermissiveSchema(BaseModel):
             name: str
             
-            class Config:
-                extra = "ignore"  # Ignore unknown fields
+            model_config = ConfigDict(extra="ignore")  # Ignore unknown fields
         
         data_with_extra = {"name": "test", "unknown": "ignored"}
         schema = PermissiveSchema(**data_with_extra)
