@@ -74,7 +74,7 @@ export function IntegrationList({
                 <tr
                   key={integration.id}
                   className={`hover:bg-muted cursor-pointer transition-colors ${
-                    isSelected ? 'bg-primary/10/30' : ''
+                    isSelected ? 'bg-primary/10' : ''
                   }`}
                   onClick={() => onSelect(provider)}
                 >

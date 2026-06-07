@@ -85,7 +85,7 @@ export default function TechnicalView() {
 
       {/* Technical Metrics */}
       <div className="grid grid-cols-3 gap-4 mt-6">
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
             <FileText size={14} className="text-primary" />
             <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Document</span>
@@ -93,7 +93,7 @@ export default function TechnicalView() {
           <div className="text-base font-bold text-foreground">{bc.page_count} pages</div>
           <div className="vf-text-caption text-muted-foreground">{(bc.file_size_bytes / 1024).toFixed(0)} KB</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
             <Database size={14} className="text-success" />
             <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Evidence</span>
@@ -101,7 +101,7 @@ export default function TechnicalView() {
           <div className="text-base font-bold text-foreground">{bc.truth_references?.length ?? 0} refs</div>
           <div className="vf-text-caption text-muted-foreground">Ground truth citations</div>
         </div>
-        <div className="p-4 bg-white border border-neutral-100 rounded-xl">
+        <div className="p-4 bg-card border border-border rounded-xl">
           <div className="flex items-center gap-2 mb-2">
             <GitBranch size={14} className="text-primary" />
             <span className="vf-text-caption font-semibold text-muted-foreground uppercase">Confidence</span>
@@ -117,7 +117,7 @@ export default function TechnicalView() {
         {bc.truth_references && bc.truth_references.length > 0 ? (
           <div className="space-y-2">
             {bc.truth_references.map((ref, i: number) => (
-              <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-neutral-100">
+              <div key={i} className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg border border-border">
                 <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                   <span className="vf-text-micro font-bold text-primary">{i + 1}</span>
                 </div>
@@ -166,7 +166,7 @@ export default function TechnicalView() {
           <h3 className="vf-text-body-l font-bold text-foreground mb-3">Technical Remediation Items</h3>
           <div className="space-y-2">
             {bc.remediation_items.map((item, i: number) => (
-              <div key={i} className="flex items-start gap-2 p-2 bg-warning/10/50 rounded-md border border-amber-100">
+              <div key={i} className="flex items-start gap-2 p-2 bg-warning/5 rounded-md border border-warning/20">
                 <Clock size={12} className="text-warning mt-0.5 shrink-0" />
                 <div>
                   <div className="vf-text-body-s font-semibold text-foreground">

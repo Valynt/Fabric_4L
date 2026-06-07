@@ -104,7 +104,7 @@ export function IntegrationConfigPanel({
   // Empty state
   if (!integration) {
     return (
-      <div className="bg-white border border-border rounded-xl p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center">
+      <div className="bg-background border border-border rounded-xl p-8 h-full min-h-[400px] flex flex-col items-center justify-center text-center">
         <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
           {provider ? providerInfo.icon : <MousePointerClick size={32} className="text-muted-foreground" />}
         </div>
@@ -143,7 +143,7 @@ export function IntegrationConfigPanel({
   }
 
   return (
-    <div className="bg-white border border-border rounded-xl overflow-hidden sticky top-6">
+    <div className="bg-background border border-border rounded-xl overflow-hidden sticky top-6">
       {/* Header */}
       <div className={`px-6 py-5 border-b border-border ${
         isConnected ? providerInfo.headerBg : "bg-muted"
@@ -210,7 +210,7 @@ export function IntegrationConfigPanel({
                   value={editConfig[field.key as keyof EditingConfig] as string}
                   onChange={(e) => setEditConfig({ ...editConfig, [field.key]: e.target.value })}
                   placeholder={field.placeholder}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
             ))}
@@ -236,7 +236,7 @@ export function IntegrationConfigPanel({
                     const clamped = Math.min(Math.max(value, VALIDATION.SYNC_INTERVAL.MIN), VALIDATION.SYNC_INTERVAL.MAX);
                     setEditConfig({ ...editConfig, syncIntervalMinutes: clamped });
                   }}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
               <div>
@@ -253,7 +253,7 @@ export function IntegrationConfigPanel({
                     const clamped = Math.min(Math.max(value, VALIDATION.BATCH_SIZE.MIN), VALIDATION.BATCH_SIZE.MAX);
                     setEditConfig({ ...editConfig, syncBatchSize: clamped });
                   }}
-                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  className="w-full px-3 py-2 bg-muted border border-border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
                 />
               </div>
             </div>

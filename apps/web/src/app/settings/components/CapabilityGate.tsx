@@ -41,7 +41,7 @@ export function CapabilityGate({
   if (decision.allowed) return <>{children}</>;
 
   return (
-    <section className={cn("rounded-lg border border-warning/20 bg-warning/10 p-5 dark:border-warning/30 dark:bg-amber-950", className)}>
+    <section className={cn("rounded-lg border border-warning/20 bg-warning/10 p-5 dark:border-warning/30 dark:bg-warning/20", className)}>
       <div className="flex items-start gap-3">
         <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-warning dark:text-warning" />
         <div className="space-y-1">

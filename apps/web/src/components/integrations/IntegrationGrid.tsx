@@ -22,7 +22,7 @@ export function IntegrationGrid({
   // Empty state - show available providers to configure
   if (!hasIntegrations) {
     return (
-      <div className="bg-white border border-border rounded-xl p-8">
+      <div className="bg-background border border-border rounded-xl p-8">
         <h3 className="text-sm font-semibold text-foreground mb-2">Available Integrations</h3>
         <p className="text-sm text-muted-foreground mb-6">
           Select a provider to configure your first integration
@@ -34,7 +34,7 @@ export function IntegrationGrid({
               <button
                 key={provider}
                 onClick={() => onSelect(provider)}
-                className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-primary/30 hover:bg-primary/10/30 transition-colors text-center"
+                className="flex flex-col items-center p-6 bg-muted border border-border rounded-xl hover:border-primary/30 hover:bg-primary/10 transition-colors text-center"
               >
                 <div className={`w-12 h-12 rounded-xl ${style.iconBg} ${style.iconText} flex items-center justify-center mb-3`}>
                   <Plus size={24} />
@@ -50,7 +50,7 @@ export function IntegrationGrid({
   }
 
   return (
-    <div className="bg-white border border-border rounded-xl p-6">
+    <div className="bg-background border border-border rounded-xl p-6">
       <h3 className="text-sm font-semibold text-foreground mb-4">
         Configured Integrations ({configuredProviders.length})
       </h3>
@@ -68,8 +68,8 @@ export function IntegrationGrid({
               onClick={() => onSelect(provider)}
               className={`relative flex flex-col items-start p-4 border rounded-xl transition-all text-left ${
                 isSelected
-                  ? 'border-blue-500 ring-2 ring-blue-500/20 bg-primary/10/30'
-                  : 'border-border hover:border-border bg-white'
+                  ? 'border-primary ring-2 ring-primary/20 bg-primary/10'
+                  : 'border-border hover:border-border bg-background'
               }`}
             >
               {/* Status indicator */}
@@ -119,7 +119,7 @@ export function IntegrationGrid({
               );
               if (unconfigured) onSelect(unconfigured);
             }}
-            className="flex flex-col items-center justify-center p-4 border border-dashed border-border rounded-xl hover:border-primary/30 hover:bg-primary/10/30 transition-colors min-h-[120px]"
+            className="flex flex-col items-center justify-center p-4 border border-dashed border-border rounded-xl hover:border-primary/30 hover:bg-primary/10 transition-colors min-h-[120px]"
           >
             <Plus size={24} className="text-muted-foreground mb-2" />
             <span className="vf-text-body-s text-muted-foreground">Add integration</span>

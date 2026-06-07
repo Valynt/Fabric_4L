@@ -68,9 +68,9 @@ export interface AIModelStatusProps {
 // ---------------------------------------------------------------------------
 
 const PROVIDER_CONFIG: Record<string, { label: string; colour: string }> = {
-  together:  { label: "Together.ai",  colour: "text-primary bg-violet-400/10" },
-  openai:    { label: "OpenAI",       colour: "text-success bg-emerald-400/10" },
-  anthropic: { label: "Anthropic",    colour: "text-warning bg-amber-400/10" },
+  together:  { label: "Together.ai",  colour: "text-primary bg-primary/10" },
+  openai:    { label: "OpenAI",       colour: "text-success bg-success/10" },
+  anthropic: { label: "Anthropic",    colour: "text-warning bg-warning/10" },
 };
 
 const TASK_LABELS: Record<keyof AIModelAssignments, string> = {
@@ -225,7 +225,7 @@ export function AIModelStatus({
 
           {/* Degraded reason */}
           {enrichment.degraded_reason && (
-            <p className="vf-text-micro text-warning bg-warning/100/5 border border-amber-500/20 rounded-lg px-2.5 py-1.5">
+            <p className="vf-text-micro text-warning bg-warning/5 border border-warning/20 rounded-lg px-2.5 py-1.5">
               ⚠ {enrichment.degraded_reason}
             </p>
           )}

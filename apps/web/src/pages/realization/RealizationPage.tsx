@@ -376,11 +376,11 @@ export default function RealizationPage() {
                         className={cn(
                           "rounded-md border p-2.5 text-center",
                           m.status === "completed"
-                            ? "border-success/20 bg-success/10/30"
+                            ? "border-success/20 bg-success/10"
                             : m.status === "in_progress"
-                            ? "border-warning/20 bg-warning/10/30"
+                            ? "border-warning/20 bg-warning/10"
                             : m.status === "at_risk"
-                            ? "border-destructive/20 bg-destructive/10/30"
+                            ? "border-destructive/20 bg-destructive/10"
                             : "border-border bg-muted/20"
                         )}
                       >

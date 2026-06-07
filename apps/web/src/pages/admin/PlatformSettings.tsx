@@ -133,7 +133,7 @@ function NotificationsPanel({
       {/* Slack Webhook */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/100/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <ExternalLink size={16} />
           </div>
           <div>
@@ -162,7 +162,7 @@ function NotificationsPanel({
       {/* Custom Webhook */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-10 h-10 rounded-lg bg-primary/100/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <ExternalLink size={16} />
           </div>
           <div>
@@ -333,7 +333,7 @@ function BrandingPanel({
     <div className="space-y-4">
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-4">
-          <div className="w-10 h-10 rounded-lg bg-primary/100/10 text-primary flex items-center justify-center shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
             <Palette size={16} />
           </div>
           <div>
@@ -522,7 +522,7 @@ function PlatformSettingsContent() {
   if (!settings) {
     return (
       <div className="p-6 max-w-6xl">
-        <div className="bg-warning/10 border border-amber-500/20 rounded-xl p-6">
+        <div className="bg-warning/10 border border-warning/20 rounded-xl p-6">
           <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Settings Available</h3>
           <p className="vf-text-body-s text-warning dark:text-warning mt-1">
             Platform settings could not be loaded. Please contact support.

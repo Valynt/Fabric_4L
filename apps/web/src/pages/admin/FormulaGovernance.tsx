@@ -62,7 +62,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
 }> = {
   active: { 
     label: "Active",      
-    color: "bg-success/10 text-success border-emerald-500/20", 
+    color: "bg-success/10 text-success border-success/20", 
     icon: <CheckCircle2 size={11}/>,
     description: "Approved and available for use",
   },
@@ -74,7 +74,7 @@ const FORMULA_STATUS_CONFIG: Record<FormulaStatus, {
   },
   pending: { 
     label: "Pending",     
-    color: "bg-warning/10 text-warning border-amber-500/20", 
+    color: "bg-warning/10 text-warning border-warning/20", 
     icon: <AlertCircle size={11}/>,
     description: "Awaiting approval review",
   },
@@ -123,7 +123,7 @@ function ApprovalQueueCard({ request, onAction }: {
   onAction: (id: string, action: ApprovalAction) => void;
 }) {
   return (
-    <div className="bg-card border border-amber-500/20 rounded-xl p-4 mb-4">
+    <div className="bg-card border border-warning/20 rounded-xl p-4 mb-4">
       <div className="flex items-start justify-between mb-3">
         <div>
           <div className="flex items-center gap-2 mb-1">
@@ -146,7 +146,7 @@ function ApprovalQueueCard({ request, onAction }: {
       <div className="flex items-center gap-2">
         <button 
           onClick={() => onAction(request.id, "approve")}
-          className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-white vf-text-caption font-medium rounded-lg hover:bg-success transition-colors"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-success text-success-foreground vf-text-caption font-medium rounded-lg hover:bg-success transition-colors"
         >
           <Check size={12}/> Approve
         </button>
@@ -446,7 +446,7 @@ function FormulaGovernanceContent() {
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-neutral-100">
+          <tbody className="divide-y divide-border">
             {formulas.map((f: Formula) => (
               <tr key={f.id} className="hover:bg-muted transition-colors group">
                 <td className="px-3 py-3">
