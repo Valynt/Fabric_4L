@@ -4,7 +4,11 @@ try:
     from fastapi.testclient import TestClient
     from src.api.main import app
     from src.api.dependencies import get_graph_rag, get_hybrid_search
-except (ImportError, Exception):
+except (ImportError, Exception) as _exc:
+    import traceback
+    with open("skip_debug.txt", "w") as _f:
+        _f.write("Exception: " + str(_exc) + "\n")
+        traceback.print_exc(file=_f)
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",
         allow_module_level=True,

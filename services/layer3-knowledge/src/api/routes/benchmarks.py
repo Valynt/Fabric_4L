@@ -19,7 +19,7 @@ from typing import Any, Literal
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel, Field
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.dependencies_tenant_secured import create_neo4j_tenant_session
 from ...api.routes._utils import get_tenant_id_from_api_key

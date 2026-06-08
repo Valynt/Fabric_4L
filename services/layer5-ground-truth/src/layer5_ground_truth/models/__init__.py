@@ -1,8 +1,17 @@
 """Layer 5 Ground Truth — SQLAlchemy models."""
 
+from .academy import (
+    AcademyCertification,
+    AcademyMaturityAssessment,
+    AcademyPillar,
+    AcademyProgress,
+    AcademyQuizQuestion,
+    AcademyQuizResult,
+    AcademyResource,
+)
 from .assumption_governance import (
-    ApprovalDecision,
-    ApprovalRequest,
+    AssumptionApprovalDecision,
+    AssumptionApprovalRequest,
     AssumptionRecord,
     BenchmarkDataset,
     FormulaDefinition,
@@ -33,8 +42,15 @@ from .truth_object import (
 )
 
 __all__ = [
-    "ApprovalDecision",
-    "ApprovalRequest",
+    "AcademyCertification",
+    "AcademyMaturityAssessment",
+    "AcademyPillar",
+    "AcademyProgress",
+    "AcademyQuizQuestion",
+    "AcademyQuizResult",
+    "AcademyResource",
+    "AssumptionApprovalDecision",
+    "AssumptionApprovalRequest",
     "AssumptionRecord",
     "Base",
     "BenchmarkDataset",

@@ -763,6 +763,14 @@ def create_app() -> FastAPI:
     except ImportError:
         logging.getLogger(__name__).warning("Governance router not available")
 
+    # Mount the Academy router
+    try:
+        from .academy_router import router as academy_router
+
+        app.include_router(academy_router)
+    except ImportError:
+        logging.getLogger(__name__).warning("Academy router not available")
+
     # Prometheus metrics endpoint — internal only, protected by network/auth
     @app.get("/metrics", tags=["Monitoring"], include_in_schema=False)
     async def metrics_endpoint(request: Request):

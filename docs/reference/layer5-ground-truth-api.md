@@ -64,6 +64,16 @@ X-Tenant-ID: <tenant_uuid>
 | POST | `/api/v1/evaluations` | Run evaluation | Yes |
 | GET | `/api/v1/evaluations/{id}` | Get evaluation result | Yes |
 | GET | `/api/v1/benchmarks` | List benchmarks | Yes |
+| GET | `/api/v1/academy/pillars` | List academy pillars | Yes |
+| GET | `/api/v1/academy/pillars/{id}` | Get pillar detail | Yes |
+| GET | `/api/v1/academy/pillars/{id}/quiz` | Get quiz questions | Yes |
+| POST | `/api/v1/academy/quiz/submit` | Submit quiz answers | Yes |
+| GET | `/api/v1/academy/progress` | Get user progress | Yes |
+| PUT | `/api/v1/academy/progress` | Update progress | Yes |
+| GET | `/api/v1/academy/certifications` | List certifications | Yes |
+| GET | `/api/v1/academy/maturity/levels` | Maturity level definitions | Yes |
+| POST | `/api/v1/academy/maturity/assessments` | Create assessment | Yes |
+| GET | `/api/v1/academy/resources` | List resources | Yes |
 
 ---
 
@@ -315,6 +325,155 @@ X-Tenant-ID: <tenant>
     }
   }
 }
+```
+
+---
+
+## Academy
+
+The Academy module provides the Value Operating System (VOS) training program through 10 structured pillars, quizzes, progress tracking, certifications, and maturity assessments.
+
+### List Pillars
+
+```http
+GET /api/v1/academy/pillars HTTP/1.1
+Host: l5.valuefabric.io
+Authorization: Bearer <token>
+X-Tenant-ID: <tenant>
+```
+
+**Response (200):**
+
+```json
+{
+  "items": [
+    {
+      "id": "pillar-uuid",
+      "pillar_number": 1,
+      "title": "Value Definitions",
+      "description": "Learn to articulate value in customer-centric language",
+      "target_maturity_level": 1,
+      "duration": "30-45 minutes",
+      "content": {
+        "overview": "...",
+        "learning_objectives": ["Define customer value", "Distinguish features from outcomes"],
+        "key_takeaways": ["Value is measured in customer outcomes"],
+        "resources": [{"title": "Value Lexicon Cheat Sheet", "url": "/resources/lexicon.pdf", "type": "pdf"}]
+      }
+    }
+  ],
+  "total": 10
+}
+```
+
+### Get Quiz Questions
+
+```http
+GET /api/v1/academy/pillars/{pillar_id}/quiz HTTP/1.1
+Host: l5.valuefabric.io
+Authorization: Bearer <token>
+X-Tenant-ID: <tenant>
+```
+
+**Response (200):**
+
+```json
+{
+  "items": [
+    {
+      "id": "question-uuid",
+      "question_number": 1,
+      "question_type": "multiple_choice",
+      "category": "Value Definitions",
+      "question_text": "What is the primary difference between a feature and an outcome?",
+      "options": [
+        {"label": "A feature is what the product does; an outcome is what the customer achieves", "value": "A"}
+      ],
+      "points": 4
+    }
+  ],
+  "total": 1
+}
+```
+
+### Submit Quiz
+
+```http
+POST /api/v1/academy/quiz/submit HTTP/1.1
+Host: l5.valuefabric.io
+Authorization: Bearer <token>
+X-Tenant-ID: <tenant>
+Content-Type: application/json
+
+{
+  "pillar_id": "pillar-uuid",
+  "answers": [
+    {"question_id": "question-uuid", "selected_answer": "A"}
+  ]
+}
+```
+
+**Response (201):**
+
+```json
+{
+  "id": "result-uuid",
+  "score": 100,
+  "passed": true,
+  "feedback": {
+    "overall": "Excellent work! You demonstrated strong understanding.",
+    "strengths": ["Clear differentiation between features and outcomes"],
+    "improvements": [],
+    "next_steps": ["Proceed to Pillar 2: KPI Taxonomy"]
+  },
+  "attempt_number": 1
+}
+```
+
+*Pass threshold: 80%. Passing automatically awards a certification and updates progress to "completed".*
+
+### Get Progress
+
+```http
+GET /api/v1/academy/progress HTTP/1.1
+Host: l5.valuefabric.io
+Authorization: Bearer <token>
+X-Tenant-ID: <tenant>
+```
+
+**Response (200):**
+
+```json
+{
+  "items": [
+    {"id": "progress-uuid", "pillar_id": "pillar-uuid", "status": "completed", "completion_percentage": 100}
+  ],
+  "overall_percentage": 10,
+  "completed_count": 1,
+  "total_count": 10
+}
+```
+
+### Maturity Levels
+
+```http
+GET /api/v1/academy/maturity/levels HTTP/1.1
+Host: l5.valuefabric.io
+Authorization: Bearer <token>
+X-Tenant-ID: <tenant>
+```
+
+**Response (200):**
+
+```json
+[
+  {"level": 0, "name": "Unaware", "description": "No formal value selling practices", "behaviors": []},
+  {"level": 1, "name": "Emerging", "description": "Basic value language adoption", "behaviors": ["Can articulate feature vs. outcome"]},
+  {"level": 2, "name": "Developing", "description": "Structured value conversations", "behaviors": ["Uses KPI taxonomy", "Builds simple ROI"]},
+  {"level": 3, "name": "Practicing", "description": "Consistent value-led selling", "behaviors": ["Tracks value realization", "Maps stakeholders"]},
+  {"level": 4, "name": "Optimizing", "description": "Advanced value transformation", "behaviors": ["Executive communication", "Competitive differentiation"]},
+  {"level": 5, "name": "Leading", "description": "Value-centered organization", "behaviors": ["Drives organizational change", "Coaches others"]}
+]
 ```
 
 ---

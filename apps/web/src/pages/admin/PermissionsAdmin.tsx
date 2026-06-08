@@ -9,19 +9,34 @@
  * - User listing with role badges
  * - API key listing with enable/revoke
  * - Connected to L4 governance endpoints
+ * - Destructive actions confirmed with tenant scope
  */
 
 import { useState, useMemo, useEffect } from "react";
 import { useLocation } from "react-router-dom";
 import {
-  Users, Key, Plus, Search, Shield, UserPlus,
-  CheckCircle2, Clock, AlertCircle, RefreshCw,
-  Trash2, Eye, EyeOff,
+  Users, Key, Plus, UserPlus, Shield,
+  CheckCircle2, Clock, Eye, EyeOff, Trash2,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
-import { cn } from "@/lib/utils";
+import { Btn } from "@/components/ui/fabric";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   useUsers,
   useApiKeys,
@@ -30,17 +45,16 @@ import {
   type User,
   type ApiKey,
 } from "@/hooks/useGovernance";
-import { PageHeader, Btn } from "@/components/ui/fabric";
-import { Input } from "@/components/ui/input";
-import { PageShell } from "@/components";
-import { ErrorState } from "@/components/states/ErrorState";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  AdminShell,
+  AdminTabs,
+  AdminFilterBar,
+  AdminDataTable,
+  AdminIconButton,
+  AdminIconButtonGroup,
+  AdminConfirmDialog,
+  type AdminDataTableColumn,
+} from "@/components/admin";
 
 // ── Styling Constants ───────────────────────────────────────────────────────────
 
@@ -75,32 +89,6 @@ function StatusChip({ status }: { status: string }) {
   );
 }
 
-
-function PermissionsSkeleton() {
-  return (
-    <PageShell fullWidth>
-      <div className="max-w-6xl">
-        <div className="flex items-start justify-between mb-6">
-          <div>
-            <Skeleton className="h-8 w-48 mb-2" />
-            <Skeleton className="h-4 w-72" />
-          </div>
-          <Skeleton className="h-9 w-32" />
-        </div>
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          {[1, 2, 3, 4, 5].map(i => (
-            <div key={i} className="px-4 py-4 border-b border-border flex gap-4">
-              <Skeleton className="h-4 w-48" />
-              <Skeleton className="h-4 w-24" />
-              <Skeleton className="h-4 w-16" />
-            </div>
-          ))}
-        </div>
-      </div>
-    </PageShell>
-  );
-}
-
 // ── Main Component ─────────────────────────────────────────────────────────────
 
 type TabType = "users" | "api-keys";
@@ -109,7 +97,6 @@ function getTabFromPath(path: string): TabType {
   if (path.startsWith("/settings/access/keys") || path.startsWith("/settings/team/api-keys")) {
     return "api-keys";
   }
-
   if (
     path.startsWith("/settings/access/roles") ||
     path.startsWith("/settings/access/teams") ||
@@ -117,7 +104,6 @@ function getTabFromPath(path: string): TabType {
   ) {
     return "users";
   }
-
   return "users";
 }
 
@@ -146,9 +132,17 @@ function PermissionsContent() {
 
   const revokeMutation = useRevokeApiKey();
   const inviteMutation = useInviteUser();
+
   const [showInvite, setShowInvite] = useState(false);
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState("member");
+
+  const [confirmRevoke, setConfirmRevoke] = useState<{ open: boolean; keyId: string; keyName: string }>({
+    open: false,
+    keyId: "",
+    keyName: "",
+  });
+
   const handleInvite = async () => {
     if (!inviteEmail) return;
     try {
@@ -158,6 +152,13 @@ function PermissionsContent() {
       setInviteRole("member");
       refetchUsers();
     } catch (e) { /* error shown via mutation state */ }
+  };
+
+  const handleRevokeConfirm = async () => {
+    if (!confirmRevoke.keyId) return;
+    await revokeMutation.mutateAsync(confirmRevoke.keyId);
+    setConfirmRevoke({ open: false, keyId: "", keyName: "" });
+    refetchKeys();
   };
 
   const isLoading = usersLoading || keysLoading;
@@ -180,227 +181,179 @@ function PermissionsContent() {
     [apiKeys, search]
   );
 
-  if (isLoading) return <PermissionsSkeleton />;
-
-  if (error) {
-    return (
-      <PageShell fullWidth>
-      <div className="max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">Failed to load permissions data</h3>
-              <p className="vf-text-body-s text-destructive/80">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button
-                onClick={() => { refetchUsers(); refetchKeys(); }}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
+  const userColumns: AdminDataTableColumn<User>[] = [
+    {
+      key: "user",
+      header: "User",
+      render: (u) => (
+        <div>
+          <span className="font-medium text-foreground block">{u.display_name || u.email}</span>
+          {u.display_name && <span className="vf-text-micro text-muted-foreground">{u.email}</span>}
         </div>
-      </div>
-    </PageShell>
-    );
-  }
+      ),
+    },
+    { key: "role", header: "Role", render: (u) => <RoleBadge role={u.role} /> },
+    { key: "status", header: "Status", render: (u) => <StatusChip status={u.status} /> },
+    { key: "created_at", header: "Created", render: (u) => <span className="text-muted-foreground">{formatDate(u.created_at)}</span> },
+    { key: "last_login_at", header: "Last Login", render: (u) => <span className="text-muted-foreground">{formatDate(u.last_login_at)}</span> },
+    {
+      key: "actions",
+      header: "",
+      className: "w-16",
+      render: () => (
+        <AdminIconButtonGroup>
+          <AdminIconButton icon={Eye} label="View user" />
+        </AdminIconButtonGroup>
+      ),
+    },
+  ];
+
+  const keyColumns: AdminDataTableColumn<ApiKey>[] = [
+    { key: "name", header: "Key Name", render: (k) => <span className="font-medium text-foreground">{k.name}</span> },
+    { key: "prefix", header: "Prefix", render: (k) => <span className="font-mono vf-text-caption text-muted-foreground">{k.prefix}•••</span> },
+    {
+      key: "enabled",
+      header: "Enabled",
+      render: (k) =>
+        k.is_enabled
+          ? <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 size={12} /> Active</span>
+          : <span className="inline-flex items-center gap-1 text-muted-foreground"><EyeOff size={12} /> Disabled</span>,
+    },
+    { key: "created_at", header: "Created", render: (k) => <span className="text-muted-foreground">{formatDate(k.created_at)}</span> },
+    { key: "last_used_at", header: "Last Used", render: (k) => <span className="text-muted-foreground">{formatDate(k.last_used_at)}</span> },
+    {
+      key: "actions",
+      header: "",
+      className: "w-16",
+      render: (k) => (
+        <AdminIconButtonGroup>
+          <AdminIconButton
+            icon={Trash2}
+            label="Revoke API key"
+            variant="destructive"
+            onClick={() => setConfirmRevoke({ open: true, keyId: k.id, keyName: k.name })}
+          />
+        </AdminIconButtonGroup>
+      ),
+    },
+  ];
 
   return (
-    <PageShell fullWidth>
-      <div className="max-w-6xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <PageHeader
-          title="Permissions & Access"
-          subtitle="Manage users, roles, and API keys for your tenant."
-        />
+    <AdminShell
+      title="Permissions & Access"
+      subtitle="Manage users, roles, and API keys for your tenant."
+      fullWidth
+      actions={
         <Btn variant="primary" onClick={() => activeTab === "users" ? setShowInvite(true) : null}>
           {activeTab === "users"
             ? <><UserPlus size={13} className="mr-1" /> Invite User</>
             : <><Plus size={13} className="mr-1" /> New API Key</>
           }
         </Btn>
-      </div>
-
-      {/* Invite User Dialog */}
-      {showInvite && (
-        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center">
-          <div className="bg-card rounded-xl shadow-xl p-6 w-[400px]">
-            <h3 className="vf-text-body-l font-bold text-foreground mb-4">Invite User</h3>
-            <div className="space-y-3">
-              <div>
-                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Email</label>
-                <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
-                  placeholder="user@company.com" className="w-full vf-text-body-s border border-border rounded-lg px-3 py-2 outline-none focus:border-primary" />
-              </div>
-              <div>
-                <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Role</label>
-                <Select value={inviteRole} onValueChange={setInviteRole}>
-                  <SelectTrigger className="w-full vf-text-body-s">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="member">Member</SelectItem>
-                    <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
-                    <SelectItem value="viewer">Viewer</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              {inviteMutation.error && (
-                <p className="vf-text-caption text-destructive">{inviteMutation.error instanceof Error ? inviteMutation.error.message : "Invite failed"}</p>
-              )}
-            </div>
-            <div className="flex justify-end gap-2 mt-5">
-              <Btn variant="ghost" onClick={() => setShowInvite(false)}>Cancel</Btn>
-              <Btn variant="primary" onClick={handleInvite} disabled={!inviteEmail || inviteMutation.isPending}>
-                {inviteMutation.isPending ? "Sending…" : "Send Invite"}
-              </Btn>
-            </div>
-          </div>
-        </div>
-      )}
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border mb-4">
-        {[
-          { id: "users" as const, label: "Users", count: users.length, icon: <Users size={13} /> },
-          { id: "api-keys" as const, label: "API Keys", count: apiKeys.length, icon: <Key size={13} /> },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "px-4 py-2.5 vf-text-body-s font-medium transition-colors relative",
-              activeTab === tab.id
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <span className="flex items-center gap-2">
-              {tab.icon} {tab.label}
-              <span className={cn(
-                "px-1.5 py-0.5 rounded vf-text-micro",
-                activeTab === tab.id ? "bg-primary/10 text-primary" : "bg-muted text-muted-foreground"
-              )}>
-                {tab.count}
-              </span>
-            </span>
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm mb-4">
-        <Search size={12} className="text-muted-foreground shrink-0" />
-        <Input
-          value={search}
-          onChange={e => setSearch(e.target.value)}
-          placeholder={activeTab === "users" ? "Search users..." : "Search API keys..."}
-          className="flex-1 vf-text-body-s bg-transparent outline-none text-foreground placeholder:text-muted-foreground"
+      }
+      tabs={
+        <AdminTabs
+          tabs={[
+            { id: "users", label: "Users", count: users.length, icon: <Users size={13} /> },
+            { id: "api-keys", label: "API Keys", count: apiKeys.length, icon: <Key size={13} /> },
+          ]}
+          activeTab={activeTab}
+          onChange={(tabId) => setActiveTab(tabId as TabType)}
         />
-      </div>
+      }
+    >
+      <AdminFilterBar
+        searchPlaceholder={activeTab === "users" ? "Search users..." : "Search API keys..."}
+        searchValue={search}
+        onSearchChange={setSearch}
+      />
 
       {activeTab === "users" ? (
-        /* Users Table */
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full vf-text-body-s">
-            <thead>
-              <tr className="border-b border-border bg-muted">
-                {["User", "Role", "Status", "Created", "Last Login", ""].map(h => (
-                  <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredUsers.map(u => (
-                <tr key={u.id} className="hover:bg-muted transition-colors group">
-                  <td className="px-4 py-3">
-                    <div>
-                      <span className="font-medium text-foreground block">{u.display_name || u.email}</span>
-                      {u.display_name && <span className="vf-text-micro text-muted-foreground">{u.email}</span>}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3"><RoleBadge role={u.role} /></td>
-                  <td className="px-4 py-3"><StatusChip status={u.status} /></td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(u.created_at)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(u.last_login_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="p-1.5 rounded hover:bg-muted text-muted-foreground hover:text-foreground" title="View">
-                        <Eye size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredUsers.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground vf-text-body-s">
-              <Users size={32} className="mx-auto mb-3 text-muted-foreground/50" />
-              No users match your search.
-            </div>
-          )}
-        </div>
+        <AdminDataTable
+          data={filteredUsers}
+          columns={userColumns}
+          keyExtractor={(u) => u.id}
+          isLoading={usersLoading}
+          error={usersError}
+          onRetry={refetchUsers}
+          emptyTitle="No users found"
+          emptyDescription={search ? "No users match your search." : "Get started by inviting your first user."}
+          emptyIcon={Users}
+        />
       ) : (
-        /* API Keys Table */
-        <div className="bg-card border border-border rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full vf-text-body-s">
-            <thead>
-              <tr className="border-b border-border bg-muted">
-                {["Key Name", "Prefix", "Enabled", "Created", "Last Used", ""].map(h => (
-                  <th key={h} className="text-left px-4 py-3 vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {filteredKeys.map(k => (
-                <tr key={k.id} className="hover:bg-muted transition-colors group">
-                  <td className="px-4 py-3 font-medium text-foreground">{k.name}</td>
-                  <td className="px-4 py-3 font-mono vf-text-caption text-muted-foreground">{k.prefix}•••</td>
-                  <td className="px-4 py-3">
-                    {k.is_enabled
-                      ? <span className="inline-flex items-center gap-1 text-success"><CheckCircle2 size={12} /> Active</span>
-                      : <span className="inline-flex items-center gap-1 text-muted-foreground"><EyeOff size={12} /> Disabled</span>
-                    }
-                  </td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(k.created_at)}</td>
-                  <td className="px-4 py-3 text-muted-foreground">{formatDate(k.last_used_at)}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        className="p-1.5 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive"
-                        title="Revoke"
-                        onClick={() => revokeMutation.mutate(k.id)}
-                        disabled={revokeMutation.isPending}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {filteredKeys.length === 0 && (
-            <div className="text-center py-12 text-muted-foreground vf-text-body-s">
-              <Key size={32} className="mx-auto mb-3 text-muted-foreground/50" />
-              No API keys found.
-            </div>
-          )}
-        </div>
+        <AdminDataTable
+          data={filteredKeys}
+          columns={keyColumns}
+          keyExtractor={(k) => k.id}
+          isLoading={keysLoading}
+          error={keysError}
+          onRetry={refetchKeys}
+          emptyTitle="No API keys found"
+          emptyDescription={search ? "No API keys match your search." : "Create an API key to integrate with external services."}
+          emptyIcon={Key}
+        />
       )}
-    </div>
-    </PageShell>
+
+      {/* Invite User Dialog */}
+      <Dialog open={showInvite} onOpenChange={setShowInvite}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="vf-heading-l font-semibold">Invite User</DialogTitle>
+            <DialogDescription className="vf-text-body-m">
+              Send an invitation to join this tenant.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div>
+              <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Email</label>
+              <Input
+                value={inviteEmail}
+                onChange={(e) => setInviteEmail(e.target.value)}
+                placeholder="user@company.com"
+              />
+            </div>
+            <div>
+              <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Role</label>
+              <Select value={inviteRole} onValueChange={setInviteRole}>
+                <SelectTrigger className="w-full vf-text-body-s">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="member">Member</SelectItem>
+                  <SelectItem value="tenant_admin">Tenant Admin</SelectItem>
+                  <SelectItem value="viewer">Viewer</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {inviteMutation.error && (
+              <p className="vf-text-caption text-destructive">
+                {inviteMutation.error instanceof Error ? inviteMutation.error.message : "Invite failed"}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Btn variant="ghost" onClick={() => setShowInvite(false)}>Cancel</Btn>
+            <Btn variant="primary" onClick={handleInvite} disabled={!inviteEmail || inviteMutation.isPending}>
+              {inviteMutation.isPending ? "Sending…" : "Send Invite"}
+            </Btn>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Revoke Key Confirmation */}
+      <AdminConfirmDialog
+        open={confirmRevoke.open}
+        onOpenChange={(open) => setConfirmRevoke((prev) => ({ ...prev, open }))}
+        title="Revoke API Key"
+        description="This API key will be permanently revoked. Any integrations using it will stop working immediately."
+        itemName={confirmRevoke.keyName}
+        tenantName="Current tenant"
+        actionLabel="Revoke Key"
+        variant="destructive"
+        onConfirm={handleRevokeConfirm}
+        isPending={revokeMutation.isPending}
+      />
+    </AdminShell>
   );
 }
 

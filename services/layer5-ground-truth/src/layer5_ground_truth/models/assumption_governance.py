@@ -65,8 +65,8 @@ class PolicyRule(Base):
     lifecycle_state = Column(String(32), nullable=False, default=LifecycleState.PUBLISHED.value)
 
 
-class ApprovalRequest(Base):
-    __tablename__ = "approval_requests"
+class AssumptionApprovalRequest(Base):
+    __tablename__ = "assumption_approval_requests"
     __table_args__ = {"extend_existing": True}
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
@@ -78,16 +78,17 @@ class ApprovalRequest(Base):
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
 
-class ApprovalDecision(Base):
-    __tablename__ = "approval_decisions"
+class AssumptionApprovalDecision(Base):
+    __tablename__ = "assumption_approval_decisions"
     __table_args__ = {"extend_existing": True}
 
     id = Column(UUID, primary_key=True, default=uuid.uuid4)
     tenant_id = Column(UUID, nullable=False, index=True)
-    approval_request_id = Column(UUID, ForeignKey("approval_requests.id", ondelete="CASCADE"), nullable=False)
+    approval_request_id = Column(UUID, ForeignKey("assumption_approval_requests.id", ondelete="CASCADE"), nullable=False)
     reviewer_role = Column(String(128), nullable=False)
     decision = Column(String(32), nullable=False)
     notes = Column(Text, nullable=True)
     created_at = Column(DateTime(timezone=True), nullable=False, default=lambda: datetime.now(UTC))
 
-Index("ix_approval_requests_assumption_id", ApprovalRequest.assumption_id)
+
+Index("ix_assumption_approval_requests_assumption_id", AssumptionApprovalRequest.assumption_id)

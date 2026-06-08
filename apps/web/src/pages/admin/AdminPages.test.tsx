@@ -312,8 +312,8 @@ describe('PermissionsAdmin', () => {
     renderWithRouter(<PermissionsAdmin />, { path: '/settings/access/keys' });
 
     await waitFor(() => {
-      const apiKeysTab = screen.getByRole('button', { name: /^API Keys/i });
-      const usersTab = screen.getByRole('button', { name: /^Users/i });
+      const apiKeysTab = screen.getByRole('tab', { name: /^API Keys/i });
+      const usersTab = screen.getByRole('tab', { name: /^Users/i });
       expect(apiKeysTab).toHaveClass('text-primary');
       expect(usersTab).not.toHaveClass('text-primary');
     });
@@ -323,8 +323,8 @@ describe('PermissionsAdmin', () => {
     renderWithRouter(<PermissionsAdmin />, { path: '/settings/access/roles' });
 
     await waitFor(() => {
-      const usersTab = screen.getByRole('button', { name: /^Users/i });
-      const apiKeysTab = screen.getByRole('button', { name: /^API Keys/i });
+      const usersTab = screen.getByRole('tab', { name: /^Users/i });
+      const apiKeysTab = screen.getByRole('tab', { name: /^API Keys/i });
       expect(usersTab).toHaveClass('text-primary');
       expect(apiKeysTab).not.toHaveClass('text-primary');
     });

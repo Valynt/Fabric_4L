@@ -11,6 +11,7 @@ secret_file_risk_allow:
   - .env.dev.example
   - .env.example
   - .env.production-compose.template
+  - .env.pytest
   - apps/web/.env.example
   - apps/web/.env.local.mock-auth.example
   - docs/archive/frontend-root-2026-05-02/source-snapshot/.env.example

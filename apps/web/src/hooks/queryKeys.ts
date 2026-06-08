@@ -438,6 +438,19 @@ export const QK = {
     account: (accountId: string) =>
       ["value-signals", "account", accountId] as const,
   },
+
+  // Academy — Training & Certification
+  academy: {
+    all: ["academy"] as const,
+    pillars: (tenantId: string) => ["academy", "pillars", tenantId] as const,
+    pillar: (tenantId: string, pillarId: string) => ["academy", "pillar", tenantId, pillarId] as const,
+    quiz: (tenantId: string, pillarId: string) => ["academy", "quiz", tenantId, pillarId] as const,
+    progress: (tenantId: string) => ["academy", "progress", tenantId] as const,
+    certifications: (tenantId: string) => ["academy", "certifications", tenantId] as const,
+    maturityLevels: (tenantId: string) => ["academy", "maturity-levels", tenantId] as const,
+    maturityAssessments: (tenantId: string) => ["academy", "maturity-assessments", tenantId] as const,
+    resources: (tenantId: string) => ["academy", "resources", tenantId] as const,
+  },
 } as const;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

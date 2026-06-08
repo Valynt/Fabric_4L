@@ -25,7 +25,7 @@ from neo4j import AsyncDriver
 from pydantic import BaseModel, Field
 from value_fabric.shared.models.typed_dict import TypedDictModel
 
-from logging_config import get_logger
+from src.logging_config import get_logger
 
 from ...api.routes._utils import get_tenant_id_from_api_key, increment_patch_version
 from ...api.routes.formulas import evaluate_expression

@@ -1,13 +1,13 @@
 /**
  * HealthMonitor — Admin Tier 3 Page
- * 
+ *
  * System health monitoring dashboard:
  * - Real-time service status grid (L1-L6 layers)
  * - Health alerts and incidents
  * - Response time metrics
  * - Uptime statistics
  * - Auto-refresh every 30 seconds
- * 
+ *
  * Connected to Layer 4 health endpoints
  */
 
@@ -20,16 +20,8 @@ import {
 } from "lucide-react";
 import { Skeleton, ErrorBoundary } from "@/components";
 import { Input } from "@/components/ui/input";
-import { PageShell } from "@/components";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { ErrorState } from "@/components/states/ErrorState";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   useSystemHealth,
   useHealthAlerts,
@@ -38,6 +30,21 @@ import {
   type HealthAlert,
 } from "@/hooks";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import {
+  AdminShell,
+  AdminStatCard,
+  AdminStatsRow,
+  AdminFilterBar,
+  AdminEmptyState,
+  AdminErrorState,
+} from "@/components/admin";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -191,9 +198,9 @@ function ServiceCard({ service }: { service: ServiceHealth }) {
 
       <div className="mt-3 flex items-center justify-between vf-text-micro text-muted-foreground">
         <span>Last check: {formatTimeAgo(service.last_check_at)}</span>
-        <button className="text-primary hover:underline flex items-center gap-0.5">
+        <Btn variant="ghost" size="sm" className="h-auto px-0 py-0">
           Details <ExternalLink size={10} />
-        </button>
+        </Btn>
       </div>
     </div>
   );
@@ -240,59 +247,20 @@ function AlertCard({ alert }: { alert: HealthAlert }) {
   );
 }
 
-function SummaryCard({
-  label,
-  value,
-  status,
-  icon,
-}: {
-  label: string;
-  value: number;
-  status: ServiceStatus;
-  icon: React.ReactNode;
-}) {
-  const config = STATUS_CONFIG[status];
-
-  return (
-    <div className="bg-card border border-border rounded-xl px-4 py-3">
-      <div className="flex items-center gap-2 mb-1">
-        <span className={config.color}>{icon}</span>
-        <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
-          {label}
-        </span>
-      </div>
-      <p className={cn("text-2xl font-extrabold", config.color)}>
-        {value}
-      </p>
-    </div>
-  );
-}
-
 function HealthMonitorSkeleton() {
   return (
-    <PageShell>
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <Skeleton className="h-9 w-28" />
-      </div>
-
-      {/* Summary Skeleton */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+    <AdminShell title="System Health" subtitle="Loading...">
+      <AdminStatsRow columns={4}>
         {[1, 2, 3, 4].map(i => (
           <Skeleton key={i} className="h-20 rounded-xl" />
         ))}
-      </div>
-
-      {/* Services Grid Skeleton */}
+      </AdminStatsRow>
       <div className="grid grid-cols-3 gap-4">
         {[1, 2, 3, 4, 5, 6].map(i => (
           <Skeleton key={i} className="h-36 rounded-xl" />
         ))}
       </div>
-    </PageShell>
+    </AdminShell>
   );
 }
 
@@ -347,49 +315,47 @@ function HealthMonitorContent() {
   };
 
   if (isLoading) {
-    return (
-      <PageShell>
-        <HealthMonitorSkeleton />
-      </PageShell>
-    );
+    return <HealthMonitorSkeleton />;
   }
 
   if (error) {
     return (
-      <PageShell>
-        <ErrorState
+      <AdminShell
+        title="System Health"
+        subtitle="Monitor real-time status of all platform services"
+      >
+        <AdminErrorState
           title="Failed to load health data"
           description="An error occurred while loading system health information."
           error={error}
           onRetry={handleRefresh}
         />
-      </PageShell>
+      </AdminShell>
     );
   }
 
   if (!health) {
     return (
-      <PageShell>
-        <div className="bg-warning/10 border border-warning/20 rounded-xl p-6">
-          <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Health Data</h3>
-          <p className="vf-text-body-s text-warning dark:text-warning mt-1">
-            System health information is unavailable. Please check the API status.
-          </p>
-        </div>
-      </PageShell>
+      <AdminShell
+        title="System Health"
+        subtitle="Monitor real-time status of all platform services"
+      >
+        <AdminEmptyState
+          title="No Health Data"
+          description="System health information is unavailable. Please check the API status."
+          icon={Activity}
+        />
+      </AdminShell>
     );
   }
 
   const overallStatus = STATUS_CONFIG[health.overall_status];
 
   return (
-    <PageShell>
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <PageHeader
-          title="System Health"
-          subtitle="Monitor real-time status of all platform services"
-        />
+    <AdminShell
+      title="System Health"
+      subtitle="Monitor real-time status of all platform services"
+      actions={
         <div className="flex items-center gap-2">
           <span className="vf-text-caption text-muted-foreground">
             Updated {lastUpdated}
@@ -399,8 +365,8 @@ function HealthMonitorContent() {
             Refresh
           </Btn>
         </div>
-      </div>
-
+      }
+    >
       {/* Overall Status Banner */}
       <div className={cn(
         "mb-6 p-4 rounded-xl border flex items-center gap-3",
@@ -428,32 +394,32 @@ function HealthMonitorContent() {
       </div>
 
       {/* Summary Grid */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <SummaryCard
+      <AdminStatsRow columns={4}>
+        <AdminStatCard
           label="Healthy"
           value={health.summary.healthy}
-          status="healthy"
           icon={<CheckCircle2 size={14} />}
+          color="success"
         />
-        <SummaryCard
+        <AdminStatCard
           label="Degraded"
           value={health.summary.degraded}
-          status="degraded"
           icon={<AlertTriangle size={14} />}
+          color="warning"
         />
-        <SummaryCard
+        <AdminStatCard
           label="Unhealthy"
           value={health.summary.unhealthy}
-          status="unhealthy"
           icon={<XCircle size={14} />}
+          color="destructive"
         />
-        <SummaryCard
+        <AdminStatCard
           label="Unknown"
           value={health.summary.unknown}
-          status="unknown"
           icon={<AlertCircle size={14} />}
+          color="default"
         />
-      </div>
+      </AdminStatsRow>
 
       {/* Services Section */}
       <div className="mb-8">
@@ -482,10 +448,11 @@ function HealthMonitorContent() {
         </div>
 
         {filteredServices.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground vf-text-body-s">
-            <Server size={32} className="mx-auto mb-2 text-muted-foreground/50" />
-            No services match the selected filter.
-          </div>
+          <AdminEmptyState
+            icon={Server}
+            title="No services match"
+            description="No services match the selected filter."
+          />
         )}
       </div>
 
@@ -495,13 +462,11 @@ function HealthMonitorContent() {
           <h3 className="vf-text-body-l font-semibold text-foreground">
             Active Alerts {filteredAlerts.length > 0 && `(${filteredAlerts.length})`}
           </h3>
-          <div className="flex items-center gap-2">
-            <label className="flex items-center gap-1.5 vf-text-caption text-muted-foreground">
-              <Input
-                type="checkbox"
+          <div className="flex items-center gap-3">
+            <label className="flex items-center gap-1.5 vf-text-caption text-muted-foreground cursor-pointer">
+              <Checkbox
                 checked={showResolved}
-                onChange={(e) => setShowResolved(e.target.checked)}
-                className="rounded border-border"
+                onCheckedChange={(checked) => setShowResolved(Boolean(checked))}
               />
               Show resolved
             </label>
@@ -526,13 +491,14 @@ function HealthMonitorContent() {
         </div>
 
         {filteredAlerts.length === 0 && (
-          <div className="text-center py-8 text-muted-foreground vf-text-body-s">
-            <Bell size={32} className="mx-auto mb-2 text-muted-foreground/50" />
-            {showResolved ? "No alerts found." : "No active alerts. Great!"}
-          </div>
+          <AdminEmptyState
+            icon={Bell}
+            title={showResolved ? "No alerts found" : "No active alerts"}
+            description={showResolved ? "There are no alerts in the selected range." : "All systems are operating normally."}
+          />
         )}
       </div>
-    </PageShell>
+    </AdminShell>
   );
 }
 

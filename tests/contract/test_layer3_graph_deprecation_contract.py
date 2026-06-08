@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
 import pytest
 
 try:
@@ -7,12 +12,19 @@ try:
         GraphNode,
         get_deprecated_field_usage_counters,
     )
-    from src.api.main import app
-except (ImportError, Exception):
+except (ImportError, Exception) as _exc:
     pytest.skip(
         "value_fabric.layer3 service stack not available (pre-existing blocker #1/#9)",
         allow_module_level=True,
     )
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+OPENAPI_L3_PATH = REPO_ROOT / "contracts" / "openapi" / "layer3-knowledge.json"
+
+
+def _load_openapi() -> dict:
+    return json.loads(OPENAPI_L3_PATH.read_text(encoding="utf-8"))
+
 
 def test_graph_node_contract_includes_legacy_and_canonical_fields() -> None:
     node = GraphNode(id="n1", name="Node", entity_type="Capability", confidence_score=0.9)
@@ -72,15 +84,14 @@ def test_layer3_contract_fixtures_prefer_canonical_fields() -> None:
 
 
 def test_openapi_graph_node_fields_are_canonical_plus_explicit_aliases_only() -> None:
-    schema = app.openapi()
-    graph_node = schema["components"]["schemas"]["GraphNode"]["properties"]
-    assert {"id", "name", "entity_type", "confidence_score", "properties"}.issubset(graph_node.keys())
-    assert {"label", "type", "confidence"}.issubset(graph_node.keys())
-    unexpected = {"title", "node_type"} & set(graph_node.keys())
+    schema = _load_openapi()["components"]["schemas"]["GraphNode"]["properties"]
+    assert {"id", "name", "entity_type", "confidence_score", "properties"}.issubset(schema.keys())
+    assert {"label", "type", "confidence"}.issubset(schema.keys())
+    unexpected = {"title", "node_type"} & set(schema.keys())
     assert not unexpected
 
 
 def test_deprecated_alias_routes_remain_marked_deprecated() -> None:
-    schema = app.openapi()["paths"]
+    schema = _load_openapi()["paths"]
     for route in ("/api/v1/query", "/api/v1/query/graph", "/api/v1/query/search", "/api/v1/graphrag"):
         assert schema[route]["post"].get("deprecated") is True

@@ -8,7 +8,7 @@ from value_fabric.shared.error_handling.exceptions import ConflictError, NotFoun
 
 from ..database import get_db_from_context
 from ..models.assumption_governance import (
-    ApprovalRequest,
+    AssumptionApprovalRequest,
     AssumptionRecord,
     LifecycleState,
     PolicyRule,
@@ -67,7 +67,7 @@ async def apply_assumption_selection(assumption_id: UUID, payload: ApplySelectio
     policies = (await db.execute(select(PolicyRule).where(and_(PolicyRule.tenant_id == caller.tenant_id, PolicyRule.active.is_(True))))).scalars().all()
     matched = next((p for p in policies if assumption.impact_value > p.min_impact_threshold), None)
     if matched and not assumption.is_approved_for_use:
-        approval = ApprovalRequest(tenant_id=caller.tenant_id, assumption_id=assumption.id, policy_rule_id=matched.id, requested_by=caller.user_id or caller.email)
+        approval = AssumptionApprovalRequest(tenant_id=caller.tenant_id, assumption_id=assumption.id, policy_rule_id=matched.id, requested_by=caller.user_id or caller.email)
         db.add(approval)
         raise ConflictError(message=f"Approval required for high-impact assumption. required_reviewer_role={matched.required_reviewer_role}")
 

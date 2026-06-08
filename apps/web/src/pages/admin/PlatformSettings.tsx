@@ -1,13 +1,13 @@
 /**
  * PlatformSettings — Admin Tier 3 Page
- * 
+ *
  * Tenant-level platform configuration:
  * - Feature flags (advanced analytics, AI assistant, etc.)
  * - Notification preferences (email, Slack, webhooks)
  * - Security settings (2FA, session timeout, IP allowlist)
  * - Resource limits (users, API calls, storage)
  * - Branding customization (logo, colors)
- * 
+ *
  * Connected to Layer 4 governance endpoints
  */
 
@@ -15,9 +15,8 @@ import { useState, useMemo } from "react";
 import {
   Settings, Bell, Shield, Zap, Users, Database,
   Palette, Save, Loader2, AlertCircle, RefreshCw,
-  CheckCircle2, ExternalLink, Info
+  CheckCircle2, ExternalLink, Info, Trash2
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Switch } from "@/components/ui/switch";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { cn } from "@/lib/utils";
@@ -29,8 +28,16 @@ import {
 } from "@/hooks/usePlatformSettings";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { Input } from "@/components/ui/input";
-import { PageShell } from "@/components";
-import { PageHeader, Btn } from "@/components/ui/fabric";
+import { Btn } from "@/components/ui/fabric";
+import {
+  AdminShell,
+  AdminTabs,
+  AdminStatCard,
+  AdminStatsRow,
+  AdminErrorState,
+  AdminEmptyState,
+  AdminConfirmDialog,
+} from "@/components/admin";
 
 const log = createFeatureLogger('PlatformSettings');
 
@@ -114,7 +121,6 @@ function NotificationsPanel({
 
   return (
     <div className="space-y-4">
-      {/* Email Alerts Toggle */}
       <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -132,7 +138,6 @@ function NotificationsPanel({
         />
       </div>
 
-      {/* Slack Webhook */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -149,7 +154,6 @@ function NotificationsPanel({
             value={localSlack}
             onChange={(e) => setLocalSlack(e.target.value)}
             placeholder="https://hooks.slack.com/services/..."
-            className="flex-1 px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <Btn
             variant="outline"
@@ -161,7 +165,6 @@ function NotificationsPanel({
         </div>
       </div>
 
-      {/* Custom Webhook */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -178,7 +181,6 @@ function NotificationsPanel({
             value={localWebhook}
             onChange={(e) => setLocalWebhook(e.target.value)}
             placeholder="https://your-domain.com/webhook"
-            className="flex-1 px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
           <Btn
             variant="outline"
@@ -218,7 +220,6 @@ function SecurityPanel({
 
   return (
     <div className="space-y-4">
-      {/* 2FA Toggle */}
       <div className="flex items-center justify-between p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-lg bg-success/10 text-success flex items-center justify-center shrink-0">
@@ -236,7 +237,6 @@ function SecurityPanel({
         />
       </div>
 
-      {/* Session Timeout */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-warning/10 text-warning flex items-center justify-center shrink-0">
@@ -270,7 +270,6 @@ function SecurityPanel({
         </div>
       </div>
 
-      {/* IP Allowlist */}
       <div className="p-4 bg-card border border-border rounded-xl">
         <div className="flex items-center gap-3 mb-3">
           <div className="w-10 h-10 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
@@ -287,7 +286,6 @@ function SecurityPanel({
             value={newIp}
             onChange={(e) => setNewIp(e.target.value)}
             placeholder="192.168.1.1 or 10.0.0.0/8"
-            className="flex-1 px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
             onKeyDown={(e) => e.key === 'Enter' && addIp()}
           />
           <Btn variant="outline" onClick={addIp} disabled={!newIp}>
@@ -302,13 +300,16 @@ function SecurityPanel({
                 className="inline-flex items-center gap-1 px-2 py-1 bg-primary/10 text-primary vf-text-caption rounded-lg"
               >
                 {ip}
-                <button
+                <Btn
+                  variant="ghost"
+                  size="icon"
+                  className="h-4 w-4"
                   onClick={() => removeIp(ip)}
-                  className="hover:text-primary/80"
                   disabled={isPending}
+                  aria-label={`Remove ${ip}`}
                 >
                   ×
-                </button>
+                </Btn>
               </span>
             ))}
           </div>
@@ -344,23 +345,18 @@ function BrandingPanel({
           </div>
         </div>
 
-        {/* Logo URL */}
         <div className="mb-4">
           <label className="block vf-text-caption font-medium text-muted-foreground mb-1.5">
             Logo URL
           </label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              value={localLogo}
-              onChange={(e) => setLocalLogo(e.target.value)}
-              placeholder="https://cdn.example.com/logo.png"
-              className="flex-1 px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
-            />
-          </div>
+          <Input
+            type="text"
+            value={localLogo}
+            onChange={(e) => setLocalLogo(e.target.value)}
+            placeholder="https://cdn.example.com/logo.png"
+          />
         </div>
 
-        {/* Primary Color */}
         <div className="mb-4">
           <label className="block vf-text-caption font-medium text-muted-foreground mb-1.5">
             Primary Color
@@ -370,18 +366,17 @@ function BrandingPanel({
               type="color"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
-              className="w-10 h-10 rounded-lg border border-border cursor-pointer"
+              className="w-10 h-10 rounded-lg border border-border cursor-pointer p-0.5"
             />
             <Input
               type="text"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
-              className="flex-1 px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 font-mono"
+              className="flex-1 font-mono"
             />
           </div>
         </div>
 
-        {/* Favicon URL */}
         <div className="mb-4">
           <label className="block vf-text-caption font-medium text-muted-foreground mb-1.5">
             Favicon URL
@@ -391,7 +386,6 @@ function BrandingPanel({
             value={localFavicon}
             onChange={(e) => setLocalFavicon(e.target.value)}
             placeholder="https://cdn.example.com/favicon.ico"
-            className="w-full px-3 py-2 vf-text-body-s border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20"
           />
         </div>
 
@@ -407,43 +401,6 @@ function BrandingPanel({
           {isPending ? <Loader2 size={14} className="animate-spin mr-1" /> : <Save size={14} className="mr-1" />}
           Save Branding
         </Btn>
-      </div>
-    </div>
-  );
-}
-
-function PlatformSettingsSkeleton() {
-  return (
-    <div className="p-6 max-w-6xl">
-      <div className="flex items-start justify-between mb-6">
-        <div>
-          <Skeleton className="h-8 w-48 mb-2" />
-          <Skeleton className="h-4 w-72" />
-        </div>
-        <Skeleton className="h-9 w-28" />
-      </div>
-
-      {/* Tabs Skeleton */}
-      <div className="flex items-center gap-1 border-b border-border mb-6">
-        {[1, 2, 3, 4].map(i => (
-          <Skeleton key={i} className="h-10 w-24 mx-1" />
-        ))}
-      </div>
-
-      {/* Content Skeleton */}
-      <div className="space-y-4">
-        {[1, 2, 3].map(i => (
-          <div key={i} className="bg-card border border-border rounded-xl p-4">
-            <div className="flex items-start gap-4">
-              <Skeleton className="h-10 w-10 rounded-lg" />
-              <div className="flex-1">
-                <Skeleton className="h-4 w-32 mb-2" />
-                <Skeleton className="h-3 w-64" />
-              </div>
-              <Skeleton className="h-6 w-11 rounded-full" />
-            </div>
-          </div>
-        ))}
       </div>
     </div>
   );
@@ -487,64 +444,59 @@ function PlatformSettingsContent() {
     return {
       enabledCount,
       totalCount,
-      utilizationPercent: Math.round((settings.limits.max_users / 100) * 100), // Assuming 100 is base
+      utilizationPercent: Math.round((settings.limits.max_users / 100) * 100),
     };
   }, [settings]);
 
   if (isLoading) {
-    return <PlatformSettingsSkeleton />;
+    return (
+      <AdminShell title="Platform Settings" subtitle="Loading configuration...">
+        <div className="space-y-4">
+          {[1, 2, 3].map(i => (
+            <div key={i} className="bg-card border border-border rounded-xl p-4 animate-pulse">
+              <div className="h-4 bg-muted rounded w-1/3 mb-2" />
+              <div className="h-3 bg-muted rounded w-1/2" />
+            </div>
+          ))}
+        </div>
+      </AdminShell>
+    );
   }
 
   if (error) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-destructive/10 border border-destructive/20 rounded-xl p-6">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-8 h-8 text-destructive shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <h3 className="vf-text-body-l font-semibold text-destructive-foreground mb-1">
-                Failed to load platform settings
-              </h3>
-              <p className="vf-text-body-s text-destructive/80">
-                {error instanceof Error ? error.message : "An unexpected error occurred"}
-              </p>
-              <button
-                onClick={() => refetch()}
-                className="mt-4 flex items-center gap-1.5 px-3 py-1.5 bg-destructive/20 text-destructive vf-text-body-s font-medium rounded-lg hover:bg-destructive/30 transition-colors"
-              >
-                <RefreshCw size={14} /> Try again
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
+      <AdminShell title="Platform Settings" subtitle="Tenant configuration">
+        <AdminErrorState
+          title="Failed to load platform settings"
+          description="Ensure you have admin access and the API is available."
+          error={error}
+          onRetry={refetch}
+        />
+      </AdminShell>
     );
   }
 
   if (!settings) {
     return (
-      <div className="p-6 max-w-6xl">
-        <div className="bg-warning/10 border border-warning/20 rounded-xl p-6">
-          <h3 className="vf-text-body-l font-semibold text-warning dark:text-warning">No Settings Available</h3>
-          <p className="vf-text-body-s text-warning dark:text-warning mt-1">
-            Platform settings could not be loaded. Please contact support.
-          </p>
-        </div>
-      </div>
+      <AdminShell title="Platform Settings" subtitle="Tenant configuration">
+        <AdminEmptyState
+          title="No Settings Available"
+          description="Platform settings could not be loaded. Please contact support."
+          icon={Settings}
+        />
+      </AdminShell>
     );
   }
 
   return (
-    <div className="p-6 max-w-6xl">
-      {/* Header */}
-      <div className="flex items-start justify-between mb-6">
-        <PageHeader
-          title="Platform Settings"
-          subtitle={`Configure tenant settings for ${settings.tenant_name}`}
-        />
+    <AdminShell
+      title="Platform Settings"
+      subtitle={`Configure tenant settings for ${settings.tenant_name}`}
+      fullWidth
+      actions={
         <div className="flex items-center gap-2">
           {saveSuccess && (
-            <span className="flex items-center gap-1 vf-text-body-s text-success dark:text-success">
+            <span className="flex items-center gap-1 vf-text-body-s text-success">
               <CheckCircle2 size={14} /> Saved
             </span>
           )}
@@ -561,57 +513,29 @@ function PlatformSettingsContent() {
             Refresh
           </Btn>
         </div>
-      </div>
-
-      {/* Stats Row */}
+      }
+      tabs={
+        <AdminTabs
+          tabs={[
+            { id: "features", label: "Features", icon: <Zap size={13} /> },
+            { id: "notifications", label: "Notifications", icon: <Bell size={13} /> },
+            { id: "security", label: "Security", icon: <Shield size={13} /> },
+            { id: "branding", label: "Branding", icon: <Palette size={13} /> },
+          ]}
+          activeTab={activeTab}
+          onChange={(tabId) => setActiveTab(tabId as TabType)}
+        />
+      }
+    >
       {stats && (
-        <div className="grid grid-cols-4 gap-4 mb-6">
-          {[
-            { label: "Features Enabled", value: `${stats.enabledCount}/${stats.totalCount}`, icon: <Zap size={14} /> },
-            { label: "Max Users", value: formatNumber(settings.limits.max_users), icon: <Users size={14} /> },
-            { label: "Daily API Limit", value: formatNumber(settings.limits.max_api_calls_per_day), icon: <Database size={14} /> },
-            { label: "Storage", value: `${settings.limits.storage_gb} GB`, icon: <Database size={14} /> },
-          ].map(s => (
-            <div key={s.label} className="bg-card border border-border rounded-xl px-4 py-3">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="text-muted-foreground">{s.icon}</span>
-                <span className="vf-text-micro uppercase tracking-wider text-muted-foreground font-semibold">
-                  {s.label}
-                </span>
-              </div>
-              <p className="text-2xl font-extrabold text-foreground">{s.value}</p>
-            </div>
-          ))}
-        </div>
+        <AdminStatsRow columns={4}>
+          <AdminStatCard label="Features Enabled" value={`${stats.enabledCount}/${stats.totalCount}`} icon={<Zap size={14} />} />
+          <AdminStatCard label="Max Users" value={formatNumber(settings.limits.max_users)} icon={<Users size={14} />} />
+          <AdminStatCard label="Daily API Limit" value={formatNumber(settings.limits.max_api_calls_per_day)} icon={<Database size={14} />} />
+          <AdminStatCard label="Storage" value={`${settings.limits.storage_gb} GB`} icon={<Database size={14} />} />
+        </AdminStatsRow>
       )}
 
-      {/* Tabs */}
-      <div className="flex items-center gap-1 border-b border-border mb-6">
-        {[
-          { id: "features" as const, label: "Features", icon: <Zap size={13} /> },
-          { id: "notifications" as const, label: "Notifications", icon: <Bell size={13} /> },
-          { id: "security" as const, label: "Security", icon: <Shield size={13} /> },
-          { id: "branding" as const, label: "Branding", icon: <Palette size={13} /> },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={cn(
-              "px-4 py-2.5 vf-text-body-s font-medium transition-colors relative flex items-center gap-2",
-              activeTab === tab.id
-                ? "text-primary"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            {tab.icon} {tab.label}
-            {activeTab === tab.id && (
-              <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-t-full" />
-            )}
-          </button>
-        ))}
-      </div>
-
-      {/* Tab Content */}
       {activeTab === "features" && (
         <div className="space-y-3">
           {(Object.keys(settings.features) as Array<keyof TenantSettings['features']>).map(feature => (
@@ -649,7 +573,7 @@ function PlatformSettingsContent() {
           isPending={updateMutation.isPending}
         />
       )}
-    </div>
+    </AdminShell>
   );
 }
 

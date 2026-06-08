@@ -1,4 +1,5 @@
 export { PageHeader } from "./PageHeader";
+export type { PageHeaderProps, BreadcrumbItem } from "./PageHeader";
 export { Btn } from "./Btn";
 export type { BtnProps } from "./Btn";
 export { Tabs } from "./LegacyTabs";
@@ -12,7 +13,9 @@ export { FilterBar } from "./FilterBar";
 export { StatusBadge } from "./StatusBadge";
 export { MetricCard } from "./MetricCard";
 export { DataTable } from "./DataTable";
+export type { DataTableProps, DataTableColumn } from "./DataTable";
 export { SidePanel } from "./SidePanel";
 export { FabricDialog } from "./FabricDialog";
+export type { FabricDialogProps } from "./FabricDialog";
 export { TeamMemberList } from "./TeamMemberList";
 export { EntityBadge } from "../../../lib/entity-colors";

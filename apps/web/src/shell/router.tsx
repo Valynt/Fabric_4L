@@ -100,6 +100,10 @@ const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
 const NotFound = lazy(() => import("@/pages/NotFound"));
 
+// ── Academy ──
+const AcademyPage = lazy(() => import("@/pages/Academy"));
+const AcademyQuizPage = lazy(() => import("@/pages/AcademyQuiz"));
+
 // ── Account / Prospect Creation ──
 const ProspectSetupPage = lazy(() => import("@/pages/ProspectSetup"));
 
@@ -717,6 +721,55 @@ export const router = createBrowserRouter([
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantAdminPolicy("governance.health") },
+      },
+
+      // ═══════════════════════════════════════════════════════════════
+      // ACADEMY
+      // ═══════════════════════════════════════════════════════════════
+      {
+        path: "/t/:tenantSlug/academy",
+        element: (
+          <UnifiedRouteGuard>
+            <AcademyPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("academy") },
+      },
+      {
+        path: "/t/:tenantSlug/academy/pillars/:pillarId",
+        element: (
+          <UnifiedRouteGuard>
+            <div className="p-6 text-muted-foreground">Pillar detail coming soon</div>
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("academy.pillar") },
+      },
+      {
+        path: "/t/:tenantSlug/academy/pillars/:pillarId/quiz",
+        element: (
+          <UnifiedRouteGuard>
+            <AcademyQuizPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("academy.quiz") },
+      },
+      {
+        path: "/t/:tenantSlug/academy/resources",
+        element: (
+          <UnifiedRouteGuard>
+            <div className="p-6 text-muted-foreground">Resources coming soon</div>
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("academy.resources") },
+      },
+      {
+        path: "/t/:tenantSlug/academy/profile",
+        element: (
+          <UnifiedRouteGuard>
+            <div className="p-6 text-muted-foreground">Profile coming soon</div>
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantStdPolicy("academy.profile") },
       },
 
       // ═══════════════════════════════════════════════════════════════

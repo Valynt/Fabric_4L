@@ -75,6 +75,8 @@ ACTION_POLICIES: dict[str, ActionPolicy] = {
     "layer6.benchmarks.compare": ActionPolicy((Permission.READ_ANALYTICS.value,), "Run benchmark comparison"),
     "layer6.benchmarks.validate": ActionPolicy((Permission.READ_ANALYTICS.value,), "Validate value against benchmark"),
     "layer6.benchmarks.industries": ActionPolicy((Permission.READ_ANALYTICS.value,), "List benchmark industries"),
+    "layer5.academy.read": ActionPolicy((Permission.READ_ANALYTICS.value,), "Read academy content"),
+    "layer5.academy.write": ActionPolicy((Permission.WRITE_ANALYTICS.value,), "Write academy progress and assessments"),
 }
 
 

@@ -42,7 +42,7 @@ from value_fabric.shared.observability.metrics_access import (
     verify_metrics_access,  # type: ignore[import-untyped]
 )
 
-from config import get_settings
+from src.config import get_settings
 
 from ...api.dependencies import get_schema_initializer
 from ...api.models import (

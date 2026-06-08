@@ -108,6 +108,13 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
     ],
   },
   {
+    id: "academy",
+    label: "Academy",
+    path: "/t/:tenantSlug/academy",
+    tier: "standard",
+    description: "Master the Value Operating System",
+  },
+  {
     id: "personal-settings",
     label: "Settings",
     path: "/settings",
