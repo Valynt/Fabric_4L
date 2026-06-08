@@ -8,6 +8,7 @@ import {
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, DataTable } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
+import { LoadingState, ErrorState } from "@/components/states";
 import {
   Select,
   SelectContent,
@@ -90,9 +91,7 @@ export default function GovernanceChangeHistory() {
 
       <SectionCard title="State Transition Timeline" noPad>
         {isLoadingTruths || (selectedTruthId && isLoadingTrail) ? (
-          <div className="flex items-center gap-2 p-4 vf-text-body-s text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading change history…
-          </div>
+          <LoadingState message="Loading change history…" className="py-4" />
         ) : (
           <DataTable
             columns={[

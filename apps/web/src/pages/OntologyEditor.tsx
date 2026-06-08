@@ -38,6 +38,7 @@ import { toast } from 'sonner';
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
+import { Textarea } from "@/components/ui/textarea";
 import { ErrorState } from "@/components/states/ErrorState";
 import {
   Select,
@@ -475,12 +476,12 @@ export default function OntologyEditor() {
               </p>
             </div>
             <div className="p-4">
-              <textarea
+              <Textarea
                 value={importJson}
                 onChange={(e) => setImportJson(e.target.value)}
                 placeholder={`{\n  "types": [...],\n  "relationships": [...]\n}`}
                 rows={10}
-                className="w-full px-3 py-2 vf-text-body-s bg-muted/50 border border-border rounded-md font-mono resize-none"
+                className="w-full vf-text-body-s font-mono"
               />
             </div>
             <div className="p-4 border-t border-border flex justify-end gap-2">

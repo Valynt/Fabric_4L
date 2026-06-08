@@ -359,7 +359,7 @@ export default function ValueTreeExplorer() {
   }, [entities]);
 
   return (
-    <div className="p-6 max-w-6xl">
+    <PageShell>
       <PageHeader
         breadcrumbs={[{ label: "Value Trees" }, { label: "Tree Explorer" }]}
         title="Tree Explorer"
@@ -641,6 +641,6 @@ export default function ValueTreeExplorer() {
           </div>
         )
       )}
-    </div>
+    </PageShell>
   );
 }

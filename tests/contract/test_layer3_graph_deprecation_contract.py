@@ -14,9 +14,6 @@ except (ImportError, Exception):
         allow_module_level=True,
     )
 
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
-
 def test_graph_node_contract_includes_legacy_and_canonical_fields() -> None:
     node = GraphNode(id="n1", name="Node", entity_type="Capability", confidence_score=0.9)
     payload = node.model_dump()

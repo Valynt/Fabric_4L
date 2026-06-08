@@ -38,6 +38,8 @@ import {
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -335,22 +337,22 @@ function CreateSourceModal({
         <form className="mt-4 space-y-3" onSubmit={onSubmit}>
           <div>
             <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">Name</label>
-            <input
+            <Input
               value={form.name}
               onChange={(e) => onChange({ name: e.target.value })}
               placeholder="Salesforce Accounts API"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
+              className="w-full vf-text-body-m"
               required
             />
           </div>
           <div>
             <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">URL</label>
-            <input
+            <Input
               type="url"
               value={form.url}
               onChange={(e) => onChange({ url: e.target.value })}
               placeholder="https://api.example.com/accounts"
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
+              className="w-full vf-text-body-m"
               required
             />
           </div>
@@ -371,11 +373,11 @@ function CreateSourceModal({
           </div>
           <div>
             <label className="mb-1 block vf-text-caption font-medium text-muted-foreground">Description (optional)</label>
-            <textarea
+            <Textarea
               value={form.description ?? ""}
               onChange={(e) => onChange({ description: e.target.value || undefined })}
               rows={3}
-              className="w-full rounded-lg border border-border bg-background px-3 py-2 vf-text-body-m outline-none"
+              className="w-full vf-text-body-m"
             />
           </div>
 
@@ -547,14 +549,14 @@ function SourceConfigurationContent() {
 
       {/* Filters */}
       <div className="flex items-center gap-3 mb-6">
-        <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 flex-1 max-w-sm">
-          <Search size={14} className="text-muted-foreground/60" />
-          <input
+        <div className="relative flex items-center gap-2 flex-1 max-w-sm">
+          <Search size={14} className="text-muted-foreground/60 absolute left-3 top-1/2 -translate-y-1/2 z-10" />
+          <Input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search sources..."
-            className="flex-1 vf-text-body-m bg-transparent outline-none text-muted-foreground"
+            className="flex-1 vf-text-body-m pl-8"
           />
         </div>
         <Select value={typeFilter} onValueChange={(v) => setTypeFilter(v as SourceType | 'all')}>

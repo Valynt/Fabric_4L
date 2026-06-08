@@ -12,6 +12,7 @@
  */
 import { useState, useMemo, useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { Input } from "@/components/ui/input";
 import { RefreshCw, Plus, Play, Pause, AlertCircle, Info, List, Sparkles } from 'lucide-react';
 import { TopTabNav } from '@/components/blocks/TopTabNav';
 import {
@@ -333,26 +334,26 @@ export default function IngestionJobs() {
             </div>
             <div className="flex items-center gap-2">
               <label className="vf-text-caption text-muted-foreground">From:</label>
-              <input
+              <Input
                 type="date"
                 value={filters.dateFrom}
                 onChange={(e) => {
                   setDateFrom(e.target.value);
                   paginationState.setPage(1);
                 }}
-                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
+                className="vf-text-body-s"
               />
             </div>
             <div className="flex items-center gap-2">
               <label className="vf-text-caption text-muted-foreground">To:</label>
-              <input
+              <Input
                 type="date"
                 value={filters.dateTo}
                 onChange={(e) => {
                   setDateTo(e.target.value);
                   paginationState.setPage(1);
                 }}
-                className="vf-text-body-s border border-border rounded px-2 py-1 bg-background"
+                className="vf-text-body-s"
               />
             </div>
             {(filters.status !== 'all' || filters.dateFrom || filters.dateTo) && (

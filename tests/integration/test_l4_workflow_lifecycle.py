@@ -15,27 +15,27 @@ from langgraph.checkpoint.memory import InMemorySaver
 from langgraph.graph import StateGraph
 
 try:
-    from services.layer4_agents.src.workflows.base import BaseWorkflow
+    from layer4_agents.workflows.base import BaseWorkflow
 except ImportError as _exc:
     pytest.skip(
-        f"[LAYER3_IMPORT_PATH] Layer 3 relative-import chain breaks when loaded via sys.path: {_exc}",
+        f"Layer 4 workflow import failed: {_exc}",
         allow_module_level=True,
     )
 
-from services.layer4_agents.src.models.agent_state import (
+from layer4_agents.models.agent_state import (
     BaseAgentState,
     OrchestratorAgentState,
     WorkflowStatus,
     WorkflowType,
 )
-from services.layer4_agents.src.models.workflow_config import (
+from layer4_agents.models.workflow_config import (
     EdgeConfig,
     EdgeType,
     NodeConfig,
     NodeType,
     WorkflowConfig,
 )
-from services.layer4_agents.src.tools.registry import ToolRegistry
+from layer4_agents.tools.registry import ToolRegistry
 
 pytestmark = [pytest.mark.integration, pytest.mark.asyncio]
 

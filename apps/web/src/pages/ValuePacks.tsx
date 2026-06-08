@@ -17,6 +17,7 @@ import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
   PageShell,
 } from "@/components";
+import { Input } from "@/components/ui/input";
 import { VirtualList } from "@/components/ui/virtual-list";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import {
@@ -364,11 +365,11 @@ function FrameworkBrowserPanel() {
       <h4 className="vf-text-caption font-bold uppercase tracking-wider text-muted-foreground/60 mb-3 flex items-center gap-1.5">
         <Layers size={12} /> Framework Library
       </h4>
-      <input
+      <Input
         value={search}
         onChange={e => setSearch(e.target.value)}
         placeholder="Search frameworks…"
-        className="w-full vf-text-caption bg-muted/20 border border-border rounded-md px-2.5 py-1.5 mb-3 outline-none"
+        className="w-full vf-text-caption mb-3"
       />
       {isLoading ? (
         <div className="space-y-2">{[1,2,3].map(i => <Skeleton key={i} className="h-8 w-full" />)}</div>
@@ -515,12 +516,12 @@ function SuggestionPanel() {
         <Lightbulb size={12} /> Pack Suggestions
       </h4>
       <div className="space-y-2 mb-3">
-        <input value={industry} onChange={e => setIndustry(e.target.value)}
+        <Input value={industry} onChange={e => setIndustry(e.target.value)}
           placeholder="Industry (e.g., SaaS)"
-          className="w-full vf-text-caption bg-muted/20 border border-border rounded-md px-2.5 py-1.5 outline-none" />
-        <input value={dealSize} onChange={e => setDealSize(e.target.value)}
+          className="w-full vf-text-caption" />
+        <Input value={dealSize} onChange={e => setDealSize(e.target.value)}
           placeholder="Deal size (optional)"
-          className="w-full vf-text-caption bg-muted/20 border border-border rounded-md px-2.5 py-1.5 outline-none" />
+          className="w-full vf-text-caption" />
       </div>
       <Btn variant="outline" className="w-full" disabled={!industry || false}
         onClick={handleSuggest}>
@@ -673,13 +674,13 @@ function ValuePacksContent() {
                 </SelectContent>
               </Select>
 
-              <div className="flex items-center gap-2 flex-1 min-w-[160px] bg-muted/20 border border-border rounded-md px-3 py-1.5">
-                <Search size={12} className="text-muted-foreground/60 shrink-0" />
-                <input
+              <div className="relative flex items-center gap-2 flex-1 min-w-[160px]">
+                <Search size={12} className="text-muted-foreground/60 shrink-0 absolute left-3 top-1/2 -translate-y-1/2" />
+                <Input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Search packs…"
-                  className="flex-1 vf-text-caption bg-transparent outline-none text-muted-foreground placeholder:text-muted-foreground/60"
+                  className="flex-1 vf-text-caption pl-8"
                 />
               </div>
             </div>

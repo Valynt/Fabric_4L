@@ -12,9 +12,6 @@ except (ImportError, Exception):
         allow_module_level=True,
     )
 
-pytestmark = pytest.mark.skip(
-    reason="value_fabric import path broken: package missing or SQLAlchemy duplicate table issue. Pre-existing; tracked in signoff report blocker #1/#9.")
-
 class _Neo4jStub:
     async def execute_query(self, query: str, params: dict):
         if "RETURN e.id as entity_id" in query:

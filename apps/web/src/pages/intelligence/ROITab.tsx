@@ -37,6 +37,7 @@ import {
 } from "@/hooks/useROICalculator";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { MetricCard } from "@/components/ui/fabric";
+import { Input } from "@/components/ui/input";
 
 function formatCurrency(val: number): string {
   if (Math.abs(val) >= 1_000_000) return `$${(val / 1_000_000).toFixed(1)}M`;
@@ -118,14 +119,14 @@ function InputField({
       <label className="vf-text-micro font-semibold text-muted-foreground">{label}</label>
       <div className="flex items-center gap-1">
         {prefix && <span className="text-xs text-muted-foreground">{prefix}</span>}
-        <input
+        <Input
           type="number"
           value={value}
           onChange={(event) => onChange(Number(event.target.value))}
           min={min}
           max={max}
           step={step ?? 1}
-          className="w-full rounded border border-border bg-background px-2 py-1 text-xs font-mono focus:outline-none focus:ring-1 focus:ring-primary"
+          className="w-full text-xs font-mono"
         />
         {suffix && <span className="text-xs text-muted-foreground">{suffix}</span>}
       </div>

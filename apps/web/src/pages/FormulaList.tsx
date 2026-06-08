@@ -36,6 +36,7 @@ import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Input } from "@/components/ui/input";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -215,12 +216,12 @@ export default function FormulaList() {
         {/* Search */}
         <div className="relative flex-1 max-w-md">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground/60" size={16} />
-          <input
+          <Input
             type="text"
             placeholder="Search formulas..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-border rounded-lg vf-text-body-m focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+            className="w-full pl-10 pr-4 py-2 vf-text-body-m"
           />
         </div>
 

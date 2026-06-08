@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/fabric";
 import { PageShell } from "@/components/layout/PageShell";
 import { QueryState } from "@/components/QueryState";
+import { Input } from "@/components/ui/input";
 import {
   Select,
   SelectContent,
@@ -111,11 +112,11 @@ export default function CommandCenter() {
         {/* Main input row */}
         <div className="flex items-center gap-3 px-4 py-3.5">
           <Globe size={16} className="text-muted-foreground/60 shrink-0" />
-          <input
+          <Input
             value={domainInput}
             onChange={(e) => setDomainInput(e.target.value)}
             placeholder="Enter company domain to synthesize (e.g., https://example.com)…"
-            className="flex-1 vf-text-body-m text-muted-foreground bg-transparent outline-none placeholder:text-muted-foreground/60"
+            className="flex-1 vf-text-body-m"
             aria-label="Company domain to synthesize"
           />
           <Btn

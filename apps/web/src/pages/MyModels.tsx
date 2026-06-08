@@ -25,6 +25,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -348,12 +350,12 @@ function NewModelDialog({
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block vf-text-caption font-bold text-foreground mb-1">Name</label>
-            <input
+            <Input
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. SaaS Revenue Optimization"
-              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+              className="w-full vf-text-body-s"
               autoFocus
             />
           </div>
@@ -374,12 +376,12 @@ function NewModelDialog({
 
           <div>
             <label className="block vf-text-caption font-bold text-foreground mb-1">Description</label>
-            <textarea
+            <Textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Brief description of this value model..."
               rows={3}
-              className="w-full px-3 py-2 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary resize-none"
+              className="w-full vf-text-body-s resize-none"
             />
           </div>
 
@@ -507,14 +509,14 @@ export default function MyModels() {
             <div className="relative flex-1 max-w-[300px]">
               <Search
                 size={14}
-                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+                className="absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground z-10"
               />
-              <input
+              <Input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search models..."
-                className="w-full pl-8 pr-3 py-1.5 vf-text-body-s border border-border rounded-md bg-background text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
+                className="w-full pl-8 pr-3 py-1.5 vf-text-body-s"
               />
             </div>
 
@@ -560,10 +562,11 @@ export default function MyModels() {
             {isLoading ? (
               <GridSkeleton />
             ) : isError ? (
-              <div className="flex flex-col items-center justify-center py-16 text-center">
-                <AlertCircle size={20} className="text-destructive mb-2" />
-                <p className="vf-text-body-s text-destructive">Failed to load models</p>
-              </div>
+              <ErrorState
+                title="Failed to load models"
+                description="Unable to fetch your models. Please try again."
+                onRetry={() => window.location.reload()}
+              />
             ) : !models || models.length === 0 ? (
               <EmptyState
                 folder={activeFolder}

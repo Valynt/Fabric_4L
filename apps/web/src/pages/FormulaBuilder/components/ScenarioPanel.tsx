@@ -5,6 +5,7 @@ import { useState } from "react";
 import { AlertCircle, Beaker, Loader2 } from "lucide-react";
 import { useFormulaScenario, type VariableAdjustment, type ScenarioResponse } from "@/hooks/useFormulaScenario";
 import { Btn } from "@/components/ui/fabric";
+import { Input } from "@/components/ui/input";
 
 interface ScenarioPanelProps {
   formulaId: string;
@@ -82,11 +83,11 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
         <label className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1">
           Base Case ID
         </label>
-        <input
+        <Input
           value={baseCaseId}
           onChange={(e) => setBaseCaseId(e.target.value)}
           placeholder="e.g. case-abc123"
-          className="w-full border border-border rounded-md px-3 py-1.5 vf-text-body-s bg-background outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+          className="w-full vf-text-body-s"
         />
       </div>
 
@@ -97,25 +98,25 @@ export function ScenarioPanel({ formulaId }: ScenarioPanelProps) {
         <div className="space-y-2">
           {adjustments.map((adj, idx) => (
             <div key={adj.id} className="flex gap-1.5 items-center">
-              <input
+              <Input
                 value={adj.name}
                 onChange={(e) => updateAdjustment(idx, "name", e.target.value)}
                 placeholder="Variable"
-                className="flex-1 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                className="flex-1 vf-text-caption"
               />
-              <input
+              <Input
                 type="number"
                 value={adj.original_value || ""}
                 onChange={(e) => updateAdjustment(idx, "original_value", e.target.value)}
                 placeholder="Original"
-                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 vf-text-caption"
               />
-              <input
+              <Input
                 type="number"
                 value={adj.value || ""}
                 onChange={(e) => updateAdjustment(idx, "value", e.target.value)}
                 placeholder="New"
-                className="w-20 border border-border rounded-md px-2 py-1 vf-text-caption bg-background outline-none focus:ring-1 focus:ring-primary/20"
+                className="w-20 vf-text-caption"
               />
               {adjustments.length > 1 && (
                 <button

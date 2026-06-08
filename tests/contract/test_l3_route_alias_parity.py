@@ -2,7 +2,7 @@ import pytest
 
 try:
     from fastapi.testclient import TestClient
-    from src.api.app_monolith import app
+    from src.api.main import app
     from src.api.dependencies import get_graph_rag, get_hybrid_search
 except (ImportError, Exception):
     pytest.skip(

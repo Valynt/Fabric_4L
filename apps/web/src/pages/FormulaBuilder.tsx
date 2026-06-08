@@ -33,6 +33,8 @@ import {
 } from "@/components/ui/select";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useVariables, type Variable, type VariableType, type SourceType } from "@/hooks/useVariables";
 import {
   useFormula,
@@ -430,14 +432,14 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                 <label htmlFor="formula-name" className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
                   Name
                 </label>
-                <input
+                <Input
                   id="formula-name"
                   value={formulaName}
                   onChange={(e) => setFormulaName(e.target.value)}
                   placeholder="Enter formula name..."
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 vf-text-body-m text-foreground bg-background outline-none focus:ring-2 focus:ring-primary/20",
-                    validationErrors.name ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"
+                    "w-full vf-text-body-m",
+                    validationErrors.name ? "border-destructive/30 focus:border-destructive" : ""
                   )}
                   aria-invalid={!!validationErrors.name}
                   aria-describedby={validationErrors.name ? "name-error" : undefined}
@@ -450,15 +452,15 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                 <label htmlFor="formula-description" className="vf-text-micro font-bold uppercase tracking-wider text-muted-foreground/60 block mb-1.5">
                   Description
                 </label>
-                <textarea
+                <Textarea
                   id="formula-description"
                   value={formulaDescription}
                   onChange={(e) => setFormulaDescription(e.target.value)}
                   placeholder="Describe what this formula calculates..."
                   rows={2}
                   className={cn(
-                    "w-full border rounded-md px-3 py-2 vf-text-body-s text-foreground bg-background outline-none resize-none focus:ring-2 focus:ring-primary/20",
-                    validationErrors.description ? "border-destructive/30 focus:border-destructive" : "border-border focus:border-primary"
+                    "w-full vf-text-body-s resize-none",
+                    validationErrors.description ? "border-destructive/30 focus:border-destructive" : ""
                   )}
                   aria-invalid={!!validationErrors.description}
                   aria-describedby={validationErrors.description ? "description-error" : undefined}
@@ -489,15 +491,15 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
           {/* Formula Expression */}
           <SectionCard title="Formula Expression">
             <div className="relative">
-              <textarea
+              <Textarea
                 id="formula-expression"
                 value={formulaExpression}
                 onChange={(e) => setFormulaExpression(e.target.value)}
                 placeholder="Enter formula expression using {variable_name} syntax..."
                 className={cn(
-                  "w-full h-40 rounded-lg p-4 font-mono vf-text-body-m leading-relaxed outline-none resize-none focus:ring-2 focus:ring-primary/20",
+                  "w-full h-40 font-mono vf-text-body-m leading-relaxed resize-none",
                   validationErrors.expression
-                    ? "bg-destructive/10 text-destructive border border-destructive/20"
+                    ? "bg-destructive/10 text-destructive border-destructive/20"
                     : "bg-foreground text-background"
                 )}
                 spellCheck={false}
@@ -532,7 +534,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                 {testInputs.map((input, idx) => (
                   <div key={input.label} className="flex justify-between vf-text-body-s">
                     <span className="text-muted-foreground font-mono">{input.label}:</span>
-                    <input
+                    <Input
                       type="text"
                       value={input.value}
                       onChange={(e) => {
@@ -541,7 +543,7 @@ export default function FormulaBuilder({ isNew = false }: FormulaBuilderProps) {
                         setTestInputs(newInputs);
                       }}
                       aria-label={`${input.label} test value`}
-                      className="font-semibold text-foreground bg-transparent border-b border-border focus:border-primary outline-none text-right w-32"
+                      className="font-semibold text-foreground bg-transparent border-b border-border text-right w-32"
                     />
                   </div>
                 ))}

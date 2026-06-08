@@ -19,6 +19,7 @@ import { useValuePacks } from "@/hooks/useValuePacks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useWorkspaceSelectionStore } from "@/stores/workspaceSelectionStore";
 import { SectionCard } from "@/components/blocks/SectionCard";
+import { Input } from "@/components/ui/input";
 import { MetricCard } from "@/components/ui/fabric";
 
 type ScenarioState = {
@@ -195,7 +196,7 @@ export default function CalcROITab() {
             {Object.entries(scenario).map(([k, v]) => (
               <label key={k} className="space-y-1">
                 <span className="text-xs text-muted-foreground">{k.replaceAll("_", " ")}</span>
-                <input type="number" value={v} onChange={(e) => updateScenarioMutation.mutate({ [k]: Number(e.target.value) } as Partial<ScenarioState>)} className="w-full rounded border border-border bg-background px-2 py-1 text-xs" />
+                <Input type="number" value={v} onChange={(e) => updateScenarioMutation.mutate({ [k]: Number(e.target.value) } as Partial<ScenarioState>)} className="w-full text-xs" />
               </label>
             ))}
           </div>

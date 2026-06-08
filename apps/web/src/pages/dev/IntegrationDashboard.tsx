@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { useSystemHealth, useHealthAlerts } from "@/hooks/useHealthMonitor";
 import { useIngestionStats } from "@/hooks/useIngestion";
 import { SectionCard } from "@/components/blocks/SectionCard";
+import { Input } from "@/components/ui/input";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 
 // ── Hook Registry ────────────────────────────────────────────────────────────
@@ -137,11 +138,11 @@ export default function IntegrationDashboard() {
       <div className="flex items-center gap-3 mt-6 mb-4">
         <div className="flex items-center gap-2 flex-1 bg-muted/50 border border-border rounded-lg px-3 py-2">
           <Search size={14} className="text-muted-foreground" />
-          <input
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search hooks or families…"
-            className="flex-1 vf-text-body-s bg-transparent outline-none"
+            className="flex-1 vf-text-body-s"
           />
         </div>
         <div className="flex gap-1">

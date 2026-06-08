@@ -9,6 +9,7 @@ import {
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, MetricCard, DataTable } from "@/components/ui/fabric";
 import { PageShell } from "@/components";
+import { LoadingState, ErrorState } from "@/components/states";
 
 export default function GovernanceCompliance() {
   const { data: freshnessSummary, isLoading: isLoadingFreshness } =
@@ -32,6 +33,7 @@ export default function GovernanceCompliance() {
 
   const isLoading =
     isLoadingFreshness || isLoadingStale || isLoadingLadder || isLoadingTruths;
+  const hasError = !freshnessSummary && !isLoadingFreshness || !staleTruths && !isLoadingStale;
 
   return (
     <PageShell fullWidth>
@@ -43,10 +45,13 @@ export default function GovernanceCompliance() {
         />
 
         {isLoading ? (
-          <div className="flex items-center gap-2 vf-text-body-s text-muted-foreground mb-5">
-            <Loader2 className="h-4 w-4 animate-spin" /> Loading compliance
-            summaries…
-          </div>
+          <LoadingState message="Loading compliance summaries…" className="mb-5" />
+        ) : hasError ? (
+          <ErrorState
+            title="Failed to load compliance data"
+            description="Some governance summaries could not be retrieved. The Layer 5 service may be degraded."
+            className="mb-5"
+          />
         ) : (
           <div className="grid gap-3 md:grid-cols-4 mb-5">
             <MetricCard
