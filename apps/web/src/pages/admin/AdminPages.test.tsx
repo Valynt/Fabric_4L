@@ -74,6 +74,7 @@ let mockUseUpdatePlatformSettings = makeUseUpdatePlatformSettings();
 let mockUseSystemHealth = makeUseSystemHealth();
 let mockUseHealthAlerts = makeUseHealthAlerts();
 let mockUseSuperAdminOverview = makeUseSuperAdminOverview();
+import BillingAdmin from './BillingAdmin';
 
 vi.mock('@/hooks/useFormulas', () => ({
   useFormulas: (...a: unknown[]) => mockUseFormulas(...a),
@@ -111,6 +112,20 @@ vi.mock('@/hooks/usePlatformSettings', () => ({
   useUpdatePlatformSettings: () => mockUseUpdatePlatformSettings(),
 }));
 
+vi.mock('@/contexts/AuthContext', () => ({
+  useAuthContext: () => ({
+    user: {
+      id: 'u-1',
+      email: 'admin@example.com',
+      role: 'admin',
+      tenantId: 't-1',
+      tenantSlug: 'demo',
+    },
+    isAuthenticated: true,
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/hooks/useHealthMonitor', () => ({
   useSystemHealth: () => mockUseSystemHealth(),
   useHealthAlerts: () => mockUseHealthAlerts(),
@@ -146,6 +161,110 @@ beforeEach(() => {
 });
 
 // ═════════════════════════════════════════════════════════════════════════════
+vi.mock('@/hooks/useBilling', () => ({
+  useBilling: () => ({
+    subscription: {
+      id: 'sub-1',
+      plan_id: 'pro',
+      status: 'active',
+      current_period_start: '2026-01-01T00:00:00Z',
+      current_period_end: '2026-02-01T00:00:00Z',
+      cancel_at_period_end: false,
+    },
+    isLoading: false,
+    error: null,
+    openCustomerPortal: vi.fn(),
+    isOpeningPortal: false,
+    checkoutError: null,
+    portalError: null,
+    clearErrors: vi.fn(),
+    subscribe: vi.fn(),
+    isSubscribing: false,
+  }),
+  useEntitlements: () => ({
+    data: {
+      plan_id: 'pro',
+      plan_name: 'Pro Plan',
+      features: {
+        advanced_analytics: { enabled: true, name: 'Advanced Analytics', description: 'Custom dashboards and deep insights' },
+        ai_assistant: { enabled: true, name: 'AI Assistant', description: 'AI-powered suggestions' },
+        custom_integrations: { enabled: false, name: 'Custom Integrations', description: 'Build custom API integrations' },
+      },
+    },
+    isLoading: false,
+    error: null,
+  }),
+}));
+
+vi.mock('@/hooks/useInvoices', () => ({
+  useInvoices: () => ({
+    invoices: [
+      {
+        id: 'inv-1',
+        invoice_number: 'INV-001',
+        customer_id: 'cust-1',
+        status: 'paid',
+        currency: 'usd',
+        subtotal_cents: 9900,
+        tax_cents: 0,
+        total_cents: 9900,
+        total_dollars: 99,
+        amount_paid_cents: 9900,
+        amount_due_cents: 0,
+        amount_due_dollars: 0,
+        balance_cents: 0,
+        period_start: '2026-01-01T00:00:00Z',
+        period_end: '2026-01-31T00:00:00Z',
+        due_date: '2026-01-15T00:00:00Z',
+        paid_at: '2026-01-05T00:00:00Z',
+        voided_at: null,
+        created_at: '2026-01-01T00:00:00Z',
+        description: null,
+        hosted_invoice_url: null,
+        invoice_pdf_url: 'https://example.com/inv-1.pdf',
+        item_count: 2,
+      },
+    ],
+    charges: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+  }),
+}));
+
+vi.mock('@/hooks/useUsage', () => ({
+  useUsage: () => ({
+    metrics: [
+      {
+        metric: 'api_calls',
+        total_quantity: 45000,
+        limit: 50000,
+        unit: 'calls',
+        warning_threshold: 80,
+        overage_rate: 0.001,
+        percentage: 90,
+      },
+      {
+        metric: 'storage',
+        total_quantity: 320,
+        limit: 500,
+        unit: 'GB',
+        warning_threshold: 80,
+        overage_rate: 0.1,
+        percentage: 64,
+      },
+    ],
+    limits: [],
+    events: [],
+    isLoading: false,
+    error: null,
+    refetch: vi.fn(),
+    checkLimits: vi.fn(),
+    overageStatus: null,
+    isChecking: false,
+  }),
+}));
+
 // FormulaGovernance
 // ═════════════════════════════════════════════════════════════════════════════
 
@@ -498,6 +617,40 @@ describe('SuperAdminConsole', () => {
     await waitFor(() => {
       expect(screen.getByText('Acme Corp')).toBeInTheDocument();
       expect(screen.getByText('Beta Inc')).toBeInTheDocument();
+    });
+  }, 10_000);
+});
+
+// BillingAdmin
+describe('BillingAdmin', () => {
+  it('renders without crashing', async () => {
+    const wrapper = createWrapper();
+    render(<BillingAdmin />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('Billing & Subscription')).toBeInTheDocument();
+    });
+  }, 10_000);
+
+  it('displays invoice list', async () => {
+    const wrapper = createWrapper();
+    render(<BillingAdmin />, { wrapper });
+
+    await waitFor(() => {
+      expect(screen.getByText('INV-001')).toBeInTheDocument();
+    });
+  }, 10_000);
+
+  it('switches to usage tab', async () => {
+    const user = userEvent.setup();
+    const wrapper = createWrapper();
+    render(<BillingAdmin />, { wrapper });
+
+    await waitFor(() => screen.getByRole('tab', { name: /^Usage/i }));
+    await user.click(screen.getByRole('tab', { name: /^Usage/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText('Usage Metrics')).toBeInTheDocument();
     });
   }, 10_000);
 });
