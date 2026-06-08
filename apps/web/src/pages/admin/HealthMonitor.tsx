@@ -19,6 +19,7 @@ import {
   ChevronDown, ChevronUp, Filter
 } from "lucide-react";
 import { Skeleton, ErrorBoundary } from "@/components";
+import { Input } from "@/components/ui/input";
 import { PageShell } from "@/components";
 import { cn } from "@/lib/utils";
 import { ErrorState } from "@/components/states/ErrorState";
@@ -496,7 +497,7 @@ function HealthMonitorContent() {
           </h3>
           <div className="flex items-center gap-2">
             <label className="flex items-center gap-1.5 vf-text-caption text-muted-foreground">
-              <input
+              <Input
                 type="checkbox"
                 checked={showResolved}
                 onChange={(e) => setShowResolved(e.target.checked)}

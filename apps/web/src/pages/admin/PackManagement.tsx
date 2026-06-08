@@ -20,6 +20,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatDate } from "@/lib/formatters";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { Input } from "@/components/ui/input";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
@@ -179,7 +180,7 @@ function PackManagementContent() {
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm flex-1">
           <Search size={12} className="text-muted-foreground shrink-0" />
-          <input
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search packs..."

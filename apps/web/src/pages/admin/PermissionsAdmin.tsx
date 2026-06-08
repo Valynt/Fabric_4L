@@ -31,6 +31,7 @@ import {
   type ApiKey,
 } from "@/hooks/useGovernance";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { Input } from "@/components/ui/input";
 import { PageShell } from "@/components";
 import { ErrorState } from "@/components/states/ErrorState";
 import {
@@ -232,7 +233,7 @@ function PermissionsContent() {
             <div className="space-y-3">
               <div>
                 <label className="vf-text-caption font-semibold text-muted-foreground block mb-1">Email</label>
-                <input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
+                <Input value={inviteEmail} onChange={e => setInviteEmail(e.target.value)}
                   placeholder="user@company.com" className="w-full vf-text-body-s border border-border rounded-lg px-3 py-2 outline-none focus:border-primary" />
               </div>
               <div>
@@ -296,7 +297,7 @@ function PermissionsContent() {
       {/* Search */}
       <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm mb-4">
         <Search size={12} className="text-muted-foreground shrink-0" />
-        <input
+        <Input
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder={activeTab === "users" ? "Search users..." : "Search API keys..."}

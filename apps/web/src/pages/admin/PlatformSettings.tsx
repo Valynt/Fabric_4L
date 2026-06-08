@@ -28,6 +28,7 @@ import {
   type UpdateSettingsPayload,
 } from "@/hooks/usePlatformSettings";
 import { createFeatureLogger } from "@/lib/telemetry";
+import { Input } from "@/components/ui/input";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('PlatformSettings');
@@ -142,7 +143,7 @@ function NotificationsPanel({
           </div>
         </div>
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={localSlack}
             onChange={(e) => setLocalSlack(e.target.value)}
@@ -171,7 +172,7 @@ function NotificationsPanel({
           </div>
         </div>
         <div className="flex gap-2">
-          <input
+          <Input
             type="text"
             value={localWebhook}
             onChange={(e) => setLocalWebhook(e.target.value)}
@@ -246,7 +247,7 @@ function SecurityPanel({
           </div>
         </div>
         <div className="flex items-center gap-4">
-          <input
+          <Input
             type="range"
             min={15}
             max={480}
@@ -280,7 +281,7 @@ function SecurityPanel({
           </div>
         </div>
         <div className="flex gap-2 mb-3">
-          <input
+          <Input
             type="text"
             value={newIp}
             onChange={(e) => setNewIp(e.target.value)}
@@ -348,7 +349,7 @@ function BrandingPanel({
             Logo URL
           </label>
           <div className="flex gap-2">
-            <input
+            <Input
               type="text"
               value={localLogo}
               onChange={(e) => setLocalLogo(e.target.value)}
@@ -364,13 +365,13 @@ function BrandingPanel({
             Primary Color
           </label>
           <div className="flex items-center gap-3">
-            <input
+            <Input
               type="color"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
               className="w-10 h-10 rounded-lg border border-border cursor-pointer"
             />
-            <input
+            <Input
               type="text"
               value={localColor}
               onChange={(e) => setLocalColor(e.target.value)}
@@ -384,7 +385,7 @@ function BrandingPanel({
           <label className="block vf-text-caption font-medium text-muted-foreground mb-1.5">
             Favicon URL
           </label>
-          <input
+          <Input
             type="text"
             value={localFavicon}
             onChange={(e) => setLocalFavicon(e.target.value)}

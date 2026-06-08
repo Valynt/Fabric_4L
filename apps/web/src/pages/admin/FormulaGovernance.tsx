@@ -34,6 +34,7 @@ import {
 } from "@/hooks";
 import { createFeatureLogger } from "@/lib/telemetry";
 import { SectionCard } from "@/components/blocks/SectionCard";
+import { Input } from "@/components/ui/input";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('FormulaGovernance');
@@ -392,7 +393,7 @@ function FormulaGovernanceContent() {
       <div className="flex items-center gap-3 mb-4">
         <div className="flex items-center gap-2 bg-card border border-border rounded-lg px-3 py-2 max-w-sm flex-1">
           <Search size={12} className="text-muted-foreground shrink-0"/>
-          <input
+          <Input
             value={search}
             onChange={e => setSearch(e.target.value)}
             placeholder="Search formulas by name, pack, or owner..."
@@ -432,7 +433,7 @@ function FormulaGovernanceContent() {
           <thead>
             <tr className="border-b border-border bg-muted">
               <th className="w-10 px-3 py-3">
-                <input 
+                <Input 
                   type="checkbox" 
                   className="rounded border-border"
                   checked={selectedFormulas.size === formulas.length && formulas.length > 0}
@@ -450,7 +451,7 @@ function FormulaGovernanceContent() {
             {formulas.map((f: Formula) => (
               <tr key={f.id} className="hover:bg-muted transition-colors group">
                 <td className="px-3 py-3">
-                  <input 
+                  <Input 
                     type="checkbox" 
                     className="rounded border-border"
                     checked={selectedFormulas.has(f.id)}
