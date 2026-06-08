@@ -33,8 +33,9 @@ export function AdminTabPanel({
       id={panelId}
       role="tabpanel"
       aria-labelledby={tabButtonId}
+      tabIndex={0}
       hidden={!isActive}
-      className={cn(isActive ? "block" : "hidden", className)}
+      className={cn(className)}
     >
       {children}
     </div>
