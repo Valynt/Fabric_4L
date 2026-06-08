@@ -535,7 +535,7 @@ function BillingAdminContent() {
 
       <InvoiceDetailDrawer
         invoice={selectedInvoice}
-        onClose={() => setDrawerOpen(false)}
+        onClose={() => { setDrawerOpen(false); setSelectedInvoice(null); }}
       />
     </AdminShell>
   );
