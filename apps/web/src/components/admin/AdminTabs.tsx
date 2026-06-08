@@ -4,6 +4,7 @@
  * Replaces the repeated raw <button> tab implementations across admin pages.
  */
 import { cn } from "@/lib/utils";
+import { getTabA11yIds } from "./AdminTabPanel";
 
 export interface AdminTab {
   id: string;
@@ -28,11 +29,14 @@ export function AdminTabs({ tabs, activeTab, onChange, className }: AdminTabsPro
     >
       {tabs.map((tab) => {
         const isActive = activeTab === tab.id;
+        const { tabButtonId, panelId } = getTabA11yIds(tab.id);
         return (
           <button
             key={tab.id}
+            id={tabButtonId}
             role="tab"
             aria-selected={isActive}
+            aria-controls={panelId}
             onClick={() => onChange(tab.id)}
             className={cn(
               "relative px-4 py-2.5 vf-text-body-s font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",

@@ -39,6 +39,7 @@ import { Btn } from "@/components/ui/fabric";
 import {
   AdminShell,
   AdminTabs,
+  AdminTabPanel,
   AdminStatCard,
   AdminStatsRow,
   AdminFilterBar,
@@ -278,7 +279,7 @@ function FormulaGovernanceContent() {
         />
       }
     >
-      {activeTab === "registry" && (
+      <AdminTabPanel tabId="registry" activeTab={activeTab}>
         <>
           <AdminStatsRow columns={5}>
             <AdminStatCard label="Total Formulas" value={stats.total} icon={<FlaskConical size={14}/>} />
@@ -417,17 +418,17 @@ function FormulaGovernanceContent() {
             </div>
           )}
         </>
-      )}
+      </AdminTabPanel>
 
-      {activeTab === "versions" && (
+      <AdminTabPanel tabId="versions" activeTab={activeTab}>
         <AdminEmptyState
           icon={History}
           title="Version History"
           description="Formula version history will be available in an upcoming release."
         />
-      )}
+      </AdminTabPanel>
 
-      {activeTab === "approvals" && (
+      <AdminTabPanel tabId="approvals" activeTab={activeTab}>
         <>
           {pendingApprovals.length > 0 ? (
             <div>
@@ -452,7 +453,7 @@ function FormulaGovernanceContent() {
             />
           )}
         </>
-      )}
+      </AdminTabPanel>
 
       <AdminConfirmDialog
         open={bulkConfirm.open}
