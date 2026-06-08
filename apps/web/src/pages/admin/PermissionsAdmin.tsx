@@ -48,6 +48,7 @@ import {
 import {
   AdminShell,
   AdminTabs,
+  AdminTabPanel,
   AdminFilterBar,
   AdminDataTable,
   AdminIconButton,
@@ -268,7 +269,7 @@ function PermissionsContent() {
         onSearchChange={setSearch}
       />
 
-      {activeTab === "users" ? (
+      <AdminTabPanel tabId="users" activeTab={activeTab}>
         <AdminDataTable
           data={filteredUsers}
           columns={userColumns}
@@ -280,7 +281,8 @@ function PermissionsContent() {
           emptyDescription={search ? "No users match your search." : "Get started by inviting your first user."}
           emptyIcon={Users}
         />
-      ) : (
+      </AdminTabPanel>
+      <AdminTabPanel tabId="api-keys" activeTab={activeTab}>
         <AdminDataTable
           data={filteredKeys}
           columns={keyColumns}
@@ -292,7 +294,7 @@ function PermissionsContent() {
           emptyDescription={search ? "No API keys match your search." : "Create an API key to integrate with external services."}
           emptyIcon={Key}
         />
-      )}
+      </AdminTabPanel>
 
       {/* Invite User Dialog */}
       <Dialog open={showInvite} onOpenChange={setShowInvite}>

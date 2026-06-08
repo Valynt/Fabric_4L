@@ -12,7 +12,7 @@
  * - Usage tracking
  */
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 import {
   ListChecks, Plus, Search, Edit3, Trash2, Eye, Link2,
@@ -44,6 +44,7 @@ import { Btn } from "@/components/ui/fabric";
 import {
   AdminShell,
   AdminTabs,
+  AdminTabPanel,
   AdminStatCard,
   AdminStatsRow,
   AdminFilterBar,
@@ -258,7 +259,7 @@ function VariableRegistryContent() {
         />
       }
     >
-      {activeTab === "catalog" ? (
+      <AdminTabPanel tabId="catalog" activeTab={activeTab}>
         <>
           <AdminStatsRow columns={5}>
             <AdminStatCard label="Total Variables" value={stats?.total ?? variables.length} icon={<ListChecks size={14}/>} />
@@ -324,7 +325,7 @@ function VariableRegistryContent() {
                 </thead>
                 <tbody className="divide-y divide-border">
                   {filteredVariables.map(v => (
-                    <React.Fragment key={v.variable_id}>
+                    <Fragment key={v.variable_id}>
                       <tr
                         className="hover:bg-muted transition-colors group cursor-pointer"
                         onClick={() => setExpandedVariable(expandedVariable === v.variable_id ? null : v.variable_id)}
@@ -453,7 +454,7 @@ function VariableRegistryContent() {
                           </td>
                         </tr>
                       )}
-                    </React.Fragment>
+                    </Fragment>
                   ))}
                 </tbody>
               </table>
@@ -467,7 +468,8 @@ function VariableRegistryContent() {
             </div>
           )}
         </>
-      ) : (
+      </AdminTabPanel>
+      <AdminTabPanel tabId="bindings" activeTab={activeTab}>
         <>
           <div className="mb-6">
             <div className="flex items-center justify-between mb-4">
@@ -510,7 +512,7 @@ function VariableRegistryContent() {
             </AdminStatsRow>
           </div>
         </>
-      )}
+      </AdminTabPanel>
 
       <AdminConfirmDialog
         open={!!deleteTarget}

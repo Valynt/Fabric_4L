@@ -5,6 +5,11 @@
 export { AdminShell, type AdminShellProps } from "./AdminShell";
 export { AdminTabs, type AdminTab, type AdminTabsProps } from "./AdminTabs";
 export {
+  AdminTabPanel,
+  getTabA11yIds,
+  type AdminTabPanelProps,
+} from "./AdminTabPanel";
+export {
   AdminStatCard,
   AdminStatsRow,
   type AdminStatCardProps,

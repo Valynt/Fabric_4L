@@ -32,6 +32,7 @@ import { Btn } from "@/components/ui/fabric";
 import {
   AdminShell,
   AdminTabs,
+  AdminTabPanel,
   AdminStatCard,
   AdminStatsRow,
   AdminErrorState,
@@ -536,7 +537,7 @@ function PlatformSettingsContent() {
         </AdminStatsRow>
       )}
 
-      {activeTab === "features" && (
+      <AdminTabPanel tabId="features" activeTab={activeTab}>
         <div className="space-y-3">
           {(Object.keys(settings.features) as Array<keyof TenantSettings['features']>).map(feature => (
             <FeatureToggle
@@ -548,31 +549,31 @@ function PlatformSettingsContent() {
             />
           ))}
         </div>
-      )}
+      </AdminTabPanel>
 
-      {activeTab === "notifications" && (
+      <AdminTabPanel tabId="notifications" activeTab={activeTab}>
         <NotificationsPanel
           settings={settings.notifications}
           onUpdate={(updates) => handleUpdate({ notifications: updates })}
           isPending={updateMutation.isPending}
         />
-      )}
+      </AdminTabPanel>
 
-      {activeTab === "security" && (
+      <AdminTabPanel tabId="security" activeTab={activeTab}>
         <SecurityPanel
           settings={settings.security}
           onUpdate={(updates) => handleUpdate({ security: updates })}
           isPending={updateMutation.isPending}
         />
-      )}
+      </AdminTabPanel>
 
-      {activeTab === "branding" && (
+      <AdminTabPanel tabId="branding" activeTab={activeTab}>
         <BrandingPanel
           branding={settings.branding}
           onUpdate={(updates) => handleUpdate({ branding: updates })}
           isPending={updateMutation.isPending}
         />
-      )}
+      </AdminTabPanel>
     </AdminShell>
   );
 }

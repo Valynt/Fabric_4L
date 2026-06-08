@@ -61,48 +61,50 @@ export function AdminConfirmDialog({
               {title}
             </AlertDialogTitle>
           </div>
-          <AlertDialogDescription className="vf-text-body-m space-y-3">
-            {description && <p>{description}</p>}
-            {itemName && (
-              <p className="font-medium text-foreground">
-                Target: <span className="font-semibold">{itemName}</span>
-              </p>
-            )}
-            {(tenantName || tenantId) && (
-              <div
-                className={cn(
-                  "flex items-start gap-2 rounded-lg border p-3",
-                  variant === "destructive"
-                    ? "border-destructive/20 bg-destructive/5"
-                    : "border-warning/20 bg-warning/5"
-                )}
-              >
-                <Building2
+          <AlertDialogDescription asChild>
+            <div className="vf-text-body-m space-y-3">
+              {description && <p>{description}</p>}
+              {itemName && (
+                <p className="font-medium text-foreground">
+                  Target: <span className="font-semibold">{itemName}</span>
+                </p>
+              )}
+              {(tenantName || tenantId) && (
+                <div
                   className={cn(
-                    "h-4 w-4 mt-0.5 shrink-0",
-                    variant === "destructive" ? "text-destructive" : "text-warning"
+                    "flex items-start gap-2 rounded-lg border p-3",
+                    variant === "destructive"
+                      ? "border-destructive/20 bg-destructive/5"
+                      : "border-warning/20 bg-warning/5"
                   )}
-                />
-                <div className="space-y-0.5">
-                  <p
+                >
+                  <Building2
                     className={cn(
-                      "vf-text-caption font-semibold",
+                      "h-4 w-4 mt-0.5 shrink-0",
                       variant === "destructive" ? "text-destructive" : "text-warning"
                     )}
-                  >
-                    Tenant scope
-                  </p>
-                  <p className="vf-text-caption text-foreground">
-                    {tenantName || "Unknown tenant"}
-                    {tenantId && (
-                      <span className="block font-mono text-muted-foreground">
-                        ID: {tenantId}
-                      </span>
-                    )}
-                  </p>
+                  />
+                  <div className="space-y-0.5">
+                    <p
+                      className={cn(
+                        "vf-text-caption font-semibold",
+                        variant === "destructive" ? "text-destructive" : "text-warning"
+                      )}
+                    >
+                      Tenant scope
+                    </p>
+                    <p className="vf-text-caption text-foreground">
+                      {tenantName || "Unknown tenant"}
+                      {tenantId && (
+                        <span className="block font-mono text-muted-foreground">
+                          ID: {tenantId}
+                        </span>
+                      )}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+            </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
