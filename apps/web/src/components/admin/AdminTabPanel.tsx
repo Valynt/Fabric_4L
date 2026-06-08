@@ -37,7 +37,7 @@ export function AdminTabPanel({
       hidden={!isActive}
       className={cn(className)}
     >
-      {children}
+      {isActive ? children : null}
     </div>
   );
 }
