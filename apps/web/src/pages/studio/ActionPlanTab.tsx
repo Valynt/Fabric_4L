@@ -14,6 +14,7 @@ import { useAccount } from "@/hooks/useAccounts";
 import { useNavigation } from "@/hooks";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
 
 // DIL hooks
@@ -192,7 +193,7 @@ export default function ActionPlanTab() {
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return (

@@ -13,6 +13,7 @@ import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import {
   useCanonicalCaseId,
   usePersistWorkspaceTab,
@@ -215,14 +216,17 @@ export default function ValueModelTab() {
   }
   if (error || generateMutation.isError) {
     return (
-      <div className="p-6 text-sm text-destructive">
-        Failed to load value model.
-      </div>
+      <ErrorState
+        title="Failed to load value model"
+        description="The value model data could not be retrieved."
+        error={error || generateMutation.error}
+        fullPage
+      />
     );
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return (
@@ -300,18 +304,14 @@ export default function ValueModelTab() {
           <div className="flex items-center justify-between mb-4">
             <div className="flex gap-2">
               {(Object.keys(SCENARIO_LABELS) as Scenario[]).map((s) => (
-                <button
+                <Btn
                   key={s}
+                  variant={scenario === s ? "primary" : "ghost"}
                   onClick={() => setScenario(s)}
-                  className={cn(
-                    "px-3 py-1.5 vf-text-caption font-semibold rounded-md",
-                    scenario === s
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted"
-                  )}
+                  className="vf-text-caption"
                 >
                   {SCENARIO_LABELS[s]}
-                </button>
+                </Btn>
               ))}
             </div>
             <div className="flex gap-3 items-center">

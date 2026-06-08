@@ -7,6 +7,7 @@ import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import { useAttachEvidenceToDriverMutation, useCanonicalCaseId, useEvidenceDecisionMutation, usePersistWorkspaceTab, useValidateEvidenceClaim, useWorkspaceTabQuery } from "@/hooks/useWorkspaceCase";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/blocks/SectionCard";
@@ -58,7 +59,7 @@ export function EvidenceTabContent() {
   }
 
   if (isLoading) return <CenteredLoader message="Loading evidence…" />;
-  if (error) return <div className="p-6 text-sm text-destructive">Failed to load evidence.</div>;
+  if (error) return <ErrorState title="Failed to load evidence" description="The evidence data could not be retrieved." error={error} fullPage />;
 
   return (
     <>
@@ -126,7 +127,7 @@ export default function EvidenceTab() {
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return (

@@ -28,6 +28,7 @@ import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import { cn } from "@/lib/utils";
 import {
   useEnrichAccount,
@@ -41,7 +42,7 @@ import {
   type DealReadiness,
 } from "@/hooks/useIntelligence";
 import { SectionCard } from "@/components/blocks/SectionCard";
-import { MetricCard, StatusBadge } from "@/components/ui/fabric";
+import { MetricCard, StatusBadge, Btn } from "@/components/ui/fabric";
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -205,7 +206,7 @@ export default function EnrichmentTab() {
   }
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return (
@@ -264,18 +265,14 @@ export default function EnrichmentTab() {
 
       {/* Enrich action */}
       <div className="flex items-center gap-3 mb-6">
-        <button
+        <Btn
+          variant="primary"
           onClick={() => {
             if (accountId) {
               enrichAccount.mutate({ accountId, params: { force: false } });
             }
           }}
           disabled={enrichAccount.isPending}
-          className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-colors",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
         >
           {enrichAccount.isPending ? (
             <Loader2 size={14} className="animate-spin" />
@@ -283,18 +280,18 @@ export default function EnrichmentTab() {
             <RefreshCw size={14} />
           )}
           {enrichAccount.isPending ? "Enriching…" : "Enrich Account"}
-        </button>
-        <button
+        </Btn>
+        <Btn
+          variant="outline"
           onClick={() => {
             if (accountId) {
               enrichAccount.mutate({ accountId, params: { force: true } });
             }
           }}
           disabled={enrichAccount.isPending}
-          className="inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold border border-border text-foreground hover:bg-muted/50 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Force Re-enrich
-        </button>
+        </Btn>
         {enrichment?.last_enriched_at && (
           <span className="vf-text-micro text-muted-foreground flex items-center gap-1">
             <Clock size={10} />

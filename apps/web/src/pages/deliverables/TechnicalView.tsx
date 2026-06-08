@@ -19,6 +19,8 @@ import { useBusinessCase, useBusinessCaseExport } from "@/hooks/useDocuments";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { PageHeader, Btn } from "@/components/ui/fabric";
+import { PageShell } from "@/components";
+import { ErrorState } from "@/components/states/ErrorState";
 
 export default function TechnicalView() {
   const [searchParams] = useSearchParams();
@@ -28,25 +30,31 @@ export default function TechnicalView() {
   const exportMutation = useBusinessCaseExport();
 
   if (isLoading) return (
-    <div className="p-6 max-w-5xl mx-auto space-y-4">
-      <Skeleton className="h-10 w-64" />
-      <div className="grid grid-cols-3 gap-4">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div>
-      <Skeleton className="h-64" />
-    </div>
+    <PageShell>
+      <PageHeader title="Technical Review" />
+      <div className="space-y-4">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-3 gap-4">{[1,2,3].map(i => <Skeleton key={i} className="h-24" />)}</div>
+        <Skeleton className="h-64" />
+      </div>
+    </PageShell>
   );
 
   if (error || !bc) return (
-    <div className="p-6 max-w-5xl mx-auto">
-      <div className="flex flex-col items-center py-16">
-        <AlertCircle size={24} className="text-destructive mb-2" />
-        <p className="vf-text-body-m text-muted-foreground">{caseId ? "Failed to load business case." : "No case selected."}</p>
-        {tenantSlug && accountId ? (
-          <Link to={deliverableRoutes.businessCaseList(tenantSlug, accountId)} className="mt-3 vf-text-body-s text-primary hover:underline">Back to Cases</Link>
-        ) : (
-          <Link to="/deliverables/cases" className="mt-3 vf-text-body-s text-primary hover:underline">Back to Cases</Link>
-        )}
-      </div>
-    </div>
+    <PageShell>
+      <ErrorState
+        title={caseId ? "Failed to load business case" : "No case selected"}
+        description={caseId
+          ? "The business case could not be loaded. It may have been deleted or you may not have permission to view it."
+          : "Navigate from the case list to view a specific business case."}
+        error={error}
+        fallbackAction={
+          <Link to={tenantSlug && accountId ? deliverableRoutes.businessCaseList(tenantSlug, accountId) : "/deliverables/cases"}>
+            <Btn variant="outline">Back to Cases</Btn>
+          </Link>
+        }
+      />
+    </PageShell>
   );
 
   const metadata = bc.case_metadata || {};
@@ -60,7 +68,7 @@ export default function TechnicalView() {
     : "/deliverables/cases";
 
   return (
-    <div className="p-6 max-w-5xl mx-auto">
+    <PageShell className="max-w-5xl">
       <PageHeader
         title={`Technical Review: ${bc.title}`}
         subtitle="Implementation details and evidence provenance"
@@ -181,6 +189,6 @@ export default function TechnicalView() {
           </div>
         </SectionCard>
       )}
-    </div>
+    </PageShell>
   );
 }

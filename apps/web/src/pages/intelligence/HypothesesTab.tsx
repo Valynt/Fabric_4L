@@ -57,9 +57,9 @@ function confidenceBar(score: number) {
       <div className="w-16 bg-muted rounded-full h-1.5">
         <div
           className={cn("h-1.5 rounded-full", {
-            "bg-success/100": pct >= 70,
-            "bg-warning/100": pct >= 40 && pct < 70,
-            "bg-destructive/100": pct < 40,
+            "bg-success": pct >= 70,
+            "bg-warning": pct >= 40 && pct < 70,
+            "bg-destructive": pct < 40,
           })}
           style={{ width: `${pct}%` }}
         />
@@ -292,7 +292,8 @@ export default function HypothesesTab() {
 
       {/* Actions bar */}
       <div className="flex items-center gap-3 mb-6">
-        <button
+        <Btn
+          variant="primary"
           onClick={() => {
             if (accountId) {
               generateHypotheses.mutate({
@@ -302,11 +303,6 @@ export default function HypothesesTab() {
             }
           }}
           disabled={generateHypotheses.isPending}
-          className={cn(
-            "inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-colors",
-            "bg-primary text-primary-foreground hover:bg-primary/90",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
         >
           {generateHypotheses.isPending ? (
             <Loader2 size={14} className="animate-spin" />
@@ -314,7 +310,7 @@ export default function HypothesesTab() {
             <Sparkles size={14} />
           )}
           {generateHypotheses.isPending ? "Generating…" : "Generate Hypotheses"}
-        </button>
+        </Btn>
 
         {/* Status filter */}
         <div className="flex items-center gap-1 ml-auto">
@@ -378,7 +374,8 @@ export default function HypothesesTab() {
               </p>
             )}
             {hypotheses.length === 0 && (
-              <button
+              <Btn
+                variant="primary"
                 onClick={() => {
                   if (accountId) {
                     generateHypotheses.mutate({
@@ -388,11 +385,6 @@ export default function HypothesesTab() {
                   }
                 }}
                 disabled={generateHypotheses.isPending}
-                className={cn(
-                  "inline-flex items-center gap-2 px-4 py-2 rounded-md text-xs font-semibold transition-colors",
-                  "bg-primary text-primary-foreground hover:bg-primary/90",
-                  "disabled:opacity-50 disabled:cursor-not-allowed"
-                )}
               >
                 {generateHypotheses.isPending ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -400,7 +392,7 @@ export default function HypothesesTab() {
                   <Sparkles size={14} />
                 )}
                 {generateHypotheses.isPending ? "Generating…" : "Generate Hypotheses"}
-              </button>
+              </Btn>
             )}
           </div>
         </SectionCard>

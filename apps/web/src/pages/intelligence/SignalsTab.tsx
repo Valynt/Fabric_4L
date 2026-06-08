@@ -56,16 +56,16 @@ const LIFECYCLE_BADGE: Record<ValueSignalLifecycleState, { label: string; classN
 };
 
 const TYPE_DOT: Record<string, string> = {
-  Pain:               "bg-destructive/100",
-  Opportunity:        "bg-success/100",
-  Risk:               "bg-warning/100",
-  Expansion:          "bg-primary/100",
-  Renewal:            "bg-warning/100",
-  "Cost Saving":      "bg-success/100",
-  "Revenue Uplift":   "bg-primary/100",
-  Efficiency:         "bg-info/100",
-  Compliance:         "bg-primary/100",
-  "Strategic Priority": "bg-primary/100",
+  Pain:               "bg-destructive",
+  Opportunity:        "bg-success",
+  Risk:               "bg-warning",
+  Expansion:          "bg-primary",
+  Renewal:            "bg-warning",
+  "Cost Saving":      "bg-success",
+  "Revenue Uplift":   "bg-primary",
+  Efficiency:         "bg-info",
+  Compliance:         "bg-primary",
+  "Strategic Priority": "bg-primary",
 };
 
 // ---------------------------------------------------------------------------

@@ -7,6 +7,7 @@ import { useAgentEvents } from "@/agui";
 import { useAccount } from "@/hooks/useAccounts";
 import { AccountRequiredGuard } from "@/components/AccountRequiredGuard";
 import { CenteredLoader } from "@/components/CenteredLoader";
+import { ErrorState } from "@/components/states/ErrorState";
 import { useCanonicalCaseId, usePersistWorkspaceTab, useWorkspaceTabQuery } from "@/hooks/useWorkspaceCase";
 import { cn } from "@/lib/utils";
 import { SectionCard } from "@/components/blocks/SectionCard";
@@ -33,10 +34,10 @@ export default function DriversTab() {
   }
 
   if (accountLoading || isLoading) return <CenteredLoader message="Loading drivers…" />;
-  if (error) return <div className="p-6 text-sm text-destructive">Failed to load drivers.</div>;
+  if (error) return <ErrorState title="Failed to load drivers" description="The driver data could not be retrieved." error={error} fullPage />;
 
   if (!account) {
-    return <div className="p-6 text-sm text-destructive">Account not found.</div>;
+    return <ErrorState title="Account not found" description="Select a valid account to continue in this workspace." fullPage />;
   }
 
   return <IntelligenceShell account={{ accountName: account?.name ?? "Account", industry: account?.industry ?? "Unknown", revenue: account?.annual_revenue ? `$${account.annual_revenue.toLocaleString()}` : "N/A" }} rightRail={<RightRail mode={railMode} onModeChange={setRailMode} activeTab="drivers" detailContent={selectedDriver ? <div className="space-y-3"><h3 className="text-sm font-bold">{selectedDriver.name}</h3><p className="text-xs text-muted-foreground">{selectedDriver.parentSignal}</p></div> : null} messages={messages} onSendMessage={sendMessage} suggestedActions={suggestedActions} steps={steps} isStreaming={isStreaming} runMetadata={metadata} />}>
