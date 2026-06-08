@@ -22,7 +22,7 @@
     "generate:openapi-types": "node scripts/generate-openapi-types.mjs"
   },
   "devDependencies": {
-    "typescript": "5.6.3"
+    "typescript": "6.0.3"
   },
   "license": "MIT"
 }
