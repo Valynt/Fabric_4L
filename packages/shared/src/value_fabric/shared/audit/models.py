@@ -72,6 +72,23 @@ class AuditAction(str, Enum):
     WEBHOOK_RECEIVED = "webhook.received"
     WEBHOOK_PROCESSING_FAILED = "webhook.processing_failed"
 
+    # ── Billing ──────────────────────────────────────────────────────────────
+    BILLING_SUBSCRIPTION_CREATED = "billing.subscription.created"
+    BILLING_SUBSCRIPTION_UPDATED = "billing.subscription.updated"
+    BILLING_SUBSCRIPTION_CANCELED = "billing.subscription.canceled"
+    BILLING_SUBSCRIPTION_REACTIVATED = "billing.subscription.reactivated"
+    BILLING_PLAN_CHANGED = "billing.plan.changed"
+    BILLING_CHECKOUT_INITIATED = "billing.checkout.initiated"
+    BILLING_PORTAL_OPENED = "billing.portal.opened"
+    BILLING_INVOICE_CREATED = "billing.invoice.created"
+    BILLING_INVOICE_UPDATED = "billing.invoice.updated"
+    BILLING_INVOICE_FINALIZED = "billing.invoice.finalized"
+    BILLING_INVOICE_VOIDED = "billing.invoice.voided"
+    BILLING_CHARGE_RECORDED = "billing.charge.recorded"
+    BILLING_USAGE_INGESTED = "billing.usage.ingested"
+    BILLING_CUSTOMER_SYNCED = "billing.customer.synced"
+    BILLING_WEBHOOK_RECEIVED = "billing.webhook.received"
+
     # ── Merged from root shared/audit/models.py ──────────────────────────────
     CREATE = "create"
     READ = "read"

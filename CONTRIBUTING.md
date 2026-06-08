@@ -75,7 +75,7 @@ Use these companion governance references during onboarding and before opening a
 
 ## Before You Add A Service Layer
 
-Per **[ADR-027](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md)**, the
+Per **[ADR-027](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md)**, the
 canonical implementation tree for every layer is
 `services/layer{N}-*/src/`. The matching `value_fabric/layer{N}/` package is a
 **namespace shim only** — do not add new logic there. Concretely:
@@ -120,7 +120,7 @@ Before adding compatibility wrappers or legacy aliases in runtime code, add/upda
 
 ### Layer placement rule (all layers)
 
-Per [ADR-021](docs/architecture/ADR-021-layer-3-canonical-runtime-path.md) and the
+Per [ADR-021](docs/explanations/adr/ADR-021-layer-3-canonical-runtime-path.md) and the
 [layer runtime path governance matrix](docs/reference/layer-runtime-path-governance.md):
 
 - Canonical runtime code for every layer belongs in `services/layer{N}-*/src/`.
@@ -183,7 +183,7 @@ Historical or ad hoc outputs (quality reports, test dumps, diagnostics, temporar
 
 ### TypeScript / React
 
-- Linter: **ESLint** (configured in `frontend/`)
+- Linter: **ESLint** (configured in `apps/web/`)
 - Formatter: **Prettier**
 - Avoid `any` unless strictly necessary and documented
 - Co-locate tests with components using Vitest
@@ -229,7 +229,7 @@ Test categories:
 |----------|----------|-------|
 | Unit | `services/*/tests/` | Deterministic, no external calls, fast |
 | Integration | `services/*/tests/` | May use Docker services, marked `@pytest.mark.integration` |
-| E2E | `frontend/e2e/` | Playwright, critical flows only |
+| E2E | `apps/web/e2e/` | Playwright, critical flows only |
 | Contract | `tests/contract/` | Validate tool manifest schemas |
 | Evals | `tests/evals/` | Golden traces for agent skills |
 

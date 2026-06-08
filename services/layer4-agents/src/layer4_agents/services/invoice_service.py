@@ -523,6 +523,7 @@ class InvoiceService:
 
         query = query.order_by(BillingCharge.created_at.desc())
         query = query.limit(limit).offset(offset)
+        query = query.options(selectinload(BillingCharge.invoice))
 
         result = await self.db.execute(query)
         return list(result.scalars().all())

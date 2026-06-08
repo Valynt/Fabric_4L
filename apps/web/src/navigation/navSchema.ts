@@ -105,6 +105,7 @@ export const NAV_SCHEMA: NavSchemaNode[] = [
       { id: "gov-policies", label: "Policies", path: "/t/:tenantSlug/governance/policies", tier: "admin" },
       { id: "gov-audit-log", label: "Audit Log", path: "/t/:tenantSlug/governance/audit-log", tier: "admin" },
       { id: "gov-health", label: "Health", path: "/t/:tenantSlug/governance/health", tier: "admin" },
+      { id: "gov-billing", label: "Billing & Subscription", path: "/t/:tenantSlug/governance/billing", tier: "admin" },
     ],
   },
   {

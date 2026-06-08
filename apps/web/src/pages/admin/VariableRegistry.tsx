@@ -12,7 +12,7 @@
  * - Usage tracking
  */
 
-import { useState, useMemo, Fragment } from "react";
+import React, { useState, useMemo, Fragment } from "react";
 import { useLocation } from "react-router-dom";
 import {
   ListChecks, Plus, Search, Edit3, Trash2, Eye, Link2,
