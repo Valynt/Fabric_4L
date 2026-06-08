@@ -864,13 +864,14 @@ async def ingest_usage_batch(
 
     # Pre-check overages for the batch
     overage_svc = OverageService(db, tenant_id=context.tenant_id)
-    total_by_metric: dict[str, float] = {}
+    total_by_customer_metric: dict[tuple[str, str], float] = {}
     for ev in request.events:
-        total_by_metric[ev.metric_name] = total_by_metric.get(ev.metric_name, 0) + ev.quantity
+        key = (ev.customer_id, ev.metric_name)
+        total_by_customer_metric[key] = total_by_customer_metric.get(key, 0) + ev.quantity
     
-    for metric_name, total_qty in total_by_metric.items():
+    for (customer_id, metric_name), total_qty in total_by_customer_metric.items():
         check = await overage_svc.validate_request(
-            customer_id=request.events[0].customer_id,
+            customer_id=customer_id,
             metric_name=metric_name,
             requested_quantity=total_qty,
         )
