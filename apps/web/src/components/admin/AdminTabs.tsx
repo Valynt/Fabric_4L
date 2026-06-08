@@ -67,12 +67,6 @@ export function AdminTabs({ tabs, activeTab, onChange, className }: AdminTabsPro
               "relative px-4 py-2.5 vf-text-body-s font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
               isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}
-            aria-controls={panelId}
-            onClick={() => onChange(tab.id)}
-            className={cn(
-              "relative px-4 py-2.5 vf-text-body-s font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
-            )}
           >
             <span className="flex items-center gap-2">
               {tab.icon}
