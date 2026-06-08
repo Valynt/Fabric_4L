@@ -859,6 +859,33 @@ async def ingest_usage_batch(
     context: RequestContext = Depends(require_authenticated),
 ) -> dict[str, Any]:
     """Ingest multiple usage events in a batch."""
+    if not request.events:
+        return {"events": []}
+
+    # Pre-check overages for the batch
+    overage_svc = OverageService(db, tenant_id=context.tenant_id)
+    total_by_metric: dict[str, float] = {}
+    for ev in request.events:
+        total_by_metric[ev.metric_name] = total_by_metric.get(ev.metric_name, 0) + ev.quantity
+    
+    for metric_name, total_qty in total_by_metric.items():
+        check = await overage_svc.validate_request(
+            customer_id=request.events[0].customer_id,
+            metric_name=metric_name,
+            requested_quantity=total_qty,
+        )
+        if not check.get("allowed", True):
+            from value_fabric.shared.error_handling.exceptions import RateLimitError
+            raise RateLimitError(
+                message=check.get("error", "Usage limit exceeded"),
+                details={
+                    "limit": check.get("limit"),
+                    "current_usage": check.get("current_usage"),
+                    "overage": check.get("overage"),
+                    "metric": metric_name,
+                },
+            )
+
     usage_svc = UsageService(db, tenant_id=context.tenant_id)
     raw_events = []
     for ev in request.events:

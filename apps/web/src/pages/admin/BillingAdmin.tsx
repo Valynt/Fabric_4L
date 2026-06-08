@@ -308,7 +308,6 @@ function BillingAdminContent() {
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [search, setSearch] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
-  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const { user } = useAuthContext();
   const customerId = user?.tenantId ?? "";
@@ -319,6 +318,7 @@ function BillingAdminContent() {
     error: subError,
     openCustomerPortal,
     isOpeningPortal,
+    portalError,
   } = useBilling(customerId);
 
   const { data: entitlements } = useEntitlements(customerId);
@@ -343,7 +343,6 @@ function BillingAdminContent() {
 
   const handleViewInvoice = (invoice: Invoice) => {
     setSelectedInvoice(invoice);
-    setDrawerOpen(true);
   };
 
   const filteredInvoices = search
@@ -457,10 +456,17 @@ function BillingAdminContent() {
       subtitle="Manage plans, invoices, usage, and payment methods."
       fullWidth
       actions={
-        <Btn variant="outline" onClick={handleOpenPortal} disabled={isOpeningPortal || !customerId}>
-          <ExternalLink size={13} className="mr-1" />
-          {isOpeningPortal ? "Opening…" : "Stripe Portal"}
-        </Btn>
+        <div className="flex items-center gap-3">
+          {portalError && (
+            <span className="text-sm text-destructive font-medium">
+              {portalError.message || "Failed to open portal"}
+            </span>
+          )}
+          <Btn variant="outline" onClick={handleOpenPortal} disabled={isOpeningPortal || !customerId}>
+            <ExternalLink size={13} className="mr-1" />
+            {isOpeningPortal ? "Opening…" : "Stripe Portal"}
+          </Btn>
+        </div>
       }
       tabs={
         <AdminTabs
@@ -535,7 +541,7 @@ function BillingAdminContent() {
 
       <InvoiceDetailDrawer
         invoice={selectedInvoice}
-        onClose={() => { setDrawerOpen(false); setSelectedInvoice(null); }}
+        onClose={() => setSelectedInvoice(null)}
       />
     </AdminShell>
   );

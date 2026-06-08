@@ -110,6 +110,7 @@ export type RouteState =
   | "governance-policies"
   | "governance-audit-log"
   | "governance-health"
+  | "governance-billing"
   // Agents & Workflows (account-scoped)
   | "agents"
   | "agents-thread"
@@ -245,6 +246,7 @@ const ROUTE_MAP: Record<RouteState, RouteConfig> = {
   "governance-policies": { path: "/t/:tenantSlug/governance/policies", params: ["tenantSlug"], analyticsRouteId: "governance.policies" },
   "governance-audit-log": { path: "/t/:tenantSlug/governance/audit-log", params: ["tenantSlug"], analyticsRouteId: "governance.audit-log" },
   "governance-health": { path: "/t/:tenantSlug/governance/health", params: ["tenantSlug"], analyticsRouteId: "governance.health" },
+  "governance-billing": { path: "/t/:tenantSlug/governance/billing", params: ["tenantSlug"], analyticsRouteId: "governance.billing" },
 
   // Agents & Workflows
   agents: { path: "/t/:tenantSlug/accounts/:accountId/agents", params: ["tenantSlug", "accountId"], analyticsRouteId: "agents.console" },

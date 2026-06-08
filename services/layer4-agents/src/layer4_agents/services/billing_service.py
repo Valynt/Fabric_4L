@@ -480,8 +480,10 @@ class BillingService:
             )
         )
         await self.db.execute(stmt)
+        await self.db.commit()
         result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
         inbox = result.scalar_one()
+        await self.db.commit()
         if inbox.status == "processed":
             logger.info("billing.webhook.duplicate_processed", extra={"event_id": event_id, "event_type": event_type, "duplicate_count": 1})
             self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
@@ -494,6 +496,7 @@ class BillingService:
         stripe = _get_stripe()
         event = stripe.Webhook.construct_event(payload, signature, webhook_secret)
         event_type = event["type"]
+        # Fetch inside implicit transaction
         result = await self.db.execute(select(BillingWebhookEvent).where(BillingWebhookEvent.id == event_id))
         inbox = result.scalar_one_or_none()
         if inbox is None or inbox.status == "processed":
@@ -501,8 +504,6 @@ class BillingService:
                 self._emit_webhook_metric("duplicate", event_id=event_id, event_type=event_type)
             return
         
-        # Start transaction for guaranteed rollback on any exception
-        await self.db.begin()
         try:
             started_at = self._utc_now()
             inbox.status = "processing"
