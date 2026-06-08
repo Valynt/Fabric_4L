@@ -95,6 +95,7 @@ const VersionHistoryPage = lazy(() => import("@/pages/VersionHistoryPage"));
 const BenchmarkPoliciesPage = lazy(() => import("@/pages/admin/BenchmarkPolicies"));
 const HealthMonitorPage = lazy(() => import("@/pages/admin/HealthMonitor"));
 const SuperAdminConsolePage = lazy(() => import("@/pages/admin/SuperAdminConsole"));
+const BillingAdminPage = lazy(() => import("@/pages/admin/BillingAdmin"));
 
 // ── Dev Tools ──
 const IntegrationDashboard = lazy(() => import("@/pages/dev/IntegrationDashboard"));
@@ -721,6 +722,15 @@ export const router = createBrowserRouter([
           </UnifiedRouteGuard>
         ),
         handle: { accessPolicy: tenantAdminPolicy("governance.health") },
+      },
+      {
+        path: "/t/:tenantSlug/governance/billing",
+        element: (
+          <UnifiedRouteGuard>
+            <BillingAdminPage />
+          </UnifiedRouteGuard>
+        ),
+        handle: { accessPolicy: tenantAdminPolicy("governance.billing") },
       },
 
       // ═══════════════════════════════════════════════════════════════
