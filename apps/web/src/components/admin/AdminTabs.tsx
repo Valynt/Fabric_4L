@@ -34,8 +34,39 @@ export function AdminTabs({ tabs, activeTab, onChange, className }: AdminTabsPro
           <button
             key={tab.id}
             id={tabButtonId}
+            type="button"
             role="tab"
             aria-selected={isActive}
+            aria-controls={panelId}
+            tabIndex={isActive ? 0 : -1}
+            onKeyDown={(e) => {
+              if (!tabs.length) return;
+              if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) return;
+              e.preventDefault();
+
+              const currentIndex = tabs.findIndex((t) => t.id === tab.id);
+              if (currentIndex < 0) return;
+
+              const nextIndex =
+                e.key === "Home"
+                  ? 0
+                  : e.key === "End"
+                    ? tabs.length - 1
+                    : e.key === "ArrowRight"
+                      ? (currentIndex + 1) % tabs.length
+                      : (currentIndex - 1 + tabs.length) % tabs.length;
+
+              const nextId = tabs[nextIndex]?.id;
+              if (!nextId) return;
+
+              onChange(nextId);
+              document.getElementById(getTabA11yIds(nextId).tabButtonId)?.focus();
+            }}
+            onClick={() => onChange(tab.id)}
+            className={cn(
+              "relative px-4 py-2.5 vf-text-body-s font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+              isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
+            )}
             aria-controls={panelId}
             onClick={() => onChange(tab.id)}
             className={cn(
