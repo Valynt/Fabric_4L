@@ -35,6 +35,7 @@ import {
 import { createFeatureLogger } from "@/lib/telemetry";
 import { SectionCard } from "@/components/blocks/SectionCard";
 import { Input } from "@/components/ui/input";
+import { PageShell } from "@/components";
 import { PageHeader, Btn } from "@/components/ui/fabric";
 
 const log = createFeatureLogger('FormulaGovernance');
